@@ -7,7 +7,7 @@
     "build": "tsc -p tsconfig.json",
     "start": "node dist/main.js",
     "worker": "npm run build && node --env-file=.env dist/worker.js",
-    "test": "vitest run test/domain.test.ts",
+    "test": "vitest run test/domain.test.ts test/database-retry.test.ts",
     "test:integration": "vitest run test/integration.test.ts --maxWorkers=1",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate deploy",

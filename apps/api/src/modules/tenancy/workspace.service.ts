@@ -1,3 +1,4 @@
+import { StoreReadQueries } from "./infrastructure/store-read-queries";
 import {
   orderFulfillment,
   outstandingSupply,
@@ -445,100 +446,75 @@ export class WorkspaceService {
             select: { id: true, result: true },
           })
         : [];
-      const movements = delta
-        ? await tx.stockMovement.findMany({
-            where: {
-              storeId: store,
-              operationId: {
-                in: [...changes.map((c) => c.id), ...accepted.map((a) => a.id)],
+      const movements =
+        delta && (changes.length > 0 || accepted.length > 0)
+          ? await tx.stockMovement.findMany({
+              where: {
+                storeId: store,
+                operationId: {
+                  in: [
+                    ...changes.map((c) => c.id),
+                    ...accepted.map((a) => a.id),
+                  ],
+                },
               },
-            },
-            select: { lotId: true },
-            distinct: ["lotId"],
-            take: 1501,
-          })
-        : [];
+              select: { lotId: true },
+              distinct: ["lotId"],
+              take: 1501,
+            })
+          : [];
       const useDelta = delta && movements.length <= 1500;
       const changedLots = movements.map((m) => m.lotId);
       const changedProducts = changes
         .filter((c) => c.entity === "product.configure")
         .map((c) => c.entityId);
-      const [
-        config,
-        lots,
-        sales,
-        alerts,
-        points,
-        rewards,
-        claims,
-        orders,
-        deliveries,
-        memberships,
-        storeData,
-        cursor,
-      ] = await Promise.all([
-        tx.storeProduct.findMany({
-          where: {
-            storeId: store,
-            ...(useDelta ? { productId: { in: changedProducts } } : {}),
-          },
-          orderBy: { id: "asc" },
-          take: 1000,
-        }),
-        tx.inventoryLot.findMany({
-          where: {
-            storeId: store,
-            ...(useDelta ? { id: { in: changedLots } } : {}),
-          },
-          orderBy: { id: "asc" },
-          take: useDelta ? 1500 : 500,
-        }),
-        tx.sale.findMany({
-          where: { storeId: store, ...(!manage ? { sellerId: actor.id } : {}) },
-          orderBy: [{ occurredAt: "desc" }, { id: "desc" }],
-          take: 100,
-        }),
-        tx.alert.findMany({
-          where: { storeId: store, active: true },
-          orderBy: { createdAt: "desc" },
-          take: 200,
-        }),
-        tx.pointsAccount.findUnique({
-          where: { storeId_userId: { storeId: store, userId: actor.id } },
-        }),
-        tx.reward.findMany({
-          where: { storeId: store, ...(!manage ? { active: true } : {}) },
-          orderBy: { title: "asc" },
-          take: 200,
-        }),
-        tx.rewardClaim.findMany({
-          where: { storeId: store, ...(!manage ? { userId: actor.id } : {}) },
-          orderBy: { createdAt: "desc" },
-          take: 100,
-        }),
-        tx.replenishmentOrder.findMany({
-          where: { storeId: store },
-          orderBy: { createdAt: "desc" },
-          take: 100,
-        }),
-        tx.delivery.findMany({
-          where: { storeId: store, status: "dispatched" },
-          orderBy: { dispatchedAt: "desc" },
-          take: 100,
-        }),
-        manage
-          ? tx.membership.findMany({ where: { storeId: store }, take: 200 })
-          : Promise.resolve([]),
-        tx.store.findUniqueOrThrow({ where: { id: store } }),
-        tx.storeCursor.findUnique({ where: { storeId: store } }),
-      ]);
+      const [config, lots, sales, alerts, collections, memberships, storeData] =
+        await Promise.all([
+          useDelta && changedProducts.length === 0
+            ? Promise.resolve([])
+            : tx.storeProduct.findMany({
+                where: {
+                  storeId: store,
+                  ...(useDelta ? { productId: { in: changedProducts } } : {}),
+                },
+                orderBy: { id: "asc" },
+                take: 1000,
+              }),
+          useDelta && changedLots.length === 0
+            ? Promise.resolve([])
+            : tx.inventoryLot.findMany({
+                where: {
+                  storeId: store,
+                  ...(useDelta ? { id: { in: changedLots } } : {}),
+                },
+                orderBy: { id: "asc" },
+                take: useDelta ? 1500 : 500,
+              }),
+          new StoreReadQueries(tx, scope).recentSales(),
+          manage
+            ? tx.alert.findMany({
+                where: { storeId: store, active: true },
+                orderBy: { createdAt: "desc" },
+                take: 200,
+              })
+            : Promise.resolve([]),
+          new StoreReadQueries(tx, scope).snapshotCollections(),
+          manage
+            ? tx.membership.findMany({ where: { storeId: store }, take: 200 })
+            : Promise.resolve([]),
+          tx.store.findUniqueOrThrow({ where: { id: store } }),
+        ]);
+      const { points, rewards, claims, orders, deliveries } = collections;
+      const cursor = currentCursor;
       const fulfillment = await orderFulfillment(tx, org, store, orders);
       const supply = await outstandingSupply(tx, org, store);
       const onboarding = manage ? await onboardingProgress(tx, store) : null;
-      const users = await tx.user.findMany({
-        where: { id: { in: memberships.map((m) => m.userId) } },
-        select: { id: true, name: true, email: true },
-      });
+      const users = memberships.length
+        ? await tx.user.findMany({
+            where: { id: { in: memberships.map((m) => m.userId) } },
+            select: { id: true, name: true, email: true },
+          })
+        : [];
       const invitations = manage
         ? await tx.accessToken.findMany({
             where: {
@@ -564,13 +540,15 @@ export class WorkspaceService {
         const result = a.result as unknown as { data?: { id?: string } };
         return result.data?.id ? [result.data.id] : [];
       });
-      const acknowledgedSales = await tx.sale.findMany({
-        where: {
-          storeId: store,
-          id: { in: acknowledgedSaleIds },
-          ...(!manage ? { sellerId: actor.id } : {}),
-        },
-      });
+      const acknowledgedSales = acknowledgedSaleIds.length
+        ? await tx.sale.findMany({
+            where: {
+              storeId: store,
+              id: { in: acknowledgedSaleIds },
+              ...(!manage ? { sellerId: actor.id } : {}),
+            },
+          })
+        : [];
       for (const sale of acknowledgedSales) {
         if (!sales.some((s) => s.id === sale.id)) sales.push(sale);
       }
@@ -726,7 +704,7 @@ export class WorkspaceService {
       const base = { storeId: store, ...(after ? { id: { gt: after } } : {}) };
       const options = { orderBy: { id: "asc" as const }, take: 200 };
       if (resource === "lots")
-        return tx.inventoryLot.findMany({ where: base, ...options });
+        return new StoreReadQueries(tx, scope).lots(after);
       if (resource === "config")
         return tx.storeProduct.findMany({ where: base, ...options });
       if (resource === "products")
@@ -738,7 +716,8 @@ export class WorkspaceService {
         return tx.sale.findMany({
           where: {
             ...base,
-            ...(scope.permissions.includes("manage") || actor.platformAdmin
+            ...(scope.permissions.includes("manage") ||
+            scope.actor.platformAdmin
               ? {}
               : { sellerId: actor.id }),
           },
@@ -765,8 +744,6 @@ export class WorkspaceService {
     before?: string,
   ) {
     return this.db.scoped(actor, org, store, async (tx, scope) => {
-      const manage =
-        scope.actor.platformAdmin || scope.permissions.includes("manage");
       if (resource === "movements" || resource === "audit") this.manager(scope);
       let cursor: { id: string; date: Date } | undefined;
       if (before) {
@@ -798,16 +775,10 @@ export class WorkspaceService {
       };
       let items: Record<string, any>[];
       if (resource === "sales")
-        items = await tx.sale.findMany({
-          ...options,
-          where: {
-            ...base,
-            ...(!manage ? { sellerId: actor.id } : {}),
-            ...(productId
-              ? { lines: { array_contains: [{ productId }] } }
-              : {}),
-          },
-        });
+        items = await new StoreReadQueries(tx, scope).recentSales(
+          cursor,
+          productId,
+        );
       else if (resource === "points")
         items = await tx.pointsEntry.findMany({
           ...options,
@@ -872,7 +843,7 @@ export class WorkspaceService {
       requireRule(sale, "NOT_FOUND", "Vente introuvable.", 404);
       requireRule(
         sale.sellerId === actor.id ||
-          actor.platformAdmin ||
+          scope.actor.platformAdmin ||
           scope.permissions.includes("manage"),
         "FORBIDDEN",
         "Accès refusé.",

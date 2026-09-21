@@ -23,8 +23,8 @@ L’application est en développement et n’est pas encore qualifiée pour une 
 | Vérification | Résultat constaté |
 |---|---|
 | Compilation TypeScript | Réussie |
-| Tests domaine backend | 6 réussis |
-| Tests PostgreSQL réels avec rôle restreint | 20 réussis + 3 tests de traitement média réel + 5 tests notifications/workers |
+| Tests domaine et reprise transactionnelle backend | 10 réussis |
+| Tests PostgreSQL réels avec rôle restreint | 22 réussis + 3 tests de traitement média réel + 5 tests notifications/workers |
 | Tests Flutter de reprise, migration et dispositions d’écran | 69 réussis ; 2 parcours HTTP réels et 1 test de contrats Dart exécutés séparément et réussis |
 | Build Android debug | APK natifs de test compilés ; parcours et force-stop réussis sur émulateur Android, appareils physiques en attente |
 | Sauvegarde/restauration isolée | Réussie sur les données de développement ; archive média vide, à compléter avec des médias réels traités |
@@ -39,7 +39,7 @@ Un passage des tests PostgreSQL a expiré pendant une forte saturation mémoire 
 - Parcours UI Android, révocation en cours de saisie, erreur SQLite et force-stop vérifiés ; compléter la recette native iOS et les essais physiques.
 - Lecture vidéo hors ligne vérifiée sur émulateur Android ; liens natifs et transferts interrompus sur appareils physiques restent à vérifier.
 - Exécuter tests caméra/push, accessibilité, rotation et stabilité mémoire sur Android/iOS physiques ; compiler iOS sur macOS et produire les builds signés.
-- Préparer les données de charge représentatives, exécuter 100 req/s et le pic 200 req/s sur le VPS de référence ; mesurer réellement démarrage, recherche, persistance et fluidité. Aucune de ces performances n’est encore revendiquée.
+- Charge locale 100/200 req/s et benchmark SQLite exécutés (voir étape 10). Rejouer sur le VPS de référence ; démarrage, persistance/recherche et fluidité restent à qualifier sur appareils physiques.
 - Renseigner VPS/domaine/SMTP/Firebase/APNs/signatures, valider renouvellement TLS/supervision, puis effectuer le pilote et corriger ses retours.
 
 Les sauvegardes hors VPS, la haute disponibilité, les abonnements payants, l’admin web, WhatsApp et les classements hors magasin restent reportés conformément au périmètre approuvé.
@@ -72,7 +72,7 @@ Implémentation et vérifications locales terminées : commit `7f25895`.
 | 7. Contrats et nettoyage | Implémentation et vérification locale terminées (voir registre ci-dessous) |
 | 8. Notifications/workers | Implémentation et vérification locale terminées ; FCM/APNs réels en attente |
 | 9. Parcours complets | Vérification locale terminée sur émulateur Android ; iOS/appareils physiques en attente |
-| 10. Performances/appareils | À réaliser ; appareils physiques requis pour les mesures correspondantes |
+| 10. Performances/appareils | Charge API et SQLite mesurées localement ; VPS/appareils physiques en attente |
 | 11. Déploiement/reprise | À réaliser ; dépôt distant/VPS/DNS requis pour les vérifications externes |
 | 12. Versions signées/pilote | En attente des comptes de signature et participants ; pilote de deux semaines requis |
 
@@ -174,6 +174,8 @@ Commit : `bdb14a7`.
 
 ### Étape 9 — Parcours complets et pannes
 
+Commit : `a8b4610`.
+
 Implémentation et validation locale terminées ; validations iOS et physiques en attente.
 
 - Parcours Flutter natif administrateur → responsable → vendeur contre Nest/HTTP et une base PostgreSQL isolée avec rôle restreint. Activation réelle, MFA admin, magasin, produit/formation, stock initial, prix/points, équipe, récompense, commande/expédition/réception, vente/correction/retour, demande/remise de récompense, annonce/boîte de réception et accès retiré pendant une saisie.
@@ -186,3 +188,16 @@ Implémentation et validation locale terminées ; validations iOS et physiques e
 - Job CI Android émulateur ajouté ; variante du parcours de rôles préparée pour simulateur iOS. Dépôt distant/macOS, appareils physiques, caméra réelle, screen reader manuel et acheminement FCM/APNs restent en attente. Les journaux locaux sont conservés dans `.artifacts/evidence/step9/` (ignorés par Git) ; procédures dans `tests/journeys/README.md`.
 
 À contrôler à l’étape 11 : le Compose actuel partage un fichier d’environnement complet ; restreindre explicitement les variables de chaque service pour que les API/workers ne reçoivent pas les credentials du propriétaire/migrations.
+
+### Étape 10 — Charge et mesures
+
+Implémentation et mesures locales terminées ; qualification VPS et appareils physiques en attente. Commit enregistré après cette validation.
+
+- Générateur reproductible pour 125 organisations, 500 magasins, 5 000 comptes, 200 produits, 300 000 lots et deux millions de ventes avec révisions, mouvements, points, audits et curseurs. Refus d’une base peuplée, aucune suppression d’historique ; comptes de test et tokens privés séparés des preuves versionnées.
+- k6 2.3.0 vérifié par checksum ; deux API en mode production, curseurs persistants par compte/magasin, pagination des snapshots et mélange de lectures/ventes. Workflow de charge manuel préparé ; CI distante non exécutée.
+- Les premiers pics échouaient par saturation CPU. Profils conservés ; accès courant regroupé dans la transaction, projections paginées typées, petites collections de snapshot groupées, lectures vides supprimées et alertes lues par groupe de produits. Aucun cache de droits, aucune réduction des données autorisées. Soldes >2^53 vérifiés exactement.
+- Reprise bornée des conflits de sérialisation/deadlock exposés directement au commit par l’adaptateur PostgreSQL ; quatre tests dédiés vérifient tentatives, épuisement et non-reprise des autres erreurs. Deux nouveaux tests PostgreSQL couvrent droits/sessions courants, pagination sans doublon, portée vendeur, filtres produit et soldes exacts.
+- Mesure finale sur i5-1135G7/16 Go : 100 req/s pendant 5 min + 200 req/s pendant 30 s. 36 001 requêtes, 3 603 ventes acceptées, zéro erreur/rejet/itération perdue. p95 lecture/écriture : 20,91/49,28 ms en continu ; 164,78/367,87 ms au pic. Vérification finale : aucun stock/version/solde/révision incohérent sur 2 015 587 ventes conservées.
+- Benchmark Flutter VM Linux : 120 enregistrements durables p95 15,580 ms ; recherche 0,184 ms ; changement de magasin 11,505 ms ; réouverture SQLite 15,481 ms. Ces chiffres ne mesurent pas le démarrage ou le rendu natif.
+- Validation : compilation TypeScript, 10 tests métier/reprise, 22 PostgreSQL, 5 notifications/workers, 45 contrats HTTP et les deux parcours de synchronisation HTTP/SQLite/PostgreSQL passants. Dérive du contrat/fichiers générés absente, analyse Dart sans erreur et syntaxe des scripts vérifiée.
+- Preuves versionnées et conditions : `docs/performance-evidence.md`, `tests/performance/evidence/`. Procédure physique : `tests/performance/devices.md`. Le test local exclut Nginx/TLS/workers : la capacité du VPS complet, le démarrage ≤2,5 s, les images manquées <1 %, caméra/vidéo/mémoire et iOS physiques restent des portes de sortie non validées.

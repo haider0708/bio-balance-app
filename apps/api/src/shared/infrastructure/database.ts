@@ -3,6 +3,24 @@ import { PrismaClient, Prisma } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { Actor, Scope } from "../../modules/operations/domain/contracts";
 import { DomainError, requireRule } from "../domain/errors";
+function isRetryableTransaction(error: unknown): boolean {
+  // The pg adapter can expose commit-time serialization failures directly,
+  // while statement failures are wrapped by Prisma.
+  if (error instanceof Error && error.name === "DriverAdapterError") {
+    const cause = error.cause as { originalCode?: string } | undefined;
+    return ["40001", "40P01"].includes(cause?.originalCode ?? "");
+  }
+  if (!(error instanceof Prisma.PrismaClientKnownRequestError)) return false;
+  if (["P2034", "P2002"].includes(error.code)) return true;
+  const cause = error.meta?.driverAdapterError as
+    { cause?: { originalCode?: string } } | undefined;
+  return (
+    error.code === "P2010" &&
+    ["40001", "40P01"].includes(
+      String(error.meta?.code ?? cause?.cause?.originalCode),
+    )
+  );
+}
 export function json(value: unknown): Prisma.InputJsonValue {
   return JSON.parse(
     JSON.stringify(value, (_k, v) =>
@@ -25,8 +43,20 @@ export class Database extends PrismaClient implements OnModuleDestroy {
   }
   async verifySession(tx: Prisma.TransactionClient, actor: Actor) {
     if (!actor.sessionId) return; // Internal jobs/tests carry explicit server actors.
-    const session = await tx.session.findFirst({where:{id:actor.sessionId,userId:actor.id,revokedAt:null,expiresAt:{gt:new Date()}}});
-    requireRule(session, "SESSION_EXPIRED", "Votre session a expiré. Vos opérations locales sont conservées.", 401);
+    const session = await tx.session.findFirst({
+      where: {
+        id: actor.sessionId,
+        userId: actor.id,
+        revokedAt: null,
+        expiresAt: { gt: new Date() },
+      },
+    });
+    requireRule(
+      session,
+      "SESSION_EXPIRED",
+      "Votre session a expiré. Vos opérations locales sont conservées.",
+      401,
+    );
   }
   async scoped<T>(
     actor: Actor,
@@ -38,42 +68,72 @@ export class Database extends PrismaClient implements OnModuleDestroy {
       try {
         return await this.$transaction(
           async (tx) => {
-            await this.verifySession(tx, actor);
-            const store = await tx.store.findFirst({
-              where: { id: storeId, organizationId },
-            });
-            requireRule(store, "STORE_ACCESS_REVOKED", "Magasin inaccessible.", 403);
-            const user = await tx.user.findUnique({ where: { id: actor.id } });
+            // Resolve current identity, session and membership in the same
+            // transaction as the operation, with one indexed read.
+            const [access] = await tx.$queryRaw<
+              {
+                storeId: string | null;
+                userId: string | null;
+                timezone: string | null;
+                disabled: boolean | null;
+                platformAdmin: boolean | null;
+                memberActive: boolean;
+                ownerActive: boolean;
+                permissions: string[];
+                sessionValid: boolean;
+              }[]
+            >`SELECT s.id AS "storeId",s.timezone,u.id AS "userId",u.disabled,u."platformAdmin",
+              COALESCE(m.active,false) AS "memberActive",COALESCE(o.active,false) AS "ownerActive",
+              COALESCE(m.permissions,'{}'::text[]) AS permissions,
+              (${actor.sessionId ?? null}::uuid IS NULL OR EXISTS(
+                SELECT 1 FROM "Session" ss WHERE ss.id=${actor.sessionId ?? null}::uuid
+                AND ss."userId"=${actor.id}::uuid AND ss."revokedAt" IS NULL
+                AND ss."expiresAt">(CURRENT_TIMESTAMP AT TIME ZONE 'UTC'))) AS "sessionValid"
+              FROM (SELECT 1) anchor
+              LEFT JOIN "Store" s ON s.id=${storeId}::uuid AND s."organizationId"=${organizationId}::uuid
+              LEFT JOIN "User" u ON u.id=${actor.id}::uuid
+              LEFT JOIN "Membership" m ON m."storeId"=s.id AND m."userId"=u.id
+              LEFT JOIN "OrganizationMembership" o ON o."organizationId"=s."organizationId" AND o."userId"=u.id`;
             requireRule(
-              user && !user.disabled,
+              access,
+              "INTERNAL_ERROR",
+              "Vérification d’accès indisponible.",
+              500,
+            );
+            requireRule(
+              access.sessionValid,
+              "SESSION_EXPIRED",
+              "Votre session a expiré. Vos opérations locales sont conservées.",
+              401,
+            );
+            requireRule(
+              access.storeId,
+              "STORE_ACCESS_REVOKED",
+              "Magasin inaccessible.",
+              403,
+            );
+            requireRule(
+              access.userId && !access.disabled,
               "ACCESS_DISABLED",
               "Votre accès a été désactivé.",
               403,
             );
-            const member = await tx.membership.findUnique({
-              where: { storeId_userId: { storeId, userId: actor.id } },
-            });
-            const owner = await tx.organizationMembership.findUnique({
-              where: {
-                organizationId_userId: { organizationId, userId: actor.id },
-              },
-            });
             requireRule(
-              user.platformAdmin || member?.active || owner?.active,
+              access.platformAdmin || access.memberActive || access.ownerActive,
               "STORE_ACCESS_REVOKED",
               "Magasin inaccessible.",
               403,
             );
             const permissions =
-              user.platformAdmin || owner?.active
+              access.platformAdmin || access.ownerActive
                 ? ["manage", "sell", "receive"]
-                : member!.permissions;
+                : access.permissions;
             await tx.$executeRaw`SELECT set_config('app.organization_id',${organizationId},true), set_config('app.store_id',${storeId},true), set_config('app.actor_id',${actor.id},true)`;
             const scope: Scope = {
-              actor: { ...actor, platformAdmin: user.platformAdmin },
+              actor: { ...actor, platformAdmin: access.platformAdmin! },
               organizationId,
               storeId,
-              timezone: store.timezone,
+              timezone: access.timezone!,
               permissions,
             };
             return fn(tx, scope);
@@ -81,21 +141,7 @@ export class Database extends PrismaClient implements OnModuleDestroy {
           { isolationLevel: "Serializable", maxWait: 5000, timeout: 15000 },
         );
       } catch (error) {
-        if (
-          error instanceof Prisma.PrismaClientKnownRequestError &&
-          (["P2034", "P2002"].includes(error.code) ||
-            (error.code === "P2010" &&
-              ["40001", "40P01"].includes(
-                String(
-                  error.meta?.code ??
-                    (
-                      error.meta?.driverAdapterError as
-                        { cause?: { originalCode?: string } } | undefined
-                    )?.cause?.originalCode,
-                ),
-              ))) &&
-          attempt < 3
-        ) {
+        if (isRetryableTransaction(error) && attempt < 3) {
           await new Promise((r) =>
             setTimeout(r, 20 * 2 ** attempt + Math.random() * 20),
           );
@@ -109,6 +155,12 @@ export class Database extends PrismaClient implements OnModuleDestroy {
             "DUPLICATE_RESOURCE",
             "Cet enregistrement existe déjà.",
             409,
+          );
+        if (isRetryableTransaction(error))
+          throw new DomainError(
+            "RETRY_LATER",
+            "Opération occupée. Réessayez.",
+            503,
           );
         throw error;
       }

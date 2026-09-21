@@ -157,32 +157,32 @@ export class IdentityService {
       "Veuillez vous reconnecter.",
       401,
     );
-    const session = await this.db.session.findUnique({
-      where: { tokenHash: tokenHash(token) },
-    });
+    const [user] = await this.db.$queryRaw<(Actor & { disabled: boolean })[]>`
+      SELECT u.id,u.email,u.name,u."platformAdmin",u.disabled,s.id AS "sessionId"
+      FROM "Session" s JOIN "User" u ON u.id=s."userId"
+      WHERE s."tokenHash"=${tokenHash(token)} AND s."revokedAt" IS NULL
+        AND s."expiresAt">(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')`;
     requireRule(
-      session && !session.revokedAt && session.expiresAt > new Date(),
+      user,
       "SESSION_EXPIRED",
       "Votre session a expiré. Vos opérations locales sont conservées.",
       401,
     );
-    const user = await this.db.user.findUnique({
-      where: { id: session.userId },
-    });
     requireRule(
-      user && !user.disabled,
+      !user.disabled,
       "ACCESS_DISABLED",
       "Votre accès est désactivé.",
       403,
     );
     return {
       id: user.id,
-      sessionId:session.id,
+      sessionId: user.sessionId,
       email: user.email,
       name: user.name,
       platformAdmin: user.platformAdmin,
     };
   }
+
   async logout(token: string) {
     await this.db.session.updateMany({
       where: { tokenHash: tokenHash(token) },
@@ -265,18 +265,35 @@ export class IdentityService {
       };
     };
     if (input.storeId) {
-      return this.db.scoped(actor, organizationId!, input.storeId, async (tx, scope) => {
-        requireRule(scope.actor.platformAdmin || scope.permissions.includes("manage"),
-          "FORBIDDEN", "Accès réservé au responsable.", 403);
-        return create(tx);
-      });
+      return this.db.scoped(
+        actor,
+        organizationId!,
+        input.storeId,
+        async (tx, scope) => {
+          requireRule(
+            scope.actor.platformAdmin || scope.permissions.includes("manage"),
+            "FORBIDDEN",
+            "Accès réservé au responsable.",
+            403,
+          );
+          return create(tx);
+        },
+      );
     }
-    return this.db.$transaction(async tx => {
-      await this.db.verifySession(tx, actor);
-      const current = await tx.user.findUnique({where:{id:actor.id}});
-      requireRule(current?.platformAdmin && !current.disabled, "FORBIDDEN", "Seul BioBalance peut inviter un responsable.", 403);
-      return create(tx);
-    }, {isolationLevel:"Serializable"});
+    return this.db.$transaction(
+      async (tx) => {
+        await this.db.verifySession(tx, actor);
+        const current = await tx.user.findUnique({ where: { id: actor.id } });
+        requireRule(
+          current?.platformAdmin && !current.disabled,
+          "FORBIDDEN",
+          "Seul BioBalance peut inviter un responsable.",
+          403,
+        );
+        return create(tx);
+      },
+      { isolationLevel: "Serializable" },
+    );
   }
   async activate(token: string, name: string, password: string) {
     const hash = await argon2.hash(password, {

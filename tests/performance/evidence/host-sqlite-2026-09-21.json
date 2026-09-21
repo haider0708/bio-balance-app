@@ -1,0 +1,38 @@
+{
+  "timestamp": "2026-09-21T21:29:32.667015Z",
+  "runtime": "3.13.4 (stable) (Tue Sep 15 01:01:15 2026 -0700) on \"linux_x64\"",
+  "os": "linux",
+  "physicalReferenceDevice": false,
+  "mode": "host Flutter test VM; not release or cold app startup",
+  "fixture": {
+    "cachedStores": 4,
+    "productsPerStore": 200,
+    "lotsPerStore": 600,
+    "recentSalesPerStore": 100,
+    "pendingSales": 120
+  },
+  "localSalePersistence": {
+    "samples": 120,
+    "p50Ms": 11.896,
+    "p95Ms": 15.58,
+    "maxMs": 82.737
+  },
+  "cachedStoreLoadAndSwitch": {
+    "samples": 100,
+    "p50Ms": 7.221,
+    "p95Ms": 11.505,
+    "maxMs": 15.056
+  },
+  "cachedProductSearch": {
+    "samples": 100,
+    "p50Ms": 0.066,
+    "p95Ms": 0.184,
+    "maxMs": 0.637
+  },
+  "sqliteReopenAndLoad": {
+    "samples": 30,
+    "p50Ms": 12.078,
+    "p95Ms": 15.481,
+    "maxMs": 16.108
+  }
+}

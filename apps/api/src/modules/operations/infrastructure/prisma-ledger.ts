@@ -48,11 +48,21 @@ export class PrismaLedger implements Ledger {
     };
   }
   async cursor() {
-    return (await this.tx.storeCursor.findUniqueOrThrow({where:{storeId:this.scope.storeId}})).value.toString();
+    return (
+      await this.tx.storeCursor.findUniqueOrThrow({
+        where: { storeId: this.scope.storeId },
+      })
+    ).value.toString();
   }
   async dependenciesAccepted(ids: string[]) {
     if (!ids.length) return true;
-    const accepted = await this.tx.processedOperation.count({ where: { ...this.context, actorId: this.scope.actor.id, id: { in: [...new Set(ids)] } } });
+    const accepted = await this.tx.processedOperation.count({
+      where: {
+        ...this.context,
+        actorId: this.scope.actor.id,
+        id: { in: [...new Set(ids)] },
+      },
+    });
     return accepted === new Set(ids).size;
   }
   async prior(id: string, hash: string) {
@@ -90,25 +100,54 @@ export class PrismaLedger implements Ledger {
       where: { storeId: this.scope.storeId },
       data: { value: { increment: 1 } },
     });
-    const movements = await this.tx.stockMovement.findMany({ where: { ...this.context, operationId: id }, select: { lotId: true }, distinct: ["lotId"] });
-    const lots = await this.tx.inventoryLot.findMany({ where: { ...this.context, id: { in: movements.map(m => m.lotId) } }, select: { id: true, version: true } });
+    const movements = await this.tx.stockMovement.findMany({
+      where: { ...this.context, operationId: id },
+      select: { lotId: true },
+      distinct: ["lotId"],
+    });
+    const lots = await this.tx.inventoryLot.findMany({
+      where: { ...this.context, id: { in: movements.map((m) => m.lotId) } },
+      select: { id: true, version: true },
+    });
     result.committedCursor = cursor.value.toString();
-    result.affectedVersions = lots.map(l => ({ resource: "lots", ...l }));
-    if (entity.startsWith("sale.") && typeof result.data?.version === "number") {
-      result.affectedVersions.push({ resource: "sales", id: entityId, version: result.data.version });
+    result.affectedVersions = lots.map((l) => ({ resource: "lots", ...l }));
+    if (
+      entity.startsWith("sale.") &&
+      typeof result.data?.version === "number"
+    ) {
+      result.affectedVersions.push({
+        resource: "sales",
+        id: entityId,
+        version: result.data.version,
+      });
     }
-    if(entity.startsWith('order.')) {
-      const order=await this.tx.replenishmentOrder.findUniqueOrThrow({where:{id:entityId},select:{id:true,version:true}});
-      result.affectedVersions.push({resource:'orders',...order});
+    if (entity.startsWith("order.")) {
+      const order = await this.tx.replenishmentOrder.findUniqueOrThrow({
+        where: { id: entityId },
+        select: { id: true, version: true },
+      });
+      result.affectedVersions.push({ resource: "orders", ...order });
     }
-    if(entity.startsWith('delivery.')) {
-      const delivery=await this.tx.delivery.findUniqueOrThrow({where:{id:entityId},select:{id:true,version:true,orderId:true}});
-      const order=await this.tx.replenishmentOrder.findUniqueOrThrow({where:{id:delivery.orderId},select:{id:true,version:true}});
-      result.affectedVersions.push({resource:'deliveries',id:delivery.id,version:delivery.version},{resource:'orders',...order});
+    if (entity.startsWith("delivery.")) {
+      const delivery = await this.tx.delivery.findUniqueOrThrow({
+        where: { id: entityId },
+        select: { id: true, version: true, orderId: true },
+      });
+      const order = await this.tx.replenishmentOrder.findUniqueOrThrow({
+        where: { id: delivery.orderId },
+        select: { id: true, version: true },
+      });
+      result.affectedVersions.push(
+        { resource: "deliveries", id: delivery.id, version: delivery.version },
+        { resource: "orders", ...order },
+      );
     }
-    if(entity.startsWith('reward.')) {
-      const claim=await this.tx.rewardClaim.findUniqueOrThrow({where:{id:entityId},select:{id:true,version:true}});
-      result.affectedVersions.push({resource:'claims',...claim});
+    if (entity.startsWith("reward.")) {
+      const claim = await this.tx.rewardClaim.findUniqueOrThrow({
+        where: { id: entityId },
+        select: { id: true, version: true },
+      });
+      result.affectedVersions.push({ resource: "claims", ...claim });
     }
     await this.tx.processedOperation.create({
       data: {
@@ -132,20 +171,56 @@ export class PrismaLedger implements Ledger {
   }
   lotsForProduct(productId: string) {
     return this.tx.inventoryLot.findMany({
-      where: { ...this.context, productId, sellable:{gt:0}, expiry:{gte:new Date(`${localDate(new Date(),this.scope.timezone)}T00:00:00Z`)} },
+      where: {
+        ...this.context,
+        productId,
+        sellable: { gt: 0 },
+        expiry: {
+          gte: new Date(
+            `${localDate(new Date(), this.scope.timezone)}T00:00:00Z`,
+          ),
+        },
+      },
       orderBy: [{ expiry: "asc" }, { id: "asc" }],
       take: 1000,
     });
   }
-  async declareBatch(lotId: string, productId: string, batch: string, expiry: string) {
-    requireRule(lotId === lotIdentity(this.scope.storeId, productId, batch, expiry),
-      "INVALID_LOT_IDENTITY", "L’identifiant du lot ne correspond pas à ses informations.");
+  async declareBatch(
+    lotId: string,
+    productId: string,
+    batch: string,
+    expiry: string,
+  ) {
+    requireRule(
+      lotId === lotIdentity(this.scope.storeId, productId, batch, expiry),
+      "INVALID_LOT_IDENTITY",
+      "L’identifiant du lot ne correspond pas à ses informations.",
+    );
     await this.rate(productId);
     const lot = await this.tx.inventoryLot.upsert({
-      where:{storeId_productId_batch_expiry:{storeId:this.scope.storeId,productId,batch,expiry:new Date(`${expiry}T00:00:00Z`)}},
-      create:{id:lotId,...this.context,productId,batch,expiry:new Date(`${expiry}T00:00:00Z`)}, update:{},
+      where: {
+        storeId_productId_batch_expiry: {
+          storeId: this.scope.storeId,
+          productId,
+          batch,
+          expiry: new Date(`${expiry}T00:00:00Z`),
+        },
+      },
+      create: {
+        id: lotId,
+        ...this.context,
+        productId,
+        batch,
+        expiry: new Date(`${expiry}T00:00:00Z`),
+      },
+      update: {},
     });
-    requireRule(lot.id === lotId, "LOT_IDENTITY_CONFLICT", "Ce lot existe déjà. Actualisez ses informations.",409);
+    requireRule(
+      lot.id === lotId,
+      "LOT_IDENTITY_CONFLICT",
+      "Ce lot existe déjà. Actualisez ses informations.",
+      409,
+    );
     // Metadata only: the sale's stock movement records the real outgoing units.
     return lot;
   }
@@ -367,7 +442,12 @@ export class PrismaLedger implements Ledger {
     return { ...item, lines: item.lines as OrderRecord["lines"] };
   }
   async fulfillment(order: OrderRecord) {
-    const result = await orderFulfillment(this.tx, this.scope.organizationId, this.scope.storeId, [order]);
+    const result = await orderFulfillment(
+      this.tx,
+      this.scope.organizationId,
+      this.scope.storeId,
+      [order],
+    );
     return result.get(order.id)!;
   }
   async saveDelivery(value: DeliveryRecord) {
@@ -399,29 +479,79 @@ export class PrismaLedger implements Ledger {
   }
   async checkInventory(id = randomUUID()) {
     if (await this.prior(id, "scheduled")) return;
-    const configured = await this.tx.storeProduct.findMany({where:this.context,select:{productId:true}});
-    const stocked = await this.tx.inventoryLot.findMany({where:this.context,select:{productId:true},distinct:['productId']});
-    await this.alerts([...new Set([...configured,...stocked].map(p=>p.productId))]);
-    await this.finish(id,'scheduled',{operationId:id,status:'accepted'},'inventory.check',this.scope.storeId,{scheduled:true});
+    const configured = await this.tx.storeProduct.findMany({
+      where: this.context,
+      select: { productId: true },
+    });
+    const stocked = await this.tx.inventoryLot.findMany({
+      where: this.context,
+      select: { productId: true },
+      distinct: ["productId"],
+    });
+    await this.alerts([
+      ...new Set([...configured, ...stocked].map((p) => p.productId)),
+    ]);
+    await this.finish(
+      id,
+      "scheduled",
+      { operationId: id, status: "accepted" },
+      "inventory.check",
+      this.scope.storeId,
+      { scheduled: true },
+    );
   }
   async alerts(productIds: string[]) {
-    for (const productId of new Set(productIds)) {
-      const config = await this.tx.storeProduct.findUnique({
-        where: {
-          storeId_productId: { storeId: this.scope.storeId, productId },
-        },
-      });
-      const lots = await this.tx.inventoryLot.findMany({
-        where: { ...this.context, productId },
-      });
-      const today = localDate(new Date(), this.scope.timezone);
+    const ids = [...new Set(productIds)];
+    if (!ids.length) return;
+    const [configurations, inventory, existing] = await Promise.all([
+      this.tx.storeProduct.findMany({
+        where: { ...this.context, productId: { in: ids } },
+      }),
+      this.tx.inventoryLot.findMany({
+        where: { ...this.context, productId: { in: ids } },
+      }),
+      this.tx.alert.findMany({
+        where: { ...this.context, productId: { in: ids } },
+      }),
+    ]);
+    const byProduct = new Map(
+      configurations.map((config) => [config.productId, config]),
+    );
+    const oldAlerts = new Map(existing.map((alert) => [alert.key, alert]));
+    const lotsByProduct = new Map<string, typeof inventory>();
+    for (const lot of inventory) {
+      const group = lotsByProduct.get(lot.productId) ?? [];
+      group.push(lot);
+      lotsByProduct.set(lot.productId, group);
+    }
+    const today = localDate(new Date(), this.scope.timezone);
+    for (const productId of ids) {
+      const config = byProduct.get(productId);
+      const lots = lotsByProduct.get(productId) ?? [];
       const stock = lots
         .filter((l) => l.expiry.toISOString().slice(0, 10) >= today)
         .reduce((sum, l) => sum + Math.max(0, l.sellable), 0);
-      const soon = new Date(`${today}T00:00:00Z`); soon.setUTCDate(soon.getUTCDate()+30);
+      const soon = new Date(`${today}T00:00:00Z`);
+      soon.setUTCDate(soon.getUTCDate() + 30);
       const states = [
-        ['expired', lots.some(l=>l.sellable>0 && l.expiry.toISOString().slice(0,10)<today), 'Lots périmés à isoler'],
-        ['expiring', lots.some(l=>l.sellable>0 && l.expiry.toISOString().slice(0,10)>=today && l.expiry<=soon), 'Lots arrivant à péremption'],
+        [
+          "expired",
+          lots.some(
+            (l) =>
+              l.sellable > 0 && l.expiry.toISOString().slice(0, 10) < today,
+          ),
+          "Lots périmés à isoler",
+        ],
+        [
+          "expiring",
+          lots.some(
+            (l) =>
+              l.sellable > 0 &&
+              l.expiry.toISOString().slice(0, 10) >= today &&
+              l.expiry <= soon,
+          ),
+          "Lots arrivant à péremption",
+        ],
         ["low", stock > 0 && stock <= (config?.threshold ?? 5), "Stock faible"],
         ["zero", stock === 0, "Rupture de stock"],
         [
@@ -432,9 +562,7 @@ export class PrismaLedger implements Ledger {
       ] as const;
       for (const [kind, active, message] of states) {
         const key = `${productId}:${kind}`;
-        const old = await this.tx.alert.findUnique({
-          where: { storeId_key: { storeId: this.scope.storeId, key } },
-        });
+        const old = oldAlerts.get(key);
         if (active && !old?.active) {
           const alert = await this.tx.alert.upsert({
             where: { storeId_key: { storeId: this.scope.storeId, key } },
@@ -477,8 +605,11 @@ export class PrismaLedger implements Ledger {
       ...owners.map((m) => m.userId),
       ...admins.map((u) => u.id),
     ]);
-    const enabled = await this.tx.user.findMany({where:{id:{in:[...users]},disabled:false},select:{id:true}});
-    for (const {id:userId} of enabled) {
+    const enabled = await this.tx.user.findMany({
+      where: { id: { in: [...users] }, disabled: false },
+      select: { id: true },
+    });
+    for (const { id: userId } of enabled) {
       const n = await this.tx.notification.upsert({
         where: { userId_eventKey: { userId, eventKey: key } },
         create: { ...this.context, userId, eventKey: key, title, body },

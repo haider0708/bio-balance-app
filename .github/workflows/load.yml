@@ -1,0 +1,41 @@
+name: Synthetic load measurements
+on: workflow_dispatch
+permissions: { contents: read }
+jobs:
+  measure:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      LOAD_OWNER_DATABASE_URL: postgresql://biobalance:local-development-only@127.0.0.1:54329/biobalance_load_test
+      DATABASE_URL: postgresql://biobalance_app:local-app-only@127.0.0.1:54329/biobalance_load_test
+    services:
+      postgres:
+        image: postgres:17.7-alpine
+        env:
+          POSTGRES_USER: biobalance
+          POSTGRES_PASSWORD: local-development-only
+          POSTGRES_DB: biobalance_load_test
+        ports: ["54329:5432"]
+        options: >-
+          --health-cmd="pg_isready -U biobalance" --health-interval=5s --health-timeout=3s --health-retries=20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version-file: .nvmrc, cache: npm }
+      - run: npm ci && npm run db:generate && npm run build
+      - run: DATABASE_URL="$LOAD_OWNER_DATABASE_URL" npm run db:migrate
+      - run: psql "$LOAD_OWNER_DATABASE_URL" -v app_password=local-app-only -f scripts/provision-role.sql
+      - run: node tests/load/seed.cjs
+      - run: bash scripts/install-k6.sh
+      - run: |
+          mkdir -p .artifacts/evidence/step10
+          lscpu -J > .artifacts/evidence/step10/cpu.json
+          bash scripts/run-load.sh > .artifacts/evidence/step10/k6.log 2>&1
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: synthetic-load-${{ github.sha }}
+          path: |
+            .artifacts/evidence/step10/
+            .artifacts/load-fixtures.json.summary.json
+          retention-days: 30

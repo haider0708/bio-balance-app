@@ -17,7 +17,10 @@ import {
   Command,
   Operation,
 } from "../src/modules/operations/domain/contracts";
-import { IdentityService } from "../src/modules/identity/identity.service";
+import {
+  IdentityService,
+  tokenHash,
+} from "../src/modules/identity/identity.service";
 import { TrainingService } from "../src/modules/training/training.service";
 import { NotificationsService } from "../src/modules/notifications/notifications.service";
 import { WorkspaceService } from "../src/modules/tenancy/workspace.service";
@@ -1310,6 +1313,158 @@ describe.sequential(
       expect(
         await owner.inventoryLot.findUnique({ where: { id: spoofed } }),
       ).toBeNull();
+    });
+    it("rechecks current session and permissions in the optimized access read", async () => {
+      const user = await owner.user.create({
+        data: {
+          email: `${randomUUID()}@example.test`,
+          name: "Access probe",
+          passwordHash: "no-login",
+        },
+      });
+      const membership = await owner.organizationMembership.create({
+        data: {
+          organizationId: org,
+          userId: user.id,
+        },
+      });
+      const token = randomUUID() + randomUUID();
+      const session = await owner.session.create({
+        data: {
+          userId: user.id,
+          tokenHash: tokenHash(token),
+          expiresAt: new Date(Date.now() + 60000),
+        },
+      });
+      const identity = new IdentityService(db);
+      const authenticated = await identity.authenticate(token);
+      expect(authenticated.sessionId).toBe(session.id);
+      expect(
+        await db.scoped(
+          authenticated,
+          org,
+          store,
+          async (_tx, scope) => scope.permissions,
+        ),
+      ).toContain("manage");
+      await owner.organizationMembership.update({
+        where: { id: membership.id },
+        data: { active: false },
+      });
+      await expect(
+        db.scoped(
+          { ...authenticated, platformAdmin: true },
+          org,
+          store,
+          async () => true,
+        ),
+      ).rejects.toMatchObject({ code: "STORE_ACCESS_REVOKED" });
+      await owner.user.update({
+        where: { id: user.id },
+        data: { disabled: true },
+      });
+      await expect(identity.authenticate(token)).rejects.toMatchObject({
+        code: "ACCESS_DISABLED",
+      });
+      await expect(
+        db.scoped(authenticated, org, store, async () => true),
+      ).rejects.toMatchObject({ code: "ACCESS_DISABLED" });
+      await owner.session.update({
+        where: { id: session.id },
+        data: { expiresAt: new Date(Date.now() - 1000) },
+      });
+      await expect(identity.authenticate(token)).rejects.toMatchObject({
+        code: "SESSION_EXPIRED",
+      });
+      await expect(
+        db.scoped(authenticated, org, store, async () => true),
+      ).rejects.toMatchObject({ code: "SESSION_EXPIRED" });
+      await expect(
+        identity.authenticate(randomUUID() + randomUUID()),
+      ).rejects.toMatchObject({ code: "SESSION_EXPIRED" });
+    });
+    it("paginates optimized sale reads without crossing seller or store scope", async () => {
+      const readStore = await owner.store.create({
+        data: {
+          organizationId: org,
+          name: "Read projection fixture",
+          address: "Test address",
+          city: "Tunis",
+        },
+      });
+      for (const userId of [actor.id, seller.id])
+        await owner.membership.create({
+          data: {
+            organizationId: org,
+            storeId: readStore.id,
+            userId,
+            permissions: userId === actor.id ? ["manage"] : ["sell"],
+          },
+        });
+      const rows = Array.from({ length: 201 }, (_, i) => ({
+        id: randomUUID(),
+        organizationId: org,
+        storeId: readStore.id,
+        sellerId: i % 2 ? actor.id : seller.id,
+        occurredAt: new Date("2026-09-21T10:00:00Z"),
+        totalMillimes: 12345n,
+        earnedPoints: 0n,
+        lines: [{ productId: i < 50 ? product : randomUUID(), quantity: 1 }],
+      }));
+      await owner.sale.createMany({ data: rows });
+      const found: string[] = [];
+      let before: string | undefined;
+      do {
+        const page = await workspace.history(
+          actor,
+          org,
+          readStore.id,
+          "sales",
+          undefined,
+          before,
+        );
+        found.push(...page.items.map((row) => row.id));
+        before = page.nextCursor ?? undefined;
+      } while (before);
+      expect(new Set(found).size).toBe(201);
+      expect(found).toEqual(
+        rows
+          .map((row) => row.id)
+          .sort()
+          .reverse(),
+      );
+      const own = await workspace.history(seller, org, readStore.id, "sales");
+      expect(own.items.every((row) => row.sellerId === seller.id)).toBe(true);
+      expect(own.items[0].totalMillimes).toBe(12345n);
+      expect(own.items[0].occurredAt).toEqual(new Date("2026-09-21T10:00:00Z"));
+      const filtered = await workspace.history(
+        actor,
+        org,
+        readStore.id,
+        "sales",
+        product,
+      );
+      expect(filtered.items).toHaveLength(50);
+      const exactBalance = 9007199254740993n;
+      await owner.pointsAccount.create({
+        data: {
+          organizationId: org,
+          storeId: readStore.id,
+          userId: seller.id,
+          balance: exactBalance,
+          reserved: 2n,
+        },
+      });
+      const delta = await workspace.snapshot(
+        seller,
+        org,
+        readStore.id,
+        { cursor: "0", catalogRevision: "invalid" },
+        3,
+      );
+      expect(delta.sales.every((row) => row.sellerId === seller.id)).toBe(true);
+      expect(delta.points.balance).toBe(exactBalance);
+      expect(delta.points.reserved).toBe(2n);
     });
     it("rejects editing append-only histories at database level", async () => {
       const movement = await owner.stockMovement.findFirstOrThrow({
