@@ -8,6 +8,7 @@ import 'package:uuid/uuid.dart';
 import '../../../domain/models/models.dart';
 import '../../../domain/models/money.dart';
 import '../../core/design.dart';
+import '../../core/form_draft.dart';
 import '../../core/formatting.dart';
 export '../../core/formatting.dart';
 import '../workspace/workspace_view_model.dart';
@@ -269,7 +270,16 @@ class _SaleEditorState extends State<_SaleEditor> {
         ),
       ),
     );
-    if (result != null) await vm.put(result);
+    if (result != null) {
+      final saved = await vm.put(result);
+      if (!saved) return;
+      await vm.workspace.repository.saveDraft(
+        vm.workspace.user.id,
+        vm.store.id,
+        'sale-line:${line?.id ?? 'new:$productId'}',
+        {},
+      );
+    }
   }
 
   Future<void> save(SaleViewModel vm) async {
@@ -362,6 +372,8 @@ class LineEditor extends StatefulWidget {
 
 class _LineEditorState extends State<LineEditor> {
   late final TextEditingController price;
+  late final FormDraftController draft;
+  bool restoringDraft = false;
   final allocations = <String, TextEditingController>{};
   String? error;
   late final List<InventoryLot> lots;
@@ -402,10 +414,54 @@ class _LineEditorState extends State<LineEditor> {
             : '0',
       );
     }
+    draft = FormDraftController(
+      widget.workspace,
+      widget.workspace.state.store,
+      'sale-line:${widget.line?.id ?? 'new:${widget.productId}'}',
+      draftValues(),
+    );
+    price.addListener(persistDraft);
+    for (final c in allocations.values) {
+      c.addListener(persistDraft);
+    }
+    unawaited(restoreDraft());
+  }
+
+  Map<String, String> draftValues() => {
+    'price': price.text,
+    for (final e in allocations.entries) e.key: e.value.text,
+  };
+  void persistDraft() {
+    if (restoringDraft) return;
+    unawaited(
+      draft.change(draftValues()).catchError((Object e) {
+        if (mounted) {
+          setState(() => error = 'Impossible de conserver le brouillon.');
+        }
+      }),
+    );
+  }
+
+  Future<void> restoreDraft() async {
+    try {
+      final values = await draft.restore();
+      if (!mounted || values == null) return;
+      restoringDraft = true;
+      price.text = values['price'] ?? price.text;
+      for (final entry in allocations.entries) {
+        entry.value.text = values[entry.key] ?? entry.value.text;
+      }
+      restoringDraft = false;
+    } catch (e) {
+      if (mounted) {
+        setState(() => error = 'Impossible de restaurer le brouillon.');
+      }
+    }
   }
 
   @override
   void dispose() {
+    draft.dispose();
     price.dispose();
     for (final c in allocations.values) {
       c.dispose();

@@ -1,39 +1,8 @@
 // GENERATED from contracts/openapi/biobalance.json. Do not edit.
-import 'package:dio/dio.dart';
+import '../session_transport.dart';
 
-class ApiClient {
-  final Dio http;
-  String? accountId;
-  ApiClient({required String baseUrl, Dio? dio})
-    : http =
-          dio ??
-          Dio(
-            BaseOptions(
-              baseUrl: baseUrl,
-              connectTimeout: const Duration(seconds: 8),
-              receiveTimeout: const Duration(seconds: 20),
-            ),
-          );
-  void authenticate(String? token, {String? accountId}) {
-    this.accountId = accountId;
-    if (token == null) {
-      http.options.headers.remove('Authorization');
-    } else {
-      http.options.headers['Authorization'] = 'Bearer $token';
-    }
-  }
-
-  Future<dynamic> request(
-    String method,
-    String path, {
-    dynamic body,
-    Map<String, dynamic>? query,
-  }) async => (await http.request<dynamic>(
-    path,
-    data: body,
-    queryParameters: query,
-    options: Options(method: method),
-  )).data;
+class ApiClient extends SessionTransport {
+  ApiClient({required super.baseUrl, super.dio});
   Future<Map<String, dynamic>> push(
     List<Map<String, dynamic>> operations,
   ) async => Map<String, dynamic>.from(

@@ -220,6 +220,7 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
                 .where((s) => s['id'] == sale['id'])
                 .firstOrNull ??
             sale;
+        widget.vm.requireAccess(widget.vm.state.store!, 'sell');
         await RecordReturn(widget.vm.repository).execute(
           widget.vm.user,
           widget.vm.state.store!,

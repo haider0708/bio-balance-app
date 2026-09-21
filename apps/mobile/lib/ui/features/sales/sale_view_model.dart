@@ -22,8 +22,21 @@ class SaleViewModel extends ChangeNotifier {
   final Store store;
   final Json? recovery;
   SaleEditorState state = SaleEditorState();
+  bool _closed = false, _completed = false;
+  late final VoidCallback _unregisterDraft;
   SaleViewModel(this.workspace, {this.original, this.recovery})
-    : store = workspace.state.store!;
+    : store = workspace.state.store! {
+    _unregisterDraft = workspace.registerDraft(
+      () => _completed
+          ? Future.value()
+          : workspace.repository.saveDraft(
+              workspace.user.id,
+              store.id,
+              draftKey,
+              {'lines': state.lines.map((l) => l.toJson()).toList()},
+            ),
+    );
+  }
   String get draftKey => recovery != null
       ? 'recovery:${recovery!['saleId']}'
       : original == null
@@ -40,7 +53,7 @@ class SaleViewModel extends ChangeNotifier {
         draft?['lines'] ?? recovery?['lines'] ?? original?['lines'],
       ).map(SaleLine.fromJson).toList(),
     );
-    notifyListeners();
+    if (!_closed) notifyListeners();
   }
 
   int get total =>
@@ -52,7 +65,7 @@ class SaleViewModel extends ChangeNotifier {
         l.quantity *
             integer(workspace.state.data?.config(l.productId)['pointsPerUnit']),
   );
-  Future<void> put(SaleLine line) async {
+  Future<bool> put(SaleLine line) async {
     final lines = [...state.lines];
     final i = lines.indexWhere((l) => l.id == line.id);
     if (i < 0) {
@@ -60,12 +73,12 @@ class SaleViewModel extends ChangeNotifier {
     } else {
       lines[i] = line;
     }
-    await _change(lines);
+    return _change(lines);
   }
 
-  Future<void> remove(String id) =>
+  Future<bool> remove(String id) =>
       _change(state.lines.where((l) => l.id != id).toList());
-  Future<void> _change(List<SaleLine> lines) async {
+  Future<bool> _change(List<SaleLine> lines) async {
     try {
       await workspace.repository.saveDraft(
         workspace.user.id,
@@ -80,13 +93,22 @@ class SaleViewModel extends ChangeNotifier {
         error: 'Le brouillon n’a pas pu être enregistré sur ce téléphone. Vérifiez l’espace disponible.',
       );
     }
-    notifyListeners();
+    if (!_closed) notifyListeners();
+    return state.error == null;
+  }
+
+  @override
+  void dispose() {
+    _closed = true;
+    _unregisterDraft();
+    super.dispose();
   }
 
   Future<bool> save(String reason) async {
     state = SaleEditorState(lines: state.lines, saving: true);
-    notifyListeners();
+    if (!_closed) notifyListeners();
     try {
+      workspace.requireAccess(store, 'sell');
       await RecordSale(workspace.repository).execute(
         workspace.user,
         store,
@@ -97,16 +119,17 @@ class SaleViewModel extends ChangeNotifier {
         recoveredDate: recovery?['occurredAt'],
         supersedes: List<String>.from(recovery?['operationIds'] ?? []),
       );
+      _completed = true;
       await workspace.reloadLocal();
       state = SaleEditorState(lines: state.lines);
-      notifyListeners();
+      if (!_closed) notifyListeners();
       return true;
     } catch (e) {
       state = SaleEditorState(
         lines: state.lines,
         error: SessionViewModel.message(e),
       );
-      notifyListeners();
+      if (!_closed) notifyListeners();
       return false;
     }
   }

@@ -14,6 +14,7 @@ import {
   Command,
   Operation,
 } from "../src/modules/operations/domain/contracts";
+import { IdentityService } from "../src/modules/identity/identity.service";
 import { WorkspaceService } from "../src/modules/tenancy/workspace.service";
 process.env.DATABASE_URL =
   process.env.TEST_APP_DATABASE_URL ??
@@ -135,7 +136,7 @@ describe.sequential(
             }),
           )
         ).code,
-      ).toBe("FORBIDDEN");
+      ).toBe("STORE_ACCESS_REVOKED");
       expect(
         (
           await service.submit(seller, {
@@ -143,7 +144,7 @@ describe.sequential(
             storeId: otherStore,
           })
         ).code,
-      ).toBe("FORBIDDEN");
+      ).toBe("STORE_ACCESS_REVOKED");
     });
     it("receives a batch atomically and deduplicates the operation", async () => {
       const operation = op({
@@ -457,7 +458,7 @@ describe.sequential(
       await workspace.setMember(actor,org,store,seller.id,{active:false,permissions:['sell','receive']});
       const delta=await workspace.snapshot(actor,org,store,{cursor:before.cursor,catalogRevision:before.catalogRevision});
       expect(delta.team.find(m=>m.userId===seller.id)?.active).toBe(false);
-      await expect(workspace.snapshot(seller,org,store)).rejects.toMatchObject({code:'FORBIDDEN'});
+      await expect(workspace.snapshot(seller,org,store)).rejects.toMatchObject({code:'STORE_ACCESS_REVOKED'});
       await workspace.setMember(actor,org,store,seller.id,{active:true,permissions:['sell','receive']});
     });
     it("keeps receipt-sale-damage-correction-return versions and ledgers consistent", async () => {
@@ -503,12 +504,27 @@ describe.sequential(
       await service.submit(actor,op({type:"stock.adjust",lotId:target.id,quantity:9,reason:"Comptage"},target.version));
       expect(await workspace.snapshotPage(actor,org,store,token)).toEqual(before);
       await expect(workspace.snapshotPage(seller,org,store,token)).rejects.toMatchObject({code:"SNAPSHOT_EXPIRED"});
-      await expect(workspace.snapshotPage(actor,org,otherStore,token)).rejects.toMatchObject({code:"FORBIDDEN"});
+      await expect(workspace.snapshotPage(actor,org,otherStore,token)).rejects.toMatchObject({code:"STORE_ACCESS_REVOKED"});
       await workspace.setMember(actor,org,store,seller.id,{active:false,permissions:["sell"]});
-      await expect(workspace.snapshotPage(seller,org,store,token)).rejects.toMatchObject({code:"FORBIDDEN"});
+      await expect(workspace.snapshotPage(seller,org,store,token)).rejects.toMatchObject({code:"STORE_ACCESS_REVOKED"});
       await workspace.setMember(actor,org,store,seller.id,{active:true,permissions:["sell","receive"]});
       await owner.syncSnapshotPage.update({where:{id:token},data:{expiresAt:new Date(0)}});
       await expect(workspace.snapshotPage(actor,org,store,token)).rejects.toMatchObject({code:"SNAPSHOT_EXPIRED"});
+    });
+    it("checks invitation rights in the write transaction and rejects revoked sessions", async () => {
+      const identity = new IdentityService(db);
+      const email = `invite-${randomUUID()}@example.test`;
+      await owner.membership.update({where:{storeId_userId:{storeId:store,userId:actor.id}},data:{permissions:["sell"]}});
+      await expect(identity.invite(actor,{email,organizationId:org,storeId:store,permissions:["sell"]})).rejects.toMatchObject({code:"FORBIDDEN"});
+      expect(await owner.accessToken.count({where:{email}})).toBe(0);
+      await owner.membership.update({where:{storeId_userId:{storeId:store,userId:actor.id}},data:{permissions:["manage","sell","receive"]}});
+      const invitation = await identity.invite(actor,{email,organizationId:org,storeId:store,permissions:["sell"]});
+      expect(invitation.status).toBe("invited");
+      expect(await owner.job.count({where:{key:`invite:${invitation.id}`}})).toBe(1);
+      const session = await owner.session.create({data:{userId:actor.id,tokenHash:randomUUID(),expiresAt:new Date(Date.now()+60_000),revokedAt:new Date()}});
+      const result = await service.submit({...actor,sessionId:session.id},op({type:"stock.receive",reason:"receipt",lines:[{productId:product,batch:"REVOKED",expiry:"2029-12-31",quantity:1}]}));
+      expect(result.code).toBe("SESSION_EXPIRED");
+      expect(await owner.inventoryLot.count({where:{storeId:store,batch:"REVOKED"}})).toBe(0);
     });
     it("rejects editing append-only histories at database level", async () => {
       const movement = await owner.stockMovement.findFirstOrThrow({

@@ -11,7 +11,7 @@ import 'ui/core/design.dart';
 import 'ui/features/authentication/session_view_model.dart';
 import 'ui/features/authentication/login_screen.dart';
 import 'ui/features/workspace/workspace_view_model.dart';
-import 'ui/features/workspace/workspace_screen.dart';
+import 'ui/features/workspace/workspace_navigator.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -58,10 +58,19 @@ class BioBalanceApp extends StatelessWidget {
           if (user == null) return const LoginScreen();
           return ChangeNotifierProvider(
             key: ValueKey(user.id),
-            create: (_) =>
-                WorkspaceViewModel(user, OfflineRepository(database, api), api)
-                  ..initialize(),
-            child: const WorkspaceScreen(),
+            create: (_) {
+              final workspace = WorkspaceViewModel(
+                user,
+                OfflineRepository(database, api),
+                api,
+              );
+              workspace.detachSessionGuard = session.registerExitGuard(
+                workspace.flushDrafts,
+              );
+              workspace.initialize();
+              return workspace;
+            },
+            child: const WorkspaceNavigator(),
           );
         },
       ),

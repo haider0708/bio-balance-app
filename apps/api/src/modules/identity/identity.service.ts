@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import { TOTP, Secret } from "otpauth";
 import { Injectable } from "@nestjs/common";
 import {
@@ -202,19 +203,6 @@ export class IdentityService {
     let organizationId = input.organizationId;
     if (input.storeId) {
       requireRule(organizationId, "VALIDATION", "Organisation requise.");
-      await this.db.scoped(
-        actor,
-        organizationId,
-        input.storeId,
-        async (_tx, scope) => {
-          requireRule(
-            scope.actor.platformAdmin || scope.permissions.includes("manage"),
-            "FORBIDDEN",
-            "Accès réservé au responsable.",
-            403,
-          );
-        },
-      );
       requireRule(
         input.permissions.every((p) =>
           ["sell", "receive", "manage"].includes(p),
@@ -230,7 +218,7 @@ export class IdentityService {
         403,
       );
     const token = randomBytes(32).toString("base64url");
-    return this.db.$transaction(async (tx) => {
+    const create = async (tx: Prisma.TransactionClient) => {
       if (!organizationId)
         organizationId = (
           await tx.organization.create({
@@ -275,7 +263,20 @@ export class IdentityService {
         status: "invited",
         expiresAt: invitation.expiresAt,
       };
-    });
+    };
+    if (input.storeId) {
+      return this.db.scoped(actor, organizationId!, input.storeId, async (tx, scope) => {
+        requireRule(scope.actor.platformAdmin || scope.permissions.includes("manage"),
+          "FORBIDDEN", "Accès réservé au responsable.", 403);
+        return create(tx);
+      });
+    }
+    return this.db.$transaction(async tx => {
+      await this.db.verifySession(tx, actor);
+      const current = await tx.user.findUnique({where:{id:actor.id}});
+      requireRule(current?.platformAdmin && !current.disabled, "FORBIDDEN", "Seul BioBalance peut inviter un responsable.", 403);
+      return create(tx);
+    }, {isolationLevel:"Serializable"});
   }
   async activate(token: string, name: string, password: string) {
     const hash = await argon2.hash(password, {

@@ -12,6 +12,7 @@ import '../api/generated/api_client.dart';
 class PushNotifications {
   final ApiClient api;
   StreamSubscription<String>? _tokens;
+  int _epoch = 0;
   PushNotifications(this.api);
   bool get configured =>
       const String.fromEnvironment('FIREBASE_APP_ID').isNotEmpty;
@@ -65,10 +66,16 @@ class PushNotifications {
   }
 
   Future<void> _register() async {
+    final epoch = _epoch;
+    final generation = api.generation;
     final account = api.accountId;
     if (account == null) return;
     Future<void> save(String token) async {
-      if (api.accountId != account) return;
+      if (api.accountId != account ||
+          api.generation != generation ||
+          epoch != _epoch) {
+        return;
+      }
       await api.request(
         'POST',
         '/v1/devices',
@@ -78,26 +85,25 @@ class PushNotifications {
 
     final token = await FirebaseMessaging.instance.getToken();
     if (token != null) await save(token);
+    if (epoch != _epoch || generation != api.generation) return;
     await _tokens?.cancel();
+    if (epoch != _epoch || generation != api.generation) return;
     _tokens = FirebaseMessaging.instance.onTokenRefresh.listen((token) {
       unawaited(save(token).catchError((Object _) {}));
     });
   }
 
   Future<void> unbind() async {
+    final epoch = ++_epoch;
     await _tokens?.cancel();
     _tokens = null;
-    if (Firebase.apps.isEmpty) return;
+    if (Firebase.apps.isEmpty || api.accountId != null) return;
     try {
-      final token = await FirebaseMessaging.instance.getToken();
-      if (token != null) {
-        await api.request('DELETE', '/v1/devices', body: {'token': token});
+      if (epoch == _epoch && api.accountId == null) {
+        await FirebaseMessaging.instance.deleteToken();
       }
     } catch (_) {
-    } finally {
-      try {
-        await FirebaseMessaging.instance.deleteToken();
-      } catch (_) {}
+      /* Revoked server sessions cannot deliver push messages. */
     }
   }
 }

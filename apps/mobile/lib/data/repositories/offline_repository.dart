@@ -8,6 +8,7 @@ import '../../domain/synchronization/stock_projection.dart';
 import '../../domain/synchronization/retry_policy.dart';
 import '../../domain/repositories/workspace_repository.dart';
 import '../services/api/generated/api_client.dart';
+import '../services/api/session_transport.dart';
 import '../services/local_database/database.dart';
 
 class OfflineRepository implements WorkspaceRepository {
@@ -55,10 +56,13 @@ class OfflineRepository implements WorkspaceRepository {
   @override
   Future<List<Store>> stores(UserAccount user, {bool refresh = false}) async {
     if (refresh) {
+      final binding = api.binding;
       _sameAccount(user);
       final values = objects(await api.request('GET', '/v1/stores'));
+      api.requireBinding(binding);
       _sameAccount(user);
       await db.transaction(() async {
+        api.requireBinding(binding);
         await (db.delete(db.cacheEntries)..where(
               (t) => t.accountId.equals(user.id) & t.resource.equals('stores'),
             ))
@@ -159,6 +163,7 @@ class OfflineRepository implements WorkspaceRepository {
   }
 
   Future<void> _refresh(UserAccount user, Store store) async {
+    final binding = api.binding;
     _sameAccount(user);
     final outstanding = await operations(user.id, store.id);
     final uncertain = outstanding
@@ -202,6 +207,7 @@ class OfflineRepository implements WorkspaceRepository {
     final prior = metaRows.isEmpty
         ? <String, dynamic>{}
         : Map<String, dynamic>.from(jsonDecode(metaRows.single.payload));
+    api.requireBinding(binding);
     final snapshot = Map<String, dynamic>.from(
       await api.request(
         'GET',
@@ -236,6 +242,7 @@ class OfflineRepository implements WorkspaceRepository {
               'Copie du magasin invalide.',
             );
           }
+          api.requireBinding(binding);
           final page = Map<String, dynamic>.from(
             await api.request(
               'GET',
@@ -284,6 +291,7 @@ class OfflineRepository implements WorkspaceRepository {
         .toList();
     _sameAccount(user);
     await db.transaction(() async {
+      api.requireBinding(binding);
       _sameAccount(user);
       await (db.delete(db.cacheEntries)..where(
             (t) =>
@@ -328,6 +336,13 @@ class OfflineRepository implements WorkspaceRepository {
     String? draftKey,
     List<String> supersedes = const [],
   }) async {
+    if (api.accessBlocked) {
+      throw const AppFailure(
+        'SESSION_EXPIRED',
+        'Reconnectez-vous avant de confirmer. Le brouillon est conservé.',
+      );
+    }
+    if (api.accountId != null) _sameAccount(user);
     if (operation['storeId'] != store.id ||
         operation['organizationId'] != store.organizationId) {
       throw const AppFailure(
@@ -552,6 +567,7 @@ class OfflineRepository implements WorkspaceRepository {
   Future<void> synchronize(UserAccount user, Store store) async {
     if (_syncing) return;
     _syncing = true;
+    final binding = api.binding;
     try {
       _sameAccount(user);
       await _upgradeDependencyMetadata(user, store);
@@ -586,6 +602,7 @@ class OfflineRepository implements WorkspaceRepository {
             operation.nextAttemptAt!.isAfter(now())) {
           continue;
         }
+        api.requireBinding(binding);
         _sameAccount(user);
         submitted++;
         final attempts = operation.attempts + 1;
@@ -598,6 +615,7 @@ class OfflineRepository implements WorkspaceRepository {
           ),
         );
         try {
+          api.requireBinding(binding);
           final result = await api.push([
             Map<String, dynamic>.from(jsonDecode(operation.payload)),
           ]);
@@ -609,12 +627,21 @@ class OfflineRepository implements WorkspaceRepository {
               'Réponse de synchronisation invalide.',
             );
           }
+          api.requireBinding(binding);
           final status = accepted['status'] as String;
           if ([
-            'FORBIDDEN',
+            'STORE_ACCESS_REVOKED',
             'ACCESS_DISABLED',
             'SESSION_EXPIRED',
           ].contains(accepted['code'])) {
+            api.confirmAccessLoss(
+              accepted['code'] == 'SESSION_EXPIRED'
+                  ? AccessCondition.expired
+                  : accepted['code'] == 'ACCESS_DISABLED'
+                  ? AccessCondition.disabled
+                  : AccessCondition.storeAccessRevoked,
+              storeId: store.id,
+            );
             throw DioException(
               requestOptions: RequestOptions(),
               response: Response(
@@ -682,6 +709,7 @@ class OfflineRepository implements WorkspaceRepository {
           if (retryable) rethrow;
         }
       }
+      api.requireBinding(binding);
       await refresh(user, store);
     } finally {
       _syncing = false;

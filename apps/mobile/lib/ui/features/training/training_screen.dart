@@ -1,3 +1,7 @@
+import 'dart:async';
+
+import '../../core/form_draft.dart';
+
 import 'dart:io';
 
 import 'package:dio/dio.dart';
@@ -165,6 +169,9 @@ class TrainingEditor extends StatefulWidget {
 }
 
 class _TrainingEditorState extends State<TrainingEditor> {
+  final _transfers = CancelToken();
+  late final FormDraftController _draft;
+  bool _restoring = false;
   late final TextEditingController title, body;
   String type = 'article', status = 'draft';
   String? mediaId, error;
@@ -178,10 +185,57 @@ class _TrainingEditorState extends State<TrainingEditor> {
     type = widget.article?['type'] ?? 'article';
     status = widget.article?['status'] ?? 'draft';
     mediaId = widget.article?['mediaId'];
+    _draft = FormDraftController(
+      widget.vm,
+      null,
+      'training:${widget.article?['id'] ?? 'new'}',
+      draftValues(),
+    );
+    title.addListener(persistDraft);
+    body.addListener(persistDraft);
+    unawaited(restoreDraft());
+  }
+
+  Map<String, String> draftValues() => {
+    'title': title.text,
+    'body': body.text,
+    'type': type,
+    'status': status,
+    'mediaId': mediaId ?? '',
+  };
+  void persistDraft() {
+    if (_restoring) return;
+    unawaited(
+      _draft.change(draftValues()).catchError((Object e) {
+        if (mounted) setState(() => error = SessionViewModel.message(e));
+      }),
+    );
+  }
+
+  Future<void> restoreDraft() async {
+    try {
+      final values = await _draft.restore();
+      if (!mounted || values == null) return;
+      _restoring = true;
+      setState(() {
+        title.text = values['title'] ?? title.text;
+        body.text = values['body'] ?? body.text;
+        type = values['type'] ?? type;
+        status = values['status'] ?? status;
+        mediaId = values['mediaId']?.isNotEmpty == true
+            ? values['mediaId']
+            : mediaId;
+      });
+      _restoring = false;
+    } catch (e) {
+      if (mounted) setState(() => error = SessionViewModel.message(e));
+    }
   }
 
   @override
   void dispose() {
+    _transfers.cancel();
+    _draft.dispose();
     title.dispose();
     body.dispose();
     super.dispose();
@@ -217,7 +271,10 @@ class _TrainingEditorState extends State<TrainingEditor> {
             ButtonSegment(value: 'video', label: Text('Vidéo')),
           ],
           selected: {type},
-          onSelectionChanged: (v) => setState(() => type = v.single),
+          onSelectionChanged: (v) {
+            setState(() => type = v.single);
+            persistDraft();
+          },
         ),
         if (type == 'video') ...[
           const SizedBox(height: 20),
@@ -249,7 +306,10 @@ class _TrainingEditorState extends State<TrainingEditor> {
             DropdownMenuItem(value: 'published', child: Text('Publié')),
             DropdownMenuItem(value: 'archived', child: Text('Archivé')),
           ],
-          onChanged: (v) => setState(() => status = v!),
+          onChanged: (v) {
+            setState(() => status = v!);
+            persistDraft();
+          },
           decoration: const InputDecoration(labelText: 'Visibilité'),
         ),
         const SizedBox(height: 24),
@@ -277,6 +337,7 @@ class _TrainingEditorState extends State<TrainingEditor> {
   }
 
   Future<void> upload() async {
+    final binding = widget.vm.api.binding;
     final chosen = await FilePicker.pickFiles(type: FileType.video);
     final filePath = chosen.isEmpty ? null : chosen.single.path;
     if (filePath == null) return;
@@ -285,6 +346,7 @@ class _TrainingEditorState extends State<TrainingEditor> {
       error = null;
     });
     try {
+      widget.vm.api.requireBinding(binding);
       final vm = widget.vm,
           file = File(filePath),
           size = await File(filePath).length();
@@ -318,23 +380,29 @@ class _TrainingEditorState extends State<TrainingEditor> {
         });
       }
       mediaId = asset['id'];
+      persistDraft();
       var offset = integer(asset['received']);
       final handle = await file.open();
       try {
         while (offset < size) {
+          if (!mounted) break;
+          vm.api.requireBinding(binding);
           await handle.setPosition(offset);
           final chunk = await handle.read(4 * 1024 * 1024);
           final response = await vm.api.http.put(
             '/v1/media/uploads/$mediaId',
             data: Stream.value(chunk),
+            cancelToken: _transfers,
             options: Options(
               headers: {
+                'Authorization': binding.authorization,
                 'Content-Type': 'application/octet-stream',
                 'Upload-Offset': '$offset',
                 'Content-Length': '${chunk.length}',
               },
             ),
           );
+          vm.api.requireBinding(binding);
           offset = integer(response.data['received']);
           if (mounted) setState(() => progress = offset / size);
         }
@@ -351,18 +419,7 @@ class _TrainingEditorState extends State<TrainingEditor> {
   Future<void> save() async {
     setState(() => busy = true);
     try {
-      await widget.vm.repository.saveDraft(
-        widget.vm.user.id,
-        '',
-        'training:${widget.article?['id'] ?? 'new'}',
-        {
-          'title': title.text,
-          'body': body.text,
-          'mediaId': mediaId,
-          'type': type,
-          'status': status,
-        },
-      );
+      await _draft.change(draftValues());
       await widget.vm.request(
         'POST',
         '/v1/training',
@@ -378,6 +435,7 @@ class _TrainingEditorState extends State<TrainingEditor> {
           'productIds': widget.article?['productIds'] ?? [],
         },
       );
+      await _draft.complete();
       if (mounted) Navigator.pop(context);
     } catch (e) {
       if (mounted) setState(() => error = SessionViewModel.message(e));
@@ -396,6 +454,7 @@ class TrainingReader extends StatefulWidget {
 }
 
 class _TrainingReaderState extends State<TrainingReader> {
+  final _transfers = CancelToken();
   VideoPlayerController? player;
   String? error;
   bool ready = false;
@@ -415,20 +474,25 @@ class _TrainingReaderState extends State<TrainingReader> {
 
   Future<void> initialize() async {
     if (widget.article['type'] != 'video') return;
+    final binding = widget.vm.api.binding;
     try {
       final file = await target();
-      player = await file.exists()
+      final cached = await file.exists();
+      if (!mounted) return;
+      widget.vm.api.requireBinding(binding);
+      final controller = cached
           ? VideoPlayerController.file(file)
           : VideoPlayerController.networkUrl(
               Uri.parse(
                 '${widget.vm.api.http.options.baseUrl}/v1/media/${widget.article['mediaId']}',
               ),
               httpHeaders: {
-                for (final e in widget.vm.api.http.options.headers.entries)
-                  e.key: '${e.value}',
+                if (binding.authorization != null)
+                  'Authorization': binding.authorization!,
               },
             );
-      await player!.initialize();
+      player = controller;
+      await controller.initialize();
       if (mounted) setState(() => ready = true);
     } catch (e) {
       if (mounted) {
@@ -441,6 +505,7 @@ class _TrainingReaderState extends State<TrainingReader> {
 
   @override
   void dispose() {
+    _transfers.cancel();
     player?.dispose();
     super.dispose();
   }
@@ -501,16 +566,20 @@ class _TrainingReaderState extends State<TrainingReader> {
     ),
   );
   Future<void> download() async {
+    final binding = widget.vm.api.binding;
     try {
       final file = await target();
       final temp = File('${file.path}.part');
       await widget.vm.api.http.download(
         '/v1/media/${widget.article['mediaId']}',
         temp.path,
+        cancelToken: _transfers,
+        options: Options(headers: {'Authorization': binding.authorization}),
         onReceiveProgress: (n, total) {
           if (mounted && total > 0) setState(() => progress = n / total);
         },
       );
+      widget.vm.api.requireBinding(binding);
       await temp.rename(file.path);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

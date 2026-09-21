@@ -1,3 +1,5 @@
+import '../../../data/services/api/session_transport.dart';
+
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
@@ -64,7 +66,96 @@ class WorkspaceViewModel extends ChangeNotifier {
   Timer? _timer;
   int _selection = 0;
   bool _closed = false;
-  WorkspaceViewModel(this.user, this.repository, this.api);
+  final _revokedStores = <String>{};
+  final _draftGuards = <Future<void> Function()>{};
+  late final StreamSubscription<AccessEvent> _accessEvents;
+  final int _sessionGeneration;
+  VoidCallback? detachSessionGuard;
+  int accessRevision = 0;
+  bool securingAccess = false;
+  WorkspaceViewModel(this.user, this.repository, this.api)
+    : _sessionGeneration = api.generation {
+    _accessEvents = api.accessEvents.listen((event) {
+      if (event.binding.accountId != user.id ||
+          event.binding.generation != _sessionGeneration) {
+        return;
+      }
+      if ([
+        AccessCondition.expired,
+        AccessCondition.disabled,
+        AccessCondition.storeAccessRevoked,
+      ].contains(event.condition)) {
+        unawaited(denyAccess(event.storeId ?? state.store?.id));
+      }
+    });
+  }
+  VoidCallback registerDraft(Future<void> Function() save) {
+    _draftGuards.add(save);
+    return () => _draftGuards.remove(save);
+  }
+
+  Future<void> flushDrafts() =>
+      Future.wait(_draftGuards.toList().map((save) => save()));
+  void requireAccess(Store store, [String? permission]) {
+    if (_closed ||
+        api.generation != _sessionGeneration ||
+        api.accountId != user.id ||
+        api.accessBlocked ||
+        _revokedStores.contains(store.id) ||
+        (state.store?.id == store.id && state.accessBlocked)) {
+      throw const AppFailure(
+        'ACCESS_BLOCKED',
+        'Votre accès doit être vérifié. Le brouillon est conservé.',
+      );
+    }
+    if (permission != null &&
+        !user.admin &&
+        !store.canManage &&
+        !store.permissions.contains(permission)) {
+      throw const AppFailure(
+        'FORBIDDEN',
+        'Cette action nécessite une autorisation de votre responsable.',
+      );
+    }
+  }
+
+  Future<void> denyAccess(String? storeId) async {
+    if (_closed) return;
+    if (storeId != null) _revokedStores.add(storeId);
+    final current = storeId == null || state.store?.id == storeId;
+    if (current) {
+      securingAccess = true;
+      _emit(
+        state.copy(
+          accessBlocked: true,
+          loading: false,
+          error:
+              'Votre accès doit être vérifié. Les brouillons sont conservés.',
+        ),
+      );
+    }
+    try {
+      await repository.saveDraft(user.id, '', 'access', {
+        'revokedStores': _revokedStores.toList(),
+      });
+      await flushDrafts();
+      if (current && !_closed) {
+        accessRevision++;
+        securingAccess = false;
+        _emit(state.copy(accessBlocked: true, loading: false));
+      }
+    } catch (e) {
+      if (current) {
+        _emit(
+          state.copy(
+            accessBlocked: true,
+            error: 'Impossible de conserver le brouillon. Libérez de l’espace puis réessayez.',
+          ),
+        );
+      }
+    }
+  }
+
   void _emit(WorkspaceState value) {
     if (_closed) return;
     state = value;
@@ -72,6 +163,8 @@ class WorkspaceViewModel extends ChangeNotifier {
   }
 
   Future<void> initialize() async {
+    final access = await repository.draft(user.id, '', 'access');
+    _revokedStores.addAll(List<String>.from(access?['revokedStores'] ?? []));
     final cached = await repository.stores(user);
     _emit(state.copy(stores: cached));
     if (cached.isNotEmpty) {
@@ -86,6 +179,11 @@ class WorkspaceViewModel extends ChangeNotifier {
     }
     try {
       final stores = await repository.stores(user, refresh: true);
+      final previousStore = state.store;
+      if (previousStore != null &&
+          !stores.any((s) => s.id == previousStore.id)) {
+        await denyAccess(previousStore.id);
+      }
       _emit(
         state.copy(
           stores: stores,
@@ -107,8 +205,9 @@ class WorkspaceViewModel extends ChangeNotifier {
         state.copy(
           loading: false,
           offline: _networkFailure(e),
-          accessBlocked: _accessFailure(e),
-          clearData: _accessFailure(e),
+          accessBlocked:
+              state.accessBlocked || _accessFailure(e) || api.accessBlocked,
+
           error: SessionViewModel.message(e),
         ),
       );
@@ -128,7 +227,7 @@ class WorkspaceViewModel extends ChangeNotifier {
         store: store,
         clearData: true,
         loading: true,
-        accessBlocked: false,
+        accessBlocked: _revokedStores.contains(store.id) || api.accessBlocked,
       ),
     );
     await repository.saveDraft(user.id, '', 'selection', {'storeId': store.id});
@@ -149,6 +248,13 @@ class WorkspaceViewModel extends ChangeNotifier {
     if (store == null || state.accessBlocked) return;
     final data = await repository.load(user, store);
     if (store.id != state.store?.id) return;
+    final permissions = List<String>.from(
+      data?.raw['permissions'] ?? store.permissions,
+    );
+    if (store.permissions.any((p) => !permissions.contains(p))) {
+      await flushDrafts();
+      accessRevision++;
+    }
     _emit(
       state.copy(
         data: data,
@@ -171,6 +277,11 @@ class WorkspaceViewModel extends ChangeNotifier {
     try {
       await repository.synchronize(user, store);
       if (store.id == state.store?.id) {
+        _revokedStores.remove(store.id);
+        await repository.saveDraft(user.id, '', 'access', {
+          'revokedStores': _revokedStores.toList(),
+        });
+        _emit(state.copy(accessBlocked: false));
         await reloadLocal();
         _emit(
           state.copy(
@@ -182,13 +293,15 @@ class WorkspaceViewModel extends ChangeNotifier {
         );
       }
     } catch (e) {
+      if (_accessFailure(e)) await denyAccess(store.id);
       if (store.id == state.store?.id) {
         _emit(
           state.copy(
             syncing: false,
             offline: _networkFailure(e),
-            accessBlocked: _accessFailure(e),
-            clearData: _accessFailure(e),
+            accessBlocked:
+                state.accessBlocked || _accessFailure(e) || api.accessBlocked,
+
             error: silent && !_accessFailure(e)
                 ? null
                 : SessionViewModel.message(e),
@@ -210,11 +323,15 @@ class WorkspaceViewModel extends ChangeNotifier {
     Json? body,
     Json? query,
   }) async {
+    if (_closed || api.generation != _sessionGeneration) {
+      throw const AppFailure('ACCOUNT_CHANGED', 'La session a changé.');
+    }
     try {
       final value = await api.request(method, path, body: body, query: query);
       return value;
     } catch (e) {
-      throw AppFailure('REQUEST', SessionViewModel.message(e));
+      if (_accessFailure(e)) await denyAccess(state.store?.id);
+      rethrow;
     }
   }
 
@@ -236,6 +353,10 @@ class WorkspaceViewModel extends ChangeNotifier {
     String? draftKey,
   }) async {
     final store = targetStore ?? state.store!;
+    requireAccess(
+      store,
+      command['type'] == 'delivery.receive' ? 'receive' : 'manage',
+    );
     await repository.enqueue(
       user,
       store,
@@ -256,6 +377,7 @@ class WorkspaceViewModel extends ChangeNotifier {
 
   Future<void> online(Json command, {int? expectedVersion}) async {
     final store = state.store!;
+    requireAccess(store);
     if (api.accountId != user.id) {
       throw const AppFailure('ACCOUNT_CHANGED', 'Veuillez vous reconnecter.');
     }
@@ -298,6 +420,9 @@ class WorkspaceViewModel extends ChangeNotifier {
   @override
   void dispose() {
     _closed = true;
+    unawaited(_accessEvents.cancel());
+    detachSessionGuard?.call();
+    _draftGuards.clear();
     _timer?.cancel();
     super.dispose();
   }

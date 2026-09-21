@@ -1,3 +1,11 @@
+import 'dart:async';
+import 'dart:convert';
+
+import 'package:provider/provider.dart';
+
+import '../features/workspace/workspace_view_model.dart';
+import 'form_draft.dart';
+
 import 'package:flutter/material.dart';
 
 import '../features/authentication/session_view_model.dart';
@@ -25,12 +33,14 @@ class EditorScreen extends StatefulWidget {
   final List<FieldSpec> fields;
   final Future<void> Function(Map<String, String>) submit;
   final String submitLabel;
+  final WorkspaceViewModel? workspace;
   const EditorScreen({
     super.key,
     required this.title,
     required this.fields,
     required this.submit,
     this.description,
+    this.workspace,
     this.submitLabel = 'Enregistrer',
   });
   @override
@@ -42,6 +52,8 @@ class _EditorScreenState extends State<EditorScreen> {
   late final Map<String, TextEditingController> controllers;
   bool busy = false;
   String? error;
+  FormDraftController? draft;
+  bool restoringDraft = false;
   @override
   void initState() {
     super.initState();
@@ -49,10 +61,57 @@ class _EditorScreenState extends State<EditorScreen> {
       for (final f in widget.fields)
         f.key: TextEditingController(text: f.initial),
     };
+    final workspace = widget.workspace;
+    final store = workspace?.state.store;
+    if (workspace != null && store != null) {
+      draft = FormDraftController(
+        workspace,
+        store,
+        'editor:${jsonEncode([
+          widget.title,
+          widget.fields.map((f) => [f.key, f.initial]).toList(),
+        ])}',
+        {for (final entry in controllers.entries) entry.key: entry.value.text},
+      );
+      for (final controller in controllers.values) {
+        controller.addListener(persist);
+      }
+      unawaited(restoreDraft());
+    }
+  }
+
+  Future<void> restoreDraft() async {
+    try {
+      final restored = await draft?.restore();
+      if (!mounted || restored == null) return;
+      restoringDraft = true;
+      for (final entry in restored.entries) {
+        controllers[entry.key]?.text = entry.value;
+      }
+      restoringDraft = false;
+    } catch (e) {
+      if (mounted) setState(() => error = SessionViewModel.message(e));
+    }
+  }
+
+  void persist() {
+    if (restoringDraft || draft == null) return;
+    unawaited(
+      draft!
+          .change({for (final e in controllers.entries) e.key: e.value.text})
+          .catchError((Object e) {
+            if (mounted) {
+              setState(
+                () => error = 'Le brouillon n’a pas pu être enregistré. Vérifiez l’espace disponible.',
+              );
+            }
+          }),
+    );
   }
 
   @override
   void dispose() {
+    draft?.dispose();
     for (final c in controllers.values) {
       c.dispose();
     }
@@ -145,6 +204,7 @@ class _EditorScreenState extends State<EditorScreen> {
       await widget.submit({
         for (final e in controllers.entries) e.key: e.value.text.trim(),
       });
+      await draft?.complete();
       if (mounted) Navigator.pop(context, true);
     } catch (e) {
       if (mounted) setState(() => error = SessionViewModel.message(e));
@@ -167,6 +227,7 @@ Future<bool> openEditor(
       MaterialPageRoute(
         builder: (_) => EditorScreen(
           title: title,
+          workspace: context.read<WorkspaceViewModel?>(),
           fields: fields,
           submit: submit,
           description: description,

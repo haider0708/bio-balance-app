@@ -23,6 +23,11 @@ export class Database extends PrismaClient implements OnModuleDestroy {
   async onModuleDestroy() {
     await this.$disconnect();
   }
+  async verifySession(tx: Prisma.TransactionClient, actor: Actor) {
+    if (!actor.sessionId) return; // Internal jobs/tests carry explicit server actors.
+    const session = await tx.session.findFirst({where:{id:actor.sessionId,userId:actor.id,revokedAt:null,expiresAt:{gt:new Date()}}});
+    requireRule(session, "SESSION_EXPIRED", "Votre session a expiré. Vos opérations locales sont conservées.", 401);
+  }
   async scoped<T>(
     actor: Actor,
     organizationId: string,
@@ -33,10 +38,11 @@ export class Database extends PrismaClient implements OnModuleDestroy {
       try {
         return await this.$transaction(
           async (tx) => {
+            await this.verifySession(tx, actor);
             const store = await tx.store.findFirst({
               where: { id: storeId, organizationId },
             });
-            requireRule(store, "FORBIDDEN", "Magasin inaccessible.", 403);
+            requireRule(store, "STORE_ACCESS_REVOKED", "Magasin inaccessible.", 403);
             const user = await tx.user.findUnique({ where: { id: actor.id } });
             requireRule(
               user && !user.disabled,
@@ -54,7 +60,7 @@ export class Database extends PrismaClient implements OnModuleDestroy {
             });
             requireRule(
               user.platformAdmin || member?.active || owner?.active,
-              "FORBIDDEN",
+              "STORE_ACCESS_REVOKED",
               "Magasin inaccessible.",
               403,
             );

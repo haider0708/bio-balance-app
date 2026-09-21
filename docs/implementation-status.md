@@ -51,7 +51,7 @@ La base existante est enregistrée par le commit `2b098ed`. Les douze étapes re
 
 ### Étape 1 — Cohérence du stock hors ligne
 
-Implémentation et vérifications locales terminées ; référence de commit enregistrée ci-dessous après création.
+Implémentation et vérifications locales terminées : commit `7f25895`.
 
 - Projection métier `StockProjection`/`LotMovement`, hors widgets : réceptions, ventes, corrections, retours, dommages et ajustements. Nouveau lot v1 puis réception v2 ; dommage +2 versions et deux compartiments.
 - SQLite v3 conserve les identifiants et octets des anciens payloads, ajoute dépendances, ressources touchées, incertitude d’envoi, résultat d’acquittement et date de nouvelle tentative. Commande, effets, dépendances et fin du brouillon sont atomiques.
@@ -65,7 +65,7 @@ Implémentation et vérifications locales terminées ; référence de commit enr
 
 | Étape suivante | État |
 |---|---|
-| 2. Accès et sessions | À réaliser |
+| 2. Accès et sessions | Implémentation et vérification locale terminées (voir registre ci-dessous) |
 | 3. Ventes et stock UX | À réaliser |
 | 4. Commandes/livraisons | À réaliser |
 | 5. Onboarding/images | À réaliser |
@@ -76,3 +76,14 @@ Implémentation et vérifications locales terminées ; référence de commit enr
 | 10. Performances/appareils | À réaliser ; appareils physiques requis pour les mesures correspondantes |
 | 11. Déploiement/reprise | À réaliser ; dépôt distant/VPS/DNS requis pour les vérifications externes |
 | 12. Versions signées/pilote | En attente des comptes de signature et participants ; pilote de deux semaines requis |
+
+### Étape 2 — Accès et reprise de session
+
+- États explicites de session : authentifiée, hors ligne, expirée, désactivée, accès magasin retiré et déconnectée.
+- Transport Dio séparé des fichiers générés : captures immuables du compte, des credentials et de la génération ; les réponses tardives et les réponses antérieures à une perte d’accès sont rejetées avant d’entrer dans le cache. Les transferts média capturent aussi leur contexte.
+- Accès retirés conservés par compte dans SQLite ; sélectionner un magasin en cache ne réactive pas un accès refusé. Une lecture serveur autorisée est nécessaire pour le rétablir.
+- Navigation protégée réinitialisée après sauvegarde des brouillons ; les formulaires génériques, lignes de vente et formations conservent les champs en cours. Si l’écriture locale échoue, la route reste en mémoire derrière un écran bloquant avec possibilité de réessayer.
+- Garde avant confirmation des ventes, retours et opérations ; arrêt des transferts sur fermeture ; suppression des notifications après déconnexion sans bloquer celle-ci. La révocation serveur reste une tentative réseau, tandis que credentials et état local sont effacés immédiatement après sauvegarde locale.
+- Création d’invitation et contrôle de permission dans la même transaction. Les transactions de magasin vérifient également la session courante. Le code `STORE_ACCESS_REVOKED` distingue un magasin retiré d’une action interdite dans un magasin encore accessible.
+- Validation locale : compilation TypeScript ; 15 tests PostgreSQL ; 6 nouveaux tests Flutter couvrant réponses tardives (même compte/nouveau compte), déconnexion avec réseau/push bloqués, accès retiré, conservation de l’outbox, formulaire ouvert et panne d’écriture, expiration explicite. Le parcours réel HTTP/SQLite/PostgreSQL de l’étape 1 continue de réussir.
+- Les notifications réelles Firebase/APNs restent une vérification externe de l’étape 8 ; les tests présents utilisent un service contrôlé.
