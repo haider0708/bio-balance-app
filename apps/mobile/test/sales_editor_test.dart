@@ -101,7 +101,13 @@ void main() {
       result!.batchDeclarations.single.lotId,
     );
     expect(tester.takeException(), isNull);
-    expect(repository.saved, isEmpty);
+    expect(vm.state.data!.lots, isEmpty);
+    expect(
+      repository.saved.values.any(
+        (draft) => draft.toString().contains('MISSING-UI'),
+      ),
+      isTrue,
+    );
     await tester.pumpWidget(const SizedBox());
     vm.dispose();
     await db.close();
