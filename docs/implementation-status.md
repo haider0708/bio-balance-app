@@ -66,7 +66,7 @@ Implémentation et vérifications locales terminées : commit `7f25895`.
 | Étape suivante | État |
 |---|---|
 | 2. Accès et sessions | Implémentation et vérification locale terminées (voir registre ci-dessous) |
-| 3. Ventes et stock UX | À réaliser |
+| 3. Ventes et stock UX | Implémentation et vérification locale terminées (voir registre ci-dessous) |
 | 4. Commandes/livraisons | À réaliser |
 | 5. Onboarding/images | À réaliser |
 | 6. Brouillons et transferts | À réaliser |
@@ -79,6 +79,8 @@ Implémentation et vérifications locales terminées : commit `7f25895`.
 
 ### Étape 2 — Accès et reprise de session
 
+Commit : `816eb24`.
+
 - États explicites de session : authentifiée, hors ligne, expirée, désactivée, accès magasin retiré et déconnectée.
 - Transport Dio séparé des fichiers générés : captures immuables du compte, des credentials et de la génération ; les réponses tardives et les réponses antérieures à une perte d’accès sont rejetées avant d’entrer dans le cache. Les transferts média capturent aussi leur contexte.
 - Accès retirés conservés par compte dans SQLite ; sélectionner un magasin en cache ne réactive pas un accès refusé. Une lecture serveur autorisée est nécessaire pour le rétablir.
@@ -87,3 +89,13 @@ Implémentation et vérifications locales terminées : commit `7f25895`.
 - Création d’invitation et contrôle de permission dans la même transaction. Les transactions de magasin vérifient également la session courante. Le code `STORE_ACCESS_REVOKED` distingue un magasin retiré d’une action interdite dans un magasin encore accessible.
 - Validation locale : compilation TypeScript ; 15 tests PostgreSQL ; 6 nouveaux tests Flutter couvrant réponses tardives (même compte/nouveau compte), déconnexion avec réseau/push bloqués, accès retiré, conservation de l’outbox, formulaire ouvert et panne d’écriture, expiration explicite. Le parcours réel HTTP/SQLite/PostgreSQL de l’étape 1 continue de réussir.
 - Les notifications réelles Firebase/APNs restent une vérification externe de l’étape 8 ; les tests présents utilisent un service contrôlé.
+
+### Étape 3 — Ventes et interface de stock
+
+- Sélection du lot valide avec stock positif et péremption la plus proche ; les lots sans disponibilité restent sélectionnables pour enregistrer une vente réelle et afficher l’avertissement d’écart.
+- Le vendeur peut renseigner lot/péremption directement dans l’éditeur de vente. Déclaration déterministe du lot et vente dans la même transaction serveur : métadonnées v1 puis sortie v2, aucune réception artificielle. Les déclarations restent dans le brouillon et sont projetées hors ligne.
+- Expiries normalisées côté domaine (formats français ou ISO, fin du mois quand seul le mois est saisi). Dates civiles et horodatages tunisiens UTC+1 affichés distinctement ; contrôles des bornes et années bissextiles.
+- Filtres stock faible, écart, péremption dans les 30 jours inclus, et produits périmés ; les lots épuisés ne produisent pas de fausse alerte de péremption.
+- Corrections locales refusées si elles supprimeraient des unités déjà retournées. Les détails choisissent la révision locale/serveur actuelle, se rafraîchissent après correction, montrent vendeur/lots et quantités encore retournables.
+- Validation : 16 tests PostgreSQL (dont déclaration manquante, sortie unique, rollback de lot expiré et identité invalide), 5 tests Dart de dates/sélection/filtres/révisions, 2 tests supplémentaires d’éditeur/correction. Le script HTTP réel exécute désormais deux parcours, dont une vente par un vendeur sans permission de gestion du stock.
+- La création du catalogue global reste réservée à l’administrateur. La caméra physique et les essais sur appareils restent prévus aux étapes 9–10 ; le parcours d’éditeur automatisé utilise la saisie manuelle.

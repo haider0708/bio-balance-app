@@ -1,4 +1,5 @@
-import 'package:uuid/uuid.dart';
+import '../models/batch_declaration.dart';
+import '../models/tunis_dates.dart';
 
 import '../models/models.dart';
 
@@ -28,10 +29,13 @@ class StockProjection {
   final Set<String> records;
   const StockProjection(this.movements, this.records);
 
-  static String lotIdentity(String store, Json line) => const Uuid().v5(
-    '40cdd460-fdea-4c8f-9533-51a0843ecfff',
-    '$store|${line['productId']}|${line['batch']}|${line['expiry']}',
-  );
+  static String lotIdentity(String store, Json line) =>
+      BatchDeclaration.identity(
+        store,
+        line['productId'],
+        line['batch'],
+        line['expiry'],
+      );
 
   factory StockProjection.forCommand(
     String store,
@@ -57,12 +61,25 @@ class StockProjection {
             declaration: {
               'productId': line['productId'],
               'batch': line['batch'],
-              'expiry': line['expiry'],
+              'expiry': TunisDates.expiry(line['expiry']),
             },
           ),
         );
       }
     } else if (type == 'sale.create' || type == 'sale.correct') {
+      for (final declaration in objects(command['batchDeclarations'])) {
+        movements.add(
+          LotMovement(
+            declaration['lotId'],
+            increments: 0,
+            declaration: {
+              'productId': declaration['productId'],
+              'batch': declaration['batch'],
+              'expiry': declaration['expiry'],
+            },
+          ),
+        );
+      }
       final deltas = <String, int>{};
       final original = data
           ?.list('sales')
@@ -89,12 +106,7 @@ class StockProjection {
         }
       }
     } else if (type == 'sale.return') {
-      // Tunisia uses UTC+1 throughout the year. Expiries are civil dates.
-      final today = (now ?? DateTime.now())
-          .toUtc()
-          .add(const Duration(hours: 1))
-          .toIso8601String()
-          .substring(0, 10);
+      final today = TunisDates.today(now);
       for (final line in objects(command['lines'])) {
         final lot = data
             ?.list('lots')

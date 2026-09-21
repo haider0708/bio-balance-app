@@ -5,6 +5,7 @@ import 'package:biobalance/data/repositories/offline_repository.dart';
 import 'package:biobalance/data/services/api/generated/api_client.dart';
 import 'package:biobalance/data/services/local_database/database.dart';
 import 'package:biobalance/domain/models/models.dart';
+import 'package:biobalance/domain/models/batch_declaration.dart';
 import 'package:biobalance/domain/models/money.dart';
 import 'package:biobalance/domain/synchronization/stock_projection.dart';
 import 'package:biobalance/domain/use_cases/record_sale.dart';
@@ -202,6 +203,59 @@ void main() {
     },
     skip: env['BIOBALANCE_TEST_URL'] == null
         ? 'Run npm run test:mobile-sync against the isolated test database.'
+        : false,
+  );
+  test(
+    'real seller missing-batch sale has no incoming stock',
+    () async {
+      final api = ApiClient(baseUrl: env['BIOBALANCE_TEST_URL']!)
+        ..authenticate(
+          env['BIOBALANCE_TEST_TOKEN'],
+          accountId: env['BIOBALANCE_TEST_USER'],
+        );
+      final db = AppDatabase(NativeDatabase.memory());
+      addTearDown(db.close);
+      final user = UserAccount(
+        id: env['BIOBALANCE_TEST_USER']!,
+        name: 'Seller',
+        email: 'test@example.test',
+        admin: false,
+      );
+      final store = Store.fromJson({
+        'id': env['BIOBALANCE_TEST_EMPTY_STORE'],
+        'organizationId': env['BIOBALANCE_TEST_ORG'],
+        'name': 'Empty',
+        'permissions': ['sell', 'receive'],
+      });
+      final repo = OfflineRepository(db, api);
+      await repo.refresh(user, store);
+      final batch = BatchDeclaration.create(
+        store.id,
+        env['BIOBALANCE_TEST_PRODUCT']!,
+        'NEW-BATCH',
+        '12/2029',
+      );
+      await RecordSale(repo).execute(user, store, [
+        SaleLine(
+          id: const Uuid().v4(),
+          productId: batch.productId,
+          quantity: 2,
+          price: Money(14990),
+          allocations: [
+            {'lotId': batch.lotId, 'quantity': 2},
+          ],
+          batchDeclarations: [batch],
+        ),
+      ]);
+      expect((await repo.load(user, store))!.lots.single.sellable, -2);
+      expect((await repo.load(user, store))!.lots.single.version, 2);
+      await repo.synchronize(user, store);
+      expect(await repo.pendingCount(user.id), 0);
+      expect((await repo.load(user, store))!.lots.single.sellable, -2);
+      expect((await repo.load(user, store))!.lots.single.version, 2);
+    },
+    skip: env['BIOBALANCE_TEST_URL'] == null
+        ? 'Run npm run test:mobile-sync.'
         : false,
   );
 }

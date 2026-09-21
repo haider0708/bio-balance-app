@@ -26,6 +26,7 @@ export interface Ledger {
   ): Promise<void>;
   lot(id: string): Promise<Lot>;
   lotsForProduct(productId: string): Promise<Lot[]>;
+  declareBatch(lotId: string, productId: string, batch: string, expiry: string): Promise<Lot>;
   receive(
     productId: string,
     batch: string,

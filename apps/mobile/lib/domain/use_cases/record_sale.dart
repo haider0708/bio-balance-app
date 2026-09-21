@@ -35,6 +35,24 @@ class RecordSale {
       total += line.price.times(line.quantity).millimes;
     }
     Money(total);
+    final returned = Map<String, dynamic>.from(original?['returned'] ?? {});
+    for (final entry in returned.entries) {
+      final key = entry.key.split(':');
+      final line = lines.where((l) => l.id == key.first).firstOrNull;
+      final allocation = line?.allocations
+          .where((a) => a['lotId'] == key.last)
+          .firstOrNull;
+      if (integer(allocation?['quantity']) < integer(entry.value)) {
+        throw const AppFailure(
+          'ALREADY_RETURNED',
+          'La correction ne peut pas supprimer des unités déjà retournées.',
+        );
+      }
+    }
+    final declarations = {
+      for (final line in lines)
+        for (final batch in line.batchDeclarations) batch.lotId: batch,
+    };
     final date =
         original?['occurredAt'] ??
         recoveredDate ??
@@ -43,7 +61,11 @@ class RecordSale {
       'type': original == null ? 'sale.create' : 'sale.correct',
       'saleId': id,
       'occurredAt': date,
-      'lines': lines.map((l) => l.toJson()).toList(),
+      'lines': lines.map((l) => l.toJson(transport: true)).toList(),
+      if (declarations.isNotEmpty)
+        'batchDeclarations': declarations.values
+            .map((b) => b.toJson())
+            .toList(),
       if (original != null) 'reason': reason ?? 'Correction de saisie',
     };
     final operation = {

@@ -2345,7 +2345,7 @@
             ]
           },
           "dependencies": {
-            "maxItems": 200,
+            "maxItems": 5000,
             "type": "array",
             "items": {
               "type": "string",
@@ -2366,6 +2366,41 @@
                   "type": {
                     "type": "string",
                     "const": "sale.create"
+                  },
+                  "batchDeclarations": {
+                    "maxItems": 5000,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "lotId": {
+                          "type": "string",
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                        },
+                        "productId": {
+                          "type": "string",
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                        },
+                        "batch": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 100
+                        },
+                        "expiry": {
+                          "type": "string",
+                          "maxLength": 10
+                        }
+                      },
+                      "required": [
+                        "lotId",
+                        "productId",
+                        "batch",
+                        "expiry"
+                      ],
+                      "additionalProperties": false
+                    }
                   },
                   "saleId": {
                     "type": "string",
@@ -2454,6 +2489,41 @@
                   "type": {
                     "type": "string",
                     "const": "sale.correct"
+                  },
+                  "batchDeclarations": {
+                    "maxItems": 5000,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "lotId": {
+                          "type": "string",
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                        },
+                        "productId": {
+                          "type": "string",
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                        },
+                        "batch": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 100
+                        },
+                        "expiry": {
+                          "type": "string",
+                          "maxLength": 10
+                        }
+                      },
+                      "required": [
+                        "lotId",
+                        "productId",
+                        "batch",
+                        "expiry"
+                      ],
+                      "additionalProperties": false
+                    }
                   },
                   "saleId": {
                     "type": "string",
@@ -3003,7 +3073,7 @@
                   ]
                 },
                 "dependencies": {
-                  "maxItems": 200,
+                  "maxItems": 5000,
                   "type": "array",
                   "items": {
                     "type": "string",
@@ -3024,6 +3094,41 @@
                         "type": {
                           "type": "string",
                           "const": "sale.create"
+                        },
+                        "batchDeclarations": {
+                          "maxItems": 5000,
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "lotId": {
+                                "type": "string",
+                                "format": "uuid",
+                                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                              },
+                              "productId": {
+                                "type": "string",
+                                "format": "uuid",
+                                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                              },
+                              "batch": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 100
+                              },
+                              "expiry": {
+                                "type": "string",
+                                "maxLength": 10
+                              }
+                            },
+                            "required": [
+                              "lotId",
+                              "productId",
+                              "batch",
+                              "expiry"
+                            ],
+                            "additionalProperties": false
+                          }
                         },
                         "saleId": {
                           "type": "string",
@@ -3112,6 +3217,41 @@
                         "type": {
                           "type": "string",
                           "const": "sale.correct"
+                        },
+                        "batchDeclarations": {
+                          "maxItems": 5000,
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "lotId": {
+                                "type": "string",
+                                "format": "uuid",
+                                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                              },
+                              "productId": {
+                                "type": "string",
+                                "format": "uuid",
+                                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                              },
+                              "batch": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 100
+                              },
+                              "expiry": {
+                                "type": "string",
+                                "maxLength": 10
+                              }
+                            },
+                            "required": [
+                              "lotId",
+                              "productId",
+                              "batch",
+                              "expiry"
+                            ],
+                            "additionalProperties": false
+                          }
                         },
                         "saleId": {
                           "type": "string",

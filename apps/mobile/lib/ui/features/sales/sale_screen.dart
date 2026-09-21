@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -6,6 +7,10 @@ import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../domain/models/models.dart';
+import '../../../domain/models/batch_declaration.dart';
+import '../../../domain/models/inventory_rules.dart';
+import '../../../domain/models/tunis_dates.dart';
+import '../../core/forms.dart';
 import '../../../domain/models/money.dart';
 import '../../core/design.dart';
 import '../../core/form_draft.dart';
@@ -239,7 +244,7 @@ class _SaleEditorState extends State<_SaleEditor> {
     );
     if (code == null || !mounted) return;
     final product = vm.workspace.state.data?.products
-        .where((p) => p.barcode == code)
+        .where((p) => p.active && p.barcode == code)
         .firstOrNull;
     if (product == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -266,6 +271,7 @@ class _SaleEditorState extends State<_SaleEditor> {
         builder: (_) => LineEditor(
           workspace: vm.workspace,
           productId: productId,
+          occurredAt: vm.original?['occurredAt'] ?? vm.recovery?['occurredAt'],
           line: line,
         ),
       ),
@@ -360,11 +366,13 @@ class LineEditor extends StatefulWidget {
   final WorkspaceViewModel workspace;
   final String productId;
   final SaleLine? line;
+  final String? occurredAt;
   const LineEditor({
     super.key,
     required this.workspace,
     required this.productId,
     this.line,
+    this.occurredAt,
   });
   @override
   State<LineEditor> createState() => _LineEditorState();
@@ -377,6 +385,11 @@ class _LineEditorState extends State<LineEditor> {
   final allocations = <String, TextEditingController>{};
   String? error;
   late final List<InventoryLot> lots;
+  final declarations = <BatchDeclaration>[];
+  late final Store store = widget.workspace.state.store!;
+  String get saleDate => TunisDates.today(
+    DateTime.tryParse(widget.occurredAt ?? '') ?? DateTime.now(),
+  );
   @override
   void initState() {
     super.initState();
@@ -391,17 +404,17 @@ class _LineEditorState extends State<LineEditor> {
             ),
           ).input,
     );
-    lots =
-        widget.workspace.state.data!.lots
-            .where(
-              (l) =>
-                  l.productId == widget.productId &&
-                  (!l.expired ||
-                      widget.line?.allocations.any((a) => a['lotId'] == l.id) ==
-                          true),
-            )
-            .toList()
-          ..sort((a, b) => a.expiry.compareTo(b.expiry));
+    lots = InventorySelection.forSale(
+      widget.workspace.state.data?.lots.where(
+            (l) => l.productId == widget.productId,
+          ) ??
+          [],
+      saleDate,
+    );
+    declarations.addAll(widget.line?.batchDeclarations ?? []);
+    for (final declaration in declarations) {
+      addDeclaredLot(declaration);
+    }
     for (var i = 0; i < lots.length; i++) {
       final old = widget.line?.allocations
           .where((a) => a['lotId'] == lots[i].id)
@@ -416,7 +429,7 @@ class _LineEditorState extends State<LineEditor> {
     }
     draft = FormDraftController(
       widget.workspace,
-      widget.workspace.state.store,
+      store,
       'sale-line:${widget.line?.id ?? 'new:${widget.productId}'}',
       draftValues(),
     );
@@ -429,10 +442,12 @@ class _LineEditorState extends State<LineEditor> {
 
   Map<String, String> draftValues() => {
     'price': price.text,
+    'declarations': jsonEncode(declarations.map((b) => b.toJson()).toList()),
     for (final e in allocations.entries) e.key: e.value.text,
   };
   void persistDraft() {
     if (restoringDraft) return;
+    if (mounted) setState(() {});
     unawaited(
       draft.change(draftValues()).catchError((Object e) {
         if (mounted) {
@@ -447,17 +462,90 @@ class _LineEditorState extends State<LineEditor> {
       final values = await draft.restore();
       if (!mounted || values == null) return;
       restoringDraft = true;
+      for (final raw in objects(jsonDecode(values['declarations'] ?? '[]'))) {
+        final declaration = BatchDeclaration.fromJson(raw);
+        if (!declarations.any((d) => d.lotId == declaration.lotId)) {
+          declarations.add(declaration);
+        }
+        addDeclaredLot(declaration);
+        allocations.putIfAbsent(
+          declaration.lotId,
+          () => TextEditingController(text: '0')..addListener(persistDraft),
+        );
+      }
       price.text = values['price'] ?? price.text;
       for (final entry in allocations.entries) {
         entry.value.text = values[entry.key] ?? entry.value.text;
       }
       restoringDraft = false;
+      setState(() {});
     } catch (e) {
       if (mounted) {
         setState(() => error = 'Impossible de restaurer le brouillon.');
       }
     }
   }
+
+  void addDeclaredLot(BatchDeclaration declaration) {
+    if (lots.any((l) => l.id == declaration.lotId)) return;
+    lots.add(
+      InventoryLot.fromJson({
+        ...declaration.toJson(),
+        'id': declaration.lotId,
+        'sellable': 0,
+        'damaged': 0,
+        'version': 1,
+      }),
+    );
+  }
+
+  Future<void> missingBatch() async {
+    await openEditor(
+      context,
+      title: 'Renseigner le lot vendu',
+      description: 'Cette saisie enregistre les informations du lot. La vente signalera le stock manquant au responsable.',
+      fields: const [
+        FieldSpec('batch', 'Numéro du lot'),
+        FieldSpec('expiry', 'Péremption : JJ/MM/AAAA ou MM/AAAA'),
+        FieldSpec('quantity', 'Unités vendues', initial: '1', numeric: true),
+      ],
+      submit: (values) async {
+        final declaration = BatchDeclaration.create(
+          store.id,
+          widget.productId,
+          values['batch']!,
+          values['expiry']!,
+        );
+        if (declaration.expiry.compareTo(saleDate) < 0) {
+          throw const FormatException(
+            'Ce lot était périmé à la date de vente.',
+          );
+        }
+        final quantity = whole(values['quantity']!);
+        if (!mounted) return;
+        setState(() {
+          if (!declarations.any((d) => d.lotId == declaration.lotId)) {
+            declarations.add(declaration);
+          }
+          addDeclaredLot(declaration);
+          allocations
+                  .putIfAbsent(
+                    declaration.lotId,
+                    () => TextEditingController()..addListener(persistDraft),
+                  )
+                  .text =
+              '$quantity';
+        });
+        await draft.change(draftValues());
+      },
+    );
+  }
+
+  bool get hasShortage => lots.any(
+    (lot) =>
+        (int.tryParse(allocations[lot.id]?.text ?? '') ?? 0) > 0 &&
+        (int.tryParse(allocations[lot.id]?.text ?? '') ?? 0) > lot.sellable,
+  );
 
   @override
   void dispose() {
@@ -496,7 +584,19 @@ class _LineEditorState extends State<LineEditor> {
         if (lots.isEmpty)
           const EmptyState(
             title: 'Aucun lot disponible',
-            description: 'Demandez au responsable de renseigner le lot et sa date de péremption dans le stock.',
+            description: 'Renseignez le numéro du lot et sa péremption pour enregistrer la vente réelle.',
+          ),
+        OutlinedButton.icon(
+          onPressed: missingBatch,
+          icon: const Icon(Icons.add),
+          label: const Text('Lot manquant ? Le renseigner'),
+        ),
+        if (hasShortage)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 12),
+            child: Notice(
+              'Le stock enregistré est insuffisant. La vente sera conservée et un écart sera signalé au responsable.',
+            ),
           ),
         ...lots.map(
           (l) => Padding(
@@ -544,6 +644,9 @@ class _LineEditorState extends State<LineEditor> {
         quantity: quantity,
         price: Money.parse(price.text),
         allocations: selected,
+        batchDeclarations: declarations
+            .where((d) => selected.any((a) => a['lotId'] == d.lotId))
+            .toList(),
       );
       Navigator.pop(context, line);
     } catch (e) {

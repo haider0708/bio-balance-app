@@ -12,7 +12,11 @@ export const saleLine = z
     allocations: z.array(allocation).min(1).max(50),
   })
   .strict();
+export const batchDeclaration = z.object({
+  lotId: id, productId: id, batch: z.string().trim().min(1).max(100), expiry: z.string().max(10),
+}).strict();
 const saleFields = {
+  batchDeclarations: z.array(batchDeclaration).max(5000).optional(),
   saleId: id,
   occurredAt: z.iso.datetime({ offset: true }),
   lines: z.array(saleLine).min(1).max(100),
@@ -114,7 +118,7 @@ export const operationSchema = z
     storeId: id,
     organizationId: id,
     payloadVersion: z.union([z.literal(1), z.literal(2)]),
-    dependencies: z.array(id).max(200).optional(),
+    dependencies: z.array(id).max(5000).optional(),
     expectedVersion: z.number().int().min(1).optional(),
     command: commandSchema,
   })

@@ -123,6 +123,18 @@ export class PrismaLedger implements Ledger {
       take: 1000,
     });
   }
+  async declareBatch(lotId: string, productId: string, batch: string, expiry: string) {
+    requireRule(lotId === lotIdentity(this.scope.storeId, productId, batch, expiry),
+      "INVALID_LOT_IDENTITY", "L’identifiant du lot ne correspond pas à ses informations.");
+    await this.rate(productId);
+    const lot = await this.tx.inventoryLot.upsert({
+      where:{storeId_productId_batch_expiry:{storeId:this.scope.storeId,productId,batch,expiry:new Date(`${expiry}T00:00:00Z`)}},
+      create:{id:lotId,...this.context,productId,batch,expiry:new Date(`${expiry}T00:00:00Z`)}, update:{},
+    });
+    requireRule(lot.id === lotId, "LOT_IDENTITY_CONFLICT", "Ce lot existe déjà. Actualisez ses informations.",409);
+    // Metadata only: the sale's stock movement records the real outgoing units.
+    return lot;
+  }
   async receive(
     productId: string,
     batch: string,

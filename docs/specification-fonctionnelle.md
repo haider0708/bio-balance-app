@@ -68,3 +68,7 @@ Identité officielle : logo BioBalance, vert `#6ABE4E`, boutons vert foncé cont
 Toutes les fonctionnalités doivent couvrir chargement, absence de données, recherche vide, cache hors ligne, erreurs récupérables, permissions refusées, session expirée et conflits. Les formulaires conservent leurs valeurs.
 
 L’application, PostgreSQL et les médias sont hébergés sur un VPS. Les services mobiles FCM/APNs restent nécessaires. Les sauvegardes locales sont vérifiées par restauration isolée ; elles ne couvrent pas la perte du serveur entier.
+
+### Lots absents lors d’une vente
+
+Un vendeur peut déclarer le numéro de lot et sa date de péremption pendant la saisie. Le serveur crée uniquement les métadonnées manquantes puis enregistre la sortie réelle dans une transaction unique. Une quantité négative produit un écart à vérifier ; aucune entrée fictive ne compense la vente. Les produits globaux restent administrés par BioBalance. La proposition FEFO privilégie les lots valides ayant du stock positif ; la péremption est évaluée à la date de la vente d’origine, y compris lors d’une correction.

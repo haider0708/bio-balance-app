@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { Database } from "../src/shared/infrastructure/database";
-import { PrismaUnitOfWork } from "../src/modules/operations/infrastructure/prisma-ledger";
+import { PrismaUnitOfWork, lotIdentity } from "../src/modules/operations/infrastructure/prisma-ledger";
 import { OperationsService } from "../src/modules/operations/application/operations.service";
 import {
   UnitOfWork,
@@ -525,6 +525,32 @@ describe.sequential(
       const result = await service.submit({...actor,sessionId:session.id},op({type:"stock.receive",reason:"receipt",lines:[{productId:product,batch:"REVOKED",expiry:"2029-12-31",quantity:1}]}));
       expect(result.code).toBe("SESSION_EXPIRED");
       expect(await owner.inventoryLot.count({where:{storeId:store,batch:"REVOKED"}})).toBe(0);
+    });
+    it("lets sellers declare a missing batch atomically without incoming stock", async () => {
+      const id = lotIdentity(store,product,"MISSING","2029-12-31"), saleId=randomUUID();
+      const command:Command={type:"sale.create",saleId,occurredAt:new Date().toISOString(),
+        batchDeclarations:[{lotId:id,productId:product,batch:"MISSING",expiry:"2029-12"}],
+        lines:[{id:randomUUID(),productId:product,quantity:2,unitPriceMillimes:"14990",allocations:[{lotId:id,quantity:2}]}]};
+      const operation=op(command);
+      const accepted=await service.submit(seller,operation);
+      expect(accepted.status).toBe("accepted");
+      expect(await service.submit(seller,operation)).toEqual(accepted);
+      expect(await owner.inventoryLot.findUniqueOrThrow({where:{id}})).toMatchObject({sellable:-2,damaged:0,version:2});
+      const movements=await owner.stockMovement.findMany({where:{lotId:id}});
+      expect(movements).toHaveLength(1);expect(movements[0]!.quantity).toBe(-2);expect(movements[0]!.reason).toBe("sale.create");
+      expect(await owner.alert.count({where:{storeId:store,productId:product,kind:"discrepancy",active:true}})).toBe(1);
+      const expiredId=lotIdentity(store,product,"EXPIRED-DECLARATION","2020-01-31");
+      const expired=await service.submit(seller,op({...command,saleId:randomUUID(),
+        batchDeclarations:[{lotId:expiredId,productId:product,batch:"EXPIRED-DECLARATION",expiry:"2020-01"}],
+        lines:[{...command.lines[0]!,allocations:[{lotId:expiredId,quantity:2}]}]}));
+      expect(expired.code).toBe("LOT_EXPIRED");
+      expect(await owner.inventoryLot.findUnique({where:{id:expiredId}})).toBeNull();
+      const spoofed=randomUUID();
+      const spoof=await service.submit(seller,op({...command,saleId:randomUUID(),
+        batchDeclarations:[{lotId:spoofed,productId:product,batch:"SPOOF",expiry:"2029-12"}],
+        lines:[{...command.lines[0]!,allocations:[{lotId:spoofed,quantity:2}]}]}));
+      expect(spoof.code).toBe("INVALID_LOT_IDENTITY");
+      expect(await owner.inventoryLot.findUnique({where:{id:spoofed}})).toBeNull();
     });
     it("rejects editing append-only histories at database level", async () => {
       const movement = await owner.stockMovement.findFirstOrThrow({

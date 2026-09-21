@@ -1,4 +1,3 @@
-String dateLabel(String date) {
-  final parts = date.substring(0, 10).split('-');
-  return '${parts[2]}/${parts[1]}/${parts[0]}';
-}
+import '../../domain/models/tunis_dates.dart';
+
+String dateLabel(String date) => date.contains('T') ? TunisDates.timestampLabel(date) : TunisDates.dateOnlyLabel(date);

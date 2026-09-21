@@ -1,3 +1,5 @@
+import 'batch_declaration.dart';
+import 'tunis_dates.dart';
 import 'money.dart';
 
 typedef Json = Map<String, dynamic>;
@@ -80,8 +82,16 @@ class InventoryLot {
       sellable = integer(v['sellable']),
       damaged = integer(v['damaged']),
       version = integer(v['version']);
-  bool get expired =>
-      expiry.compareTo(DateTime.now().toIso8601String().substring(0, 10)) < 0;
+  bool expiredOn(String date) => expiry.compareTo(date) < 0;
+  bool get expired => expiredOn(TunisDates.today());
+  bool approachingOn(String date) =>
+      !expiredOn(date) &&
+      expiry.compareTo(
+            TunisDates.civil(
+              DateTime.parse('${date}T00:00:00Z').add(const Duration(days: 30)),
+            ),
+          ) <=
+          0;
 }
 
 class SaleLine {
@@ -89,13 +99,16 @@ class SaleLine {
   final int quantity;
   final Money price;
   final List<Json> allocations;
+  final List<BatchDeclaration> batchDeclarations;
   SaleLine({
     required this.id,
     required this.productId,
     required this.quantity,
     required this.price,
     required List<Json> allocations,
-  }) : allocations = List.unmodifiable(
+    List<BatchDeclaration> batchDeclarations = const [],
+  }) : batchDeclarations = List.unmodifiable(batchDeclarations),
+       allocations = List.unmodifiable(
          allocations.map((a) => Map<String, dynamic>.unmodifiable(a)),
        );
   factory SaleLine.fromJson(Json v) => SaleLine(
@@ -104,13 +117,18 @@ class SaleLine {
     quantity: integer(v['quantity']),
     price: Money(integer(v['unitPriceMillimes'])),
     allocations: objects(v['allocations']),
+    batchDeclarations: objects(v['batchDeclarations'])
+        .map(BatchDeclaration.fromJson)
+        .toList(),
   );
-  Json toJson() => {
+  Json toJson({bool transport = false}) => {
     'id': id,
     'productId': productId,
     'quantity': quantity,
     'unitPriceMillimes': price.millimes.toString(),
     'allocations': allocations,
+    if (!transport && batchDeclarations.isNotEmpty)
+      'batchDeclarations': batchDeclarations.map((b) => b.toJson()).toList(),
   };
 }
 

@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import '../reporting/history_screen.dart';
 
 import '../../../domain/models/models.dart';
+import '../../../domain/models/inventory_rules.dart';
+import '../../../domain/models/tunis_dates.dart';
 import '../../../domain/models/money.dart';
 import '../../core/design.dart';
 import '../../core/forms.dart';
@@ -31,15 +33,7 @@ class _StockPageState extends State<StockPage> {
       )) {
         return false;
       }
-      final lots = (data!.lotsByProduct[p.id] ?? <InventoryLot>[]);
-      final quantity = lots
-          .where((l) => !l.expired)
-          .fold<int>(0, (s, l) => s + l.sellable.clamp(0, 100000000));
-      return filter == 'all' ||
-          filter == 'low' &&
-              quantity <= integer(data.config(p.id)['threshold']) ||
-          filter == 'expired' && lots.any((l) => l.expired) ||
-          filter == 'discrepancy' && lots.any((l) => l.sellable < 0);
+      return StockSummary.forProduct(data!, p.id).matches(filter);
     }).toList();
     return Content(
       children: [
@@ -71,6 +65,7 @@ class _StockPageState extends State<StockPage> {
               'all': 'Tous',
               'low': 'Stock faible',
               'discrepancy': 'À vérifier',
+              'approaching': 'Péremption ≤ 30 jours',
               'expired': 'Périmés',
             }.entries)
               ChoiceChip(
@@ -88,11 +83,8 @@ class _StockPageState extends State<StockPage> {
                 'Changez les filtres ou ajoutez vos premières références.',
           ),
         ...products.map((p) {
-          final lots = (data!.lotsByProduct[p.id] ?? <InventoryLot>[]);
-          final quantity = lots
-              .where((l) => !l.expired)
-              .fold<int>(0, (s, l) => s + l.sellable.clamp(0, 100000000));
-          final low = quantity <= integer(data.config(p.id)['threshold']);
+          final summary = StockSummary.forProduct(data!, p.id);
+          final quantity = summary.available, low = summary.low;
           return Padding(
             padding: const EdgeInsets.only(bottom: 10),
             child: Card(
@@ -453,10 +445,10 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
       fields: const [
         FieldSpec('quantity', 'Unités reçues', initial: '1', numeric: true),
         FieldSpec('batch', 'Numéro de lot'),
-        FieldSpec('expiry', 'Péremption (AAAA-MM-JJ ou AAAA-MM)'),
+        FieldSpec('expiry', 'Péremption : JJ/MM/AAAA ou MM/AAAA'),
       ],
       submit: (v) async {
-        final expiry = normalizeExpiry(v['expiry']!);
+        final expiry = TunisDates.expiry(v['expiry']!);
         setState(
           () => lines.add({
             'productId': product.id,
@@ -503,19 +495,4 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
       if (mounted) setState(() => busy = false);
     }
   }
-}
-
-String normalizeExpiry(String input) {
-  if (!RegExp(r'^\d{4}-\d{2}(-\d{2})?$').hasMatch(input)) {
-    throw const FormatException('Date invalide. Utilisez AAAA-MM-JJ.');
-  }
-  final p = input.split('-').map(int.parse).toList();
-  if (p[0] < 2000 || p[0] > 2200 || p[1] < 1 || p[1] > 12) {
-    throw const FormatException('Date invalide.');
-  }
-  final date = p.length == 2
-      ? DateTime(p[0], p[1] + 1, 0)
-      : DateTime(p[0], p[1], p[2]);
-  if (date.month != p[1]) throw const FormatException('Date invalide.');
-  return date.toIso8601String().substring(0, 10);
 }

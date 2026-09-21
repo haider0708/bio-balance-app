@@ -128,6 +128,15 @@ export class OperationsService {
         "Cette vente existe déjà.",
         409,
       );
+      const declarations = cmd.batchDeclarations ?? [];
+      requireRule(new Set(declarations.map(d => d.lotId)).size === declarations.length,
+        "DUPLICATE_LOT", "Un lot est déclaré plusieurs fois.");
+      for (const declaration of declarations) {
+        requireRule(cmd.lines.some(line => line.productId === declaration.productId &&
+          line.allocations.some(allocation => allocation.lotId === declaration.lotId)),
+          "UNUSED_BATCH", "Le lot déclaré doit correspondre à un produit de cette vente.");
+        await ledger.declareBatch(declaration.lotId, declaration.productId, declaration.batch, expiryDate(declaration.expiry));
+      }
       const lots = new Map();
       const rates = new Map<string, number>();
       for (const line of cmd.lines) {

@@ -5,6 +5,7 @@ import '../../../domain/use_cases/record_return.dart';
 import 'package:flutter/material.dart';
 
 import '../../../domain/models/models.dart';
+import '../../../domain/models/inventory_rules.dart';
 import '../../../domain/models/money.dart';
 import '../../core/design.dart';
 import '../../core/forms.dart';
@@ -91,35 +92,83 @@ class SaleDetailScreen extends StatefulWidget {
 }
 
 class _SaleDetailScreenState extends State<SaleDetailScreen> {
-  Json? details;
+  Json? details, cached;
   String? error;
+  late final Store store = widget.vm.state.store!;
   @override
   void initState() {
     super.initState();
+    widget.vm.addListener(changed);
     load();
+  }
+
+  void changed() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    widget.vm.removeListener(changed);
+    super.dispose();
+  }
+
+  Json get currentSale {
+    final local = widget.vm.state.store?.id == store.id
+        ? widget.vm.state.data
+              ?.list('sales')
+              .where((s) => s['id'] == widget.sale['id'])
+              .firstOrNull
+        : cached;
+    return SaleSnapshot.latest(
+      widget.sale,
+      local ?? cached,
+      details?['sale'] as Json?,
+    );
   }
 
   Future<void> load() async {
     try {
-      final d = await widget.vm.storeRequest(
+      final local = await widget.vm.repository.load(widget.vm.user, store);
+      if (mounted) {
+        setState(
+          () => cached = local
+              ?.list('sales')
+              .where((s) => s['id'] == widget.sale['id'])
+              .firstOrNull,
+        );
+      }
+      final result = await widget.vm.request(
         'GET',
-        'sales/${widget.sale['id']}',
+        '/v1/stores/${store.id}/sales/${widget.sale['id']}',
+        query: {'organizationId': store.organizationId},
       );
-      if (mounted) setState(() => details = Map<String, dynamic>.from(d));
+      if (mounted) {
+        setState(() {
+          details = Map<String, dynamic>.from(result);
+          error = null;
+        });
+      }
     } catch (e) {
       if (mounted) setState(() => error = SessionViewModel.message(e));
     }
   }
 
+  Future<void> correct(Json sale) async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => SaleScreen(workspace: widget.vm, original: sale),
+      ),
+    );
+    if (mounted) await load();
+  }
+
   @override
   Widget build(BuildContext context) {
-    final local = widget.vm.state.data
-        ?.list('sales')
-        .where((s) => s['id'] == widget.sale['id'])
+    final sale = currentSale;
+    final seller = objects(details?['people'])
+        .where((p) => p['id'] == sale['sellerId'])
         .firstOrNull;
-    final sale = local?['syncStatus'] != null
-        ? local!
-        : details?['sale'] as Json? ?? local ?? widget.sale;
     return Scaffold(
       appBar: AppBar(title: const Text('Détail de la vente')),
       body: Content(
@@ -130,13 +179,17 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
             subtitle:
                 '${dateLabel(sale['occurredAt'])} · Révision ${sale['version']}',
           ),
+          Text(
+            'Vendeur : ${seller?['name'] ?? (sale['sellerId'] == widget.vm.user.id ? widget.vm.user.name : sale['sellerId'])}',
+          ),
+          const SizedBox(height: 12),
           if (error != null) ...[Notice(error!), const SizedBox(height: 16)],
           ...objects(sale['lines']).map(
             (l) => ListTile(
               contentPadding: EdgeInsets.zero,
               title: Text(widget.vm.productName(l['productId'])),
               subtitle: Text(
-                '${l['quantity']} unités × ${Money(integer(l['unitPriceMillimes'])).formatted}',
+                '${l['quantity']} unités × ${Money(integer(l['unitPriceMillimes'])).formatted}\n${objects(l['allocations']).map((a) => '${a['quantity']} × lot ${widget.vm.state.data?.lots.where((lot) => lot.id == a['lotId']).firstOrNull?.batch ?? a['lotId']}').join(' · ')}',
               ),
             ),
           ),
@@ -147,13 +200,7 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
               runSpacing: 12,
               children: [
                 OutlinedButton.icon(
-                  onPressed: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) =>
-                          SaleScreen(workspace: widget.vm, original: sale),
-                    ),
-                  ),
+                  onPressed: () => correct(sale),
                   icon: const Icon(Icons.edit_outlined),
                   label: const Text('Corriger'),
                 ),
@@ -188,9 +235,27 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
     final choices = <String, String>{};
     for (final l in objects(sale['lines'])) {
       for (final a in objects(l['allocations'])) {
-        choices['${l['id']}:${a['lotId']}'] =
-            '${widget.vm.productName(l['productId'])} · Lot ${a['lotId'].toString().substring(0, 8)}';
+        final key = '${l['id']}:${a['lotId']}';
+        final remaining =
+            integer(a['quantity']) - integer((sale['returned'] as Map?)?[key]);
+        if (remaining <= 0) continue;
+        final batch =
+            widget.vm.state.data?.lots
+                .where((lot) => lot.id == a['lotId'])
+                .firstOrNull
+                ?.batch ??
+            a['lotId'];
+        choices[key] =
+            '${widget.vm.productName(l['productId'])} · Lot $batch · $remaining unité(s) retournable(s)';
       }
+    }
+    if (choices.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Toutes les unités ont déjà été retournées.'),
+        ),
+      );
+      return;
     }
     await openEditor(
       context,
@@ -214,16 +279,11 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
       submit: (v) async {
         final ids = v['allocation']!.split(':');
         final q = whole(v['quantity']!);
-        final current =
-            widget.vm.state.data
-                ?.list('sales')
-                .where((s) => s['id'] == sale['id'])
-                .firstOrNull ??
-            sale;
-        widget.vm.requireAccess(widget.vm.state.store!, 'sell');
+        final current = currentSale;
+        widget.vm.requireAccess(store, 'sell');
         await RecordReturn(widget.vm.repository).execute(
           widget.vm.user,
-          widget.vm.state.store!,
+          store,
           current,
           lineId: ids[0],
           lotId: ids[1],
