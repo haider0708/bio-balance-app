@@ -83,20 +83,16 @@ class CatalogPage extends StatelessWidget {
         ),
       ],
       submit: (v) async {
-        await vm.request(
-          'POST',
-          '/v1/catalog/products',
-          body: {
-            if (p != null) 'id': p['id'],
-            if (p != null) 'expectedVersion': p['version'],
-            'reference': v['reference'],
-            'name': v['name'],
-            'imageId': v['imageId']!.isEmpty ? null : v['imageId'],
-            if (v['barcode']!.isNotEmpty) 'barcode': v['barcode'],
-            'description': v['description'],
-            'active': v['active'] == 'yes',
-          },
-        );
+        await vm.catalog.save({
+          if (p != null) 'id': p['id'],
+          if (p != null) 'expectedVersion': p['version'],
+          'reference': v['reference'],
+          'name': v['name'],
+          'imageId': v['imageId']!.isEmpty ? null : v['imageId'],
+          if (v['barcode']!.isNotEmpty) 'barcode': v['barcode'],
+          'description': v['description'],
+          'active': v['active'] == 'yes',
+        });
       },
     )) {
       await vm.synchronize();

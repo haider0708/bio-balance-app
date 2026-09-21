@@ -1,3 +1,5 @@
+import '../services/api/generated/models.dart';
+
 import 'dart:io';
 import 'dart:isolate';
 
@@ -12,9 +14,8 @@ class MediaUploadRepository {
   final OfflineRepository local;
   final ApiClient api;
   MediaUploadRepository(this.local, this.api);
-  Future<Json> status(String id) async => Map<String, dynamic>.from(
-    await api.request('GET', '/v1/media/uploads/$id'),
-  );
+  Future<Json> status(String id) async =>
+      (await api.trainingStatus(id: id)).toJson();
 
   Future<Json> upload({
     required String accountId,
@@ -83,21 +84,17 @@ class MediaUploadRepository {
         );
       }
     } else {
-      asset = Map<String, dynamic>.from(
-        await api.request(
-          'POST',
-          '/v1/media/uploads',
-          body: {
-            'fileName': name,
-            'mime': contentMime,
-            'size': size,
-            'sha256': checksum,
-            'purpose': purpose,
-            if (store != null) 'organizationId': store.organizationId,
-            if (store != null) 'storeId': store.id,
-          },
+      asset = (await api.trainingStart(
+        body: TrainingStartRequestDto(
+          fileName: name,
+          mime: contentMime,
+          size: size,
+          sha256: checksum,
+          purpose: purpose,
+          organizationId: store?.organizationId,
+          storeId: store?.id,
         ),
-      );
+      )).toJson();
       api.requireBinding(binding);
       await local.saveDraft(accountId, store?.id ?? '', key, {
         'id': asset['id'],

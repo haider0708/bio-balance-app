@@ -1,3 +1,12 @@
+import '../../../data/repositories/online_operations_repository.dart';
+import '../../../data/repositories/repository_context.dart';
+import '../../../data/repositories/catalog_repository.dart';
+import '../../../data/repositories/team_repository.dart';
+import '../../../data/repositories/reporting_repository.dart';
+import '../../../data/repositories/sales_repository.dart';
+import '../../../data/repositories/rewards_repository.dart';
+import '../../../data/repositories/notifications_repository.dart';
+import '../../../data/repositories/store_settings_repository.dart';
 import '../../../data/services/api/session_transport.dart';
 
 import 'dart:async';
@@ -59,6 +68,20 @@ class WorkspaceState {
 }
 
 class WorkspaceViewModel extends ChangeNotifier {
+  late final RepositoryContext repositoryContext;
+  late final commands = OnlineOperationsRepository(
+    repositoryContext,
+    repository,
+    user,
+  );
+  late final catalog = CatalogRepository(repositoryContext);
+  late final teams = TeamRepository(repositoryContext);
+  late final reporting = ReportingRepository(repositoryContext);
+  late final sales = SalesRepository(repositoryContext);
+  late final rewards = RewardsRepository(repositoryContext);
+  late final inbox = NotificationsRepository(repositoryContext);
+  late final StoreSettingsRepository stores;
+
   final UserAccount user;
   final OfflineRepository repository;
   final ApiClient api;
@@ -75,6 +98,8 @@ class WorkspaceViewModel extends ChangeNotifier {
   bool securingAccess = false;
   WorkspaceViewModel(this.user, this.repository, this.api)
     : _sessionGeneration = api.generation {
+    repositoryContext = RepositoryContext(api);
+    stores = StoreSettingsRepository(api);
     _accessEvents = api.accessEvents.listen((event) {
       if (event.binding.accountId != user.id ||
           event.binding.generation != _sessionGeneration) {
@@ -317,34 +342,6 @@ class WorkspaceViewModel extends ChangeNotifier {
       e is DioException && [401, 403].contains(e.response?.statusCode);
   bool _networkFailure(Object e) => e is DioException && e.response == null;
 
-  Future<dynamic> request(
-    String method,
-    String path, {
-    Json? body,
-    Json? query,
-  }) async {
-    if (_closed || api.generation != _sessionGeneration) {
-      throw const AppFailure('ACCOUNT_CHANGED', 'La session a changé.');
-    }
-    try {
-      final value = await api.request(method, path, body: body, query: query);
-      return value;
-    } catch (e) {
-      if (_accessFailure(e)) await denyAccess(state.store?.id);
-      rethrow;
-    }
-  }
-
-  Future<dynamic> storeRequest(String method, String path, {Json? body}) {
-    final store = state.store!;
-    return request(
-      method,
-      '/v1/stores/${store.id}/$path',
-      body: body,
-      query: {'organizationId': store.organizationId},
-    );
-  }
-
   Future<void> queue(
     Json command, {
     int? expectedVersion,
@@ -382,49 +379,7 @@ class WorkspaceViewModel extends ChangeNotifier {
   }) async {
     final store = targetStore ?? state.store!;
     requireAccess(store);
-    if (api.accountId != user.id) {
-      throw const AppFailure('ACCOUNT_CHANGED', 'Veuillez vous reconnecter.');
-    }
-    final target =
-        command['rewardId'] ??
-        command['claimId'] ??
-        (command['type'] == 'order.create' ? 'new' : command['orderId']) ??
-        'new';
-    final key = 'online:${command['type']}:$target';
-    final prior = await repository.draft(user.id, store.id, key);
-    final operation =
-        prior?['operation'] as Json? ??
-        <String, dynamic>{
-          'operationId': const Uuid().v4(),
-          'organizationId': store.organizationId,
-          'storeId': store.id,
-          'payloadVersion': 2,
-          'expectedVersion': ?expectedVersion,
-          'command': command,
-        };
-    await repository.saveDraft(user.id, store.id, key, {
-      'operation': operation,
-    });
-    final result = await api.push([operation]);
-    final row = objects(result['results']).single;
-    if (row['status'] != 'accepted') {
-      final access = switch (row['code']) {
-        'SESSION_EXPIRED' => AccessCondition.expired,
-        'ACCESS_DISABLED' => AccessCondition.disabled,
-        'STORE_ACCESS_REVOKED' => AccessCondition.storeAccessRevoked,
-        _ => null,
-      };
-      if (access != null) api.confirmAccessLoss(access, storeId: store.id);
-      if (access == null &&
-          (row['status'] == 'rejected' || row['status'] == 'conflict')) {
-        await repository.saveDraft(user.id, store.id, key, {});
-      }
-      throw AppFailure(
-        row['code'] ?? 'CONFLICT',
-        row['message'] ?? 'Opération refusée.',
-      );
-    }
-    await repository.saveDraft(user.id, store.id, key, {});
+    await commands.submit(store, command, expectedVersion: expectedVersion);
     if (state.store?.id == store.id) await synchronize();
   }
 

@@ -1,0 +1,93 @@
+/** Explicit public wire shapes. Database models and credentials are never inferred into this registry. */
+export type Schema = Record<string, any>;
+export const ref=(name:string):Schema=>({$ref:`#/components/schemas/${name}`});
+export const obj=(properties:Record<string,Schema>,required=Object.keys(properties)):Schema=>({type:'object',properties,required,additionalProperties:false});
+export const arr=(items:Schema):Schema=>({type:'array',items});
+export const nullable=(schema:Schema):Schema=>({anyOf:[schema,{type:'null'}]});
+export const str:Schema={type:'string'}, uuid:Schema={type:'string',format:'uuid'}, integer:Schema={type:'integer'}, bool:Schema={type:'boolean'}, timestamp:Schema={type:'string',format:'date-time'}, decimal:Schema={type:'string',pattern:'^-?[0-9]+$'};
+const scoped={id:uuid,organizationId:uuid,storeId:uuid};
+const permission=arr({type:'string',enum:['sell','receive','manage']});
+export const wireSchemas:Record<string,Schema>={
+ JsonValue:{description:'Versioned audit metadata; values are JSON primitives, arrays or objects. Never used as an endpoint body or result.',anyOf:[{type:'null'},str,{type:'number'},bool,arr(ref('JsonValue')),{type:'object',additionalProperties:ref('JsonValue')}]},
+ Money:obj({currency:{const:'TND',type:'string'},millimes:{type:'string',pattern:'^(0|[1-9][0-9]*)$'}}),
+ User:obj({id:uuid,email:str,name:str,platformAdmin:bool,sessionId:uuid},['id','email','name','platformAdmin']),
+ LoginResponse:obj({token:str,expiresAt:timestamp,user:ref('User')}),
+ Ok:obj({ok:{const:true,type:'boolean'}}),
+ Activated:obj({ok:{const:true,type:'boolean'},email:str}),
+ Invitation:obj({id:uuid,email:str,status:{const:'invited',type:'string'},expiresAt:timestamp}),
+ InvitationSummary:obj({id:uuid,email:nullable(str),expiresAt:timestamp}),
+ Message:obj({message:str}),
+ Count:obj({count:integer}),
+ Health:obj({status:{const:'ok',type:'string'}}),
+ Organization:obj({id:uuid,name:str,createdAt:timestamp}),
+ Store:obj({id:uuid,organizationId:uuid,name:str,address:str,city:str,phone:nullable(str),imageId:nullable(uuid),timezone:str,onboardingStep:integer,workingAlone:bool,noOpeningStock:bool,version:integer,createdAt:timestamp}),
+ StoreAccess:obj({},[]),
+ Membership:obj({...scoped,userId:uuid,permissions:permission,active:bool,createdAt:timestamp}),
+ TeamMember:obj({...scoped,userId:uuid,permissions:permission,active:bool,createdAt:timestamp,membershipId:uuid,name:str,email:str}),
+ Person:obj({id:uuid,name:str}),
+ Product:obj({id:uuid,reference:str,name:str,barcode:nullable(str),description:str,imageId:nullable(uuid),active:bool,version:integer,updatedAt:timestamp}),
+ StoreProduct:obj({...scoped,productId:uuid,priceMillimes:decimal,threshold:integer,pointsPerUnit:integer,pointsConfigured:bool,zeroPointsConfirmed:bool,version:integer}),
+ InventoryLot:obj({...scoped,productId:uuid,batch:str,expiry:timestamp,sellable:integer,damaged:integer,version:integer}),
+ StockMovement:obj({...scoped,lotId:uuid,quantity:integer,bucket:str,reason:str,sourceId:uuid,actorId:uuid,operationId:uuid,createdAt:timestamp}),
+ SaleAllocation:obj({lotId:uuid,quantity:integer}),
+ AcceptedSaleLine:obj({id:uuid,productId:uuid,quantity:integer,unitPriceMillimes:decimal,allocations:arr(ref('SaleAllocation')),pointsPerUnit:integer}),
+ SaleRecord:obj({id:uuid,sellerId:uuid,occurredAt:timestamp,version:integer,lines:arr(ref('AcceptedSaleLine')),returned:{type:'object',additionalProperties:integer},totalMillimes:decimal,earnedPoints:decimal}),
+ Sale:obj({},[]),
+ SaleRevision:obj({...scoped,saleId:uuid,version:integer,editorId:uuid,reason:str,before:nullable(ref('SaleRecord')),after:ref('SaleRecord'),operationId:uuid,createdAt:timestamp}),
+ SaleDetails:obj({sale:ref('Sale'),revisions:arr(ref('SaleRevision')),people:arr(ref('Person'))}),
+ PointsAccount:obj({balance:decimal,reserved:decimal,id:uuid,organizationId:uuid,storeId:uuid,userId:uuid},['balance','reserved']),
+ PointsEntry:obj({...scoped,userId:uuid,amount:decimal,kind:str,sourceId:uuid,operationId:uuid,createdAt:timestamp}),
+ Reward:obj({...scoped,title:str,description:str,imageId:nullable(uuid),cost:integer,productId:nullable(uuid),quantity:integer,active:bool,version:integer}),
+ RewardClaim:obj({...scoped,userId:uuid,rewardId:uuid,title:str,cost:integer,productId:nullable(uuid),quantity:integer,status:{type:'string',enum:['requested','fulfilled','rejected','cancelled']},version:integer,fulfilledBy:nullable(uuid),createdAt:timestamp,resolvedAt:nullable(timestamp)}),
+ OrderLine:obj({productId:uuid,quantity:integer}),
+ FulfillmentLine:obj({productId:uuid,ordered:integer,received:integer,inTransit:integer,remainingToDispatch:integer,remainingToReceive:integer}),
+ Order:obj({...scoped,status:str,lines:arr(ref('OrderLine')),createdBy:uuid,version:integer,createdAt:timestamp,fulfillment:arr(ref('FulfillmentLine')),storeName:str},[...Object.keys(scoped),'status','lines','createdBy','version','createdAt']),
+ OrderFulfillment:obj({orderId:uuid,version:integer,status:str,lines:arr(ref('FulfillmentLine'))}),
+ Supply:obj({productId:uuid,quantity:integer}),
+ Delivery:obj({...scoped,orderId:uuid,lines:arr(ref('OrderLine')),status:str,version:integer,dispatchedAt:timestamp,receivedAt:nullable(timestamp)}),
+ ReceiptLine:obj({productId:uuid,batch:str,expiry:str,quantity:integer}),
+ DeliveryDifference:obj({productId:uuid,expected:integer,actual:integer}),
+ DeliveryDifferences:obj({lines:arr(ref('DeliveryDifference')),note:str}),
+ DeliveryReceipt:obj({...scoped,deliveryId:uuid,lines:arr(ref('ReceiptLine')),differences:ref('DeliveryDifferences'),actorId:uuid,operationId:uuid,createdAt:timestamp}),
+ Alert:obj({...scoped,productId:nullable(uuid),kind:str,key:str,message:str,active:bool,createdAt:timestamp,resolvedAt:nullable(timestamp),storeName:str},[...Object.keys(scoped),'productId','kind','key','message','active','createdAt','resolvedAt']),
+ Change:obj({...scoped,cursor:decimal,entity:str,entityId:str,deleted:bool,createdAt:timestamp}),
+ ChangePage:obj({changes:arr(ref('Change')),cursor:decimal,hasMore:bool}),
+ AuditEntry:obj({id:uuid,organizationId:nullable(uuid),storeId:nullable(uuid),actorId:nullable(uuid),action:str,targetId:str,operationId:nullable(uuid),details:ref('JsonValue'),createdAt:timestamp}),
+ Notification:obj({id:uuid,organizationId:nullable(uuid),storeId:nullable(uuid),userId:uuid,eventKey:str,title:str,body:str,readAt:nullable(timestamp),createdAt:timestamp}),
+ Device:obj({id:uuid,userId:uuid,sessionId:nullable(uuid),token:str,platform:str,updatedAt:timestamp}),
+ AnnouncementResult:obj({id:uuid,recipients:integer}),
+ TrainingContent:obj({id:uuid,title:str,body:str,type:{type:'string',enum:['article','video']},mediaId:nullable(uuid),productIds:arr(uuid),status:{type:'string',enum:['draft','published','archived']},version:integer,authorId:uuid,updatedAt:timestamp}),
+ UploadStarted:obj({id:uuid,status:str,received:decimal,size:decimal,expectedSha256:nullable(str)}),
+ UploadStatus:obj({id:uuid,status:str,received:decimal,size:decimal,expectedSha256:nullable(str),sha256:nullable(str),processedSize:nullable(decimal)}),
+ UploadChunkResult:obj({received:decimal,status:str}),
+ MediaMetadata:obj({id:uuid,mime:str,size:decimal,sha256:str}),
+ Onboarding:obj({profile:bool,team:bool,stock:bool,products:bool,workingAlone:bool,noOpeningStock:bool,carriedCount:integer,incompleteProducts:arr(uuid),completedCount:integer,complete:bool}),
+ OnboardingResult:obj({store:ref('Store'),onboarding:ref('Onboarding')}),
+ RankingScore:obj({userId:uuid,name:str,score:decimal,rank:decimal}),
+ Ranking:obj({month:{type:'string',pattern:'^[0-9]{4}-[0-9]{2}$'},scores:arr(ref('RankingScore'))}),
+ AdminOverview:obj({storeCount:integer,staffCount:integer,orders:arr(ref('Order')),alerts:arr(ref('Alert'))}),
+ ReportOverview:obj({stores:arr(ref('StoreAccess')),totalStores:integer,organizations:integer,staff:integer}),
+ ApiError:obj({code:str,message:str,correlationId:str,fields:arr(obj({path:str,message:str}))},['code','message']),
+ AffectedVersion:obj({resource:{type:'string',enum:['lots','sales','orders','deliveries','claims']},id:uuid,version:integer}),
+ CommandOutcome:obj({id:uuid,version:integer,orderVersion:integer,status:str,total:ref('Money'),points:decimal,differences:arr(ref('DeliveryDifference'))},['id']),
+};
+wireSchemas.StoreAccess=obj({...wireSchemas.Store!.properties,organizationName:str,permissions:permission},[...wireSchemas.Store!.required,'permissions']);
+wireSchemas.Sale=obj({...wireSchemas.SaleRecord!.properties,organizationId:uuid,storeId:uuid,acceptedAt:timestamp});
+wireSchemas.SyncResult={oneOf:[
+ obj({operationId:uuid,status:{const:'accepted',type:'string'},data:ref('CommandOutcome'),committedCursor:decimal,affectedVersions:arr(ref('AffectedVersion'))},['operationId','status','data']),
+ ...['conflict','rejected','blocked','retryable'].map(status=>obj({operationId:uuid,status:{const:status,type:'string'},code:str,message:str,retryAfterMs:integer},['operationId','status','code','message'])),
+],discriminator:{propertyName:'status'}};
+wireSchemas.OperationStatus={oneOf:[ref('SyncResult'),obj({operationId:uuid,status:{const:'unknown',type:'string'}})]};
+wireSchemas.SyncResponse=obj({results:arr(ref('SyncResult'))});
+wireSchemas.StatusResponse=obj({results:arr(ref('OperationStatus'))});
+wireSchemas.CollectionItem={anyOf:['InventoryLot','StoreProduct','Product','Sale','PointsEntry','AuditEntry'].map(ref)};
+wireSchemas.HistoryItem={anyOf:['Sale','PointsEntry','StockMovement','AuditEntry'].map(ref)};
+wireSchemas.HistoryPage=obj({items:arr(ref('HistoryItem')),people:arr(ref('Person')),nextCursor:nullable(str)});
+wireSchemas.SnapshotPage={oneOf:[['lots','InventoryLot'],['products','Product'],['config','StoreProduct']].map(([resource,item])=>obj({resource:{const:resource,type:'string'},items:arr(ref(item!)),nextPage:nullable(uuid),cursor:decimal})),discriminator:{propertyName:'resource'}};
+wireSchemas.Snapshot=obj({
+ syncProtocol:{type:'integer',enum:[2,3]},snapshotPages:obj({lots:nullable(uuid),config:nullable(uuid),products:nullable(uuid)},[]),snapshotExpiresAt:timestamp,
+ appliedOperationIds:arr(uuid),catalogRevision:str,mode:{type:'string',enum:['delta','snapshot']},mergeResources:arr(str),summary:obj({saleCount:decimal,totalMillimes:decimal}),
+ store:ref('Store'),onboarding:nullable(ref('Onboarding')),permissions:permission,products:arr(ref('Product')),config:arr(ref('StoreProduct')),lots:arr(ref('InventoryLot')),sales:arr(ref('Sale')),
+ alerts:arr(ref('Alert')),points:ref('PointsAccount'),rewards:arr(ref('Reward')),claims:arr(ref('RewardClaim')),orders:arr(ref('Order')),outstandingSupply:arr(ref('Supply')),deliveries:arr(ref('Delivery')),team:arr(ref('TeamMember')),invitations:arr(ref('InvitationSummary')),
+ cursor:decimal,serverTime:timestamp,pagination:obj({lots:nullable(uuid),products:nullable(uuid),config:nullable(uuid)}),
+});

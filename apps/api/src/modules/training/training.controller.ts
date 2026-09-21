@@ -1,3 +1,4 @@
+import {TrainingRequests} from '../../shared/contracts/requests';
 import {
   Body,
   Controller,
@@ -27,19 +28,7 @@ export class TrainingController {
   @Post("training") save(@Req() r: AuthRequest, @Body() b: unknown) {
     return this.service.save(
       r.actor,
-      z
-        .object({
-          id: z.uuid().optional(),
-          submissionId: z.uuid().optional(),
-          title: z.string().trim().min(3).max(200),
-          body: z.string().max(100_000),
-          type: z.enum(["article", "video"]),
-          mediaId: z.uuid().nullable().optional(),
-          productIds: z.array(z.uuid()).max(100).default([]),
-          status: z.enum(["draft", "published", "archived"]),
-          expectedVersion: z.number().int().min(0).optional(),
-        })
-        .strict()
+      TrainingRequests.Save
         .parse(b),
     );
   }
@@ -47,29 +36,7 @@ export class TrainingController {
     return this.service.get(r.actor, z.uuid().parse(id));
   }
   @Post("media/uploads") start(@Req() r: AuthRequest, @Body() b: unknown) {
-    const v = z
-      .object({
-        purpose: z.enum(["training", "catalog", "store", "reward"]).optional(),
-        organizationId: z.uuid().optional(),
-        storeId: z.uuid().optional(),
-        sha256: z
-          .string()
-          .regex(/^[a-f0-9]{64}$/)
-          .optional(),
-        fileName: z.string().min(1).max(200),
-        mime: z.enum([
-          "image/jpeg",
-          "image/png",
-          "video/mp4",
-          "video/quicktime",
-        ]),
-        size: z
-          .number()
-          .int()
-          .positive()
-          .max(500 * 1024 * 1024),
-      })
-      .strict()
+    const v = TrainingRequests.Start
       .parse(b);
     return this.service.startUpload(r.actor, v.fileName, v.mime, v.size, v);
   }

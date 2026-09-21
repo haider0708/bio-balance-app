@@ -5,6 +5,7 @@ import { json, raw, Request, Response, NextFunction } from "express";
 import helmet from "helmet";
 import { AppModule } from "./app.module";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
+import {applyContract} from "./shared/contracts/api-contract";
 export async function bootstrap() {
   if (
     process.env.NODE_ENV === "production" &&
@@ -50,7 +51,7 @@ export async function bootstrap() {
         .addBearerAuth()
         .build(),
     );
-    SwaggerModule.setup("docs", app, doc);
+    SwaggerModule.setup("docs", app, applyContract(doc));
   }
   await app.listen(Number(process.env.PORT ?? 3000), "0.0.0.0");
   return app;

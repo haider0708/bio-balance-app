@@ -137,11 +137,7 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
               .firstOrNull,
         );
       }
-      final result = await widget.vm.request(
-        'GET',
-        '/v1/stores/${store.id}/sales/${widget.sale['id']}',
-        query: {'organizationId': store.organizationId},
-      );
+      final result = await widget.vm.sales.details(store, widget.sale['id']);
       if (mounted) {
         setState(() {
           details = Map<String, dynamic>.from(result);

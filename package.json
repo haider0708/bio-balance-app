@@ -16,12 +16,21 @@
     "db:migrate": "npm run db:migrate -w apps/api",
     "api:contract": "npm run contract -w apps/api",
     "test:mobile-sync": "npm run test:mobile-sync -w apps/api",
-    "test:media": "npm run test:media -w apps/api"
+    "test:media": "npm run test:media -w apps/api",
+    "test:contracts": "npm run test:contracts -w apps/api"
   },
   "allowScripts": {
     "argon2@0.44.0": true,
     "prisma@7.10.0": true,
     "@prisma/engines@7.10.0": true,
     "esbuild@0.28.2": true
+  },
+  "overrides": {
+    "@prisma/config": {
+      "deepmerge-ts": "8.0.2"
+    },
+    "prisma": {
+      "mysql2": "3.24.4"
+    }
   }
 }

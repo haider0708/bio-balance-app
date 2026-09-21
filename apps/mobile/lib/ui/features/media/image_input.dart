@@ -171,9 +171,7 @@ class ProtectedImage extends StatelessWidget {
   Widget build(BuildContext context) => ClipRRect(
     borderRadius: BorderRadius.circular(12),
     child: Image.network(
-      Uri.parse(vm.api.http.options.baseUrl)
-          .resolve('/v1/media/$id')
-          .toString(),
+      vm.api.mediaUri(id, vm.api.binding).toString(),
       headers: {'Authorization': vm.api.binding.authorization ?? ''},
       height: height,
       fit: BoxFit.contain,

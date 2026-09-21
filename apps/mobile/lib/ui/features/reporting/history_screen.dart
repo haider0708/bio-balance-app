@@ -42,14 +42,11 @@ class _HistoryScreenState extends State<HistoryScreen> {
   Future<void> load() async {
     setState(() => busy = true);
     try {
-      final result = await widget.vm.request(
-        'GET',
-        '/v1/stores/${store.id}/history/${widget.resource}',
-        query: {
-          'organizationId': store.organizationId,
-          if (widget.productId != null) 'productId': widget.productId,
-          if (cursor != null) 'before': cursor,
-        },
+      final result = await widget.vm.reporting.history(
+        store,
+        widget.resource,
+        productId: widget.productId,
+        before: cursor,
       );
       if (mounted) {
         setState(() {

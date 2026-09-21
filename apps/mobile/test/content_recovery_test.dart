@@ -31,7 +31,14 @@ class ContentServer implements HttpClientAdapter {
     final key = '${body['submissionId'] ?? body['id']}';
     final result = accepted.putIfAbsent(
       key,
-      () => {'id': body['id'], 'version': ++version, ...body},
+      () => {
+        'id': body['id'],
+        'version': ++version,
+        'recipients': 1,
+        'authorId': 'account',
+        'updatedAt': '2026-01-01T00:00:00Z',
+        ...body,
+      },
     );
     if (loseResponse) {
       loseResponse = false;

@@ -112,11 +112,7 @@ class _CatalogImportScreenState extends State<CatalogImportScreen> {
           'active': true,
         };
       }).toList();
-      await widget.vm.request(
-        'POST',
-        '/v1/catalog/import',
-        body: {'rows': parsed, 'commit': false},
-      );
+      await widget.vm.catalog.importRows(parsed, commit: false);
       if (mounted) {
         setState(() {
           rows = parsed;
@@ -133,11 +129,7 @@ class _CatalogImportScreenState extends State<CatalogImportScreen> {
   Future<void> commit() async {
     setState(() => busy = true);
     try {
-      await widget.vm.request(
-        'POST',
-        '/v1/catalog/import',
-        body: {'rows': rows, 'commit': true},
-      );
+      await widget.vm.catalog.importRows(rows, commit: true);
       await widget.vm.synchronize();
       if (mounted) Navigator.pop(context);
     } catch (e) {

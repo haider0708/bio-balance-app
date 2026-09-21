@@ -125,7 +125,7 @@ class _StorePickerState extends State<_StorePicker> {
 
 Future<void> createStore(BuildContext context, WorkspaceViewModel vm) async {
   await run(context, () async {
-    final organizations = objects(await vm.request('GET', '/v1/organizations'));
+    final organizations = objects(await vm.stores.organizations());
     if (!context.mounted) return;
     if (organizations.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -154,8 +154,8 @@ Future<void> createStore(BuildContext context, WorkspaceViewModel vm) async {
         const FieldSpec('phone', 'Téléphone (facultatif)', required: false),
       ],
       submit: (v) async {
-        final result = await vm.request('POST', '/v1/stores', body: v);
-        createdId = result['id'];
+        final result = await vm.stores.create(v);
+        createdId = result.id;
       },
     )) {
       await vm.initialize();
@@ -182,14 +182,10 @@ Future<void> inviteManager(BuildContext context, WorkspaceViewModel vm) async {
       FieldSpec('organizationName', 'Nom de l’organisation partenaire'),
     ],
     submit: (v) async {
-      await vm.request(
-        'POST',
-        '/v1/identity/invitations',
-        body: {
-          ...v,
-          'permissions': ['manage', 'sell', 'receive'],
-        },
-      );
+      await vm.teams.invite({
+        ...v,
+        'permissions': ['manage', 'sell', 'receive'],
+      });
     },
     submitLabel: 'Envoyer l’invitation',
   );

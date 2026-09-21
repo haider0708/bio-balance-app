@@ -30,7 +30,7 @@ class _RewardsPageState extends State<RewardsPage> {
 
   Future<void> loadRanking() async {
     try {
-      final result = await widget.vm.storeRequest('GET', 'ranking');
+      final result = await widget.vm.rewards.ranking(widget.vm.state.store!);
       if (mounted) setState(() => ranking = objects(result['scores']));
     } catch (_) {}
   }
@@ -317,24 +317,19 @@ class _RewardsPageState extends State<RewardsPage> {
       ],
       submit: (v) async {
         vm.requireAccess(store, 'manage');
-        await vm.request(
-          'POST',
-          '/v1/stores/${store.id}/rewards',
-          query: {'organizationId': store.organizationId},
-          body: {
-            if (reward != null) 'id': reward['id'],
-            if (reward != null) 'expectedVersion': reward['version'],
-            'imageId': v['imageId']!.isEmpty ? null : v['imageId'],
-            'title': v['title'],
-            'description': v['description'],
-            'cost': whole(v['cost']!),
-            'productId': v['product'] == 'none' || v['product'] == ''
-                ? null
-                : v['product'],
-            'quantity': whole(v['quantity']!),
-            'active': v['active'] == 'yes',
-          },
-        );
+        await vm.rewards.save(store, {
+          if (reward != null) 'id': reward['id'],
+          if (reward != null) 'expectedVersion': reward['version'],
+          'imageId': v['imageId']!.isEmpty ? null : v['imageId'],
+          'title': v['title'],
+          'description': v['description'],
+          'cost': whole(v['cost']!),
+          'productId': v['product'] == 'none' || v['product'] == ''
+              ? null
+              : v['product'],
+          'quantity': whole(v['quantity']!),
+          'active': v['active'] == 'yes',
+        });
       },
     )) {
       await vm.synchronize();

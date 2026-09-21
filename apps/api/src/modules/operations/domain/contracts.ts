@@ -193,6 +193,15 @@ export interface OrderRecord {
 export interface DeliveryRecord extends OrderRecord {
   orderId: string;
 }
+export interface CommandOutcome {
+  id: string;
+  version?: number;
+  orderVersion?: number;
+  status?: string;
+  total?: { currency: "TND"; millimes: string };
+  points?: string;
+  differences?: { productId: string; expected: number; actual: number }[];
+}
 export interface OperationResult {
   operationId: string;
   status: "accepted" | "conflict" | "rejected" | "blocked" | "retryable";
@@ -201,5 +210,5 @@ export interface OperationResult {
   retryAfterMs?: number;
   code?: string;
   message?: string;
-  data?: Record<string, unknown>;
+  data?: CommandOutcome;
 }

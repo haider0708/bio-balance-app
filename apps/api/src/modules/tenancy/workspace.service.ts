@@ -668,7 +668,7 @@ export class WorkspaceService {
         lots,
         sales,
         alerts: manage ? alerts : [],
-        points: points ?? { balance: 0, reserved: 0 },
+        points: points ?? { balance: 0n, reserved: 0n },
         rewards,
         claims,
         orders: orders.map((order) => ({

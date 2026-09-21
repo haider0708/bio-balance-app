@@ -251,22 +251,18 @@ class _AccountActionScreenState extends State<AccountActionScreen> {
       success = null;
     });
     try {
-      final api = context.read<SessionViewModel>().api;
-      await api.request(
-        'POST',
-        mode == 'activate'
-            ? '/v1/identity/activate'
-            : mode == 'forgot'
-            ? '/v1/identity/forgot-password'
-            : '/v1/identity/reset-password',
-        body: mode == 'forgot'
-            ? {'email': _email.text.trim()}
-            : {
-                'token': _token.text.trim(),
-                'password': _password.text,
-                if (mode == 'activate') 'name': _name.text.trim(),
-              },
-      );
+      final identity = context.read<SessionViewModel>().identity;
+      if (mode == 'activate') {
+        await identity.activate(
+          _token.text.trim(),
+          _password.text,
+          _name.text.trim(),
+        );
+      } else if (mode == 'forgot') {
+        await identity.forgot(_email.text.trim());
+      } else {
+        await identity.reset(_token.text.trim(), _password.text);
+      }
       if (mounted) {
         setState(
           () => success = mode == 'forgot'

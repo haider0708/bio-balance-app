@@ -73,10 +73,11 @@ class TeamPage extends StatelessWidget {
   }
 
   Future<void> invite(BuildContext context) async {
+    final store = vm.state.store!;
     if (await openEditor(
       context,
       title: 'Inviter un membre',
-      description: 'L’invitation concerne uniquement ${vm.state.store!.name}.',
+      description: 'L’invitation concerne uniquement ${store.name}.',
       fields: const [
         FieldSpec('email', 'Adresse email'),
         FieldSpec(
@@ -90,18 +91,14 @@ class TeamPage extends StatelessWidget {
         ),
       ],
       submit: (v) async {
-        await vm.request(
-          'POST',
-          '/v1/identity/invitations',
-          body: {
-            'email': v['email'],
-            'organizationId': vm.state.store!.organizationId,
-            'storeId': vm.state.store!.id,
-            'permissions': v['role'] == 'manager'
-                ? ['manage', 'sell', 'receive']
-                : ['sell', 'receive'],
-          },
-        );
+        await vm.teams.invite({
+          'email': v['email'],
+          'organizationId': store.organizationId,
+          'storeId': store.id,
+          'permissions': v['role'] == 'manager'
+              ? ['manage', 'sell', 'receive']
+              : ['sell', 'receive'],
+        });
       },
     )) {
       await vm.synchronize();
@@ -109,6 +106,7 @@ class TeamPage extends StatelessWidget {
   }
 
   Future<void> access(BuildContext context, Json member) async {
+    final store = vm.state.store!;
     if (await confirmAction(
       context,
       member['active'] == true
@@ -118,13 +116,11 @@ class TeamPage extends StatelessWidget {
     )) {
       if (!context.mounted) return;
       await run(context, () async {
-        await vm.storeRequest(
-          'PATCH',
-          'team/${member['userId']}',
-          body: {
-            'active': member['active'] != true,
-            'permissions': member['permissions'],
-          },
+        await vm.teams.setAccess(
+          store,
+          member['userId'],
+          active: member['active'] != true,
+          permissions: List<String>.from(member['permissions']),
         );
         await vm.synchronize();
       });

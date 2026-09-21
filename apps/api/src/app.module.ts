@@ -1,3 +1,4 @@
+import {ReportingService} from './modules/reporting/reporting.service';
 import { AdminService } from "./modules/reporting/admin.service";
 import { AdminController } from "./modules/reporting/admin.controller";
 import { Module, Controller, Get } from "@nestjs/common";
@@ -39,6 +40,7 @@ class HealthController {
     ReportingController,
   ],
   providers: [
+    ReportingService,
     AdminService,
     Database,
     IdentityService,

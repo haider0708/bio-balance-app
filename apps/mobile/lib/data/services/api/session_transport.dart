@@ -222,6 +222,13 @@ class SessionTransport {
     }
   }
 
+  Uri mediaUri(String id, SessionBinding captured) {
+    requireBinding(captured);
+    return Uri.parse(http.options.baseUrl)
+        .resolve('/v1/media/${Uri.encodeComponent(id)}')
+        .replace(queryParameters: {'session': '${captured.generation}'});
+  }
+
   /// Logout cleanup uses only the captured old credential and never feeds a cache.
   Future<void> revoke(SessionBinding previous) async {
     if (previous.authorization == null) return;

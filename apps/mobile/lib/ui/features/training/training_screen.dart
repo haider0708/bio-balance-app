@@ -569,8 +569,7 @@ class _TrainingReaderState extends State<TrainingReader>
       final controller = cached != null
           ? VideoPlayerController.file(cached)
           : VideoPlayerController.networkUrl(
-              Uri.parse(widget.vm.api.http.options.baseUrl)
-                  .resolve('/v1/media/${widget.article['mediaId']}'),
+              widget.vm.api.mediaUri(widget.article['mediaId'], binding),
               httpHeaders: {
                 if (binding.authorization != null)
                   'Authorization': binding.authorization!,

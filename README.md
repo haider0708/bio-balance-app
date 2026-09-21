@@ -62,8 +62,10 @@ scripts/setup-test-db.sh
 npm run test:integration
 # ffmpeg et ffprobe doivent être disponibles dans PATH
 npm run test:media
-npm run api:contract
-python3 scripts/generate-dart-client.py
+# Flutter/Dart également disponibles dans PATH
+npm run test:contracts
+npm run test:mobile-sync
+bash scripts/check-contract-drift.sh
 cd apps/mobile
 flutter analyze
 flutter test --concurrency=1

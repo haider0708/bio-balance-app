@@ -1,0 +1,80 @@
+import 'package:uuid/uuid.dart';
+
+import '../../domain/models/models.dart';
+import '../services/api/generated/models.dart';
+import '../services/api/session_transport.dart';
+import 'offline_repository.dart';
+import 'repository_context.dart';
+
+/// Connected commands retain their original identity through uncertain responses.
+class OnlineOperationsRepository {
+  final RepositoryContext context;
+  final OfflineRepository local;
+  final UserAccount user;
+  OnlineOperationsRepository(this.context, this.local, this.user);
+  Future<void> submit(Store store, Json command, {int? expectedVersion}) async {
+    final target =
+        command['rewardId'] ??
+        command['claimId'] ??
+        (command['type'] == 'order.create' ? 'new' : command['orderId']) ??
+        'new';
+    final key = 'online:${command['type']}:$target';
+    final prior = await local.draft(user.id, store.id, key);
+    final operation =
+        prior?['operation'] as Json? ??
+        <String, dynamic>{
+          'operationId': const Uuid().v4(),
+          'organizationId': store.organizationId,
+          'storeId': store.id,
+          'payloadVersion': 2,
+          'expectedVersion': ?expectedVersion,
+          'command': command,
+        };
+    await local.saveDraft(user.id, store.id, key, {'operation': operation});
+    final result = (await context.run(() => context.api.pushRaw([operation])))
+        .results
+        .single;
+    if (result is! SyncResultAcceptedDto) {
+      final failure = switch (result) {
+        SyncResultConflictDto(:final code, :final message) => (
+          code: code,
+          message: message,
+          definitive: true,
+        ),
+        SyncResultRejectedDto(:final code, :final message) => (
+          code: code,
+          message: message,
+          definitive: true,
+        ),
+        SyncResultBlockedDto(:final code, :final message) => (
+          code: code,
+          message: message,
+          definitive: false,
+        ),
+        SyncResultRetryableDto(:final code, :final message) => (
+          code: code,
+          message: message,
+          definitive: false,
+        ),
+        _ => throw const AppFailure(
+          'INVALID_RESULT',
+          'Résultat de commande invalide.',
+        ),
+      };
+      final access = switch (failure.code) {
+        'SESSION_EXPIRED' => AccessCondition.expired,
+        'ACCESS_DISABLED' => AccessCondition.disabled,
+        'STORE_ACCESS_REVOKED' => AccessCondition.storeAccessRevoked,
+        _ => null,
+      };
+      if (access != null) {
+        context.api.confirmAccessLoss(access, storeId: store.id);
+      }
+      if (access == null && failure.definitive) {
+        await local.saveDraft(user.id, store.id, key, {});
+      }
+      throw AppFailure(failure.code, failure.message);
+    }
+    await local.saveDraft(user.id, store.id, key, {});
+  }
+}

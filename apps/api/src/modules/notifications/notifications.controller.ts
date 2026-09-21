@@ -1,3 +1,4 @@
+import {NotificationRequests} from '../../shared/contracts/requests';
 import {
   Body,
   Delete,
@@ -34,14 +35,10 @@ export class NotificationsController {
     return this.service.read(r.actor, z.uuid().parse(id));
   }
   @Delete('devices') removeDevice(@Req() r:AuthRequest,@Body() body:unknown){
-    return this.service.removeDevice(r.actor,z.object({token:z.string().min(20).max(4096)}).parse(body).token);
+    return this.service.removeDevice(r.actor,NotificationRequests.RemoveDevice.parse(body).token);
   }
   @Post("devices") device(@Req() r: AuthRequest, @Body() body: unknown) {
-    const v = z
-      .object({
-        token: z.string().min(20).max(4096),
-        platform: z.enum(["android", "ios"]),
-      })
+    const v = NotificationRequests.Device
       .parse(body);
     return this.service.device(r.actor, v.token, v.platform);
   }
@@ -51,14 +48,7 @@ export class NotificationsController {
     @Query("organizationId") org: string,
     @Body() body: unknown,
   ) {
-    const v = z
-      .object({
-        id:z.uuid(),
-        title: z.string().trim().min(2).max(120),
-        body: z.string().trim().min(2).max(2000),
-        audience: z.enum(["all", "salespeople"]),
-      })
-      .strict()
+    const v = NotificationRequests.Announce
       .parse(body);
     return this.service.announce(
       r.actor,

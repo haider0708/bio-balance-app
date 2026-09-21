@@ -51,7 +51,13 @@ class UploadServer implements HttpClientAdapter {
       }
     }
     return ResponseBody.fromString(
-      jsonEncode(result),
+      jsonEncode({
+        ...result,
+        'size': '${result['size']}',
+        'received': '${result['received']}',
+        'sha256': null,
+        'processedSize': null,
+      }),
       200,
       headers: {
         Headers.contentTypeHeader: ['application/json'],

@@ -1,3 +1,5 @@
+import '../services/api/generated/models.dart';
+
 import 'dart:convert';
 
 import 'package:dio/dio.dart';
@@ -33,11 +35,10 @@ class AnnouncementRepository {
     });
     try {
       api.requireBinding(binding);
-      await api.request(
-        'POST',
-        '/v1/stores/${store.id}/announcements',
-        query: {'organizationId': store.organizationId},
-        body: message,
+      await api.notificationsAnnounce(
+        store: store.id,
+        organizationId: store.organizationId,
+        body: NotificationsAnnounceRequestDto.fromJson(message),
       );
       await local.db.transaction(() async {
         api.requireBinding(binding);

@@ -58,7 +58,9 @@ class OfflineRepository implements WorkspaceRepository {
     if (refresh) {
       final binding = api.binding;
       _sameAccount(user);
-      final values = objects(await api.request('GET', '/v1/stores'));
+      final values = (await api.workspaceStores())
+          .map((v) => v.toJson())
+          .toList();
       api.requireBinding(binding);
       _sameAccount(user);
       await db.transaction(() async {
@@ -187,15 +189,12 @@ class OfflineRepository implements WorkspaceRepository {
         .toList();
     for (var start = 0; start < uncertain.length; start += 50) {
       final batch = uncertain.skip(start).take(50).toList();
-      final response = Map<String, dynamic>.from(
-        await api.request(
-          'POST',
-          '/v1/sync/status',
-          body: {
-            'operations': batch.map((o) => jsonDecode(o.payload)).toList(),
-          },
-        ),
-      );
+      api.requireBinding(binding);
+      final response = (await api.statusRaw(
+        batch
+            .map((o) => Map<String, dynamic>.from(jsonDecode(o.payload)))
+            .toList(),
+      )).toJson();
       _sameAccount(user);
       for (final result in objects(response['results'])) {
         final row = batch
@@ -218,24 +217,18 @@ class OfflineRepository implements WorkspaceRepository {
         ? <String, dynamic>{}
         : Map<String, dynamic>.from(jsonDecode(metaRows.single.payload));
     api.requireBinding(binding);
-    final snapshot = Map<String, dynamic>.from(
-      await api.request(
-        'GET',
-        '/v1/stores/${store.id}/snapshot',
-        query: {
-          'organizationId': store.organizationId,
-          'protocol': 3,
-          if (integer(prior['syncProtocol']) >= 3) 'after': prior['cursor'],
-          if (integer(prior['syncProtocol']) >= 3)
-            'catalogRevision': prior['catalogRevision'],
-          if (queued.isNotEmpty)
-            'acknowledgments': queued
-                .take(50)
-                .map((o) => o.operationId)
-                .join(','),
-        },
-      ),
-    );
+    final snapshot = (await api.workspaceSnapshot(
+      store: store.id,
+      organizationId: store.organizationId,
+      protocol: 3,
+      after: integer(prior['syncProtocol']) >= 3 ? prior['cursor'] : null,
+      catalogRevision: integer(prior['syncProtocol']) >= 3
+          ? prior['catalogRevision']
+          : null,
+      acknowledgments: queued.isNotEmpty
+          ? queued.take(50).map((o) => o.operationId).join(',')
+          : null,
+    )).toJson();
     _sameAccount(user);
     final merge = List<String>.from(snapshot.remove('mergeResources') ?? []);
     final pages = Map<String, dynamic>.from(
@@ -254,11 +247,12 @@ class OfflineRepository implements WorkspaceRepository {
           }
           api.requireBinding(binding);
           final page = Map<String, dynamic>.from(
-            await api.request(
-              'GET',
-              '/v1/stores/${store.id}/snapshot-pages/$token',
-              query: {'organizationId': store.organizationId},
-            ),
+            (await api.workspaceSnapshotPage(
+                  store: store.id,
+                  organizationId: store.organizationId,
+                  page: token,
+                )).toJson()
+                as Map,
           );
           _sameAccount(user);
           if (page['resource'] != resource ||

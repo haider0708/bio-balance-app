@@ -36,8 +36,9 @@ jobs:
         with: { flutter-version: "3.47.5", channel: stable, cache: true }
       - run: flutter pub get --enforce-lockfile
         working-directory: apps/mobile
+      - run: npm run test:contracts
       - run: npm run test:mobile-sync
-      - run: npm run api:contract && python3 scripts/generate-dart-client.py
+      - run: bash scripts/check-contract-drift.sh
       - uses: actions/upload-artifact@v4
         with: { name: openapi, path: contracts/openapi/biobalance.json }
   android:

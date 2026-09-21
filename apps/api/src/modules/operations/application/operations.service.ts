@@ -6,6 +6,7 @@ import {
   Operation,
   OperationResult,
   Command,
+  CommandOutcome,
   SaleRecord,
 } from "../domain/contracts";
 import { Sale } from "../domain/sale";
@@ -112,7 +113,7 @@ export class OperationsService {
   private async apply(
     ledger: Ledger,
     op: Operation,
-  ): Promise<Record<string, unknown>> {
+  ): Promise<CommandOutcome> {
     const cmd = op.command,
       actor = ledger.scope.actor,
       affected = new Set<string>();
@@ -345,7 +346,8 @@ export class OperationsService {
       await ledger.saveOrder(order);
       return {
         id: cmd.type === "delivery.dispatch" ? cmd.deliveryId : order.id,
-        version: order.version,
+        version: cmd.type === "delivery.dispatch" ? 1 : order.version,
+        orderVersion: order.version,
       };
     }
     if (cmd.type === "delivery.receive") {

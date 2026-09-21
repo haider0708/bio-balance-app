@@ -97,6 +97,19 @@ export class PrismaLedger implements Ledger {
     if (entity.startsWith("sale.") && typeof result.data?.version === "number") {
       result.affectedVersions.push({ resource: "sales", id: entityId, version: result.data.version });
     }
+    if(entity.startsWith('order.')) {
+      const order=await this.tx.replenishmentOrder.findUniqueOrThrow({where:{id:entityId},select:{id:true,version:true}});
+      result.affectedVersions.push({resource:'orders',...order});
+    }
+    if(entity.startsWith('delivery.')) {
+      const delivery=await this.tx.delivery.findUniqueOrThrow({where:{id:entityId},select:{id:true,version:true,orderId:true}});
+      const order=await this.tx.replenishmentOrder.findUniqueOrThrow({where:{id:delivery.orderId},select:{id:true,version:true}});
+      result.affectedVersions.push({resource:'deliveries',id:delivery.id,version:delivery.version},{resource:'orders',...order});
+    }
+    if(entity.startsWith('reward.')) {
+      const claim=await this.tx.rewardClaim.findUniqueOrThrow({where:{id:entityId},select:{id:true,version:true}});
+      result.affectedVersions.push({resource:'claims',...claim});
+    }
     await this.tx.processedOperation.create({
       data: {
         id,

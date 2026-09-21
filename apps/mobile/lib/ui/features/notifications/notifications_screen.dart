@@ -34,9 +34,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
   Future<void> load() async {
     try {
-      final result = objects(
-        await widget.vm.request('GET', '/v1/notifications'),
-      );
+      final result = objects(await widget.vm.inbox.list());
       if (mounted) {
         setState(() {
           items = result;
@@ -80,10 +78,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 title: Text(n['title']),
                 subtitle: Text(n['body']),
                 onTap: () async {
-                  await widget.vm.request(
-                    'PATCH',
-                    '/v1/notifications/${n['id']}/read',
-                  );
+                  await widget.vm.inbox.read(n['id']);
                   await load();
                 },
               ),

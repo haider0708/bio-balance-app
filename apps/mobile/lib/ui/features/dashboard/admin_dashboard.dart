@@ -26,7 +26,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
 
   Future<void> load() async {
     try {
-      final result = await widget.vm.request('GET', '/v1/admin/overview');
+      final result = await widget.vm.reporting.overview();
       if (mounted) {
         setState(() {
           data = Map<String, dynamic>.from(result);

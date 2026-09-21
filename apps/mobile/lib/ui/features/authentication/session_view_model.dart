@@ -1,3 +1,5 @@
+import '../../../data/repositories/identity_repository.dart';
+
 import 'dart:convert';
 import 'dart:async';
 
@@ -34,6 +36,8 @@ class SessionState {
 }
 
 class SessionViewModel extends ChangeNotifier {
+  late final identity = IdentityRepository(api);
+
   final ApiClient api;
   final PushNotifications? notifications;
   final FlutterSecureStorage secureStorage;
@@ -120,17 +124,7 @@ class SessionViewModel extends ChangeNotifier {
     final action = ++_action;
     _emit(SessionState(user: state.user, status: state.status, busy: true));
     try {
-      final result = Map<String, dynamic>.from(
-        await api.request(
-          'POST',
-          '/v1/identity/login',
-          body: {
-            'email': email.trim(),
-            'password': password,
-            if (otp.isNotEmpty) 'otp': otp,
-          },
-        ),
-      );
+      final result = await identity.login(email, password, otp);
       if (action != _action || _closed) return false;
       final user = UserAccount.fromJson(result['user']);
       await _store(

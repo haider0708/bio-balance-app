@@ -301,18 +301,13 @@ class ProductDetail extends StatelessWidget {
           );
         }
         vm.requireAccess(store, 'manage');
-        await vm.request(
-          'PATCH',
-          '/v1/stores/${store.id}/products/${product.id}',
-          query: {'organizationId': store.organizationId},
-          body: {
-            'priceMillimes': Money.parse(v['price']!).millimes.toString(),
-            'threshold': whole(v['threshold']!, allowZero: true),
-            'pointsPerUnit': points,
-            'zeroPointsConfirmed': points == 0,
-            if (config['version'] != null) 'expectedVersion': config['version'],
-          },
-        );
+        await vm.catalog.configure(store, product.id, {
+          'priceMillimes': Money.parse(v['price']!).millimes.toString(),
+          'threshold': whole(v['threshold']!, allowZero: true),
+          'pointsPerUnit': points,
+          'zeroPointsConfirmed': points == 0,
+          if (config['version'] != null) 'expectedVersion': config['version'],
+        });
       },
     )) {
       await vm.synchronize();

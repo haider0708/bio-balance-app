@@ -24,11 +24,11 @@ L’application est en développement et n’est pas encore qualifiée pour une 
 |---|---|
 | Compilation TypeScript | Réussie |
 | Tests domaine backend | 6 réussis |
-| Tests PostgreSQL réels avec rôle restreint | 20 réussis + 3 tests de traitement média réel (étape 6) |
-| Tests Flutter de reprise, migration et dispositions d’écran | 45 réussis ; 2 parcours HTTP réels exécutés séparément et réussis |
+| Tests PostgreSQL réels avec rôle restreint | 20 réussis + 3 tests de traitement média réel |
+| Tests Flutter de reprise, migration et dispositions d’écran | 49 réussis (48 dans la passe complète, puis un cas supplémentaire ciblé) ; 2 parcours HTTP réels et 1 test de contrats Dart exécutés séparément et réussis |
 | Build Android debug | APK reconstruit avec les ressources natives et liens de l’étape 6 ; exécution sur téléphone encore à vérifier |
 | Sauvegarde/restauration isolée | Réussie sur les données de développement ; archive média vide, à compléter avec des médias réels traités |
-| OpenAPI et génération Dart | Exécutés, 44 méthodes de transport générées |
+| OpenAPI et génération Dart | 44 endpoints vérifiés sur HTTP réel ; 178 schémas Dart typés générés et aller-retour JSON validé |
 | Images Docker et émulateur | Vérifications commencées ; résultat final à confirmer |
 
 Un passage des tests PostgreSQL a expiré pendant une forte saturation mémoire de l’hôte par les builds Android. Après arrêt des anciens daemons de compilation devenus inutiles, les 12 tests ont réussi sans allonger leur délai.
@@ -38,7 +38,6 @@ Un passage des tests PostgreSQL a expiré pendant une forte saturation mémoire 
 - Terminer la vérification des images conteneur, de l’application exécutée et de la restauration avec des médias non vides.
 - Compléter les parcours UI automatisés des trois rôles ; vérifier les permissions retirées pendant qu’un écran secondaire est ouvert, les erreurs de stockage, le téléchargement interrompu et les reprises de téléversement sur téléphone.
 - Vérifier les transferts vidéo et liens de compte sur appareils natifs ; brouillons, association produit, aperçu et reprise des transferts sont implémentés et testés localement.
-- Compléter les schémas de requête/réponse OpenAPI encore génériques et la couverture des contrats.
 - Exécuter tests caméra/push, accessibilité, rotation et stabilité mémoire sur Android/iOS physiques ; compiler iOS sur macOS et produire les builds signés.
 - Préparer les données de charge représentatives, exécuter 100 req/s et le pic 200 req/s sur le VPS de référence ; mesurer réellement démarrage, recherche, persistance et fluidité. Aucune de ces performances n’est encore revendiquée.
 - Renseigner VPS/domaine/SMTP/Firebase/APNs/signatures, valider renouvellement TLS/supervision, puis effectuer le pilote et corriger ses retours.
@@ -70,7 +69,7 @@ Implémentation et vérifications locales terminées : commit `7f25895`.
 | 4. Commandes/livraisons | Implémentation et vérification locale terminées (voir registre ci-dessous) |
 | 5. Onboarding/images | Implémentation et vérification locale terminées (voir registre ci-dessous) |
 | 6. Brouillons et transferts | Implémentation et vérification locale terminées (voir registre ci-dessous) |
-| 7. Contrats et nettoyage | À réaliser |
+| 7. Contrats et nettoyage | Implémentation et vérification locale terminées (voir registre ci-dessous) |
 | 8. Notifications/workers | À réaliser |
 | 9. Parcours complets | À réaliser |
 | 10. Performances/appareils | À réaliser ; appareils physiques requis pour les mesures correspondantes |
@@ -133,6 +132,8 @@ Commit : `c5d4570`.
 
 ### Étape 6 — Brouillons, transferts et liens de compte
 
+Commit : `8e3f201`.
+
 - Brouillons de formation avec identité stable, produits associés, visibilité, source du fichier et état du média ; restauration automatique par compte. Aperçu commun au lecteur, texte HTML nettoyé/décodé, recherche et filtre produit. Comparaison explicite avec la version serveur en cas de modification concurrente, sans perdre le brouillon.
 - Annonces avec brouillon attaché au magasin d’origine, confirmation du magasin et de l’audience, identifiant stable et message figé après transmission incertaine. Rejouer une soumission ne crée ni notification ni audit supplémentaire.
 - Migration additive `202609210008_content_submissions` appliquée en développement et test : empreinte/résultat des soumissions de contenu, RLS par auteur, empreinte/audience effectivement notifiée des annonces. Les historiques existants sont conservés. Une réponse perdue retrouve le résultat accepté ; une modification locale ultérieure utilise la version de cette acceptation.
@@ -143,3 +144,14 @@ Commit : `c5d4570`.
 - Limites : décodage/lecture vidéo hors ligne, permissions natives et ouverture des liens sur appareils Android/iOS à vérifier lors des étapes 9–10 ; le test de traitement et de téléchargement n’est pas une preuve de lecture sur téléphone. L’association HTTPS universelle exige le domaine détenu et ses fichiers d’association ; configuration externe non fournie. Aucun test FCM/APNs ou build iOS n’est compté comme réussi.
 
 - Build Android debug de l’étape 6 réussi (60 s). Une dernière vérification ciblée ajoute un contrôle de génération après les écritures SQLite et lectures de fichiers, juste avant les requêtes : le changement de compte pendant cette attente conserve le brouillon et bloque l’envoi. Test dédié réussi ; nouvelle analyse Dart sans erreur.
+
+### Étape 7 — Contrats et nettoyage
+
+- Registre exhaustif des 44 endpoints : requêtes Zod partagées avec les contrôleurs, réponses/pagination/erreurs explicites, transferts binaires et unions commandes/résultats/snapshots. Les valeurs monétaires, curseurs et soldes restent des chaînes exactes ; les données libres se limitent aux métadonnées historiques extensibles.
+- Génération déterministe de 178 schémas et 44 méthodes Dart. Les DTO immuables préservent l’absence d’un champ et sa valeur explicitement nulle. Les commandes déjà en file utilisent un transport brut contrôlé qui conserve leur enveloppe d’origine ; test de deux envois identiques sans ajout de valeurs par défaut.
+- Repositories dédiés pour identité, catalogue, équipe, ventes, récompenses, rapports et notifications ; les écrans n’appellent plus le transport HTTP générique. Les commandes en ligne et leur reprise durable quittent le view model ; reporting extrait du contrôleur. Les repositories capturent le compte/génération avant les attentes locales.
+- Correction du résultat d’expédition : version de livraison distincte de la version de commande. Les versions affectées incluent commandes, livraisons et demandes de récompense. Les anciens résultats acceptés restent conservés.
+- Test réel de chaque endpoint avec PostgreSQL restreint, AJV et décodage/réencodage des réponses par les DTO Dart. Validation des réponses binaires/plages séparée. La CI exécute cette vérification et refuse toute dérive du contrat ou des fichiers générés.
+- Installation reproductible vérifiée par `npm ci`, génération Prisma et `flutter pub get --enforce-lockfile`. NestJS 12.0.4/Swagger 12.0.1, Firebase Admin 14.4.0, Nodemailer 10.0.10 ; Prisma reste en stable 7.10.0 avec deux overrides ciblés de dépendances CLI. `npm audit` : aucune vulnérabilité connue rapportée lors de cette passe.
+- Vérifications : compilation TypeScript, 6 tests domaine, 20 PostgreSQL, 3 traitements média réels, 44 endpoints HTTP et 1 test Dart de leurs réponses ; 48 tests Flutter dans la passe complète et un cas de transport supplémentaire ensuite (4 tests ciblés réussis). Les 2 parcours de synchronisation HTTP/SQLite/PostgreSQL passent. Analyse Dart sans erreur, `git diff --check` sans erreur. Les 3 tests qui exigent un serveur sont ignorés dans la passe Flutter standard et exécutés par leurs scripts dédiés.
+- Limites : cette couverture HTTP n’est pas la recette des trois parcours UI prévue à l’étape 9. La CI distante et le build iOS attendent un dépôt distant/macOS. Aucun résultat de charge, de push réel ou d’appareil physique n’est revendiqué.

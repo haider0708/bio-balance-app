@@ -7,12 +7,10 @@ class ReplenishmentRepository {
   const ReplenishmentRepository(this.api);
   Future<OrderFulfillment> fulfillment(Store store, String orderId) async =>
       OrderFulfillment.fromJson(
-        Map<String, dynamic>.from(
-          await api.request(
-            'GET',
-            '/v1/stores/${store.id}/orders/$orderId/fulfillment',
-            query: {'organizationId': store.organizationId},
-          ),
-        ),
+        (await api.workspaceFulfillment(
+          store: store.id,
+          organizationId: store.organizationId,
+          order: orderId,
+        )).toJson(),
       );
 }

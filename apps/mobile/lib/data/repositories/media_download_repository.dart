@@ -46,9 +46,7 @@ class MediaDownloadRepository {
     if (binding.accountId != account) {
       throw const AppFailure('ACCOUNT_CHANGED', 'Reconnectez-vous.');
     }
-    final metadata = Map<String, dynamic>.from(
-      await api.request('GET', '/v1/media/$id/metadata'),
-    );
+    final metadata = (await api.trainingMetadata(id: id)).toJson();
     final size = integer(metadata['size']), checksum = '${metadata['sha256']}';
     if (metadata['id'] != id ||
         size <= 0 ||

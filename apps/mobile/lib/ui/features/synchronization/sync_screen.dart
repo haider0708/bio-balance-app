@@ -160,11 +160,7 @@ class _SyncScreenState extends State<SyncScreen> {
     Json? serverSale;
     if (command['saleId'] != null) {
       try {
-        final result = await vm.api.request(
-          'GET',
-          '/v1/stores/${store.id}/sales/${command['saleId']}',
-          query: {'organizationId': store.organizationId},
-        );
+        final result = await vm.sales.details(store, command['saleId']);
         serverSale = Map<String, dynamic>.from(result['sale']);
       } on DioException catch (e) {
         if (e.response?.statusCode != 404) rethrow;

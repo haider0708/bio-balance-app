@@ -41,7 +41,7 @@ Le mobile utilise MVVM, Provider, `ChangeNotifier`, objets d’état immuables e
 
 ## Versions
 
-Flutter stable **3.47.5**, Dart **3.13.4**, Node **24.21.0**, PostgreSQL **17**. Versions résolues des bibliothèques dans `package-lock.json` et `apps/mobile/pubspec.lock`. `.fvmrc` et `.nvmrc` fixent les runtimes. Le code généré Drift et le contrat sont conservés pour les builds reproductibles.
+Flutter stable **3.47.5**, Dart **3.13.4**, Node **24.21.0**, PostgreSQL **17**. NestJS **12.0.4**, Swagger **12.0.1**, Prisma **7.10.0**. Versions résolues des bibliothèques dans `package-lock.json` et `apps/mobile/pubspec.lock`. `.fvmrc` et `.nvmrc` fixent les runtimes. Le code généré Drift et le contrat sont conservés pour les builds reproductibles.
 
 ## Isolation et intégrité
 
@@ -84,3 +84,9 @@ Les seuils de performance du plan sont des **critères de recette**, pas des ré
 Les commandes v1 existantes gardent leur payload et identifiant. Les nouvelles commandes v2 déclarent leurs dépendances ; les résultats acceptés exposent un curseur et les versions affectées. `/v1/sync/status` vérifie une soumission incertaine sans rejouer ses effets et fournit un watermark conservateur pour les anciens résultats. Le client conserve l’effet provisoire jusqu’à l’application atomique d’un état serveur qui inclut l’opération. Les retries sont persistés avec jitter et plafond de cinq minutes.
 
 Le snapshot de lecture protocole 3 matérialise les pages supplémentaires dans la même transaction sérialisable que son curseur. Les pages expirent après cinq minutes et vérifient compte, magasin et permissions à chaque lecture ; une expiration ne touche jamais l’outbox. Les projections de stock sont des opérations métier Dart, dont un dommage produit deux incréments de version.
+
+### Contrats et repositories typés
+
+`shared/contracts` définit les schémas publics et partage les validateurs Zod des requêtes avec les contrôleurs. Toute route sans contrat échoue à la génération. Le client Dart génère les objets immuables, unions et signatures typées ; les repositories les adaptent aux modèles du domaine. L’audit reste un document JSON extensible. Les envois d’anciennes commandes conservent le payload brut persistant, sans réinterprétation par les nouveaux DTO.
+
+`npm run test:contracts` vérifie les 44 endpoints via une API/PostgreSQL isolés et compare les réponses réelles après décodage/réencodage Dart. `scripts/check-contract-drift.sh` régénère puis compare les fichiers versionnés. Les overrides `@prisma/config → deepmerge-ts 8.0.2` et `prisma → mysql2 3.24.4` corrigent des dépendances CLI sans passer à Prisma prerelease ; génération et migrations ont été revérifiées.

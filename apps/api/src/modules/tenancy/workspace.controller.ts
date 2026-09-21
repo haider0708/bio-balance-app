@@ -1,3 +1,4 @@
+import {WorkspaceRequests} from '../../shared/contracts/requests';
 import {
   Body,
   Controller,
@@ -10,10 +11,11 @@ import {
 } from "@nestjs/common";
 import { ApiTags, ApiBearerAuth } from "@nestjs/swagger";
 import { z } from "zod";
+const uuid=z.uuid();
 import { AuthRequest } from "../../shared/infrastructure/http";
 import { WorkspaceService } from "./workspace.service";
-const uuid = z.uuid();
-const name = z.string().trim().min(2).max(120);
+
+
 @ApiTags("stores")
 @ApiBearerAuth()
 @Controller("v1")
@@ -28,15 +30,7 @@ export class WorkspaceController {
   @Post("stores") create(@Req() r: AuthRequest, @Body() b: unknown) {
     return this.service.createStore(
       r.actor,
-      z
-        .object({
-          organizationId: uuid,
-          name,
-          address: z.string().trim().min(3).max(300),
-          city: name,
-          phone: z.string().max(30).optional(),
-        })
-        .strict()
+      WorkspaceRequests.Create
         .parse(b),
     );
   }
@@ -50,16 +44,7 @@ export class WorkspaceController {
       r.actor,
       uuid.parse(org),
       uuid.parse(store),
-      z
-        .object({
-          name,
-          address: z.string().trim().min(3).max(300),
-          city: name,
-          phone: z.string().trim().max(30).nullable().optional(),
-          imageId: uuid.nullable().optional(),
-          expectedVersion: z.number().int().positive(),
-        })
-        .strict()
+      WorkspaceRequests.UpdateStore
         .parse(body),
     );
   }
@@ -213,15 +198,7 @@ export class WorkspaceController {
       uuid.parse(o),
       uuid.parse(s),
       uuid.parse(p),
-      z
-        .object({
-          priceMillimes: z.string().regex(/^(0|[1-9]\d{0,14})$/),
-          threshold: z.number().int().min(0).max(1_000_000),
-          pointsPerUnit: z.number().int().min(0).max(100_000),
-          zeroPointsConfirmed: z.boolean().optional(),
-          expectedVersion: z.number().int().positive().optional(),
-        })
-        .strict()
+      WorkspaceRequests.Config
         .parse(b),
     );
   }
@@ -237,12 +214,7 @@ export class WorkspaceController {
       uuid.parse(o),
       uuid.parse(s),
       uuid.parse(u),
-      z
-        .object({
-          active: z.boolean(),
-          permissions: z.array(z.enum(["sell", "receive", "manage"])).min(1),
-        })
-        .strict()
+      WorkspaceRequests.Member
         .parse(b),
     );
   }
@@ -256,14 +228,7 @@ export class WorkspaceController {
       r.actor,
       uuid.parse(o),
       uuid.parse(s),
-      z
-        .object({
-          step: z.number().int().min(1).max(5).optional(),
-          workingAlone: z.boolean().optional(),
-          noOpeningStock: z.boolean().optional(),
-          expectedVersion: z.number().int().positive().optional(),
-        })
-        .strict()
+      WorkspaceRequests.Onboarding
         .parse(b),
     );
   }
@@ -277,19 +242,7 @@ export class WorkspaceController {
       r.actor,
       uuid.parse(o),
       uuid.parse(s),
-      z
-        .object({
-          id: uuid.optional(),
-          title: name,
-          description: z.string().max(2000).default(""),
-          cost: z.number().int().positive().max(100_000_000),
-          productId: uuid.nullable().optional(),
-          imageId: uuid.nullable().optional(),
-          quantity: z.number().int().positive().max(1_000_000).default(1),
-          active: z.boolean().default(true),
-          expectedVersion: z.number().int().positive().optional(),
-        })
-        .strict()
+      WorkspaceRequests.Reward
         .parse(b),
     );
   }

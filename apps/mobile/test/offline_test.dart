@@ -59,6 +59,8 @@ class FakeServer implements HttpClientAdapter {
                     : 'unknown',
                 if (accepted.contains(o['operationId']))
                   'committedCursor': '$applied',
+                if (accepted.contains(o['operationId']))
+                  'data': {'id': o['operationId']},
               },
             )
             .toList(),
@@ -73,10 +75,17 @@ class FakeServer implements HttpClientAdapter {
               'operationId': o['operationId'],
               'status': 'conflict',
               'code': 'VERSION_CONFLICT',
+              'message': 'Version modifiée.',
             };
           }
           if (accepted.add(o['operationId'])) applied++;
-          return {'operationId': o['operationId'], 'status': 'accepted'};
+          return {
+            'operationId': o['operationId'],
+            'status': 'accepted',
+            'data': {'id': o['operationId']},
+            'committedCursor': '$applied',
+            'affectedVersions': [],
+          };
         }).toList(),
       };
       if (loseResponse) {
@@ -90,13 +99,44 @@ class FakeServer implements HttpClientAdapter {
       response = {
         'syncProtocol': 3,
         'appliedOperationIds': accepted.toList(),
-        'store': store.toJson(),
+        'store': {
+          'id': store.id,
+          'organizationId': store.organizationId,
+          'name': store.name,
+          'address': 'Test',
+          'city': 'Tunis',
+          'phone': null,
+          'imageId': null,
+          'timezone': 'Africa/Tunis',
+          'onboardingStep': 1,
+          'workingAlone': false,
+          'noOpeningStock': false,
+          'version': 1,
+          'createdAt': '2026-01-01T00:00:00Z',
+        },
+        'snapshotPages': {},
+        'snapshotExpiresAt': '2099-01-01T00:00:00Z',
+        'catalogRevision': '0:0',
+        'mode': 'snapshot',
+        'mergeResources': [],
+        'summary': {'saleCount': '0', 'totalMillimes': '0'},
+        'onboarding': null,
+        'permissions': ['sell'],
+        'alerts': [],
+        'rewards': [],
+        'claims': [],
+        'orders': [],
+        'outstandingSupply': [],
+        'deliveries': [],
+        'team': [],
+        'invitations': [],
+        'serverTime': '2026-01-01T00:00:00Z',
         'products': [],
         'config': [],
         'lots': [],
         'sales': [],
         'points': {'balance': '10', 'reserved': '0'},
-        'pagination': {},
+        'pagination': {'lots': null, 'products': null, 'config': null},
         'cursor': '$applied',
       };
     }

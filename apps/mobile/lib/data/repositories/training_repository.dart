@@ -1,3 +1,5 @@
+import '../services/api/generated/models.dart';
+
 import 'dart:convert';
 
 import 'package:dio/dio.dart';
@@ -13,8 +15,7 @@ class TrainingRepository {
   TrainingRepository(this.local, this.api);
   Future<List<Json>> cached(String account) async =>
       objects((await local.draft(account, '', 'training'))?['items']);
-  Future<Json> get(String id) async =>
-      Map<String, dynamic>.from(await api.request('GET', '/v1/training/$id'));
+  Future<Json> get(String id) async => (await api.trainingGet(id: id)).toJson();
   Future<List<Json>> refresh(String account) async {
     final binding = api.binding;
     if (binding.accountId != account) {
@@ -24,9 +25,9 @@ class TrainingRepository {
     String? after;
     do {
       api.requireBinding(binding);
-      final page = objects(
-        await api.request('GET', '/v1/training', query: {'after': ?after}),
-      );
+      final page = (await api.trainingList(after: after))
+          .map((v) => v.toJson())
+          .toList();
       items.addAll(page);
       after = page.length == 100 ? page.last['id'] : null;
     } while (after != null);
@@ -78,9 +79,9 @@ class TrainingRepository {
 
   Future<Json> _submit(String account, String key, Json command) async {
     try {
-      return Map<String, dynamic>.from(
-        await api.request('POST', '/v1/training', body: command),
-      );
+      return (await api.trainingSave(
+        body: TrainingSaveRequestDto.fromJson(command),
+      )).toJson();
     } on DioException catch (error) {
       if ([400, 409, 422].contains(error.response?.statusCode)) {
         await local.saveDraft(account, '', key, {});
