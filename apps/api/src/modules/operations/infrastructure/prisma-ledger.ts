@@ -397,11 +397,11 @@ export class PrismaLedger implements Ledger {
       },
     });
   }
-  async checkInventory() {
+  async checkInventory(id = randomUUID()) {
+    if (await this.prior(id, "scheduled")) return;
     const configured = await this.tx.storeProduct.findMany({where:this.context,select:{productId:true}});
     const stocked = await this.tx.inventoryLot.findMany({where:this.context,select:{productId:true},distinct:['productId']});
     await this.alerts([...new Set([...configured,...stocked].map(p=>p.productId))]);
-    const id=randomUUID();
     await this.finish(id,'scheduled',{operationId:id,status:'accepted'},'inventory.check',this.scope.storeId,{scheduled:true});
   }
   async alerts(productIds: string[]) {
@@ -477,7 +477,8 @@ export class PrismaLedger implements Ledger {
       ...owners.map((m) => m.userId),
       ...admins.map((u) => u.id),
     ]);
-    for (const userId of users) {
+    const enabled = await this.tx.user.findMany({where:{id:{in:[...users]},disabled:false},select:{id:true}});
+    for (const {id:userId} of enabled) {
       const n = await this.tx.notification.upsert({
         where: { userId_eventKey: { userId, eventKey: key } },
         create: { ...this.context, userId, eventKey: key, title, body },

@@ -22,7 +22,7 @@ const responses:Record<string,Schema>={
  WorkspaceController_fulfillment:ref('OrderFulfillment'),WorkspaceController_sale:ref('SaleDetails'),WorkspaceController_changes:ref('ChangePage'),WorkspaceController_ranking:ref('Ranking'),
  WorkspaceController_config:ref('StoreProduct'),WorkspaceController_member:ref('Membership'),WorkspaceController_onboarding:ref('OnboardingResult'),WorkspaceController_reward:ref('Reward'),
  CatalogController_save:ref('Product'),CatalogController_import:ref('CatalogImportResult'),
- NotificationsController_list:arr(ref('Notification')),NotificationsController_read:ref('Count'),NotificationsController_removeDevice:ref('Count'),NotificationsController_device:ref('Device'),NotificationsController_announce:ref('AnnouncementResult'),
+ NotificationsController_get:ref('Notification'),NotificationsController_list:arr(ref('Notification')),NotificationsController_read:ref('Count'),NotificationsController_removeDevice:ref('Count'),NotificationsController_device:ref('Device'),NotificationsController_announce:ref('AnnouncementResult'),
  TrainingController_list:arr(ref('TrainingContent')),TrainingController_get:ref('TrainingContent'),TrainingController_save:ref('TrainingContent'),TrainingController_start:ref('UploadStarted'),TrainingController_status:ref('UploadStatus'),TrainingController_chunk:ref('UploadChunkResult'),TrainingController_metadata:ref('MediaMetadata'),
  TrainingController_media:{type:'string',format:'binary'},ReportingController_export:{type:'string'},ReportingController_overview:ref('ReportOverview'),AdminController_overview:ref('AdminOverview'),
  OperationsController_push:ref('SyncResponse'),OperationsController_status:ref('StatusResponse'),

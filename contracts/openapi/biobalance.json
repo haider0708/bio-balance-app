@@ -5639,6 +5639,186 @@
         ]
       }
     },
+    "/v1/notifications/{id}": {
+      "get": {
+        "operationId": "NotificationsGet",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Réponse autorisée. Les entiers monétaires sont des chaînes décimales exactes.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationsGetResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Erreur stable à traduire pour l’utilisateur",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Erreur stable à traduire pour l’utilisateur",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Erreur stable à traduire pour l’utilisateur",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Erreur stable à traduire pour l’utilisateur",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Erreur stable à traduire pour l’utilisateur",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Erreur stable à traduire pour l’utilisateur",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Erreur stable à traduire pour l’utilisateur",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Erreur stable à traduire pour l’utilisateur",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "416": {
+            "description": "Erreur stable à traduire pour l’utilisateur",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Erreur stable à traduire pour l’utilisateur",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Erreur stable à traduire pour l’utilisateur",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Erreur stable à traduire pour l’utilisateur",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Erreur stable à traduire pour l’utilisateur",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
     "/v1/notifications/{id}/read": {
       "patch": {
         "operationId": "NotificationsRead",
@@ -10100,6 +10280,21 @@
       "Notification": {
         "type": "object",
         "properties": {
+          "kind": {
+            "enum": [
+              "operational",
+              "announcement"
+            ],
+            "type": "string"
+          },
+          "audience": {
+            "enum": [
+              "managers",
+              "all",
+              "salespeople"
+            ],
+            "type": "string"
+          },
           "id": {
             "type": "string",
             "format": "uuid"
@@ -10156,6 +10351,8 @@
           }
         },
         "required": [
+          "kind",
+          "audience",
           "id",
           "organizationId",
           "storeId",
@@ -12767,6 +12964,9 @@
         "items": {
           "$ref": "#/components/schemas/Notification"
         }
+      },
+      "NotificationsGetResponse": {
+        "$ref": "#/components/schemas/Notification"
       },
       "NotificationsReadResponse": {
         "$ref": "#/components/schemas/Count"

@@ -10,6 +10,9 @@ class NotificationsRepository {
             .map((n) => n.toJson())
             .toList(),
   );
+  Future<Json> get(String id) => context.run(
+    () async => (await context.api.notificationsGet(id: id)).toJson(),
+  );
   Future<void> read(String id) => context.run(() async {
     await context.api.notificationsRead(id: id);
   });

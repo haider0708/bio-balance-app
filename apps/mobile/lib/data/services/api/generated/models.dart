@@ -1791,6 +1791,8 @@ final class AuditEntryDto implements CollectionItemDto, HistoryItemDto {
 final class NotificationDto {
   final Set<String> _presentFields;
   Set<String> get presentFields => _presentFields;
+  final String kind;
+  final String audience;
   final String id;
   final String? organizationId;
   final String? storeId;
@@ -1802,6 +1804,8 @@ final class NotificationDto {
   final String createdAt;
   NotificationDto({
     Set<String> presentFields = const {},
+    required this.kind,
+    required this.audience,
     required this.id,
     required this.organizationId,
     required this.storeId,
@@ -1815,6 +1819,8 @@ final class NotificationDto {
   factory NotificationDto.fromJson(Map<String, dynamic> json) =>
       NotificationDto(
         presentFields: json.keys.toSet(),
+        kind: json["kind"] as String,
+        audience: json["audience"] as String,
         id: json["id"] as String,
         organizationId: json["organizationId"] == null
             ? null
@@ -1828,6 +1834,8 @@ final class NotificationDto {
         createdAt: json["createdAt"] as String,
       );
   Map<String, dynamic> toJson() => {
+    "kind": kind,
+    "audience": audience,
     "id": id,
     "organizationId": organizationId,
     "storeId": storeId,
@@ -3456,6 +3464,7 @@ typedef OperationsStatusRequestDto = SyncBatchDto;
 typedef OperationsPushResponseDto = SyncResponseDto;
 typedef OperationsPushRequestDto = SyncBatchDto;
 typedef NotificationsListResponseDto = List<NotificationDto>;
+typedef NotificationsGetResponseDto = NotificationDto;
 typedef NotificationsReadResponseDto = CountDto;
 typedef NotificationsDeviceResponseDto = DeviceDto;
 

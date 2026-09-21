@@ -12,7 +12,7 @@ import {
 } from "../domain/contracts";
 import { FulfillmentLine } from "../domain/order-fulfillment";
 export interface Ledger {
-  checkInventory(): Promise<void>;
+  checkInventory(operationId?: string): Promise<void>;
   cursor(): Promise<string>;
   dependenciesAccepted(ids: string[]): Promise<boolean>;
   readonly scope: Scope;

@@ -1067,6 +1067,14 @@ const Map<String, Map<String, dynamic>> _schemas = {
   "Notification": {
     "type": "object",
     "properties": {
+      "kind": {
+        "enum": ["operational", "announcement"],
+        "type": "string",
+      },
+      "audience": {
+        "enum": ["managers", "all", "salespeople"],
+        "type": "string",
+      },
       "id": {"type": "string", "format": "uuid"},
       "organizationId": {
         "anyOf": [
@@ -1093,6 +1101,8 @@ const Map<String, Map<String, dynamic>> _schemas = {
       "createdAt": {"type": "string", "format": "date-time"},
     },
     "required": [
+      "kind",
+      "audience",
       "id",
       "organizationId",
       "storeId",
@@ -1984,6 +1994,7 @@ const Map<String, Map<String, dynamic>> _schemas = {
     "type": "array",
     "items": {"\$ref": "#/components/schemas/Notification"},
   },
+  "NotificationsGetResponse": {"\$ref": "#/components/schemas/Notification"},
   "NotificationsReadResponse": {"\$ref": "#/components/schemas/Count"},
   "NotificationsDeviceResponse": {"\$ref": "#/components/schemas/Device"},
   "NotificationsDeviceRequest": {

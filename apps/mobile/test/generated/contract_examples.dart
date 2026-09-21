@@ -190,6 +190,12 @@ Object? decodeResponse(
     );
     return decoded.map((item) => item.toJson()).toList();
   })(),
+  "NotificationsGet" => (() {
+    final decoded = NotificationsGetResponseDto.fromJson(
+      Map<String, dynamic>.from(value as Map),
+    );
+    return decoded.toJson();
+  })(),
   "NotificationsRead" => (() {
     final decoded = NotificationsReadResponseDto.fromJson(
       Map<String, dynamic>.from(value as Map),

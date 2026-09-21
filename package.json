@@ -17,7 +17,8 @@
     "api:contract": "npm run contract -w apps/api",
     "test:mobile-sync": "npm run test:mobile-sync -w apps/api",
     "test:media": "npm run test:media -w apps/api",
-    "test:contracts": "npm run test:contracts -w apps/api"
+    "test:contracts": "npm run test:contracts -w apps/api",
+    "test:notifications": "npm run test:notifications -w apps/api"
   },
   "allowScripts": {
     "argon2@0.44.0": true,

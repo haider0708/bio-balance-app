@@ -29,7 +29,7 @@ Démarrer les deux API, worker notifications/tâches, worker média et Nginx. V�
 
 Définir `API_BASE_URL` HTTPS au build. La notification push utilise les paramètres Firebase publics via `--dart-define-from-file` : `FIREBASE_APP_ID`, `FIREBASE_API_KEY`, `FIREBASE_SENDER_ID`, `FIREBASE_PROJECT_ID`. Ils diffèrent pour Android et iOS. Configurer les identifiants `tn.biobalance.app`, APNs dans Firebase et la capacité Push Notifications dans Xcode. Le worker utilise uniquement le compte de service privé côté serveur.
 
-Le bouton « Activer les notifications » demande la permission au moment utile. Une session expirée ou révoquée ne reçoit plus de push. Les contrôles de caméra, notifications réelles et lecture vidéo doivent être exécutés sur Android et iOS physiques.
+Le bouton « Activer les notifications » demande la permission au moment utile. Le worker exclut les sessions expirées/révoquées avant envoi. Un message déjà confié à la plateforme peut arriver plus tard ; le texte OS reste générique et l’application revérifie l’accès avant de charger le contenu. Les contrôles de caméra, notifications réelles et lecture vidéo doivent être exécutés sur Android et iOS physiques.
 
 La signature Android lit `BIOBALANCE_KEYSTORE`, `BIOBALANCE_KEYSTORE_PASSWORD`, `BIOBALANCE_KEY_ALIAS`, `BIOBALANCE_KEY_PASSWORD`. Vérifier les noms exacts dans `android/app/build.gradle.kts`. iOS demande les certificats/profils Apple sur macOS. Le build debug disponible n’est pas un livrable signé de production.
 
@@ -62,3 +62,9 @@ Conserver le digest précédent et ses variables d’environnement. Les migratio
 ## Portes de sortie
 
 Aucune diffusion générale avant : tests métier/RLS/reprise passants, restauration vérifiée avec médias réels, signatures Android/iOS, tests caméra/push et accessibilité, profils physiques, scénario de charge représentatif, acceptation des trois rôles sur un petit pilote. Étendre ensuite à 50 magasins et enfin 500 suivant les métriques et incidents.
+
+## Diagnostic des workers
+
+`WORKER_CONCURRENCY` borne le worker opérationnel entre 1 et 4 (2 par défaut). Le worker média reste à 1 et ne prend que les tâches média. Chaque tâche porte un bail UUID renouvelable ; une ancienne exécution ne peut pas terminer la tâche après récupération du bail. Les jobs horaires réutilisent leur identifiant d’opération et les envois push conservent leurs reçus par appareil/session.
+
+Examiner `Job.kind`, `key`, `attempts`, `availableAt`, `lockedAt`, `status`, `lastError` sans exporter les payloads (ils peuvent contenir des invitations). Après correction de la cause, relancer un job précis en conservant son `id`/`key`/`payload` : remettre `status='pending'`, `attempts=0`, `availableAt=now()`, `lockedAt=NULL`, `leaseToken=NULL` uniquement si son statut est `failed`. Ne jamais modifier un job courant pour le relancer. Les appels FCM/SMTP restent au moins une fois en cas de réponse externe perdue.

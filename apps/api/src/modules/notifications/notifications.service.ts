@@ -1,3 +1,4 @@
+import { NotificationPolicy } from "./infrastructure/notification-policy";
 import { randomUUID, createHash } from "node:crypto";
 import { requireRule } from "../../shared/domain/errors";
 import { Injectable } from "@nestjs/common";
@@ -12,17 +13,52 @@ export class NotificationsService {
   ) {}
   async list(actor: Actor, after?: string) {
     const stores = await this.workspace.stores(actor);
+    const managed = stores
+      .filter((s) => s.permissions.includes("manage"))
+      .map((s) => s.id);
+    const selling = stores
+      .filter((s) => s.permissions.includes("sell"))
+      .map((s) => s.id);
     return this.db.notification.findMany({
       where: {
         userId: actor.id,
-        OR: [{ storeId: null }, { storeId: { in: stores.map((s) => s.id) } }],
+        ...(actor.platformAdmin
+          ? {}
+          : {
+              OR: [
+                { kind: "operational", storeId: { in: managed } },
+                {
+                  kind: "announcement",
+                  audience: "all",
+                  storeId: { in: stores.map((s) => s.id) },
+                },
+                {
+                  kind: "announcement",
+                  audience: "salespeople",
+                  storeId: { in: selling },
+                },
+              ],
+            }),
         ...(after ? { createdAt: { lt: new Date(after) } } : {}),
       },
       orderBy: [{ createdAt: "desc" }, { id: "desc" }],
       take: 100,
     });
   }
-  read(actor: Actor, id: string) {
+  async get(actor: Actor, id: string) {
+    const n = await this.db.notification.findFirst({
+      where: { id, userId: actor.id },
+    });
+    requireRule(
+      n && (await new NotificationPolicy(this.db).allows(n)),
+      "NOT_FOUND",
+      "Notification indisponible.",
+      404,
+    );
+    return n!;
+  }
+  async read(actor: Actor, id: string) {
+    await this.get(actor, id);
     return this.db.notification.updateMany({
       where: { id, userId: actor.id },
       data: { readAt: new Date() },
@@ -30,14 +66,43 @@ export class NotificationsService {
   }
   removeDevice(actor: Actor, token: string) {
     return this.db.deviceToken.deleteMany({
-      where: { userId: actor.id, token },
+      where: { userId: actor.id, token, sessionId: actor.sessionId },
     });
   }
-  device(actor: Actor, token: string, platform: string) {
-    return this.db.deviceToken.upsert({
-      where: { token },
-      create: { userId: actor.id, token, platform, sessionId: actor.sessionId },
-      update: { userId: actor.id, platform, sessionId: actor.sessionId },
+  async device(actor: Actor, token: string, platform: string) {
+    return this.db.$transaction(async (tx) => {
+      await this.db.verifySession(tx, actor);
+      const user = await tx.user.findUnique({ where: { id: actor.id } });
+      requireRule(
+        user && !user.disabled,
+        "ACCESS_DISABLED",
+        "Accès désactivé.",
+        403,
+      );
+      requireRule(actor.sessionId, "SESSION_EXPIRED", "Reconnectez-vous.", 401);
+      // Serialize a token transfer and keep late registrations from older sessions
+      // from taking the installation back after a successful account switch.
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${token},0))`;
+      const prior = await tx.deviceToken.findUnique({ where: { token } });
+      if (prior?.sessionId && prior.sessionId !== actor.sessionId) {
+        const old = await tx.session.findUnique({
+          where: { id: prior.sessionId },
+        });
+        const current = await tx.session.findUniqueOrThrow({
+          where: { id: actor.sessionId! },
+        });
+        requireRule(!old || old.createdAt <= current.createdAt, "DEVICE_SESSION_OUTDATED", "Cet appareil utilise une session plus récente.", 409);
+      }
+      return tx.deviceToken.upsert({
+        where: { token },
+        create: {
+          userId: actor.id,
+          token,
+          platform,
+          sessionId: actor.sessionId,
+        },
+        update: { userId: actor.id, platform, sessionId: actor.sessionId },
+      });
     });
   }
   announce(
@@ -113,6 +178,8 @@ export class NotificationsService {
             title,
             body,
             eventKey: id,
+            kind: "announcement",
+            audience,
           },
         });
         await tx.job.create({

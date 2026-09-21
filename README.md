@@ -62,6 +62,7 @@ scripts/setup-test-db.sh
 npm run test:integration
 # ffmpeg et ffprobe doivent être disponibles dans PATH
 npm run test:media
+npm run test:notifications
 # Flutter/Dart également disponibles dans PATH
 npm run test:contracts
 npm run test:mobile-sync

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:dio/dio.dart';
 
@@ -163,7 +164,7 @@ class SessionTransport {
       } else if (status == 403 && code == 'ACCESS_DISABLED') {
         condition = AccessCondition.disabled;
         _accessBlocked = true;
-      } else if (status == 403) {
+      } else if (status == 403 && code == 'STORE_ACCESS_REVOKED') {
         condition = AccessCondition.storeAccessRevoked;
       } else if (error.response == null &&
           error.type != DioExceptionType.cancel) {
@@ -215,7 +216,20 @@ class SessionTransport {
       return response;
     } on DioException catch (error) {
       final body = error.response?.data;
-      if (body is ResponseBody) await body.stream.listen((_) {}).cancel();
+      if (body is ResponseBody) {
+        final bytes = <int>[];
+        await for (final chunk in body.stream) {
+          bytes.addAll(chunk);
+          if (bytes.length > 65536) break;
+        }
+        try {
+          error.response?.data = jsonDecode(utf8.decode(bytes));
+        } catch (_) {}
+      } else if (body is List<int>) {
+        try {
+          error.response?.data = jsonDecode(utf8.decode(body));
+        } catch (_) {}
+      }
       requireBinding(captured);
       _reportError(captured, error, false, storeId);
       rethrow;

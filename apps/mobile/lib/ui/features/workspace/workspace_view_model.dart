@@ -268,6 +268,26 @@ class WorkspaceViewModel extends ChangeNotifier {
     if (refresh) await synchronize();
   }
 
+  Future<Json> openNotification(String id) async {
+    final message = await inbox.get(id);
+    final storeId = message['storeId'] as String?;
+    if (storeId != null) {
+      final accessible = await repository.stores(user, refresh: true);
+      final target = accessible.where((s) => s.id == storeId).firstOrNull;
+      if (target == null) {
+        throw const AppFailure(
+          'STORE_ACCESS_REVOKED',
+          'Ce magasin n’est plus accessible.',
+        );
+      }
+      await flushDrafts();
+      await select(target);
+      requireAccess(target);
+    }
+    await inbox.read(id);
+    return message;
+  }
+
   Future<void> reloadLocal() async {
     final store = state.store;
     if (store == null || state.accessBlocked) return;
@@ -339,7 +359,13 @@ class WorkspaceViewModel extends ChangeNotifier {
   }
 
   bool _accessFailure(Object e) =>
-      e is DioException && [401, 403].contains(e.response?.statusCode);
+      e is DioException &&
+      (e.response?.statusCode == 401 ||
+          (e.response?.data is Map &&
+              [
+                'STORE_ACCESS_REVOKED',
+                'ACCESS_DISABLED',
+              ].contains(e.response?.data['code'])));
   bool _networkFailure(Object e) => e is DioException && e.response == null;
 
   Future<void> queue(

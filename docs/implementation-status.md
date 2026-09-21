@@ -24,11 +24,11 @@ L’application est en développement et n’est pas encore qualifiée pour une 
 |---|---|
 | Compilation TypeScript | Réussie |
 | Tests domaine backend | 6 réussis |
-| Tests PostgreSQL réels avec rôle restreint | 20 réussis + 3 tests de traitement média réel |
-| Tests Flutter de reprise, migration et dispositions d’écran | 49 réussis (48 dans la passe complète, puis un cas supplémentaire ciblé) ; 2 parcours HTTP réels et 1 test de contrats Dart exécutés séparément et réussis |
-| Build Android debug | APK reconstruit avec les ressources natives et liens de l’étape 6 ; exécution sur téléphone encore à vérifier |
+| Tests PostgreSQL réels avec rôle restreint | 20 réussis + 3 tests de traitement média réel + 5 tests notifications/workers |
+| Tests Flutter de reprise, migration et dispositions d’écran | 53 réussis ; 2 parcours HTTP réels et 1 test de contrats Dart exécutés séparément et réussis |
+| Build Android debug | APK reconstruit après les changements de l’étape 8 ; exécution sur téléphone encore à vérifier |
 | Sauvegarde/restauration isolée | Réussie sur les données de développement ; archive média vide, à compléter avec des médias réels traités |
-| OpenAPI et génération Dart | 44 endpoints vérifiés sur HTTP réel ; 178 schémas Dart typés générés et aller-retour JSON validé |
+| OpenAPI et génération Dart | 45 endpoints vérifiés sur HTTP réel ; schémas Dart typés générés et aller-retour JSON validé |
 | Images Docker et émulateur | Vérifications commencées ; résultat final à confirmer |
 
 Un passage des tests PostgreSQL a expiré pendant une forte saturation mémoire de l’hôte par les builds Android. Après arrêt des anciens daemons de compilation devenus inutiles, les 12 tests ont réussi sans allonger leur délai.
@@ -70,7 +70,7 @@ Implémentation et vérifications locales terminées : commit `7f25895`.
 | 5. Onboarding/images | Implémentation et vérification locale terminées (voir registre ci-dessous) |
 | 6. Brouillons et transferts | Implémentation et vérification locale terminées (voir registre ci-dessous) |
 | 7. Contrats et nettoyage | Implémentation et vérification locale terminées (voir registre ci-dessous) |
-| 8. Notifications/workers | À réaliser |
+| 8. Notifications/workers | Implémentation et vérification locale terminées ; FCM/APNs réels en attente |
 | 9. Parcours complets | À réaliser |
 | 10. Performances/appareils | À réaliser ; appareils physiques requis pour les mesures correspondantes |
 | 11. Déploiement/reprise | À réaliser ; dépôt distant/VPS/DNS requis pour les vérifications externes |
@@ -147,6 +147,8 @@ Commit : `8e3f201`.
 
 ### Étape 7 — Contrats et nettoyage
 
+Commit : `43b75ef`. Régénération après commit sans différence vérifiée.
+
 - Registre exhaustif des 44 endpoints : requêtes Zod partagées avec les contrôleurs, réponses/pagination/erreurs explicites, transferts binaires et unions commandes/résultats/snapshots. Les valeurs monétaires, curseurs et soldes restent des chaînes exactes ; les données libres se limitent aux métadonnées historiques extensibles.
 - Génération déterministe de 178 schémas et 44 méthodes Dart. Les DTO immuables préservent l’absence d’un champ et sa valeur explicitement nulle. Les commandes déjà en file utilisent un transport brut contrôlé qui conserve leur enveloppe d’origine ; test de deux envois identiques sans ajout de valeurs par défaut.
 - Repositories dédiés pour identité, catalogue, équipe, ventes, récompenses, rapports et notifications ; les écrans n’appellent plus le transport HTTP générique. Les commandes en ligne et leur reprise durable quittent le view model ; reporting extrait du contrôleur. Les repositories capturent le compte/génération avant les attentes locales.
@@ -155,3 +157,14 @@ Commit : `8e3f201`.
 - Installation reproductible vérifiée par `npm ci`, génération Prisma et `flutter pub get --enforce-lockfile`. NestJS 12.0.4/Swagger 12.0.1, Firebase Admin 14.4.0, Nodemailer 10.0.10 ; Prisma reste en stable 7.10.0 avec deux overrides ciblés de dépendances CLI. `npm audit` : aucune vulnérabilité connue rapportée lors de cette passe.
 - Vérifications : compilation TypeScript, 6 tests domaine, 20 PostgreSQL, 3 traitements média réels, 44 endpoints HTTP et 1 test Dart de leurs réponses ; 48 tests Flutter dans la passe complète et un cas de transport supplémentaire ensuite (4 tests ciblés réussis). Les 2 parcours de synchronisation HTTP/SQLite/PostgreSQL passent. Analyse Dart sans erreur, `git diff --check` sans erreur. Les 3 tests qui exigent un serveur sont ignorés dans la passe Flutter standard et exécutés par leurs scripts dédiés.
 - Limites : cette couverture HTTP n’est pas la recette des trois parcours UI prévue à l’étape 9. La CI distante et le build iOS attendent un dépôt distant/macOS. Aucun résultat de charge, de push réel ou d’appareil physique n’est revendiqué.
+
+### Étape 8 — Notifications et workers
+
+- Migration additive `202609210009_notification_jobs`, appliquée en développement et test : nature/audience des notifications (annonces anciennes réconciliées), propriété du bail des jobs, reçus d’envoi par notification/appareil/session.
+- Messages opérationnels réservés aux responsables/propriétaires/admin actifs. Les annonces restent des envois volontaires du responsable. La boîte de réception, la lecture individuelle et le worker revérifient les permissions actuelles ; une rétrogradation ou révocation rend les messages concernés inaccessibles.
+- Recontrôle des sessions avant envoi, reprise des seuls appareils en échec, suppression des tokens invalides. Une ancienne inscription ne peut pas reprendre le token d’une session plus récente ; le désenregistrement est limité à sa session. Le message OS est volontairement générique : son contenu métier est relu par l’API autorisée.
+- Flutter : renouvellement des tokens, permission refusée, sérialisation suppression/inscription pour les changements de compte, callbacks liés à la génération, déduplication bornée des messages/taps. Réception au premier plan et ouverture depuis une notification : sauvegarde des brouillons, sélection du magasin autorisé, affichage du message ; accès retiré et réponse tardive restent bloqués.
+- Correction des refus HTTP : une action interdite (`FORBIDDEN`) ne révoque plus à tort tout le magasin ; les erreurs d’accès d’un transfert binaire sont décodées avant reprise de session.
+- Worker extrait en composant testable : claim exclusif, bail renouvelé, refus des terminaisons d’un ancien propriétaire, huit tentatives, délai avec aléa/plafond et diagnostics sans secrets. Parallélisme borné (2 par défaut, 4 maximum), média limité à 1 et type de tâche isolé. Les contrôles horaires paginent les magasins et utilisent une identité stable ; leur reprise ne duplique ni audit ni alerte.
+- Validation locale : 5 tests PostgreSQL dédiés aux audiences, révocations, expirations, transfert de token, reprise partielle, claims concurrents, bail périmé, échecs et contrôles horaires. 53 tests Flutter dans la suite complète ; 4 tests push ciblés repassés après suppression de l’ancien token. Les 20 tests transactionnels et 6 tests domaine restent passants. 45 contrats HTTP et leur aller-retour Dart validés. Analyse Dart sans erreur ; APK debug compilé.
+- Limites : les passerelles FCM/APNs sont simulées dans les tests locaux. L’acheminement réel sur Android/iOS et les permissions natives exigent la configuration plateforme/appareils. Les services externes sont au moins une fois : une réponse FCM/SMTP perdue peut occasionner une répétition ; identités stables, reçus, collapse IDs et déduplication mobile réduisent ce risque sans promettre une livraison exactement une fois. Un message OS déjà en file peut arriver après déconnexion, sans contenu métier.

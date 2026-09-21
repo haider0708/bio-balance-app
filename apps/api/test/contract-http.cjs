@@ -102,7 +102,7 @@ const owner=new PrismaClient({adapter:new PrismaPg({connectionString:ownerUrl})}
   assert(snapshot.snapshotPages.lots);await call('GET',`${storeUrl}/snapshot-pages/${snapshot.snapshotPages.lots}?${scope}`);
   await call('GET',`${storeUrl}/snapshot?${scope}&protocol=3&after=${snapshot.cursor}&catalogRevision=${snapshot.catalogRevision}`);
   await call('POST',`${storeUrl}/announcements?${scope}`,{body:{id:randomUUID(),title:'Formation disponible',body:'Consultez les conseils',audience:'all'}});
-  const notifications=await call('GET','/v1/notifications');assert(notifications.length);await call('PATCH',`/v1/notifications/${notifications[0].id}/read`);
+  const notifications=await call('GET','/v1/notifications');assert(notifications.length);await call('GET',`/v1/notifications/${notifications[0].id}`);await call('PATCH',`/v1/notifications/${notifications[0].id}/read`);
   const deviceToken='test-device-'+randomUUID();await call('POST','/v1/devices',{body:{token:deviceToken,platform:'android'}});await call('DELETE','/v1/devices',{body:{token:deviceToken,platform:'android'},status:200});
   const training=await call('POST','/v1/training',{as:adminToken,body:{id:randomUUID(),submissionId:randomUUID(),expectedVersion:0,title:'Training fixture',body:'<p>Conseils</p>',type:'article',productIds:[product.id],status:'published'}});
   await call('GET','/v1/training');await call('GET',`/v1/training/${training.id}`);

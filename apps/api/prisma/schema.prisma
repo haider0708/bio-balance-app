@@ -317,6 +317,8 @@ model Announcement {
   createdAt DateTime @default(now())
 }
 model Notification {
+  kind String @default("operational")
+  audience String @default("managers")
   id String @id @default(uuid()) @db.Uuid
   organizationId String? @db.Uuid
   storeId String? @db.Uuid
@@ -347,6 +349,7 @@ model Job {
   attempts Int @default(0)
   availableAt DateTime @default(now())
   lockedAt DateTime?
+  leaseToken String? @db.Uuid
   lastError String?
   createdAt DateTime @default(now())
   @@index([status,availableAt])
@@ -403,4 +406,13 @@ model ContentSubmission {
   result Json
   createdAt DateTime @default(now())
   @@index([actorId,contentId])
+}
+
+model PushDelivery {
+  id String @id @default(uuid()) @db.Uuid
+  notificationId String @db.Uuid
+  deviceId String @db.Uuid
+  sessionId String @db.Uuid
+  deliveredAt DateTime @default(now())
+  @@unique([notificationId,deviceId,sessionId])
 }

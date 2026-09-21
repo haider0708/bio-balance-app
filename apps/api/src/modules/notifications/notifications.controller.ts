@@ -1,4 +1,4 @@
-import {NotificationRequests} from '../../shared/contracts/requests';
+import { NotificationRequests } from "../../shared/contracts/requests";
 import {
   Body,
   Delete,
@@ -28,18 +28,29 @@ export class NotificationsController {
       z.iso.datetime().optional().parse(before),
     );
   }
+  @Get("notifications/:id") get(
+    @Req() r: AuthRequest,
+    @Param("id") id: string,
+  ) {
+    return this.service.get(r.actor, z.uuid().parse(id));
+  }
   @Patch("notifications/:id/read") read(
     @Req() r: AuthRequest,
     @Param("id") id: string,
   ) {
     return this.service.read(r.actor, z.uuid().parse(id));
   }
-  @Delete('devices') removeDevice(@Req() r:AuthRequest,@Body() body:unknown){
-    return this.service.removeDevice(r.actor,NotificationRequests.RemoveDevice.parse(body).token);
+  @Delete("devices") removeDevice(
+    @Req() r: AuthRequest,
+    @Body() body: unknown,
+  ) {
+    return this.service.removeDevice(
+      r.actor,
+      NotificationRequests.RemoveDevice.parse(body).token,
+    );
   }
   @Post("devices") device(@Req() r: AuthRequest, @Body() body: unknown) {
-    const v = NotificationRequests.Device
-      .parse(body);
+    const v = NotificationRequests.Device.parse(body);
     return this.service.device(r.actor, v.token, v.platform);
   }
   @Post("stores/:store/announcements") announce(
@@ -48,8 +59,7 @@ export class NotificationsController {
     @Query("organizationId") org: string,
     @Body() body: unknown,
   ) {
-    const v = NotificationRequests.Announce
-      .parse(body);
+    const v = NotificationRequests.Announce.parse(body);
     return this.service.announce(
       r.actor,
       z.uuid().parse(org),

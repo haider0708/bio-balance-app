@@ -442,6 +442,19 @@ class ApiClient extends SessionTransport {
     );
   }
 
+  Future<NotificationsGetResponseDto> notificationsGet({
+    required String id,
+  }) async {
+    final value = await request(
+      'GET',
+      '/v1/notifications/${Uri.encodeComponent(id)}',
+      query: {},
+    );
+    return NotificationsGetResponseDto.fromJson(
+      Map<String, dynamic>.from(value as Map),
+    );
+  }
+
   Future<NotificationsReadResponseDto> notificationsRead({
     required String id,
   }) async {

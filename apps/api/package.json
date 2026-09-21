@@ -15,7 +15,8 @@
     "contract": "npm run build && node dist/openapi.js",
     "test:mobile-sync": "npm run build && node test/mobile-sync.cjs",
     "test:media": "vitest run test/media.test.ts --maxWorkers=1",
-    "test:contracts": "npm run build && node test/contract-http.cjs"
+    "test:contracts": "npm run build && node test/contract-http.cjs",
+    "test:notifications": "vitest run test/notifications.test.ts --maxWorkers=1"
   },
   "dependencies": {
     "@nestjs/common": "^12.0.4",

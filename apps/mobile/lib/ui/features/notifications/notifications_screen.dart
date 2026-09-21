@@ -17,7 +17,7 @@ class NotificationsScreen extends StatefulWidget {
 class _NotificationsScreenState extends State<NotificationsScreen> {
   List<Json> items = [];
   String? error;
-  bool loading = true;
+  bool loading = true, fetching = false;
   Timer? timer;
   @override
   void initState() {
@@ -33,6 +33,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   }
 
   Future<void> load() async {
+    if (fetching) return;
+    fetching = true;
     try {
       final result = objects(await widget.vm.inbox.list());
       if (mounted) {
@@ -44,6 +46,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     } catch (e) {
       if (mounted) setState(() => error = SessionViewModel.message(e));
     } finally {
+      fetching = false;
       if (mounted) setState(() => loading = false);
     }
   }
@@ -78,8 +81,32 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 title: Text(n['title']),
                 subtitle: Text(n['body']),
                 onTap: () async {
-                  await widget.vm.inbox.read(n['id']);
-                  await load();
+                  try {
+                    final message = await widget.vm.openNotification(n['id']);
+                    if (!context.mounted) return;
+                    await showDialog<void>(
+                      context: context,
+                      builder: (context) => AlertDialog(
+                        title: Text(message['title']),
+                        content: SingleChildScrollView(
+                          child: Text(
+                            '${widget.vm.state.store?.name ?? 'BioBalance'}\n\n${message['body']}',
+                          ),
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context),
+                            child: const Text('Fermer'),
+                          ),
+                        ],
+                      ),
+                    );
+                    await load();
+                  } catch (e) {
+                    if (mounted) {
+                      setState(() => error = SessionViewModel.message(e));
+                    }
+                  }
                 },
               ),
             ),

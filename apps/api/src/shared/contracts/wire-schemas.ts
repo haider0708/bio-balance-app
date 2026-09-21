@@ -53,7 +53,7 @@ export const wireSchemas:Record<string,Schema>={
  Change:obj({...scoped,cursor:decimal,entity:str,entityId:str,deleted:bool,createdAt:timestamp}),
  ChangePage:obj({changes:arr(ref('Change')),cursor:decimal,hasMore:bool}),
  AuditEntry:obj({id:uuid,organizationId:nullable(uuid),storeId:nullable(uuid),actorId:nullable(uuid),action:str,targetId:str,operationId:nullable(uuid),details:ref('JsonValue'),createdAt:timestamp}),
- Notification:obj({id:uuid,organizationId:nullable(uuid),storeId:nullable(uuid),userId:uuid,eventKey:str,title:str,body:str,readAt:nullable(timestamp),createdAt:timestamp}),
+ Notification:obj({kind:{enum:["operational","announcement"],type:"string"},audience:{enum:["managers","all","salespeople"],type:"string"},id:uuid,organizationId:nullable(uuid),storeId:nullable(uuid),userId:uuid,eventKey:str,title:str,body:str,readAt:nullable(timestamp),createdAt:timestamp}),
  Device:obj({id:uuid,userId:uuid,sessionId:nullable(uuid),token:str,platform:str,updatedAt:timestamp}),
  AnnouncementResult:obj({id:uuid,recipients:integer}),
  TrainingContent:obj({id:uuid,title:str,body:str,type:{type:'string',enum:['article','video']},mediaId:nullable(uuid),productIds:arr(uuid),status:{type:'string',enum:['draft','published','archived']},version:integer,authorId:uuid,updatedAt:timestamp}),

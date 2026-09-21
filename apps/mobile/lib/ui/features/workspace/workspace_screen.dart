@@ -1,4 +1,5 @@
 import '../dashboard/admin_dashboard.dart';
+import '../../../data/services/notifications/push_notifications.dart';
 
 import 'dart:async';
 
@@ -34,14 +35,92 @@ class WorkspaceScreen extends StatefulWidget {
 class _WorkspaceScreenState extends State<WorkspaceScreen>
     with WidgetsBindingObserver {
   int selected = 0;
+  StreamSubscription<PushSignal>? pushEvents;
+  PushSignal? pendingPush;
+  bool openingPush = false;
+  PushNotifications? push;
+  Future<void> receivePush(PushSignal signal) async {
+    if (!mounted) return;
+    if (signal.tapped) {
+      pendingPush = signal;
+      setState(() {});
+      return;
+    }
+    try {
+      final vm = context.read<WorkspaceViewModel>();
+      final message = await vm.inbox.get(signal.notificationId);
+      if (!mounted || message['readAt'] != null) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message['title']),
+          action: SnackBarAction(
+            label: 'Voir',
+            onPressed: () {
+              pendingPush = signal;
+              setState(() {});
+            },
+          ),
+        ),
+      );
+    } catch (_) {
+      /* Never reveal data before current server authorization. */
+    }
+  }
+
+  Future<void> openPush() async {
+    if (openingPush || pendingPush == null || !mounted) return;
+    final vm = context.read<WorkspaceViewModel>();
+    if (vm.state.loading) return;
+    openingPush = true;
+    final signal = pendingPush!;
+    pendingPush = null;
+    push?.pendingTap = null;
+    try {
+      final message = await vm.openNotification(signal.notificationId);
+      if (!mounted) return;
+      Navigator.of(context).popUntil((route) => route.isFirst);
+      await showDialog<void>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text(message['title']),
+          content: SingleChildScrollView(
+            child: Text(
+              '${vm.state.store?.name ?? 'BioBalance'}\n\n${message['body']}',
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Fermer'),
+            ),
+          ],
+        ),
+      );
+      if (mounted) setState(() => selected = 0);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(SessionViewModel.message(e))));
+      }
+    } finally {
+      openingPush = false;
+    }
+  }
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    push = context.read<SessionViewModel?>()?.notifications;
+    pendingPush = push?.pendingTap;
+    pushEvents = push?.events.listen(
+      (signal) => unawaited(receivePush(signal)),
+    );
   }
 
   @override
   void dispose() {
+    pushEvents?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -50,6 +129,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       context.read<WorkspaceViewModel>().synchronize(silent: true);
+      unawaited(push?.resume());
     }
   }
 
@@ -57,6 +137,11 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
   Widget build(BuildContext context) {
     final vm = context.watch<WorkspaceViewModel>();
     final state = vm.state;
+    if (pendingPush != null && !state.loading && !openingPush) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) unawaited(openPush());
+      });
+    }
     final admin = vm.user.admin, manager = state.store?.canManage ?? false;
     final destinations = admin
         ? ['Vue d’ensemble', 'Magasins', 'Commandes', 'Catalogue', 'Plus']
