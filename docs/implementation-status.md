@@ -220,7 +220,7 @@ Implémentation et vérification locale terminées ; CI distante, VPS et ACME r�
 
 ### Étape 12 — Artefacts et préparation du pilote
 
-Préparation locale terminée ; les versions signées et l’acceptation pilote restent en attente. Commit : à relever après enregistrement de cette étape.
+Préparation locale terminée ; les versions signées et l’acceptation pilote restent en attente. Commit : `7f7bf4e`.
 
 - Script de construction avec configuration HTTPS par environnement/plateforme, refus des valeurs de test pour une version signée, clés Android existantes exigées ; préparation de l’équipe Apple, export IPA et entitlements APNs debug/release. Les fichiers locaux de configuration/signature restent ignorés.
 - Android 0.1.0+1 (`tn.biobalance.app`, min SDK 24, cible 36) : APK release 84,4 Mo et AAB 76,7 Mo compilés et vérifiés **sans signature**, URL réservée `.invalid`, aucune configuration Firebase réelle. Alignement ZIP et segments ELF 64 bits ≥16 Kio validés. Ce sont des preuves de compilation, pas des fichiers de pilote installables.
