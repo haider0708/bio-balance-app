@@ -25,8 +25,8 @@ L’application est en développement et n’est pas encore qualifiée pour une 
 | Compilation TypeScript | Réussie |
 | Tests domaine et reprise transactionnelle backend | 10 réussis |
 | Tests PostgreSQL réels avec rôle restreint | 22 réussis + 3 tests de traitement média réel + 5 tests notifications/workers |
-| Tests Flutter de reprise, migration et dispositions d’écran | 70 réussis ; 2 parcours HTTP, contrats Dart et reprise média HTTPS/Nginx exécutés séparément et réussis |
-| Build Android debug | APK natifs de test compilés ; parcours et force-stop réussis sur émulateur Android, appareils physiques en attente |
+| Tests Flutter de reprise, migration et dispositions d’écran | 72 réussis ; 2 parcours HTTP, contrats Dart et reprise média HTTPS/Nginx exécutés séparément et réussis |
+| Build Android | Debug normal lancé/rechargé et APK/AAB release non signés compilés ; parcours/force-stop/vidéo réussis sur émulateur ; signatures et appareils physiques en attente |
 | Sauvegarde/restauration isolée | Réussie : données métier, image et vidéo traitées ; tailles/empreintes et projections comparées après restauration isolée |
 | OpenAPI et génération Dart | 45 endpoints vérifiés sur HTTP réel ; schémas Dart typés générés et aller-retour JSON validé |
 | Images Docker et émulateur | Parcours Android et Compose complet local réussis ; API/média, TLS, isolation, reprise et rollback vérifiés |
@@ -74,7 +74,7 @@ Implémentation et vérifications locales terminées : commit `7f25895`.
 | 9. Parcours complets | Vérification locale terminée sur émulateur Android ; iOS/appareils physiques en attente |
 | 10. Performances/appareils | Charge API et SQLite mesurées localement ; VPS/appareils physiques en attente |
 | 11. Déploiement/reprise | Compose, reprise et rollback vérifiés localement ; CI distante/VPS/ACME en attente |
-| 12. Versions signées/pilote | En attente des comptes de signature et participants ; pilote de deux semaines requis |
+| 12. Versions signées/pilote | Préparation locale et APK/AAB non signés terminés ; signatures, iOS et pilote de deux semaines en attente |
 
 ### Étape 2 — Accès et reprise de session
 
@@ -99,7 +99,7 @@ Commit : `816eb24`.
 - Validation : 16 tests PostgreSQL (dont déclaration manquante, sortie unique, rollback de lot expiré et identité invalide), 5 tests Dart de dates/sélection/filtres/révisions, 2 tests supplémentaires d’éditeur/correction. Le script HTTP réel exécute désormais deux parcours, dont une vente par un vendeur sans permission de gestion du stock.
 - La création du catalogue global reste réservée à l’administrateur. La caméra physique et les essais sur appareils restent prévus aux étapes 9–10 ; le parcours d’éditeur automatisé utilise la saisie manuelle.
 
-Étape 3 : commit fonctionnel `a57026b`. La passe complète a relevé une attente obsolète dans le nouveau test d’éditeur (elle demandait à tort un brouillon vide). L’assertion vérifie maintenant la conservation du lot saisi et l’absence de stock ajouté avant confirmation de vente. La suite complète réussit : 29 tests Flutter ; les 2 parcours HTTP réels sont exécutés séparément et réussissent.
+Étape 3 : commit fonctionnel `a57026b`, correction de l’assertion de régression `9dd2eb6`. La passe complète a relevé une attente obsolète dans le nouveau test d’éditeur (elle demandait à tort un brouillon vide). L’assertion vérifie maintenant la conservation du lot saisi et l’absence de stock ajouté avant confirmation de vente. La suite complète réussit : 29 tests Flutter ; les 2 parcours HTTP réels sont exécutés séparément et réussissent.
 
 
 ### Étape 4 — Commandes et livraisons
@@ -205,7 +205,7 @@ Implémentation et mesures locales terminées ; qualification VPS et appareils p
 
 ### Étape 11 — Déploiement et reprise
 
-Implémentation et vérification locale terminées ; CI distante, VPS et ACME réel en attente. Commit : enregistré dans l’étape suivante.
+Implémentation et vérification locale terminées ; CI distante, VPS et ACME réel en attente. Commit : `8e71caf`.
 
 - Harnais reproductible `tests/deployment/run.sh` : projet Compose isolé, données conservées, HTTPS local, deux API, workers séparés, PostgreSQL privé et Mailpit. Neuf migrations, rôle restreint, bootstrap administrateur et MFA réels.
 - Défaut de packaging corrigé : dépendances npm du workspace copiées dans les images ; smoke check des modules Nest/Firebase/SMTP pendant le build. Environnements limités par service, accès média contrôlé, processus applicatifs non-root/read-only, rotation des logs et arrêts gracieux.
@@ -216,3 +216,19 @@ Implémentation et vérification locale terminées ; CI distante, VPS et ACME r�
 - Bootstrap/renouvellement TLS, installation avec validation clé/certificat et rechargement préparés ; certificat incompatible refusé et remplacement local réussi. Timers sauvegarde/supervision/TLS validés par systemd-analyze avec chemins locaux ; ils ne sont pas installés sur un VPS. Supervision vérifie ressources, fraîcheur des sauvegardes, services et jobs.
 - Vérifications : images API/média et rollback compilées, harnais complet réussi, 70 tests Flutter (4 cas serveur ignorés dans la suite standard), 5 tests de téléchargement ciblés, reprise HTTPS réelle exécutée séparément ; analyse Dart sans erreur. Preuves résumées dans `tests/deployment/evidence.json`, journaux privés dans `.artifacts/evidence/step11/`.
 - Limites : certificat local auto-signé, SMTP Mailpit et fichier FCM factice. ACME/DNS, SSH/firewall, alertes externes, FCM/APNs, CI distante et macOS/iOS attendent leurs environnements. Une restauration locale ne couvre pas la perte totale du VPS ; haute disponibilité et sauvegarde hors serveur restent reportées.
+
+
+### Étape 12 — Artefacts et préparation du pilote
+
+Préparation locale terminée ; les versions signées et l’acceptation pilote restent en attente. Commit : à relever après enregistrement de cette étape.
+
+- Script de construction avec configuration HTTPS par environnement/plateforme, refus des valeurs de test pour une version signée, clés Android existantes exigées ; préparation de l’équipe Apple, export IPA et entitlements APNs debug/release. Les fichiers locaux de configuration/signature restent ignorés.
+- Android 0.1.0+1 (`tn.biobalance.app`, min SDK 24, cible 36) : APK release 84,4 Mo et AAB 76,7 Mo compilés et vérifiés **sans signature**, URL réservée `.invalid`, aucune configuration Firebase réelle. Alignement ZIP et segments ELF 64 bits ≥16 Kio validés. Ce sont des preuves de compilation, pas des fichiers de pilote installables.
+- APK debug de l’entrée normale `lib/main.dart` installé/lancé sur émulateur ; cache du compte synthétique conservé, rechargement à chaud réussi. Aucun effacement de SQLite/outbox pour revenir de l’application de test à l’application normale.
+- La dernière recette a trouvé puis corrigé un message caméra qui recouvrait le bouton de recherche manuelle. Erreur désormais dans l’écran, gestion du cycle de vie unique et démarrage concurrent évité ; portrait/paysage à texte 200 % vérifiés. Les harnais attendent la fermeture réelle du clavier et leur nettoyage ne peut plus arrêter le processus de la phase suivante.
+- Validation finale : 72 tests Flutter réussis, 4 cas avec serveur exécutés séparément aux étapes précédentes ; 7 tests de configuration/packaging ; analyse Dart sans erreur. Parcours complet des trois rôles repassé sur Android (stock 21, points 20, trois révisions). Force-stop/reprise repassé (mêmes octets/ID, une acceptation, stock 7/v3, points 30), caméra refusée avec saisie manuelle et vidéo H.264 téléchargée/lue hors ligne réussies. Les échecs intermédiaires restent dans les journaux.
+- Dossier de livraison préparé : contrat, migrations, code du commit, design dans les sources Flutter, notes de version, documentation d’exploitation/restauration, preuves résumées et sommes SHA-256. Le packager refuse fichiers supplémentaires, empreintes modifiées et points d’entrée de test ; il ne copie ni credentials, ni données, ni sauvegardes privées.
+- Spécification/architecture mises à jour et plan de pilote de cinq magasins pendant au moins quatorze jours, recette des trois rôles/deux plateformes et registre d’incidents ajoutés. Aucune invitation réelle, publication Play/TestFlight ou période de pilote n’a été effectuée.
+- Restent externes : dépôt/CI macOS, VPS/domaine/ACME, SMTP réel, Firebase/APNs, clés/comptes de signature, appareils physiques et participants du pilote. Les objectifs physiques et la charge du VPS complet doivent être démontrés avant acceptation. Haute disponibilité et récupération après perte totale du VPS restent hors périmètre.
+
+Le registre ne déclare pas la production prête : `release-gates.md` distingue les passes locales des portes externes encore ouvertes. Preuves finales : `tests/release/evidence.json` et `.artifacts/evidence/step12/`.

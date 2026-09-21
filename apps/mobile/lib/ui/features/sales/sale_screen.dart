@@ -672,7 +672,7 @@ class _ScannerScreenState extends State<ScannerScreen>
   final controller = MobileScannerController(
     detectionSpeed: DetectionSpeed.noDuplicates,
   );
-  bool captured = false, closing = false;
+  bool captured = false, closing = false, cameraUnavailable = false;
   @override
   void initState() {
     super.initState();
@@ -682,16 +682,13 @@ class _ScannerScreenState extends State<ScannerScreen>
   Future<void> cameraAction(Future<void> Function() action) async {
     try {
       await action();
+      if (mounted && !closing && cameraUnavailable) {
+        setState(() => cameraUnavailable = false);
+      }
     } catch (_) {
       // Native permission/lifecycle failures must leave manual entry usable.
       if (mounted && !closing) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Caméra indisponible. Utilisez la recherche manuelle.',
-            ),
-          ),
-        );
+        setState(() => cameraUnavailable = true);
       }
     }
   }
@@ -699,7 +696,9 @@ class _ScannerScreenState extends State<ScannerScreen>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
-      if (!captured) unawaited(cameraAction(controller.start));
+      if (!captured && !controller.value.isStarting) {
+        unawaited(cameraAction(controller.start));
+      }
     } else {
       unawaited(cameraAction(controller.stop));
     }
@@ -730,10 +729,13 @@ class _ScannerScreenState extends State<ScannerScreen>
         Expanded(
           child: MobileScanner(
             controller: controller,
-            errorBuilder: (_, error) => const EmptyState(
-              title: 'Caméra indisponible',
-              description: 'Autorisez la caméra dans les réglages ou utilisez la recherche manuelle.',
-              icon: Icons.no_photography_outlined,
+            useAppLifecycleState: false,
+            errorBuilder: (_, error) => const SingleChildScrollView(
+              child: EmptyState(
+                title: 'Caméra indisponible',
+                description: 'Autorisez la caméra dans les réglages ou utilisez la recherche manuelle.',
+                icon: Icons.no_photography_outlined,
+              ),
             ),
             onDetect: (capture) {
               final code = capture.barcodes.firstOrNull?.rawValue;
@@ -745,16 +747,23 @@ class _ScannerScreenState extends State<ScannerScreen>
             },
           ),
         ),
-        Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            children: [
-              const Text('Placez le code-barres dans le cadre.'),
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Utiliser la recherche manuelle'),
-              ),
-            ],
+        SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              children: [
+                Text(
+                  cameraUnavailable
+                      ? 'Caméra indisponible.'
+                      : 'Placez le code-barres dans le cadre.',
+                ),
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Utiliser la recherche manuelle'),
+                ),
+              ],
+            ),
           ),
         ),
       ],

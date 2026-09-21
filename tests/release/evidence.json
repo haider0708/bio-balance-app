@@ -1,0 +1,52 @@
+{
+  "dateLocal": "2026-09-22",
+  "timezone": "Africa/Tunis",
+  "flutterTests": {
+    "passed": 72,
+    "serverDependentSkipped": 4,
+    "note": "Skipped tests were executed separately in steps 9\u201311; not counted as passing in the standard suite."
+  },
+  "releaseToolingTests": 7,
+  "dartAnalysis": "no errors",
+  "androidEmulator": {
+    "roleJourney": "passed",
+    "finalStock": 21,
+    "sellerPoints": 20,
+    "reservedPoints": 0,
+    "saleRevisions": 3,
+    "forceStopRecovery": "passed",
+    "recoveredStock": 7,
+    "recoveredLotVersion": 3,
+    "recoveredPoints": 30,
+    "acceptedRecoveredSales": 1,
+    "deniedCameraManualFallback": "passed",
+    "verifiedOfflineH264Playback": "passed"
+  },
+  "fixedDuringFinalVerification": [
+    "native test IME dismissal and form scroll selection",
+    "camera error overlay covering manual search",
+    "landscape scanner error at 200% text",
+    "delayed test-driver cleanup targeting the subsequent phase"
+  ],
+  "pending": [
+    "signed Android build and Play acceptance",
+    "macOS/iOS build and TestFlight",
+    "physical Android/iOS and reference performance",
+    "real FCM/APNs/SMTP",
+    "remote CI and VPS/ACME operations",
+    "five-store pilot for at least fourteen days"
+  ],
+  "productionAccepted": false,
+  "androidCompilation": {
+    "version": "0.1.0+1",
+    "applicationId": "tn.biobalance.app",
+    "minSdk": 24,
+    "targetSdk": 36,
+    "releaseApk": "passed, unsigned",
+    "releaseAab": "passed, unsigned",
+    "zipAndNative64BitAlignment": "16 KiB passed",
+    "normalDebugLaunchAndHotReload": "passed, cached synthetic account preserved",
+    "configuration": "https://api.example.invalid; Firebase disabled",
+    "productionCredentialsUsed": false
+  }
+}

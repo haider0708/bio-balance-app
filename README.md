@@ -2,7 +2,7 @@
 
 Application Flutter en français pour les vendeurs, responsables de magasins et l’administration BioBalance. API NestJS, PostgreSQL et stockage local Drift ; architecture objet avec MVVM, injection par constructeur et règles métier séparées des interfaces.
 
-**État : implémentation en cours, utilisable en développement. La qualification de production n’est pas terminée.** Voir [l’état détaillé](docs/implementation-status.md), la [spécification](docs/specification-fonctionnelle.md), l’[architecture](docs/architecture-technique.md) et le [runbook](docs/runbook.md).
+**État : implémentation et validations locales réalisées ; qualification physique, signatures et pilote en attente.** Voir [l’état détaillé](docs/implementation-status.md), la [spécification](docs/specification-fonctionnelle.md), l’[architecture](docs/architecture-technique.md) et le [runbook](docs/runbook.md).
 
 ## Organisation
 
@@ -81,4 +81,4 @@ Les icônes et écrans de lancement sont générés depuis le logo fourni par `p
 
 ## Livraison
 
-Voir [runbook.md](docs/runbook.md). Restent nécessaires : VPS, domaine API, SMTP, paramètres Firebase/APNs, comptes de signature, tests physiques Android/iOS, tests de charge et validation pilote. Les sauvegardes hors VPS et la haute disponibilité sont hors du périmètre convenu.
+Voir [le runbook](docs/runbook.md), [les builds mobiles](docs/mobile-release.md), [les portes de diffusion](docs/release-gates.md) et [le pilote](docs/pilot-plan.md). Charge locale et reprise Docker sont vérifiées ; restent nécessaires VPS/domaine, SMTP, Firebase/APNs, signatures, CI distante/macOS, mesures physiques et pilote. Les sauvegardes hors VPS et la haute disponibilité sont hors du périmètre convenu.

@@ -13,6 +13,7 @@ Les abonnements payants, le web admin, WhatsApp, les classements régionaux/nati
 - BioBalance invite les responsables ; ils invitent leurs collaborateurs. Connexion personnelle par email et mot de passe, récupération de compte, invitations expirables, sessions révocables et MFA administrateur.
 - Les permissions proviennent des appartenances à une organisation et à un magasin. Un responsable peut également vendre. Un vendeur corrige uniquement ses ventes ; le responsable et l’administrateur corrigent les ventes des magasins autorisés.
 - Le guide reprend après interruption : magasin, équipe, stock initial, configuration des prix/seuils/points. Nom, adresse et ville sont requis ; téléphone et image sont facultatifs.
+- La progression du guide est dérivée des données enregistrées. « Je travaille seul » et « Pas de stock initial » sont des choix explicites ; les produits portés configurés à zéro point demandent confirmation.
 - Le magasin actif reste visible. Le sélecteur permet de chercher et changer de magasin. Les brouillons et opérations ne changent jamais de compte ni de magasin.
 - Désactiver ou retirer un accès conserve les ventes, mouvements et identités historiques.
 
@@ -21,7 +22,9 @@ Les abonnements payants, le web admin, WhatsApp, les classements régionaux/nati
 - Vente directe réalisée en magasin : scanner ou chercher, vérifier les quantités, prix et lots, enregistrer. Plusieurs produits et allocations de lots sont autorisés.
 - Les prix sont calculés exactement en millimes entiers ; JSON utilise une chaîne décimale pour éviter toute perte de précision. Affichage `49,900 TND`, dates `DD/MM/YYYY`.
 - Lots identifiés par magasin, produit, numéro de lot et date de péremption. Quantités entières ; une péremption au mois devient le dernier jour du mois.
-- Le lot valide expirant le plus tôt est proposé, avec choix du lot effectivement remis. Stock périmé ou endommagé exclu du disponible, mais conservé dans l’historique.
+- Le lot valide avec quantité positive expirant le plus tôt est proposé, avec choix du lot effectivement remis. Stock périmé ou endommagé exclu du disponible, mais conservé dans l’historique.
+- Le vendeur peut saisir un lot et sa péremption manquants pendant la vente. Métadonnées du lot et vente sont atomiques ; aucun stock entrant artificiel ni produit global créé par le vendeur.
+- Filtres disponibles : stock faible, écarts, péremption dans les 30 jours et lots expirés. Les dates civiles de péremption sont distinctes des horodatages affichés en heure tunisienne.
 - Une vente réelle dépassant le stock enregistré est conservée. Elle entraîne un écart à régulariser, sans inventer une réception.
 - Corrections avec motif, auteur, valeurs précédentes et compensations. Les retours partent de la vente d’origine et ne dépassent pas les unités encore retournables. Seules les unités vendables rejoignent le stock vendable.
 - Mouvements enregistrés pour ouverture, réception, vente, correction, retour, dommage, ajustement et cadeau. Aucune suppression silencieuse d’historique.
@@ -41,11 +44,13 @@ Les abonnements payants, le web admin, WhatsApp, les classements régionaux/nati
 - Seuil par produit/magasin, alerte à quantité inférieure ou égale, rupture distincte à zéro. L’alerte reste visible et n’est pas répétée à chaque vente.
 - Le responsable commande à tout moment. BioBalance prépare et expédie ; chaque livraison physique possède un identifiant partagé.
 - L’expédition ne change pas le stock du magasin. La réception renseigne les quantités réelles, lots, dates et écarts.
+- Une réception totalement manquante accepte zéro unité avec motif et confirmation explicite. Le reste à expédier déduit les unités effectivement reçues et celles encore en transit ; les suivis gardent leurs propres identifiants.
 - Une livraison ne peut pas être réceptionnée deux fois. Les livraisons complémentaires utilisent de nouveaux identifiants. Les quantités manquantes restent visibles.
 
 ## Formation et communication
 
 - Articles et vidéos : brouillon, prévisualisation, publication, modification et archivage par BioBalance. Un média doit être traité avec succès avant publication.
+- Images magasin/récompense gérées par leur responsable autorisé, images catalogue par BioBalance ; JPEG/PNG jusqu’à 10 Mo, redimensionnés et attachables après traitement uniquement.
 - Téléversement vidéo par fragments, position de reprise confirmée côté serveur. Consultation et téléchargement choisi pour usage hors connexion.
 - Notifications automatiques opérationnelles : responsables et administrateur uniquement. Les vendeurs reçoivent les annonces explicitement envoyées par leur responsable.
 - Le message et son audience/magasin sont visibles avant envoi. Centre de notifications, FCM/APNs et emails d’activation/récupération.

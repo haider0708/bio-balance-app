@@ -1,0 +1,3 @@
+// Copy to Signing.xcconfig only on the authorized signing host.
+DEVELOPMENT_TEAM = REPLACE_WITH_EXISTING_APPLE_TEAM_ID
+CODE_SIGN_STYLE = Automatic

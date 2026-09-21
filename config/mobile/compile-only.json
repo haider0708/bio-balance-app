@@ -1,0 +1,7 @@
+{
+  "API_BASE_URL": "https://api.example.invalid",
+  "FIREBASE_API_KEY": "",
+  "FIREBASE_APP_ID": "",
+  "FIREBASE_SENDER_ID": "",
+  "FIREBASE_PROJECT_ID": ""
+}

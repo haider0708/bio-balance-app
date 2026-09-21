@@ -1,0 +1,1 @@
+id,reported_at_utc,store_alias,role,platform_os,app_version_commit,severity,scenario,expected,actual,evidence_redacted,status,owner,fix_commit,retest_result

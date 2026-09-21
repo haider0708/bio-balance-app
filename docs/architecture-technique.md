@@ -77,7 +77,7 @@ Sauvegarde locale : dump PostgreSQL puis copie des médias immuables, checksums,
 
 ## Validation
 
-Les seuils de performance du plan sont des **critères de recette**, pas des résultats déjà mesurés. Les tests unitaires, transactionnels et de reprise locale sont complétés par des parcours Android/iOS, profils sur appareil physique, tests de charge et restauration. L’état des vérifications et les éléments non terminés doivent rester visibles dans le registre de réalisation.
+Les seuils de performance du plan sont des **critères de recette**. La charge API et SQLite ont été mesurées localement (voir `performance-evidence.md`) ; la qualification du VPS complet et des téléphones physiques reste en attente. Les tests unitaires, transactionnels et de reprise locale sont complétés par des parcours Android/iOS, profils sur appareil physique, tests de charge et restauration. L’état des vérifications et les éléments non terminés doivent rester visibles dans le registre de réalisation.
 
 ### Synchronisation v2 et stockage local v3
 
@@ -89,4 +89,11 @@ Le snapshot de lecture protocole 3 matérialise les pages supplémentaires dans 
 
 `shared/contracts` définit les schémas publics et partage les validateurs Zod des requêtes avec les contrôleurs. Toute route sans contrat échoue à la génération. Le client Dart génère les objets immuables, unions et signatures typées ; les repositories les adaptent aux modèles du domaine. L’audit reste un document JSON extensible. Les envois d’anciennes commandes conservent le payload brut persistant, sans réinterprétation par les nouveaux DTO.
 
-`npm run test:contracts` vérifie les 44 endpoints via une API/PostgreSQL isolés et compare les réponses réelles après décodage/réencodage Dart. `scripts/check-contract-drift.sh` régénère puis compare les fichiers versionnés. Les overrides `@prisma/config → deepmerge-ts 8.0.2` et `prisma → mysql2 3.24.4` corrigent des dépendances CLI sans passer à Prisma prerelease ; génération et migrations ont été revérifiées.
+`npm run test:contracts` vérifie les 45 endpoints via une API/PostgreSQL isolés et compare les réponses réelles après décodage/réencodage Dart. `scripts/check-contract-drift.sh` régénère puis compare les fichiers versionnés. Les overrides `@prisma/config → deepmerge-ts 8.0.2` et `prisma → mysql2 3.24.4` corrigent des dépendances CLI sans passer à Prisma prerelease ; génération et migrations ont été revérifiées.
+
+
+### Preuves de déploiement et distribution
+
+Le Compose limite les credentials par service : compte propriétaire uniquement pour PostgreSQL et migrations, compte restreint pour les applications, SMTP/Firebase uniquement pour le worker concerné. Les remplacements d’API utilisent la résolution DNS Docker par Nginx. La reprise média persiste l’ETag opaque reçu du proxy et vérifie toujours longueur/SHA-256 avant lecture hors ligne.
+
+`tests/deployment/run.sh` vérifie un environnement isolé complet, une restauration avec médias traités et le retour à une version applicative compatible. `scripts/build-mobile-release.sh` sépare compilation sans credentials et signature avec configuration de plateforme. Le package contient des preuves et un état de diffusion explicite ; la compilation ne valide ni les plateformes ni le pilote. Voir `release-gates.md` et `pilot-plan.md`.

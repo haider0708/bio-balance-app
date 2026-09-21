@@ -188,6 +188,8 @@ const owner = new PrismaClient({
       0,
       "operation must still be offline",
     );
+    // Capture this driver: a delayed cleanup must never terminate the restore phase.
+    const saveDriver = child;
     termination = new Promise((resolve, reject) => {
       setTimeout(async () => {
         try {
@@ -229,7 +231,11 @@ const owner = new PrismaClient({
         } catch (error) {
           reject(error);
         } finally {
-          setTimeout(() => child?.kill("SIGTERM"), 500);
+          setTimeout(() => {
+            if (saveDriver?.exitCode === null && saveDriver.signalCode === null) {
+              saveDriver.kill("SIGTERM");
+            }
+          }, 500);
         }
       }, 300);
     });

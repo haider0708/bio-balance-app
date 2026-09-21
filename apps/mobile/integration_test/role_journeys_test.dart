@@ -5,6 +5,7 @@ import 'package:biobalance/ui/features/workspace/workspace_screen.dart';
 import 'package:biobalance/ui/features/workspace/workspace_view_model.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -51,6 +52,7 @@ class Journey {
     final scroll = find.byWidgetPredicate(
       (w) =>
           w is Scrollable &&
+          w.restorationId != 'editable' &&
           (w.axisDirection == AxisDirection.down ||
               w.axisDirection == AxisDirection.up),
     );
@@ -88,20 +90,29 @@ class Journey {
     await t.pumpAndSettle();
   }
 
+  Future<void> dismissKeyboard() async {
+    FocusManager.instance.primaryFocus?.unfocus();
+    // Native IME completion can arrive after Flutter has settled its frames.
+    await SystemChannels.textInput.invokeMethod<void>('TextInput.hide');
+    await until(
+      () => t.view.viewInsets.bottom == 0,
+      reason: 'native keyboard dismissed',
+    );
+    await t.pumpAndSettle();
+  }
+
   Future<void> fill(String id, String value) async {
     final f = key(id);
     await seek(f);
     await t.enterText(f, value);
-    FocusManager.instance.primaryFocus?.unfocus();
-    await t.pumpAndSettle();
+    await dismissKeyboard();
   }
 
   Future<void> fillLabel(String name, String value) async {
     final f = label(name);
     await seek(f);
     await t.enterText(f, value);
-    FocusManager.instance.primaryFocus?.unfocus();
-    await t.pumpAndSettle();
+    await dismissKeyboard();
   }
 
   Future<void> back() async {

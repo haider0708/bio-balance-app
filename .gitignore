@@ -24,3 +24,11 @@ apps/mobile/ios/Runner/GoogleService-Info.plist
 **/certificates/
 *.p12
 *.mobileprovision
+
+# Environment-specific mobile configuration and existing Apple team settings
+/config/mobile/*.local.json
+/config/mobile/*.local.plist
+/apps/mobile/ios/Flutter/Signing.xcconfig
+
+__pycache__/
+*.pyc

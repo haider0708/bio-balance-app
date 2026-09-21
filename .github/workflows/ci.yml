@@ -19,6 +19,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with: { node-version-file: .nvmrc, cache: npm }
+      - run: python3 -m unittest discover -s tests/release -p '*_test.py'
       - run: npm ci
       - run: npm run db:generate
       - run: npm run db:migrate
@@ -54,12 +55,17 @@ jobs:
       - run: flutter analyze
       - run: flutter test
       - run: flutter build apk --debug
+      - run: bash ../../scripts/build-mobile-release.sh compile-only android config/mobile/compile-only.json
       - uses: actions/upload-artifact@v4
         with:
           {
             name: android-debug,
             path: apps/mobile/build/app/outputs/flutter-apk/app-debug.apk,
           }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android-unsigned-compilation
+          path: .artifacts/releases/builds/
   ios:
     runs-on: macos-15
     defaults: { run: { working-directory: apps/mobile } }
@@ -68,7 +74,7 @@ jobs:
       - uses: subosito/flutter-action@v2
         with: { flutter-version: "3.47.5", channel: stable, cache: true }
       - run: flutter pub get --enforce-lockfile
-      - run: flutter build ios --release --no-codesign
+      - run: flutter build ios --release --no-codesign --target lib/main.dart --dart-define-from-file=../../config/mobile/compile-only.json
   android-journeys:
     runs-on: ubuntu-24.04
     timeout-minutes: 45
