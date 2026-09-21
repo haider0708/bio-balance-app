@@ -24,7 +24,7 @@ Scénario terminé avec code de sortie zéro : **100 requêtes/s pendant 5 minut
 | 200 requêtes/s | 164,78 ms | 367,87 ms |
 | Seuil | ≤300 ms | ≤700 ms |
 
-[Résumé k6 complet](../tests/performance/evidence/api-load-2026-09-21.json). Journaux/profils et contrôles locaux : `.artifacts/evidence/step10/`. Empreinte SHA-256 du manifeste des sources API mesurées : `7b7c2e5cc8458d4a206e8409060c6e75c21781f3bd24d044396ab1813003ac7b`. Les sources de ce commit correspondent à ce manifeste. Les échecs précédents sont conservés séparément dans les preuves locales et ne sont pas présentés comme des passes.
+[Résumé k6 complet](../tests/performance/evidence/api-load-2026-09-21.json). Journaux/profils et contrôles locaux : `.artifacts/evidence/step10/`. Empreinte SHA-256 du manifeste des sources API mesurées : `7b7c2e5cc8458d4a206e8409060c6e75c21781f3bd24d044396ab1813003ac7b`. Les sources API du commit `dfeeacd` correspondent à ce manifeste. Les échecs précédents sont conservés séparément dans les preuves locales et ne sont pas présentés comme des passes.
 
 ## SQLite et recherche sur l’hôte
 

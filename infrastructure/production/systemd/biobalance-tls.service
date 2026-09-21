@@ -1,0 +1,8 @@
+[Unit]
+Description=BioBalance certificate renewal and validated reload
+After=docker.service network-online.target
+[Service]
+Type=oneshot
+EnvironmentFile=/etc/biobalance/tls.env
+ExecStart=/opt/biobalance/scripts/tls-renew.sh
+UMask=0077

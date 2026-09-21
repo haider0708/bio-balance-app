@@ -25,17 +25,17 @@ L’application est en développement et n’est pas encore qualifiée pour une 
 | Compilation TypeScript | Réussie |
 | Tests domaine et reprise transactionnelle backend | 10 réussis |
 | Tests PostgreSQL réels avec rôle restreint | 22 réussis + 3 tests de traitement média réel + 5 tests notifications/workers |
-| Tests Flutter de reprise, migration et dispositions d’écran | 69 réussis ; 2 parcours HTTP réels et 1 test de contrats Dart exécutés séparément et réussis |
+| Tests Flutter de reprise, migration et dispositions d’écran | 70 réussis ; 2 parcours HTTP, contrats Dart et reprise média HTTPS/Nginx exécutés séparément et réussis |
 | Build Android debug | APK natifs de test compilés ; parcours et force-stop réussis sur émulateur Android, appareils physiques en attente |
-| Sauvegarde/restauration isolée | Réussie sur les données de développement ; archive média vide, à compléter avec des médias réels traités |
+| Sauvegarde/restauration isolée | Réussie : données métier, image et vidéo traitées ; tailles/empreintes et projections comparées après restauration isolée |
 | OpenAPI et génération Dart | 45 endpoints vérifiés sur HTTP réel ; schémas Dart typés générés et aller-retour JSON validé |
-| Images Docker et émulateur | Parcours émulateur Android réussis ; images Docker à vérifier à l’étape 11 |
+| Images Docker et émulateur | Parcours Android et Compose complet local réussis ; API/média, TLS, isolation, reprise et rollback vérifiés |
 
 Un passage des tests PostgreSQL a expiré pendant une forte saturation mémoire de l’hôte par les builds Android. Après arrêt des anciens daemons de compilation devenus inutiles, les 12 tests ont réussi sans allonger leur délai.
 
 ## Travail restant avant acceptation
 
-- Terminer la vérification des images conteneur, de l’application exécutée et de la restauration avec des médias non vides.
+- Déploiement/restauration avec médias traités et rollback vérifiés localement ; valider ces procédures sur le VPS cible.
 - Parcours UI Android, révocation en cours de saisie, erreur SQLite et force-stop vérifiés ; compléter la recette native iOS et les essais physiques.
 - Lecture vidéo hors ligne vérifiée sur émulateur Android ; liens natifs et transferts interrompus sur appareils physiques restent à vérifier.
 - Exécuter tests caméra/push, accessibilité, rotation et stabilité mémoire sur Android/iOS physiques ; compiler iOS sur macOS et produire les builds signés.
@@ -73,7 +73,7 @@ Implémentation et vérifications locales terminées : commit `7f25895`.
 | 8. Notifications/workers | Implémentation et vérification locale terminées ; FCM/APNs réels en attente |
 | 9. Parcours complets | Vérification locale terminée sur émulateur Android ; iOS/appareils physiques en attente |
 | 10. Performances/appareils | Charge API et SQLite mesurées localement ; VPS/appareils physiques en attente |
-| 11. Déploiement/reprise | À réaliser ; dépôt distant/VPS/DNS requis pour les vérifications externes |
+| 11. Déploiement/reprise | Compose, reprise et rollback vérifiés localement ; CI distante/VPS/ACME en attente |
 | 12. Versions signées/pilote | En attente des comptes de signature et participants ; pilote de deux semaines requis |
 
 ### Étape 2 — Accès et reprise de session
@@ -187,11 +187,11 @@ Implémentation et validation locale terminées ; validations iOS et physiques e
 - Harnais Android force-stop : conserve l’installation entre phases, vérifie le PID avant/après arrêt, contrôle les octets de l’outbox avant relancement. Vérification native réussie : une seule acceptation serveur, stock 7/version 3/points 30 ; permission caméra refusée avec recherche manuelle utilisable ; vidéo H.264 lue en ligne, téléchargée avec vérification, puis lue hors ligne depuis un fichier local. Les codes de sortie du premier driver ne servent pas de preuve : Flutter peut retourner zéro après perte de connexion.
 - Job CI Android émulateur ajouté ; variante du parcours de rôles préparée pour simulateur iOS. Dépôt distant/macOS, appareils physiques, caméra réelle, screen reader manuel et acheminement FCM/APNs restent en attente. Les journaux locaux sont conservés dans `.artifacts/evidence/step9/` (ignorés par Git) ; procédures dans `tests/journeys/README.md`.
 
-À contrôler à l’étape 11 : le Compose actuel partage un fichier d’environnement complet ; restreindre explicitement les variables de chaque service pour que les API/workers ne reçoivent pas les credentials du propriétaire/migrations.
+Résolu à l’étape 11 : variables et fichiers secrets explicitement limités par service ; les API/workers ne reçoivent plus les credentials du propriétaire/migrations.
 
 ### Étape 10 — Charge et mesures
 
-Implémentation et mesures locales terminées ; qualification VPS et appareils physiques en attente. Commit enregistré après cette validation.
+Implémentation et mesures locales terminées ; qualification VPS et appareils physiques en attente. Commit : `dfeeacd`.
 
 - Générateur reproductible pour 125 organisations, 500 magasins, 5 000 comptes, 200 produits, 300 000 lots et deux millions de ventes avec révisions, mouvements, points, audits et curseurs. Refus d’une base peuplée, aucune suppression d’historique ; comptes de test et tokens privés séparés des preuves versionnées.
 - k6 2.3.0 vérifié par checksum ; deux API en mode production, curseurs persistants par compte/magasin, pagination des snapshots et mélange de lectures/ventes. Workflow de charge manuel préparé ; CI distante non exécutée.
@@ -201,3 +201,18 @@ Implémentation et mesures locales terminées ; qualification VPS et appareils p
 - Benchmark Flutter VM Linux : 120 enregistrements durables p95 15,580 ms ; recherche 0,184 ms ; changement de magasin 11,505 ms ; réouverture SQLite 15,481 ms. Ces chiffres ne mesurent pas le démarrage ou le rendu natif.
 - Validation : compilation TypeScript, 10 tests métier/reprise, 22 PostgreSQL, 5 notifications/workers, 45 contrats HTTP et les deux parcours de synchronisation HTTP/SQLite/PostgreSQL passants. Dérive du contrat/fichiers générés absente, analyse Dart sans erreur et syntaxe des scripts vérifiée.
 - Preuves versionnées et conditions : `docs/performance-evidence.md`, `tests/performance/evidence/`. Procédure physique : `tests/performance/devices.md`. Le test local exclut Nginx/TLS/workers : la capacité du VPS complet, le démarrage ≤2,5 s, les images manquées <1 %, caméra/vidéo/mémoire et iOS physiques restent des portes de sortie non validées.
+
+
+### Étape 11 — Déploiement et reprise
+
+Implémentation et vérification locale terminées ; CI distante, VPS et ACME réel en attente. Commit : enregistré dans l’étape suivante.
+
+- Harnais reproductible `tests/deployment/run.sh` : projet Compose isolé, données conservées, HTTPS local, deux API, workers séparés, PostgreSQL privé et Mailpit. Neuf migrations, rôle restreint, bootstrap administrateur et MFA réels.
+- Défaut de packaging corrigé : dépendances npm du workspace copiées dans les images ; smoke check des modules Nest/Firebase/SMTP pendant le build. Environnements limités par service, accès média contrôlé, processus applicatifs non-root/read-only, rotation des logs et arrêts gracieux.
+- Nginx résout les nouvelles adresses des API après remplacement. Reprise vidéo Flutter corrigée pour utiliser l’ETag opaque réellement fourni par Nginx ; le SHA-256 final reste la preuve d’intégrité. Test HTTPS réel : interruption, réouverture SQLite, réponse 206 et fichier complet vérifié.
+- Reprise d’un bail expiré après redémarrage, diagnostic d’un job en échec puis reprise contrôlée avec son identité originale. Invitation SMTP envoyée uniquement à Mailpit ; isolation des variables/credentials, absence de port PostgreSQL public et RLS sans contexte vérifiés.
+- Exercice complet réussi : rollback vers le code `a8b4610` (packaging corrigé, schéma compatible) puis retour aux images actuelles. Respectivement 287 et 286 lectures autorisées pendant les remplacements, aucune incohérence ; relecture de la vente acceptée sans nouvel effet. Stock final 4/version 3/points 60.
+- Sauvegarde/restauration isolée : une vente/révision, deux mouvements, projections et deux médias traités (PNG et H.264) identiques ; taille et SHA-256 de chaque fichier contrôlés. Les volumes, sauvegardes et bases restaurées restent disponibles localement.
+- Bootstrap/renouvellement TLS, installation avec validation clé/certificat et rechargement préparés ; certificat incompatible refusé et remplacement local réussi. Timers sauvegarde/supervision/TLS validés par systemd-analyze avec chemins locaux ; ils ne sont pas installés sur un VPS. Supervision vérifie ressources, fraîcheur des sauvegardes, services et jobs.
+- Vérifications : images API/média et rollback compilées, harnais complet réussi, 70 tests Flutter (4 cas serveur ignorés dans la suite standard), 5 tests de téléchargement ciblés, reprise HTTPS réelle exécutée séparément ; analyse Dart sans erreur. Preuves résumées dans `tests/deployment/evidence.json`, journaux privés dans `.artifacts/evidence/step11/`.
+- Limites : certificat local auto-signé, SMTP Mailpit et fichier FCM factice. ACME/DNS, SSH/firewall, alertes externes, FCM/APNs, CI distante et macOS/iOS attendent leurs environnements. Une restauration locale ne couvre pas la perte totale du VPS ; haute disponibilité et sauvegarde hors serveur restent reportées.

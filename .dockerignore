@@ -8,3 +8,9 @@ node_modules
 apps/mobile
 .volumes
 .local-credentials.json
+
+.artifacts
+**/secrets
+**/certificates
+**/*.keystore
+**/*.jks

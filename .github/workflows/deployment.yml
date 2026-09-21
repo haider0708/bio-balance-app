@@ -1,0 +1,25 @@
+name: Isolated deployment and recovery
+on: workflow_dispatch
+permissions: { contents: read }
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: actions/setup-node@v4
+        with: { node-version-file: .nvmrc, cache: npm }
+      - uses: subosito/flutter-action@v2
+        with: { flutter-version: '3.47.5', channel: stable, cache: true }
+      - run: npm ci
+      - run: flutter pub get --enforce-lockfile
+        working-directory: apps/mobile
+      - run: sudo apt-get update && sudo apt-get install -y ffmpeg
+      - run: bash tests/deployment/run.sh
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: deployment-evidence-${{ github.sha }}
+          path: .artifacts/evidence/step11/
+          retention-days: 30

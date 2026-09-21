@@ -60,6 +60,9 @@ class MediaDownloadRepository {
     final file = await target(account, id),
         partial = File('${(await target(account, id)).path}.part');
     final old = await local.draft(account, '', 'download:$id');
+    var etag = old?['sha256'] == checksum && integer(old?['size']) == size
+        ? _strongEtag(old?['etag'])
+        : null;
     api.requireBinding(binding);
     if (cancel.isCancelled) throw cancel.cancelError!;
     if (await file.exists() &&
@@ -86,6 +89,7 @@ class MediaDownloadRepository {
         'status': 'partial',
         'size': size,
         'sha256': checksum,
+        'etag': ?etag,
       });
     });
     var offset = await partial.exists() ? await partial.length() : 0;
@@ -100,7 +104,7 @@ class MediaDownloadRepository {
         headers: {
           'Accept-Encoding': 'identity',
           if (offset > 0) 'Range': 'bytes=$offset-',
-          if (offset > 0) 'If-Range': '"$checksum"',
+          if (offset > 0 && etag != null) 'If-Range': etag,
         },
         validateStatus: (code) => code == 200 || code == 206,
       );
@@ -133,6 +137,16 @@ class MediaDownloadRepository {
       RandomAccessFile? handle;
       var unflushed = 0;
       try {
+        etag = _strongEtag(response.headers.value('etag'));
+        await local.db.transaction(() async {
+          api.requireBinding(binding);
+          await local.saveDraft(account, '', 'download:$id', {
+            'status': 'partial',
+            'size': size,
+            'sha256': checksum,
+            'etag': ?etag,
+          });
+        });
         handle = await partial.open(
           mode: offset == 0 ? FileMode.write : FileMode.append,
         );
@@ -190,4 +204,12 @@ class MediaDownloadRepository {
     progress(1);
     return file;
   }
+
+  // ETags are opaque validators; a proxy may use a different value from SHA-256.
+  static String? _strongEtag(Object? value) =>
+      value is String &&
+          value.length <= 256 &&
+          RegExp(r'^"[\x21\x23-\x7E]*"$').hasMatch(value)
+      ? value
+      : null;
 }

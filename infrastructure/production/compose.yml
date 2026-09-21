@@ -1,22 +1,34 @@
 name: biobalance
+x-database: &database-env
+  NODE_ENV: production
+  DATABASE_URL: ${DATABASE_URL:?Set restricted application connection}
+  MEDIA_ROOT: /var/lib/biobalance/media
+x-api-environment: &api-env
+  <<: *database-env
+  MFA_ENCRYPTION_KEY: ${MFA_ENCRYPTION_KEY:?Set a 32-byte MFA encryption key}
+  ACTIVATION_URL: ${ACTIVATION_URL:-biobalance://activate}
+  RECOVERY_URL: ${RECOVERY_URL:-biobalance://recover}
+  MEDIA_INTERNAL_REDIRECT: 'true'
 x-app: &app
   image: ${API_IMAGE:?Set an immutable API image tag or digest}
   restart: unless-stopped
-  env_file: .env
   networks: [private]
-  secrets:
-    - source: firebase
-      target: firebase-service-account.json
   read_only: true
+  security_opt: [no-new-privileges:true]
+  cap_drop: [ALL]
   tmpfs: [/tmp:size=128m]
   volumes: [media:/var/lib/biobalance/media]
-  environment:
-    NODE_ENV: production
-    MEDIA_ROOT: /var/lib/biobalance/media
-    MEDIA_INTERNAL_REDIRECT: true
+  environment: *api-env
+  stop_grace_period: 30s
   depends_on:
     postgres: {condition: service_healthy}
   logging: {driver: json-file, options: {max-size: 10m, max-file: '5'}}
+x-worker-health: &worker-health
+  test: [CMD, node, -e, "const fs=require('fs');process.exit(Date.now()-Number(fs.readFileSync('/tmp/biobalance-worker-heartbeat','utf8'))<60000?0:1)"]
+  interval: 30s
+  start_period: 30s
+  timeout: 5s
+  retries: 3
 services:
   nginx:
     image: nginx:1.28.0-alpine
@@ -28,7 +40,14 @@ services:
       - ./certificates:/etc/nginx/certificates:ro
       - ./acme:/var/www/acme:ro
       - media:/var/lib/biobalance/media:ro
-    depends_on: [api1,api2]
+    depends_on:
+      api1: {condition: service_healthy}
+      api2: {condition: service_healthy}
+    healthcheck:
+      test: [CMD-SHELL, 'wget -q -O /dev/null http://127.0.0.1/nginx-health']
+      interval: 20s
+      timeout: 3s
+      retries: 3
     logging: {driver: json-file, options: {max-size: 10m, max-file: '5'}}
   api1:
     <<: *app
@@ -41,12 +60,22 @@ services:
   worker:
     <<: *app
     command: [node,dist/worker.js]
-    healthcheck:
-      test: [CMD, node, -e, "const fs=require('fs');process.exit(Date.now()-Number(fs.readFileSync('/tmp/biobalance-worker-heartbeat','utf8'))<60000?0:1)"]
-      interval: 30s
-      start_period: 30s
-      timeout: 5s
-      retries: 3
+    environment:
+      <<: *database-env
+      WORKER_CONCURRENCY: ${WORKER_CONCURRENCY:-2}
+      SMTP_HOST: ${SMTP_HOST:?Set SMTP host}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_SECURE: ${SMTP_SECURE:-false}
+      SMTP_REQUIRE_TLS: ${SMTP_REQUIRE_TLS:-true}
+      SMTP_FROM: ${SMTP_FROM:?Set sender}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      GOOGLE_APPLICATION_CREDENTIALS: /run/secrets/firebase-service-account.json
+    secrets:
+      - source: firebase
+        target: firebase-service-account.json
+    healthcheck: *worker-health
+    stop_grace_period: 60s
     mem_limit: 768m
     cpus: 0.5
   media-worker:
@@ -54,22 +83,20 @@ services:
     image: ${MEDIA_IMAGE:?Set an immutable media image tag or digest}
     command: [node,dist/worker.js]
     environment:
-      NODE_ENV: production
+      <<: *database-env
       WORKER_KIND: media
-      MEDIA_ROOT: /var/lib/biobalance/media
-    healthcheck:
-      test: [CMD, node, -e, "const fs=require('fs');process.exit(Date.now()-Number(fs.readFileSync('/tmp/biobalance-worker-heartbeat','utf8'))<60000?0:1)"]
-      interval: 30s
-      start_period: 30s
-      timeout: 5s
-      retries: 3
+    healthcheck: *worker-health
+    stop_grace_period: 11m
     mem_limit: 2g
     cpus: 2
     tmpfs: [/tmp:size=512m]
   postgres:
     image: postgres:17.7-alpine
     restart: unless-stopped
-    env_file: .env
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?Set owner name}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set owner password}
+      POSTGRES_DB: ${POSTGRES_DB:?Set database name}
     networks: [private]
     volumes: [database:/var/lib/postgresql/data]
     shm_size: 512m
@@ -85,17 +112,19 @@ services:
   migrate:
     <<: *app
     profiles: [maintenance]
+    restart: 'no'
     command: [../../node_modules/.bin/prisma,migrate,deploy]
     environment:
+      NODE_ENV: production
       DATABASE_URL: ${MIGRATION_DATABASE_URL:?Set migration owner connection}
     healthcheck: {disable: true}
+    volumes: []
 networks:
   private:
     driver: bridge
 volumes:
   database:
   media:
-
 secrets:
   firebase:
     file: ${FIREBASE_CREDENTIALS_FILE:?Set service account file path}

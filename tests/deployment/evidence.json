@@ -1,0 +1,49 @@
+{
+  "date": "2026-09-21",
+  "environment": "isolated local Docker Compose, loopback HTTPS, self-signed certificate, Mailpit",
+  "fullRunner": "passed",
+  "migrations": 9,
+  "rollbackSource": "a8b4610",
+  "rollbackPackaging": "corrected current Dockerfile",
+  "continuousAuthorizedReads": {
+    "rollback": 287,
+    "rollForward": 286
+  },
+  "restoredBusinessProjection": {
+    "stores": 1,
+    "sales": 1,
+    "revisions": 1,
+    "movements": 2,
+    "sellable": 4,
+    "versions": 3,
+    "points": "60",
+    "media": "dbc7c74cb6b56a84facd217ea54d11544790d9fd657e51a3b2ceb1aa4fd364aa,25f685cabf207b32fb6bf2d7a2d7ae02a502259fea7e137a37621bb6190b9b8d"
+  },
+  "verifiedProcessedMedia": 2,
+  "checks": [
+    "restricted credentials and RLS",
+    "protected media and HTTP ranges",
+    "Flutter interrupted download across SQLite reopen",
+    "stale worker lease recovery",
+    "failed-job diagnostic and controlled retry",
+    "synthetic SMTP invitation",
+    "certificate mismatch rejection and reload",
+    "backup hashes and isolated restore comparison",
+    "healthy resource/service/job diagnostics",
+    "systemd unit syntax with local paths"
+  ],
+  "pending": [
+    "remote CI/macOS",
+    "owned VPS and firewall/SSH",
+    "real ACME issuance and renewal",
+    "external alerts",
+    "FCM/APNs",
+    "full-server-loss recovery (deferred)"
+  ],
+  "images": {
+    "biobalance-api:step11-local": "sha256:8e761e59b0f8b96342baf76dd79a0d332e07b761e5dc99835ec6cd3811d81a01",
+    "biobalance-media:step11-local": "sha256:b4355176051bcf57a7a011d2435984ef6f97bea757798a711a858f6e655f05cb",
+    "biobalance-api:rollback-a8b4610": "sha256:41ed33ccc20a46afa647bdb96381825c682afb5b2fb84a55bf6155c8823c4f44",
+    "biobalance-media:rollback-a8b4610": "sha256:87d28628cb0b4915267dabe1fcdc108676539ae3ff9c2e361b26c07de0421e00"
+  }
+}

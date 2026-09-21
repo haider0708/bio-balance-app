@@ -1,0 +1,10 @@
+[Unit]
+Description=BioBalance service, resources, jobs and backup diagnostics
+After=docker.service
+Requires=docker.service
+[Service]
+Type=oneshot
+EnvironmentFile=/etc/biobalance/backup.env
+WorkingDirectory=/opt/biobalance
+ExecStart=/opt/biobalance/scripts/check-vps.sh
+UMask=0077

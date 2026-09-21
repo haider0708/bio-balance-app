@@ -16,6 +16,7 @@ import 'package:flutter_test/flutter_test.dart';
 class DownloadServer implements HttpClientAdapter {
   final bytes = Uint8List.fromList(List.generate(32, (i) => i));
   bool truncate = true, corrupt = false, ignoreRange = false;
+  String? etag = '"nginx-file-revision-1"';
   final requests = <RequestOptions>[];
   void Function()? duringDownload;
   String get checksum => sha256.convert(bytes).toString();
@@ -55,6 +56,7 @@ class DownloadServer implements HttpClientAdapter {
       status,
       headers: {
         Headers.contentTypeHeader: ['video/mp4'],
+        if (etag != null) 'etag': [etag!],
         Headers.contentLengthHeader: ['${bytes.length - start}'],
         if (status == 206)
           'content-range': ['bytes $start-${bytes.length - 1}/${bytes.length}'],
@@ -111,7 +113,8 @@ void main() {
     server.truncate = false;
     final file = await download();
     expect(server.requests.last.headers['Range'], 'bytes=10-');
-    expect(server.requests.last.headers['If-Range'], '"${server.checksum}"');
+    expect(server.requests.last.headers['If-Range'], server.etag);
+    expect(server.etag, isNot('"${server.checksum}"'));
     expect(await file.readAsBytes(), server.bytes);
     expect((await repository.cached('account', 'video'))?.path, file.path);
     final count = server.requests.length;
@@ -126,6 +129,22 @@ void main() {
     final file = await download();
     expect(await file.readAsBytes(), server.bytes);
   });
+  test(
+    'legacy partials and weak validators resume with verified ranges',
+    () async {
+      server.etag = 'W/"weak"';
+      await expectLater(download(), throwsA(isA<AppFailure>()));
+      expect(
+        (await local.draft('account', '', 'download:video'))?['etag'],
+        isNull,
+      );
+      server.truncate = false;
+      final file = await download();
+      expect(server.requests.last.headers['Range'], 'bytes=10-');
+      expect(server.requests.last.headers.containsKey('If-Range'), isFalse);
+      expect(await file.readAsBytes(), server.bytes);
+    },
+  );
   test('checksum failure never exposes corrupted content offline', () async {
     server
       ..truncate = false

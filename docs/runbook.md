@@ -4,7 +4,9 @@
 
 Développement, staging et production utilisent des bases, médias, clés MFA et projets Firebase distincts. L’API de production refuse de démarrer sans base et clé MFA de 32 octets. Ne jamais incorporer les mots de passe PostgreSQL, SMTP, clés de compte de service Firebase ou clés de signature dans l’application.
 
-Copier `infrastructure/production/.env.example` vers `.env` sur le VPS, chmod 0600, remplacer toutes les valeurs d’exemple. `DATABASE_URL` utilise **biobalance_app** ; `MIGRATION_DATABASE_URL` utilise le propriétaire. `FIREBASE_CREDENTIALS_FILE` désigne un fichier privé monté comme secret. Garder la clé MFA aussi longtemps que des secrets chiffrés l’utilisent.
+Copier `infrastructure/production/.env.example` vers `.env` sur le VPS, chmod 0600, remplacer toutes les valeurs d’exemple. `DATABASE_URL` utilise **biobalance_app** ; `MIGRATION_DATABASE_URL` utilise le propriétaire. `FIREBASE_CREDENTIALS_FILE` désigne un fichier privé monté comme secret. Le worker s’exécute en UID 1000 : rendre son fichier Firebase lisible par cet UID (`chown 1000:1000`, `chmod 0400`). Les API et le worker média ne montent pas ce fichier. Chaque service reçoit uniquement les variables déclarées dans Compose ; les credentials propriétaire/migration restent exclus des API/workers. `SMTP_REQUIRE_TLS=true` impose STARTTLS ; la désactivation est réservée au SMTP local de test.
+
+Garder la clé MFA aussi longtemps que des secrets chiffrés l’utilisent ; elle est nécessaire après restauration de la base. Les répertoires de secrets/certificats et les artefacts privés sont exclus de Git et du contexte Docker.
 
 ## Construction et migration
 
@@ -21,9 +23,11 @@ Créer le premier administrateur avec `node dist/bootstrap-admin.js` dans un con
 
 Ubuntu 24.04 LTS, accès SSH par clés, ports publics 80/443 seulement et SSH restreint aux adresses d’administration. PostgreSQL n’expose aucun port hôte. Adapter `server_name` dans Nginx au domaine API possédé.
 
-Obtenir le certificat avec ACME/certbot sur le serveur. La première émission nécessite un serveur HTTP ACME temporaire car Nginx ne démarre pas avant que ses fichiers TLS existent. Déposer `fullchain.pem` et `privkey.pem` dans le dossier `certificates` monté en lecture seule. Configurer le timer certbot et un hook de renouvellement qui recopie les certificats puis exécute `docker compose exec -T nginx nginx -s reload`. Vérifier le renouvellement avec `certbot renew --dry-run` avant lancement.
+Installer certbot sur le VPS puis préparer `/etc/biobalance/tls.env` (0600) avec `COMPOSE_FILE`, `COMPOSE_ENV_FILE`, `API_DOMAIN` et `ACME_EMAIL`. Exporter ces variables dans le shell d’installation et lancer `scripts/tls-bootstrap.sh`. Le script démarre un serveur HTTP temporaire uniquement si nécessaire, obtient le certificat, vérifie sa date et sa correspondance avec la clé, puis installe les fichiers. Le domaine doit déjà pointer vers le VPS et le port 80 être accessible.
 
-Démarrer les deux API, worker notifications/tâches, worker média et Nginx. Vérifier `/health`, authentification, accès intermagasins refusé, réception et vente. Le média est servi par une location interne Nginx après autorisation API ; l’accès direct à `/_media/` doit échouer et une vidéo autorisée doit accepter `Range`.
+Installer les unités `biobalance-tls.service`/`.timer` et activer le timer après démarrage de Nginx. `scripts/tls-renew.sh --dry-run` vérifie ACME ; le hook `tls-install.sh` valide et recharge Nginx. Éviter deux timers concurrents de renouvellement pour le même certificat. Les tests locaux ont utilisé une autorité auto-signée réservée au laboratoire : ils ne remplacent pas l’émission et le renouvellement ACME réels.
+
+Démarrer les deux API, worker notifications/tâches, worker média et Nginx avec `up -d --wait`. Nginx résout les services Docker au cours de leur vie ; remplacer une API à la fois permet à l’autre de servir les requêtes. Les workers terminent leur tâche avant arrêt (60 secondes pour le worker opérationnel, 11 minutes pour un transcodage borné). Vérifier `/health`, authentification, accès intermagasins refusé, réception et vente. Le média est servi par une location interne Nginx après autorisation API ; l’accès direct à `/_media/` doit échouer et une vidéo autorisée doit accepter `Range`.
 
 ## Téléphones
 
@@ -35,20 +39,20 @@ La signature Android lit `BIOBALANCE_KEYSTORE`, `BIOBALANCE_KEYSTORE_PASSWORD`, 
 
 ## Sauvegarde et restauration
 
-Configurer `/etc/biobalance/backup.env` avec `COMPOSE_FILE` et `BACKUP_DIR`, absolus. Installer les unités `infrastructure/production/systemd/biobalance-backup.*` dans `/etc/systemd/system/`, `systemctl daemon-reload`, puis activer le timer. Il crée un dump PostgreSQL et une archive média avec sommes SHA256 chaque nuit ; il ne supprime pas automatiquement d’anciennes sauvegardes.
+Configurer `/etc/biobalance/backup.env` avec `COMPOSE_FILE`, `COMPOSE_ENV_FILE` et `BACKUP_DIR`, absolus. `COMPOSE_PROJECT_NAME` et `COMPOSE_OVERRIDE_FILE` sont optionnels pour un environnement isolé. Installer les unités `infrastructure/production/systemd/biobalance-backup.*` dans `/etc/systemd/system/`, `systemctl daemon-reload`, puis activer le timer. Il crée un dump PostgreSQL et une archive média avec sommes SHA256 chaque nuit ; il ne supprime pas automatiquement d’anciennes sauvegardes.
 
 ```sh
 COMPOSE_FILE=/opt/biobalance/infrastructure/production/compose.yml BACKUP_DIR=/srv/biobalance-backups scripts/local-backup.sh
 COMPOSE_FILE=/opt/biobalance/infrastructure/production/compose.yml BACKUP_PATH=/srv/biobalance-backups/DATE scripts/verify-restore.sh
 ```
 
-La restauration crée une **nouvelle base isolée**, extrait les médias séparément, vérifie les sommes et tous les fichiers référencés comme prêts. La base et les fichiers restaurés restent disponibles pour inspection. Le script ne remplace pas la production. Pour une restauration réelle, arrêter les écritures, garder une copie de l’état courant, restaurer sur des volumes neufs, vérifier les parcours, puis basculer la configuration.
+La restauration crée une **nouvelle base isolée**, extrait les médias séparément, vérifie les sommes d’archives, la taille et le SHA-256 de chaque fichier référencé comme prêt. Un ancien média sans empreinte doit être vérifié par le worker avant cette recette ; la restauration refuse de prétendre l’avoir contrôlé. La base et les fichiers restaurés restent disponibles pour inspection. Le script ne remplace pas la production. Pour une restauration réelle, arrêter les écritures, garder une copie de l’état courant, restaurer sur des volumes neufs, vérifier les parcours, puis basculer la configuration.
 
 **Une sauvegarde sur le même VPS ne protège pas de sa perte ou destruction. Sauvegardes hors serveur et haute disponibilité sont explicitement reportées.**
 
 ## Surveillance et incidents
 
-- Surveiller santé API/PostgreSQL/workers, espace disque (alerte à 85 %), RAM, CPU, âge de sauvegarde, erreurs de synchro, jobs échoués et latences p95. `scripts/check-vps.sh` fournit un contrôle local avec code de sortie ; le connecter à votre système de supervision.
+- Surveiller santé API/PostgreSQL/workers, espace disque (alerte à 85 %), RAM, CPU, âge de sauvegarde, erreurs de synchro, jobs échoués et latences p95. `scripts/check-vps.sh` contrôle les six services, la RAM disponible (10 % minimum), la charge soutenue, le disque, les sauvegardes et les jobs échoués/en retard/baux périmés. Installer `biobalance-monitor.service`/`.timer` pour un contrôle chaque minute. Relier les échecs d’unité à votre supervision pour acheminer une alerte opérateur ; cet acheminement externe doit être testé sur le VPS.
 - Les journaux HTTP contiennent route, durée, statut et identifiant de corrélation, sans mots de passe, corps de requête ni en-tête Authorization. Docker applique une rotation de 5 × 10 Mo par service.
 - Les workers utilisent des tâches PostgreSQL avec reprises et huit tentatives maximum. Examiner `Job.lastError` et la cause externe avant de remettre une tâche échouée en attente ; ne pas modifier les journaux métier.
 - Les alertes stock et péremption sont recalculées lors des opérations et par contrôles horaires. Les annonces vendeurs sont envoyées volontairement par le responsable.
@@ -68,3 +72,11 @@ Aucune diffusion générale avant : tests métier/RLS/reprise passants, restaura
 `WORKER_CONCURRENCY` borne le worker opérationnel entre 1 et 4 (2 par défaut). Le worker média reste à 1 et ne prend que les tâches média. Chaque tâche porte un bail UUID renouvelable ; une ancienne exécution ne peut pas terminer la tâche après récupération du bail. Les jobs horaires réutilisent leur identifiant d’opération et les envois push conservent leurs reçus par appareil/session.
 
 Examiner `Job.kind`, `key`, `attempts`, `availableAt`, `lockedAt`, `status`, `lastError` sans exporter les payloads (ils peuvent contenir des invitations). Après correction de la cause, relancer un job précis en conservant son `id`/`key`/`payload` : remettre `status='pending'`, `attempts=0`, `availableAt=now()`, `lockedAt=NULL`, `leaseToken=NULL` uniquement si son statut est `failed`. Ne jamais modifier un job courant pour le relancer. Les appels FCM/SMTP restent au moins une fois en cas de réponse externe perdue.
+
+## Recette locale et retour arrière vérifié
+
+`tests/deployment/run.sh` construit et démarre un laboratoire séparé, vérifie droits et volumes, traite une image/vidéo, teste la reprise Flutter derrière Nginx, redémarre les workers, change les certificats et compare une restauration aux enregistrements sources. Voir `tests/deployment/README.md`. Les journaux sont conservés dans `.artifacts/evidence/step11/` ; ne pas publier les credentials, certificats ni backups du laboratoire.
+
+Pour déployer ou revenir au code précédent, sélectionner un fichier d’environnement privé contenant les digests testés puis : migration compatible, `up -d --no-deps --force-recreate --wait api1`, contrôle autorisé du magasin, même commande pour `api2`, puis pour `worker media-worker`. Garder l’autre API disponible pendant chaque remplacement. Contrôler les images effectives, rejouer une opération connue (son résultat doit rester identique), vérifier stock/points/média et les jobs. Ne jamais exécuter `down -v` sur la production pour changer une image. Si le schéma n’est pas compatible, utiliser une migration corrective ou la procédure de restauration avec arrêt des écritures.
+
+La recette locale a testé l’ancien code `a8b4610` avec le packaging runtime corrigé, puis le code actuel sur le même schéma additif. Ce n’est pas une autorisation générale de revenir à n’importe quelle ancienne version. La CI distante et les opérations sur le VPS attendent le dépôt et les accès correspondants.

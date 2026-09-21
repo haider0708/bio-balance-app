@@ -19,3 +19,8 @@ apps/mobile/android/app/google-services.json
 apps/mobile/ios/Runner/GoogleService-Info.plist
 
 .artifacts/
+
+**/secrets/
+**/certificates/
+*.p12
+*.mobileprovision
