@@ -375,8 +375,12 @@ class WorkspaceViewModel extends ChangeNotifier {
     unawaited(synchronize(silent: true));
   }
 
-  Future<void> online(Json command, {int? expectedVersion}) async {
-    final store = state.store!;
+  Future<void> online(
+    Json command, {
+    int? expectedVersion,
+    Store? targetStore,
+  }) async {
+    final store = targetStore ?? state.store!;
     requireAccess(store);
     if (api.accountId != user.id) {
       throw const AppFailure('ACCOUNT_CHANGED', 'Veuillez vous reconnecter.');
@@ -404,14 +408,24 @@ class WorkspaceViewModel extends ChangeNotifier {
     final result = await api.push([operation]);
     final row = objects(result['results']).single;
     if (row['status'] != 'accepted') {
-      await repository.saveDraft(user.id, store.id, key, {});
+      final access = switch (row['code']) {
+        'SESSION_EXPIRED' => AccessCondition.expired,
+        'ACCESS_DISABLED' => AccessCondition.disabled,
+        'STORE_ACCESS_REVOKED' => AccessCondition.storeAccessRevoked,
+        _ => null,
+      };
+      if (access != null) api.confirmAccessLoss(access, storeId: store.id);
+      if (access == null &&
+          (row['status'] == 'rejected' || row['status'] == 'conflict')) {
+        await repository.saveDraft(user.id, store.id, key, {});
+      }
       throw AppFailure(
         row['code'] ?? 'CONFLICT',
         row['message'] ?? 'Opération refusée.',
       );
     }
     await repository.saveDraft(user.id, store.id, key, {});
-    await synchronize();
+    if (state.store?.id == store.id) await synchronize();
   }
 
   String productName(String id) =>

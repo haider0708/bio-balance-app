@@ -1,5 +1,65 @@
 // GENERATED from contracts/openapi/biobalance.json. Do not edit.
 
+class FulfillmentLineDto {
+  final String productId;
+  final int ordered;
+  final int received;
+  final int inTransit;
+  final int remainingToDispatch;
+  final int remainingToReceive;
+  const FulfillmentLineDto({
+    required this.productId,
+    required this.ordered,
+    required this.received,
+    required this.inTransit,
+    required this.remainingToDispatch,
+    required this.remainingToReceive,
+  });
+  factory FulfillmentLineDto.fromJson(Map<String, dynamic> json) =>
+      FulfillmentLineDto(
+        productId: json['productId'] as String,
+        ordered: (json['ordered'] as num).toInt(),
+        received: (json['received'] as num).toInt(),
+        inTransit: (json['inTransit'] as num).toInt(),
+        remainingToDispatch: (json['remainingToDispatch'] as num).toInt(),
+        remainingToReceive: (json['remainingToReceive'] as num).toInt(),
+      );
+  Map<String, dynamic> toJson() => {
+    'productId': productId,
+    'ordered': ordered,
+    'received': received,
+    'inTransit': inTransit,
+    'remainingToDispatch': remainingToDispatch,
+    'remainingToReceive': remainingToReceive,
+  };
+}
+
+class OrderFulfillmentDto {
+  final String orderId;
+  final int version;
+  final String status;
+  final List<dynamic> lines;
+  const OrderFulfillmentDto({
+    required this.orderId,
+    required this.version,
+    required this.status,
+    required this.lines,
+  });
+  factory OrderFulfillmentDto.fromJson(Map<String, dynamic> json) =>
+      OrderFulfillmentDto(
+        orderId: json['orderId'] as String,
+        version: (json['version'] as num).toInt(),
+        status: json['status'] as String,
+        lines: List<dynamic>.from(json['lines']),
+      );
+  Map<String, dynamic> toJson() => {
+    'orderId': orderId,
+    'version': version,
+    'status': status,
+    'lines': lines,
+  };
+}
+
 class MoneyDto {
   final String currency;
   final String millimes;

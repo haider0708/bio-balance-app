@@ -313,25 +313,16 @@ export class OperationsService {
       );
       if (cmd.type === "order.prepare") order.status = "preparing";
       else {
-        const delivered = await ledger.deliveries(order.id);
+        const fulfillment = await ledger.fulfillment(order);
         requireRule(
           new Set(cmd.lines.map((l) => l.productId)).size === cmd.lines.length,
           "DUPLICATE_PRODUCT",
           "Produit répété.",
         );
         for (const line of cmd.lines) {
-          const requested =
-            order.lines.find((l) => l.productId === line.productId)?.quantity ??
-            0;
-          const sent = delivered.reduce(
-            (sum, d) =>
-              sum +
-              (d.lines.find((l) => l.productId === line.productId)?.quantity ??
-                0),
-            0,
-          );
+          const remaining = fulfillment.find(l => l.productId === line.productId)?.remainingToDispatch ?? 0;
           requireRule(
-            line.quantity + sent <= requested,
+            line.quantity <= remaining,
             "DELIVERY_EXCEEDS_ORDER",
             "Quantité supérieure au reste à expédier.",
           );
@@ -367,6 +358,8 @@ export class OperationsService {
         "Cette livraison a déjà été réceptionnée.",
         409,
       );
+      requireRule(cmd.lines.length > 0 || cmd.note.trim().length > 0,
+        "MISSING_DELIVERY_REASON", "Expliquez pourquoi aucune unité n’a été reçue.");
       const actual = new Map<string, number>();
       for (const line of cmd.lines) {
         requireRule(
@@ -406,28 +399,16 @@ export class OperationsService {
       delivery.version++;
       await ledger.saveDelivery(delivery);
       const order = await ledger.order(delivery.orderId);
-      const deliveries = await ledger.deliveries(order.id);
-      order.status =
-        deliveries.every((d) => d.status === "received") &&
-        order.lines.every(
-          (l) =>
-            deliveries.reduce(
-              (sum, d) =>
-                sum +
-                (d.lines.find((x) => x.productId === l.productId)?.quantity ??
-                  0),
-              0,
-            ) >= l.quantity,
-        )
-          ? "received"
-          : "partial";
+      const fulfillment = await ledger.fulfillment(order);
+      order.status = fulfillment.every(l => l.remainingToReceive === 0 && l.inTransit === 0)
+        ? "received" : "partial";
       order.version++;
       await ledger.saveOrder(order);
       await ledger.alerts([...affected]);
       await ledger.notify(
         op.operationId,
         "Livraison réceptionnée",
-        "Les quantités reçues ont été ajoutées au stock.",
+        cmd.lines.length ? "Les quantités reçues ont été ajoutées au stock." : "Le magasin n’a reçu aucune unité. Consultez le motif et préparez le suivi.",
       );
       return { id: delivery.id, version: delivery.version, differences };
     }

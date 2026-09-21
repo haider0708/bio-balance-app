@@ -111,6 +111,17 @@ class ApiClient extends SessionTransport {
     query: query,
     body: body,
   );
+  Future<dynamic> workspaceControllerFulfillment({
+    required String store,
+    required String order,
+    Map<String, dynamic>? query,
+    dynamic body,
+  }) => request(
+    'GET',
+    '/v1/stores/${Uri.encodeComponent(store)}/orders/${Uri.encodeComponent(order)}/fulfillment',
+    query: query,
+    body: body,
+  );
   Future<dynamic> workspaceControllerSale({
     required String store,
     required String sale,

@@ -81,6 +81,9 @@ export class WorkspaceController {
   @Get('stores/:store/history/:resource') history(@Req() r:AuthRequest,@Param('store') s:string,@Param('resource') resource:string,@Query('organizationId') o:string,@Query('productId') product?:string,@Query('before') before?:string){
     return this.service.history(r.actor,uuid.parse(o),uuid.parse(s),z.enum(['sales','points','movements','audit']).parse(resource),uuid.optional().parse(product),z.string().max(300).regex(/^[A-Za-z0-9_-]+$/).optional().parse(before));
   }
+  @Get("stores/:store/orders/:order/fulfillment") fulfillment(
+    @Req() r: AuthRequest, @Param('store') store: string, @Param('order') order: string, @Query('organizationId') org: string,
+  ) { return this.service.fulfillment(r.actor, uuid.parse(org), uuid.parse(store), uuid.parse(order)); }
   @Get("stores/:store/sales/:sale") sale(
     @Req() r: AuthRequest,
     @Param("store") s: string,

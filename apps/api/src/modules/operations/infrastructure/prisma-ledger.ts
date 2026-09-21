@@ -1,3 +1,4 @@
+import { orderFulfillment } from "./order-fulfillment-query";
 import { createHash, randomUUID } from "node:crypto";
 import { Prisma } from "@prisma/client";
 import { Database, json } from "../../../shared/infrastructure/database";
@@ -352,16 +353,9 @@ export class PrismaLedger implements Ledger {
     requireRule(item, "NOT_FOUND", "Livraison introuvable.", 404);
     return { ...item, lines: item.lines as OrderRecord["lines"] };
   }
-  async deliveries(orderId: string): Promise<DeliveryRecord[]> {
-    const deliveries = await this.tx.delivery.findMany({where:{...this.context,orderId},take:1000});
-    const receipts = await this.tx.deliveryReceipt.findMany({where:{...this.context,deliveryId:{in:deliveries.map(d=>d.id)}}});
-    return deliveries.map(d=>{
-      const receipt=receipts.find(r=>r.deliveryId===d.id);
-      if(!receipt)return {...d,lines:d.lines as OrderRecord['lines']};
-      const quantities=new Map<string,number>();
-      for(const line of receipt.lines as OrderRecord['lines']) quantities.set(line.productId,(quantities.get(line.productId)??0)+line.quantity);
-      return {...d,lines:[...quantities].map(([productId,quantity])=>({productId,quantity}))};
-    });
+  async fulfillment(order: OrderRecord) {
+    const result = await orderFulfillment(this.tx, this.scope.organizationId, this.scope.storeId, [order]);
+    return result.get(order.id)!;
   }
   async saveDelivery(value: DeliveryRecord) {
     const data = { ...value, lines: json(value.lines) };

@@ -1,3 +1,4 @@
+import { orderFulfillment, outstandingSupply } from "../operations/infrastructure/order-fulfillment-query";
 import { randomUUID } from "node:crypto";
 import { Injectable } from "@nestjs/common";
 import { Database, json } from "../../shared/infrastructure/database";
@@ -9,6 +10,15 @@ import { PrismaLedger } from "../operations/infrastructure/prisma-ledger";
 @Injectable()
 export class WorkspaceService {
   constructor(private readonly db: Database) {}
+  async fulfillment(actor: Actor, org: string, store: string, orderId: string) {
+    return this.db.scoped(actor, org, store, async (tx, scope) => {
+      requireRule(scope.permissions.includes('manage'), 'FORBIDDEN', 'Action réservée au responsable.', 403);
+      const order = await tx.replenishmentOrder.findFirst({where:{id:orderId,storeId:store,organizationId:org}});
+      requireRule(order, 'NOT_FOUND', 'Commande introuvable.', 404);
+      const result = await orderFulfillment(tx, org, store, [order]);
+      return {orderId:order.id,version:order.version,status:order.status,lines:result.get(order.id)!};
+    });
+  }
   async organizations(actor: Actor) {
     if (actor.platformAdmin)
       return this.db.organization.findMany({
@@ -359,6 +369,8 @@ export class WorkspaceService {
         tx.store.findUniqueOrThrow({ where: { id: store } }),
         tx.storeCursor.findUnique({ where: { storeId: store } }),
       ]);
+      const fulfillment = await orderFulfillment(tx, org, store, orders);
+      const supply = await outstandingSupply(tx, org, store);
       const users = await tx.user.findMany({
         where: { id: { in: memberships.map((m) => m.userId) } },
         select: { id: true, name: true, email: true },
@@ -436,7 +448,8 @@ export class WorkspaceService {
         points: points ?? { balance: 0, reserved: 0 },
         rewards,
         claims,
-        orders,
+        orders: orders.map(order => ({...order, fulfillment: fulfillment.get(order.id)})),
+        outstandingSupply: supply,
         deliveries,
         team: memberships.map((m) => ({
           ...m,

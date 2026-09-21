@@ -4,6 +4,11 @@ import '../authentication/session_view_model.dart';
 
 String statusLabel(dynamic status) =>
     {
+      'pending': 'En attente de synchronisation',
+      'accepted': 'Synchronisation du stock en cours',
+      'conflict': 'À vérifier',
+      'blocked': 'Opération précédente à vérifier',
+      'retryable': 'Nouvelle tentative prévue',
       'requested': 'Demandée',
       'preparing': 'En préparation',
       'dispatched': 'Expédiée',

@@ -67,7 +67,7 @@ Implémentation et vérifications locales terminées : commit `7f25895`.
 |---|---|
 | 2. Accès et sessions | Implémentation et vérification locale terminées (voir registre ci-dessous) |
 | 3. Ventes et stock UX | Implémentation et vérification locale terminées (voir registre ci-dessous) |
-| 4. Commandes/livraisons | À réaliser |
+| 4. Commandes/livraisons | Implémentation et vérification locale terminées (voir registre ci-dessous) |
 | 5. Onboarding/images | À réaliser |
 | 6. Brouillons et transferts | À réaliser |
 | 7. Contrats et nettoyage | À réaliser |
@@ -101,3 +101,14 @@ Commit : `816eb24`.
 - La création du catalogue global reste réservée à l’administrateur. La caméra physique et les essais sur appareils restent prévus aux étapes 9–10 ; le parcours d’éditeur automatisé utilise la saisie manuelle.
 
 Étape 3 : commit fonctionnel `a57026b`. La passe complète a relevé une attente obsolète dans le nouveau test d’éditeur (elle demandait à tort un brouillon vide). L’assertion vérifie maintenant la conservation du lot saisi et l’absence de stock ajouté avant confirmation de vente. La suite complète réussit : 29 tests Flutter ; les 2 parcours HTTP réels sont exécutés séparément et réussissent.
+
+
+### Étape 4 — Commandes et livraisons
+
+- Les alertes de stock faible/rupture ouvrent un brouillon avec le produit concerné, le stock, le seuil et toutes les unités déjà commandées. Compte, magasin et identifiant de commande restent stables ; une transmission incertaine reprend ses quantités originales.
+- Calcul de fulfillment partagé côté serveur : quantités effectivement reçues, en transit, restant à expédier et restant à recevoir. Le total d’approvisionnement tient compte de toutes les commandes ouvertes, indépendamment de la limite d’historique. Un nouvel endpoint expose la version et les restes utilisés par l’éditeur d’expédition.
+- Réception entièrement manquante : motif obligatoire côté serveur, confirmation explicite côté mobile, historique conservé, aucun mouvement de stock. Réceptions concurrentes/rejouées restent protégées par l’identité unique de livraison. Une réception en attente sur le téléphone désactive une seconde saisie et conserve son état de synchronisation.
+- Brouillons de réception incluant motif et choix zéro unité ; sauvegarde avant perte d’accès et suppression atomique avec la commande locale. Les tentatives en ligne conservent leur identifiant sur erreur temporaire ou accès expiré.
+- Migration additive `202609210006_delivery_fulfillment` : index magasin/commande sur les livraisons. Contrat et transport régénérés.
+- Validation locale : compilation TypeScript, 17 tests PostgreSQL, 32 tests Flutter et analyse Dart sans erreur. Les 2 parcours HTTP/SQLite/PostgreSQL réussissent séparément. Nouveaux tests : stock/seuil/approvisionnement affichés, contexte magasin du brouillon, motif et annulation de confirmation zéro unité, blocage de double réception locale ; réception vide/rejouée et remplacement complet dans PostgreSQL.
+- Aucune livraison physique ni notification réelle n’a été simulée comme preuve de production ; les essais sur téléphones et le pilote restent prévus aux étapes correspondantes.

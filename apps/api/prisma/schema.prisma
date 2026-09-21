@@ -236,6 +236,7 @@ model Delivery {
   receivedAt DateTime?
   @@unique([storeId,id])
   @@index([storeId,status])
+  @@index([storeId,orderId])
 }
 model DeliveryReceipt {
   id String @id @default(uuid()) @db.Uuid

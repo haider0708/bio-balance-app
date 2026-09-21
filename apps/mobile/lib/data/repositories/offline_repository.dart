@@ -100,6 +100,7 @@ class OfflineRepository implements WorkspaceRepository {
     final pending = await operations(user.id, store.id);
     final sales = objects(raw['sales']);
     final lots = objects(raw['lots']);
+    final deliveries = objects(raw['deliveries']);
     for (final row in pending) {
       final effect = Map<String, dynamic>.from(jsonDecode(row.effect));
       final command = Map<String, dynamic>.from(
@@ -113,6 +114,14 @@ class OfflineRepository implements WorkspaceRepository {
           now: now(),
         );
         effect['lots'] = projection.movements.map((m) => m.toJson()).toList();
+      }
+      if (command['type'] == 'delivery.receive') {
+        final index = deliveries.indexWhere(
+          (d) => d['id'] == command['deliveryId'],
+        );
+        if (index >= 0) {
+          deliveries[index] = {...deliveries[index], 'syncStatus': row.status};
+        }
       }
       if (effect['sale'] != null) {
         final sale = Map<String, dynamic>.from(effect['sale']);
@@ -129,6 +138,7 @@ class OfflineRepository implements WorkspaceRepository {
     }
     raw['sales'] = sales;
     raw['lots'] = lots;
+    raw['deliveries'] = deliveries;
     raw['queuedCount'] = pending.length;
     return StoreData(raw);
   }
@@ -361,6 +371,20 @@ class OfflineRepository implements WorkspaceRepository {
       }
       final current = await load(user, store);
       final command = Map<String, dynamic>.from(operation['command'] ?? {});
+      if (command['type'] == 'delivery.receive' &&
+          current
+                  ?.list('deliveries')
+                  .any(
+                    (d) =>
+                        d['id'] == command['deliveryId'] &&
+                        d['syncStatus'] != null,
+                  ) ==
+              true) {
+        throw const AppFailure(
+          'DELIVERY_PENDING',
+          'Cette réception est déjà enregistrée sur ce téléphone. Consultez la synchronisation.',
+        );
+      }
       final projection = StockProjection.forCommand(
         store.id,
         command,

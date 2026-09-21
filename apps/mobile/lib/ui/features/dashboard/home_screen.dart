@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../replenishment/order_screens.dart';
+
 import '../../../domain/models/models.dart';
 import '../../../domain/models/money.dart';
 import '../../core/design.dart';
@@ -209,10 +211,14 @@ class HomePage extends StatelessWidget {
                 onTap: () => Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (_) => Scaffold(
-                      appBar: AppBar(title: const Text('Stock')),
-                      body: StockPage(vm: vm),
-                    ),
+                    builder: (_) =>
+                        ['low', 'zero'].contains(a['kind']) &&
+                            a['productId'] != null
+                        ? OrderEditor(vm: vm, initialProductId: a['productId'])
+                        : Scaffold(
+                            appBar: AppBar(title: const Text('Stock')),
+                            body: StockPage(vm: vm),
+                          ),
                   ),
                 ),
               ),

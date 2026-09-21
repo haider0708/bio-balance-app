@@ -333,31 +333,74 @@ class ReceiptScreen extends StatefulWidget {
 
 class _ReceiptScreenState extends State<ReceiptScreen> {
   List<Json> lines = [];
+  final note = TextEditingController();
   String? error;
-  bool busy = false;
+  bool busy = false, loading = true, missing = false, completed = false;
+  Future<void> _tail = Future.value();
+  late final VoidCallback unregister;
+
   late final Store store = widget.vm.state.store!;
   String get key => 'receipt:${widget.delivery?['id'] ?? 'stock'}';
   @override
   void initState() {
     super.initState();
-    restore();
+    unregister = widget.vm.registerDraft(persist);
+    note.addListener(changed);
+    unawaited(restore());
   }
 
   Future<void> restore() async {
-    final draft = await widget.vm.repository.draft(
-      widget.vm.user.id,
-      store.id,
-      key,
-    );
-    if (mounted) setState(() => lines = objects(draft?['lines']));
+    try {
+      final draft = await widget.vm.repository.draft(
+        widget.vm.user.id,
+        store.id,
+        key,
+      );
+      if (mounted) {
+        setState(() {
+          lines = objects(draft?['lines']);
+          note.text = draft?['note'] ?? '';
+          missing = draft?['missing'] == true;
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => error = SessionViewModel.message(e));
+    } finally {
+      if (mounted) setState(() => loading = false);
+    }
   }
 
-  Future<void> persist() => widget.vm.repository.saveDraft(
-    widget.vm.user.id,
-    store.id,
-    key,
-    {'lines': lines},
+  Future<void> persist() {
+    if (completed || loading) return Future.value();
+    final values = <String, dynamic>{
+      'lines': List<Json>.from(lines),
+      'note': note.text,
+      'missing': missing,
+    };
+    return _tail = _tail
+        .catchError((Object _) {})
+        .then(
+          (_) => widget.vm.repository.saveDraft(
+            widget.vm.user.id,
+            store.id,
+            key,
+            values,
+          ),
+        );
+  }
+
+  void changed() => unawaited(
+    persist().catchError((Object e) {
+      if (mounted) setState(() => error = SessionViewModel.message(e));
+    }),
   );
+  @override
+  void dispose() {
+    unregister();
+    note.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(
@@ -373,6 +416,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
         StatusChip(store.name, icon: Icons.storefront_outlined),
         const SizedBox(height: 20),
         if (error != null) Notice(error!, error: true),
+        if (loading) const LinearProgressIndicator(),
         if (widget.delivery != null) ...[
           const Notice(
             'Saisissez les quantités réellement reçues. Les écarts seront conservés et cette livraison ne pourra être confirmée qu’une seule fois.',
@@ -383,10 +427,36 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
               '${widget.vm.productName(l['productId'])} · ${l['quantity']} unités attendues',
             ),
           ),
+          const SizedBox(height: 16),
+          CheckboxListTile(
+            value: missing,
+            contentPadding: EdgeInsets.zero,
+            title: const Text('Aucune unité reçue'),
+            subtitle: const Text(
+              'Signaler une livraison entièrement manquante.',
+            ),
+            onChanged: busy || loading || lines.isNotEmpty
+                ? null
+                : (value) {
+                    setState(() => missing = value ?? false);
+                    changed();
+                  },
+          ),
+          TextField(
+            controller: note,
+            enabled: !busy && !loading,
+            maxLength: 500,
+            maxLines: 3,
+            decoration: InputDecoration(
+              labelText: missing
+                  ? 'Explication obligatoire'
+                  : 'Écart ou remarque (facultatif)',
+            ),
+          ),
           const SizedBox(height: 20),
         ],
         FilledButton.icon(
-          onPressed: add,
+          onPressed: busy || loading || missing ? null : add,
           icon: const Icon(Icons.add),
           label: const Text('Ajouter un produit et un lot'),
         ),
@@ -396,27 +466,31 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
             child: ListTile(
               title: Text(widget.vm.productName(e.value['productId'])),
               subtitle: Text(
-                '${e.value['quantity']} unités · Lot ${e.value['batch']}\nPéremption : ${e.value['expiry']}',
+                '${e.value['quantity']} unités · Lot ${e.value['batch']}\nPéremption : ${TunisDates.dateOnlyLabel(e.value['expiry'])}',
               ),
               trailing: IconButton(
-                onPressed: () {
-                  setState(() => lines.removeAt(e.key));
-                  persist();
-                },
+                onPressed: busy || loading
+                    ? null
+                    : () {
+                        setState(() => lines.removeAt(e.key));
+                        changed();
+                      },
                 icon: const Icon(Icons.close),
                 tooltip: 'Retirer',
               ),
             ),
           ),
         ),
-        if (lines.isEmpty)
+        if (lines.isEmpty && !missing)
           const EmptyState(
             title: 'Ajoutez les unités reçues',
             description: 'Un produit peut être réparti sur plusieurs lots et plusieurs dates de péremption.',
           ),
         const SizedBox(height: 24),
         FilledButton(
-          onPressed: busy || lines.isEmpty ? null : save,
+          onPressed: busy || loading || (lines.isEmpty && !missing)
+              ? null
+              : save,
           child: Text(busy ? 'Enregistrement…' : 'Confirmer la réception'),
         ),
       ],
@@ -466,6 +540,24 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
     setState(() => busy = true);
     try {
       final vm = widget.vm;
+      vm.requireAccess(store, widget.delivery == null ? 'manage' : 'receive');
+      await persist();
+      if (lines.isEmpty) {
+        if (widget.delivery == null || !missing || note.text.trim().isEmpty) {
+          throw const FormatException(
+            'Expliquez pourquoi aucune unité n’a été reçue.',
+          );
+        }
+        if (!mounted ||
+            !await confirmAction(
+              context,
+              'Confirmer : aucune unité reçue',
+              'Cette réception sera conservée avec votre explication. Le stock ne sera pas augmenté. BioBalance pourra préparer une nouvelle livraison.',
+              label: 'Confirmer zéro unité',
+            )) {
+          return;
+        }
+      }
       await vm.queue(
         widget.delivery == null
             ? {'type': 'stock.receive', 'reason': 'receipt', 'lines': lines}
@@ -473,7 +565,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
                 'type': 'delivery.receive',
                 'deliveryId': widget.delivery!['id'],
                 'lines': lines,
-                'note': '',
+                'note': note.text.trim(),
               },
         expectedVersion: widget.delivery == null
             ? null
@@ -481,6 +573,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
         targetStore: store,
         draftKey: key,
       );
+      completed = true;
       if (mounted) {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(

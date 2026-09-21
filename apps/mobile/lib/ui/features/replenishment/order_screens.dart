@@ -1,4 +1,13 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+
+import '../../../data/repositories/replenishment_repository.dart';
+import '../../../domain/models/inventory_rules.dart';
+import '../../../domain/models/order_fulfillment.dart';
+import '../../core/form_draft.dart';
+import '../sales/sale_screen.dart';
+
 import 'package:uuid/uuid.dart';
 
 import '../../../domain/models/models.dart';
@@ -14,7 +23,12 @@ class OrdersPage extends StatelessWidget {
   final WorkspaceViewModel vm;
   const OrdersPage({super.key, required this.vm});
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => ListenableBuilder(
+    listenable: vm,
+    builder: (context, _) => content(context),
+  );
+
+  Widget content(BuildContext context) {
     final orders = vm.state.data?.list('orders') ?? [],
         deliveries = vm.state.data?.list('deliveries') ?? [];
     return Content(
@@ -45,15 +59,19 @@ class OrdersPage extends StatelessWidget {
                     'Livraison ${d['id'].toString().substring(0, 8).toUpperCase()}',
                   ),
                   subtitle: Text(
-                    '${objects(d['lines']).fold<int>(0, (s, l) => s + integer(l['quantity']))} unités annoncées',
+                    d['syncStatus'] != null
+                        ? 'Réception enregistrée · ${statusLabel(d['syncStatus'])}'
+                        : '${objects(d['lines']).fold<int>(0, (s, l) => s + integer(l['quantity']))} unités annoncées',
                   ),
                   trailing: const Icon(Icons.chevron_right),
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => ReceiptScreen(vm: vm, delivery: d),
-                    ),
-                  ),
+                  onTap: d['syncStatus'] != null
+                      ? null
+                      : () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => ReceiptScreen(vm: vm, delivery: d),
+                          ),
+                        ),
                 ),
               ),
             ),
@@ -90,7 +108,7 @@ class OrdersPage extends StatelessWidget {
                         '${vm.productName(l['productId'])} · ${l['quantity']} unités',
                       ),
                     ),
-                    if (vm.user.admin) ...[
+                    if (vm.user.admin && o['status'] != 'received') ...[
                       const SizedBox(height: 12),
                       Wrap(
                         spacing: 8,
@@ -106,7 +124,8 @@ class OrdersPage extends StatelessWidget {
                             child: const Text('En préparation'),
                           ),
                           FilledButton.tonal(
-                            onPressed: () => dispatch(context, o),
+                            onPressed: () =>
+                                run(context, () => dispatch(context, o)),
                             child: const Text('Expédier une livraison'),
                           ),
                         ],
@@ -130,29 +149,65 @@ class OrdersPage extends StatelessWidget {
   }
 
   Future<void> dispatch(BuildContext context, Json order) async {
+    final store = vm.state.store!;
+    vm.requireAccess(store, 'manage');
+    final remaining = await ReplenishmentRepository(vm.api)
+        .fulfillment(store, order['id']);
+    if (!context.mounted) return;
+    final lines = remaining.lines
+        .where((line) => line.remainingToDispatch > 0)
+        .toList();
+    if (lines.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Toutes les unités sont reçues ou déjà en route.'),
+        ),
+      );
+      return;
+    }
+    final deliveryId = const Uuid().v4();
     await openEditor(
       context,
       title: 'Préparer une livraison',
-      description: 'Les quantités expédiées ne seront ajoutées au stock qu’après réception.',
-      fields: objects(order['lines'])
+      description:
+          '${store.name}\n${remaining.lines.map((l) => '${vm.productName(l.productId)} : ${l.received} reçues, ${l.inTransit} en route, ${l.remainingToDispatch} à expédier').join('\n')}',
+      fields: lines
           .map(
             (l) => FieldSpec(
-              l['productId'],
-              vm.productName(l['productId']),
-              initial: '${l['quantity']}',
+              l.productId,
+              vm.productName(l.productId),
+              initial: '${l.remainingToDispatch}',
               numeric: true,
             ),
           )
           .toList(),
-      submit: (v) => vm.online({
-        'type': 'delivery.dispatch',
-        'orderId': order['id'],
-        'deliveryId': const Uuid().v4(),
-        'lines': v.entries
-            .where((e) => whole(e.value, allowZero: true) > 0)
-            .map((e) => {'productId': e.key, 'quantity': whole(e.value)})
-            .toList(),
-      }, expectedVersion: integer(order['version'])),
+      submit: (values) async {
+        final selected = <Json>[];
+        for (final line in lines) {
+          final quantity = whole(values[line.productId]!, allowZero: true);
+          if (quantity > line.remainingToDispatch) {
+            throw const FormatException(
+              'La quantité dépasse le reste à expédier.',
+            );
+          }
+          if (quantity > 0) {
+            selected.add({'productId': line.productId, 'quantity': quantity});
+          }
+        }
+        if (selected.isEmpty) {
+          throw const FormatException('Ajoutez au moins une unité à expédier.');
+        }
+        await vm.online(
+          {
+            'type': 'delivery.dispatch',
+            'orderId': remaining.orderId,
+            'deliveryId': deliveryId,
+            'lines': selected,
+          },
+          expectedVersion: remaining.version,
+          targetStore: store,
+        );
+      },
       submitLabel: 'Confirmer l’expédition',
     );
   }
@@ -160,48 +215,84 @@ class OrdersPage extends StatelessWidget {
 
 class OrderEditor extends StatefulWidget {
   final WorkspaceViewModel vm;
-  const OrderEditor({super.key, required this.vm});
+  final String? initialProductId;
+  const OrderEditor({super.key, required this.vm, this.initialProductId});
   @override
   State<OrderEditor> createState() => _OrderEditorState();
 }
 
 class _OrderEditorState extends State<OrderEditor> {
   final quantities = <String, TextEditingController>{};
-  bool busy = false;
+  late final Store store = widget.vm.state.store!;
+  late final StoreData data = widget.vm.state.data!;
+  late final FormDraftController draft;
+  String orderId = const Uuid().v4();
+  bool busy = false, loading = true, uncertain = false;
   String? error;
   @override
   void initState() {
     super.initState();
-    for (final p in widget.vm.state.data!.products) {
-      quantities[p.id] = TextEditingController(text: '0');
-    }
-    restore();
+    draft = FormDraftController(widget.vm, store, 'order', {});
+    unawaited(restore());
   }
 
   Future<void> restore() async {
-    final draft = await widget.vm.repository.draft(
-      widget.vm.user.id,
-      widget.vm.state.store!.id,
-      'order',
-    );
-    if (mounted && draft != null) {
-      for (final e in draft.entries) {
-        quantities[e.key]?.text = '${e.value}';
+    try {
+      final values = await draft.restore() ?? {};
+      final submission = await widget.vm.repository.draft(
+        widget.vm.user.id,
+        store.id,
+        'online:order.create:new',
+      );
+      if (!mounted) return;
+      orderId = values['_orderId'] ?? orderId;
+      for (final entry in values.entries) {
+        if (entry.key != '_orderId' &&
+            (values.containsKey('_orderId') ||
+                (int.tryParse(entry.value) ?? 0) > 0)) {
+          quantities[entry.key] = TextEditingController(text: entry.value);
+        }
       }
-      setState(() {});
+      final command = submission?['operation']?['command'];
+      if (command is Map) {
+        uncertain = true;
+        orderId = command['orderId'];
+        for (final controller in quantities.values) {
+          controller.dispose();
+        }
+        quantities.clear();
+        for (final line in objects(command['lines'])) {
+          quantities[line['productId']] = TextEditingController(
+            text: '${line['quantity']}',
+          );
+        }
+      }
+      final initial = widget.initialProductId;
+      if (!uncertain && initial != null) {
+        quantities.putIfAbsent(initial, () => TextEditingController());
+      }
+      await persist();
+    } catch (e) {
+      if (mounted) setState(() => error = SessionViewModel.message(e));
+    } finally {
+      if (mounted) setState(() => loading = false);
     }
   }
 
-  Future<void> persist() => widget.vm.repository.saveDraft(
-    widget.vm.user.id,
-    widget.vm.state.store!.id,
-    'order',
-    {for (final e in quantities.entries) e.key: e.value.text},
+  Future<void> persist() => draft.change({
+    '_orderId': orderId,
+    for (final e in quantities.entries) e.key: e.value.text,
+  });
+  void changed() => unawaited(
+    persist().catchError((Object e) {
+      if (mounted) setState(() => error = SessionViewModel.message(e));
+    }),
   );
   @override
   void dispose() {
-    for (final c in quantities.values) {
-      c.dispose();
+    draft.dispose();
+    for (final controller in quantities.values) {
+      controller.dispose();
     }
     super.dispose();
   }
@@ -212,51 +303,121 @@ class _OrderEditorState extends State<OrderEditor> {
     body: Content(
       maxWidth: 640,
       children: [
+        StatusChip(store.name, icon: Icons.storefront_outlined),
+        const SizedBox(height: 16),
         const Notice(
-          'Votre brouillon est conservé sur ce téléphone. Une connexion est nécessaire pour transmettre la commande.',
+          'Brouillon conservé sur ce téléphone. Les quantités en attente comprennent les commandes à préparer et les livraisons en route. Une connexion est nécessaire pour envoyer.',
+        ),
+        if (uncertain)
+          const Notice(
+            'Une transmission reste à vérifier. Réessayez cette commande avec ses quantités enregistrées.',
+          ),
+        const SizedBox(height: 16),
+        if (error != null) Notice(error!, error: true),
+        if (loading) const LinearProgressIndicator(),
+        for (final entry in quantities.entries) product(entry),
+        if (quantities.isEmpty && !loading)
+          const EmptyState(
+            title: 'Choisissez vos produits',
+            description: 'Saisissez les quantités nécessaires pour ce magasin.',
+          ),
+        OutlinedButton.icon(
+          onPressed: loading || busy || uncertain ? null : add,
+          icon: const Icon(Icons.add),
+          label: const Text('Ajouter un produit'),
         ),
         const SizedBox(height: 24),
-        if (error != null) Notice(error!, error: true),
-        ...widget.vm.state.data!.products.map(
-          (p) => Padding(
-            padding: const EdgeInsets.only(bottom: 16),
-            child: TextField(
-              controller: quantities[p.id],
-              onChanged: (_) => persist(),
-              keyboardType: TextInputType.number,
-              decoration: InputDecoration(labelText: p.name),
-            ),
-          ),
-        ),
         FilledButton(
-          onPressed: busy ? null : save,
-          child: const Text('Envoyer la commande'),
+          onPressed: loading || busy ? null : save,
+          child: Text(busy ? 'Transmission…' : 'Envoyer la commande'),
         ),
       ],
     ),
   );
+  Widget product(MapEntry<String, TextEditingController> entry) {
+    final stock = StockSummary.forProduct(data, entry.key);
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              data.products.where((p) => p.id == entry.key).firstOrNull?.name ??
+                  'Produit',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Stock : ${stock.available} · Seuil : ${stock.threshold}\nEn attente : ${FulfillmentLine.outstanding(data, entry.key)} unités',
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: entry.value,
+              enabled: !busy && !loading && !uncertain,
+              onChanged: (_) => changed(),
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: 'Unités à commander',
+              ),
+            ),
+            if (!uncertain)
+              TextButton(
+                onPressed: busy
+                    ? null
+                    : () {
+                        setState(() => quantities.remove(entry.key)?.dispose());
+                        changed();
+                      },
+                child: const Text('Retirer'),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> add() async {
+    final product = await showModalBottomSheet<Product>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      builder: (_) => ProductPicker(
+        products: data.products
+            .where((p) => p.active && !quantities.containsKey(p.id))
+            .toList(),
+      ),
+    );
+    if (product == null || !mounted) return;
+    setState(() => quantities[product.id] = TextEditingController());
+    changed();
+  }
+
   Future<void> save() async {
-    setState(() => busy = true);
+    setState(() {
+      busy = true;
+      error = null;
+    });
     try {
+      widget.vm.requireAccess(store, 'manage');
       await persist();
       final lines = quantities.entries
-          .where((e) => whole(e.value.text, allowZero: true) > 0)
-          .map((e) => {'productId': e.key, 'quantity': whole(e.value.text)})
+          .map(
+            (entry) => <String, dynamic>{
+              'productId': entry.key,
+              'quantity': whole(entry.value.text),
+            },
+          )
           .toList();
       if (lines.isEmpty) {
         throw const FormatException('Ajoutez une quantité à commander.');
       }
       await widget.vm.online({
         'type': 'order.create',
-        'orderId': const Uuid().v4(),
+        'orderId': orderId,
         'lines': lines,
-      });
-      await widget.vm.repository.saveDraft(
-        widget.vm.user.id,
-        widget.vm.state.store!.id,
-        'order',
-        {},
-      );
+      }, targetStore: store);
+      await draft.complete();
       if (mounted) Navigator.pop(context);
     } catch (e) {
       if (mounted) setState(() => error = SessionViewModel.message(e));

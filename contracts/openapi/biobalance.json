@@ -839,6 +839,77 @@
         ]
       }
     },
+    "/v1/stores/{store}/orders/{order}/fulfillment": {
+      "get": {
+        "operationId": "WorkspaceController_fulfillment",
+        "parameters": [
+          {
+            "name": "store",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "order",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "organizationId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderFulfillment"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Permission or store context denied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "stores"
+        ]
+      }
+    },
     "/v1/stores/{store}/sales/{sale}": {
       "get": {
         "operationId": "WorkspaceController_sale",
@@ -2185,6 +2256,73 @@
       }
     },
     "schemas": {
+      "FulfillmentLine": {
+        "type": "object",
+        "properties": {
+          "productId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "ordered": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "received": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "inTransit": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "remainingToDispatch": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "remainingToReceive": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "required": [
+          "productId",
+          "ordered",
+          "received",
+          "inTransit",
+          "remainingToDispatch",
+          "remainingToReceive"
+        ],
+        "additionalProperties": false
+      },
+      "OrderFulfillment": {
+        "type": "object",
+        "properties": {
+          "orderId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "status": {
+            "type": "string"
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FulfillmentLine"
+            }
+          }
+        },
+        "required": [
+          "orderId",
+          "version",
+          "status",
+          "lines"
+        ],
+        "additionalProperties": false
+      },
       "Money": {
         "type": "object",
         "properties": {

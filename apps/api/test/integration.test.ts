@@ -418,6 +418,8 @@ describe.sequential(
       const before=(await owner.inventoryLot.findUniqueOrThrow({where:{id:lotId}})).sellable;
       expect((await service.submit(admin,op({type:'delivery.dispatch',orderId,deliveryId,lines:[{productId:product,quantity:10}]},1))).status).toBe('accepted');
       expect((await owner.inventoryLot.findUniqueOrThrow({where:{id:lotId}})).sellable).toBe(before);
+      expect((await workspace.fulfillment(actor, org, store, orderId)).lines).toEqual([
+        {productId:product,ordered:10,received:0,inTransit:10,remainingToDispatch:0,remainingToReceive:10}]);
       const receipt=op({type:'delivery.receive',deliveryId,note:'Two missing',lines:[{productId:product,batch:'T1',expiry:'2027-12',quantity:8}]},1);
       const outcomes=await Promise.all([service.submit(seller,receipt),service.submit(actor,{...receipt,operationId:randomUUID()})]);
       expect(outcomes.filter(r=>r.status==='accepted')).toHaveLength(1);
@@ -425,11 +427,36 @@ describe.sequential(
       expect((await owner.inventoryLot.findUniqueOrThrow({where:{id:lotId}})).sellable).toBe(before+8);
       const order=await owner.replenishmentOrder.findUniqueOrThrow({where:{id:orderId}});
       expect(order.status).toBe('partial');
+      expect((await workspace.fulfillment(admin, org, store, orderId)).lines[0]).toMatchObject({received:8,inTransit:0,remainingToDispatch:2,remainingToReceive:2});
+      const snapshot = await workspace.snapshot(actor, org, store);
+      expect(snapshot.orders.find(o => o.id === orderId)?.fulfillment?.[0].remainingToDispatch).toBe(2);
+      await expect(workspace.fulfillment(foreign, org, store, orderId)).rejects.toThrow();
       const followup=randomUUID();
       expect((await service.submit(admin,op({type:'delivery.dispatch',orderId,deliveryId:followup,lines:[{productId:product,quantity:2}]},order.version))).status).toBe('accepted');
       expect((await service.submit(seller,op({type:'delivery.receive',deliveryId:followup,note:'Complete',lines:[{productId:product,batch:'T1',expiry:'2027-12',quantity:2}]},1))).status).toBe('accepted');
       expect((await owner.replenishmentOrder.findUniqueOrThrow({where:{id:orderId}})).status).toBe('received');
       expect((await owner.inventoryLot.findUniqueOrThrow({where:{id:lotId}})).sellable).toBe(before+10);
+    });
+    it("records a wholly missing delivery once without stock and permits a full replacement", async () => {
+      const orderId=randomUUID(), deliveryId=randomUUID();
+      await service.submit(actor,op({type:'order.create',orderId,lines:[{productId:product,quantity:6}]}));
+      await service.submit(admin,op({type:'delivery.dispatch',orderId,deliveryId,lines:[{productId:product,quantity:6}]},1));
+      const invalid = await service.submit(seller,op({type:'delivery.receive',deliveryId,lines:[],note:'   '},1));
+      expect(invalid.code).toBe('MISSING_DELIVERY_REASON');
+      expect(await owner.deliveryReceipt.count({where:{deliveryId}})).toBe(0);
+      const missing=op({type:'delivery.receive',deliveryId,lines:[],note:'Colis jamais arrivé'},1);
+      const result=await service.submit(seller,missing);
+      expect(result.status).toBe('accepted');
+      expect(await service.submit(seller,missing)).toEqual(result);
+      expect(await owner.deliveryReceipt.count({where:{deliveryId}})).toBe(1);
+      expect(await owner.stockMovement.count({where:{operationId:missing.operationId}})).toBe(0);
+      const receipt=await owner.deliveryReceipt.findUniqueOrThrow({where:{deliveryId}});
+      expect(receipt.differences).toEqual({lines:[{productId:product,expected:6,actual:0}],note:'Colis jamais arrivé'});
+      const remaining=await workspace.fulfillment(actor,org,store,orderId);
+      expect(remaining.lines[0]).toMatchObject({received:0,inTransit:0,remainingToDispatch:6});
+      expect((await service.submit(admin,op({type:'delivery.dispatch',orderId,deliveryId:randomUUID(),lines:[{productId:product,quantity:7}]},remaining.version))).code).toBe('DELIVERY_EXCEEDS_ORDER');
+      expect((await service.submit(admin,op({type:'delivery.dispatch',orderId,deliveryId:randomUUID(),lines:[{productId:product,quantity:6}]},remaining.version))).status).toBe('accepted');
+      expect((await workspace.fulfillment(actor,org,store,orderId)).lines[0].remainingToDispatch).toBe(0);
     });
     it("rejects another active seller editing the original seller's sale", async () => {
       await owner.membership.create({data:{organizationId:org,storeId:store,userId:foreign.id,permissions:['sell']}});

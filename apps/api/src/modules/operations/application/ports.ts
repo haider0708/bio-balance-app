@@ -10,6 +10,7 @@ import {
   DeliveryRecord,
   OperationResult,
 } from "../domain/contracts";
+import { FulfillmentLine } from "../domain/order-fulfillment";
 export interface Ledger {
   checkInventory(): Promise<void>;
   cursor(): Promise<string>;
@@ -67,7 +68,7 @@ export interface Ledger {
   order(id: string): Promise<OrderRecord>;
   saveOrder(order: OrderRecord): Promise<void>;
   delivery(id: string): Promise<DeliveryRecord>;
-  deliveries(orderId: string): Promise<DeliveryRecord[]>;
+  fulfillment(order: OrderRecord): Promise<FulfillmentLine[]>;
   saveDelivery(delivery: DeliveryRecord): Promise<void>;
   receipt(
     deliveryId: string,

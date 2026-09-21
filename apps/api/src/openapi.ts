@@ -31,6 +31,8 @@ async function main() {
     integer = { type: "integer", format: "int32" },
     strings = { type: "array", items: str };
   const components: Record<string, unknown> = {
+    FulfillmentLine: object({productId:uuid,ordered:integer,received:integer,inTransit:integer,remainingToDispatch:integer,remainingToReceive:integer}),
+    OrderFulfillment: object({orderId:uuid,version:integer,status:str,lines:{type:'array',items:ref('FulfillmentLine')}}),
     Money: object({
       currency: { type: "string", enum: ["TND"] },
       millimes: { type: "string", pattern: "^(0|[1-9][0-9]*)$" },
@@ -178,6 +180,7 @@ async function main() {
   document.paths["/v1/sync/push"]!.post!.responses = {
     "201": response("SyncResponse"),
   };
+  document.paths['/v1/stores/{store}/orders/{order}/fulfillment']!.get!.responses = {'200':response('OrderFulfillment')};
   for (const [path, item] of Object.entries(document.paths))
     for (const [method, value] of Object.entries(item)) {
       if (!["get", "post", "patch", "put", "delete"].includes(method)) continue;
