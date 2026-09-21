@@ -247,6 +247,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
     return Scaffold(
       appBar: AppBar(
         title: InkWell(
+          key: const ValueKey('workspace.storeSelector'),
           onTap: () => switchStore(context, vm),
           borderRadius: BorderRadius.circular(8),
           child: Padding(

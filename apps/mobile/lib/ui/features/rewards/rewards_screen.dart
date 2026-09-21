@@ -166,6 +166,10 @@ class _RewardsPageState extends State<RewardsPage> {
                         style: Theme.of(context).textTheme.titleMedium,
                       ),
                       Text('${c['cost']} points · ${statusLabel(c['status'])}'),
+                      if (vm.state.store!.canManage || vm.user.admin)
+                        Text(
+                          'Demandé par ${data.list('team').where((m) => m['userId'] == c['userId']).firstOrNull?['name'] ?? (c['userId'] == vm.user.id ? vm.user.name : 'Membre de l’équipe')}',
+                        ),
                       if (c['status'] == 'requested')
                         Wrap(
                           spacing: 8,

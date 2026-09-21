@@ -50,6 +50,7 @@ class _LoginScreenState extends State<LoginScreen> {
               child: Column(
                 children: [
                   TextField(
+                    key: const ValueKey('auth.email'),
                     controller: _email,
                     keyboardType: TextInputType.emailAddress,
                     textInputAction: TextInputAction.next,
@@ -64,6 +65,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   const SizedBox(height: 16),
                   TextField(
+                    key: const ValueKey('auth.password'),
                     controller: _password,
                     obscureText: !_visible,
                     autofillHints: const [AutofillHints.password],
@@ -93,6 +95,7 @@ class _LoginScreenState extends State<LoginScreen> {
               title: const Text('Code administrateur (MFA)'),
               children: [
                 TextField(
+                  key: const ValueKey('auth.otp'),
                   controller: _otp,
                   keyboardType: TextInputType.number,
                   maxLength: 6,
@@ -104,6 +107,7 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
             const SizedBox(height: 16),
             FilledButton(
+              key: const ValueKey('auth.login'),
               onPressed: vm.state.busy ? null : () => _login(vm),
               child: vm.state.busy
                   ? const SizedBox(
@@ -193,24 +197,28 @@ class _AccountActionScreenState extends State<AccountActionScreen> {
         const SizedBox(height: 16),
         if (mode == 'forgot')
           TextField(
+            key: const ValueKey('auth.email'),
             controller: _email,
             keyboardType: TextInputType.emailAddress,
             decoration: const InputDecoration(labelText: 'Adresse email'),
           ),
         if (mode != 'forgot') ...[
           TextField(
+            key: const ValueKey('auth.token'),
             controller: _token,
             decoration: const InputDecoration(labelText: 'Code reçu par email'),
           ),
           const SizedBox(height: 16),
           if (mode == 'activate') ...[
             TextField(
+              key: const ValueKey('auth.name'),
               controller: _name,
               decoration: const InputDecoration(labelText: 'Votre nom'),
             ),
             const SizedBox(height: 16),
           ],
           TextField(
+            key: const ValueKey('auth.password'),
             controller: _password,
             obscureText: true,
             autofillHints: const [AutofillHints.newPassword],

@@ -1,3 +1,5 @@
+import 'navigation.dart';
+
 import 'dart:async';
 import 'dart:convert';
 
@@ -161,6 +163,7 @@ class _EditorScreenState extends State<EditorScreen> {
                           )
                         : f.options == null
                         ? TextFormField(
+                            key: ValueKey('field.${f.key}'),
                             controller: controllers[f.key],
                             keyboardType: f.numeric
                                 ? const TextInputType.numberWithOptions(
@@ -178,6 +181,7 @@ class _EditorScreenState extends State<EditorScreen> {
                                 : null,
                           )
                         : DropdownButtonFormField<String>(
+                            key: ValueKey('field.${f.key}'),
                             initialValue:
                                 f.options!.containsKey(controllers[f.key]!.text)
                                 ? controllers[f.key]!.text
@@ -208,6 +212,7 @@ class _EditorScreenState extends State<EditorScreen> {
         ),
         const SizedBox(height: 12),
         FilledButton(
+          key: const ValueKey('editor.save'),
           onPressed: busy || mediaBusy ? null : save,
           child: Text(busy ? 'Enregistrement…' : widget.submitLabel),
         ),
@@ -225,7 +230,7 @@ class _EditorScreenState extends State<EditorScreen> {
         for (final e in controllers.entries) e.key: e.value.text.trim(),
       });
       await draft?.complete();
-      if (mounted) Navigator.pop(context, true);
+      if (mounted) completeRoute(context, true);
     } catch (e) {
       if (mounted) setState(() => error = SessionViewModel.message(e));
     } finally {

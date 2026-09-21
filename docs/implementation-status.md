@@ -25,19 +25,19 @@ L’application est en développement et n’est pas encore qualifiée pour une 
 | Compilation TypeScript | Réussie |
 | Tests domaine backend | 6 réussis |
 | Tests PostgreSQL réels avec rôle restreint | 20 réussis + 3 tests de traitement média réel + 5 tests notifications/workers |
-| Tests Flutter de reprise, migration et dispositions d’écran | 53 réussis ; 2 parcours HTTP réels et 1 test de contrats Dart exécutés séparément et réussis |
-| Build Android debug | APK reconstruit après les changements de l’étape 8 ; exécution sur téléphone encore à vérifier |
+| Tests Flutter de reprise, migration et dispositions d’écran | 69 réussis ; 2 parcours HTTP réels et 1 test de contrats Dart exécutés séparément et réussis |
+| Build Android debug | APK natifs de test compilés ; parcours et force-stop réussis sur émulateur Android, appareils physiques en attente |
 | Sauvegarde/restauration isolée | Réussie sur les données de développement ; archive média vide, à compléter avec des médias réels traités |
 | OpenAPI et génération Dart | 45 endpoints vérifiés sur HTTP réel ; schémas Dart typés générés et aller-retour JSON validé |
-| Images Docker et émulateur | Vérifications commencées ; résultat final à confirmer |
+| Images Docker et émulateur | Parcours émulateur Android réussis ; images Docker à vérifier à l’étape 11 |
 
 Un passage des tests PostgreSQL a expiré pendant une forte saturation mémoire de l’hôte par les builds Android. Après arrêt des anciens daemons de compilation devenus inutiles, les 12 tests ont réussi sans allonger leur délai.
 
 ## Travail restant avant acceptation
 
 - Terminer la vérification des images conteneur, de l’application exécutée et de la restauration avec des médias non vides.
-- Compléter les parcours UI automatisés des trois rôles ; vérifier les permissions retirées pendant qu’un écran secondaire est ouvert, les erreurs de stockage, le téléchargement interrompu et les reprises de téléversement sur téléphone.
-- Vérifier les transferts vidéo et liens de compte sur appareils natifs ; brouillons, association produit, aperçu et reprise des transferts sont implémentés et testés localement.
+- Parcours UI Android, révocation en cours de saisie, erreur SQLite et force-stop vérifiés ; compléter la recette native iOS et les essais physiques.
+- Lecture vidéo hors ligne vérifiée sur émulateur Android ; liens natifs et transferts interrompus sur appareils physiques restent à vérifier.
 - Exécuter tests caméra/push, accessibilité, rotation et stabilité mémoire sur Android/iOS physiques ; compiler iOS sur macOS et produire les builds signés.
 - Préparer les données de charge représentatives, exécuter 100 req/s et le pic 200 req/s sur le VPS de référence ; mesurer réellement démarrage, recherche, persistance et fluidité. Aucune de ces performances n’est encore revendiquée.
 - Renseigner VPS/domaine/SMTP/Firebase/APNs/signatures, valider renouvellement TLS/supervision, puis effectuer le pilote et corriger ses retours.
@@ -71,7 +71,7 @@ Implémentation et vérifications locales terminées : commit `7f25895`.
 | 6. Brouillons et transferts | Implémentation et vérification locale terminées (voir registre ci-dessous) |
 | 7. Contrats et nettoyage | Implémentation et vérification locale terminées (voir registre ci-dessous) |
 | 8. Notifications/workers | Implémentation et vérification locale terminées ; FCM/APNs réels en attente |
-| 9. Parcours complets | À réaliser |
+| 9. Parcours complets | Vérification locale terminée sur émulateur Android ; iOS/appareils physiques en attente |
 | 10. Performances/appareils | À réaliser ; appareils physiques requis pour les mesures correspondantes |
 | 11. Déploiement/reprise | À réaliser ; dépôt distant/VPS/DNS requis pour les vérifications externes |
 | 12. Versions signées/pilote | En attente des comptes de signature et participants ; pilote de deux semaines requis |
@@ -160,6 +160,8 @@ Commit : `43b75ef`. Régénération après commit sans différence vérifiée.
 
 ### Étape 8 — Notifications et workers
 
+Commit : `bdb14a7`.
+
 - Migration additive `202609210009_notification_jobs`, appliquée en développement et test : nature/audience des notifications (annonces anciennes réconciliées), propriété du bail des jobs, reçus d’envoi par notification/appareil/session.
 - Messages opérationnels réservés aux responsables/propriétaires/admin actifs. Les annonces restent des envois volontaires du responsable. La boîte de réception, la lecture individuelle et le worker revérifient les permissions actuelles ; une rétrogradation ou révocation rend les messages concernés inaccessibles.
 - Recontrôle des sessions avant envoi, reprise des seuls appareils en échec, suppression des tokens invalides. Une ancienne inscription ne peut pas reprendre le token d’une session plus récente ; le désenregistrement est limité à sa session. Le message OS est volontairement générique : son contenu métier est relu par l’API autorisée.
@@ -168,3 +170,19 @@ Commit : `43b75ef`. Régénération après commit sans différence vérifiée.
 - Worker extrait en composant testable : claim exclusif, bail renouvelé, refus des terminaisons d’un ancien propriétaire, huit tentatives, délai avec aléa/plafond et diagnostics sans secrets. Parallélisme borné (2 par défaut, 4 maximum), média limité à 1 et type de tâche isolé. Les contrôles horaires paginent les magasins et utilisent une identité stable ; leur reprise ne duplique ni audit ni alerte.
 - Validation locale : 5 tests PostgreSQL dédiés aux audiences, révocations, expirations, transfert de token, reprise partielle, claims concurrents, bail périmé, échecs et contrôles horaires. 53 tests Flutter dans la suite complète ; 4 tests push ciblés repassés après suppression de l’ancien token. Les 20 tests transactionnels et 6 tests domaine restent passants. 45 contrats HTTP et leur aller-retour Dart validés. Analyse Dart sans erreur ; APK debug compilé.
 - Limites : les passerelles FCM/APNs sont simulées dans les tests locaux. L’acheminement réel sur Android/iOS et les permissions natives exigent la configuration plateforme/appareils. Les services externes sont au moins une fois : une réponse FCM/SMTP perdue peut occasionner une répétition ; identités stables, reçus, collapse IDs et déduplication mobile réduisent ce risque sans promettre une livraison exactement une fois. Un message OS déjà en file peut arriver après déconnexion, sans contenu métier.
+
+
+### Étape 9 — Parcours complets et pannes
+
+Implémentation et validation locale terminées ; validations iOS et physiques en attente.
+
+- Parcours Flutter natif administrateur → responsable → vendeur contre Nest/HTTP et une base PostgreSQL isolée avec rôle restreint. Activation réelle, MFA admin, magasin, produit/formation, stock initial, prix/points, équipe, récompense, commande/expédition/réception, vente/correction/retour, demande/remise de récompense, annonce/boîte de réception et accès retiré pendant une saisie.
+- Parcours des trois rôles réussi sur émulateur Android API 36 : trois révisions, attribution d’origine conservée, livraison reçue, récompense produit remise, stock final 21, solde vendeur 20 et réservation 0. Ce résultat ne constitue pas un essai iOS ni physique.
+- Correction d’une course réelle de navigation : une sauvegarde terminée pendant l’animation Retour ne peut plus fermer l’écran précédent. Régression dédiée réussie ; confirmation asynchrone appliquée aux ventes, réceptions, commandes, formulaires, onboarding et publications.
+- Carte de demande de récompense identifiant désormais le membre demandeur. Cycle de vie caméra et erreurs natives gardent la saisie manuelle accessible.
+- 69 tests Flutter réussis : panne SQLite réelle par limite de pages, rollback atomique, conservation des brouillons/anciennes opérations, 14 dispositions sur sept écrans (portrait/paysage, clavier, texte 200 %, labels accessibles), reprise des transferts et sessions. Trois tests nécessitant un serveur restent exécutés séparément : 45 contrats HTTP/DTO et deux parcours de synchronisation réussis.
+- 6 tests métier, 20 tests PostgreSQL, 3 tests médias et 5 tests notifications/workers repassés. Analyse Dart sans erreur ; installation Flutter avec lockfile imposé réussie.
+- Harnais Android force-stop : conserve l’installation entre phases, vérifie le PID avant/après arrêt, contrôle les octets de l’outbox avant relancement. Vérification native réussie : une seule acceptation serveur, stock 7/version 3/points 30 ; permission caméra refusée avec recherche manuelle utilisable ; vidéo H.264 lue en ligne, téléchargée avec vérification, puis lue hors ligne depuis un fichier local. Les codes de sortie du premier driver ne servent pas de preuve : Flutter peut retourner zéro après perte de connexion.
+- Job CI Android émulateur ajouté ; variante du parcours de rôles préparée pour simulateur iOS. Dépôt distant/macOS, appareils physiques, caméra réelle, screen reader manuel et acheminement FCM/APNs restent en attente. Les journaux locaux sont conservés dans `.artifacts/evidence/step9/` (ignorés par Git) ; procédures dans `tests/journeys/README.md`.
+
+À contrôler à l’étape 11 : le Compose actuel partage un fichier d’environnement complet ; restreindre explicitement les variables de chaque service pour que les API/workers ne reçoivent pas les credentials du propriétaire/migrations.

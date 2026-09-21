@@ -1,3 +1,5 @@
+import '../../core/navigation.dart';
+
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -171,7 +173,7 @@ class _AnnouncementScreenState extends State<AnnouncementScreen> {
       await draft.change(values());
       await repository.send(widget.vm.user.id, store, values());
       await draft.complete();
-      if (mounted) Navigator.pop(context);
+      if (mounted) completeRoute(context);
     } catch (e) {
       var hasPending = true;
       try {

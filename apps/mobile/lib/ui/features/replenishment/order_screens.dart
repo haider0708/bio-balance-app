@@ -1,3 +1,5 @@
+import '../../core/navigation.dart';
+
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -418,7 +420,7 @@ class _OrderEditorState extends State<OrderEditor> {
         'lines': lines,
       }, targetStore: store);
       await draft.complete();
-      if (mounted) Navigator.pop(context);
+      if (mounted) completeRoute(context);
     } catch (e) {
       if (mounted) setState(() => error = SessionViewModel.message(e));
     } finally {

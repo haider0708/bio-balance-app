@@ -1,3 +1,5 @@
+import '../../core/navigation.dart';
+
 import 'dart:async';
 
 import '../../../data/repositories/store_settings_repository.dart';
@@ -322,7 +324,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       await StoreSettingsRepository(widget.vm.api)
           .onboarding(store, {'step': 5});
       await widget.vm.synchronize();
-      if (mounted) Navigator.pop(context);
+      if (mounted) completeRoute(context);
     });
     if (mounted) setState(() => saving = false);
   }

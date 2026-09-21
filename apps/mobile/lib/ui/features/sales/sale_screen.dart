@@ -1,3 +1,5 @@
+import '../../core/navigation.dart';
+
 import 'dart:convert';
 import 'dart:async';
 
@@ -290,7 +292,7 @@ class _SaleEditorState extends State<_SaleEditor> {
 
   Future<void> save(SaleViewModel vm) async {
     if (await vm.save(reason.text.trim()) && mounted) {
-      Navigator.pop(context);
+      completeRoute(context);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
@@ -670,26 +672,44 @@ class _ScannerScreenState extends State<ScannerScreen>
   final controller = MobileScannerController(
     detectionSpeed: DetectionSpeed.noDuplicates,
   );
-  bool captured = false;
+  bool captured = false, closing = false;
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
   }
 
+  Future<void> cameraAction(Future<void> Function() action) async {
+    try {
+      await action();
+    } catch (_) {
+      // Native permission/lifecycle failures must leave manual entry usable.
+      if (mounted && !closing) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Caméra indisponible. Utilisez la recherche manuelle.',
+            ),
+          ),
+        );
+      }
+    }
+  }
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
-      controller.start();
+      if (!captured) unawaited(cameraAction(controller.start));
     } else {
-      controller.stop();
+      unawaited(cameraAction(controller.stop));
     }
   }
 
   @override
   void dispose() {
+    closing = true;
     WidgetsBinding.instance.removeObserver(this);
-    controller.dispose();
+    unawaited(cameraAction(controller.dispose));
     super.dispose();
   }
 
@@ -699,7 +719,7 @@ class _ScannerScreenState extends State<ScannerScreen>
       title: const Text('Scanner un code-barres'),
       actions: [
         IconButton(
-          onPressed: controller.toggleTorch,
+          onPressed: () => cameraAction(controller.toggleTorch),
           icon: const Icon(Icons.flashlight_on_outlined),
           tooltip: 'Lampe torche',
         ),
@@ -719,8 +739,8 @@ class _ScannerScreenState extends State<ScannerScreen>
               final code = capture.barcodes.firstOrNull?.rawValue;
               if (!captured && code != null) {
                 captured = true;
-                controller.stop();
-                Navigator.pop(context, code);
+                unawaited(cameraAction(controller.stop));
+                completeRoute(context, code);
               }
             },
           ),

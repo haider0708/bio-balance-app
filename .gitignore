@@ -17,3 +17,5 @@ apps/api/generated/
 apps/mobile/android/key.properties
 apps/mobile/android/app/google-services.json
 apps/mobile/ios/Runner/GoogleService-Info.plist
+
+.artifacts/

@@ -1,3 +1,5 @@
+import '../../core/navigation.dart';
+
 import 'dart:io';
 
 import 'package:csv/csv.dart';
@@ -131,7 +133,7 @@ class _CatalogImportScreenState extends State<CatalogImportScreen> {
     try {
       await widget.vm.catalog.importRows(rows, commit: true);
       await widget.vm.synchronize();
-      if (mounted) Navigator.pop(context);
+      if (mounted) completeRoute(context);
     } catch (e) {
       if (mounted) setState(() => error = SessionViewModel.message(e));
     } finally {

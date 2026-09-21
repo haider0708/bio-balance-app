@@ -69,3 +69,51 @@ jobs:
         with: { flutter-version: "3.47.5", channel: stable, cache: true }
       - run: flutter pub get --enforce-lockfile
       - run: flutter build ios --release --no-codesign
+  android-journeys:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    services:
+      postgres:
+        image: postgres:17.7-alpine
+        env:
+          POSTGRES_USER: biobalance
+          POSTGRES_PASSWORD: local-development-only
+          POSTGRES_DB: biobalance_journeys_test
+        ports: ["54329:5432"]
+        options: >-
+          --health-cmd="pg_isready -U biobalance" --health-interval=5s --health-timeout=3s --health-retries=20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version-file: .nvmrc, cache: npm }
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: "17" }
+      - uses: subosito/flutter-action@v2
+        with: { flutter-version: "3.47.5", channel: stable, cache: true }
+      - run: npm ci && npm run db:generate && npm run db:migrate
+        env:
+          DATABASE_URL: postgresql://biobalance:local-development-only@localhost:54329/biobalance_journeys_test
+      - run: psql "$OWNER_URL" -v app_password=local-app-only -f scripts/provision-role.sql
+        env:
+          OWNER_URL: postgresql://biobalance:local-development-only@localhost:54329/biobalance_journeys_test
+      - run: flutter pub get --enforce-lockfile
+        working-directory: apps/mobile
+      - run: sudo apt-get update && sudo apt-get install -y ffmpeg
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 36
+          arch: x86_64
+          profile: pixel_2
+          disable-animations: true
+          script: npm run test:journeys && npm run test:android-restart
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: android-journey-evidence
+          path: apps/mobile/build/integration_response_data.json
+          if-no-files-found: ignore

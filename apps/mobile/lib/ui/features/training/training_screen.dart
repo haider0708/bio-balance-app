@@ -1,3 +1,5 @@
+import '../../core/navigation.dart';
+
 import 'dart:async';
 
 import '../../../data/repositories/training_repository.dart';
@@ -352,7 +354,7 @@ class _TrainingEditorState extends State<TrainingEditor> {
                   ? null
                   : () async {
                       if (await editor.save() && context.mounted) {
-                        Navigator.pop(context);
+                        completeRoute(context);
                       }
                     },
               child: const Text('Enregistrer le contenu'),

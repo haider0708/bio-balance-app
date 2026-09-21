@@ -1,3 +1,5 @@
+import '../../core/navigation.dart';
+
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -594,7 +596,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
       );
       completed = true;
       if (mounted) {
-        Navigator.pop(context);
+        completeRoute(context);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Réception enregistrée sur ce téléphone.'),
