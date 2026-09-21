@@ -121,7 +121,8 @@ class SyncOperationDto {
   final String operationId;
   final String storeId;
   final String organizationId;
-  final double payloadVersion;
+  final dynamic payloadVersion;
+  final List<dynamic>? dependencies;
   final int? expectedVersion;
   final dynamic command;
   const SyncOperationDto({
@@ -129,6 +130,7 @@ class SyncOperationDto {
     required this.storeId,
     required this.organizationId,
     required this.payloadVersion,
+    this.dependencies,
     this.expectedVersion,
     required this.command,
   });
@@ -137,7 +139,10 @@ class SyncOperationDto {
         operationId: json['operationId'] as String,
         storeId: json['storeId'] as String,
         organizationId: json['organizationId'] as String,
-        payloadVersion: (json['payloadVersion'] as num).toDouble(),
+        payloadVersion: json['payloadVersion'],
+        dependencies: json['dependencies'] == null
+            ? null
+            : List<dynamic>.from(json['dependencies']),
         expectedVersion: json['expectedVersion'] == null
             ? null
             : (json['expectedVersion'] as num).toInt(),
@@ -148,6 +153,7 @@ class SyncOperationDto {
     'storeId': storeId,
     'organizationId': organizationId,
     'payloadVersion': payloadVersion,
+    if (dependencies != null) 'dependencies': dependencies,
     if (expectedVersion != null) 'expectedVersion': expectedVersion,
     'command': command,
   };
@@ -164,12 +170,18 @@ class SyncBatchDto {
 class SyncResultDto {
   final String operationId;
   final String status;
+  final String? committedCursor;
+  final List<dynamic>? affectedVersions;
+  final int? retryAfterMs;
   final String? code;
   final String? message;
   final Map<String, dynamic>? data;
   const SyncResultDto({
     required this.operationId,
     required this.status,
+    this.committedCursor,
+    this.affectedVersions,
+    this.retryAfterMs,
     this.code,
     this.message,
     this.data,
@@ -177,6 +189,15 @@ class SyncResultDto {
   factory SyncResultDto.fromJson(Map<String, dynamic> json) => SyncResultDto(
     operationId: json['operationId'] as String,
     status: json['status'] as String,
+    committedCursor: json['committedCursor'] == null
+        ? null
+        : json['committedCursor'] as String,
+    affectedVersions: json['affectedVersions'] == null
+        ? null
+        : List<dynamic>.from(json['affectedVersions']),
+    retryAfterMs: json['retryAfterMs'] == null
+        ? null
+        : (json['retryAfterMs'] as num).toInt(),
     code: json['code'] == null ? null : json['code'] as String,
     message: json['message'] == null ? null : json['message'] as String,
     data: json['data'] == null ? null : Map<String, dynamic>.from(json['data']),
@@ -184,6 +205,9 @@ class SyncResultDto {
   Map<String, dynamic> toJson() => {
     'operationId': operationId,
     'status': status,
+    if (committedCursor != null) 'committedCursor': committedCursor,
+    if (affectedVersions != null) 'affectedVersions': affectedVersions,
+    if (retryAfterMs != null) 'retryAfterMs': retryAfterMs,
     if (code != null) 'code': code,
     if (message != null) 'message': message,
     if (data != null) 'data': data,

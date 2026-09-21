@@ -46,12 +46,22 @@ export class WorkspaceController {
     @Query("organizationId") o: string,
     @Query("after") after?: string,
     @Query("catalogRevision") catalogRevision?: string,
+    @Query("protocol") protocol?: string,
+    @Query("acknowledgments") acknowledgments?: string,
   ) {
     const since = after !== undefined && catalogRevision !== undefined ? {
       cursor:z.string().regex(/^\d{1,19}$/).parse(after),
       catalogRevision:z.string().regex(/^\d+:\d+$/).parse(catalogRevision),
     } : undefined;
-    return this.service.snapshot(r.actor, uuid.parse(o), uuid.parse(s), since);
+    return this.service.snapshot(r.actor, uuid.parse(o), uuid.parse(s), since,
+      z.coerce.number().int().min(2).max(3).parse(protocol ?? 2),
+      z.array(uuid).max(50).parse(acknowledgments ? acknowledgments.split(',') : []));
+  }
+  @Get("stores/:store/snapshot-pages/:page") snapshotPage(
+    @Req() r: AuthRequest, @Param("store") store: string, @Param("page") page: string,
+    @Query("organizationId") org: string,
+  ) {
+    return this.service.snapshotPage(r.actor, uuid.parse(org), uuid.parse(store), uuid.parse(page));
   }
   @Get("stores/:store/collections/:resource") collection(
     @Req() r: AuthRequest,

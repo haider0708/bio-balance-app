@@ -12,7 +12,8 @@
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate deploy",
     "db:seed": "tsx prisma/seed.ts",
-    "contract": "npm run build && node dist/openapi.js"
+    "contract": "npm run build && node dist/openapi.js",
+    "test:mobile-sync": "npm run build && node test/mobile-sync.cjs"
   },
   "dependencies": {
     "@nestjs/common": "^11.1.0",

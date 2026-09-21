@@ -12,6 +12,8 @@ import {
 } from "../domain/contracts";
 export interface Ledger {
   checkInventory(): Promise<void>;
+  cursor(): Promise<string>;
+  dependenciesAccepted(ids: string[]): Promise<boolean>;
   readonly scope: Scope;
   prior(id: string, hash: string): Promise<OperationResult | null>;
   finish(

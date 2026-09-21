@@ -113,7 +113,8 @@ export const operationSchema = z
     operationId: id,
     storeId: id,
     organizationId: id,
-    payloadVersion: z.literal(1),
+    payloadVersion: z.union([z.literal(1), z.literal(2)]),
+    dependencies: z.array(id).max(200).optional(),
     expectedVersion: z.number().int().min(1).optional(),
     command: commandSchema,
   })
@@ -190,7 +191,10 @@ export interface DeliveryRecord extends OrderRecord {
 }
 export interface OperationResult {
   operationId: string;
-  status: "accepted" | "conflict" | "rejected";
+  status: "accepted" | "conflict" | "rejected" | "blocked" | "retryable";
+  committedCursor?: string;
+  affectedVersions?: { resource: string; id: string; version: number }[];
+  retryAfterMs?: number;
   code?: string;
   message?: string;
   data?: Record<string, unknown>;

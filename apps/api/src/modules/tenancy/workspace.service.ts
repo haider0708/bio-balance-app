@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { Injectable } from "@nestjs/common";
 import { Database, json } from "../../shared/infrastructure/database";
 import { Actor, Scope } from "../operations/domain/contracts";
@@ -275,7 +276,7 @@ export class WorkspaceService {
       },
     );
   }
-  async snapshot(actor: Actor, org: string, store: string, since?: {cursor:string;catalogRevision:string}) {
+  async snapshot(actor: Actor, org: string, store: string, since?: {cursor:string;catalogRevision:string}, protocol = 2, acknowledgmentIds: string[] = []) {
     return this.db.scoped(actor, org, store, async (tx, scope) => {
       const manage =
         scope.permissions.includes("manage") || scope.actor.platformAdmin;
@@ -287,7 +288,11 @@ export class WorkspaceService {
       // cache. Large backlogs or catalog changes receive a fresh snapshot.
       const delta = !!since && BigInt(since.cursor) <= (currentCursor?.value??0n) &&
         changes.length <= 200 && since.catalogRevision === catalogRevision;
-      const movements = delta ? await tx.stockMovement.findMany({where:{storeId:store,operationId:{in:changes.map(c=>c.id)}},select:{lotId:true},distinct:['lotId'],take:1501}) : [];
+      const accepted = acknowledgmentIds.length ? await tx.processedOperation.findMany({
+        where: { storeId: store, actorId: actor.id, id: { in: acknowledgmentIds } },
+        select: { id: true, result: true },
+      }) : [];
+      const movements = delta ? await tx.stockMovement.findMany({where:{storeId:store,operationId:{in:[...changes.map(c=>c.id), ...accepted.map(a=>a.id)]}},select:{lotId:true},distinct:['lotId'],take:1501}) : [];
       const useDelta = delta && movements.length <= 1500;
       const changedLots = movements.map(m=>m.lotId);
       const changedProducts = changes.filter(c=>c.entity==='product.configure').map(c=>c.entityId);
@@ -375,8 +380,46 @@ export class WorkspaceService {
         orderBy: { id: "asc" },
         take: 1000,
       });
+      const acknowledgedSaleIds = accepted.flatMap(a => {
+        const result = a.result as unknown as { data?: {id?: string} };
+        return result.data?.id ? [result.data.id] : [];
+      });
+      const acknowledgedSales = await tx.sale.findMany({ where: { storeId: store,
+        id: { in: acknowledgedSaleIds }, ...(!manage ? {sellerId: actor.id} : {}) } });
+      for (const sale of acknowledgedSales) {
+        if (!sales.some(s => s.id === sale.id)) sales.push(sale);
+      }
+      const snapshotPages: Record<string, string | null> = {};
+      const expiresAt = new Date(Date.now() + 5 * 60_000);
+      if (protocol >= 3 && !useDelta) {
+        await tx.syncSnapshotPage.deleteMany({ where: { storeId: store, actorId: actor.id, expiresAt: {lte: new Date()} } });
+        for (const [resource, initial, limit] of [["lots", lots, 500], ["products", products, 1000], ["config", config, 1000]] as const) {
+          let after = initial.length === limit ? initial.at(-1)?.id : undefined;
+          let previousPage: string | null = null;
+          // Each page is materialized now; later requests never query live lots.
+          while (after) {
+            const options = { orderBy: { id: "asc" as const }, take: 200 };
+            const items = resource === "lots" ? await tx.inventoryLot.findMany({where:{storeId:store,id:{gt:after}},...options})
+              : resource === "config" ? await tx.storeProduct.findMany({where:{storeId:store,id:{gt:after}},...options})
+              : await tx.product.findMany({where:{id:{gt:after}},...options});
+            const pageId = randomUUID();
+            const page = { resource, items, nextPage: null as string | null, cursor: (cursor?.value??0n).toString() };
+            await tx.syncSnapshotPage.create({data:{id:pageId,organizationId:org,storeId:store,actorId:actor.id,
+              permissions: JSON.stringify([...scope.permissions].sort()), expiresAt, payload:json(page)}});
+            if (previousPage) {
+              const previous = await tx.syncSnapshotPage.findUniqueOrThrow({where:{id:previousPage}});
+              await tx.syncSnapshotPage.update({where:{id:previousPage},data:{payload:json({...previous.payload as object,nextPage:pageId})}});
+            } else snapshotPages[resource] = pageId;
+            previousPage = pageId;
+            after = items.length === 200 ? items.at(-1)?.id : undefined;
+          }
+        }
+      }
       return {
-        syncProtocol: 2,
+        syncProtocol: protocol >= 3 ? 3 : 2,
+        snapshotPages,
+        snapshotExpiresAt: expiresAt.toISOString(),
+        appliedOperationIds: accepted.map(a => a.id),
         catalogRevision,
         mode: useDelta ? 'delta' : 'snapshot',
         mergeResources: useDelta ? ['lots','config','products'] : [],
@@ -409,6 +452,14 @@ export class WorkspaceService {
           config: !useDelta && config.length === 1000 ? config.at(-1)!.id : null,
         },
       };
+    });
+  }
+  snapshotPage(actor: Actor, org: string, store: string, pageId: string) {
+    return this.db.scoped(actor, org, store, async (tx, scope) => {
+      const page = await tx.syncSnapshotPage.findFirst({where:{id:pageId,organizationId:org,storeId:store,actorId:actor.id}});
+      requireRule(page && page.expiresAt > new Date() && page.permissions === JSON.stringify([...scope.permissions].sort()),
+        "SNAPSHOT_EXPIRED", "La copie du magasin a expiré. Recommencez la synchronisation.", 410);
+      return page.payload;
     });
   }
   async list(

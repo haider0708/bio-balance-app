@@ -119,6 +119,10 @@ class _SyncScreenState extends State<SyncScreen> {
                                 ? 'À vérifier'
                                 : r.status == 'accepted'
                                 ? 'Confirmée · actualisation en cours'
+                                : r.status == 'blocked'
+                                ? 'Bloquée par une saisie précédente'
+                                : r.status == 'retryable'
+                                ? 'Nouvelle tentative programmée'
                                 : 'En attente',
                           ),
                           Text(
@@ -151,19 +155,7 @@ class _SyncScreenState extends State<SyncScreen> {
     final command = Map<String, dynamic>.from(
       jsonDecode(row.payload)['command'],
     );
-    // Later commands for the same entity were created from this provisional
-    // state. They must be reviewed together before that state is replaced.
-    final key = [
-      'saleId',
-      'deliveryId',
-      'lotId',
-    ].where(command.containsKey).firstOrNull;
-    final related = rows.where((r) {
-      if (r.status == 'resolved' || r.sequence < row.sequence) return false;
-      if (r.operationId == row.operationId) return true;
-      final c = jsonDecode(r.payload)['command'];
-      return key != null && c[key] == command[key];
-    }).toList();
+    final related = vm.repository.dependentOperations(rows, row.operationId);
     await vm.repository.refresh(vm.user, store);
     Json? serverSale;
     if (command['saleId'] != null) {

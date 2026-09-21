@@ -68,7 +68,10 @@ async function main() {
     SyncResult: object(
       {
         operationId: uuid,
-        status: { type: "string", enum: ["accepted", "conflict", "rejected"] },
+        status: { type: "string", enum: ["accepted", "conflict", "rejected", "blocked", "retryable"] },
+        committedCursor: {type:"string",pattern:"^[0-9]+$"},
+        affectedVersions: {type:"array",items:object({resource:str,id:uuid,version:integer})},
+        retryAfterMs: integer,
         code: str,
         message: str,
         data: { type: "object", additionalProperties: true },
@@ -170,6 +173,7 @@ async function main() {
   document.paths["/v1/identity/login"]!.post!.responses = {
     "201": response("LoginResponse"),
   };
+  document.paths["/v1/sync/status"]!.post!.requestBody = schemaBody("SyncBatch");
   document.paths["/v1/sync/push"]!.post!.requestBody = schemaBody("SyncBatch");
   document.paths["/v1/sync/push"]!.post!.responses = {
     "201": response("SyncResponse"),

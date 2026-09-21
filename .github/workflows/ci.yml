@@ -31,6 +31,11 @@ jobs:
         env:
           TEST_APP_DATABASE_URL: postgresql://biobalance_app:local-app-only@localhost:54329/biobalance_test
           TEST_OWNER_DATABASE_URL: postgresql://biobalance:local-development-only@localhost:54329/biobalance_test
+      - uses: subosito/flutter-action@v2
+        with: { flutter-version: "3.47.5", channel: stable, cache: true }
+      - run: flutter pub get --enforce-lockfile
+        working-directory: apps/mobile
+      - run: npm run test:mobile-sync
       - run: npm run api:contract && python3 scripts/generate-dart-client.py
       - uses: actions/upload-artifact@v4
         with: { name: openapi, path: contracts/openapi/biobalance.json }

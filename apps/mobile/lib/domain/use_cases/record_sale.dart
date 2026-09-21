@@ -21,14 +21,6 @@ class RecordSale {
       throw const AppFailure('EMPTY_SALE', 'Ajoutez au moins un produit.');
     }
     final id = original?['id'] ?? recoveredSaleId ?? const Uuid().v4();
-    final deltas = <String, int>{};
-    for (final old in objects(original?['lines'])) {
-      for (final allocation in objects(old['allocations'])) {
-        deltas[allocation['lotId']] =
-            (deltas[allocation['lotId']] ?? 0) +
-            integer(allocation['quantity']);
-      }
-    }
     var total = 0;
     for (final line in lines) {
       if (line.quantity < 1 ||
@@ -41,9 +33,6 @@ class RecordSale {
         );
       }
       total += line.price.times(line.quantity).millimes;
-      for (final a in line.allocations) {
-        deltas[a['lotId']] = (deltas[a['lotId']] ?? 0) - integer(a['quantity']);
-      }
     }
     Money(total);
     final date =
@@ -61,7 +50,7 @@ class RecordSale {
       'operationId': const Uuid().v4(),
       'storeId': store.id,
       'organizationId': store.organizationId,
-      'payloadVersion': 1,
+      'payloadVersion': 2,
       if (original != null) 'expectedVersion': integer(original['version']),
       'command': command,
     };
@@ -80,12 +69,7 @@ class RecordSale {
       user,
       store,
       operation,
-      {
-        'sale': sale,
-        'lots': deltas.entries
-            .map((e) => {'id': e.key, 'delta': e.value})
-            .toList(),
-      },
+      {'sale': sale},
       draftKey: supersedes.isNotEmpty
           ? 'recovery:$id'
           : original == null

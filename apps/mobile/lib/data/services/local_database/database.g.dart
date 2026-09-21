@@ -451,6 +451,68 @@ class $OutboxRowsTable extends OutboxRows
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _dependenciesMeta = const VerificationMeta(
+    'dependencies',
+  );
+  @override
+  late final GeneratedColumn<String> dependencies = GeneratedColumn<String>(
+    'dependencies',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('[]'),
+  );
+  static const VerificationMeta _recordsMeta = const VerificationMeta(
+    'records',
+  );
+  @override
+  late final GeneratedColumn<String> records = GeneratedColumn<String>(
+    'records',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('[]'),
+  );
+  static const VerificationMeta _nextAttemptAtMeta = const VerificationMeta(
+    'nextAttemptAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> nextAttemptAt =
+      GeneratedColumn<DateTime>(
+        'next_attempt_at',
+        aliasedName,
+        true,
+        type: DriftSqlType.dateTime,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _acknowledgmentMeta = const VerificationMeta(
+    'acknowledgment',
+  );
+  @override
+  late final GeneratedColumn<String> acknowledgment = GeneratedColumn<String>(
+    'acknowledgment',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _mayHaveBeenSentMeta = const VerificationMeta(
+    'mayHaveBeenSent',
+  );
+  @override
+  late final GeneratedColumn<bool> mayHaveBeenSent = GeneratedColumn<bool>(
+    'may_have_been_sent',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("may_have_been_sent" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
   static const VerificationMeta _statusMeta = const VerificationMeta('status');
   @override
   late final GeneratedColumn<String> status = GeneratedColumn<String>(
@@ -524,6 +586,11 @@ class $OutboxRowsTable extends OutboxRows
     storeId,
     payload,
     effect,
+    dependencies,
+    records,
+    nextAttemptAt,
+    acknowledgment,
+    mayHaveBeenSent,
     status,
     error,
     resolution,
@@ -591,6 +658,48 @@ class $OutboxRowsTable extends OutboxRows
       );
     } else if (isInserting) {
       context.missing(_effectMeta);
+    }
+    if (data.containsKey('dependencies')) {
+      context.handle(
+        _dependenciesMeta,
+        dependencies.isAcceptableOrUnknown(
+          data['dependencies']!,
+          _dependenciesMeta,
+        ),
+      );
+    }
+    if (data.containsKey('records')) {
+      context.handle(
+        _recordsMeta,
+        records.isAcceptableOrUnknown(data['records']!, _recordsMeta),
+      );
+    }
+    if (data.containsKey('next_attempt_at')) {
+      context.handle(
+        _nextAttemptAtMeta,
+        nextAttemptAt.isAcceptableOrUnknown(
+          data['next_attempt_at']!,
+          _nextAttemptAtMeta,
+        ),
+      );
+    }
+    if (data.containsKey('acknowledgment')) {
+      context.handle(
+        _acknowledgmentMeta,
+        acknowledgment.isAcceptableOrUnknown(
+          data['acknowledgment']!,
+          _acknowledgmentMeta,
+        ),
+      );
+    }
+    if (data.containsKey('may_have_been_sent')) {
+      context.handle(
+        _mayHaveBeenSentMeta,
+        mayHaveBeenSent.isAcceptableOrUnknown(
+          data['may_have_been_sent']!,
+          _mayHaveBeenSentMeta,
+        ),
+      );
     }
     if (data.containsKey('status')) {
       context.handle(
@@ -661,6 +770,26 @@ class $OutboxRowsTable extends OutboxRows
         DriftSqlType.string,
         data['${effectivePrefix}effect'],
       )!,
+      dependencies: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}dependencies'],
+      )!,
+      records: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}records'],
+      )!,
+      nextAttemptAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}next_attempt_at'],
+      ),
+      acknowledgment: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}acknowledgment'],
+      ),
+      mayHaveBeenSent: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}may_have_been_sent'],
+      )!,
       status: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}status'],
@@ -701,6 +830,11 @@ class OutboxRow extends DataClass implements Insertable<OutboxRow> {
   final String storeId;
   final String payload;
   final String effect;
+  final String dependencies;
+  final String records;
+  final DateTime? nextAttemptAt;
+  final String? acknowledgment;
+  final bool mayHaveBeenSent;
   final String status;
   final String? error;
   final String? resolution;
@@ -714,6 +848,11 @@ class OutboxRow extends DataClass implements Insertable<OutboxRow> {
     required this.storeId,
     required this.payload,
     required this.effect,
+    required this.dependencies,
+    required this.records,
+    this.nextAttemptAt,
+    this.acknowledgment,
+    required this.mayHaveBeenSent,
     required this.status,
     this.error,
     this.resolution,
@@ -730,6 +869,15 @@ class OutboxRow extends DataClass implements Insertable<OutboxRow> {
     map['store_id'] = Variable<String>(storeId);
     map['payload'] = Variable<String>(payload);
     map['effect'] = Variable<String>(effect);
+    map['dependencies'] = Variable<String>(dependencies);
+    map['records'] = Variable<String>(records);
+    if (!nullToAbsent || nextAttemptAt != null) {
+      map['next_attempt_at'] = Variable<DateTime>(nextAttemptAt);
+    }
+    if (!nullToAbsent || acknowledgment != null) {
+      map['acknowledgment'] = Variable<String>(acknowledgment);
+    }
+    map['may_have_been_sent'] = Variable<bool>(mayHaveBeenSent);
     map['status'] = Variable<String>(status);
     if (!nullToAbsent || error != null) {
       map['error'] = Variable<String>(error);
@@ -753,6 +901,15 @@ class OutboxRow extends DataClass implements Insertable<OutboxRow> {
       storeId: Value(storeId),
       payload: Value(payload),
       effect: Value(effect),
+      dependencies: Value(dependencies),
+      records: Value(records),
+      nextAttemptAt: nextAttemptAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(nextAttemptAt),
+      acknowledgment: acknowledgment == null && nullToAbsent
+          ? const Value.absent()
+          : Value(acknowledgment),
+      mayHaveBeenSent: Value(mayHaveBeenSent),
       status: Value(status),
       error: error == null && nullToAbsent
           ? const Value.absent()
@@ -780,6 +937,11 @@ class OutboxRow extends DataClass implements Insertable<OutboxRow> {
       storeId: serializer.fromJson<String>(json['storeId']),
       payload: serializer.fromJson<String>(json['payload']),
       effect: serializer.fromJson<String>(json['effect']),
+      dependencies: serializer.fromJson<String>(json['dependencies']),
+      records: serializer.fromJson<String>(json['records']),
+      nextAttemptAt: serializer.fromJson<DateTime?>(json['nextAttemptAt']),
+      acknowledgment: serializer.fromJson<String?>(json['acknowledgment']),
+      mayHaveBeenSent: serializer.fromJson<bool>(json['mayHaveBeenSent']),
       status: serializer.fromJson<String>(json['status']),
       error: serializer.fromJson<String?>(json['error']),
       resolution: serializer.fromJson<String?>(json['resolution']),
@@ -798,6 +960,11 @@ class OutboxRow extends DataClass implements Insertable<OutboxRow> {
       'storeId': serializer.toJson<String>(storeId),
       'payload': serializer.toJson<String>(payload),
       'effect': serializer.toJson<String>(effect),
+      'dependencies': serializer.toJson<String>(dependencies),
+      'records': serializer.toJson<String>(records),
+      'nextAttemptAt': serializer.toJson<DateTime?>(nextAttemptAt),
+      'acknowledgment': serializer.toJson<String?>(acknowledgment),
+      'mayHaveBeenSent': serializer.toJson<bool>(mayHaveBeenSent),
       'status': serializer.toJson<String>(status),
       'error': serializer.toJson<String?>(error),
       'resolution': serializer.toJson<String?>(resolution),
@@ -814,6 +981,11 @@ class OutboxRow extends DataClass implements Insertable<OutboxRow> {
     String? storeId,
     String? payload,
     String? effect,
+    String? dependencies,
+    String? records,
+    Value<DateTime?> nextAttemptAt = const Value.absent(),
+    Value<String?> acknowledgment = const Value.absent(),
+    bool? mayHaveBeenSent,
     String? status,
     Value<String?> error = const Value.absent(),
     Value<String?> resolution = const Value.absent(),
@@ -827,6 +999,15 @@ class OutboxRow extends DataClass implements Insertable<OutboxRow> {
     storeId: storeId ?? this.storeId,
     payload: payload ?? this.payload,
     effect: effect ?? this.effect,
+    dependencies: dependencies ?? this.dependencies,
+    records: records ?? this.records,
+    nextAttemptAt: nextAttemptAt.present
+        ? nextAttemptAt.value
+        : this.nextAttemptAt,
+    acknowledgment: acknowledgment.present
+        ? acknowledgment.value
+        : this.acknowledgment,
+    mayHaveBeenSent: mayHaveBeenSent ?? this.mayHaveBeenSent,
     status: status ?? this.status,
     error: error.present ? error.value : this.error,
     resolution: resolution.present ? resolution.value : this.resolution,
@@ -844,6 +1025,19 @@ class OutboxRow extends DataClass implements Insertable<OutboxRow> {
       storeId: data.storeId.present ? data.storeId.value : this.storeId,
       payload: data.payload.present ? data.payload.value : this.payload,
       effect: data.effect.present ? data.effect.value : this.effect,
+      dependencies: data.dependencies.present
+          ? data.dependencies.value
+          : this.dependencies,
+      records: data.records.present ? data.records.value : this.records,
+      nextAttemptAt: data.nextAttemptAt.present
+          ? data.nextAttemptAt.value
+          : this.nextAttemptAt,
+      acknowledgment: data.acknowledgment.present
+          ? data.acknowledgment.value
+          : this.acknowledgment,
+      mayHaveBeenSent: data.mayHaveBeenSent.present
+          ? data.mayHaveBeenSent.value
+          : this.mayHaveBeenSent,
       status: data.status.present ? data.status.value : this.status,
       error: data.error.present ? data.error.value : this.error,
       resolution: data.resolution.present
@@ -866,6 +1060,11 @@ class OutboxRow extends DataClass implements Insertable<OutboxRow> {
           ..write('storeId: $storeId, ')
           ..write('payload: $payload, ')
           ..write('effect: $effect, ')
+          ..write('dependencies: $dependencies, ')
+          ..write('records: $records, ')
+          ..write('nextAttemptAt: $nextAttemptAt, ')
+          ..write('acknowledgment: $acknowledgment, ')
+          ..write('mayHaveBeenSent: $mayHaveBeenSent, ')
           ..write('status: $status, ')
           ..write('error: $error, ')
           ..write('resolution: $resolution, ')
@@ -884,6 +1083,11 @@ class OutboxRow extends DataClass implements Insertable<OutboxRow> {
     storeId,
     payload,
     effect,
+    dependencies,
+    records,
+    nextAttemptAt,
+    acknowledgment,
+    mayHaveBeenSent,
     status,
     error,
     resolution,
@@ -901,6 +1105,11 @@ class OutboxRow extends DataClass implements Insertable<OutboxRow> {
           other.storeId == this.storeId &&
           other.payload == this.payload &&
           other.effect == this.effect &&
+          other.dependencies == this.dependencies &&
+          other.records == this.records &&
+          other.nextAttemptAt == this.nextAttemptAt &&
+          other.acknowledgment == this.acknowledgment &&
+          other.mayHaveBeenSent == this.mayHaveBeenSent &&
           other.status == this.status &&
           other.error == this.error &&
           other.resolution == this.resolution &&
@@ -916,6 +1125,11 @@ class OutboxRowsCompanion extends UpdateCompanion<OutboxRow> {
   final Value<String> storeId;
   final Value<String> payload;
   final Value<String> effect;
+  final Value<String> dependencies;
+  final Value<String> records;
+  final Value<DateTime?> nextAttemptAt;
+  final Value<String?> acknowledgment;
+  final Value<bool> mayHaveBeenSent;
   final Value<String> status;
   final Value<String?> error;
   final Value<String?> resolution;
@@ -929,6 +1143,11 @@ class OutboxRowsCompanion extends UpdateCompanion<OutboxRow> {
     this.storeId = const Value.absent(),
     this.payload = const Value.absent(),
     this.effect = const Value.absent(),
+    this.dependencies = const Value.absent(),
+    this.records = const Value.absent(),
+    this.nextAttemptAt = const Value.absent(),
+    this.acknowledgment = const Value.absent(),
+    this.mayHaveBeenSent = const Value.absent(),
     this.status = const Value.absent(),
     this.error = const Value.absent(),
     this.resolution = const Value.absent(),
@@ -943,6 +1162,11 @@ class OutboxRowsCompanion extends UpdateCompanion<OutboxRow> {
     required String storeId,
     required String payload,
     required String effect,
+    this.dependencies = const Value.absent(),
+    this.records = const Value.absent(),
+    this.nextAttemptAt = const Value.absent(),
+    this.acknowledgment = const Value.absent(),
+    this.mayHaveBeenSent = const Value.absent(),
     this.status = const Value.absent(),
     this.error = const Value.absent(),
     this.resolution = const Value.absent(),
@@ -961,6 +1185,11 @@ class OutboxRowsCompanion extends UpdateCompanion<OutboxRow> {
     Expression<String>? storeId,
     Expression<String>? payload,
     Expression<String>? effect,
+    Expression<String>? dependencies,
+    Expression<String>? records,
+    Expression<DateTime>? nextAttemptAt,
+    Expression<String>? acknowledgment,
+    Expression<bool>? mayHaveBeenSent,
     Expression<String>? status,
     Expression<String>? error,
     Expression<String>? resolution,
@@ -975,6 +1204,11 @@ class OutboxRowsCompanion extends UpdateCompanion<OutboxRow> {
       if (storeId != null) 'store_id': storeId,
       if (payload != null) 'payload': payload,
       if (effect != null) 'effect': effect,
+      if (dependencies != null) 'dependencies': dependencies,
+      if (records != null) 'records': records,
+      if (nextAttemptAt != null) 'next_attempt_at': nextAttemptAt,
+      if (acknowledgment != null) 'acknowledgment': acknowledgment,
+      if (mayHaveBeenSent != null) 'may_have_been_sent': mayHaveBeenSent,
       if (status != null) 'status': status,
       if (error != null) 'error': error,
       if (resolution != null) 'resolution': resolution,
@@ -991,6 +1225,11 @@ class OutboxRowsCompanion extends UpdateCompanion<OutboxRow> {
     Value<String>? storeId,
     Value<String>? payload,
     Value<String>? effect,
+    Value<String>? dependencies,
+    Value<String>? records,
+    Value<DateTime?>? nextAttemptAt,
+    Value<String?>? acknowledgment,
+    Value<bool>? mayHaveBeenSent,
     Value<String>? status,
     Value<String?>? error,
     Value<String?>? resolution,
@@ -1005,6 +1244,11 @@ class OutboxRowsCompanion extends UpdateCompanion<OutboxRow> {
       storeId: storeId ?? this.storeId,
       payload: payload ?? this.payload,
       effect: effect ?? this.effect,
+      dependencies: dependencies ?? this.dependencies,
+      records: records ?? this.records,
+      nextAttemptAt: nextAttemptAt ?? this.nextAttemptAt,
+      acknowledgment: acknowledgment ?? this.acknowledgment,
+      mayHaveBeenSent: mayHaveBeenSent ?? this.mayHaveBeenSent,
       status: status ?? this.status,
       error: error ?? this.error,
       resolution: resolution ?? this.resolution,
@@ -1034,6 +1278,21 @@ class OutboxRowsCompanion extends UpdateCompanion<OutboxRow> {
     }
     if (effect.present) {
       map['effect'] = Variable<String>(effect.value);
+    }
+    if (dependencies.present) {
+      map['dependencies'] = Variable<String>(dependencies.value);
+    }
+    if (records.present) {
+      map['records'] = Variable<String>(records.value);
+    }
+    if (nextAttemptAt.present) {
+      map['next_attempt_at'] = Variable<DateTime>(nextAttemptAt.value);
+    }
+    if (acknowledgment.present) {
+      map['acknowledgment'] = Variable<String>(acknowledgment.value);
+    }
+    if (mayHaveBeenSent.present) {
+      map['may_have_been_sent'] = Variable<bool>(mayHaveBeenSent.value);
     }
     if (status.present) {
       map['status'] = Variable<String>(status.value);
@@ -1065,6 +1324,11 @@ class OutboxRowsCompanion extends UpdateCompanion<OutboxRow> {
           ..write('storeId: $storeId, ')
           ..write('payload: $payload, ')
           ..write('effect: $effect, ')
+          ..write('dependencies: $dependencies, ')
+          ..write('records: $records, ')
+          ..write('nextAttemptAt: $nextAttemptAt, ')
+          ..write('acknowledgment: $acknowledgment, ')
+          ..write('mayHaveBeenSent: $mayHaveBeenSent, ')
           ..write('status: $status, ')
           ..write('error: $error, ')
           ..write('resolution: $resolution, ')
@@ -1622,6 +1886,11 @@ typedef $$OutboxRowsTableCreateCompanionBuilder = OutboxRowsCompanion Function({
   required String storeId,
   required String payload,
   required String effect,
+  Value<String> dependencies,
+  Value<String> records,
+  Value<DateTime?> nextAttemptAt,
+  Value<String?> acknowledgment,
+  Value<bool> mayHaveBeenSent,
   Value<String> status,
   Value<String?> error,
   Value<String?> resolution,
@@ -1636,6 +1905,11 @@ typedef $$OutboxRowsTableUpdateCompanionBuilder = OutboxRowsCompanion Function({
   Value<String> storeId,
   Value<String> payload,
   Value<String> effect,
+  Value<String> dependencies,
+  Value<String> records,
+  Value<DateTime?> nextAttemptAt,
+  Value<String?> acknowledgment,
+  Value<bool> mayHaveBeenSent,
   Value<String> status,
   Value<String?> error,
   Value<String?> resolution,
@@ -1680,6 +1954,31 @@ class $$OutboxRowsTableFilterComposer
 
   ColumnFilters<String> get effect => $composableBuilder(
     column: $table.effect,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get dependencies => $composableBuilder(
+    column: $table.dependencies,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get records => $composableBuilder(
+    column: $table.records,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get nextAttemptAt => $composableBuilder(
+    column: $table.nextAttemptAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get acknowledgment => $composableBuilder(
+    column: $table.acknowledgment,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get mayHaveBeenSent => $composableBuilder(
+    column: $table.mayHaveBeenSent,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -1753,6 +2052,31 @@ class $$OutboxRowsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get dependencies => $composableBuilder(
+    column: $table.dependencies,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get records => $composableBuilder(
+    column: $table.records,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get nextAttemptAt => $composableBuilder(
+    column: $table.nextAttemptAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get acknowledgment => $composableBuilder(
+    column: $table.acknowledgment,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get mayHaveBeenSent => $composableBuilder(
+    column: $table.mayHaveBeenSent,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get status => $composableBuilder(
     column: $table.status,
     builder: (column) => ColumnOrderings(column),
@@ -1812,6 +2136,29 @@ class $$OutboxRowsTableAnnotationComposer
 
   GeneratedColumn<String> get effect =>
       $composableBuilder(column: $table.effect, builder: (column) => column);
+
+  GeneratedColumn<String> get dependencies => $composableBuilder(
+    column: $table.dependencies,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get records =>
+      $composableBuilder(column: $table.records, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get nextAttemptAt => $composableBuilder(
+    column: $table.nextAttemptAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get acknowledgment => $composableBuilder(
+    column: $table.acknowledgment,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get mayHaveBeenSent => $composableBuilder(
+    column: $table.mayHaveBeenSent,
+    builder: (column) => column,
+  );
 
   GeneratedColumn<String> get status =>
       $composableBuilder(column: $table.status, builder: (column) => column);
@@ -1873,6 +2220,11 @@ class $$OutboxRowsTableTableManager
                 Value<String> storeId = const Value.absent(),
                 Value<String> payload = const Value.absent(),
                 Value<String> effect = const Value.absent(),
+                Value<String> dependencies = const Value.absent(),
+                Value<String> records = const Value.absent(),
+                Value<DateTime?> nextAttemptAt = const Value.absent(),
+                Value<String?> acknowledgment = const Value.absent(),
+                Value<bool> mayHaveBeenSent = const Value.absent(),
                 Value<String> status = const Value.absent(),
                 Value<String?> error = const Value.absent(),
                 Value<String?> resolution = const Value.absent(),
@@ -1886,6 +2238,11 @@ class $$OutboxRowsTableTableManager
                 storeId: storeId,
                 payload: payload,
                 effect: effect,
+                dependencies: dependencies,
+                records: records,
+                nextAttemptAt: nextAttemptAt,
+                acknowledgment: acknowledgment,
+                mayHaveBeenSent: mayHaveBeenSent,
                 status: status,
                 error: error,
                 resolution: resolution,
@@ -1901,6 +2258,11 @@ class $$OutboxRowsTableTableManager
                 required String storeId,
                 required String payload,
                 required String effect,
+                Value<String> dependencies = const Value.absent(),
+                Value<String> records = const Value.absent(),
+                Value<DateTime?> nextAttemptAt = const Value.absent(),
+                Value<String?> acknowledgment = const Value.absent(),
+                Value<bool> mayHaveBeenSent = const Value.absent(),
                 Value<String> status = const Value.absent(),
                 Value<String?> error = const Value.absent(),
                 Value<String?> resolution = const Value.absent(),
@@ -1914,6 +2276,11 @@ class $$OutboxRowsTableTableManager
                 storeId: storeId,
                 payload: payload,
                 effect: effect,
+                dependencies: dependencies,
+                records: records,
+                nextAttemptAt: nextAttemptAt,
+                acknowledgment: acknowledgment,
+                mayHaveBeenSent: mayHaveBeenSent,
                 status: status,
                 error: error,
                 resolution: resolution,

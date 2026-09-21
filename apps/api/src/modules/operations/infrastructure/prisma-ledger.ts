@@ -46,6 +46,14 @@ export class PrismaLedger implements Ledger {
       storeId: scope.storeId,
     };
   }
+  async cursor() {
+    return (await this.tx.storeCursor.findUniqueOrThrow({where:{storeId:this.scope.storeId}})).value.toString();
+  }
+  async dependenciesAccepted(ids: string[]) {
+    if (!ids.length) return true;
+    const accepted = await this.tx.processedOperation.count({ where: { ...this.context, actorId: this.scope.actor.id, id: { in: [...new Set(ids)] } } });
+    return accepted === new Set(ids).size;
+  }
   async prior(id: string, hash: string) {
     const value = await this.tx.processedOperation.findUnique({
       where: { id },
@@ -67,15 +75,6 @@ export class PrismaLedger implements Ledger {
     entityId: string,
     details: unknown,
   ) {
-    await this.tx.processedOperation.create({
-      data: {
-        id,
-        ...this.context,
-        actorId: this.scope.actor.id,
-        payloadHash: hash,
-        result: json(result),
-      },
-    });
     await this.tx.auditEntry.create({
       data: {
         ...this.context,
@@ -89,6 +88,22 @@ export class PrismaLedger implements Ledger {
     const cursor = await this.tx.storeCursor.update({
       where: { storeId: this.scope.storeId },
       data: { value: { increment: 1 } },
+    });
+    const movements = await this.tx.stockMovement.findMany({ where: { ...this.context, operationId: id }, select: { lotId: true }, distinct: ["lotId"] });
+    const lots = await this.tx.inventoryLot.findMany({ where: { ...this.context, id: { in: movements.map(m => m.lotId) } }, select: { id: true, version: true } });
+    result.committedCursor = cursor.value.toString();
+    result.affectedVersions = lots.map(l => ({ resource: "lots", ...l }));
+    if (entity.startsWith("sale.") && typeof result.data?.version === "number") {
+      result.affectedVersions.push({ resource: "sales", id: entityId, version: result.data.version });
+    }
+    await this.tx.processedOperation.create({
+      data: {
+        id,
+        ...this.context,
+        actorId: this.scope.actor.id,
+        payloadHash: hash,
+        result: json(result),
+      },
     });
     await this.tx.change.create({
       data: { id, ...this.context, cursor: cursor.value, entity, entityId },

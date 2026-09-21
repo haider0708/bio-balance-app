@@ -232,16 +232,24 @@ class WorkspaceViewModel extends ChangeNotifier {
     Json command, {
     int? expectedVersion,
     Json effect = const {},
+    Store? targetStore,
+    String? draftKey,
   }) async {
-    final store = state.store!;
-    await repository.enqueue(user, store, {
-      'operationId': const Uuid().v4(),
-      'organizationId': store.organizationId,
-      'storeId': store.id,
-      'payloadVersion': 1,
-      'expectedVersion': ?expectedVersion,
-      'command': command,
-    }, effect);
+    final store = targetStore ?? state.store!;
+    await repository.enqueue(
+      user,
+      store,
+      {
+        'operationId': const Uuid().v4(),
+        'organizationId': store.organizationId,
+        'storeId': store.id,
+        'payloadVersion': 2,
+        'expectedVersion': ?expectedVersion,
+        'command': command,
+      },
+      effect,
+      draftKey: draftKey,
+    );
     await reloadLocal();
     unawaited(synchronize(silent: true));
   }
@@ -264,7 +272,7 @@ class WorkspaceViewModel extends ChangeNotifier {
           'operationId': const Uuid().v4(),
           'organizationId': store.organizationId,
           'storeId': store.id,
-          'payloadVersion': 1,
+          'payloadVersion': 2,
           'expectedVersion': ?expectedVersion,
           'command': command,
         };

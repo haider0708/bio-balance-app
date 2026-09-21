@@ -368,3 +368,16 @@ model TrainingContent {
   authorId String @db.Uuid
   updatedAt DateTime @updatedAt
 }
+
+// Immutable pages captured in the same serializable transaction as the cursor.
+model SyncSnapshotPage {
+  id String @id @default(uuid()) @db.Uuid
+  organizationId String @db.Uuid
+  storeId String @db.Uuid
+  actorId String @db.Uuid
+  permissions String
+  expiresAt DateTime
+  payload Json
+  @@index([expiresAt])
+  @@index([storeId, actorId])
+}

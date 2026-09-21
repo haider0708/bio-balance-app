@@ -460,6 +460,56 @@ describe.sequential(
       await expect(workspace.snapshot(seller,org,store)).rejects.toMatchObject({code:'FORBIDDEN'});
       await workspace.setMember(actor,org,store,seller.id,{active:true,permissions:['sell','receive']});
     });
+    it("keeps receipt-sale-damage-correction-return versions and ledgers consistent", async () => {
+      const pointsRate = (await owner.storeProduct.findUniqueOrThrow({where:{storeId_productId:{storeId:store,productId:product}}})).pointsPerUnit;
+      const receipt = {...op({type:"stock.receive",reason:"receipt",lines:[{productId:product,batch:"CHAIN",expiry:"2029-12-31",quantity:10}]}),payloadVersion:2 as const,dependencies:[]};
+      const received = await service.submit(actor,receipt);
+      const lot = await owner.inventoryLot.findFirstOrThrow({where:{storeId:store,batch:"CHAIN"}});
+      expect(lot.version).toBe(2);
+      const sale = randomUUID(), line = randomUUID(), occurredAt = new Date().toISOString();
+      const lines = (quantity:number) => [{id:line,productId:product,quantity,unitPriceMillimes:"1000",allocations:[{lotId:lot.id,quantity}]}];
+      const create = {...op({type:"sale.create",saleId:sale,occurredAt,lines:lines(4)}),payloadVersion:2 as const,dependencies:[receipt.operationId]};
+      expect((await service.submit(actor,create)).status).toBe("accepted");
+      const damage = {...op({type:"stock.damage",lotId:lot.id,quantity:1,reason:"Casse"},3),payloadVersion:2 as const,dependencies:[create.operationId]};
+      expect((await service.submit(actor,damage)).affectedVersions).toContainEqual({resource:"lots",id:lot.id,version:5});
+      const correct = {...op({type:"sale.correct",saleId:sale,occurredAt,lines:lines(3),reason:"Erreur de quantité"},1),payloadVersion:2 as const,dependencies:[damage.operationId]};
+      expect((await service.submit(actor,correct)).status).toBe("accepted");
+      const returned = {...op({type:"sale.return",saleId:sale,reason:"Retour client",lines:[{lineId:line,lotId:lot.id,quantity:1,sellable:true}]},2),payloadVersion:2 as const,dependencies:[correct.operationId]};
+      const accepted = await service.submit(actor,returned);
+      expect(accepted.status).toBe("accepted");
+      expect(await service.submit(actor,receipt)).toEqual(received);
+      expect(await service.submit(actor,returned)).toEqual(accepted);
+      expect(await owner.inventoryLot.findUniqueOrThrow({where:{id:lot.id}})).toMatchObject({sellable:7,damaged:1,version:7});
+      expect(await owner.stockMovement.count({where:{lotId:lot.id}})).toBe(6);
+      expect(await owner.saleRevision.count({where:{saleId:sale}})).toBe(3);
+      const entries = await owner.pointsEntry.findMany({where:{storeId:store,sourceId:sale}});
+      expect(entries.reduce((n,e)=>n+e.amount,0n)).toBe(BigInt(pointsRate * 2));
+      const pending = {...op({type:"stock.damage",lotId:lot.id,quantity:1,reason:"Casse"},7),payloadVersion:2 as const,dependencies:[randomUUID()]};
+      expect((await service.submit(actor,pending)).status).toBe("blocked");
+      expect(await owner.stockMovement.count({where:{lotId:lot.id}})).toBe(6);
+      const snapshot = await workspace.snapshot(actor,org,store,undefined,3,[returned.operationId]);
+      expect(snapshot.appliedOperationIds).toEqual([returned.operationId]);
+      expect(BigInt(snapshot.cursor)).toBeGreaterThanOrEqual(BigInt(accepted.committedCursor!));
+    });
+    it("freezes snapshot pages and rechecks account, store, expiry and permissions", async () => {
+      await owner.inventoryLot.createMany({data:Array.from({length:505},(_,i)=>({
+        id:randomUUID(),organizationId:org,storeId:store,productId:product,batch:`PAGE-${i}`,expiry:new Date("2029-12-31"),sellable:2,
+      }))});
+      const snapshot = await workspace.snapshot(actor,org,store,undefined,3);
+      const token = snapshot.snapshotPages.lots!;
+      expect(token).toBeTruthy();
+      const before = await workspace.snapshotPage(actor,org,store,token) as any;
+      const target = before.items[0];
+      await service.submit(actor,op({type:"stock.adjust",lotId:target.id,quantity:9,reason:"Comptage"},target.version));
+      expect(await workspace.snapshotPage(actor,org,store,token)).toEqual(before);
+      await expect(workspace.snapshotPage(seller,org,store,token)).rejects.toMatchObject({code:"SNAPSHOT_EXPIRED"});
+      await expect(workspace.snapshotPage(actor,org,otherStore,token)).rejects.toMatchObject({code:"FORBIDDEN"});
+      await workspace.setMember(actor,org,store,seller.id,{active:false,permissions:["sell"]});
+      await expect(workspace.snapshotPage(seller,org,store,token)).rejects.toMatchObject({code:"FORBIDDEN"});
+      await workspace.setMember(actor,org,store,seller.id,{active:true,permissions:["sell","receive"]});
+      await owner.syncSnapshotPage.update({where:{id:token},data:{expiresAt:new Date(0)}});
+      await expect(workspace.snapshotPage(actor,org,store,token)).rejects.toMatchObject({code:"SNAPSHOT_EXPIRED"});
+    });
     it("rejects editing append-only histories at database level", async () => {
       const movement = await owner.stockMovement.findFirstOrThrow({
         where: { storeId: store },

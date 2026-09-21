@@ -4,8 +4,6 @@ import 'package:flutter/material.dart';
 
 import '../reporting/history_screen.dart';
 
-import 'package:uuid/uuid.dart';
-
 import '../../../domain/models/models.dart';
 import '../../../domain/models/money.dart';
 import '../../core/design.dart';
@@ -146,13 +144,14 @@ class ProductDetail extends StatelessWidget {
     listenable: vm,
     builder: (context, _) {
       final data = vm.state.data;
-      if (data == null)
+      if (data == null) {
         return Scaffold(
           appBar: AppBar(title: Text(product.name)),
           body: const Center(
             child: Text('Accès à vérifier. Vos saisies sont conservées.'),
           ),
         );
+      }
       final config = data.config(product.id);
       final lots = (data.lotsByProduct[product.id] ?? <InventoryLot>[]).toList()
         ..sort((a, b) => a.expiry.compareTo(b.expiry));
@@ -322,26 +321,12 @@ class ProductDetail extends StatelessWidget {
         ),
         const FieldSpec('reason', 'Motif'),
       ],
-      submit: (v) => vm.queue(
-        {
-          'type': damage ? 'stock.damage' : 'stock.adjust',
-          'lotId': lot.id,
-          'quantity': whole(v['quantity']!, allowZero: !damage),
-          'reason': v['reason'],
-        },
-        expectedVersion: lot.version,
-        effect: {
-          'lots': [
-            {
-              'id': lot.id,
-              'delta': damage
-                  ? -whole(v['quantity']!)
-                  : whole(v['quantity']!, allowZero: true) - lot.sellable,
-              'version': lot.version + 1,
-            },
-          ],
-        },
-      ),
+      submit: (v) => vm.queue({
+        'type': damage ? 'stock.damage' : 'stock.adjust',
+        'lotId': lot.id,
+        'quantity': whole(v['quantity']!, allowZero: !damage),
+        'reason': v['reason'],
+      }, expectedVersion: lot.version),
     );
   }
 }
@@ -489,24 +474,6 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
     setState(() => busy = true);
     try {
       final vm = widget.vm;
-      final effects = <Json>[];
-      for (final line in lines) {
-        final existing = vm.state.data!.lots
-            .where(
-              (l) =>
-                  l.productId == line['productId'] &&
-                  l.batch == line['batch'] &&
-                  l.expiry == line['expiry'],
-            )
-            .firstOrNull;
-        final id =
-            existing?.id ??
-            const Uuid().v5(
-              '40cdd460-fdea-4c8f-9533-51a0843ecfff',
-              '${store.id}|${line['productId']}|${line['batch']}|${line['expiry']}',
-            );
-        effects.add({'id': id, ...line, 'delta': line['quantity']});
-      }
       await vm.queue(
         widget.delivery == null
             ? {'type': 'stock.receive', 'reason': 'receipt', 'lines': lines}
@@ -519,9 +486,9 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
         expectedVersion: widget.delivery == null
             ? null
             : integer(widget.delivery!['version']),
-        effect: {'lots': effects},
+        targetStore: store,
+        draftKey: key,
       );
-      await vm.repository.saveDraft(vm.user.id, store.id, key, {'lines': []});
       if (mounted) {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(

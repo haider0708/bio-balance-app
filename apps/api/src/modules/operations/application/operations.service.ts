@@ -21,6 +21,15 @@ function canonical(value: unknown): string {
 }
 export class OperationsService {
   constructor(private readonly unitOfWork: UnitOfWork) {}
+  async status(actor: Actor, operation: Operation) {
+    const hash = createHash("sha256").update(canonical(operation)).digest("hex");
+    return this.unitOfWork.run(actor, operation.organizationId, operation.storeId, async ledger => {
+      const prior = await ledger.prior(operation.operationId, hash);
+      // A conservative watermark also covers legacy accepted results, without rewriting them.
+      return prior ? { ...prior, committedCursor: prior.committedCursor ?? await ledger.cursor() }
+        : {operationId: operation.operationId, status: "unknown" as const};
+    });
+  }
   async submit(actor: Actor, operation: Operation): Promise<OperationResult> {
     const hash = createHash("sha256")
       .update(canonical(operation))
@@ -33,6 +42,9 @@ export class OperationsService {
         async (ledger) => {
           const prior = await ledger.prior(operation.operationId, hash);
           if (prior) return prior;
+          if (!(await ledger.dependenciesAccepted(operation.dependencies ?? []))) {
+            return { operationId: operation.operationId, status: "blocked", code: "DEPENDENCY_PENDING", message: "Une opération précédente doit être synchronisée ou corrigée." };
+          }
           const data = await this.apply(ledger, operation);
           const result: OperationResult = {
             operationId: operation.operationId,
@@ -54,7 +66,7 @@ export class OperationsService {
       if (!(error instanceof DomainError)) throw error;
       return {
         operationId: operation.operationId,
-        status: error.status === 409 ? "conflict" : "rejected",
+        status: error.status >= 500 || error.status === 429 ? "retryable" : error.status === 409 ? "conflict" : "rejected",
         code: error.code,
         message: error.message,
       };

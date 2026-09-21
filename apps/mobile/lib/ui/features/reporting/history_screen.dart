@@ -51,7 +51,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
           if (cursor != null) 'before': cursor,
         },
       );
-      if (mounted)
+      if (mounted) {
         setState(() {
           items.addAll(objects(result['items']));
           cursor = result['nextCursor'];
@@ -60,6 +60,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
             people[p['id']] = p['name'];
           }
         });
+      }
     } catch (e) {
       if (mounted) setState(() => error = SessionViewModel.message(e));
     } finally {
@@ -97,8 +98,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 try {
                   await export();
                 } catch (e) {
-                  if (mounted)
+                  if (mounted) {
                     setState(() => error = SessionViewModel.message(e));
+                  }
                 }
               },
               icon: const Icon(Icons.download),
@@ -116,7 +118,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                   padding: const EdgeInsets.all(20),
                   itemCount: items.length + 1,
                   itemBuilder: (context, i) {
-                    if (i == items.length)
+                    if (i == items.length) {
                       return busy
                           ? const Center(child: CircularProgressIndicator())
                           : cursor == null
@@ -127,6 +129,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                                 'Charger les opérations précédentes',
                               ),
                             );
+                    }
                     final r = items[i];
                     final value = r['totalMillimes'] != null
                         ? Money(integer(r['totalMillimes'])).formatted

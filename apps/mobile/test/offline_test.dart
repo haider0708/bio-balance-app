@@ -12,6 +12,8 @@ import 'package:dio/dio.dart';
 import 'package:drift/native.dart';
 import 'package:drift/drift.dart' show Value;
 import 'package:biobalance/domain/use_cases/record_return.dart';
+import 'package:biobalance/domain/synchronization/retry_policy.dart';
+import 'package:biobalance/domain/synchronization/stock_projection.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 const user = UserAccount(
@@ -30,6 +32,8 @@ final store = Store.fromJson({
 class FakeServer implements HttpClientAdapter {
   bool offline = false, loseResponse = false;
   final accepted = <String>{};
+  final conflicts = <String>{};
+  final submissions = <String>[];
   int applied = 0;
   @override
   Future<ResponseBody> fetch(
@@ -44,10 +48,33 @@ class FakeServer implements HttpClientAdapter {
       );
     }
     dynamic response;
-    if (options.path == '/v1/sync/push') {
+    if (options.path == '/v1/sync/status') {
+      response = {
+        'results': objects(options.data['operations'])
+            .map(
+              (o) => {
+                'operationId': o['operationId'],
+                'status': accepted.contains(o['operationId'])
+                    ? 'accepted'
+                    : 'unknown',
+                if (accepted.contains(o['operationId']))
+                  'committedCursor': '$applied',
+              },
+            )
+            .toList(),
+      };
+    } else if (options.path == '/v1/sync/push') {
       final operations = objects(options.data['operations']);
       response = {
         'results': operations.map((o) {
+          submissions.add(o['operationId']);
+          if (conflicts.contains(o['operationId'])) {
+            return {
+              'operationId': o['operationId'],
+              'status': 'conflict',
+              'code': 'VERSION_CONFLICT',
+            };
+          }
           if (accepted.add(o['operationId'])) applied++;
           return {'operationId': o['operationId'], 'status': 'accepted'};
         }).toList(),
@@ -61,6 +88,8 @@ class FakeServer implements HttpClientAdapter {
       }
     } else {
       response = {
+        'syncProtocol': 3,
+        'appliedOperationIds': accepted.toList(),
         'store': store.toJson(),
         'products': [],
         'config': [],
@@ -322,6 +351,124 @@ void main() {
       expect(await repo.pendingCount(user.id), 1);
     },
   );
+  test('retry schedule uses jitter, Retry-After and a five-minute ceiling', () {
+    final policy = RetryPolicy(random: () => 0.5),
+        now = DateTime.utc(2026, 9, 21);
+    expect(policy.delay(1, now).inMilliseconds, 750);
+    expect(policy.delay(2, now).inMilliseconds, 1500);
+    expect(policy.delay(3, now, retryAfter: '30'), const Duration(seconds: 30));
+    expect(
+      policy.delay(
+        3,
+        now,
+        retryAfter: HttpDate.format(now.add(const Duration(seconds: 45))),
+      ),
+      const Duration(seconds: 45),
+    );
+    expect(
+      policy.delay(99, now, retryAfter: '900'),
+      const Duration(minutes: 5),
+    );
+  });
+  test(
+    'a conflict blocks dependent lots while unrelated work continues',
+    () async {
+      final db = AppDatabase(NativeDatabase.memory());
+      addTearDown(db.close);
+      final server = FakeServer()..conflicts.add('receipt');
+      final api = ApiClient(
+        baseUrl: 'http://test',
+        dio: Dio(BaseOptions(baseUrl: 'http://test'))
+          ..httpClientAdapter = server,
+      )..authenticate('token', accountId: user.id);
+      final repo = OfflineRepository(db, api);
+      await repo.refresh(user, store);
+      final line = {
+        'productId': 'p',
+        'batch': 'B',
+        'expiry': '2029-12-31',
+        'quantity': 10,
+      };
+      final lot = StockProjection.lotIdentity(store.id, line);
+      Future<void> enqueue(String id, Json command, int? version) =>
+          repo.enqueue(user, store, {
+            'operationId': id,
+            'storeId': store.id,
+            'organizationId': store.organizationId,
+            'payloadVersion': 2,
+            'expectedVersion': ?version,
+            'command': command,
+          }, {});
+      await enqueue('receipt', {
+        'type': 'stock.receive',
+        'reason': 'receipt',
+        'lines': [line],
+      }, null);
+      await enqueue('damage', {
+        'type': 'stock.damage',
+        'lotId': lot,
+        'quantity': 1,
+        'reason': 'Casse',
+      }, 2);
+      await enqueue('unrelated', {
+        'type': 'stock.receive',
+        'reason': 'receipt',
+        'lines': [
+          {...line, 'batch': 'C'},
+        ],
+      }, null);
+      await repo.synchronize(user, store);
+      final rows = await repo.operations(user.id, store.id);
+      expect(server.submissions, ['receipt', 'unrelated']);
+      expect(rows.map((r) => r.status), ['conflict', 'blocked']);
+      expect(jsonDecode(rows.last.dependencies), ['receipt']);
+      expect(rows.last.mayHaveBeenSent, isFalse);
+      expect(repo.dependentOperations(rows, 'receipt').length, 2);
+      await expectLater(
+        repo.resolve(user, store, ['receipt'], 'review'),
+        throwsA(isA<AppFailure>()),
+      );
+      await repo.resolve(user, store, ['receipt', 'damage'], 'review');
+      expect(await repo.operations(user.id, store.id), isEmpty);
+      expect(
+        (await repo.operations(
+          user.id,
+          store.id,
+          includeResolved: true,
+        )).length,
+        2,
+      );
+    },
+  );
+  test('stock expiry routes returned units to damaged and preserves movement increments', () {
+    final lots = <Json>[
+      {
+        'id': 'lot',
+        'productId': 'p',
+        'batch': 'B',
+        'expiry': '2026-09-20',
+        'sellable': 0,
+        'damaged': 0,
+        'version': 5,
+      },
+    ];
+    final projection = StockProjection.forCommand(
+      store.id,
+      {
+        'type': 'sale.return',
+        'saleId': 'sale',
+        'lines': [
+          {'lotId': 'lot', 'quantity': 2, 'sellable': true},
+        ],
+      },
+      StoreData({'lots': lots}),
+      now: DateTime.utc(2026, 9, 21),
+    );
+    StockProjection.apply(lots, projection.movements.single.toJson());
+    expect(lots.single['sellable'], 0);
+    expect(lots.single['damaged'], 2);
+    expect(lots.single['version'], 6);
+  });
   test('SQLite version 1 migration preserves a populated outbox', () async {
     final db = AppDatabase(
       NativeDatabase.memory(
@@ -341,5 +488,9 @@ void main() {
     expect(rows.single.operationId, 'op');
     expect(rows.single.resolution, isNull);
     expect(rows.single.status, 'pending');
+    expect(rows.single.payload, '{}');
+    expect(rows.single.mayHaveBeenSent, isTrue);
+    expect(rows.single.dependencies, '[]');
+    expect(rows.single.nextAttemptAt, isNull);
   });
 }

@@ -78,3 +78,9 @@ Sauvegarde locale : dump PostgreSQL puis copie des médias immuables, checksums,
 ## Validation
 
 Les seuils de performance du plan sont des **critères de recette**, pas des résultats déjà mesurés. Les tests unitaires, transactionnels et de reprise locale sont complétés par des parcours Android/iOS, profils sur appareil physique, tests de charge et restauration. L’état des vérifications et les éléments non terminés doivent rester visibles dans le registre de réalisation.
+
+### Synchronisation v2 et stockage local v3
+
+Les commandes v1 existantes gardent leur payload et identifiant. Les nouvelles commandes v2 déclarent leurs dépendances ; les résultats acceptés exposent un curseur et les versions affectées. `/v1/sync/status` vérifie une soumission incertaine sans rejouer ses effets et fournit un watermark conservateur pour les anciens résultats. Le client conserve l’effet provisoire jusqu’à l’application atomique d’un état serveur qui inclut l’opération. Les retries sont persistés avec jitter et plafond de cinq minutes.
+
+Le snapshot de lecture protocole 3 matérialise les pages supplémentaires dans la même transaction sérialisable que son curseur. Les pages expirent après cinq minutes et vérifient compte, magasin et permissions à chaque lecture ; une expiration ne touche jamais l’outbox. Les projections de stock sont des opérations métier Dart, dont un dommage produit deux incréments de version.

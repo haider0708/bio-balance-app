@@ -109,6 +109,17 @@ class ApiClient {
     query: query,
     body: body,
   );
+  Future<dynamic> workspaceControllerSnapshotPage({
+    required String store,
+    required String page,
+    Map<String, dynamic>? query,
+    dynamic body,
+  }) => request(
+    'GET',
+    '/v1/stores/${Uri.encodeComponent(store)}/snapshot-pages/${Uri.encodeComponent(page)}',
+    query: query,
+    body: body,
+  );
   Future<dynamic> workspaceControllerCollection({
     required String store,
     required String resource,
@@ -212,6 +223,10 @@ class ApiClient {
     Map<String, dynamic>? query,
     dynamic body,
   }) => request('POST', '/v1/catalog/import', query: query, body: body);
+  Future<dynamic> operationsControllerStatus({
+    Map<String, dynamic>? query,
+    dynamic body,
+  }) => request('POST', '/v1/sync/status', query: query, body: body);
   Future<dynamic> operationsControllerPush({
     Map<String, dynamic>? query,
     dynamic body,

@@ -23,6 +23,13 @@ class OutboxRows extends Table {
   TextColumn get storeId => text()();
   TextColumn get payload => text()();
   TextColumn get effect => text()();
+  TextColumn get dependencies => text().withDefault(const Constant('[]'))();
+  TextColumn get records => text().withDefault(const Constant('[]'))();
+  DateTimeColumn get nextAttemptAt => dateTime().nullable()();
+  TextColumn get acknowledgment => text().nullable()();
+  // Legacy attempts may have reached the server even if no response survived.
+  BoolColumn get mayHaveBeenSent =>
+      boolean().withDefault(const Constant(true))();
   TextColumn get status => text().withDefault(const Constant('pending'))();
   TextColumn get error => text().nullable()();
   TextColumn get resolution => text().nullable()();
@@ -57,10 +64,17 @@ class AppDatabase extends _$AppDatabase {
     }),
   );
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
   @override
   MigrationStrategy get migration => MigrationStrategy(
     onUpgrade: (m, from, to) async {
+      if (from < 3) {
+        await m.addColumn(outboxRows, outboxRows.dependencies);
+        await m.addColumn(outboxRows, outboxRows.records);
+        await m.addColumn(outboxRows, outboxRows.nextAttemptAt);
+        await m.addColumn(outboxRows, outboxRows.acknowledgment);
+        await m.addColumn(outboxRows, outboxRows.mayHaveBeenSent);
+      }
       if (from < 2) {
         await m.addColumn(outboxRows, outboxRows.resolution);
         await m.addColumn(outboxRows, outboxRows.resolvedAt);

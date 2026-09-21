@@ -45,7 +45,7 @@ class RecordReturn {
         'operationId': const Uuid().v4(),
         'storeId': store.id,
         'organizationId': store.organizationId,
-        'payloadVersion': 1,
+        'payloadVersion': 2,
         'expectedVersion': integer(sale['version']),
         'command': {
           'type': 'sale.return',
@@ -68,9 +68,6 @@ class RecordReturn {
           'version': integer(sale['version']) + 1,
           'local': true,
         },
-        'lots': [
-          {'id': lotId, 'delta': sellable ? quantity : 0},
-        ],
       },
     );
   }
