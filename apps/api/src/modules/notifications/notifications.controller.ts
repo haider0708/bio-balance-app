@@ -53,6 +53,7 @@ export class NotificationsController {
   ) {
     const v = z
       .object({
+        id:z.uuid(),
         title: z.string().trim().min(2).max(120),
         body: z.string().trim().min(2).max(2000),
         audience: z.enum(["all", "salespeople"]),
@@ -66,6 +67,7 @@ export class NotificationsController {
       v.title,
       v.body,
       v.audience,
+      v.id,
     );
   }
 }

@@ -24,11 +24,11 @@ L’application est en développement et n’est pas encore qualifiée pour une 
 |---|---|
 | Compilation TypeScript | Réussie |
 | Tests domaine backend | 6 réussis |
-| Tests PostgreSQL réels avec rôle restreint | 18 réussis + 2 tests de traitement média réel (étape 5) |
-| Tests Flutter de reprise, migration et dispositions d’écran | 34 réussis ; 2 parcours HTTP réels exécutés séparément et réussis |
-| Build Android debug | APK reconstruit avec les changements de l’étape 5 ; exécution sur téléphone encore à vérifier |
+| Tests PostgreSQL réels avec rôle restreint | 20 réussis + 3 tests de traitement média réel (étape 6) |
+| Tests Flutter de reprise, migration et dispositions d’écran | 45 réussis ; 2 parcours HTTP réels exécutés séparément et réussis |
+| Build Android debug | APK reconstruit avec les ressources natives et liens de l’étape 6 ; exécution sur téléphone encore à vérifier |
 | Sauvegarde/restauration isolée | Réussie sur les données de développement ; archive média vide, à compléter avec des médias réels traités |
-| OpenAPI et génération Dart | Exécutés, 42 méthodes de transport générées |
+| OpenAPI et génération Dart | Exécutés, 44 méthodes de transport générées |
 | Images Docker et émulateur | Vérifications commencées ; résultat final à confirmer |
 
 Un passage des tests PostgreSQL a expiré pendant une forte saturation mémoire de l’hôte par les builds Android. Après arrêt des anciens daemons de compilation devenus inutiles, les 12 tests ont réussi sans allonger leur délai.
@@ -37,7 +37,7 @@ Un passage des tests PostgreSQL a expiré pendant une forte saturation mémoire 
 
 - Terminer la vérification des images conteneur, de l’application exécutée et de la restauration avec des médias non vides.
 - Compléter les parcours UI automatisés des trois rôles ; vérifier les permissions retirées pendant qu’un écran secondaire est ouvert, les erreurs de stockage, le téléchargement interrompu et les reprises de téléversement sur téléphone.
-- Compléter les détails UX de l’étape 6 : brouillons de formation/annonce, association produit, aperçu, transferts vidéo et liens d’activation/récupération. Commandes préremplies, réception entièrement manquante et paramètres/images sont maintenant implémentés.
+- Vérifier les transferts vidéo et liens de compte sur appareils natifs ; brouillons, association produit, aperçu et reprise des transferts sont implémentés et testés localement.
 - Compléter les schémas de requête/réponse OpenAPI encore génériques et la couverture des contrats.
 - Exécuter tests caméra/push, accessibilité, rotation et stabilité mémoire sur Android/iOS physiques ; compiler iOS sur macOS et produire les builds signés.
 - Préparer les données de charge représentatives, exécuter 100 req/s et le pic 200 req/s sur le VPS de référence ; mesurer réellement démarrage, recherche, persistance et fluidité. Aucune de ces performances n’est encore revendiquée.
@@ -69,7 +69,7 @@ Implémentation et vérifications locales terminées : commit `7f25895`.
 | 3. Ventes et stock UX | Implémentation et vérification locale terminées (voir registre ci-dessous) |
 | 4. Commandes/livraisons | Implémentation et vérification locale terminées (voir registre ci-dessous) |
 | 5. Onboarding/images | Implémentation et vérification locale terminées (voir registre ci-dessous) |
-| 6. Brouillons et transferts | À réaliser |
+| 6. Brouillons et transferts | Implémentation et vérification locale terminées (voir registre ci-dessous) |
 | 7. Contrats et nettoyage | À réaliser |
 | 8. Notifications/workers | À réaliser |
 | 9. Parcours complets | À réaliser |
@@ -118,6 +118,8 @@ Commit : `9d83e8f`.
 
 ### Étape 5 — Guide, paramètres et images
 
+Commit : `c5d4570`.
+
 - Progression calculée à partir du magasin enregistré, des membres/invitations, des réceptions et des produits effectivement portés par le magasin. Les choix « Je travaille seul » et « Je n’ai pas de stock de départ » sont explicites et versionnés. Une valeur historique `onboardingStep=5` ne masque plus les étapes manquantes.
 - Les configurations à zéro point exigent une confirmation explicite ; les configurations positives et les taux déjà acceptés des ventes restent inchangés. Le guide peut être quitté/repris depuis Plus ; un magasin nouvellement créé est sélectionné et ouvre le guide.
 - Modification versionnée du nom, adresse, ville, téléphone et image du magasin ; édition/archivage des récompenses, produit lié, quantité et image ; images catalogue réservées à BioBalance.
@@ -128,3 +130,16 @@ Commit : `9d83e8f`.
 - Environnement local : ffmpeg extrait dans `.tooling/ffmpeg` sans installation système ; exécutables et bibliothèques ignorés par Git. Le conteneur média installe ffmpeg. Les vérifications de signature et les essais iOS/macOS/appareils restent des étapes ultérieures.
 
 - Build Android debug final de l’étape 5 réussi (icônes et ressources natives compilées) ; 6 tests domaine backend toujours réussis. Avertissements non bloquants du toolchain : migration future du plugin Firebase vers Kotlin intégré et versions de métadonnées SDK. Ils ne sont pas présentés comme des échecs de compilation ni comme une vérification sur appareil.
+
+### Étape 6 — Brouillons, transferts et liens de compte
+
+- Brouillons de formation avec identité stable, produits associés, visibilité, source du fichier et état du média ; restauration automatique par compte. Aperçu commun au lecteur, texte HTML nettoyé/décodé, recherche et filtre produit. Comparaison explicite avec la version serveur en cas de modification concurrente, sans perdre le brouillon.
+- Annonces avec brouillon attaché au magasin d’origine, confirmation du magasin et de l’audience, identifiant stable et message figé après transmission incertaine. Rejouer une soumission ne crée ni notification ni audit supplémentaire.
+- Migration additive `202609210008_content_submissions` appliquée en développement et test : empreinte/résultat des soumissions de contenu, RLS par auteur, empreinte/audience effectivement notifiée des annonces. Les historiques existants sont conservés. Une réponse perdue retrouve le résultat accepté ; une modification locale ultérieure utilise la version de cette acceptation.
+- Reprise des téléversements par identité, taille et SHA-256 du fichier ; dernier fragment accepté rejouable après traitement. Calcul des empreintes dans un isolate Dart, annulation des transferts à la fermeture. Publication interdite pour une vidéo non traitée et pour un article vide.
+- Téléchargement par plages HTTP et `If-Range`, manifeste et fichier partiel persistants ; traitement d’un serveur ignorant Range, vérification de longueur et SHA-256 avant disponibilité hors ligne, rejet d’une réponse d’un ancien compte. Métadonnées protégées, ETag et lecture vidéo depuis le fichier vérifié ; pause en arrière-plan et destruction du lecteur en quittant l’écran.
+- Liens `biobalance://activate` et `biobalance://recover`, validation du chemin/token et saisie manuelle maintenue. Une session ouverte demande une déconnexion avec conservation du travail avant ouverture du lien. Configuration native Android/iOS ajoutée ; hôte HTTPS optionnel strictement limité au domaine configuré.
+- Vérifications : 20 tests PostgreSQL, 6 tests domaine, 3 tests de médias réels avec ffmpeg/ffprobe (dont vidéo H.264, publication contrôlée, plage HTTP exacte, checksum et refus après archivage). 45 tests Flutter : reprise de transferts, checksum altéré, réponse tardive, idempotence, restauration des brouillons, liens et aperçu, paysage/clavier/texte 200 %. Les 2 parcours Nest/HTTP/PostgreSQL/SQLite passent séparément. Analyse Dart sans erreur, TypeScript compilé, contrat régénéré avec 44 routes.
+- Limites : décodage/lecture vidéo hors ligne, permissions natives et ouverture des liens sur appareils Android/iOS à vérifier lors des étapes 9–10 ; le test de traitement et de téléchargement n’est pas une preuve de lecture sur téléphone. L’association HTTPS universelle exige le domaine détenu et ses fichiers d’association ; configuration externe non fournie. Aucun test FCM/APNs ou build iOS n’est compté comme réussi.
+
+- Build Android debug de l’étape 6 réussi (60 s). Une dernière vérification ciblée ajoute un contrôle de génération après les écritures SQLite et lectures de fichiers, juste avant les requêtes : le changement de compte pendant cette attente conserve le brouillon et bloque l’envoi. Test dédié réussi ; nouvelle analyse Dart sans erreur.

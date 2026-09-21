@@ -140,28 +140,84 @@ class SessionTransport {
       return response.data;
     } on DioException catch (error) {
       requireBinding(captured);
-      if (captured.accountId != null && !identity) {
-        final status = error.response?.statusCode;
-        final code = error.response?.data is Map
-            ? error.response!.data['code']
-            : null;
-        AccessCondition? condition;
-        if (status == 401) {
-          condition = AccessCondition.expired;
-          _accessBlocked = true;
-        } else if (status == 403 && code == 'ACCESS_DISABLED') {
-          condition = AccessCondition.disabled;
-          _accessBlocked = true;
-        } else if (status == 403) {
-          condition = AccessCondition.storeAccessRevoked;
-        } else if (error.response == null) {
-          condition = AccessCondition.offline;
-        }
-        if (condition != null) {
-          if (condition != AccessCondition.offline) _accessEpoch++;
-          _events.add(AccessEvent(captured, condition, storeId: store));
-        }
+      _reportError(captured, error, identity, store);
+      rethrow;
+    }
+  }
+
+  void _reportError(
+    SessionBinding captured,
+    DioException error,
+    bool identity,
+    String? store,
+  ) {
+    if (captured.accountId != null && !identity) {
+      final status = error.response?.statusCode;
+      final code = error.response?.data is Map
+          ? error.response!.data['code']
+          : null;
+      AccessCondition? condition;
+      if (status == 401) {
+        condition = AccessCondition.expired;
+        _accessBlocked = true;
+      } else if (status == 403 && code == 'ACCESS_DISABLED') {
+        condition = AccessCondition.disabled;
+        _accessBlocked = true;
+      } else if (status == 403) {
+        condition = AccessCondition.storeAccessRevoked;
+      } else if (error.response == null &&
+          error.type != DioExceptionType.cancel) {
+        condition = AccessCondition.offline;
       }
+      if (condition != null) {
+        if (condition != AccessCondition.offline) _accessEpoch++;
+        _events.add(AccessEvent(captured, condition, storeId: store));
+      }
+    }
+  }
+
+  Future<Response<T>> transfer<T>(
+    String method,
+    String path, {
+    dynamic body,
+    Map<String, dynamic>? headers,
+    ResponseType? responseType,
+    CancelToken? cancelToken,
+    bool Function(int?)? validateStatus,
+    String? storeId,
+  }) async {
+    final captured = binding;
+    if (_accessBlocked) {
+      throw const AppFailure(
+        'SESSION_EXPIRED',
+        'Reconnectez-vous pour reprendre ce transfert.',
+      );
+    }
+    try {
+      final response = await http.request<T>(
+        path,
+        data: body,
+        cancelToken: cancelToken,
+        options: Options(
+          method: method,
+          responseType: responseType,
+          validateStatus: validateStatus,
+          headers: {...?headers, 'Authorization': captured.authorization},
+        ),
+      );
+      try {
+        requireBinding(captured);
+      } catch (_) {
+        final body = response.data;
+        if (body is ResponseBody) await body.stream.listen((_) {}).cancel();
+        rethrow;
+      }
+      return response;
+    } on DioException catch (error) {
+      final body = error.response?.data;
+      if (body is ResponseBody) await body.stream.listen((_) {}).cancel();
+      requireBinding(captured);
+      _reportError(captured, error, false, storeId);
       rethrow;
     }
   }

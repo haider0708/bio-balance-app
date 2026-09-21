@@ -249,3 +249,129 @@ it("refuses mismatched uploaded bytes before creating processed media", async ()
   );
   await expect(service.media(outsider, asset.id)).rejects.toThrow();
 });
+it("processes a video before publication and serves authorized resumable bytes with integrity metadata", async () => {
+  const admin = {
+    id: randomUUID(),
+    name: "Media admin",
+    email: `${randomUUID()}@example.test`,
+    platformAdmin: true,
+  };
+  await owner.user.create({ data: { ...admin, passwordHash: "test-only" } });
+  const fixture = path.join(root, "video-fixture.mp4");
+  execFileSync("ffmpeg", [
+    "-nostdin",
+    "-y",
+    "-v",
+    "error",
+    "-f",
+    "lavfi",
+    "-i",
+    "color=c=0x6ABE4E:s=640x360:r=15",
+    "-t",
+    "1",
+    "-c:v",
+    "libx264",
+    "-threads",
+    "1",
+    "-pix_fmt",
+    "yuv420p",
+    fixture,
+  ]);
+  const bytes = await readFile(fixture);
+  const asset = await service.startUpload(
+    admin,
+    "formation.mp4",
+    "video/mp4",
+    bytes.length,
+    {
+      purpose: "training",
+      sha256: createHash("sha256").update(bytes).digest("hex"),
+    },
+  );
+  const split = Math.floor(bytes.length / 2);
+  await service.chunk(admin, asset.id, 0, bytes.subarray(0, split));
+  await service.chunk(admin, asset.id, split, bytes.subarray(split));
+  const submission = {
+    id: randomUUID(),
+    submissionId: randomUUID(),
+    expectedVersion: 0,
+    title: "Conseils vidéo",
+    body: "Description",
+    type: "video",
+    mediaId: asset.id,
+    productIds: [],
+    status: "published",
+  };
+  await expect(service.save(admin, submission)).rejects.toThrow("traitement");
+  await expect(service.media(seller, asset.id)).rejects.toThrow();
+  await new MediaProcessor(db, root).process(asset.id);
+  await service.save(admin, submission);
+  const media = await service.media(seller, asset.id),
+    metadata = await service.metadata(seller, asset.id);
+  const processed = await readFile(media.path);
+  expect(metadata).toMatchObject({
+    id: asset.id,
+    mime: "video/mp4",
+    size: `${processed.length}`,
+    sha256: createHash("sha256").update(processed).digest("hex"),
+  });
+  expect(
+    (await service.chunk(admin, asset.id, split, bytes.subarray(split))).status,
+  ).toBe("ready");
+  const probe = JSON.parse(
+    execFileSync("ffprobe", [
+      "-v",
+      "error",
+      "-select_streams",
+      "v:0",
+      "-show_entries",
+      "stream=codec_name,pix_fmt,width,height",
+      "-of",
+      "json",
+      media.path,
+    ]).toString(),
+  );
+  expect(probe.streams[0]).toMatchObject({
+    codec_name: "h264",
+    pix_fmt: "yuv420p",
+  });
+  expect(probe.streams[0].width).toBeLessThanOrEqual(1280);
+  const express = (await import("express")).default;
+  const { TrainingController } =
+    await import("../src/modules/training/training.controller");
+  const controller = new TrainingController(service),
+    app = express();
+  app.get("/video", async (_request, response, next) => {
+    try {
+      await controller.media({ actor: seller } as any, asset.id, response);
+    } catch (error) {
+      next(error);
+    }
+  });
+  const server = app.listen(0, "127.0.0.1");
+  await new Promise<void>((resolve) => server.once("listening", resolve));
+  try {
+    const address = server.address() as import("node:net").AddressInfo;
+    const response = await fetch(`http://127.0.0.1:${address.port}/video`, {
+      headers: { Range: "bytes=100-", "If-Range": `"${metadata.sha256}"` },
+    });
+    expect(response.status).toBe(206);
+    expect(response.headers.get("content-range")).toBe(
+      `bytes 100-${processed.length - 1}/${processed.length}`,
+    );
+    expect(response.headers.get("etag")).toBe(`"${metadata.sha256}"`);
+    expect(response.headers.get("cache-control")).toContain("private");
+    expect(Buffer.from(await response.arrayBuffer())).toEqual(
+      processed.subarray(100),
+    );
+  } finally {
+    await new Promise<void>((resolve, reject) =>
+      server.close((error) => (error ? reject(error) : resolve())),
+    );
+  }
+  await owner.trainingContent.update({
+    where: { id: submission.id },
+    data: { status: "archived" },
+  });
+  await expect(service.media(seller, asset.id)).rejects.toThrow();
+});

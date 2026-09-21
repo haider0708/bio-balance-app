@@ -10,6 +10,7 @@ import 'data/repositories/offline_repository.dart';
 import 'ui/core/design.dart';
 import 'ui/features/authentication/session_view_model.dart';
 import 'ui/features/authentication/login_screen.dart';
+import 'ui/features/authentication/account_links.dart';
 import 'ui/features/workspace/workspace_view_model.dart';
 import 'ui/features/workspace/workspace_navigator.dart';
 
@@ -28,7 +29,8 @@ void main() {
 class BioBalanceApp extends StatelessWidget {
   final ApiClient api;
   final AppDatabase database;
-  const BioBalanceApp({super.key, required this.api, required this.database});
+  BioBalanceApp({super.key, required this.api, required this.database});
+  final navigator = GlobalKey<NavigatorState>();
   @override
   Widget build(BuildContext context) => ChangeNotifierProvider(
     create: (_) => SessionViewModel(
@@ -38,6 +40,9 @@ class BioBalanceApp extends StatelessWidget {
     )..restore(),
     child: MaterialApp(
       title: 'BioBalance',
+      navigatorKey: navigator,
+      builder: (context, child) =>
+          AccountLinks(navigator: navigator, child: child!),
       debugShowCheckedModeBanner: false,
       theme: appTheme(),
       locale: const Locale('fr', 'TN'),
@@ -57,7 +62,7 @@ class BioBalanceApp extends StatelessWidget {
           final user = session.state.user;
           if (user == null) return const LoginScreen();
           return ChangeNotifierProvider(
-            key: ValueKey(user.id),
+            key: ValueKey('${user.id}:${api.generation}'),
             create: (_) {
               final workspace = WorkspaceViewModel(
                 user,

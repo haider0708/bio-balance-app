@@ -149,7 +149,8 @@ class _LoginScreenState extends State<LoginScreen> {
 
 class AccountActionScreen extends StatefulWidget {
   final String mode;
-  const AccountActionScreen({super.key, required this.mode});
+  final String? initialToken;
+  const AccountActionScreen({super.key, required this.mode, this.initialToken});
   @override
   State<AccountActionScreen> createState() => _AccountActionScreenState();
 }
@@ -162,6 +163,12 @@ class _AccountActionScreenState extends State<AccountActionScreen> {
   bool busy = false;
   String? error, success;
   late String mode = widget.mode;
+  @override
+  void initState() {
+    super.initState();
+    _token.text = widget.initialToken ?? '';
+  }
+
   @override
   void dispose() {
     for (final c in [_email, _token, _name, _password]) {

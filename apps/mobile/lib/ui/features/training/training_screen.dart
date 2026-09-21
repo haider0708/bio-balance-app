@@ -1,13 +1,15 @@
 import 'dart:async';
 
-import '../../core/form_draft.dart';
+import '../../../data/repositories/training_repository.dart';
+import '../../../data/repositories/media_download_repository.dart';
+import '../../../domain/models/training_text.dart';
+import 'training_editor_view_model.dart';
 
-import 'dart:io';
+import 'dart:convert';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:video_player/video_player.dart';
 
 import '../../../domain/models/models.dart';
@@ -26,6 +28,7 @@ class _TrainingPageState extends State<TrainingPage> {
   List<Json> articles = [];
   bool loading = true;
   String query = '';
+  String? productFilter;
   String? error;
   @override
   void initState() {
@@ -35,15 +38,11 @@ class _TrainingPageState extends State<TrainingPage> {
 
   Future<void> load() async {
     final vm = widget.vm;
-    final cached = await vm.repository.draft(vm.user.id, '', 'training');
-    if (mounted && cached != null) {
-      setState(() => articles = objects(cached['items']));
-    }
+    final repository = TrainingRepository(vm.repository, vm.api);
     try {
-      final items = objects(await vm.request('GET', '/v1/training'));
-      await vm.repository.saveDraft(vm.user.id, '', 'training', {
-        'items': items,
-      });
+      final cached = await repository.cached(vm.user.id);
+      if (mounted) setState(() => articles = cached);
+      final items = await repository.refresh(vm.user.id);
       if (mounted) {
         setState(() {
           articles = items;
@@ -62,7 +61,12 @@ class _TrainingPageState extends State<TrainingPage> {
     final items = articles
         .where(
           (a) =>
-              a['title'].toString().toLowerCase().contains(query.toLowerCase()),
+              (widget.vm.user.admin || a['status'] == 'published') &&
+              '${a['title']} ${TrainingText.plain(a['body'] ?? '')}'
+                  .toLowerCase()
+                  .contains(query.toLowerCase()) &&
+              (productFilter == null ||
+                  (a['productIds'] as List? ?? []).contains(productFilter)),
         )
         .toList();
     return Content(
@@ -84,6 +88,20 @@ class _TrainingPageState extends State<TrainingPage> {
             hintText: 'Rechercher une formation',
             prefixIcon: Icon(Icons.search),
           ),
+        ),
+        const SizedBox(height: 12),
+        DropdownButtonFormField<String>(
+          initialValue: productFilter ?? '',
+          isExpanded: true,
+          items: [
+            const DropdownMenuItem(value: '', child: Text('Tous les produits')),
+            ...?widget.vm.state.data?.products.map(
+              (p) => DropdownMenuItem(value: p.id, child: Text(p.name)),
+            ),
+          ],
+          onChanged: (id) =>
+              setState(() => productFilter = id == '' ? null : id),
+          decoration: const InputDecoration(labelText: 'Produit associé'),
         ),
         const SizedBox(height: 20),
         if (error != null) ...[
@@ -130,7 +148,7 @@ class _TrainingPageState extends State<TrainingPage> {
                       ),
                       const SizedBox(height: 8),
                       StatusChip(
-                        '${article['type'] == 'video' ? 'Vidéo' : 'Article'}${widget.vm.user.admin ? ' · ${article['status']}' : ''}',
+                        '${article['type'] == 'video' ? 'Vidéo' : 'Article'}${widget.vm.user.admin ? ' · ${publicationLabel(article['status'])}' : ''}',
                         icon: Icons.school_outlined,
                       ),
                       if (widget.vm.user.admin)
@@ -169,323 +187,390 @@ class TrainingEditor extends StatefulWidget {
 }
 
 class _TrainingEditorState extends State<TrainingEditor> {
-  final _transfers = CancelToken();
-  late final FormDraftController _draft;
-  bool _restoring = false;
-  late final TextEditingController title, body;
-  String type = 'article', status = 'draft';
-  String? mediaId, error;
-  double? progress;
-  bool busy = false;
+  late final editor = TrainingEditorViewModel(widget.vm, widget.article);
+  final title = TextEditingController(), body = TextEditingController();
+  bool initialized = false;
   @override
   void initState() {
     super.initState();
-    title = TextEditingController(text: widget.article?['title'] ?? '');
-    body = TextEditingController(text: widget.article?['body'] ?? '');
-    type = widget.article?['type'] ?? 'article';
-    status = widget.article?['status'] ?? 'draft';
-    mediaId = widget.article?['mediaId'];
-    _draft = FormDraftController(
-      widget.vm,
-      null,
-      'training:${widget.article?['id'] ?? 'new'}',
-      draftValues(),
-    );
-    title.addListener(persistDraft);
-    body.addListener(persistDraft);
-    unawaited(restoreDraft());
+    unawaited(restore());
   }
 
-  Map<String, String> draftValues() => {
-    'title': title.text,
-    'body': body.text,
-    'type': type,
-    'status': status,
-    'mediaId': mediaId ?? '',
-  };
-  void persistDraft() {
-    if (_restoring) return;
-    unawaited(
-      _draft.change(draftValues()).catchError((Object e) {
-        if (mounted) setState(() => error = SessionViewModel.message(e));
-      }),
-    );
-  }
-
-  Future<void> restoreDraft() async {
-    try {
-      final values = await _draft.restore();
-      if (!mounted || values == null) return;
-      _restoring = true;
-      setState(() {
-        title.text = values['title'] ?? title.text;
-        body.text = values['body'] ?? body.text;
-        type = values['type'] ?? type;
-        status = values['status'] ?? status;
-        mediaId = values['mediaId']?.isNotEmpty == true
-            ? values['mediaId']
-            : mediaId;
-      });
-      _restoring = false;
-    } catch (e) {
-      if (mounted) setState(() => error = SessionViewModel.message(e));
-    }
+  Future<void> restore() async {
+    await editor.restore();
+    if (!mounted) return;
+    title.text = editor.state.value('title');
+    body.text = editor.state.value('body');
+    title.addListener(() => editor.change({'title': title.text}));
+    body.addListener(() => editor.change({'body': body.text}));
+    setState(() => initialized = true);
   }
 
   @override
   void dispose() {
-    _transfers.cancel();
-    _draft.dispose();
+    editor.dispose();
     title.dispose();
     body.dispose();
     super.dispose();
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('Éditer une formation')),
-    body: Content(
-      maxWidth: 760,
-      children: [
-        if (error != null) ...[
-          Notice(error!, error: true),
-          const SizedBox(height: 16),
-        ],
-        TextField(
-          controller: title,
-          decoration: const InputDecoration(labelText: 'Titre'),
-        ),
-        const SizedBox(height: 20),
-        TextField(
-          controller: body,
-          minLines: 8,
-          maxLines: 20,
-          decoration: const InputDecoration(
-            labelText: 'Article ou description',
-          ),
-        ),
-        const SizedBox(height: 20),
-        SegmentedButton<String>(
-          segments: const [
-            ButtonSegment(value: 'article', label: Text('Article')),
-            ButtonSegment(value: 'video', label: Text('Vidéo')),
-          ],
-          selected: {type},
-          onSelectionChanged: (v) {
-            setState(() => type = v.single);
-            persistDraft();
-          },
-        ),
-        if (type == 'video') ...[
-          const SizedBox(height: 20),
-          OutlinedButton.icon(
-            onPressed: busy ? null : upload,
-            icon: const Icon(Icons.upload_file),
-            label: Text(
-              mediaId == null
-                  ? 'Choisir une vidéo'
-                  : 'Remplacer / reprendre une vidéo',
+  Widget build(BuildContext context) => ListenableBuilder(
+    listenable: editor,
+    builder: (context, _) {
+      final state = editor.state;
+      final blocked = state.busy || !initialized;
+      return Scaffold(
+        appBar: AppBar(title: const Text('Éditer une formation')),
+        body: Content(
+          maxWidth: 760,
+          children: [
+            if (state.error != null) Notice(state.error!, error: true),
+            if (state.conflict)
+              OutlinedButton(
+                onPressed: blocked ? null : compareVersion,
+                child: const Text('Comparer avec la version actuelle'),
+              ),
+            if (!initialized) const LinearProgressIndicator(),
+            TextField(
+              controller: title,
+              enabled: initialized && !state.busy,
+              maxLength: 200,
+              decoration: const InputDecoration(labelText: 'Titre'),
             ),
-          ),
-          if (progress != null) ...[
-            const SizedBox(height: 12),
-            LinearProgressIndicator(value: progress),
-            Text('${(progress! * 100).round()} % téléversé'),
-          ],
-          if (mediaId != null)
-            TextButton(
-              onPressed: checkMedia,
-              child: const Text('Vérifier le traitement du média'),
+            const SizedBox(height: 16),
+            TextField(
+              controller: body,
+              enabled: initialized && !state.busy,
+              minLines: 6,
+              maxLines: 15,
+              decoration: const InputDecoration(
+                labelText: 'Article ou description',
+              ),
             ),
-        ],
-        const SizedBox(height: 20),
-        DropdownButtonFormField<String>(
-          initialValue: status,
-          items: const [
-            DropdownMenuItem(value: 'draft', child: Text('Brouillon')),
-            DropdownMenuItem(value: 'published', child: Text('Publié')),
-            DropdownMenuItem(value: 'archived', child: Text('Archivé')),
+            const SizedBox(height: 20),
+            Wrap(
+              spacing: 8,
+              children: [
+                for (final type in ['article', 'video'])
+                  ChoiceChip(
+                    label: Text(type == 'article' ? 'Article' : 'Vidéo'),
+                    selected: state.value('type') == type,
+                    onSelected: blocked
+                        ? null
+                        : (_) => editor.change({'type': type}),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            OutlinedButton.icon(
+              onPressed: blocked ? null : associate,
+              icon: const Icon(Icons.link),
+              label: const Text('Associer des produits'),
+            ),
+            Wrap(
+              spacing: 8,
+              children: editor.productIds
+                  .map((id) => Chip(label: Text(widget.vm.productName(id))))
+                  .toList(),
+            ),
+            if (state.value('type') == 'video') ...[
+              OutlinedButton.icon(
+                onPressed: blocked ? null : upload,
+                icon: const Icon(Icons.upload_file),
+                label: const Text('Choisir une vidéo'),
+              ),
+              if (state.value('filePath').isNotEmpty &&
+                  state.value('mediaStatus') != 'ready')
+                TextButton(
+                  onPressed: blocked
+                      ? null
+                      : () => editor.upload(
+                          state.value('filePath'),
+                          state.value('fileName'),
+                        ),
+                  child: const Text('Reprendre le transfert'),
+                ),
+              if (state.progress != null) ...[
+                LinearProgressIndicator(value: state.progress),
+                Text('${(state.progress! * 100).round()} % téléversé'),
+              ],
+              if (state.value('mediaId').isNotEmpty) ...[
+                Text(mediaStatusLabel(state.value('mediaStatus'))),
+                TextButton(
+                  onPressed: blocked ? null : editor.checkMedia,
+                  child: const Text('Vérifier le traitement'),
+                ),
+                TextButton(
+                  onPressed: blocked
+                      ? null
+                      : () => editor.change({
+                          'mediaId': '',
+                          'mediaStatus': '',
+                          'filePath': '',
+                          'fileName': '',
+                        }),
+                  child: const Text('Retirer la vidéo'),
+                ),
+              ],
+            ],
+            const SizedBox(height: 16),
+            DropdownButtonFormField<String>(
+              key: ValueKey(state.value('status')),
+              initialValue: state.value('status'),
+              isExpanded: true,
+              items: const [
+                DropdownMenuItem(value: 'draft', child: Text('Brouillon')),
+                DropdownMenuItem(value: 'published', child: Text('Publié')),
+                DropdownMenuItem(value: 'archived', child: Text('Archivé')),
+              ],
+              onChanged: blocked
+                  ? null
+                  : (value) => editor.change({'status': value!}),
+              decoration: const InputDecoration(labelText: 'Visibilité'),
+            ),
+            const SizedBox(height: 20),
+            OutlinedButton.icon(
+              onPressed: !initialized
+                  ? null
+                  : () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => TrainingReader(
+                          vm: widget.vm,
+                          article: editor.preview(),
+                          preview: true,
+                          mediaReady: state.value('mediaStatus') == 'ready',
+                        ),
+                      ),
+                    ),
+              icon: const Icon(Icons.visibility_outlined),
+              label: const Text('Aperçu du contenu'),
+            ),
+            FilledButton(
+              onPressed: blocked || state.conflict
+                  ? null
+                  : () async {
+                      if (await editor.save() && context.mounted) {
+                        Navigator.pop(context);
+                      }
+                    },
+              child: const Text('Enregistrer le contenu'),
+            ),
           ],
-          onChanged: (v) {
-            setState(() => status = v!);
-            persistDraft();
-          },
-          decoration: const InputDecoration(labelText: 'Visibilité'),
         ),
-        const SizedBox(height: 24),
-        FilledButton(
-          onPressed: busy ? null : save,
-          child: const Text('Enregistrer le contenu'),
-        ),
-      ],
-    ),
-  );
-  Future<void> checkMedia() async {
-    try {
-      final asset = await widget.vm.request(
-        'GET',
-        '/v1/media/uploads/$mediaId',
       );
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('État du média : ${asset['status']}')),
-        );
-      }
-    } catch (e) {
-      if (mounted) setState(() => error = SessionViewModel.message(e));
-    }
+    },
+  );
+  Future<void> compareVersion() async {
+    final current = await editor.currentVersion();
+    if (!mounted || current == null) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Version actuelle sur le serveur'),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('${current['title']}'),
+              Text(TrainingText.plain(current['body'] ?? '')),
+              const SizedBox(height: 16),
+              const Text(
+                'Votre brouillon est conservé. Confirmez pour appliquer vos modifications à cette version lors du prochain enregistrement.',
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Continuer à comparer'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Conserver mes modifications'),
+          ),
+        ],
+      ),
+    );
+    if (mounted && confirmed == true) editor.confirmVersion(current);
   }
 
   Future<void> upload() async {
-    final binding = widget.vm.api.binding;
-    final chosen = await FilePicker.pickFiles(type: FileType.video);
-    final filePath = chosen.isEmpty ? null : chosen.single.path;
-    if (filePath == null) return;
-    setState(() {
-      busy = true;
-      error = null;
-    });
-    try {
-      widget.vm.api.requireBinding(binding);
-      final vm = widget.vm,
-          file = File(filePath),
-          size = await File(filePath).length();
-      final cached = await vm.repository.draft(
-        vm.user.id,
-        '',
-        'upload:$filePath',
-      );
-      Json asset;
-      if (cached != null && cached['size'] == size) {
-        asset = Map<String, dynamic>.from(
-          await vm.request('GET', '/v1/media/uploads/${cached['id']}'),
-        );
-      } else {
-        asset = Map<String, dynamic>.from(
-          await vm.request(
-            'POST',
-            '/v1/media/uploads',
-            body: {
-              'fileName': chosen.single.name,
-              'mime': filePath.toLowerCase().endsWith('.mov')
-                  ? 'video/quicktime'
-                  : 'video/mp4',
-              'size': size,
-            },
-          ),
-        );
-        await vm.repository.saveDraft(vm.user.id, '', 'upload:$filePath', {
-          'id': asset['id'],
-          'size': size,
-        });
-      }
-      mediaId = asset['id'];
-      persistDraft();
-      var offset = integer(asset['received']);
-      final handle = await file.open();
-      try {
-        while (offset < size) {
-          if (!mounted) break;
-          vm.api.requireBinding(binding);
-          await handle.setPosition(offset);
-          final chunk = await handle.read(4 * 1024 * 1024);
-          final response = await vm.api.http.put(
-            '/v1/media/uploads/$mediaId',
-            data: Stream.value(chunk),
-            cancelToken: _transfers,
-            options: Options(
-              headers: {
-                'Authorization': binding.authorization,
-                'Content-Type': 'application/octet-stream',
-                'Upload-Offset': '$offset',
-                'Content-Length': '${chunk.length}',
-              },
-            ),
-          );
-          vm.api.requireBinding(binding);
-          offset = integer(response.data['received']);
-          if (mounted) setState(() => progress = offset / size);
-        }
-      } finally {
-        await handle.close();
-      }
-    } catch (e) {
-      if (mounted) setState(() => error = SessionViewModel.message(e));
-    } finally {
-      if (mounted) setState(() => busy = false);
-    }
+    final selected = await FilePicker.pickFiles(type: FileType.video);
+    if (!mounted || selected.isEmpty || selected.single.path == null) return;
+    await editor.upload(selected.single.path!, selected.single.name);
   }
 
-  Future<void> save() async {
-    setState(() => busy = true);
-    try {
-      await _draft.change(draftValues());
-      await widget.vm.request(
-        'POST',
-        '/v1/training',
-        body: {
-          if (widget.article != null) 'id': widget.article!['id'],
-          if (widget.article != null)
-            'expectedVersion': widget.article!['version'],
-          'title': title.text,
-          'body': body.text,
-          'type': type,
-          'status': status,
-          if (mediaId != null) 'mediaId': mediaId,
-          'productIds': widget.article?['productIds'] ?? [],
-        },
-      );
-      await _draft.complete();
-      if (mounted) Navigator.pop(context);
-    } catch (e) {
-      if (mounted) setState(() => error = SessionViewModel.message(e));
-    } finally {
-      if (mounted) setState(() => busy = false);
+  Future<void> associate() async {
+    final chosen = await showModalBottomSheet<List<String>>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      builder: (_) => ProductAssociationSheet(
+        products: widget.vm.state.data?.products ?? [],
+        selected: editor.productIds,
+      ),
+    );
+    if (chosen != null && mounted) {
+      editor.change({'productIds': jsonEncode(chosen)});
     }
+  }
+}
+
+String mediaStatusLabel(String status) => switch (status) {
+  'uploading' => 'Transfert en cours',
+  'processing' => 'Vidéo reçue · Traitement en cours',
+  'ready' => 'Vidéo prête à publier',
+  'failed' => 'Traitement échoué · Choisissez un autre fichier',
+  _ => 'État du média à vérifier',
+};
+String publicationLabel(String status) => switch (status) {
+  'published' => 'Publié',
+  'archived' => 'Archivé',
+  _ => 'Brouillon',
+};
+
+class ProductAssociationSheet extends StatefulWidget {
+  final List<Product> products;
+  final List<String> selected;
+  const ProductAssociationSheet({
+    super.key,
+    required this.products,
+    required this.selected,
+  });
+  @override
+  State<ProductAssociationSheet> createState() =>
+      _ProductAssociationSheetState();
+}
+
+class _ProductAssociationSheetState extends State<ProductAssociationSheet> {
+  late final selected = widget.selected.toSet();
+  String query = '';
+  @override
+  Widget build(BuildContext context) {
+    final products = widget.products
+        .where(
+          (p) => '${p.name} ${p.reference}'.toLowerCase().contains(
+            query.toLowerCase(),
+          ),
+        )
+        .toList();
+    return SizedBox(
+      height: MediaQuery.sizeOf(context).height * .8,
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(
+          20,
+          20,
+          20,
+          20 + MediaQuery.viewInsetsOf(context).bottom,
+        ),
+        child: ListView.builder(
+          itemCount: products.length + 3,
+          itemBuilder: (context, index) {
+            if (index == 0) return const SectionTitle('Produits associés');
+            if (index == 1) {
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 16),
+                child: TextField(
+                  onChanged: (value) => setState(() => query = value),
+                  decoration: const InputDecoration(
+                    labelText: 'Rechercher un produit',
+                  ),
+                ),
+              );
+            }
+            if (index == products.length + 2) {
+              return FilledButton(
+                onPressed: () => Navigator.pop(context, selected.toList()),
+                child: Text('Associer ${selected.length} produit(s)'),
+              );
+            }
+            final product = products[index - 2];
+            return CheckboxListTile(
+              value: selected.contains(product.id),
+              title: Text(product.name),
+              subtitle: Text(product.reference),
+              onChanged: (value) => setState(
+                () => value == true
+                    ? selected.add(product.id)
+                    : selected.remove(product.id),
+              ),
+            );
+          },
+        ),
+      ),
+    );
   }
 }
 
 class TrainingReader extends StatefulWidget {
   final WorkspaceViewModel vm;
   final Json article;
-  const TrainingReader({super.key, required this.vm, required this.article});
+  final bool preview, mediaReady;
+  const TrainingReader({
+    super.key,
+    required this.vm,
+    required this.article,
+    this.preview = false,
+    this.mediaReady = true,
+  });
   @override
   State<TrainingReader> createState() => _TrainingReaderState();
 }
 
-class _TrainingReaderState extends State<TrainingReader> {
-  final _transfers = CancelToken();
+class _TrainingReaderState extends State<TrainingReader>
+    with WidgetsBindingObserver {
+  late final downloads = MediaDownloadRepository(
+    widget.vm.repository,
+    widget.vm.api,
+  );
+  final transfers = CancelToken();
   VideoPlayerController? player;
   String? error;
-  bool ready = false;
+  bool ready = false, downloading = false, offlineReady = false;
   double? progress;
+  int generation = 0;
   @override
   void initState() {
     super.initState();
-    initialize();
+    WidgetsBinding.instance.addObserver(this);
+    unawaited(initialize());
   }
 
-  Future<File> target() async {
-    final d = await getApplicationSupportDirectory();
-    return File(
-      '${d.path}/${widget.vm.user.id}-${widget.article['mediaId']}.mp4',
-    );
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state != AppLifecycleState.resumed) unawaited(player?.pause());
   }
 
   Future<void> initialize() async {
-    if (widget.article['type'] != 'video') return;
-    final binding = widget.vm.api.binding;
+    if (widget.article['type'] != 'video' ||
+        !widget.mediaReady ||
+        widget.article['mediaId'] == null) {
+      return;
+    }
+    final run = ++generation, binding = widget.vm.api.binding;
+    final previous = player;
+    player = null;
+    await previous?.dispose();
+    if (!mounted || run != generation) return;
+    setState(() {
+      ready = false;
+      error = null;
+    });
     try {
-      final file = await target();
-      final cached = await file.exists();
-      if (!mounted) return;
+      final cached = await downloads.cached(
+        widget.vm.user.id,
+        widget.article['mediaId'],
+      );
+      if (!mounted || run != generation) return;
       widget.vm.api.requireBinding(binding);
-      final controller = cached
-          ? VideoPlayerController.file(file)
+      final controller = cached != null
+          ? VideoPlayerController.file(cached)
           : VideoPlayerController.networkUrl(
-              Uri.parse(
-                '${widget.vm.api.http.options.baseUrl}/v1/media/${widget.article['mediaId']}',
-              ),
+              Uri.parse(widget.vm.api.http.options.baseUrl)
+                  .resolve('/v1/media/${widget.article['mediaId']}'),
               httpHeaders: {
                 if (binding.authorization != null)
                   'Authorization': binding.authorization!,
@@ -493,11 +578,16 @@ class _TrainingReaderState extends State<TrainingReader> {
             );
       player = controller;
       await controller.initialize();
-      if (mounted) setState(() => ready = true);
+      if (!mounted || run != generation) return;
+      widget.vm.api.requireBinding(binding);
+      setState(() {
+        ready = true;
+        offlineReady = cached != null;
+      });
     } catch (e) {
-      if (mounted) {
+      if (mounted && run == generation) {
         setState(
-          () => error = 'La vidéo est indisponible. Téléchargez-la lorsque la connexion sera rétablie.',
+          () => error = 'La vidéo est indisponible. Reprenez le téléchargement lorsque la connexion sera rétablie.',
         );
       }
     }
@@ -505,21 +595,35 @@ class _TrainingReaderState extends State<TrainingReader> {
 
   @override
   void dispose() {
-    _transfers.cancel();
-    player?.dispose();
+    generation++;
+    WidgetsBinding.instance.removeObserver(this);
+    transfers.cancel();
+    unawaited(player?.dispose());
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('Formation')),
+    appBar: AppBar(
+      title: Text(widget.preview ? 'Aperçu de la formation' : 'Formation'),
+    ),
     body: Content(
       maxWidth: 840,
       children: [
         SectionTitle(widget.article['title']),
+        Wrap(
+          spacing: 8,
+          children: List<String>.from(widget.article['productIds'] ?? [])
+              .map((id) => Chip(label: Text(widget.vm.productName(id))))
+              .toList(),
+        ),
         if (error != null) Notice(error!, error: true),
         if (widget.article['type'] == 'video') ...[
-          if (ready) ...[
+          if (!widget.mediaReady || widget.article['mediaId'] == null)
+            const Notice(
+              'La vidéo sera disponible après la fin de son transfert et de son traitement.',
+            )
+          else if (ready) ...[
             AspectRatio(
               aspectRatio: player!.value.aspectRatio,
               child: VideoPlayer(player!),
@@ -546,50 +650,52 @@ class _TrainingReaderState extends State<TrainingReader> {
             ),
           ] else if (error == null)
             const Center(child: CircularProgressIndicator()),
-          const SizedBox(height: 16),
-          OutlinedButton.icon(
-            onPressed: download,
-            icon: const Icon(Icons.download_outlined),
-            label: const Text('Télécharger pour consulter hors ligne'),
-          ),
-          if (progress != null) LinearProgressIndicator(value: progress),
+          if (!widget.preview) ...[
+            OutlinedButton.icon(
+              onPressed: downloading || offlineReady ? null : download,
+              icon: Icon(
+                offlineReady ? Icons.download_done : Icons.download_outlined,
+              ),
+              label: Text(
+                offlineReady
+                    ? 'Vidéo disponible hors ligne'
+                    : 'Télécharger ou reprendre hors ligne',
+              ),
+            ),
+            if (progress != null) ...[
+              LinearProgressIndicator(value: progress),
+              Text('${(progress! * 100).round()} % téléchargé'),
+            ],
+          ],
         ],
         const SizedBox(height: 20),
         SelectableText(
-          widget.article['body']
-              .toString()
-              .replaceAll(RegExp(r'</(p|h2|h3|li)>'), '\n\n')
-              .replaceAll(RegExp('<[^>]*>'), ''),
+          TrainingText.plain(widget.article['body'] ?? ''),
           style: Theme.of(context).textTheme.bodyLarge,
         ),
       ],
     ),
   );
   Future<void> download() async {
-    final binding = widget.vm.api.binding;
+    if (downloading) return;
+    setState(() {
+      downloading = true;
+      error = null;
+    });
     try {
-      final file = await target();
-      final temp = File('${file.path}.part');
-      await widget.vm.api.http.download(
-        '/v1/media/${widget.article['mediaId']}',
-        temp.path,
-        cancelToken: _transfers,
-        options: Options(headers: {'Authorization': binding.authorization}),
-        onReceiveProgress: (n, total) {
-          if (mounted && total > 0) setState(() => progress = n / total);
+      await downloads.download(
+        widget.vm.user.id,
+        widget.article['mediaId'],
+        transfers,
+        (value) {
+          if (mounted) setState(() => progress = value);
         },
       );
-      widget.vm.api.requireBinding(binding);
-      await temp.rename(file.path);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Vidéo disponible hors ligne sur ce téléphone.'),
-          ),
-        );
-      }
+      if (mounted) await initialize();
     } catch (e) {
       if (mounted) setState(() => error = SessionViewModel.message(e));
+    } finally {
+      if (mounted) setState(() => downloading = false);
     }
   }
 }

@@ -51,7 +51,19 @@ export class MediaProcessor {
   ) {}
   async process(id: string) {
     const media = await this.db.mediaAsset.findUniqueOrThrow({ where: { id } });
-    if (media.status === "ready") return;
+    if (media.status === "ready") {
+      if (!media.sha256 || media.processedSize === null) {
+        const existing = path.join(this.root, media.path);
+        await this.db.mediaAsset.update({
+          where: { id },
+          data: {
+            sha256: await digest(existing),
+            processedSize: BigInt((await stat(existing)).size),
+          },
+        });
+      }
+      return;
+    }
     if (media.status !== "processing") throw new Error("MEDIA_NOT_UPLOADED");
     const source = path.join(this.root, `${media.id}.upload`);
     if (BigInt((await stat(source)).size) !== media.size)

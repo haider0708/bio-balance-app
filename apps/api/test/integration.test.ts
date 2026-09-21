@@ -3,7 +3,10 @@ import { randomUUID } from "node:crypto";
 import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { Database } from "../src/shared/infrastructure/database";
-import { PrismaUnitOfWork, lotIdentity } from "../src/modules/operations/infrastructure/prisma-ledger";
+import {
+  PrismaUnitOfWork,
+  lotIdentity,
+} from "../src/modules/operations/infrastructure/prisma-ledger";
 import { OperationsService } from "../src/modules/operations/application/operations.service";
 import {
   UnitOfWork,
@@ -15,6 +18,8 @@ import {
   Operation,
 } from "../src/modules/operations/domain/contracts";
 import { IdentityService } from "../src/modules/identity/identity.service";
+import { TrainingService } from "../src/modules/training/training.service";
+import { NotificationsService } from "../src/modules/notifications/notifications.service";
 import { WorkspaceService } from "../src/modules/tenancy/workspace.service";
 process.env.DATABASE_URL =
   process.env.TEST_APP_DATABASE_URL ??
@@ -48,7 +53,12 @@ const foreign: Actor = {
   email: `test-${randomUUID()}@example.test`,
   platformAdmin: false,
 };
-const admin: Actor = {...actor, id:randomUUID(), email:`admin-${randomUUID()}@example.test`, platformAdmin:true};
+const admin: Actor = {
+  ...actor,
+  id: randomUUID(),
+  email: `admin-${randomUUID()}@example.test`,
+  platformAdmin: true,
+};
 const org = randomUUID(),
   store = randomUUID(),
   otherStore = randomUUID(),
@@ -72,7 +82,7 @@ beforeAll(async () => {
         email: a.email,
         name: a.name,
         passwordHash: "test-only-not-a-login",
-        platformAdmin:a.platformAdmin,
+        platformAdmin: a.platformAdmin,
       },
     });
   await owner.organization.create({
@@ -413,192 +423,893 @@ describe.sequential(
       ).toBe(true);
     });
     it("receives a shared delivery once and leaves shortages available for a follow-up", async () => {
-      const orderId=randomUUID(), deliveryId=randomUUID();
-      expect((await service.submit(actor,op({type:'order.create',orderId,lines:[{productId:product,quantity:10}]}))).status).toBe('accepted');
-      const before=(await owner.inventoryLot.findUniqueOrThrow({where:{id:lotId}})).sellable;
-      expect((await service.submit(admin,op({type:'delivery.dispatch',orderId,deliveryId,lines:[{productId:product,quantity:10}]},1))).status).toBe('accepted');
-      expect((await owner.inventoryLot.findUniqueOrThrow({where:{id:lotId}})).sellable).toBe(before);
-      expect((await workspace.fulfillment(actor, org, store, orderId)).lines).toEqual([
-        {productId:product,ordered:10,received:0,inTransit:10,remainingToDispatch:0,remainingToReceive:10}]);
-      const receipt=op({type:'delivery.receive',deliveryId,note:'Two missing',lines:[{productId:product,batch:'T1',expiry:'2027-12',quantity:8}]},1);
-      const outcomes=await Promise.all([service.submit(seller,receipt),service.submit(actor,{...receipt,operationId:randomUUID()})]);
-      expect(outcomes.filter(r=>r.status==='accepted')).toHaveLength(1);
-      expect(await owner.deliveryReceipt.count({where:{deliveryId}})).toBe(1);
-      expect((await owner.inventoryLot.findUniqueOrThrow({where:{id:lotId}})).sellable).toBe(before+8);
-      const order=await owner.replenishmentOrder.findUniqueOrThrow({where:{id:orderId}});
-      expect(order.status).toBe('partial');
-      expect((await workspace.fulfillment(admin, org, store, orderId)).lines[0]).toMatchObject({received:8,inTransit:0,remainingToDispatch:2,remainingToReceive:2});
+      const orderId = randomUUID(),
+        deliveryId = randomUUID();
+      expect(
+        (
+          await service.submit(
+            actor,
+            op({
+              type: "order.create",
+              orderId,
+              lines: [{ productId: product, quantity: 10 }],
+            }),
+          )
+        ).status,
+      ).toBe("accepted");
+      const before = (
+        await owner.inventoryLot.findUniqueOrThrow({ where: { id: lotId } })
+      ).sellable;
+      expect(
+        (
+          await service.submit(
+            admin,
+            op(
+              {
+                type: "delivery.dispatch",
+                orderId,
+                deliveryId,
+                lines: [{ productId: product, quantity: 10 }],
+              },
+              1,
+            ),
+          )
+        ).status,
+      ).toBe("accepted");
+      expect(
+        (await owner.inventoryLot.findUniqueOrThrow({ where: { id: lotId } }))
+          .sellable,
+      ).toBe(before);
+      expect(
+        (await workspace.fulfillment(actor, org, store, orderId)).lines,
+      ).toEqual([
+        {
+          productId: product,
+          ordered: 10,
+          received: 0,
+          inTransit: 10,
+          remainingToDispatch: 0,
+          remainingToReceive: 10,
+        },
+      ]);
+      const receipt = op(
+        {
+          type: "delivery.receive",
+          deliveryId,
+          note: "Two missing",
+          lines: [
+            { productId: product, batch: "T1", expiry: "2027-12", quantity: 8 },
+          ],
+        },
+        1,
+      );
+      const outcomes = await Promise.all([
+        service.submit(seller, receipt),
+        service.submit(actor, { ...receipt, operationId: randomUUID() }),
+      ]);
+      expect(outcomes.filter((r) => r.status === "accepted")).toHaveLength(1);
+      expect(await owner.deliveryReceipt.count({ where: { deliveryId } })).toBe(
+        1,
+      );
+      expect(
+        (await owner.inventoryLot.findUniqueOrThrow({ where: { id: lotId } }))
+          .sellable,
+      ).toBe(before + 8);
+      const order = await owner.replenishmentOrder.findUniqueOrThrow({
+        where: { id: orderId },
+      });
+      expect(order.status).toBe("partial");
+      expect(
+        (await workspace.fulfillment(admin, org, store, orderId)).lines[0],
+      ).toMatchObject({
+        received: 8,
+        inTransit: 0,
+        remainingToDispatch: 2,
+        remainingToReceive: 2,
+      });
       const snapshot = await workspace.snapshot(actor, org, store);
-      expect(snapshot.orders.find(o => o.id === orderId)?.fulfillment?.[0].remainingToDispatch).toBe(2);
-      await expect(workspace.fulfillment(foreign, org, store, orderId)).rejects.toThrow();
-      const followup=randomUUID();
-      expect((await service.submit(admin,op({type:'delivery.dispatch',orderId,deliveryId:followup,lines:[{productId:product,quantity:2}]},order.version))).status).toBe('accepted');
-      expect((await service.submit(seller,op({type:'delivery.receive',deliveryId:followup,note:'Complete',lines:[{productId:product,batch:'T1',expiry:'2027-12',quantity:2}]},1))).status).toBe('accepted');
-      expect((await owner.replenishmentOrder.findUniqueOrThrow({where:{id:orderId}})).status).toBe('received');
-      expect((await owner.inventoryLot.findUniqueOrThrow({where:{id:lotId}})).sellable).toBe(before+10);
+      expect(
+        snapshot.orders.find((o) => o.id === orderId)?.fulfillment?.[0]
+          .remainingToDispatch,
+      ).toBe(2);
+      await expect(
+        workspace.fulfillment(foreign, org, store, orderId),
+      ).rejects.toThrow();
+      const followup = randomUUID();
+      expect(
+        (
+          await service.submit(
+            admin,
+            op(
+              {
+                type: "delivery.dispatch",
+                orderId,
+                deliveryId: followup,
+                lines: [{ productId: product, quantity: 2 }],
+              },
+              order.version,
+            ),
+          )
+        ).status,
+      ).toBe("accepted");
+      expect(
+        (
+          await service.submit(
+            seller,
+            op(
+              {
+                type: "delivery.receive",
+                deliveryId: followup,
+                note: "Complete",
+                lines: [
+                  {
+                    productId: product,
+                    batch: "T1",
+                    expiry: "2027-12",
+                    quantity: 2,
+                  },
+                ],
+              },
+              1,
+            ),
+          )
+        ).status,
+      ).toBe("accepted");
+      expect(
+        (
+          await owner.replenishmentOrder.findUniqueOrThrow({
+            where: { id: orderId },
+          })
+        ).status,
+      ).toBe("received");
+      expect(
+        (await owner.inventoryLot.findUniqueOrThrow({ where: { id: lotId } }))
+          .sellable,
+      ).toBe(before + 10);
     });
     it("records a wholly missing delivery once without stock and permits a full replacement", async () => {
-      const orderId=randomUUID(), deliveryId=randomUUID();
-      await service.submit(actor,op({type:'order.create',orderId,lines:[{productId:product,quantity:6}]}));
-      await service.submit(admin,op({type:'delivery.dispatch',orderId,deliveryId,lines:[{productId:product,quantity:6}]},1));
-      const invalid = await service.submit(seller,op({type:'delivery.receive',deliveryId,lines:[],note:'   '},1));
-      expect(invalid.code).toBe('MISSING_DELIVERY_REASON');
-      expect(await owner.deliveryReceipt.count({where:{deliveryId}})).toBe(0);
-      const missing=op({type:'delivery.receive',deliveryId,lines:[],note:'Colis jamais arrivé'},1);
-      const result=await service.submit(seller,missing);
-      expect(result.status).toBe('accepted');
-      expect(await service.submit(seller,missing)).toEqual(result);
-      expect(await owner.deliveryReceipt.count({where:{deliveryId}})).toBe(1);
-      expect(await owner.stockMovement.count({where:{operationId:missing.operationId}})).toBe(0);
-      const receipt=await owner.deliveryReceipt.findUniqueOrThrow({where:{deliveryId}});
-      expect(receipt.differences).toEqual({lines:[{productId:product,expected:6,actual:0}],note:'Colis jamais arrivé'});
-      const remaining=await workspace.fulfillment(actor,org,store,orderId);
-      expect(remaining.lines[0]).toMatchObject({received:0,inTransit:0,remainingToDispatch:6});
-      expect((await service.submit(admin,op({type:'delivery.dispatch',orderId,deliveryId:randomUUID(),lines:[{productId:product,quantity:7}]},remaining.version))).code).toBe('DELIVERY_EXCEEDS_ORDER');
-      expect((await service.submit(admin,op({type:'delivery.dispatch',orderId,deliveryId:randomUUID(),lines:[{productId:product,quantity:6}]},remaining.version))).status).toBe('accepted');
-      expect((await workspace.fulfillment(actor,org,store,orderId)).lines[0].remainingToDispatch).toBe(0);
+      const orderId = randomUUID(),
+        deliveryId = randomUUID();
+      await service.submit(
+        actor,
+        op({
+          type: "order.create",
+          orderId,
+          lines: [{ productId: product, quantity: 6 }],
+        }),
+      );
+      await service.submit(
+        admin,
+        op(
+          {
+            type: "delivery.dispatch",
+            orderId,
+            deliveryId,
+            lines: [{ productId: product, quantity: 6 }],
+          },
+          1,
+        ),
+      );
+      const invalid = await service.submit(
+        seller,
+        op({ type: "delivery.receive", deliveryId, lines: [], note: "   " }, 1),
+      );
+      expect(invalid.code).toBe("MISSING_DELIVERY_REASON");
+      expect(await owner.deliveryReceipt.count({ where: { deliveryId } })).toBe(
+        0,
+      );
+      const missing = op(
+        {
+          type: "delivery.receive",
+          deliveryId,
+          lines: [],
+          note: "Colis jamais arrivé",
+        },
+        1,
+      );
+      const result = await service.submit(seller, missing);
+      expect(result.status).toBe("accepted");
+      expect(await service.submit(seller, missing)).toEqual(result);
+      expect(await owner.deliveryReceipt.count({ where: { deliveryId } })).toBe(
+        1,
+      );
+      expect(
+        await owner.stockMovement.count({
+          where: { operationId: missing.operationId },
+        }),
+      ).toBe(0);
+      const receipt = await owner.deliveryReceipt.findUniqueOrThrow({
+        where: { deliveryId },
+      });
+      expect(receipt.differences).toEqual({
+        lines: [{ productId: product, expected: 6, actual: 0 }],
+        note: "Colis jamais arrivé",
+      });
+      const remaining = await workspace.fulfillment(actor, org, store, orderId);
+      expect(remaining.lines[0]).toMatchObject({
+        received: 0,
+        inTransit: 0,
+        remainingToDispatch: 6,
+      });
+      expect(
+        (
+          await service.submit(
+            admin,
+            op(
+              {
+                type: "delivery.dispatch",
+                orderId,
+                deliveryId: randomUUID(),
+                lines: [{ productId: product, quantity: 7 }],
+              },
+              remaining.version,
+            ),
+          )
+        ).code,
+      ).toBe("DELIVERY_EXCEEDS_ORDER");
+      expect(
+        (
+          await service.submit(
+            admin,
+            op(
+              {
+                type: "delivery.dispatch",
+                orderId,
+                deliveryId: randomUUID(),
+                lines: [{ productId: product, quantity: 6 }],
+              },
+              remaining.version,
+            ),
+          )
+        ).status,
+      ).toBe("accepted");
+      expect(
+        (await workspace.fulfillment(actor, org, store, orderId)).lines[0]
+          .remainingToDispatch,
+      ).toBe(0);
     });
     it("derives setup from saved choices and requires an explicit zero-point confirmation", async () => {
-      const setupStore=randomUUID();
-      await owner.store.create({data:{id:setupStore,organizationId:org,name:'Setup',address:'Test address',city:'Tunis'}});
-      await owner.membership.create({data:{organizationId:org,storeId:setupStore,userId:actor.id,permissions:['manage']}});
-      await expect(workspace.onboarding(actor,org,setupStore,{step:5})).rejects.toThrow('Complétez');
-      let progress=await workspace.onboarding(actor,org,setupStore,{workingAlone:true,expectedVersion:1});
-      expect(progress.onboarding.team).toBe(true);expect(progress.onboarding.stock).toBe(false);
-      progress=await workspace.onboarding(actor,org,setupStore,{noOpeningStock:true,expectedVersion:progress.store.version});
+      const setupStore = randomUUID();
+      await owner.store.create({
+        data: {
+          id: setupStore,
+          organizationId: org,
+          name: "Setup",
+          address: "Test address",
+          city: "Tunis",
+        },
+      });
+      await owner.membership.create({
+        data: {
+          organizationId: org,
+          storeId: setupStore,
+          userId: actor.id,
+          permissions: ["manage"],
+        },
+      });
+      await expect(
+        workspace.onboarding(actor, org, setupStore, { step: 5 }),
+      ).rejects.toThrow("Complétez");
+      let progress = await workspace.onboarding(actor, org, setupStore, {
+        workingAlone: true,
+        expectedVersion: 1,
+      });
+      expect(progress.onboarding.team).toBe(true);
+      expect(progress.onboarding.stock).toBe(false);
+      progress = await workspace.onboarding(actor, org, setupStore, {
+        noOpeningStock: true,
+        expectedVersion: progress.store.version,
+      });
       expect(progress.onboarding.complete).toBe(true);
-      await expect(workspace.configureProduct(actor,org,setupStore,product,{priceMillimes:'1000',threshold:5,pointsPerUnit:0})).rejects.toThrow('Confirmez');
-      expect(await owner.storeProduct.count({where:{storeId:setupStore}})).toBe(0);
-      const config=await workspace.configureProduct(actor,org,setupStore,product,{priceMillimes:'1000',threshold:5,pointsPerUnit:0,zeroPointsConfirmed:true});
+      await expect(
+        workspace.configureProduct(actor, org, setupStore, product, {
+          priceMillimes: "1000",
+          threshold: 5,
+          pointsPerUnit: 0,
+        }),
+      ).rejects.toThrow("Confirmez");
+      expect(
+        await owner.storeProduct.count({ where: { storeId: setupStore } }),
+      ).toBe(0);
+      const config = await workspace.configureProduct(
+        actor,
+        org,
+        setupStore,
+        product,
+        {
+          priceMillimes: "1000",
+          threshold: 5,
+          pointsPerUnit: 0,
+          zeroPointsConfirmed: true,
+        },
+      );
       expect(config.zeroPointsConfirmed).toBe(true);
-      const complete=await workspace.onboarding(actor,org,setupStore,{step:5});
+      const complete = await workspace.onboarding(actor, org, setupStore, {
+        step: 5,
+      });
       expect(complete.store.onboardingStep).toBe(5);
-      const changed=await workspace.updateStore(actor,org,setupStore,{name:'Nouveau nom',address:'Adresse modifiée',city:'Sfax',phone:'12345678',expectedVersion:complete.store.version});
-      expect(changed.name).toBe('Nouveau nom');
-      await expect(workspace.updateStore(actor,org,setupStore,{name:'Obsolète',address:'Test address',city:'Sfax',expectedVersion:complete.store.version})).rejects.toThrow('modifié');
-      await owner.storeProduct.update({where:{id:config.id},data:{zeroPointsConfirmed:false}});
-      expect((await workspace.snapshot(actor,org,setupStore)).onboarding?.complete).toBe(false);
+      const changed = await workspace.updateStore(actor, org, setupStore, {
+        name: "Nouveau nom",
+        address: "Adresse modifiée",
+        city: "Sfax",
+        phone: "12345678",
+        expectedVersion: complete.store.version,
+      });
+      expect(changed.name).toBe("Nouveau nom");
+      await expect(
+        workspace.updateStore(actor, org, setupStore, {
+          name: "Obsolète",
+          address: "Test address",
+          city: "Sfax",
+          expectedVersion: complete.store.version,
+        }),
+      ).rejects.toThrow("modifié");
+      await owner.storeProduct.update({
+        where: { id: config.id },
+        data: { zeroPointsConfirmed: false },
+      });
+      expect(
+        (await workspace.snapshot(actor, org, setupStore)).onboarding?.complete,
+      ).toBe(false);
+    });
+    it("sends deliberate announcements once with a frozen audience and no duplicate audit", async () => {
+      const notifications = new NotificationsService(db, workspace),
+        id = randomUUID();
+      const before = await owner.change.count({ where: { storeId: store } });
+      const results = await Promise.all([
+        notifications.announce(
+          actor,
+          org,
+          store,
+          "Formation",
+          "Nouveau produit",
+          "salespeople",
+          id,
+        ),
+        notifications.announce(
+          actor,
+          org,
+          store,
+          "Formation",
+          "Nouveau produit",
+          "salespeople",
+          id,
+        ),
+      ]);
+      expect(results[0]).toEqual(results[1]);
+      expect(await owner.announcement.count({ where: { id } })).toBe(1);
+      expect(await owner.notification.count({ where: { eventKey: id } })).toBe(
+        2,
+      );
+      expect(await owner.auditEntry.count({ where: { targetId: id } })).toBe(1);
+      expect(await owner.change.count({ where: { storeId: store } })).toBe(
+        before + 1,
+      );
+      await expect(
+        notifications.announce(
+          actor,
+          org,
+          store,
+          "Changed",
+          "Autre texte",
+          "salespeople",
+          id,
+        ),
+      ).rejects.toThrow("autre contenu");
+      await expect(
+        notifications.announce(
+          seller,
+          org,
+          store,
+          "Message",
+          "Interdit",
+          "all",
+          randomUUID(),
+        ),
+      ).rejects.toThrow("responsable");
+    });
+    it("replays training submissions without duplicate content and rejects stale edits", async () => {
+      const training = new TrainingService(db),
+        id = randomUUID(),
+        submissionId = randomUUID();
+      const input = {
+        id,
+        submissionId,
+        expectedVersion: 0,
+        title: "Formation produit",
+        body: "<p>Conseils &amp; usage</p>",
+        type: "article",
+        productIds: [product],
+        status: "draft",
+      };
+      const [first, replay] = await Promise.all([
+        training.save(admin, input),
+        training.save(admin, input),
+      ]);
+      expect(first).toEqual(replay);
+      expect(first.version).toBe(1);
+      expect(await owner.trainingContent.count({ where: { id } })).toBe(1);
+      expect(await owner.auditEntry.count({ where: { targetId: id } })).toBe(1);
+      await expect(training.save(seller, input)).rejects.toThrow("BioBalance");
+      await expect(
+        training.save(admin, { ...input, title: "Different title" }),
+      ).rejects.toThrow("tentative");
+      const published = await training.save(admin, {
+        ...input,
+        submissionId: randomUUID(),
+        expectedVersion: 1,
+        status: "published",
+      });
+      expect(published.version).toBe(2);
+      await expect(
+        training.save(admin, {
+          ...input,
+          submissionId: randomUUID(),
+          expectedVersion: 1,
+        }),
+      ).rejects.toThrow("modifié");
+      expect(await training.save(admin, input)).toEqual(first);
     });
     it("rejects another active seller editing the original seller's sale", async () => {
-      await owner.membership.create({data:{organizationId:org,storeId:store,userId:foreign.id,permissions:['sell']}});
-      const sale=await owner.sale.findUniqueOrThrow({where:{id:saleId}});
-      const result=await service.submit(foreign,op({type:'sale.correct',saleId,occurredAt:sale.occurredAt.toISOString(),reason:'Unauthorized',lines:sale.lines as any},sale.version));
-      expect(result.code).toBe('FORBIDDEN');
-      await owner.membership.update({where:{storeId_userId:{storeId:store,userId:foreign.id}},data:{active:false}});
+      await owner.membership.create({
+        data: {
+          organizationId: org,
+          storeId: store,
+          userId: foreign.id,
+          permissions: ["sell"],
+        },
+      });
+      const sale = await owner.sale.findUniqueOrThrow({
+        where: { id: saleId },
+      });
+      const result = await service.submit(
+        foreign,
+        op(
+          {
+            type: "sale.correct",
+            saleId,
+            occurredAt: sale.occurredAt.toISOString(),
+            reason: "Unauthorized",
+            lines: sale.lines as any,
+          },
+          sale.version,
+        ),
+      );
+      expect(result.code).toBe("FORBIDDEN");
+      await owner.membership.update({
+        where: { storeId_userId: { storeId: store, userId: foreign.id } },
+        data: { active: false },
+      });
     });
-    it("synchronizes changed lots and invalidates a changed global catalog", async()=>{
-      const snapshot=await workspace.snapshot(actor,org,store);
-      expect(snapshot.mode).toBe('snapshot');
-      await service.submit(actor,op({type:'stock.receive',reason:'receipt',lines:[{productId:product,batch:'DELTA',expiry:'2028-01',quantity:3}]}));
-      const delta=await workspace.snapshot(actor,org,store,{cursor:snapshot.cursor,catalogRevision:snapshot.catalogRevision});
-      expect(delta.mode).toBe('delta');
+    it("synchronizes changed lots and invalidates a changed global catalog", async () => {
+      const snapshot = await workspace.snapshot(actor, org, store);
+      expect(snapshot.mode).toBe("snapshot");
+      await service.submit(
+        actor,
+        op({
+          type: "stock.receive",
+          reason: "receipt",
+          lines: [
+            {
+              productId: product,
+              batch: "DELTA",
+              expiry: "2028-01",
+              quantity: 3,
+            },
+          ],
+        }),
+      );
+      const delta = await workspace.snapshot(actor, org, store, {
+        cursor: snapshot.cursor,
+        catalogRevision: snapshot.catalogRevision,
+      });
+      expect(delta.mode).toBe("delta");
       expect(delta.products).toHaveLength(0);
       expect(delta.lots).toHaveLength(1);
-      expect(delta.lots[0]!.batch).toBe('DELTA');
+      expect(delta.lots[0]!.batch).toBe("DELTA");
       expect(delta.lots[0]!.sellable).toBe(3);
-      await owner.product.update({where:{id:product},data:{name:'Changed globally',version:{increment:1}}});
-      const refreshed=await workspace.snapshot(actor,org,store,{cursor:delta.cursor,catalogRevision:delta.catalogRevision});
-      expect(refreshed.mode).toBe('snapshot');
-      expect(refreshed.products.find(p=>p.id===product)?.name).toBe('Changed globally');
+      await owner.product.update({
+        where: { id: product },
+        data: { name: "Changed globally", version: { increment: 1 } },
+      });
+      const refreshed = await workspace.snapshot(actor, org, store, {
+        cursor: delta.cursor,
+        catalogRevision: delta.catalogRevision,
+      });
+      expect(refreshed.mode).toBe("snapshot");
+      expect(refreshed.products.find((p) => p.id === product)?.name).toBe(
+        "Changed globally",
+      );
     });
-    it("removes disabled team access from synchronized data and denies further operations", async()=>{
-      const before=await workspace.snapshot(actor,org,store);
-      await workspace.setMember(actor,org,store,seller.id,{active:false,permissions:['sell','receive']});
-      const delta=await workspace.snapshot(actor,org,store,{cursor:before.cursor,catalogRevision:before.catalogRevision});
-      expect(delta.team.find(m=>m.userId===seller.id)?.active).toBe(false);
-      await expect(workspace.snapshot(seller,org,store)).rejects.toMatchObject({code:'STORE_ACCESS_REVOKED'});
-      await workspace.setMember(actor,org,store,seller.id,{active:true,permissions:['sell','receive']});
+    it("removes disabled team access from synchronized data and denies further operations", async () => {
+      const before = await workspace.snapshot(actor, org, store);
+      await workspace.setMember(actor, org, store, seller.id, {
+        active: false,
+        permissions: ["sell", "receive"],
+      });
+      const delta = await workspace.snapshot(actor, org, store, {
+        cursor: before.cursor,
+        catalogRevision: before.catalogRevision,
+      });
+      expect(delta.team.find((m) => m.userId === seller.id)?.active).toBe(
+        false,
+      );
+      await expect(
+        workspace.snapshot(seller, org, store),
+      ).rejects.toMatchObject({ code: "STORE_ACCESS_REVOKED" });
+      await workspace.setMember(actor, org, store, seller.id, {
+        active: true,
+        permissions: ["sell", "receive"],
+      });
     });
     it("keeps receipt-sale-damage-correction-return versions and ledgers consistent", async () => {
-      const pointsRate = (await owner.storeProduct.findUniqueOrThrow({where:{storeId_productId:{storeId:store,productId:product}}})).pointsPerUnit;
-      const receipt = {...op({type:"stock.receive",reason:"receipt",lines:[{productId:product,batch:"CHAIN",expiry:"2029-12-31",quantity:10}]}),payloadVersion:2 as const,dependencies:[]};
-      const received = await service.submit(actor,receipt);
-      const lot = await owner.inventoryLot.findFirstOrThrow({where:{storeId:store,batch:"CHAIN"}});
+      const pointsRate = (
+        await owner.storeProduct.findUniqueOrThrow({
+          where: { storeId_productId: { storeId: store, productId: product } },
+        })
+      ).pointsPerUnit;
+      const receipt = {
+        ...op({
+          type: "stock.receive",
+          reason: "receipt",
+          lines: [
+            {
+              productId: product,
+              batch: "CHAIN",
+              expiry: "2029-12-31",
+              quantity: 10,
+            },
+          ],
+        }),
+        payloadVersion: 2 as const,
+        dependencies: [],
+      };
+      const received = await service.submit(actor, receipt);
+      const lot = await owner.inventoryLot.findFirstOrThrow({
+        where: { storeId: store, batch: "CHAIN" },
+      });
       expect(lot.version).toBe(2);
-      const sale = randomUUID(), line = randomUUID(), occurredAt = new Date().toISOString();
-      const lines = (quantity:number) => [{id:line,productId:product,quantity,unitPriceMillimes:"1000",allocations:[{lotId:lot.id,quantity}]}];
-      const create = {...op({type:"sale.create",saleId:sale,occurredAt,lines:lines(4)}),payloadVersion:2 as const,dependencies:[receipt.operationId]};
-      expect((await service.submit(actor,create)).status).toBe("accepted");
-      const damage = {...op({type:"stock.damage",lotId:lot.id,quantity:1,reason:"Casse"},3),payloadVersion:2 as const,dependencies:[create.operationId]};
-      expect((await service.submit(actor,damage)).affectedVersions).toContainEqual({resource:"lots",id:lot.id,version:5});
-      const correct = {...op({type:"sale.correct",saleId:sale,occurredAt,lines:lines(3),reason:"Erreur de quantité"},1),payloadVersion:2 as const,dependencies:[damage.operationId]};
-      expect((await service.submit(actor,correct)).status).toBe("accepted");
-      const returned = {...op({type:"sale.return",saleId:sale,reason:"Retour client",lines:[{lineId:line,lotId:lot.id,quantity:1,sellable:true}]},2),payloadVersion:2 as const,dependencies:[correct.operationId]};
-      const accepted = await service.submit(actor,returned);
+      const sale = randomUUID(),
+        line = randomUUID(),
+        occurredAt = new Date().toISOString();
+      const lines = (quantity: number) => [
+        {
+          id: line,
+          productId: product,
+          quantity,
+          unitPriceMillimes: "1000",
+          allocations: [{ lotId: lot.id, quantity }],
+        },
+      ];
+      const create = {
+        ...op({
+          type: "sale.create",
+          saleId: sale,
+          occurredAt,
+          lines: lines(4),
+        }),
+        payloadVersion: 2 as const,
+        dependencies: [receipt.operationId],
+      };
+      expect((await service.submit(actor, create)).status).toBe("accepted");
+      const damage = {
+        ...op(
+          { type: "stock.damage", lotId: lot.id, quantity: 1, reason: "Casse" },
+          3,
+        ),
+        payloadVersion: 2 as const,
+        dependencies: [create.operationId],
+      };
+      expect(
+        (await service.submit(actor, damage)).affectedVersions,
+      ).toContainEqual({ resource: "lots", id: lot.id, version: 5 });
+      const correct = {
+        ...op(
+          {
+            type: "sale.correct",
+            saleId: sale,
+            occurredAt,
+            lines: lines(3),
+            reason: "Erreur de quantité",
+          },
+          1,
+        ),
+        payloadVersion: 2 as const,
+        dependencies: [damage.operationId],
+      };
+      expect((await service.submit(actor, correct)).status).toBe("accepted");
+      const returned = {
+        ...op(
+          {
+            type: "sale.return",
+            saleId: sale,
+            reason: "Retour client",
+            lines: [
+              { lineId: line, lotId: lot.id, quantity: 1, sellable: true },
+            ],
+          },
+          2,
+        ),
+        payloadVersion: 2 as const,
+        dependencies: [correct.operationId],
+      };
+      const accepted = await service.submit(actor, returned);
       expect(accepted.status).toBe("accepted");
-      expect(await service.submit(actor,receipt)).toEqual(received);
-      expect(await service.submit(actor,returned)).toEqual(accepted);
-      expect(await owner.inventoryLot.findUniqueOrThrow({where:{id:lot.id}})).toMatchObject({sellable:7,damaged:1,version:7});
-      expect(await owner.stockMovement.count({where:{lotId:lot.id}})).toBe(6);
-      expect(await owner.saleRevision.count({where:{saleId:sale}})).toBe(3);
-      const entries = await owner.pointsEntry.findMany({where:{storeId:store,sourceId:sale}});
-      expect(entries.reduce((n,e)=>n+e.amount,0n)).toBe(BigInt(pointsRate * 2));
-      const pending = {...op({type:"stock.damage",lotId:lot.id,quantity:1,reason:"Casse"},7),payloadVersion:2 as const,dependencies:[randomUUID()]};
-      expect((await service.submit(actor,pending)).status).toBe("blocked");
-      expect(await owner.stockMovement.count({where:{lotId:lot.id}})).toBe(6);
-      const snapshot = await workspace.snapshot(actor,org,store,undefined,3,[returned.operationId]);
+      expect(await service.submit(actor, receipt)).toEqual(received);
+      expect(await service.submit(actor, returned)).toEqual(accepted);
+      expect(
+        await owner.inventoryLot.findUniqueOrThrow({ where: { id: lot.id } }),
+      ).toMatchObject({ sellable: 7, damaged: 1, version: 7 });
+      expect(
+        await owner.stockMovement.count({ where: { lotId: lot.id } }),
+      ).toBe(6);
+      expect(await owner.saleRevision.count({ where: { saleId: sale } })).toBe(
+        3,
+      );
+      const entries = await owner.pointsEntry.findMany({
+        where: { storeId: store, sourceId: sale },
+      });
+      expect(entries.reduce((n, e) => n + e.amount, 0n)).toBe(
+        BigInt(pointsRate * 2),
+      );
+      const pending = {
+        ...op(
+          { type: "stock.damage", lotId: lot.id, quantity: 1, reason: "Casse" },
+          7,
+        ),
+        payloadVersion: 2 as const,
+        dependencies: [randomUUID()],
+      };
+      expect((await service.submit(actor, pending)).status).toBe("blocked");
+      expect(
+        await owner.stockMovement.count({ where: { lotId: lot.id } }),
+      ).toBe(6);
+      const snapshot = await workspace.snapshot(
+        actor,
+        org,
+        store,
+        undefined,
+        3,
+        [returned.operationId],
+      );
       expect(snapshot.appliedOperationIds).toEqual([returned.operationId]);
-      expect(BigInt(snapshot.cursor)).toBeGreaterThanOrEqual(BigInt(accepted.committedCursor!));
+      expect(BigInt(snapshot.cursor)).toBeGreaterThanOrEqual(
+        BigInt(accepted.committedCursor!),
+      );
     });
     it("freezes snapshot pages and rechecks account, store, expiry and permissions", async () => {
-      await owner.inventoryLot.createMany({data:Array.from({length:505},(_,i)=>({
-        id:randomUUID(),organizationId:org,storeId:store,productId:product,batch:`PAGE-${i}`,expiry:new Date("2029-12-31"),sellable:2,
-      }))});
-      const snapshot = await workspace.snapshot(actor,org,store,undefined,3);
+      await owner.inventoryLot.createMany({
+        data: Array.from({ length: 505 }, (_, i) => ({
+          id: randomUUID(),
+          organizationId: org,
+          storeId: store,
+          productId: product,
+          batch: `PAGE-${i}`,
+          expiry: new Date("2029-12-31"),
+          sellable: 2,
+        })),
+      });
+      const snapshot = await workspace.snapshot(
+        actor,
+        org,
+        store,
+        undefined,
+        3,
+      );
       const token = snapshot.snapshotPages.lots!;
       expect(token).toBeTruthy();
-      const before = await workspace.snapshotPage(actor,org,store,token) as any;
+      const before = (await workspace.snapshotPage(
+        actor,
+        org,
+        store,
+        token,
+      )) as any;
       const target = before.items[0];
-      await service.submit(actor,op({type:"stock.adjust",lotId:target.id,quantity:9,reason:"Comptage"},target.version));
-      expect(await workspace.snapshotPage(actor,org,store,token)).toEqual(before);
-      await expect(workspace.snapshotPage(seller,org,store,token)).rejects.toMatchObject({code:"SNAPSHOT_EXPIRED"});
-      await expect(workspace.snapshotPage(actor,org,otherStore,token)).rejects.toMatchObject({code:"STORE_ACCESS_REVOKED"});
-      await workspace.setMember(actor,org,store,seller.id,{active:false,permissions:["sell"]});
-      await expect(workspace.snapshotPage(seller,org,store,token)).rejects.toMatchObject({code:"STORE_ACCESS_REVOKED"});
-      await workspace.setMember(actor,org,store,seller.id,{active:true,permissions:["sell","receive"]});
-      await owner.syncSnapshotPage.update({where:{id:token},data:{expiresAt:new Date(0)}});
-      await expect(workspace.snapshotPage(actor,org,store,token)).rejects.toMatchObject({code:"SNAPSHOT_EXPIRED"});
+      await service.submit(
+        actor,
+        op(
+          {
+            type: "stock.adjust",
+            lotId: target.id,
+            quantity: 9,
+            reason: "Comptage",
+          },
+          target.version,
+        ),
+      );
+      expect(await workspace.snapshotPage(actor, org, store, token)).toEqual(
+        before,
+      );
+      await expect(
+        workspace.snapshotPage(seller, org, store, token),
+      ).rejects.toMatchObject({ code: "SNAPSHOT_EXPIRED" });
+      await expect(
+        workspace.snapshotPage(actor, org, otherStore, token),
+      ).rejects.toMatchObject({ code: "STORE_ACCESS_REVOKED" });
+      await workspace.setMember(actor, org, store, seller.id, {
+        active: false,
+        permissions: ["sell"],
+      });
+      await expect(
+        workspace.snapshotPage(seller, org, store, token),
+      ).rejects.toMatchObject({ code: "STORE_ACCESS_REVOKED" });
+      await workspace.setMember(actor, org, store, seller.id, {
+        active: true,
+        permissions: ["sell", "receive"],
+      });
+      await owner.syncSnapshotPage.update({
+        where: { id: token },
+        data: { expiresAt: new Date(0) },
+      });
+      await expect(
+        workspace.snapshotPage(actor, org, store, token),
+      ).rejects.toMatchObject({ code: "SNAPSHOT_EXPIRED" });
     });
     it("checks invitation rights in the write transaction and rejects revoked sessions", async () => {
       const identity = new IdentityService(db);
       const email = `invite-${randomUUID()}@example.test`;
-      await owner.membership.update({where:{storeId_userId:{storeId:store,userId:actor.id}},data:{permissions:["sell"]}});
-      await expect(identity.invite(actor,{email,organizationId:org,storeId:store,permissions:["sell"]})).rejects.toMatchObject({code:"FORBIDDEN"});
-      expect(await owner.accessToken.count({where:{email}})).toBe(0);
-      await owner.membership.update({where:{storeId_userId:{storeId:store,userId:actor.id}},data:{permissions:["manage","sell","receive"]}});
-      const invitation = await identity.invite(actor,{email,organizationId:org,storeId:store,permissions:["sell"]});
+      await owner.membership.update({
+        where: { storeId_userId: { storeId: store, userId: actor.id } },
+        data: { permissions: ["sell"] },
+      });
+      await expect(
+        identity.invite(actor, {
+          email,
+          organizationId: org,
+          storeId: store,
+          permissions: ["sell"],
+        }),
+      ).rejects.toMatchObject({ code: "FORBIDDEN" });
+      expect(await owner.accessToken.count({ where: { email } })).toBe(0);
+      await owner.membership.update({
+        where: { storeId_userId: { storeId: store, userId: actor.id } },
+        data: { permissions: ["manage", "sell", "receive"] },
+      });
+      const invitation = await identity.invite(actor, {
+        email,
+        organizationId: org,
+        storeId: store,
+        permissions: ["sell"],
+      });
       expect(invitation.status).toBe("invited");
-      expect(await owner.job.count({where:{key:`invite:${invitation.id}`}})).toBe(1);
-      const session = await owner.session.create({data:{userId:actor.id,tokenHash:randomUUID(),expiresAt:new Date(Date.now()+60_000),revokedAt:new Date()}});
-      const result = await service.submit({...actor,sessionId:session.id},op({type:"stock.receive",reason:"receipt",lines:[{productId:product,batch:"REVOKED",expiry:"2029-12-31",quantity:1}]}));
+      expect(
+        await owner.job.count({ where: { key: `invite:${invitation.id}` } }),
+      ).toBe(1);
+      const session = await owner.session.create({
+        data: {
+          userId: actor.id,
+          tokenHash: randomUUID(),
+          expiresAt: new Date(Date.now() + 60_000),
+          revokedAt: new Date(),
+        },
+      });
+      const result = await service.submit(
+        { ...actor, sessionId: session.id },
+        op({
+          type: "stock.receive",
+          reason: "receipt",
+          lines: [
+            {
+              productId: product,
+              batch: "REVOKED",
+              expiry: "2029-12-31",
+              quantity: 1,
+            },
+          ],
+        }),
+      );
       expect(result.code).toBe("SESSION_EXPIRED");
-      expect(await owner.inventoryLot.count({where:{storeId:store,batch:"REVOKED"}})).toBe(0);
+      expect(
+        await owner.inventoryLot.count({
+          where: { storeId: store, batch: "REVOKED" },
+        }),
+      ).toBe(0);
     });
     it("lets sellers declare a missing batch atomically without incoming stock", async () => {
-      const id = lotIdentity(store,product,"MISSING","2029-12-31"), saleId=randomUUID();
-      const command:Command={type:"sale.create",saleId,occurredAt:new Date().toISOString(),
-        batchDeclarations:[{lotId:id,productId:product,batch:"MISSING",expiry:"2029-12"}],
-        lines:[{id:randomUUID(),productId:product,quantity:2,unitPriceMillimes:"14990",allocations:[{lotId:id,quantity:2}]}]};
-      const operation=op(command);
-      const accepted=await service.submit(seller,operation);
+      const id = lotIdentity(store, product, "MISSING", "2029-12-31"),
+        saleId = randomUUID();
+      const command: Command = {
+        type: "sale.create",
+        saleId,
+        occurredAt: new Date().toISOString(),
+        batchDeclarations: [
+          {
+            lotId: id,
+            productId: product,
+            batch: "MISSING",
+            expiry: "2029-12",
+          },
+        ],
+        lines: [
+          {
+            id: randomUUID(),
+            productId: product,
+            quantity: 2,
+            unitPriceMillimes: "14990",
+            allocations: [{ lotId: id, quantity: 2 }],
+          },
+        ],
+      };
+      const operation = op(command);
+      const accepted = await service.submit(seller, operation);
       expect(accepted.status).toBe("accepted");
-      expect(await service.submit(seller,operation)).toEqual(accepted);
-      expect(await owner.inventoryLot.findUniqueOrThrow({where:{id}})).toMatchObject({sellable:-2,damaged:0,version:2});
-      const movements=await owner.stockMovement.findMany({where:{lotId:id}});
-      expect(movements).toHaveLength(1);expect(movements[0]!.quantity).toBe(-2);expect(movements[0]!.reason).toBe("sale.create");
-      expect(await owner.alert.count({where:{storeId:store,productId:product,kind:"discrepancy",active:true}})).toBe(1);
-      const expiredId=lotIdentity(store,product,"EXPIRED-DECLARATION","2020-01-31");
-      const expired=await service.submit(seller,op({...command,saleId:randomUUID(),
-        batchDeclarations:[{lotId:expiredId,productId:product,batch:"EXPIRED-DECLARATION",expiry:"2020-01"}],
-        lines:[{...command.lines[0]!,allocations:[{lotId:expiredId,quantity:2}]}]}));
+      expect(await service.submit(seller, operation)).toEqual(accepted);
+      expect(
+        await owner.inventoryLot.findUniqueOrThrow({ where: { id } }),
+      ).toMatchObject({ sellable: -2, damaged: 0, version: 2 });
+      const movements = await owner.stockMovement.findMany({
+        where: { lotId: id },
+      });
+      expect(movements).toHaveLength(1);
+      expect(movements[0]!.quantity).toBe(-2);
+      expect(movements[0]!.reason).toBe("sale.create");
+      expect(
+        await owner.alert.count({
+          where: {
+            storeId: store,
+            productId: product,
+            kind: "discrepancy",
+            active: true,
+          },
+        }),
+      ).toBe(1);
+      const expiredId = lotIdentity(
+        store,
+        product,
+        "EXPIRED-DECLARATION",
+        "2020-01-31",
+      );
+      const expired = await service.submit(
+        seller,
+        op({
+          ...command,
+          saleId: randomUUID(),
+          batchDeclarations: [
+            {
+              lotId: expiredId,
+              productId: product,
+              batch: "EXPIRED-DECLARATION",
+              expiry: "2020-01",
+            },
+          ],
+          lines: [
+            {
+              ...command.lines[0]!,
+              allocations: [{ lotId: expiredId, quantity: 2 }],
+            },
+          ],
+        }),
+      );
       expect(expired.code).toBe("LOT_EXPIRED");
-      expect(await owner.inventoryLot.findUnique({where:{id:expiredId}})).toBeNull();
-      const spoofed=randomUUID();
-      const spoof=await service.submit(seller,op({...command,saleId:randomUUID(),
-        batchDeclarations:[{lotId:spoofed,productId:product,batch:"SPOOF",expiry:"2029-12"}],
-        lines:[{...command.lines[0]!,allocations:[{lotId:spoofed,quantity:2}]}]}));
+      expect(
+        await owner.inventoryLot.findUnique({ where: { id: expiredId } }),
+      ).toBeNull();
+      const spoofed = randomUUID();
+      const spoof = await service.submit(
+        seller,
+        op({
+          ...command,
+          saleId: randomUUID(),
+          batchDeclarations: [
+            {
+              lotId: spoofed,
+              productId: product,
+              batch: "SPOOF",
+              expiry: "2029-12",
+            },
+          ],
+          lines: [
+            {
+              ...command.lines[0]!,
+              allocations: [{ lotId: spoofed, quantity: 2 }],
+            },
+          ],
+        }),
+      );
       expect(spoof.code).toBe("INVALID_LOT_IDENTITY");
-      expect(await owner.inventoryLot.findUnique({where:{id:spoofed}})).toBeNull();
+      expect(
+        await owner.inventoryLot.findUnique({ where: { id: spoofed } }),
+      ).toBeNull();
     });
     it("rejects editing append-only histories at database level", async () => {
       const movement = await owner.stockMovement.findFirstOrThrow({

@@ -305,6 +305,8 @@ model AuditEntry {
   @@index([storeId,createdAt])
 }
 model Announcement {
+  payloadHash String?
+  recipientCount Int @default(0)
   id String @id @default(uuid()) @db.Uuid
   organizationId String @db.Uuid
   storeId String @db.Uuid
@@ -391,4 +393,14 @@ model SyncSnapshotPage {
   payload Json
   @@index([expiresAt])
   @@index([storeId, actorId])
+}
+
+model ContentSubmission {
+  id String @id @db.Uuid
+  actorId String @db.Uuid
+  contentId String @db.Uuid
+  payloadHash String
+  result Json
+  createdAt DateTime @default(now())
+  @@index([actorId,contentId])
 }

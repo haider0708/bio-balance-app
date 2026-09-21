@@ -261,6 +261,16 @@ class ApiClient extends SessionTransport {
     Map<String, dynamic>? query,
     dynamic body,
   }) => request('POST', '/v1/training', query: query, body: body);
+  Future<dynamic> trainingControllerGet({
+    required String id,
+    Map<String, dynamic>? query,
+    dynamic body,
+  }) => request(
+    'GET',
+    '/v1/training/${Uri.encodeComponent(id)}',
+    query: query,
+    body: body,
+  );
   Future<dynamic> trainingControllerStart({
     Map<String, dynamic>? query,
     dynamic body,
@@ -282,6 +292,16 @@ class ApiClient extends SessionTransport {
   }) => request(
     'PUT',
     '/v1/media/uploads/${Uri.encodeComponent(id)}',
+    query: query,
+    body: body,
+  );
+  Future<dynamic> trainingControllerMetadata({
+    required String id,
+    Map<String, dynamic>? query,
+    dynamic body,
+  }) => request(
+    'GET',
+    '/v1/media/${Uri.encodeComponent(id)}/metadata',
     query: query,
     body: body,
   );

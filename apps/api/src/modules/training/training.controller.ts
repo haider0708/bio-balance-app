@@ -30,17 +30,21 @@ export class TrainingController {
       z
         .object({
           id: z.uuid().optional(),
+          submissionId: z.uuid().optional(),
           title: z.string().trim().min(3).max(200),
           body: z.string().max(100_000),
           type: z.enum(["article", "video"]),
-          mediaId: z.uuid().optional(),
+          mediaId: z.uuid().nullable().optional(),
           productIds: z.array(z.uuid()).max(100).default([]),
           status: z.enum(["draft", "published", "archived"]),
-          expectedVersion: z.number().int().positive().optional(),
+          expectedVersion: z.number().int().min(0).optional(),
         })
         .strict()
         .parse(b),
     );
+  }
+  @Get("training/:id") get(@Req() r: AuthRequest, @Param("id") id: string) {
+    return this.service.get(r.actor, z.uuid().parse(id));
   }
   @Post("media/uploads") start(@Req() r: AuthRequest, @Body() b: unknown) {
     const v = z
@@ -98,6 +102,12 @@ export class TrainingController {
       body,
     );
   }
+  @Get("media/:id/metadata") metadata(
+    @Req() r: AuthRequest,
+    @Param("id") id: string,
+  ) {
+    return this.service.metadata(r.actor, z.uuid().parse(id));
+  }
   @Get("media/:id") async media(
     @Req() r: AuthRequest,
     @Param("id") id: string,
@@ -105,7 +115,10 @@ export class TrainingController {
   ) {
     const file = await this.service.media(r.actor, z.uuid().parse(id));
     response.setHeader("Cache-Control", "private, no-store");
-    if (file.sha256) response.setHeader("X-Content-SHA256", file.sha256);
+    if (file.sha256) {
+      response.setHeader("X-Content-SHA256", file.sha256);
+      response.setHeader("ETag", `"${file.sha256}"`);
+    }
     if (process.env.MEDIA_INTERNAL_REDIRECT === "true") {
       response
         .type(file.mime)

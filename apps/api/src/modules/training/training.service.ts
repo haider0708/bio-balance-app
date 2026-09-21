@@ -1,6 +1,6 @@
-import { Prisma, MediaAsset } from "@prisma/client";
+import { Prisma, MediaAsset, TrainingContent } from "@prisma/client";
 import { Injectable } from "@nestjs/common";
-import { randomUUID } from "node:crypto";
+import { randomUUID, createHash } from "node:crypto";
 import { mkdir, open } from "node:fs/promises";
 import path from "node:path";
 import sanitizeHtml from "sanitize-html";
@@ -31,94 +31,188 @@ export class TrainingService {
       take: 100,
     });
   }
+  async get(actor: Actor, id: string) {
+    const content = await this.db.trainingContent.findFirst({
+      where: { id, ...(!actor.platformAdmin ? { status: "published" } : {}) },
+    });
+    requireRule(content, "NOT_FOUND", "Contenu introuvable.", 404);
+    return content;
+  }
   async save(
     actor: Actor,
     input: {
       id?: string;
+      submissionId?: string;
       title: string;
       body: string;
       type: string;
-      mediaId?: string;
+      mediaId?: string | null;
       productIds: string[];
       status: string;
       expectedVersion?: number;
     },
   ) {
     this.admin(actor);
-    return this.db.$transaction(async (tx) => {
-      this.admin(await this.globalActor(tx, actor));
-      if (input.type === "video")
-        requireRule(input.mediaId, "MEDIA_REQUIRED", "Ajoutez une vidéo.");
-      if (input.mediaId) {
-        const media = await tx.mediaAsset.findUnique({
-          where: { id: input.mediaId },
-        });
-        requireRule(
-          media &&
-            media.ownerId === actor.id &&
-            media.purpose === "training" &&
-            !media.storeId,
-          "MEDIA_NOT_FOUND",
-          "Média introuvable.",
-        );
-        if (input.status === "published")
-          requireRule(
-            media.status === "ready",
-            "MEDIA_PROCESSING",
-            "Le traitement du média doit être terminé avant publication.",
-          );
-      }
-      const { id, expectedVersion, ...values } = input;
-      const data = {
-        ...values,
-        body: sanitizeHtml(values.body, {
-          allowedTags: [
-            "p",
-            "br",
-            "h2",
-            "h3",
-            "strong",
-            "em",
-            "ul",
-            "ol",
-            "li",
-            "blockquote",
-            "a",
-          ],
-          allowedAttributes: { a: ["href", "title"] },
-          allowedSchemes: ["https"],
+    const payloadHash = createHash("sha256")
+      .update(
+        JSON.stringify({
+          id: input.id ?? null,
+          expectedVersion: input.expectedVersion ?? null,
+          title: input.title,
+          body: input.body,
+          type: input.type,
+          mediaId: input.mediaId ?? null,
+          productIds: input.productIds,
+          status: input.status,
         }),
-      };
-      const old = id
-        ? await tx.trainingContent.findUnique({ where: { id } })
-        : null;
-      requireRule(
-        !id || old?.version === expectedVersion,
-        "VERSION_CONFLICT",
-        "Ce contenu a été modifié.",
-        409,
-      );
-      const result = id
-        ? await tx.trainingContent.update({
-            where: { id },
-            data: { ...data, version: { increment: 1 } },
-          })
-        : await tx.trainingContent.create({
-            data: { ...data, authorId: actor.id },
+      )
+      .digest("hex");
+    return this.retrySubmission(() =>
+      this.db.$transaction(
+        async (tx) => {
+          this.admin(await this.globalActor(tx, actor));
+          if (input.submissionId) {
+            const prior = await tx.contentSubmission.findUnique({
+              where: { id: input.submissionId },
+            });
+            if (prior) {
+              requireRule(
+                prior.payloadHash === payloadHash,
+                "SUBMISSION_REUSED",
+                "Ce contenu a changé depuis la tentative précédente.",
+                409,
+              );
+              return prior.result as unknown as Omit<
+                TrainingContent,
+                "updatedAt"
+              > & { updatedAt: string };
+            }
+          }
+          const products = new Set(input.productIds);
+          requireRule(
+            products.size === input.productIds.length &&
+              (await tx.product.count({
+                where: { id: { in: [...products] } },
+              })) === products.size,
+            "PRODUCT_NOT_FOUND",
+            "Vérifiez les produits associés.",
+          );
+          if (input.type === "video")
+            requireRule(input.mediaId, "MEDIA_REQUIRED", "Ajoutez une vidéo.");
+          if (input.mediaId) {
+            const media = await tx.mediaAsset.findUnique({
+              where: { id: input.mediaId },
+            });
+            requireRule(
+              media &&
+                media.ownerId === actor.id &&
+                media.purpose === "training" &&
+                !media.storeId,
+              "MEDIA_NOT_FOUND",
+              "Média introuvable.",
+            );
+            if (input.status === "published")
+              requireRule(
+                media.status === "ready",
+                "MEDIA_PROCESSING",
+                "Le traitement du média doit être terminé avant publication.",
+              );
+          }
+          const { id, expectedVersion, submissionId, ...values } = input;
+          const data = {
+            ...values,
+            body: sanitizeHtml(values.body, {
+              allowedTags: [
+                "p",
+                "br",
+                "h2",
+                "h3",
+                "strong",
+                "em",
+                "ul",
+                "ol",
+                "li",
+                "blockquote",
+                "a",
+              ],
+              allowedAttributes: { a: ["href", "title"] },
+              allowedSchemes: ["https"],
+            }),
+          };
+          const old = id
+            ? await tx.trainingContent.findUnique({ where: { id } })
+            : null;
+          requireRule(
+            input.status !== "published" ||
+              input.type !== "article" ||
+              sanitizeHtml(data.body, {
+                allowedTags: [],
+                allowedAttributes: {},
+              }).trim().length > 0,
+            "CONTENT_REQUIRED",
+            "Renseignez le contenu de l’article avant de publier.",
+          );
+          requireRule(
+            !id ||
+              (old ? old.version === expectedVersion : expectedVersion === 0),
+            "VERSION_CONFLICT",
+            "Ce contenu a été modifié.",
+            409,
+          );
+          const result = old
+            ? await tx.trainingContent.update({
+                where: { id },
+                data: { ...data, version: { increment: 1 } },
+              })
+            : await tx.trainingContent.create({
+                data: { ...data, ...(id ? { id } : {}), authorId: actor.id },
+              });
+          await tx.auditEntry.create({
+            data: {
+              actorId: actor.id,
+              action: "training.save",
+              targetId: result.id,
+              details: json({ status: result.status, version: result.version }),
+            },
           });
-      await tx.auditEntry.create({
-        data: {
-          actorId: actor.id,
-          action: "training.save",
-          targetId: result.id,
-          details: json({ status: result.status, version: result.version }),
+          const response = {
+            ...result,
+            updatedAt: result.updatedAt.toISOString(),
+          };
+          if (submissionId)
+            await tx.contentSubmission.create({
+              data: {
+                id: submissionId,
+                actorId: actor.id,
+                contentId: result.id,
+                payloadHash,
+                result: json(response),
+              },
+            });
+          return response;
         },
-      });
-      return result;
-    });
+        { isolationLevel: "Serializable", timeout: 15000 },
+      ),
+    );
+  }
+  private async retrySubmission<T>(work: () => Promise<T>): Promise<T> {
+    for (let attempt = 0; ; attempt++) {
+      try {
+        return await work();
+      } catch (error) {
+        if (
+          attempt >= 3 ||
+          !(error instanceof Prisma.PrismaClientKnownRequestError) ||
+          !["P2002", "P2034"].includes(error.code)
+        )
+          throw error;
+        await new Promise((resolve) => setTimeout(resolve, 20 * 2 ** attempt));
+      }
+    }
   }
   private async globalActor(tx: Prisma.TransactionClient, actor: Actor) {
     await this.db.verifySession(tx, actor);
+    await tx.$executeRaw`SELECT set_config('app.actor_id',${actor.id},true)`;
     const user = await tx.user.findUnique({ where: { id: actor.id } });
     requireRule(
       user && !user.disabled,
@@ -334,6 +428,32 @@ export class TrainingService {
         });
       return { received, status };
     });
+  }
+  async metadata(actor: Actor, id: string) {
+    const file = await this.media(actor, id);
+    if (!file.sha256 || file.size === null) {
+      await this.db.job.upsert({
+        where: { key: `media-integrity:${id}` },
+        create: {
+          kind: "media",
+          key: `media-integrity:${id}`,
+          payload: { mediaId: id },
+        },
+        update: {},
+      });
+      requireRule(
+        false,
+        "MEDIA_METADATA_PENDING",
+        "Le fichier est en cours de vérification. Réessayez dans un instant.",
+        503,
+      );
+    }
+    return {
+      id,
+      mime: file.mime,
+      size: file.size.toString(),
+      sha256: file.sha256,
+    };
   }
   async media(actor: Actor, id: string) {
     return this.assetTransaction(

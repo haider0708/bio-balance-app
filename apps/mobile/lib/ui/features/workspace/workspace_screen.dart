@@ -4,12 +4,13 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../announcements/announcement_screen.dart';
+
 import '../stores/store_settings_screen.dart';
 
 import 'package:provider/provider.dart';
 
 import '../../core/design.dart';
-import '../../core/forms.dart';
 import '../training/training_screen.dart';
 import 'workspace_view_model.dart';
 import 'operations_screens.dart';
@@ -389,17 +390,18 @@ class MorePage extends StatelessWidget {
           ),
         ),
       const SizedBox(height: 16),
-      Card(
-        child: ListTile(
-          contentPadding: const EdgeInsets.all(16),
-          leading: const Icon(Icons.campaign_outlined, color: darkGreen),
-          title: const Text('Envoyer une annonce'),
-          subtitle: const Text(
-            'Choisissez le message à transmettre à votre équipe.',
+      if (vm.state.store?.canManage == true || vm.user.admin)
+        Card(
+          child: ListTile(
+            contentPadding: const EdgeInsets.all(16),
+            leading: const Icon(Icons.campaign_outlined, color: darkGreen),
+            title: const Text('Envoyer une annonce'),
+            subtitle: const Text(
+              'Choisissez le message à transmettre à votre équipe.',
+            ),
+            onTap: () => announce(context),
           ),
-          onTap: () => announce(context),
         ),
-      ),
       Card(
         child: ListTile(
           contentPadding: const EdgeInsets.all(16),
@@ -414,34 +416,9 @@ class MorePage extends StatelessWidget {
     ],
   );
   Future<void> announce(BuildContext context) async {
-    await openEditor(
+    await Navigator.push(
       context,
-      title: 'Envoyer une annonce',
-      description:
-          'Magasin ciblé : ${vm.state.store!.name}. Les vendeurs reçoivent uniquement les annonces que vous envoyez.',
-      fields: const [
-        FieldSpec('title', 'Titre'),
-        FieldSpec('body', 'Message', multiline: true),
-        FieldSpec(
-          'audience',
-          'Destinataires',
-          initial: 'all',
-          options: {
-            'all': 'Toute l’équipe',
-            'salespeople': 'Vendeurs uniquement',
-          },
-        ),
-      ],
-      submit: (v) async {
-        await vm.repository.saveDraft(
-          vm.user.id,
-          vm.state.store!.id,
-          'announcement',
-          v,
-        );
-        await vm.storeRequest('POST', 'announcements', body: v);
-      },
-      submitLabel: 'Confirmer et envoyer',
+      MaterialPageRoute(builder: (_) => AnnouncementScreen(vm: vm)),
     );
   }
 }

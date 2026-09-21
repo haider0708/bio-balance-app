@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:isolate';
 
 import 'package:crypto/crypto.dart';
 import 'package:dio/dio.dart';
@@ -28,6 +29,12 @@ class MediaUploadRepository {
     final binding = api.binding;
     if (binding.accountId != accountId) {
       throw const AppFailure('ACCOUNT_CHANGED', 'Reconnectez-vous.');
+    }
+    if (!await file.exists()) {
+      throw const AppFailure(
+        'FILE_UNAVAILABLE',
+        'Le fichier n’est plus accessible. Sélectionnez-le de nouveau pour reprendre.',
+      );
     }
     final size = await file.length();
     final image = mime.startsWith('image/');
@@ -59,11 +66,12 @@ class MediaUploadRepository {
         await handle.close();
       }
     }
-    final checksum = (await sha256.bind(file.openRead()).first).toString();
+    final checksum = await fileChecksum(file.path);
     api.requireBinding(binding);
     if (cancel.isCancelled) throw cancel.cancelError!;
     final key = 'upload:$purpose:$name:$size:$checksum';
     final cached = await local.draft(accountId, store?.id ?? '', key);
+    api.requireBinding(binding);
     Json asset;
     if (cached != null && cached['id'] != null) {
       asset = await status(cached['id']);
@@ -117,18 +125,18 @@ class MediaUploadRepository {
             'Le fichier a changé pendant le transfert.',
           );
         }
-        final response = await api.http.put(
+        api.requireBinding(binding);
+        final response = await api.transfer<dynamic>(
+          'PUT',
           '/v1/media/uploads/${asset['id']}',
-          data: Stream.value(bytes),
+          body: Stream.value(bytes),
+          storeId: store?.id,
           cancelToken: cancel,
-          options: Options(
-            headers: {
-              'Authorization': binding.authorization,
-              'Content-Type': 'application/octet-stream',
-              'Upload-Offset': '$offset',
-              'Content-Length': '${bytes.length}',
-            },
-          ),
+          headers: {
+            'Content-Type': 'application/octet-stream',
+            'Upload-Offset': '$offset',
+            'Content-Length': '${bytes.length}',
+          },
         );
         api.requireBinding(binding);
         final next = integer(response.data['received']);
@@ -149,3 +157,7 @@ class MediaUploadRepository {
     return status(asset['id']);
   }
 }
+
+Future<String> fileChecksum(String path) => Isolate.run(
+  () async => (await sha256.bind(File(path).openRead()).first).toString(),
+);

@@ -376,7 +376,7 @@ export class IdentityService {
             payload: {
               to: email,
               subject: "Réinitialiser votre mot de passe BioBalance",
-              text: `Votre code de réinitialisation : ${token}. Valable 30 minutes. Si vous n’avez pas demandé ce changement, ignorez ce message.`,
+              text: `Ouvrez ${process.env.RECOVERY_URL ?? "biobalance://recover"}?token=${encodeURIComponent(token)} ou saisissez votre code de réinitialisation : ${token}. Valable 30 minutes. Si vous n’avez pas demandé ce changement, ignorez ce message.`,
             },
           },
         });
