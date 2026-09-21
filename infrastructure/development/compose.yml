@@ -1,0 +1,20 @@
+name: biobalance-dev
+services:
+  postgres:
+    image: postgres:17.7-alpine
+    environment:
+      POSTGRES_USER: biobalance
+      POSTGRES_PASSWORD: local-development-only
+      POSTGRES_DB: biobalance
+    ports: ['127.0.0.1:54329:5432']
+    volumes: [biobalance-db:/var/lib/postgresql/data]
+    healthcheck:
+      test: ['CMD-SHELL','pg_isready -U biobalance']
+      interval: 3s
+      timeout: 3s
+      retries: 20
+  mailpit:
+    image: axllent/mailpit:v1.27
+    ports: ['127.0.0.1:8029:8025','127.0.0.1:1029:1025']
+volumes:
+  biobalance-db:

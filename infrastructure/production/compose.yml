@@ -1,0 +1,101 @@
+name: biobalance
+x-app: &app
+  image: ${API_IMAGE:?Set an immutable API image tag or digest}
+  restart: unless-stopped
+  env_file: .env
+  networks: [private]
+  secrets:
+    - source: firebase
+      target: firebase-service-account.json
+  read_only: true
+  tmpfs: [/tmp:size=128m]
+  volumes: [media:/var/lib/biobalance/media]
+  environment:
+    NODE_ENV: production
+    MEDIA_ROOT: /var/lib/biobalance/media
+    MEDIA_INTERNAL_REDIRECT: true
+  depends_on:
+    postgres: {condition: service_healthy}
+  logging: {driver: json-file, options: {max-size: 10m, max-file: '5'}}
+services:
+  nginx:
+    image: nginx:1.28.0-alpine
+    restart: unless-stopped
+    ports: ['80:80','443:443']
+    networks: [private]
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./certificates:/etc/nginx/certificates:ro
+      - ./acme:/var/www/acme:ro
+      - media:/var/lib/biobalance/media:ro
+    depends_on: [api1,api2]
+    logging: {driver: json-file, options: {max-size: 10m, max-file: '5'}}
+  api1:
+    <<: *app
+    mem_limit: 1536m
+    cpus: 1.5
+  api2:
+    <<: *app
+    mem_limit: 1536m
+    cpus: 1.5
+  worker:
+    <<: *app
+    command: [node,dist/worker.js]
+    healthcheck:
+      test: [CMD, node, -e, "const fs=require('fs');process.exit(Date.now()-Number(fs.readFileSync('/tmp/biobalance-worker-heartbeat','utf8'))<60000?0:1)"]
+      interval: 30s
+      start_period: 30s
+      timeout: 5s
+      retries: 3
+    mem_limit: 768m
+    cpus: 0.5
+  media-worker:
+    <<: *app
+    image: ${MEDIA_IMAGE:?Set an immutable media image tag or digest}
+    command: [node,dist/worker.js]
+    environment:
+      NODE_ENV: production
+      WORKER_KIND: media
+      MEDIA_ROOT: /var/lib/biobalance/media
+    healthcheck:
+      test: [CMD, node, -e, "const fs=require('fs');process.exit(Date.now()-Number(fs.readFileSync('/tmp/biobalance-worker-heartbeat','utf8'))<60000?0:1)"]
+      interval: 30s
+      start_period: 30s
+      timeout: 5s
+      retries: 3
+    mem_limit: 2g
+    cpus: 2
+    tmpfs: [/tmp:size=512m]
+  postgres:
+    image: postgres:17.7-alpine
+    restart: unless-stopped
+    env_file: .env
+    networks: [private]
+    volumes: [database:/var/lib/postgresql/data]
+    shm_size: 512m
+    mem_limit: 5g
+    cpus: 2
+    command: [postgres,-c,shared_buffers=1GB,-c,work_mem=8MB,-c,max_connections=100,-c,log_min_duration_statement=500]
+    healthcheck:
+      test: [CMD-SHELL,'pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    logging: {driver: json-file, options: {max-size: 10m, max-file: '5'}}
+  migrate:
+    <<: *app
+    profiles: [maintenance]
+    command: [../../node_modules/.bin/prisma,migrate,deploy]
+    environment:
+      DATABASE_URL: ${MIGRATION_DATABASE_URL:?Set migration owner connection}
+    healthcheck: {disable: true}
+networks:
+  private:
+    driver: bridge
+volumes:
+  database:
+  media:
+
+secrets:
+  firebase:
+    file: ${FIREBASE_CREDENTIALS_FILE:?Set service account file path}

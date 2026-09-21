@@ -1,0 +1,12 @@
+[Unit]
+Description=BioBalance local database and media backup
+After=docker.service
+Requires=docker.service
+[Service]
+Type=oneshot
+EnvironmentFile=/etc/biobalance/backup.env
+WorkingDirectory=/opt/biobalance
+ExecStart=/opt/biobalance/scripts/local-backup.sh
+UMask=0077
+Nice=10
+IOSchedulingClass=idle

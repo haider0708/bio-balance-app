@@ -1,0 +1,554 @@
+import 'dart:async';
+
+import 'package:flutter/material.dart';
+
+import '../reporting/history_screen.dart';
+
+import 'package:uuid/uuid.dart';
+
+import '../../../domain/models/models.dart';
+import '../../../domain/models/money.dart';
+import '../../core/design.dart';
+import '../../core/forms.dart';
+import '../sales/sale_screen.dart';
+import '../authentication/session_view_model.dart';
+import '../workspace/workspace_view_model.dart';
+
+class StockPage extends StatefulWidget {
+  final WorkspaceViewModel vm;
+  const StockPage({super.key, required this.vm});
+  @override
+  State<StockPage> createState() => _StockPageState();
+}
+
+class _StockPageState extends State<StockPage> {
+  String query = '', filter = 'all';
+  @override
+  Widget build(BuildContext context) {
+    final vm = widget.vm, data = vm.state.data;
+    final all = data?.products ?? [];
+    final products = all.where((p) {
+      if (!'${p.name} ${p.reference} ${p.barcode}'.toLowerCase().contains(
+        query.toLowerCase(),
+      )) {
+        return false;
+      }
+      final lots = (data!.lotsByProduct[p.id] ?? <InventoryLot>[]);
+      final quantity = lots
+          .where((l) => !l.expired)
+          .fold<int>(0, (s, l) => s + l.sellable.clamp(0, 100000000));
+      return filter == 'all' ||
+          filter == 'low' &&
+              quantity <= integer(data.config(p.id)['threshold']) ||
+          filter == 'expired' && lots.any((l) => l.expired) ||
+          filter == 'discrepancy' && lots.any((l) => l.sellable < 0);
+    }).toList();
+    return Content(
+      children: [
+        SectionTitle(
+          'Stock du magasin',
+          subtitle: 'Les lots, les quantités et les dates au même endroit.',
+          action: FilledButton.icon(
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => ReceiptScreen(vm: vm)),
+            ),
+            icon: const Icon(Icons.add),
+            label: const Text('Entrée de stock'),
+          ),
+        ),
+        TextField(
+          onChanged: (q) => setState(() => query = q),
+          decoration: const InputDecoration(
+            hintText: 'Produit, référence ou code-barres',
+            prefixIcon: Icon(Icons.search),
+          ),
+        ),
+        const SizedBox(height: 16),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            for (final e in {
+              'all': 'Tous',
+              'low': 'Stock faible',
+              'discrepancy': 'À vérifier',
+              'expired': 'Périmés',
+            }.entries)
+              ChoiceChip(
+                label: Text(e.value),
+                selected: filter == e.key,
+                onSelected: (_) => setState(() => filter = e.key),
+              ),
+          ],
+        ),
+        const SizedBox(height: 20),
+        if (products.isEmpty)
+          const EmptyState(
+            title: 'Aucun produit à afficher',
+            description:
+                'Changez les filtres ou ajoutez vos premières références.',
+          ),
+        ...products.map((p) {
+          final lots = (data!.lotsByProduct[p.id] ?? <InventoryLot>[]);
+          final quantity = lots
+              .where((l) => !l.expired)
+              .fold<int>(0, (s, l) => s + l.sellable.clamp(0, 100000000));
+          final low = quantity <= integer(data.config(p.id)['threshold']);
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: Card(
+              child: ListTile(
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
+                leading: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: low
+                        ? const Color(0xFFFFF3DE)
+                        : const Color(0xFFEDF6E9),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    low ? Icons.inventory_2_outlined : Icons.spa_outlined,
+                    color: low ? const Color(0xFF815B12) : darkGreen,
+                  ),
+                ),
+                title: Text(p.name),
+                subtitle: Text(
+                  '${p.reference}\n$quantity unité(s) disponible(s)${low ? ' · À réapprovisionner' : ''}',
+                ),
+                isThreeLine: true,
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => ProductDetail(vm: vm, product: p),
+                  ),
+                ),
+              ),
+            ),
+          );
+        }),
+      ],
+    );
+  }
+}
+
+class ProductDetail extends StatelessWidget {
+  final WorkspaceViewModel vm;
+  final Product product;
+  const ProductDetail({super.key, required this.vm, required this.product});
+  @override
+  Widget build(BuildContext context) => ListenableBuilder(
+    listenable: vm,
+    builder: (context, _) {
+      final data = vm.state.data;
+      if (data == null)
+        return Scaffold(
+          appBar: AppBar(title: Text(product.name)),
+          body: const Center(
+            child: Text('Accès à vérifier. Vos saisies sont conservées.'),
+          ),
+        );
+      final config = data.config(product.id);
+      final lots = (data.lotsByProduct[product.id] ?? <InventoryLot>[]).toList()
+        ..sort((a, b) => a.expiry.compareTo(b.expiry));
+      return Scaffold(
+        appBar: AppBar(title: Text(product.name)),
+        body: Content(
+          maxWidth: 760,
+          children: [
+            SectionTitle(product.reference, subtitle: product.description),
+            Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children: [
+                StatusChip(
+                  'Seuil : ${config['threshold']} unités',
+                  icon: Icons.notifications_outlined,
+                ),
+                StatusChip(
+                  '${config['pointsPerUnit']} points / unité',
+                  icon: Icons.stars_outlined,
+                ),
+              ],
+            ),
+            if (config['pointsConfigured'] != true) ...[
+              const SizedBox(height: 16),
+              const Notice(
+                'Aucun barème configuré : ce produit attribue actuellement zéro point.',
+              ),
+            ],
+            const SizedBox(height: 20),
+            OutlinedButton.icon(
+              onPressed: () => configure(context),
+              icon: const Icon(Icons.tune),
+              label: const Text('Prix, seuil et points'),
+            ),
+            const SizedBox(height: 20),
+            SectionTitle(
+              'Lots et péremptions',
+              action: IconButton(
+                tooltip: 'Historique du stock',
+                icon: const Icon(Icons.history),
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => HistoryScreen(
+                      vm: vm,
+                      resource: 'movements',
+                      title: 'Mouvements de stock',
+                      productId: product.id,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            if (lots.isEmpty)
+              const EmptyState(
+                title: 'Aucun lot enregistré',
+                description: 'Enregistrez votre stock initial ou réceptionnez une livraison.',
+              ),
+            ...lots.map(
+              (lot) => Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Lot ${lot.batch}',
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                        Text('Péremption : ${dateLabel(lot.expiry)}'),
+                        Text(
+                          '${lot.sellable} unités · ${lot.damaged} non vendables',
+                        ),
+                        if (lot.expired)
+                          const StatusChip(
+                            'Périmé · exclu du stock vendable',
+                            icon: Icons.event_busy,
+                          ),
+                        if (lot.sellable < 0)
+                          const Notice(
+                            'Écart de stock : vérifiez la quantité physique.',
+                          ),
+                        Wrap(
+                          spacing: 8,
+                          children: [
+                            TextButton(
+                              onPressed: () => adjust(context, lot, false),
+                              child: const Text('Ajuster'),
+                            ),
+                            TextButton(
+                              onPressed: () => adjust(context, lot, true),
+                              child: const Text('Signaler des dommages'),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    },
+  );
+  Future<void> configure(BuildContext context) async {
+    final config = vm.state.data!.config(product.id);
+    if (await openEditor(
+      context,
+      title: 'Paramétrer le produit',
+      fields: [
+        FieldSpec(
+          'price',
+          'Prix par défaut (TND)',
+          initial: Money(integer(config['priceMillimes'])).input,
+          numeric: true,
+        ),
+        FieldSpec(
+          'threshold',
+          'Seuil de réapprovisionnement',
+          initial: '${config['threshold']}',
+          numeric: true,
+        ),
+        FieldSpec(
+          'points',
+          'Points par unité vendue',
+          initial: '${config['pointsPerUnit']}',
+          numeric: true,
+        ),
+      ],
+      submit: (v) async {
+        await vm.storeRequest(
+          'PATCH',
+          'products/${product.id}',
+          body: {
+            'priceMillimes': Money.parse(v['price']!).millimes.toString(),
+            'threshold': whole(v['threshold']!, allowZero: true),
+            'pointsPerUnit': whole(v['points']!, allowZero: true),
+            if (config['version'] != null) 'expectedVersion': config['version'],
+          },
+        );
+      },
+    )) {
+      await vm.synchronize();
+    }
+  }
+
+  Future<void> adjust(
+    BuildContext context,
+    InventoryLot lot,
+    bool damage,
+  ) async {
+    await openEditor(
+      context,
+      title: damage ? 'Enregistrer des dommages' : 'Réconcilier le stock',
+      description:
+          'Cette modification sera conservée avec votre identité et son motif.',
+      fields: [
+        FieldSpec(
+          'quantity',
+          damage ? 'Unités endommagées' : 'Quantité réellement comptée',
+          numeric: true,
+        ),
+        const FieldSpec('reason', 'Motif'),
+      ],
+      submit: (v) => vm.queue(
+        {
+          'type': damage ? 'stock.damage' : 'stock.adjust',
+          'lotId': lot.id,
+          'quantity': whole(v['quantity']!, allowZero: !damage),
+          'reason': v['reason'],
+        },
+        expectedVersion: lot.version,
+        effect: {
+          'lots': [
+            {
+              'id': lot.id,
+              'delta': damage
+                  ? -whole(v['quantity']!)
+                  : whole(v['quantity']!, allowZero: true) - lot.sellable,
+              'version': lot.version + 1,
+            },
+          ],
+        },
+      ),
+    );
+  }
+}
+
+class ReceiptScreen extends StatefulWidget {
+  final WorkspaceViewModel vm;
+  final Json? delivery;
+  const ReceiptScreen({super.key, required this.vm, this.delivery});
+  @override
+  State<ReceiptScreen> createState() => _ReceiptScreenState();
+}
+
+class _ReceiptScreenState extends State<ReceiptScreen> {
+  List<Json> lines = [];
+  String? error;
+  bool busy = false;
+  late final Store store = widget.vm.state.store!;
+  String get key => 'receipt:${widget.delivery?['id'] ?? 'stock'}';
+  @override
+  void initState() {
+    super.initState();
+    restore();
+  }
+
+  Future<void> restore() async {
+    final draft = await widget.vm.repository.draft(
+      widget.vm.user.id,
+      store.id,
+      key,
+    );
+    if (mounted) setState(() => lines = objects(draft?['lines']));
+  }
+
+  Future<void> persist() => widget.vm.repository.saveDraft(
+    widget.vm.user.id,
+    store.id,
+    key,
+    {'lines': lines},
+  );
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(
+      title: Text(
+        widget.delivery == null
+            ? 'Entrée de stock'
+            : 'Réceptionner la livraison',
+      ),
+    ),
+    body: Content(
+      maxWidth: 760,
+      children: [
+        StatusChip(store.name, icon: Icons.storefront_outlined),
+        const SizedBox(height: 20),
+        if (error != null) Notice(error!, error: true),
+        if (widget.delivery != null) ...[
+          const Notice(
+            'Saisissez les quantités réellement reçues. Les écarts seront conservés et cette livraison ne pourra être confirmée qu’une seule fois.',
+          ),
+          const SizedBox(height: 16),
+          ...objects(widget.delivery!['lines']).map(
+            (l) => Text(
+              '${widget.vm.productName(l['productId'])} · ${l['quantity']} unités attendues',
+            ),
+          ),
+          const SizedBox(height: 20),
+        ],
+        FilledButton.icon(
+          onPressed: add,
+          icon: const Icon(Icons.add),
+          label: const Text('Ajouter un produit et un lot'),
+        ),
+        const SizedBox(height: 20),
+        ...lines.asMap().entries.map(
+          (e) => Card(
+            child: ListTile(
+              title: Text(widget.vm.productName(e.value['productId'])),
+              subtitle: Text(
+                '${e.value['quantity']} unités · Lot ${e.value['batch']}\nPéremption : ${e.value['expiry']}',
+              ),
+              trailing: IconButton(
+                onPressed: () {
+                  setState(() => lines.removeAt(e.key));
+                  persist();
+                },
+                icon: const Icon(Icons.close),
+                tooltip: 'Retirer',
+              ),
+            ),
+          ),
+        ),
+        if (lines.isEmpty)
+          const EmptyState(
+            title: 'Ajoutez les unités reçues',
+            description: 'Un produit peut être réparti sur plusieurs lots et plusieurs dates de péremption.',
+          ),
+        const SizedBox(height: 24),
+        FilledButton(
+          onPressed: busy || lines.isEmpty ? null : save,
+          child: Text(busy ? 'Enregistrement…' : 'Confirmer la réception'),
+        ),
+      ],
+    ),
+  );
+  Future<void> add() async {
+    final product = await showModalBottomSheet<Product>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      builder: (_) => ProductPicker(
+        products: widget.vm.state.data!.products
+            .where(
+              (p) =>
+                  widget.delivery == null ||
+                  objects(widget.delivery!['lines'])
+                      .any((l) => l['productId'] == p.id),
+            )
+            .toList(),
+      ),
+    );
+    if (product == null || !mounted) return;
+    await openEditor(
+      context,
+      title: product.name,
+      fields: const [
+        FieldSpec('quantity', 'Unités reçues', initial: '1', numeric: true),
+        FieldSpec('batch', 'Numéro de lot'),
+        FieldSpec('expiry', 'Péremption (AAAA-MM-JJ ou AAAA-MM)'),
+      ],
+      submit: (v) async {
+        final expiry = normalizeExpiry(v['expiry']!);
+        setState(
+          () => lines.add({
+            'productId': product.id,
+            'quantity': whole(v['quantity']!),
+            'batch': v['batch'],
+            'expiry': expiry,
+          }),
+        );
+        await persist();
+      },
+    );
+  }
+
+  Future<void> save() async {
+    setState(() => busy = true);
+    try {
+      final vm = widget.vm;
+      final effects = <Json>[];
+      for (final line in lines) {
+        final existing = vm.state.data!.lots
+            .where(
+              (l) =>
+                  l.productId == line['productId'] &&
+                  l.batch == line['batch'] &&
+                  l.expiry == line['expiry'],
+            )
+            .firstOrNull;
+        final id =
+            existing?.id ??
+            const Uuid().v5(
+              '40cdd460-fdea-4c8f-9533-51a0843ecfff',
+              '${store.id}|${line['productId']}|${line['batch']}|${line['expiry']}',
+            );
+        effects.add({'id': id, ...line, 'delta': line['quantity']});
+      }
+      await vm.queue(
+        widget.delivery == null
+            ? {'type': 'stock.receive', 'reason': 'receipt', 'lines': lines}
+            : {
+                'type': 'delivery.receive',
+                'deliveryId': widget.delivery!['id'],
+                'lines': lines,
+                'note': '',
+              },
+        expectedVersion: widget.delivery == null
+            ? null
+            : integer(widget.delivery!['version']),
+        effect: {'lots': effects},
+      );
+      await vm.repository.saveDraft(vm.user.id, store.id, key, {'lines': []});
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Réception enregistrée sur ce téléphone.'),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) setState(() => error = SessionViewModel.message(e));
+    } finally {
+      if (mounted) setState(() => busy = false);
+    }
+  }
+}
+
+String normalizeExpiry(String input) {
+  if (!RegExp(r'^\d{4}-\d{2}(-\d{2})?$').hasMatch(input)) {
+    throw const FormatException('Date invalide. Utilisez AAAA-MM-JJ.');
+  }
+  final p = input.split('-').map(int.parse).toList();
+  if (p[0] < 2000 || p[0] > 2200 || p[1] < 1 || p[1] > 12) {
+    throw const FormatException('Date invalide.');
+  }
+  final date = p.length == 2
+      ? DateTime(p[0], p[1] + 1, 0)
+      : DateTime(p[0], p[1], p[2]);
+  if (date.month != p[1]) throw const FormatException('Date invalide.');
+  return date.toIso8601String().substring(0, 10);
+}

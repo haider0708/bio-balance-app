@@ -1,0 +1,85 @@
+import {
+  Actor,
+  Scope,
+  Lot,
+  SaleRecord,
+  PointsAccount,
+  RewardRecord,
+  ClaimRecord,
+  OrderRecord,
+  DeliveryRecord,
+  OperationResult,
+} from "../domain/contracts";
+export interface Ledger {
+  checkInventory(): Promise<void>;
+  readonly scope: Scope;
+  prior(id: string, hash: string): Promise<OperationResult | null>;
+  finish(
+    id: string,
+    hash: string,
+    result: OperationResult,
+    entity: string,
+    entityId: string,
+    details: unknown,
+  ): Promise<void>;
+  lot(id: string): Promise<Lot>;
+  lotsForProduct(productId: string): Promise<Lot[]>;
+  receive(
+    productId: string,
+    batch: string,
+    expiry: string,
+    quantity: number,
+    sourceId: string,
+    operationId: string,
+    reason: string,
+  ): Promise<Lot>;
+  move(
+    lotId: string,
+    quantity: number,
+    sourceId: string,
+    operationId: string,
+    reason: string,
+    bucket?: "sellable" | "damaged",
+  ): Promise<void>;
+  rate(productId: string): Promise<number>;
+  sale(id: string): Promise<SaleRecord | null>;
+  saveSale(
+    sale: SaleRecord,
+    previous: SaleRecord | undefined,
+    reason: string,
+    operationId: string,
+  ): Promise<void>;
+  points(userId: string): Promise<PointsAccount>;
+  credit(
+    userId: string,
+    amount: bigint,
+    kind: string,
+    sourceId: string,
+    operationId: string,
+  ): Promise<void>;
+  reserve(userId: string, delta: bigint): Promise<void>;
+  reward(id: string): Promise<RewardRecord>;
+  claim(id: string): Promise<ClaimRecord>;
+  saveClaim(claim: ClaimRecord): Promise<void>;
+  order(id: string): Promise<OrderRecord>;
+  saveOrder(order: OrderRecord): Promise<void>;
+  delivery(id: string): Promise<DeliveryRecord>;
+  deliveries(orderId: string): Promise<DeliveryRecord[]>;
+  saveDelivery(delivery: DeliveryRecord): Promise<void>;
+  receipt(
+    deliveryId: string,
+    lines: unknown,
+    differences: unknown,
+    operationId: string,
+  ): Promise<void>;
+  alerts(productIds: string[]): Promise<void>;
+  notify(key: string, title: string, body: string): Promise<void>;
+}
+export abstract class UnitOfWork {
+  abstract run<T>(
+    actor: Actor,
+    organizationId: string,
+    storeId: string,
+    work: (ledger: Ledger) => Promise<T>,
+  ): Promise<T>;
+}

@@ -1,0 +1,47 @@
+{
+  "name": "@biobalance/api",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "npm run build && node --env-file=.env dist/main.js",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/main.js",
+    "worker": "npm run build && node --env-file=.env dist/worker.js",
+    "test": "vitest run test/domain.test.ts",
+    "test:integration": "vitest run test/integration.test.ts --maxWorkers=1",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate deploy",
+    "db:seed": "tsx prisma/seed.ts",
+    "contract": "npm run build && node dist/openapi.js"
+  },
+  "dependencies": {
+    "@nestjs/common": "^11.1.0",
+    "@nestjs/core": "^11.1.0",
+    "@nestjs/platform-express": "^11.1.0",
+    "@nestjs/swagger": "^11.2.0",
+    "@prisma/adapter-pg": "7.10.0",
+    "@prisma/client": "7.10.0",
+    "argon2": "^0.44.0",
+    "firebase-admin": "^13.0.0",
+    "helmet": "^8.1.0",
+    "nodemailer": "^7.0.0",
+    "otpauth": "^9.5.2",
+    "pg": "^8.16.0",
+    "reflect-metadata": "0.2.2",
+    "rxjs": "7.8.2",
+    "sanitize-html": "^2.17.0",
+    "zod": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.0",
+    "@types/node": "^24.0.0",
+    "@types/nodemailer": "^7.0.0",
+    "@types/pg": "^8.15.0",
+    "@types/sanitize-html": "^2.16.0",
+    "prettier": "^3.9.8",
+    "prisma": "7.10.0",
+    "tsx": "^4.20.0",
+    "typescript": "5.9.3",
+    "vitest": "^4.0.0"
+  }
+}

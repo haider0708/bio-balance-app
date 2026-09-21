@@ -1,0 +1,370 @@
+generator client {
+  provider = "prisma-client-js"
+}
+datasource db {
+  provider = "postgresql"
+}
+model User {
+  id String @id @default(uuid()) @db.Uuid
+  email String @unique
+  name String
+  passwordHash String
+  platformAdmin Boolean @default(false)
+  disabled Boolean @default(false)
+  mfaSecret String?
+  lastTotpStep BigInt @default(-1)
+  createdAt DateTime @default(now())
+}
+model Session {
+  id String @id @default(uuid()) @db.Uuid
+  userId String @db.Uuid
+  tokenHash String @unique
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime @default(now())
+  @@index([userId])
+}
+model AccessToken {
+  id String @id @default(uuid()) @db.Uuid
+  email String
+  tokenHash String @unique
+  purpose String
+  organizationId String? @db.Uuid
+  storeId String? @db.Uuid
+  permissions String[]
+  expiresAt DateTime
+  usedAt DateTime?
+  createdBy String? @db.Uuid
+}
+model LoginAttempt {
+  key String @id
+  count Int @default(0)
+  windowStart DateTime @default(now())
+}
+model Organization {
+  id String @id @default(uuid()) @db.Uuid
+  name String
+  createdAt DateTime @default(now())
+}
+model OrganizationMembership {
+  id String @id @default(uuid()) @db.Uuid
+  organizationId String @db.Uuid
+  userId String @db.Uuid
+  active Boolean @default(true)
+  @@unique([organizationId,userId])
+}
+model Store {
+  id String @id @default(uuid()) @db.Uuid
+  organizationId String @db.Uuid
+  name String
+  address String
+  city String
+  phone String?
+  imageId String? @db.Uuid
+  timezone String @default("Africa/Tunis")
+  onboardingStep Int @default(1)
+  createdAt DateTime @default(now())
+  @@unique([organizationId,id])
+}
+model Membership {
+  id String @id @default(uuid()) @db.Uuid
+  organizationId String @db.Uuid
+  storeId String @db.Uuid
+  userId String @db.Uuid
+  permissions String[]
+  active Boolean @default(true)
+  createdAt DateTime @default(now())
+  @@unique([storeId,userId])
+  @@index([userId,active])
+}
+model Product {
+  id String @id @default(uuid()) @db.Uuid
+  reference String @unique
+  name String
+  barcode String? @unique
+  description String @default("")
+  imageId String? @db.Uuid
+  active Boolean @default(true)
+  version Int @default(1)
+  updatedAt DateTime @updatedAt
+}
+model StoreProduct {
+  id String @id @default(uuid()) @db.Uuid
+  organizationId String @db.Uuid
+  storeId String @db.Uuid
+  productId String @db.Uuid
+  priceMillimes BigInt @default(0)
+  threshold Int @default(5)
+  pointsPerUnit Int @default(0)
+  pointsConfigured Boolean @default(false)
+  version Int @default(1)
+  @@unique([storeId,productId])
+}
+model InventoryLot {
+  id String @id @default(uuid()) @db.Uuid
+  organizationId String @db.Uuid
+  storeId String @db.Uuid
+  productId String @db.Uuid
+  batch String
+  expiry DateTime @db.Date
+  sellable Int @default(0)
+  damaged Int @default(0)
+  version Int @default(1)
+  @@unique([storeId,productId,batch,expiry])
+  @@unique([storeId,id])
+  @@index([storeId,productId,expiry])
+}
+model StockMovement {
+  id String @id @default(uuid()) @db.Uuid
+  organizationId String @db.Uuid
+  storeId String @db.Uuid
+  lotId String @db.Uuid
+  quantity Int
+  bucket String @default("sellable")
+  reason String
+  sourceId String @db.Uuid
+  actorId String @db.Uuid
+  operationId String @db.Uuid
+  createdAt DateTime @default(now())
+  @@index([storeId,lotId,createdAt])
+}
+model Sale {
+  id String @id @db.Uuid
+  organizationId String @db.Uuid
+  storeId String @db.Uuid
+  sellerId String @db.Uuid
+  occurredAt DateTime
+  acceptedAt DateTime @default(now())
+  version Int @default(1)
+  totalMillimes BigInt
+  earnedPoints BigInt
+  lines Json
+  returned Json @default("{}")
+  @@unique([storeId,id])
+  @@index([storeId,occurredAt,id])
+  @@index([storeId,sellerId,occurredAt])
+}
+model SaleRevision {
+  id String @id @default(uuid()) @db.Uuid
+  organizationId String @db.Uuid
+  storeId String @db.Uuid
+  saleId String @db.Uuid
+  version Int
+  editorId String @db.Uuid
+  reason String
+  before Json?
+  after Json
+  operationId String @db.Uuid
+  createdAt DateTime @default(now())
+  @@unique([saleId,version])
+  @@index([storeId,saleId])
+}
+model PointsAccount {
+  id String @id @default(uuid()) @db.Uuid
+  organizationId String @db.Uuid
+  storeId String @db.Uuid
+  userId String @db.Uuid
+  balance BigInt @default(0)
+  reserved BigInt @default(0)
+  @@unique([storeId,userId])
+}
+model PointsEntry {
+  id String @id @default(uuid()) @db.Uuid
+  organizationId String @db.Uuid
+  storeId String @db.Uuid
+  userId String @db.Uuid
+  amount BigInt
+  kind String
+  sourceId String @db.Uuid
+  operationId String @db.Uuid
+  createdAt DateTime @default(now())
+  @@index([storeId,userId,createdAt])
+  @@index([storeId,kind,createdAt])
+}
+model Reward {
+  id String @id @default(uuid()) @db.Uuid
+  organizationId String @db.Uuid
+  storeId String @db.Uuid
+  title String
+  description String @default("")
+  imageId String? @db.Uuid
+  cost Int
+  productId String? @db.Uuid
+  quantity Int @default(1)
+  active Boolean @default(true)
+  version Int @default(1)
+  @@unique([storeId,id])
+}
+model RewardClaim {
+  id String @id @db.Uuid
+  organizationId String @db.Uuid
+  storeId String @db.Uuid
+  userId String @db.Uuid
+  rewardId String @db.Uuid
+  title String
+  cost Int
+  productId String? @db.Uuid
+  quantity Int
+  status String @default("requested")
+  version Int @default(1)
+  fulfilledBy String? @db.Uuid
+  createdAt DateTime @default(now())
+  resolvedAt DateTime?
+  @@index([storeId,status,createdAt])
+}
+model ReplenishmentOrder {
+  id String @id @db.Uuid
+  organizationId String @db.Uuid
+  storeId String @db.Uuid
+  status String @default("requested")
+  lines Json
+  createdBy String @db.Uuid
+  version Int @default(1)
+  createdAt DateTime @default(now())
+  @@unique([storeId,id])
+  @@index([storeId,status,createdAt])
+}
+model Delivery {
+  id String @id @db.Uuid
+  organizationId String @db.Uuid
+  storeId String @db.Uuid
+  orderId String @db.Uuid
+  lines Json
+  status String @default("dispatched")
+  version Int @default(1)
+  dispatchedAt DateTime @default(now())
+  receivedAt DateTime?
+  @@unique([storeId,id])
+  @@index([storeId,status])
+}
+model DeliveryReceipt {
+  id String @id @default(uuid()) @db.Uuid
+  organizationId String @db.Uuid
+  storeId String @db.Uuid
+  deliveryId String @unique @db.Uuid
+  lines Json
+  differences Json
+  actorId String @db.Uuid
+  operationId String @db.Uuid
+  createdAt DateTime @default(now())
+}
+model Alert {
+  id String @id @default(uuid()) @db.Uuid
+  organizationId String @db.Uuid
+  storeId String @db.Uuid
+  productId String? @db.Uuid
+  kind String
+  key String
+  message String
+  active Boolean @default(true)
+  createdAt DateTime @default(now())
+  resolvedAt DateTime?
+  @@unique([storeId,key])
+  @@index([storeId,active])
+}
+model ProcessedOperation {
+  id String @id @db.Uuid
+  organizationId String @db.Uuid
+  storeId String @db.Uuid
+  actorId String @db.Uuid
+  payloadHash String
+  result Json
+  createdAt DateTime @default(now())
+}
+model StoreCursor {
+  storeId String @id @db.Uuid
+  organizationId String @db.Uuid
+  value BigInt @default(0)
+}
+model Change {
+  id String @id @default(uuid()) @db.Uuid
+  organizationId String @db.Uuid
+  storeId String @db.Uuid
+  cursor BigInt
+  entity String
+  entityId String
+  deleted Boolean @default(false)
+  createdAt DateTime @default(now())
+  @@unique([storeId,cursor])
+}
+model AuditEntry {
+  id String @id @default(uuid()) @db.Uuid
+  organizationId String? @db.Uuid
+  storeId String? @db.Uuid
+  actorId String? @db.Uuid
+  action String
+  targetId String
+  operationId String? @db.Uuid
+  details Json
+  createdAt DateTime @default(now())
+  @@index([storeId,createdAt])
+}
+model Announcement {
+  id String @id @default(uuid()) @db.Uuid
+  organizationId String @db.Uuid
+  storeId String @db.Uuid
+  authorId String @db.Uuid
+  title String
+  body String
+  audience String @default("all")
+  createdAt DateTime @default(now())
+}
+model Notification {
+  id String @id @default(uuid()) @db.Uuid
+  organizationId String? @db.Uuid
+  storeId String? @db.Uuid
+  userId String @db.Uuid
+  eventKey String
+  title String
+  body String
+  readAt DateTime?
+  createdAt DateTime @default(now())
+  @@unique([userId,eventKey])
+  @@index([userId,createdAt])
+}
+model DeviceToken {
+  sessionId String? @db.Uuid
+  @@index([sessionId])
+  id String @id @default(uuid()) @db.Uuid
+  userId String @db.Uuid
+  token String @unique
+  platform String
+  updatedAt DateTime @updatedAt
+}
+model Job {
+  id String @id @default(uuid()) @db.Uuid
+  kind String
+  key String @unique
+  payload Json
+  status String @default("pending")
+  attempts Int @default(0)
+  availableAt DateTime @default(now())
+  lockedAt DateTime?
+  lastError String?
+  createdAt DateTime @default(now())
+  @@index([status,availableAt])
+}
+model MediaAsset {
+  id String @id @default(uuid()) @db.Uuid
+  ownerId String @db.Uuid
+  fileName String
+  mime String
+  size BigInt
+  received BigInt @default(0)
+  status String @default("uploading")
+  path String
+  sha256 String?
+  createdAt DateTime @default(now())
+}
+model TrainingContent {
+  id String @id @default(uuid()) @db.Uuid
+  title String
+  body String
+  type String
+  mediaId String? @db.Uuid
+  productIds String[] @db.Uuid
+  status String @default("draft")
+  version Int @default(1)
+  authorId String @db.Uuid
+  updatedAt DateTime @updatedAt
+}

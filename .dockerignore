@@ -1,0 +1,10 @@
+.git
+.tooling
+node_modules
+**/node_modules
+**/.env
+**/.env.*
+**/dist
+apps/mobile
+.volumes
+.local-credentials.json

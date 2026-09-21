@@ -1,0 +1,532 @@
+import { Injectable } from "@nestjs/common";
+import { Database, json } from "../../shared/infrastructure/database";
+import { Actor, Scope } from "../operations/domain/contracts";
+import { Prisma } from "@prisma/client";
+import { requireRule } from "../../shared/domain/errors";
+import { localDate } from "../../shared/domain/money";
+import { PrismaLedger } from "../operations/infrastructure/prisma-ledger";
+@Injectable()
+export class WorkspaceService {
+  constructor(private readonly db: Database) {}
+  async organizations(actor: Actor) {
+    if (actor.platformAdmin)
+      return this.db.organization.findMany({
+        orderBy: { name: "asc" },
+        take: 500,
+      });
+    const memberships = await this.db.organizationMembership.findMany({
+      where: { userId: actor.id, active: true },
+    });
+    return this.db.organization.findMany({
+      where: { id: { in: memberships.map((m) => m.organizationId) } },
+      orderBy: { name: "asc" },
+      take: 500,
+    });
+  }
+  async stores(actor: Actor) {
+    const [owners, members] = await Promise.all([
+      this.db.organizationMembership.findMany({
+        where: { userId: actor.id, active: true },
+      }),
+      this.db.membership.findMany({
+        where: { userId: actor.id, active: true },
+      }),
+    ]);
+    const stores = await this.db.store.findMany({
+      where: actor.platformAdmin
+        ? {}
+        : {
+            OR: [
+              { organizationId: { in: owners.map((m) => m.organizationId) } },
+              { id: { in: members.map((m) => m.storeId) } },
+            ],
+          },
+      orderBy: { name: "asc" },
+      take: 1000,
+    });
+    const organizations = await this.db.organization.findMany({
+      where: { id: { in: [...new Set(stores.map((s) => s.organizationId))] } },
+    });
+    return stores.map((s) => ({
+      ...s,
+      organizationName: organizations.find((o) => o.id === s.organizationId)
+        ?.name,
+      permissions:
+        actor.platformAdmin ||
+        owners.some((o) => o.organizationId === s.organizationId)
+          ? ["manage", "sell", "receive"]
+          : members.find((m) => m.storeId === s.id)!.permissions,
+    }));
+  }
+  async createStore(
+    actor: Actor,
+    input: {
+      organizationId: string;
+      name: string;
+      address: string;
+      city: string;
+      phone?: string;
+    },
+  ) {
+    return this.db.$transaction(async (tx) => {
+      const owner = await tx.organizationMembership.findUnique({
+        where: {
+          organizationId_userId: {
+            organizationId: input.organizationId,
+            userId: actor.id,
+          },
+        },
+      });
+      requireRule(
+        actor.platformAdmin || owner?.active,
+        "FORBIDDEN",
+        "Vous ne pouvez pas créer un magasin dans cette organisation.",
+        403,
+      );
+      const store = await tx.store.create({ data: input });
+      await tx.membership.create({
+        data: {
+          organizationId: store.organizationId,
+          storeId: store.id,
+          userId: actor.id,
+          permissions: ["manage", "sell", "receive"],
+        },
+      });
+      await tx.auditEntry.create({
+        data: {
+          organizationId: store.organizationId,
+          storeId: store.id,
+          actorId: actor.id,
+          action: "store.create",
+          targetId: store.id,
+          details: json(input),
+        },
+      });
+      return store;
+    });
+  }
+  private manager(scope: Scope) {
+    requireRule(
+      scope.actor.platformAdmin || scope.permissions.includes("manage"),
+      "FORBIDDEN",
+      "Accès réservé au responsable.",
+      403,
+    );
+  }
+  async mutate<T>(
+    actor: Actor,
+    organizationId: string,
+    storeId: string,
+    action: string,
+    targetId: string,
+    work: (tx: Prisma.TransactionClient, scope: Scope) => Promise<T>,
+  ) {
+    return this.db.scoped(actor, organizationId, storeId, async (tx, scope) => {
+      this.manager(scope);
+      await tx.storeCursor.upsert({
+        where: { storeId },
+        create: { storeId, organizationId },
+        update: {},
+      });
+      await tx.$queryRaw`SELECT "storeId" FROM "StoreCursor" WHERE "storeId"=${storeId}::uuid FOR UPDATE`;
+      const result = await work(tx, scope);
+      await tx.auditEntry.create({
+        data: {
+          organizationId,
+          storeId,
+          actorId: actor.id,
+          action,
+          targetId,
+          details: json(result),
+        },
+      });
+      const cursor = await tx.storeCursor.update({
+        where: { storeId },
+        data: { value: { increment: 1 } },
+      });
+      await tx.change.create({
+        data: {
+          storeId,
+          organizationId,
+          cursor: cursor.value,
+          entity: action,
+          entityId: targetId,
+        },
+      });
+      return result;
+    });
+  }
+  configureProduct(
+    actor: Actor,
+    org: string,
+    store: string,
+    productId: string,
+    input: {
+      priceMillimes: string;
+      threshold: number;
+      pointsPerUnit: number;
+      expectedVersion?: number;
+    },
+  ) {
+    return this.mutate(
+      actor,
+      org,
+      store,
+      "product.configure",
+      productId,
+      async (tx, scope) => {
+        const old = await tx.storeProduct.findUnique({
+          where: { storeId_productId: { storeId: store, productId } },
+        });
+        requireRule(
+          !old || old.version === input.expectedVersion,
+          "VERSION_CONFLICT",
+          "La configuration a changé.",
+          409,
+        );
+        const data = {
+          priceMillimes: BigInt(input.priceMillimes),
+          threshold: input.threshold,
+          pointsPerUnit: input.pointsPerUnit,
+          pointsConfigured: true,
+        };
+        const result = await tx.storeProduct.upsert({
+          where: { storeId_productId: { storeId: store, productId } },
+          create: { organizationId: org, storeId: store, productId, ...data },
+          update: { ...data, version: { increment: 1 } },
+        });
+        await new PrismaLedger(tx, scope).alerts([productId]);
+        return result;
+      },
+    );
+  }
+  setMember(
+    actor: Actor,
+    org: string,
+    store: string,
+    userId: string,
+    input: { active: boolean; permissions: string[] },
+  ) {
+    return this.mutate(
+      actor,
+      org,
+      store,
+      "membership.update",
+      userId,
+      async (tx) => {
+        requireRule(
+          userId !== actor.id,
+          "SELF_ACCESS_CHANGE",
+          "Un autre responsable doit modifier votre propre accès.",
+        );
+        return tx.membership.update({
+          where: { storeId_userId: { storeId: store, userId } },
+          data: input,
+        });
+      },
+    );
+  }
+  onboarding(actor: Actor, org: string, store: string, step: number) {
+    return this.mutate(actor, org, store, "onboarding.update", store, (tx) =>
+      tx.store.update({ where: { id: store }, data: { onboardingStep: step } }),
+    );
+  }
+  reward(
+    actor: Actor,
+    org: string,
+    store: string,
+    input: {
+      id?: string;
+      title: string;
+      description: string;
+      cost: number;
+      productId?: string;
+      quantity: number;
+      active: boolean;
+      expectedVersion?: number;
+    },
+  ) {
+    return this.mutate(
+      actor,
+      org,
+      store,
+      "reward.configure",
+      input.id ?? store,
+      async (tx) => {
+        const { expectedVersion, id, ...data } = input;
+        if (id) {
+          const old = await tx.reward.findFirst({
+            where: { id, storeId: store },
+          });
+          requireRule(
+            old && old.version === expectedVersion,
+            "VERSION_CONFLICT",
+            "La récompense a changé.",
+            409,
+          );
+          return tx.reward.update({
+            where: { id },
+            data: { ...data, version: { increment: 1 } },
+          });
+        }
+        return tx.reward.create({
+          data: { organizationId: org, storeId: store, ...data },
+        });
+      },
+    );
+  }
+  async snapshot(actor: Actor, org: string, store: string, since?: {cursor:string;catalogRevision:string}) {
+    return this.db.scoped(actor, org, store, async (tx, scope) => {
+      const manage =
+        scope.permissions.includes("manage") || scope.actor.platformAdmin;
+      const currentCursor = await tx.storeCursor.findUnique({where:{storeId:store}});
+      const catalog = await tx.product.aggregate({_count:true,_sum:{version:true}});
+      const catalogRevision = `${catalog._count}:${catalog._sum.version??0}`;
+      const changes = since ? await tx.change.findMany({where:{storeId:store,cursor:{gt:BigInt(since.cursor)}},orderBy:{cursor:'asc'},take:201}) : [];
+      // A bounded delta merges changed lots/configuration into the existing
+      // cache. Large backlogs or catalog changes receive a fresh snapshot.
+      const delta = !!since && BigInt(since.cursor) <= (currentCursor?.value??0n) &&
+        changes.length <= 200 && since.catalogRevision === catalogRevision;
+      const movements = delta ? await tx.stockMovement.findMany({where:{storeId:store,operationId:{in:changes.map(c=>c.id)}},select:{lotId:true},distinct:['lotId'],take:1501}) : [];
+      const useDelta = delta && movements.length <= 1500;
+      const changedLots = movements.map(m=>m.lotId);
+      const changedProducts = changes.filter(c=>c.entity==='product.configure').map(c=>c.entityId);
+      const [
+        config,
+        lots,
+        sales,
+        alerts,
+        points,
+        rewards,
+        claims,
+        orders,
+        deliveries,
+        memberships,
+        storeData,
+        cursor,
+      ] = await Promise.all([
+        tx.storeProduct.findMany({
+          where: { storeId: store, ...(useDelta?{productId:{in:changedProducts}}:{}) },
+          orderBy: { id: "asc" },
+          take: 1000,
+        }),
+        tx.inventoryLot.findMany({
+          where: { storeId: store, ...(useDelta?{id:{in:changedLots}}:{}) },
+          orderBy: { id: "asc" },
+          take: useDelta ? 1500 : 500,
+        }),
+        tx.sale.findMany({
+          where: { storeId: store, ...(!manage ? { sellerId: actor.id } : {}) },
+          orderBy: [{ occurredAt: "desc" }, { id: "desc" }],
+          take: 100,
+        }),
+        tx.alert.findMany({
+          where: { storeId: store, active: true },
+          orderBy: { createdAt: "desc" },
+          take: 200,
+        }),
+        tx.pointsAccount.findUnique({
+          where: { storeId_userId: { storeId: store, userId: actor.id } },
+        }),
+        tx.reward.findMany({
+          where: { storeId: store, ...(!manage ? { active: true } : {}) },
+          orderBy: { title: "asc" },
+          take: 200,
+        }),
+        tx.rewardClaim.findMany({
+          where: { storeId: store, ...(!manage ? { userId: actor.id } : {}) },
+          orderBy: { createdAt: "desc" },
+          take: 100,
+        }),
+        tx.replenishmentOrder.findMany({
+          where: { storeId: store },
+          orderBy: { createdAt: "desc" },
+          take: 100,
+        }),
+        tx.delivery.findMany({
+          where: { storeId: store, status: "dispatched" },
+          orderBy: { dispatchedAt: "desc" },
+          take: 100,
+        }),
+        manage
+          ? tx.membership.findMany({ where: { storeId: store }, take: 200 })
+          : Promise.resolve([]),
+        tx.store.findUniqueOrThrow({ where: { id: store } }),
+        tx.storeCursor.findUnique({ where: { storeId: store } }),
+      ]);
+      const users = await tx.user.findMany({
+        where: { id: { in: memberships.map((m) => m.userId) } },
+        select: { id: true, name: true, email: true },
+      });
+      const invitations = manage
+        ? await tx.accessToken.findMany({
+            where: {
+              storeId: store,
+              purpose: "invite",
+              usedAt: null,
+              expiresAt: { gt: new Date() },
+            },
+            select: { id: true, email: true, expiresAt: true },
+            take: 200,
+          })
+        : [];
+      const summaryRows = await tx.$queryRaw<{count:bigint;total:bigint}[]>`SELECT COUNT(*)::bigint AS count,COALESCE(SUM("totalMillimes"),0)::bigint AS total FROM "Sale" WHERE "storeId"=${store}::uuid AND (${manage} OR "sellerId"=${actor.id}::uuid) AND "occurredAt">=((date_trunc('day', now() AT TIME ZONE ${scope.timezone}) AT TIME ZONE ${scope.timezone}) AT TIME ZONE 'UTC')`;
+      const products = useDelta ? [] : await tx.product.findMany({
+        orderBy: { id: "asc" },
+        take: 1000,
+      });
+      return {
+        syncProtocol: 2,
+        catalogRevision,
+        mode: useDelta ? 'delta' : 'snapshot',
+        mergeResources: useDelta ? ['lots','config','products'] : [],
+        // Replacing authorized collections also removes disabled memberships,
+        // archived rewards and received deliveries from their active lists.
+        summary: {saleCount:summaryRows[0]?.count??0n,totalMillimes:summaryRows[0]?.total??0n},
+        store: storeData,
+        permissions: scope.permissions,
+        products,
+        config,
+        lots,
+        sales,
+        alerts: manage ? alerts : [],
+        points: points ?? { balance: 0, reserved: 0 },
+        rewards,
+        claims,
+        orders,
+        deliveries,
+        team: memberships.map((m) => ({
+          ...m,
+          ...users.find((u) => u.id === m.userId),
+          membershipId: m.id,
+        })),
+        invitations,
+        cursor: (cursor?.value ?? 0n).toString(),
+        serverTime: new Date().toISOString(),
+        pagination: {
+          lots: !useDelta && lots.length === 500 ? lots.at(-1)!.id : null,
+          products: products.length === 1000 ? products.at(-1)!.id : null,
+          config: !useDelta && config.length === 1000 ? config.at(-1)!.id : null,
+        },
+      };
+    });
+  }
+  async list(
+    actor: Actor,
+    org: string,
+    store: string,
+    resource: string,
+    after?: string,
+  ) {
+    return this.db.scoped(actor, org, store, async (tx, scope) => {
+      const base = { storeId: store, ...(after ? { id: { gt: after } } : {}) };
+      const options = { orderBy: { id: "asc" as const }, take: 200 };
+      if (resource === "lots")
+        return tx.inventoryLot.findMany({ where: base, ...options });
+      if (resource === "config")
+        return tx.storeProduct.findMany({ where: base, ...options });
+      if (resource === "products")
+        return tx.product.findMany({
+          where: after ? { id: { gt: after } } : {},
+          ...options,
+        });
+      if (resource === "sales")
+        return tx.sale.findMany({
+          where: {
+            ...base,
+            ...(scope.permissions.includes("manage") || actor.platformAdmin
+              ? {}
+              : { sellerId: actor.id }),
+          },
+          ...options,
+        });
+      if (resource === "points")
+        return tx.pointsEntry.findMany({
+          where: { ...base, userId: actor.id },
+          ...options,
+        });
+      if (resource === "audit") {
+        this.manager(scope);
+        return tx.auditEntry.findMany({ where: base, ...options });
+      }
+      requireRule(false, "RESOURCE_NOT_FOUND", "Ressource introuvable.", 404);
+    });
+  }
+  history(actor:Actor,org:string,store:string,resource:string,productId?:string,before?:string){
+    return this.db.scoped(actor,org,store,async(tx,scope)=>{
+      const manage=scope.actor.platformAdmin||scope.permissions.includes('manage');
+      if(resource==='movements'||resource==='audit')this.manager(scope);
+      let cursor:{id:string;date:Date}|undefined;
+      if(before){
+        const parsed=JSON.parse(Buffer.from(before,'base64url').toString());
+        requireRule(typeof parsed.id==='string'&&/^[0-9a-f-]{36}$/.test(parsed.id)&&Number.isFinite(new Date(parsed.date).getTime()),'INVALID_CURSOR','Page invalide.');
+        cursor={id:parsed.id,date:new Date(parsed.date)};
+      }
+      const dateKey=resource==='sales'?'occurredAt':'createdAt';
+      const options={orderBy:[{[dateKey]:'desc' as const},{id:'desc' as const}],take:100};
+      const base={storeId:store,...(cursor?{OR:[{[dateKey]:{lt:cursor.date}},{[dateKey]:cursor.date,id:{lt:cursor.id}}]}:{})};
+      let items:Record<string,any>[];
+      if(resource==='sales') items=await tx.sale.findMany({...options,where:{...base,...(!manage?{sellerId:actor.id}:{}),...(productId?{lines:{array_contains:[{productId}]}}:{})}});
+      else if(resource==='points') items=await tx.pointsEntry.findMany({...options,where:{...base,userId:actor.id}});
+      else if(resource==='movements'){
+        const lots=productId?await tx.inventoryLot.findMany({where:{storeId:store,productId},select:{id:true}}):null;
+        items=await tx.stockMovement.findMany({...options,where:{...base,...(lots?{lotId:{in:lots.map(l=>l.id)}}:{})}});
+      }else if(resource==='audit')items=await tx.auditEntry.findMany({...options,where:base});
+      else {requireRule(false,'RESOURCE_NOT_FOUND','Historique introuvable.',404);}
+      const last=items.at(-1);
+      const people=await tx.user.findMany({where:{id:{in:[...new Set(items.map(r=>r.actorId??r.sellerId??r.userId).filter(Boolean))]}},select:{id:true,name:true}});
+      return {items,people,nextCursor:items.length===100&&last?Buffer.from(JSON.stringify({id:last.id,date:last[dateKey]})).toString('base64url'):null};
+    });
+  }
+  saleDetails(actor: Actor, org: string, store: string, saleId: string) {
+    return this.db.scoped(actor, org, store, async (tx, scope) => {
+      const sale = await tx.sale.findFirst({
+        where: { id: saleId, storeId: store },
+      });
+      requireRule(sale, "NOT_FOUND", "Vente introuvable.", 404);
+      requireRule(
+        sale.sellerId === actor.id ||
+          actor.platformAdmin ||
+          scope.permissions.includes("manage"),
+        "FORBIDDEN",
+        "Accès refusé.",
+        403,
+      );
+      const revisions = await tx.saleRevision.findMany({
+        where: { saleId },
+        orderBy: { version: "asc" },
+        take: 500,
+      });
+      const people = await tx.user.findMany({
+        where: {
+          id: { in: [sale.sellerId, ...revisions.map((r) => r.editorId)] },
+        },
+        select: { id: true, name: true },
+      });
+      return { sale, revisions, people };
+    });
+  }
+  changes(actor: Actor, org: string, store: string, after: string) {
+    return this.db.scoped(actor, org, store, async (tx) => {
+      const changes = await tx.change.findMany({
+        where: { storeId: store, cursor: { gt: BigInt(after) } },
+        orderBy: { cursor: "asc" },
+        take: 200,
+      });
+      return {
+        changes,
+        cursor: (changes.at(-1)?.cursor ?? BigInt(after)).toString(),
+        hasMore: changes.length === 200,
+      };
+    });
+  }
+  ranking(actor: Actor, org: string, store: string) {
+    return this.db.scoped(actor, org, store, async (tx, scope) => {
+      const month = localDate(new Date(), scope.timezone).slice(0, 7);
+      const scores = await tx.$queryRaw<
+        { userId: string; name: string; score: bigint; rank: bigint }[]
+      >`SELECT p."userId",u.name,SUM(p.amount)::bigint AS score,DENSE_RANK() OVER(ORDER BY SUM(p.amount) DESC)::bigint AS rank FROM "PointsEntry" p JOIN "User" u ON u.id=p."userId" WHERE p."storeId"=${store}::uuid AND p.kind='earned' AND to_char(p."createdAt" AT TIME ZONE 'UTC' AT TIME ZONE ${scope.timezone},'YYYY-MM')=${month} GROUP BY p."userId",u.name ORDER BY score DESC,u.name LIMIT 200`;
+      return { month, scores };
+    });
+  }
+}

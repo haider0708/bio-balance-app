@@ -1,0 +1,276 @@
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import 'session_view_model.dart';
+import '../../core/design.dart';
+
+class LoginScreen extends StatefulWidget {
+  const LoginScreen({super.key});
+  @override
+  State<LoginScreen> createState() => _LoginScreenState();
+}
+
+class _LoginScreenState extends State<LoginScreen> {
+  final _email = TextEditingController(),
+      _password = TextEditingController(),
+      _otp = TextEditingController();
+  bool _visible = false;
+  @override
+  void dispose() {
+    _email.dispose();
+    _password.dispose();
+    _otp.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final vm = context.watch<SessionViewModel>();
+    return Scaffold(
+      body: SafeArea(
+        child: Content(
+          maxWidth: 480,
+          children: [
+            const SizedBox(height: 40),
+            Image.asset(
+              'assets/brand/biobalance-logo.jpg',
+              height: 110,
+              semanticLabel: 'BioBalance, Back to nature',
+            ),
+            const SizedBox(height: 40),
+            const SectionTitle(
+              'Bienvenue chez BioBalance',
+              subtitle: 'Votre magasin. Votre équipe. Votre progression.',
+            ),
+            if (vm.state.error != null) ...[
+              Notice(vm.state.error!, error: true),
+              const SizedBox(height: 16),
+            ],
+            AutofillGroup(
+              child: Column(
+                children: [
+                  TextField(
+                    controller: _email,
+                    keyboardType: TextInputType.emailAddress,
+                    textInputAction: TextInputAction.next,
+                    autofillHints: const [
+                      AutofillHints.username,
+                      AutofillHints.email,
+                    ],
+                    decoration: const InputDecoration(
+                      labelText: 'Adresse email',
+                      prefixIcon: Icon(Icons.mail_outline),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: _password,
+                    obscureText: !_visible,
+                    autofillHints: const [AutofillHints.password],
+                    onSubmitted: (_) => _login(vm),
+                    decoration: InputDecoration(
+                      labelText: 'Mot de passe',
+                      prefixIcon: const Icon(Icons.lock_outline),
+                      suffixIcon: IconButton(
+                        onPressed: () => setState(() => _visible = !_visible),
+                        icon: Icon(
+                          _visible
+                              ? Icons.visibility_off_outlined
+                              : Icons.visibility_outlined,
+                        ),
+                        tooltip: _visible
+                            ? 'Masquer le mot de passe'
+                            : 'Afficher le mot de passe',
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            ExpansionTile(
+              tilePadding: EdgeInsets.zero,
+              title: const Text('Code administrateur (MFA)'),
+              children: [
+                TextField(
+                  controller: _otp,
+                  keyboardType: TextInputType.number,
+                  maxLength: 6,
+                  decoration: const InputDecoration(
+                    labelText: 'Code à six chiffres',
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            FilledButton(
+              onPressed: vm.state.busy ? null : () => _login(vm),
+              child: vm.state.busy
+                  ? const SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Text('Se connecter'),
+            ),
+            TextButton(
+              onPressed: () => _accountAction(context, 'forgot'),
+              child: const Text('Mot de passe oublié ?'),
+            ),
+            const Divider(),
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: () => _accountAction(context, 'activate'),
+              icon: const Icon(Icons.mark_email_read_outlined),
+              label: const Text('Activer mon invitation'),
+            ),
+            const SizedBox(height: 24),
+            const Text(
+              'Un accès personnel pour chaque membre de votre équipe.',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 14, color: muted),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _login(SessionViewModel vm) {
+    if (!vm.state.busy) vm.login(_email.text, _password.text, _otp.text);
+  }
+
+  Future<void> _accountAction(BuildContext context, String mode) async {
+    await Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => AccountActionScreen(mode: mode)));
+  }
+}
+
+class AccountActionScreen extends StatefulWidget {
+  final String mode;
+  const AccountActionScreen({super.key, required this.mode});
+  @override
+  State<AccountActionScreen> createState() => _AccountActionScreenState();
+}
+
+class _AccountActionScreenState extends State<AccountActionScreen> {
+  final _email = TextEditingController(),
+      _token = TextEditingController(),
+      _name = TextEditingController(),
+      _password = TextEditingController();
+  bool busy = false;
+  String? error, success;
+  late String mode = widget.mode;
+  @override
+  void dispose() {
+    for (final c in [_email, _token, _name, _password]) {
+      c.dispose();
+    }
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(
+      title: Text(
+        mode == 'activate' ? 'Activer mon accès' : 'Récupérer mon compte',
+      ),
+    ),
+    body: Content(
+      maxWidth: 480,
+      children: [
+        const SizedBox(height: 20),
+        if (error != null) Notice(error!, error: true),
+        if (success != null) Notice(success!),
+        const SizedBox(height: 16),
+        if (mode == 'forgot')
+          TextField(
+            controller: _email,
+            keyboardType: TextInputType.emailAddress,
+            decoration: const InputDecoration(labelText: 'Adresse email'),
+          ),
+        if (mode != 'forgot') ...[
+          TextField(
+            controller: _token,
+            decoration: const InputDecoration(labelText: 'Code reçu par email'),
+          ),
+          const SizedBox(height: 16),
+          if (mode == 'activate') ...[
+            TextField(
+              controller: _name,
+              decoration: const InputDecoration(labelText: 'Votre nom'),
+            ),
+            const SizedBox(height: 16),
+          ],
+          TextField(
+            controller: _password,
+            obscureText: true,
+            autofillHints: const [AutofillHints.newPassword],
+            decoration: const InputDecoration(
+              labelText: 'Mot de passe (12 caractères minimum)',
+            ),
+          ),
+          const SizedBox(height: 12),
+          if (mode == 'activate')
+            const Text(
+              'Vous avez déjà un compte ? Utilisez son mot de passe actuel pour rejoindre le magasin.',
+              style: TextStyle(fontSize: 14),
+            ),
+        ],
+        const SizedBox(height: 24),
+        FilledButton(
+          onPressed: busy ? null : submit,
+          child: Text(
+            busy
+                ? 'Veuillez patienter…'
+                : mode == 'forgot'
+                ? 'Recevoir un code'
+                : 'Confirmer',
+          ),
+        ),
+        if (mode == 'forgot')
+          TextButton(
+            onPressed: () => setState(() => mode = 'reset'),
+            child: const Text('J’ai déjà reçu un code'),
+          ),
+      ],
+    ),
+  );
+  Future<void> submit() async {
+    setState(() {
+      busy = true;
+      error = null;
+      success = null;
+    });
+    try {
+      final api = context.read<SessionViewModel>().api;
+      await api.request(
+        'POST',
+        mode == 'activate'
+            ? '/v1/identity/activate'
+            : mode == 'forgot'
+            ? '/v1/identity/forgot-password'
+            : '/v1/identity/reset-password',
+        body: mode == 'forgot'
+            ? {'email': _email.text.trim()}
+            : {
+                'token': _token.text.trim(),
+                'password': _password.text,
+                if (mode == 'activate') 'name': _name.text.trim(),
+              },
+      );
+      if (mounted) {
+        setState(
+          () => success = mode == 'forgot'
+              ? 'Si un compte existe, un email de récupération a été envoyé.'
+              : 'Votre compte est prêt. Vous pouvez vous connecter.',
+        );
+      }
+    } catch (e) {
+      if (mounted) setState(() => error = SessionViewModel.message(e));
+    } finally {
+      if (mounted) setState(() => busy = false);
+    }
+  }
+}
