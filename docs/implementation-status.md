@@ -24,11 +24,11 @@ L’application est en développement et n’est pas encore qualifiée pour une 
 |---|---|
 | Compilation TypeScript | Réussie |
 | Tests domaine backend | 6 réussis |
-| Tests PostgreSQL réels avec rôle restreint | 14 réussis (étape 1) |
-| Tests Flutter de reprise, migration et dispositions d’écran | 16 réussis ; parcours HTTP réel exécuté séparément et réussi |
-| Build Android debug | APK produit ; les dernières modifications doivent encore être vérifiées sur l’application exécutée |
+| Tests PostgreSQL réels avec rôle restreint | 18 réussis + 2 tests de traitement média réel (étape 5) |
+| Tests Flutter de reprise, migration et dispositions d’écran | 34 réussis ; 2 parcours HTTP réels exécutés séparément et réussis |
+| Build Android debug | APK reconstruit avec les changements de l’étape 5 ; exécution sur téléphone encore à vérifier |
 | Sauvegarde/restauration isolée | Réussie sur les données de développement ; archive média vide, à compléter avec des médias réels traités |
-| OpenAPI et génération Dart | Exécutés, 40 méthodes de transport générées |
+| OpenAPI et génération Dart | Exécutés, 42 méthodes de transport générées |
 | Images Docker et émulateur | Vérifications commencées ; résultat final à confirmer |
 
 Un passage des tests PostgreSQL a expiré pendant une forte saturation mémoire de l’hôte par les builds Android. Après arrêt des anciens daemons de compilation devenus inutiles, les 12 tests ont réussi sans allonger leur délai.
@@ -37,7 +37,7 @@ Un passage des tests PostgreSQL a expiré pendant une forte saturation mémoire 
 
 - Terminer la vérification des images conteneur, de l’application exécutée et de la restauration avec des médias non vides.
 - Compléter les parcours UI automatisés des trois rôles ; vérifier les permissions retirées pendant qu’un écran secondaire est ouvert, les erreurs de stockage, le téléchargement interrompu et les reprises de téléversement sur téléphone.
-- Compléter les détails UX restants : restauration automatique de certains brouillons de formation/annonce, association produit dans l’éditeur de formation, préférences/images facultatives, réception entièrement manquante et commande préremplie depuis une alerte.
+- Compléter les détails UX de l’étape 6 : brouillons de formation/annonce, association produit, aperçu, transferts vidéo et liens d’activation/récupération. Commandes préremplies, réception entièrement manquante et paramètres/images sont maintenant implémentés.
 - Compléter les schémas de requête/réponse OpenAPI encore génériques et la couverture des contrats.
 - Exécuter tests caméra/push, accessibilité, rotation et stabilité mémoire sur Android/iOS physiques ; compiler iOS sur macOS et produire les builds signés.
 - Préparer les données de charge représentatives, exécuter 100 req/s et le pic 200 req/s sur le VPS de référence ; mesurer réellement démarrage, recherche, persistance et fluidité. Aucune de ces performances n’est encore revendiquée.
@@ -68,7 +68,7 @@ Implémentation et vérifications locales terminées : commit `7f25895`.
 | 2. Accès et sessions | Implémentation et vérification locale terminées (voir registre ci-dessous) |
 | 3. Ventes et stock UX | Implémentation et vérification locale terminées (voir registre ci-dessous) |
 | 4. Commandes/livraisons | Implémentation et vérification locale terminées (voir registre ci-dessous) |
-| 5. Onboarding/images | À réaliser |
+| 5. Onboarding/images | Implémentation et vérification locale terminées (voir registre ci-dessous) |
 | 6. Brouillons et transferts | À réaliser |
 | 7. Contrats et nettoyage | À réaliser |
 | 8. Notifications/workers | À réaliser |
@@ -105,6 +105,8 @@ Commit : `816eb24`.
 
 ### Étape 4 — Commandes et livraisons
 
+Commit : `9d83e8f`.
+
 - Les alertes de stock faible/rupture ouvrent un brouillon avec le produit concerné, le stock, le seuil et toutes les unités déjà commandées. Compte, magasin et identifiant de commande restent stables ; une transmission incertaine reprend ses quantités originales.
 - Calcul de fulfillment partagé côté serveur : quantités effectivement reçues, en transit, restant à expédier et restant à recevoir. Le total d’approvisionnement tient compte de toutes les commandes ouvertes, indépendamment de la limite d’historique. Un nouvel endpoint expose la version et les restes utilisés par l’éditeur d’expédition.
 - Réception entièrement manquante : motif obligatoire côté serveur, confirmation explicite côté mobile, historique conservé, aucun mouvement de stock. Réceptions concurrentes/rejouées restent protégées par l’identité unique de livraison. Une réception en attente sur le téléphone désactive une seconde saisie et conserve son état de synchronisation.
@@ -112,3 +114,17 @@ Commit : `816eb24`.
 - Migration additive `202609210006_delivery_fulfillment` : index magasin/commande sur les livraisons. Contrat et transport régénérés.
 - Validation locale : compilation TypeScript, 17 tests PostgreSQL, 32 tests Flutter et analyse Dart sans erreur. Les 2 parcours HTTP/SQLite/PostgreSQL réussissent séparément. Nouveaux tests : stock/seuil/approvisionnement affichés, contexte magasin du brouillon, motif et annulation de confirmation zéro unité, blocage de double réception locale ; réception vide/rejouée et remplacement complet dans PostgreSQL.
 - Aucune livraison physique ni notification réelle n’a été simulée comme preuve de production ; les essais sur téléphones et le pilote restent prévus aux étapes correspondantes.
+
+
+### Étape 5 — Guide, paramètres et images
+
+- Progression calculée à partir du magasin enregistré, des membres/invitations, des réceptions et des produits effectivement portés par le magasin. Les choix « Je travaille seul » et « Je n’ai pas de stock de départ » sont explicites et versionnés. Une valeur historique `onboardingStep=5` ne masque plus les étapes manquantes.
+- Les configurations à zéro point exigent une confirmation explicite ; les configurations positives et les taux déjà acceptés des ventes restent inchangés. Le guide peut être quitté/repris depuis Plus ; un magasin nouvellement créé est sélectionné et ouvre le guide.
+- Modification versionnée du nom, adresse, ville, téléphone et image du magasin ; édition/archivage des récompenses, produit lié, quantité et image ; images catalogue réservées à BioBalance.
+- Migration additive `202609210007_store_setup_media` : choix/progression, version du magasin, confirmation zéro point, finalité et portée des médias, empreintes et taille traitée. Accès aux téléversements revérifié dans la transaction ; un média d’un autre magasin/finalité ou encore en traitement ne peut pas être attaché.
+- JPEG/PNG limités à 10 Mo. Traitement isolé du worker principal, signature/dimensions vérifiées, image redimensionnée sans agrandissement (maximum 1600 px), métadonnées retirées, checksum et longueur finale enregistrés. Les transferts capturent le compte/magasin, se reprennent par identité de contenu et conservent le fichier d’origine pour les relectures du dernier fragment. Seul un média traité est proposé dans le formulaire.
+- Icônes Android adaptatives et iOS, écrans de lancement Android/iOS, dérivés du logo BioBalance fourni ; script de génération versionné (Pillow).
+- Validation locale : 18 tests PostgreSQL ; 2 tests supplémentaires avec de vraies images et ffmpeg/ffprobe (2400×1200 → 1600×800, checksum, refus inter-magasin, dernier fragment répété, fichier altéré) ; 34 tests Flutter ; 2 parcours HTTP/SQLite/PostgreSQL ; analyse Dart sans erreur ; contrat régénéré (42 routes). CI mise à jour pour exécuter le traitement média, mais aucun lancement distant de CI n’est revendiqué.
+- Environnement local : ffmpeg extrait dans `.tooling/ffmpeg` sans installation système ; exécutables et bibliothèques ignorés par Git. Le conteneur média installe ffmpeg. Les vérifications de signature et les essais iOS/macOS/appareils restent des étapes ultérieures.
+
+- Build Android debug final de l’étape 5 réussi (icônes et ressources natives compilées) ; 6 tests domaine backend toujours réussis. Avertissements non bloquants du toolchain : migration future du plugin Firebase vers Kotlin intégré et versions de métadonnées SDK. Ils ne sont pas présentés comme des échecs de compilation ni comme une vérification sur appareil.

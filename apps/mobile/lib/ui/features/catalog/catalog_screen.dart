@@ -56,6 +56,13 @@ class CatalogPage extends StatelessWidget {
         FieldSpec('reference', 'Référence', initial: p?['reference'] ?? ''),
         FieldSpec('name', 'Nom du produit', initial: p?['name'] ?? ''),
         FieldSpec(
+          'imageId',
+          'Image du produit',
+          initial: p?['imageId'] ?? '',
+          required: false,
+          imagePurpose: 'catalog',
+        ),
+        FieldSpec(
           'barcode',
           'Code-barres',
           initial: p?['barcode'] ?? '',
@@ -84,6 +91,7 @@ class CatalogPage extends StatelessWidget {
             if (p != null) 'expectedVersion': p['version'],
             'reference': v['reference'],
             'name': v['name'],
+            'imageId': v['imageId']!.isEmpty ? null : v['imageId'],
             if (v['barcode']!.isNotEmpty) 'barcode': v['barcode'],
             'description': v['description'],
             'active': v['active'] == 'yes',

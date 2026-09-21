@@ -3,6 +3,9 @@ import '../dashboard/admin_dashboard.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+
+import '../stores/store_settings_screen.dart';
+
 import 'package:provider/provider.dart';
 
 import '../../core/design.dart';
@@ -322,6 +325,18 @@ class MorePage extends StatelessWidget {
   Widget build(BuildContext context) => Content(
     children: [
       const SectionTitle('Tout votre espace'),
+      if (vm.state.store?.canManage == true)
+        Card(
+          child: ListTile(
+            leading: const Icon(Icons.checklist_outlined),
+            title: const Text('Guide de configuration'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => OnboardingScreen(vm: vm)),
+            ),
+          ),
+        ),
       for (final item in [
         (
           'Ventes & corrections',
@@ -335,6 +350,12 @@ class MorePage extends StatelessWidget {
         ),
         ('Formation', Icons.school_outlined, TrainingPage(vm: vm)),
         ('Magasins', Icons.storefront_outlined, StoresPage(vm: vm)),
+        if (vm.state.store?.canManage == true)
+          (
+            'Paramètres du magasin',
+            Icons.settings_outlined,
+            StoreSettingsPage(vm: vm),
+          ),
         (
           'Historique et exports',
           Icons.assessment_outlined,

@@ -60,6 +60,8 @@ npm run build
 npm test
 scripts/setup-test-db.sh
 npm run test:integration
+# ffmpeg et ffprobe doivent être disponibles dans PATH
+npm run test:media
 npm run api:contract
 python3 scripts/generate-dart-client.py
 cd apps/mobile
@@ -71,6 +73,8 @@ flutter build apk --debug
 Les tests PostgreSQL utilisent **biobalance_test** et un rôle sans privilège de contournement RLS. Ne pas les pointer vers une base de production. Le contrat génère les types de transport Dart ; les objets du domaine restent distincts.
 
 Pour les workers : `npm run worker -w apps/api` ; définir `WORKER_KIND=media` et installer ffmpeg pour le worker média. Les services de production utilisent des conteneurs séparés.
+
+Les icônes et écrans de lancement sont générés depuis le logo fourni par `python3 scripts/generate-brand-assets.py` (Pillow requis). Les images générées sont versionnées.
 
 ## Livraison
 

@@ -1,3 +1,4 @@
+import { requireImage } from "../training/media-authorization";
 import { Injectable } from "@nestjs/common";
 import { Database, json } from "../../shared/infrastructure/database";
 import { Actor } from "../operations/domain/contracts";
@@ -7,6 +8,7 @@ export interface ProductInput {
   reference: string;
   name: string;
   barcode?: string;
+  imageId?: string | null;
   description: string;
   active: boolean;
   expectedVersion?: number;
@@ -22,6 +24,8 @@ export class CatalogService {
       403,
     );
     return this.db.$transaction(async (tx) => {
+      await this.db.verifySession(tx, actor);
+      await requireImage(tx, input.imageId, "catalog");
       const { id, expectedVersion, ...data } = input;
       const old = id ? await tx.product.findUnique({ where: { id } }) : null;
       requireRule(
@@ -81,6 +85,8 @@ export class CatalogService {
     );
     if (!commit) return { valid: true, count: rows.length, rows };
     return this.db.$transaction(async (tx) => {
+      await this.db.verifySession(tx, actor);
+      for (const row of rows) await requireImage(tx, row.imageId, "catalog");
       const result = await tx.product.createMany({
         data: rows.map(({ id, expectedVersion, ...row }) => row),
       });

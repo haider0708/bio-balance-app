@@ -27,7 +27,8 @@ jobs:
       - run: psql "$OWNER_URL" -v app_password=local-app-only -f scripts/provision-role.sql
         env:
           OWNER_URL: postgresql://biobalance:local-development-only@localhost:54329/biobalance_test
-      - run: npm run build && npm test && npm run test:integration
+      - run: sudo apt-get update && sudo apt-get install -y ffmpeg
+      - run: npm run build && npm test && npm run test:integration && npm run test:media
         env:
           TEST_APP_DATABASE_URL: postgresql://biobalance_app:local-app-only@localhost:54329/biobalance_test
           TEST_OWNER_DATABASE_URL: postgresql://biobalance:local-development-only@localhost:54329/biobalance_test

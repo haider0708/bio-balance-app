@@ -458,6 +458,27 @@ describe.sequential(
       expect((await service.submit(admin,op({type:'delivery.dispatch',orderId,deliveryId:randomUUID(),lines:[{productId:product,quantity:6}]},remaining.version))).status).toBe('accepted');
       expect((await workspace.fulfillment(actor,org,store,orderId)).lines[0].remainingToDispatch).toBe(0);
     });
+    it("derives setup from saved choices and requires an explicit zero-point confirmation", async () => {
+      const setupStore=randomUUID();
+      await owner.store.create({data:{id:setupStore,organizationId:org,name:'Setup',address:'Test address',city:'Tunis'}});
+      await owner.membership.create({data:{organizationId:org,storeId:setupStore,userId:actor.id,permissions:['manage']}});
+      await expect(workspace.onboarding(actor,org,setupStore,{step:5})).rejects.toThrow('Complétez');
+      let progress=await workspace.onboarding(actor,org,setupStore,{workingAlone:true,expectedVersion:1});
+      expect(progress.onboarding.team).toBe(true);expect(progress.onboarding.stock).toBe(false);
+      progress=await workspace.onboarding(actor,org,setupStore,{noOpeningStock:true,expectedVersion:progress.store.version});
+      expect(progress.onboarding.complete).toBe(true);
+      await expect(workspace.configureProduct(actor,org,setupStore,product,{priceMillimes:'1000',threshold:5,pointsPerUnit:0})).rejects.toThrow('Confirmez');
+      expect(await owner.storeProduct.count({where:{storeId:setupStore}})).toBe(0);
+      const config=await workspace.configureProduct(actor,org,setupStore,product,{priceMillimes:'1000',threshold:5,pointsPerUnit:0,zeroPointsConfirmed:true});
+      expect(config.zeroPointsConfirmed).toBe(true);
+      const complete=await workspace.onboarding(actor,org,setupStore,{step:5});
+      expect(complete.store.onboardingStep).toBe(5);
+      const changed=await workspace.updateStore(actor,org,setupStore,{name:'Nouveau nom',address:'Adresse modifiée',city:'Sfax',phone:'12345678',expectedVersion:complete.store.version});
+      expect(changed.name).toBe('Nouveau nom');
+      await expect(workspace.updateStore(actor,org,setupStore,{name:'Obsolète',address:'Test address',city:'Sfax',expectedVersion:complete.store.version})).rejects.toThrow('modifié');
+      await owner.storeProduct.update({where:{id:config.id},data:{zeroPointsConfirmed:false}});
+      expect((await workspace.snapshot(actor,org,setupStore)).onboarding?.complete).toBe(false);
+    });
     it("rejects another active seller editing the original seller's sale", async () => {
       await owner.membership.create({data:{organizationId:org,storeId:store,userId:foreign.id,permissions:['sell']}});
       const sale=await owner.sale.findUniqueOrThrow({where:{id:saleId}});

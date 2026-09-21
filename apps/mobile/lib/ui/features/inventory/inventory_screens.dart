@@ -11,6 +11,7 @@ import '../../../domain/models/money.dart';
 import '../../core/design.dart';
 import '../../core/forms.dart';
 import '../sales/sale_screen.dart';
+import '../media/image_input.dart';
 import '../authentication/session_view_model.dart';
 import '../workspace/workspace_view_model.dart';
 
@@ -145,6 +146,12 @@ class ProductDetail extends StatelessWidget {
         );
       }
       final config = data.config(product.id);
+      final imageId =
+          data
+                  .list('products')
+                  .where((p) => p['id'] == product.id)
+                  .firstOrNull?['imageId']
+              as String?;
       final lots = (data.lotsByProduct[product.id] ?? <InventoryLot>[]).toList()
         ..sort((a, b) => a.expiry.compareTo(b.expiry));
       return Scaffold(
@@ -152,6 +159,8 @@ class ProductDetail extends StatelessWidget {
         body: Content(
           maxWidth: 760,
           children: [
+            if (imageId != null)
+              ProtectedImage(vm: vm, id: imageId, height: 160),
             SectionTitle(product.reference, subtitle: product.description),
             Wrap(
               spacing: 12,
@@ -254,7 +263,7 @@ class ProductDetail extends StatelessWidget {
     },
   );
   Future<void> configure(BuildContext context) async {
-    final config = vm.state.data!.config(product.id);
+    final config = vm.state.data!.config(product.id), store = vm.state.store!;
     if (await openEditor(
       context,
       title: 'Paramétrer le produit',
@@ -279,13 +288,28 @@ class ProductDetail extends StatelessWidget {
         ),
       ],
       submit: (v) async {
-        await vm.storeRequest(
+        final points = whole(v['points']!, allowZero: true);
+        if (points == 0 &&
+            !await confirmAction(
+              context,
+              'Confirmer : zéro point',
+              'Les ventes de ${product.name} ne rapporteront aucun point dans ${store.name}.',
+              label: 'Confirmer zéro point',
+            )) {
+          throw const FormatException(
+            'Configuration non enregistrée. Confirmez le choix de zéro point.',
+          );
+        }
+        vm.requireAccess(store, 'manage');
+        await vm.request(
           'PATCH',
-          'products/${product.id}',
+          '/v1/stores/${store.id}/products/${product.id}',
+          query: {'organizationId': store.organizationId},
           body: {
             'priceMillimes': Money.parse(v['price']!).millimes.toString(),
             'threshold': whole(v['threshold']!, allowZero: true),
-            'pointsPerUnit': whole(v['points']!, allowZero: true),
+            'pointsPerUnit': points,
+            'zeroPointsConfirmed': points == 0,
             if (config['version'] != null) 'expectedVersion': config['version'],
           },
         );

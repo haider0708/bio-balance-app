@@ -15,7 +15,8 @@
     "db:generate": "npm run db:generate -w apps/api",
     "db:migrate": "npm run db:migrate -w apps/api",
     "api:contract": "npm run contract -w apps/api",
-    "test:mobile-sync": "npm run test:mobile-sync -w apps/api"
+    "test:mobile-sync": "npm run test:mobile-sync -w apps/api",
+    "test:media": "npm run test:media -w apps/api"
   },
   "allowScripts": {
     "argon2@0.44.0": true,

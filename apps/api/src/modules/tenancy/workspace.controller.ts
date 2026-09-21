@@ -40,6 +40,29 @@ export class WorkspaceController {
         .parse(b),
     );
   }
+  @Patch("stores/:store") updateStore(
+    @Req() r: AuthRequest,
+    @Param("store") store: string,
+    @Query("organizationId") org: string,
+    @Body() body: unknown,
+  ) {
+    return this.service.updateStore(
+      r.actor,
+      uuid.parse(org),
+      uuid.parse(store),
+      z
+        .object({
+          name,
+          address: z.string().trim().min(3).max(300),
+          city: name,
+          phone: z.string().trim().max(30).nullable().optional(),
+          imageId: uuid.nullable().optional(),
+          expectedVersion: z.number().int().positive(),
+        })
+        .strict()
+        .parse(body),
+    );
+  }
   @Get("stores/:store/snapshot") snapshot(
     @Req() r: AuthRequest,
     @Param("store") s: string,
@@ -49,19 +72,48 @@ export class WorkspaceController {
     @Query("protocol") protocol?: string,
     @Query("acknowledgments") acknowledgments?: string,
   ) {
-    const since = after !== undefined && catalogRevision !== undefined ? {
-      cursor:z.string().regex(/^\d{1,19}$/).parse(after),
-      catalogRevision:z.string().regex(/^\d+:\d+$/).parse(catalogRevision),
-    } : undefined;
-    return this.service.snapshot(r.actor, uuid.parse(o), uuid.parse(s), since,
-      z.coerce.number().int().min(2).max(3).parse(protocol ?? 2),
-      z.array(uuid).max(50).parse(acknowledgments ? acknowledgments.split(',') : []));
+    const since =
+      after !== undefined && catalogRevision !== undefined
+        ? {
+            cursor: z
+              .string()
+              .regex(/^\d{1,19}$/)
+              .parse(after),
+            catalogRevision: z
+              .string()
+              .regex(/^\d+:\d+$/)
+              .parse(catalogRevision),
+          }
+        : undefined;
+    return this.service.snapshot(
+      r.actor,
+      uuid.parse(o),
+      uuid.parse(s),
+      since,
+      z.coerce
+        .number()
+        .int()
+        .min(2)
+        .max(3)
+        .parse(protocol ?? 2),
+      z
+        .array(uuid)
+        .max(50)
+        .parse(acknowledgments ? acknowledgments.split(",") : []),
+    );
   }
   @Get("stores/:store/snapshot-pages/:page") snapshotPage(
-    @Req() r: AuthRequest, @Param("store") store: string, @Param("page") page: string,
+    @Req() r: AuthRequest,
+    @Param("store") store: string,
+    @Param("page") page: string,
     @Query("organizationId") org: string,
   ) {
-    return this.service.snapshotPage(r.actor, uuid.parse(org), uuid.parse(store), uuid.parse(page));
+    return this.service.snapshotPage(
+      r.actor,
+      uuid.parse(org),
+      uuid.parse(store),
+      uuid.parse(page),
+    );
   }
   @Get("stores/:store/collections/:resource") collection(
     @Req() r: AuthRequest,
@@ -78,12 +130,41 @@ export class WorkspaceController {
       uuid.optional().parse(after),
     );
   }
-  @Get('stores/:store/history/:resource') history(@Req() r:AuthRequest,@Param('store') s:string,@Param('resource') resource:string,@Query('organizationId') o:string,@Query('productId') product?:string,@Query('before') before?:string){
-    return this.service.history(r.actor,uuid.parse(o),uuid.parse(s),z.enum(['sales','points','movements','audit']).parse(resource),uuid.optional().parse(product),z.string().max(300).regex(/^[A-Za-z0-9_-]+$/).optional().parse(before));
+  @Get("stores/:store/history/:resource") history(
+    @Req() r: AuthRequest,
+    @Param("store") s: string,
+    @Param("resource") resource: string,
+    @Query("organizationId") o: string,
+    @Query("productId") product?: string,
+    @Query("before") before?: string,
+  ) {
+    return this.service.history(
+      r.actor,
+      uuid.parse(o),
+      uuid.parse(s),
+      z.enum(["sales", "points", "movements", "audit"]).parse(resource),
+      uuid.optional().parse(product),
+      z
+        .string()
+        .max(300)
+        .regex(/^[A-Za-z0-9_-]+$/)
+        .optional()
+        .parse(before),
+    );
   }
   @Get("stores/:store/orders/:order/fulfillment") fulfillment(
-    @Req() r: AuthRequest, @Param('store') store: string, @Param('order') order: string, @Query('organizationId') org: string,
-  ) { return this.service.fulfillment(r.actor, uuid.parse(org), uuid.parse(store), uuid.parse(order)); }
+    @Req() r: AuthRequest,
+    @Param("store") store: string,
+    @Param("order") order: string,
+    @Query("organizationId") org: string,
+  ) {
+    return this.service.fulfillment(
+      r.actor,
+      uuid.parse(org),
+      uuid.parse(store),
+      uuid.parse(order),
+    );
+  }
   @Get("stores/:store/sales/:sale") sale(
     @Req() r: AuthRequest,
     @Param("store") s: string,
@@ -137,6 +218,7 @@ export class WorkspaceController {
           priceMillimes: z.string().regex(/^(0|[1-9]\d{0,14})$/),
           threshold: z.number().int().min(0).max(1_000_000),
           pointsPerUnit: z.number().int().min(0).max(100_000),
+          zeroPointsConfirmed: z.boolean().optional(),
           expectedVersion: z.number().int().positive().optional(),
         })
         .strict()
@@ -174,7 +256,15 @@ export class WorkspaceController {
       r.actor,
       uuid.parse(o),
       uuid.parse(s),
-      z.object({ step: z.number().int().min(1).max(5) }).parse(b).step,
+      z
+        .object({
+          step: z.number().int().min(1).max(5).optional(),
+          workingAlone: z.boolean().optional(),
+          noOpeningStock: z.boolean().optional(),
+          expectedVersion: z.number().int().positive().optional(),
+        })
+        .strict()
+        .parse(b),
     );
   }
   @Post("stores/:store/rewards") reward(
@@ -193,7 +283,8 @@ export class WorkspaceController {
           title: name,
           description: z.string().max(2000).default(""),
           cost: z.number().int().positive().max(100_000_000),
-          productId: uuid.optional(),
+          productId: uuid.nullable().optional(),
+          imageId: uuid.nullable().optional(),
           quantity: z.number().int().positive().max(1_000_000).default(1),
           active: z.boolean().default(true),
           expectedVersion: z.number().int().positive().optional(),

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../media/image_input.dart';
+
 import '../reporting/history_screen.dart';
 
 import 'package:uuid/uuid.dart';
@@ -112,6 +114,8 @@ class _RewardsPageState extends State<RewardsPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        if (r['imageId'] != null)
+                          ProtectedImage(vm: vm, id: r['imageId']),
                         Text(
                           r['title'],
                           style: Theme.of(context).textTheme.titleMedium,
@@ -126,6 +130,12 @@ class _RewardsPageState extends State<RewardsPage> {
                           ),
                         ),
                         const SizedBox(height: 12),
+                        if (vm.state.store!.canManage || vm.user.admin)
+                          TextButton.icon(
+                            onPressed: () => configure(context, r),
+                            icon: const Icon(Icons.edit_outlined),
+                            label: const Text('Modifier la récompense'),
+                          ),
                         FilledButton.tonal(
                           onPressed:
                               data.available < integer(r['cost']) ||
@@ -251,20 +261,37 @@ class _RewardsPageState extends State<RewardsPage> {
     }
   }
 
-  Future<void> configure(BuildContext context) async {
-    final vm = widget.vm;
+  Future<void> configure(BuildContext context, [Json? reward]) async {
+    final vm = widget.vm, store = widget.vm.state.store!;
     if (await openEditor(
       context,
-      title: 'Créer une récompense',
+      title: reward == null ? 'Créer une récompense' : 'Modifier la récompense',
       fields: [
-        const FieldSpec('title', 'Nom de la récompense'),
-        const FieldSpec(
+        FieldSpec(
+          'title',
+          'Nom de la récompense',
+          initial: reward?['title'] ?? '',
+        ),
+        FieldSpec(
+          'imageId',
+          'Image de la récompense',
+          initial: reward?['imageId'] ?? '',
+          required: false,
+          imagePurpose: 'reward',
+        ),
+        FieldSpec(
           'description',
           'Description',
+          initial: reward?['description'] ?? '',
           required: false,
           multiline: true,
         ),
-        const FieldSpec('cost', 'Coût en points', numeric: true),
+        FieldSpec(
+          'cost',
+          'Coût en points',
+          initial: '${reward?['cost'] ?? ''}',
+          numeric: true,
+        ),
         FieldSpec(
           'product',
           'Produit offert (facultatif)',
@@ -273,27 +300,39 @@ class _RewardsPageState extends State<RewardsPage> {
             'none': 'Aucun produit lié',
             for (final p in vm.state.data!.products) p.id: p.name,
           },
-          initial: 'none',
+          initial: reward?['productId'] ?? 'none',
         ),
-        const FieldSpec(
+        FieldSpec(
           'quantity',
           'Unités offertes',
-          initial: '1',
+          initial: '${reward?['quantity'] ?? 1}',
           numeric: true,
+        ),
+        FieldSpec(
+          'active',
+          'Statut',
+          initial: reward?['active'] == false ? 'no' : 'yes',
+          options: const {'yes': 'Disponible', 'no': 'Archivée'},
         ),
       ],
       submit: (v) async {
-        await vm.storeRequest(
+        vm.requireAccess(store, 'manage');
+        await vm.request(
           'POST',
-          'rewards',
+          '/v1/stores/${store.id}/rewards',
+          query: {'organizationId': store.organizationId},
           body: {
+            if (reward != null) 'id': reward['id'],
+            if (reward != null) 'expectedVersion': reward['version'],
+            'imageId': v['imageId']!.isEmpty ? null : v['imageId'],
             'title': v['title'],
             'description': v['description'],
             'cost': whole(v['cost']!),
-            if (v['product'] != 'none' && v['product'] != '')
-              'productId': v['product'],
+            'productId': v['product'] == 'none' || v['product'] == ''
+                ? null
+                : v['product'],
             'quantity': whole(v['quantity']!),
-            'active': true,
+            'active': v['active'] == 'yes',
           },
         );
       },

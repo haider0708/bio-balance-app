@@ -45,6 +45,13 @@ export class TrainingController {
   @Post("media/uploads") start(@Req() r: AuthRequest, @Body() b: unknown) {
     const v = z
       .object({
+        purpose: z.enum(["training", "catalog", "store", "reward"]).optional(),
+        organizationId: z.uuid().optional(),
+        storeId: z.uuid().optional(),
+        sha256: z
+          .string()
+          .regex(/^[a-f0-9]{64}$/)
+          .optional(),
         fileName: z.string().min(1).max(200),
         mime: z.enum([
           "image/jpeg",
@@ -60,7 +67,7 @@ export class TrainingController {
       })
       .strict()
       .parse(b);
-    return this.service.startUpload(r.actor, v.fileName, v.mime, v.size);
+    return this.service.startUpload(r.actor, v.fileName, v.mime, v.size, v);
   }
   @Get("media/uploads/:id") status(
     @Req() r: AuthRequest,
@@ -97,7 +104,8 @@ export class TrainingController {
     @Res() response: Response,
   ) {
     const file = await this.service.media(r.actor, z.uuid().parse(id));
-    response.setHeader("Cache-Control", "private, max-age=3600");
+    response.setHeader("Cache-Control", "private, no-store");
+    if (file.sha256) response.setHeader("X-Content-SHA256", file.sha256);
     if (process.env.MEDIA_INTERNAL_REDIRECT === "true") {
       response
         .type(file.mime)

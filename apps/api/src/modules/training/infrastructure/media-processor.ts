@@ -1,0 +1,183 @@
+import { spawn } from "node:child_process";
+import { createHash } from "node:crypto";
+import { createReadStream } from "node:fs";
+import { open, rename, stat } from "node:fs/promises";
+import path from "node:path";
+import { Database } from "../../../shared/infrastructure/database";
+
+async function digest(file: string) {
+  const hash = createHash("sha256");
+  for await (const chunk of createReadStream(file)) hash.update(chunk);
+  return hash.digest("hex");
+}
+function run(
+  program: string,
+  args: string[],
+  timeout = 600_000,
+): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const child = spawn(program, args, { stdio: ["ignore", "pipe", "ignore"] });
+    let output = "",
+      settled = false;
+    const done = (error?: Error) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      error ? reject(error) : resolve(output);
+    };
+    const timer = setTimeout(() => {
+      child.kill("SIGKILL");
+      done(new Error("MEDIA_TIMEOUT"));
+    }, timeout);
+    child.stdout.on("data", (chunk) => {
+      output += chunk.toString();
+      if (output.length > 64 * 1024) {
+        child.kill("SIGKILL");
+        done(new Error("MEDIA_OUTPUT_LIMIT"));
+      }
+    });
+    child.on("error", () => done(new Error("MEDIA_TOOL_UNAVAILABLE")));
+    child.on("exit", (code) =>
+      done(code === 0 ? undefined : new Error("MEDIA_PROCESSING_FAILED")),
+    );
+  });
+}
+export class MediaProcessor {
+  constructor(
+    private readonly db: Database,
+    private readonly root = path.resolve(
+      process.env.MEDIA_ROOT ?? "../../.volumes/media",
+    ),
+  ) {}
+  async process(id: string) {
+    const media = await this.db.mediaAsset.findUniqueOrThrow({ where: { id } });
+    if (media.status === "ready") return;
+    if (media.status !== "processing") throw new Error("MEDIA_NOT_UPLOADED");
+    const source = path.join(this.root, `${media.id}.upload`);
+    if (BigInt((await stat(source)).size) !== media.size)
+      throw new Error("MEDIA_SIZE_MISMATCH");
+    if (media.expectedSha256 && (await digest(source)) !== media.expectedSha256)
+      throw new Error("MEDIA_CHECKSUM_MISMATCH");
+    const video = media.mime.startsWith("video/");
+    if (video) {
+      const file = await open(source, "r"),
+        header = Buffer.from(new Uint8Array(12));
+      try {
+        await file.read(header, 0, 12, 0);
+      } finally {
+        await file.close();
+      }
+      if (header.subarray(4, 8).toString("ascii") !== "ftyp")
+        throw new Error("INVALID_VIDEO");
+    }
+    if (!video) {
+      if (media.size > 10n * 1024n * 1024n) throw new Error("IMAGE_TOO_LARGE");
+      const handle = await open(source, "r");
+      const signature = Buffer.alloc(8);
+      try {
+        await handle.read(signature, 0, 8, 0);
+      } finally {
+        await handle.close();
+      }
+      if (
+        media.mime === "image/png"
+          ? !signature.equals(Buffer.from("89504e470d0a1a0a", "hex"))
+          : media.mime !== "image/jpeg" ||
+            signature[0] !== 255 ||
+            signature[1] !== 216
+      )
+        throw new Error("INVALID_IMAGE");
+      const probe = JSON.parse(
+        await run(
+          "ffprobe",
+          [
+            "-v",
+            "error",
+            "-protocol_whitelist",
+            "file,pipe",
+            "-select_streams",
+            "v:0",
+            "-show_entries",
+            "stream=width,height",
+            "-of",
+            "json",
+            source,
+          ],
+          15_000,
+        ),
+      );
+      const dimensions = probe.streams?.[0];
+      if (
+        !dimensions ||
+        dimensions.width <= 0 ||
+        dimensions.height <= 0 ||
+        dimensions.width * dimensions.height > 25_000_000
+      )
+        throw new Error("IMAGE_DIMENSIONS");
+    }
+    const target = `${media.id}.${video ? "mp4" : media.mime === "image/png" ? "png" : "jpg"}`;
+    const output = path.join(this.root, `processed-${target}`);
+    const common = [
+      "-nostdin",
+      "-y",
+      "-max_alloc",
+      "67108864",
+      "-threads",
+      "2",
+      "-filter_threads",
+      "2",
+      "-protocol_whitelist",
+      "file,pipe",
+      ...(video
+        ? ["-f", "mov", "-enable_drefs", "0", "-use_absolute_path", "0"]
+        : []),
+      "-i",
+      source,
+      "-map_metadata",
+      "-1",
+    ];
+    const encoding = video
+      ? [
+          "-map",
+          "0:v:0",
+          "-map",
+          "0:a:0?",
+          "-c:v",
+          "libx264",
+          "-preset",
+          "fast",
+          "-threads",
+          "2",
+          "-vf",
+          "scale=1280:720:force_original_aspect_ratio=decrease:force_divisible_by=2,format=yuv420p",
+          "-c:a",
+          "aac",
+          "-movflags",
+          "+faststart",
+        ]
+      : [
+          "-frames:v",
+          "1",
+          "-threads",
+          "2",
+          "-vf",
+          "scale='min(1600,iw)':'min(1600,ih)':force_original_aspect_ratio=decrease",
+        ];
+    await run(
+      "ffmpeg",
+      [...common, ...encoding, output],
+      video ? 600_000 : 60_000,
+    );
+    await rename(output, path.join(this.root, target));
+    await this.db.mediaAsset.update({
+      where: { id: media.id },
+      data: {
+        status: "ready",
+        path: target,
+        mime: video ? "video/mp4" : media.mime,
+        sha256: await digest(path.join(this.root, target)),
+        processedSize: BigInt((await stat(path.join(this.root, target))).size),
+      },
+    });
+  }
+}

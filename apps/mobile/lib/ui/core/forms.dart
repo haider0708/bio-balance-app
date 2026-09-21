@@ -5,6 +5,8 @@ import 'package:provider/provider.dart';
 
 import '../features/workspace/workspace_view_model.dart';
 import 'form_draft.dart';
+import '../features/media/image_input.dart';
+import '../../domain/models/models.dart';
 
 import 'package:flutter/material.dart';
 
@@ -16,6 +18,7 @@ class FieldSpec {
   final String initial;
   final bool required, numeric, multiline;
   final Map<String, String>? options;
+  final String? imagePurpose;
   const FieldSpec(
     this.key,
     this.label, {
@@ -24,6 +27,7 @@ class FieldSpec {
     this.numeric = false,
     this.multiline = false,
     this.options,
+    this.imagePurpose,
   });
 }
 
@@ -50,10 +54,11 @@ class EditorScreen extends StatefulWidget {
 class _EditorScreenState extends State<EditorScreen> {
   final key = GlobalKey<FormState>();
   late final Map<String, TextEditingController> controllers;
-  bool busy = false;
+  bool busy = false, mediaBusy = false;
   String? error;
   FormDraftController? draft;
   bool restoringDraft = false;
+  Store? draftStore;
   @override
   void initState() {
     super.initState();
@@ -63,7 +68,8 @@ class _EditorScreenState extends State<EditorScreen> {
     };
     final workspace = widget.workspace;
     final store = workspace?.state.store;
-    if (workspace != null && store != null) {
+    draftStore = store;
+    if (workspace != null) {
       draft = FormDraftController(
         workspace,
         store,
@@ -139,7 +145,21 @@ class _EditorScreenState extends State<EditorScreen> {
                 .map(
                   (f) => Padding(
                     padding: const EdgeInsets.only(bottom: 20),
-                    child: f.options == null
+                    child: f.imagePurpose != null && widget.workspace != null
+                        ? ImageInput(
+                            vm: widget.workspace!,
+                            store: f.imagePurpose == 'catalog'
+                                ? null
+                                : draftStore,
+                            purpose: f.imagePurpose!,
+                            label: f.label,
+                            controller: controllers[f.key]!,
+                            enabled: !busy,
+                            onBusyChanged: (value) {
+                              if (mounted) setState(() => mediaBusy = value);
+                            },
+                          )
+                        : f.options == null
                         ? TextFormField(
                             controller: controllers[f.key],
                             keyboardType: f.numeric
@@ -188,7 +208,7 @@ class _EditorScreenState extends State<EditorScreen> {
         ),
         const SizedBox(height: 12),
         FilledButton(
-          onPressed: busy ? null : save,
+          onPressed: busy || mediaBusy ? null : save,
           child: Text(busy ? 'Enregistrement…' : widget.submitLabel),
         ),
       ],
@@ -252,6 +272,7 @@ Future<bool> confirmAction(
 }) async =>
     await showDialog<bool>(
       context: context,
+      useRootNavigator: false,
       builder: (context) => AlertDialog(
         title: Text(title),
         content: SingleChildScrollView(child: Text(message)),

@@ -68,6 +68,16 @@ class ApiClient extends SessionTransport {
     Map<String, dynamic>? query,
     dynamic body,
   }) => request('POST', '/v1/stores', query: query, body: body);
+  Future<dynamic> workspaceControllerUpdateStore({
+    required String store,
+    Map<String, dynamic>? query,
+    dynamic body,
+  }) => request(
+    'PATCH',
+    '/v1/stores/${Uri.encodeComponent(store)}',
+    query: query,
+    body: body,
+  );
   Future<dynamic> workspaceControllerSnapshot({
     required String store,
     Map<String, dynamic>? query,

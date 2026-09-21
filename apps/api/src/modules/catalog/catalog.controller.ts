@@ -8,6 +8,7 @@ const product = z
     id: z.uuid().optional(),
     reference: z.string().trim().min(1).max(80),
     name: z.string().trim().min(2).max(160),
+    imageId: z.uuid().nullable().optional(),
     barcode: z.string().trim().min(3).max(80).optional(),
     description: z.string().max(5000).default(""),
     active: z.boolean().default(true),
@@ -26,7 +27,9 @@ export class CatalogController {
     const input = z
       .object({
         rows: z
-          .array(product.omit({ id: true, expectedVersion: true }))
+          .array(
+            product.omit({ id: true, expectedVersion: true, imageId: true }),
+          )
           .min(1)
           .max(1000),
         commit: z.boolean().default(false),

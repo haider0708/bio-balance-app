@@ -36,6 +36,7 @@ class Store {
   final String id, organizationId, organizationName, name, city;
   final List<String> permissions;
   final int onboardingStep;
+  final String? imageId;
   Store.fromJson(Json v)
     : id = v['id'],
       organizationId = v['organizationId'],
@@ -45,7 +46,8 @@ class Store {
       permissions = List.unmodifiable(
         List<String>.from(v['permissions'] ?? []),
       ),
-      onboardingStep = integer(v['onboardingStep']);
+      onboardingStep = integer(v['onboardingStep']),
+      imageId = v['imageId'];
   bool get canManage => permissions.contains('manage');
   bool get canSell => permissions.contains('sell') || canManage;
   Json toJson() => {
@@ -56,6 +58,7 @@ class Store {
     'city': city,
     'permissions': permissions,
     'onboardingStep': onboardingStep,
+    'imageId': imageId,
   };
 }
 

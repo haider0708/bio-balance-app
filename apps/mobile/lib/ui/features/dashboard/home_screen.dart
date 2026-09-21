@@ -145,7 +145,7 @@ class HomePage extends StatelessWidget {
         ),
         const SizedBox(height: 24),
         if (vm.state.store!.canManage &&
-            integer((data.raw['store'] as Map?)?['onboardingStep']) < 5) ...[
+            (data.raw['onboarding'] as Map?)?['complete'] != true) ...[
           Card(
             child: Padding(
               padding: const EdgeInsets.all(20),

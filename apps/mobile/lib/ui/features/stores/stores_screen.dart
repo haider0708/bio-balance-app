@@ -1,5 +1,9 @@
 import 'dart:async';
 
+import '../../../data/repositories/store_settings_repository.dart';
+import 'store_settings_screen.dart';
+import '../media/image_input.dart';
+
 import 'package:flutter/material.dart';
 
 import '../../../domain/models/models.dart';
@@ -33,7 +37,12 @@ class StoresPage extends StatelessWidget {
         (s) => Card(
           child: ListTile(
             contentPadding: const EdgeInsets.all(16),
-            leading: const Icon(Icons.storefront_outlined, color: darkGreen),
+            leading: s.imageId == null
+                ? const Icon(Icons.storefront_outlined, color: darkGreen)
+                : SizedBox(
+                    width: 48,
+                    child: ProtectedImage(vm: vm, id: s.imageId!, height: 48),
+                  ),
             title: Text(s.name),
             subtitle: Text('${s.organizationName} · ${s.city}'),
             trailing: s.id == vm.state.store?.id
@@ -128,6 +137,7 @@ Future<void> createStore(BuildContext context, WorkspaceViewModel vm) async {
       );
       return;
     }
+    String? createdId;
     if (await openEditor(
       context,
       title: 'Créer votre magasin',
@@ -144,10 +154,21 @@ Future<void> createStore(BuildContext context, WorkspaceViewModel vm) async {
         const FieldSpec('phone', 'Téléphone (facultatif)', required: false),
       ],
       submit: (v) async {
-        await vm.request('POST', '/v1/stores', body: v);
+        final result = await vm.request('POST', '/v1/stores', body: v);
+        createdId = result['id'];
       },
     )) {
       await vm.initialize();
+      final created = vm.state.stores
+          .where((s) => s.id == createdId)
+          .firstOrNull;
+      if (created != null) await vm.select(created);
+      if (context.mounted && created != null) {
+        await Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => OnboardingScreen(vm: vm)),
+        );
+      }
     }
   });
 }
@@ -174,60 +195,139 @@ Future<void> inviteManager(BuildContext context, WorkspaceViewModel vm) async {
   );
 }
 
-class OnboardingScreen extends StatelessWidget {
+class OnboardingScreen extends StatefulWidget {
   final WorkspaceViewModel vm;
   const OnboardingScreen({super.key, required this.vm});
   @override
-  Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('Préparer votre magasin')),
-    body: Content(
-      maxWidth: 760,
-      children: [
-        const SectionTitle(
-          'Votre magasin, étape par étape',
-          subtitle:
-              'Vous pouvez interrompre ce guide et revenir à tout moment.',
-        ),
-        for (final step in [
-          ('1', 'Votre magasin est créé', null),
-          ('2', 'Inviter votre équipe', TeamPage(vm: vm)),
-          ('3', 'Saisir les lots et le stock', StockPage(vm: vm)),
-          ('4', 'Configurer les prix, seuils et points', StockPage(vm: vm)),
-        ])
-          Card(
-            child: ListTile(
-              contentPadding: const EdgeInsets.all(16),
-              leading: CircleAvatar(
-                backgroundColor: const Color(0xFFEBF5E7),
-                child: Text(step.$1),
+  State<OnboardingScreen> createState() => _OnboardingScreenState();
+}
+
+class _OnboardingScreenState extends State<OnboardingScreen> {
+  bool saving = false;
+  late final store = widget.vm.state.store!;
+  @override
+  Widget build(BuildContext context) => ListenableBuilder(
+    listenable: widget.vm,
+    builder: (context, _) {
+      final vm = widget.vm,
+          progress = Map<String, dynamic>.from(
+            vm.state.data?.raw['onboarding'] ?? {},
+          );
+      final complete = progress['complete'] == true;
+      return Scaffold(
+        appBar: AppBar(title: const Text('Préparer votre magasin')),
+        body: Content(
+          maxWidth: 760,
+          children: [
+            SectionTitle(
+              store.name,
+              subtitle:
+                  'Vous pouvez interrompre le guide et y revenir depuis Plus.',
+            ),
+            Text('${progress['completedCount'] ?? 0} étapes sur 4 terminées'),
+            const SizedBox(height: 12),
+            LinearProgressIndicator(
+              value: integer(progress['completedCount']) / 4,
+            ),
+            const SizedBox(height: 20),
+            for (final step in [
+              ('profile', 'Informations du magasin', StoreSettingsPage(vm: vm)),
+              ('team', 'Inviter votre équipe', TeamPage(vm: vm)),
+              ('stock', 'Saisir les lots et le stock', StockPage(vm: vm)),
+              (
+                'products',
+                'Configurer prix, seuils et points',
+                StockPage(vm: vm),
               ),
-              title: Text(step.$2),
-              trailing: step.$3 == null
-                  ? const Icon(Icons.check, color: darkGreen)
-                  : const Icon(Icons.chevron_right),
-              onTap: step.$3 == null
-                  ? null
-                  : () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => Scaffold(
-                          appBar: AppBar(title: Text(step.$2)),
-                          body: step.$3,
-                        ),
+            ])
+              Card(
+                child: ListTile(
+                  contentPadding: const EdgeInsets.all(16),
+                  leading: Icon(
+                    progress[step.$1] == true
+                        ? Icons.check_circle_outline
+                        : Icons.radio_button_unchecked,
+                    color: darkGreen,
+                  ),
+                  title: Text(step.$2),
+                  subtitle: Text(
+                    progress[step.$1] == true ? 'Terminé' : 'À compléter',
+                  ),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => Scaffold(
+                        appBar: AppBar(title: Text(step.$2)),
+                        body: step.$3,
                       ),
                     ),
+                  ),
+                ),
+              ),
+            CheckboxListTile(
+              value: progress['workingAlone'] == true,
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Je travaille seul pour le moment'),
+              subtitle: const Text(
+                'Vous pourrez inviter votre équipe plus tard.',
+              ),
+              onChanged: saving
+                  ? null
+                  : (value) => choice({'workingAlone': value}),
             ),
-          ),
-        const SizedBox(height: 24),
-        FilledButton(
-          onPressed: () async {
-            await vm.storeRequest('PATCH', 'onboarding', body: {'step': 5});
-            await vm.synchronize();
-            if (context.mounted) Navigator.pop(context);
-          },
-          child: const Text('Terminer le guide'),
+            CheckboxListTile(
+              value: progress['noOpeningStock'] == true,
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Je n’ai pas de stock de départ'),
+              subtitle: const Text(
+                'Vous saisirez les lots lors de la première réception.',
+              ),
+              onChanged: saving
+                  ? null
+                  : (value) => choice({'noOpeningStock': value}),
+            ),
+            if ((progress['incompleteProducts'] as List? ?? []).isNotEmpty)
+              Notice(
+                '${(progress['incompleteProducts'] as List).length} produit(s) restent à paramétrer. Confirmez explicitement les produits à zéro point.',
+              ),
+            const SizedBox(height: 20),
+            FilledButton(
+              onPressed: !complete || saving ? null : finish,
+              child: const Text('Terminer le guide'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Continuer plus tard'),
+            ),
+          ],
         ),
-      ],
-    ),
+      );
+    },
   );
+  Future<void> choice(Json values) async {
+    setState(() => saving = true);
+    await run(context, () async {
+      widget.vm.requireAccess(store, 'manage');
+      await StoreSettingsRepository(widget.vm.api).onboarding(store, {
+        ...values,
+        'expectedVersion':
+            (widget.vm.state.data!.raw['store'] as Map)['version'],
+      });
+      await widget.vm.synchronize();
+    });
+    if (mounted) setState(() => saving = false);
+  }
+
+  Future<void> finish() async {
+    setState(() => saving = true);
+    await run(context, () async {
+      widget.vm.requireAccess(store, 'manage');
+      await StoreSettingsRepository(widget.vm.api)
+          .onboarding(store, {'step': 5});
+      await widget.vm.synchronize();
+      if (mounted) Navigator.pop(context);
+    });
+    if (mounted) setState(() => saving = false);
+  }
 }

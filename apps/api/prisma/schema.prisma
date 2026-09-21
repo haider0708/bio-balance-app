@@ -63,6 +63,9 @@ model Store {
   imageId String? @db.Uuid
   timezone String @default("Africa/Tunis")
   onboardingStep Int @default(1)
+  workingAlone Boolean @default(false)
+  noOpeningStock Boolean @default(false)
+  version Int @default(1)
   createdAt DateTime @default(now())
   @@unique([organizationId,id])
 }
@@ -97,6 +100,7 @@ model StoreProduct {
   threshold Int @default(5)
   pointsPerUnit Int @default(0)
   pointsConfigured Boolean @default(false)
+  zeroPointsConfirmed Boolean @default(false)
   version Int @default(1)
   @@unique([storeId,productId])
 }
@@ -346,6 +350,11 @@ model Job {
   @@index([status,availableAt])
 }
 model MediaAsset {
+  organizationId String? @db.Uuid
+  storeId String? @db.Uuid
+  purpose String @default("training")
+  expectedSha256 String?
+  processedSize BigInt?
   id String @id @default(uuid()) @db.Uuid
   ownerId String @db.Uuid
   fileName String
@@ -356,6 +365,7 @@ model MediaAsset {
   path String
   sha256 String?
   createdAt DateTime @default(now())
+  @@index([storeId,purpose])
 }
 model TrainingContent {
   id String @id @default(uuid()) @db.Uuid

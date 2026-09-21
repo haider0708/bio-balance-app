@@ -1,4 +1,9 @@
-import { orderFulfillment, outstandingSupply } from "../operations/infrastructure/order-fulfillment-query";
+import {
+  orderFulfillment,
+  outstandingSupply,
+} from "../operations/infrastructure/order-fulfillment-query";
+import { onboardingProgress } from "./onboarding";
+import { requireImage } from "../training/media-authorization";
 import { randomUUID } from "node:crypto";
 import { Injectable } from "@nestjs/common";
 import { Database, json } from "../../shared/infrastructure/database";
@@ -12,11 +17,23 @@ export class WorkspaceService {
   constructor(private readonly db: Database) {}
   async fulfillment(actor: Actor, org: string, store: string, orderId: string) {
     return this.db.scoped(actor, org, store, async (tx, scope) => {
-      requireRule(scope.permissions.includes('manage'), 'FORBIDDEN', 'Action réservée au responsable.', 403);
-      const order = await tx.replenishmentOrder.findFirst({where:{id:orderId,storeId:store,organizationId:org}});
-      requireRule(order, 'NOT_FOUND', 'Commande introuvable.', 404);
+      requireRule(
+        scope.permissions.includes("manage"),
+        "FORBIDDEN",
+        "Action réservée au responsable.",
+        403,
+      );
+      const order = await tx.replenishmentOrder.findFirst({
+        where: { id: orderId, storeId: store, organizationId: org },
+      });
+      requireRule(order, "NOT_FOUND", "Commande introuvable.", 404);
       const result = await orderFulfillment(tx, org, store, [order]);
-      return {orderId:order.id,version:order.version,status:order.status,lines:result.get(order.id)!};
+      return {
+        orderId: order.id,
+        version: order.version,
+        status: order.status,
+        lines: result.get(order.id)!,
+      };
     });
   }
   async organizations(actor: Actor) {
@@ -176,6 +193,7 @@ export class WorkspaceService {
       priceMillimes: string;
       threshold: number;
       pointsPerUnit: number;
+      zeroPointsConfirmed?: boolean;
       expectedVersion?: number;
     },
   ) {
@@ -195,7 +213,14 @@ export class WorkspaceService {
           "La configuration a changé.",
           409,
         );
+        requireRule(
+          input.pointsPerUnit > 0 || input.zeroPointsConfirmed === true,
+          "ZERO_POINTS_CONFIRMATION",
+          "Confirmez que ce produit ne rapporte aucun point.",
+        );
         const data = {
+          zeroPointsConfirmed:
+            input.pointsPerUnit === 0 && input.zeroPointsConfirmed === true,
           priceMillimes: BigInt(input.priceMillimes),
           threshold: input.threshold,
           pointsPerUnit: input.pointsPerUnit,
@@ -237,9 +262,92 @@ export class WorkspaceService {
       },
     );
   }
-  onboarding(actor: Actor, org: string, store: string, step: number) {
-    return this.mutate(actor, org, store, "onboarding.update", store, (tx) =>
-      tx.store.update({ where: { id: store }, data: { onboardingStep: step } }),
+  updateStore(
+    actor: Actor,
+    org: string,
+    store: string,
+    input: {
+      name: string;
+      address: string;
+      city: string;
+      phone?: string | null;
+      imageId?: string | null;
+      expectedVersion: number;
+    },
+  ) {
+    return this.mutate(actor, org, store, "store.update", store, async (tx) => {
+      const old = await tx.store.findUniqueOrThrow({ where: { id: store } });
+      requireRule(
+        old.version === input.expectedVersion,
+        "VERSION_CONFLICT",
+        "Le magasin a été modifié.",
+        409,
+      );
+      await requireImage(tx, input.imageId, "store", store);
+      const { expectedVersion, ...data } = input;
+      return tx.store.update({
+        where: { id: store },
+        data: { ...data, version: { increment: 1 } },
+      });
+    });
+  }
+  onboarding(
+    actor: Actor,
+    org: string,
+    store: string,
+    input: {
+      step?: number;
+      workingAlone?: boolean;
+      noOpeningStock?: boolean;
+      expectedVersion?: number;
+    },
+  ) {
+    return this.mutate(
+      actor,
+      org,
+      store,
+      "onboarding.update",
+      store,
+      async (tx) => {
+        const old = await tx.store.findUniqueOrThrow({ where: { id: store } });
+        const changes =
+          input.workingAlone !== undefined ||
+          input.noOpeningStock !== undefined;
+        requireRule(
+          !changes || old.version === input.expectedVersion,
+          "VERSION_CONFLICT",
+          "Le magasin a été modifié.",
+          409,
+        );
+        await tx.store.update({
+          where: { id: store },
+          data: {
+            workingAlone: input.workingAlone,
+            noOpeningStock: input.noOpeningStock,
+            version: { increment: 1 },
+          },
+        });
+        const progress = await onboardingProgress(tx, store);
+        requireRule(
+          input.step !== 5 || progress.complete,
+          "SETUP_INCOMPLETE",
+          "Complétez les étapes ou confirmez vos choix avant de terminer.",
+        );
+        const step = progress.complete
+          ? 5
+          : !progress.profile
+            ? 1
+            : !progress.team
+              ? 2
+              : !progress.stock
+                ? 3
+                : 4;
+        const updated = await tx.store.update({
+          where: { id: store },
+          data: { onboardingStep: step },
+        });
+        return { store: updated, onboarding: progress };
+      },
     );
   }
   reward(
@@ -251,7 +359,8 @@ export class WorkspaceService {
       title: string;
       description: string;
       cost: number;
-      productId?: string;
+      productId?: string | null;
+      imageId?: string | null;
       quantity: number;
       active: boolean;
       expectedVersion?: number;
@@ -265,6 +374,13 @@ export class WorkspaceService {
       input.id ?? store,
       async (tx) => {
         const { expectedVersion, id, ...data } = input;
+        await requireImage(tx, input.imageId, "reward", store);
+        if (input.productId)
+          requireRule(
+            await tx.product.findUnique({ where: { id: input.productId } }),
+            "PRODUCT_NOT_FOUND",
+            "Produit introuvable.",
+          );
         if (id) {
           const old = await tx.reward.findFirst({
             where: { id, storeId: store },
@@ -286,26 +402,67 @@ export class WorkspaceService {
       },
     );
   }
-  async snapshot(actor: Actor, org: string, store: string, since?: {cursor:string;catalogRevision:string}, protocol = 2, acknowledgmentIds: string[] = []) {
+  async snapshot(
+    actor: Actor,
+    org: string,
+    store: string,
+    since?: { cursor: string; catalogRevision: string },
+    protocol = 2,
+    acknowledgmentIds: string[] = [],
+  ) {
     return this.db.scoped(actor, org, store, async (tx, scope) => {
       const manage =
         scope.permissions.includes("manage") || scope.actor.platformAdmin;
-      const currentCursor = await tx.storeCursor.findUnique({where:{storeId:store}});
-      const catalog = await tx.product.aggregate({_count:true,_sum:{version:true}});
-      const catalogRevision = `${catalog._count}:${catalog._sum.version??0}`;
-      const changes = since ? await tx.change.findMany({where:{storeId:store,cursor:{gt:BigInt(since.cursor)}},orderBy:{cursor:'asc'},take:201}) : [];
+      const currentCursor = await tx.storeCursor.findUnique({
+        where: { storeId: store },
+      });
+      const catalog = await tx.product.aggregate({
+        _count: true,
+        _sum: { version: true },
+      });
+      const catalogRevision = `${catalog._count}:${catalog._sum.version ?? 0}`;
+      const changes = since
+        ? await tx.change.findMany({
+            where: { storeId: store, cursor: { gt: BigInt(since.cursor) } },
+            orderBy: { cursor: "asc" },
+            take: 201,
+          })
+        : [];
       // A bounded delta merges changed lots/configuration into the existing
       // cache. Large backlogs or catalog changes receive a fresh snapshot.
-      const delta = !!since && BigInt(since.cursor) <= (currentCursor?.value??0n) &&
-        changes.length <= 200 && since.catalogRevision === catalogRevision;
-      const accepted = acknowledgmentIds.length ? await tx.processedOperation.findMany({
-        where: { storeId: store, actorId: actor.id, id: { in: acknowledgmentIds } },
-        select: { id: true, result: true },
-      }) : [];
-      const movements = delta ? await tx.stockMovement.findMany({where:{storeId:store,operationId:{in:[...changes.map(c=>c.id), ...accepted.map(a=>a.id)]}},select:{lotId:true},distinct:['lotId'],take:1501}) : [];
+      const delta =
+        !!since &&
+        BigInt(since.cursor) <= (currentCursor?.value ?? 0n) &&
+        changes.length <= 200 &&
+        since.catalogRevision === catalogRevision;
+      const accepted = acknowledgmentIds.length
+        ? await tx.processedOperation.findMany({
+            where: {
+              storeId: store,
+              actorId: actor.id,
+              id: { in: acknowledgmentIds },
+            },
+            select: { id: true, result: true },
+          })
+        : [];
+      const movements = delta
+        ? await tx.stockMovement.findMany({
+            where: {
+              storeId: store,
+              operationId: {
+                in: [...changes.map((c) => c.id), ...accepted.map((a) => a.id)],
+              },
+            },
+            select: { lotId: true },
+            distinct: ["lotId"],
+            take: 1501,
+          })
+        : [];
       const useDelta = delta && movements.length <= 1500;
-      const changedLots = movements.map(m=>m.lotId);
-      const changedProducts = changes.filter(c=>c.entity==='product.configure').map(c=>c.entityId);
+      const changedLots = movements.map((m) => m.lotId);
+      const changedProducts = changes
+        .filter((c) => c.entity === "product.configure")
+        .map((c) => c.entityId);
       const [
         config,
         lots,
@@ -321,12 +478,18 @@ export class WorkspaceService {
         cursor,
       ] = await Promise.all([
         tx.storeProduct.findMany({
-          where: { storeId: store, ...(useDelta?{productId:{in:changedProducts}}:{}) },
+          where: {
+            storeId: store,
+            ...(useDelta ? { productId: { in: changedProducts } } : {}),
+          },
           orderBy: { id: "asc" },
           take: 1000,
         }),
         tx.inventoryLot.findMany({
-          where: { storeId: store, ...(useDelta?{id:{in:changedLots}}:{}) },
+          where: {
+            storeId: store,
+            ...(useDelta ? { id: { in: changedLots } } : {}),
+          },
           orderBy: { id: "asc" },
           take: useDelta ? 1500 : 500,
         }),
@@ -371,6 +534,7 @@ export class WorkspaceService {
       ]);
       const fulfillment = await orderFulfillment(tx, org, store, orders);
       const supply = await outstandingSupply(tx, org, store);
+      const onboarding = manage ? await onboardingProgress(tx, store) : null;
       const users = await tx.user.findMany({
         where: { id: { in: memberships.map((m) => m.userId) } },
         select: { id: true, name: true, email: true },
@@ -387,40 +551,95 @@ export class WorkspaceService {
             take: 200,
           })
         : [];
-      const summaryRows = await tx.$queryRaw<{count:bigint;total:bigint}[]>`SELECT COUNT(*)::bigint AS count,COALESCE(SUM("totalMillimes"),0)::bigint AS total FROM "Sale" WHERE "storeId"=${store}::uuid AND (${manage} OR "sellerId"=${actor.id}::uuid) AND "occurredAt">=((date_trunc('day', now() AT TIME ZONE ${scope.timezone}) AT TIME ZONE ${scope.timezone}) AT TIME ZONE 'UTC')`;
-      const products = useDelta ? [] : await tx.product.findMany({
-        orderBy: { id: "asc" },
-        take: 1000,
-      });
-      const acknowledgedSaleIds = accepted.flatMap(a => {
-        const result = a.result as unknown as { data?: {id?: string} };
+      const summaryRows = await tx.$queryRaw<
+        { count: bigint; total: bigint }[]
+      >`SELECT COUNT(*)::bigint AS count,COALESCE(SUM("totalMillimes"),0)::bigint AS total FROM "Sale" WHERE "storeId"=${store}::uuid AND (${manage} OR "sellerId"=${actor.id}::uuid) AND "occurredAt">=((date_trunc('day', now() AT TIME ZONE ${scope.timezone}) AT TIME ZONE ${scope.timezone}) AT TIME ZONE 'UTC')`;
+      const products = useDelta
+        ? []
+        : await tx.product.findMany({
+            orderBy: { id: "asc" },
+            take: 1000,
+          });
+      const acknowledgedSaleIds = accepted.flatMap((a) => {
+        const result = a.result as unknown as { data?: { id?: string } };
         return result.data?.id ? [result.data.id] : [];
       });
-      const acknowledgedSales = await tx.sale.findMany({ where: { storeId: store,
-        id: { in: acknowledgedSaleIds }, ...(!manage ? {sellerId: actor.id} : {}) } });
+      const acknowledgedSales = await tx.sale.findMany({
+        where: {
+          storeId: store,
+          id: { in: acknowledgedSaleIds },
+          ...(!manage ? { sellerId: actor.id } : {}),
+        },
+      });
       for (const sale of acknowledgedSales) {
-        if (!sales.some(s => s.id === sale.id)) sales.push(sale);
+        if (!sales.some((s) => s.id === sale.id)) sales.push(sale);
       }
       const snapshotPages: Record<string, string | null> = {};
       const expiresAt = new Date(Date.now() + 5 * 60_000);
       if (protocol >= 3 && !useDelta) {
-        await tx.syncSnapshotPage.deleteMany({ where: { storeId: store, actorId: actor.id, expiresAt: {lte: new Date()} } });
-        for (const [resource, initial, limit] of [["lots", lots, 500], ["products", products, 1000], ["config", config, 1000]] as const) {
+        await tx.syncSnapshotPage.deleteMany({
+          where: {
+            storeId: store,
+            actorId: actor.id,
+            expiresAt: { lte: new Date() },
+          },
+        });
+        for (const [resource, initial, limit] of [
+          ["lots", lots, 500],
+          ["products", products, 1000],
+          ["config", config, 1000],
+        ] as const) {
           let after = initial.length === limit ? initial.at(-1)?.id : undefined;
           let previousPage: string | null = null;
           // Each page is materialized now; later requests never query live lots.
           while (after) {
             const options = { orderBy: { id: "asc" as const }, take: 200 };
-            const items = resource === "lots" ? await tx.inventoryLot.findMany({where:{storeId:store,id:{gt:after}},...options})
-              : resource === "config" ? await tx.storeProduct.findMany({where:{storeId:store,id:{gt:after}},...options})
-              : await tx.product.findMany({where:{id:{gt:after}},...options});
+            const items =
+              resource === "lots"
+                ? await tx.inventoryLot.findMany({
+                    where: { storeId: store, id: { gt: after } },
+                    ...options,
+                  })
+                : resource === "config"
+                  ? await tx.storeProduct.findMany({
+                      where: { storeId: store, id: { gt: after } },
+                      ...options,
+                    })
+                  : await tx.product.findMany({
+                      where: { id: { gt: after } },
+                      ...options,
+                    });
             const pageId = randomUUID();
-            const page = { resource, items, nextPage: null as string | null, cursor: (cursor?.value??0n).toString() };
-            await tx.syncSnapshotPage.create({data:{id:pageId,organizationId:org,storeId:store,actorId:actor.id,
-              permissions: JSON.stringify([...scope.permissions].sort()), expiresAt, payload:json(page)}});
+            const page = {
+              resource,
+              items,
+              nextPage: null as string | null,
+              cursor: (cursor?.value ?? 0n).toString(),
+            };
+            await tx.syncSnapshotPage.create({
+              data: {
+                id: pageId,
+                organizationId: org,
+                storeId: store,
+                actorId: actor.id,
+                permissions: JSON.stringify([...scope.permissions].sort()),
+                expiresAt,
+                payload: json(page),
+              },
+            });
             if (previousPage) {
-              const previous = await tx.syncSnapshotPage.findUniqueOrThrow({where:{id:previousPage}});
-              await tx.syncSnapshotPage.update({where:{id:previousPage},data:{payload:json({...previous.payload as object,nextPage:pageId})}});
+              const previous = await tx.syncSnapshotPage.findUniqueOrThrow({
+                where: { id: previousPage },
+              });
+              await tx.syncSnapshotPage.update({
+                where: { id: previousPage },
+                data: {
+                  payload: json({
+                    ...(previous.payload as object),
+                    nextPage: pageId,
+                  }),
+                },
+              });
             } else snapshotPages[resource] = pageId;
             previousPage = pageId;
             after = items.length === 200 ? items.at(-1)?.id : undefined;
@@ -431,14 +650,18 @@ export class WorkspaceService {
         syncProtocol: protocol >= 3 ? 3 : 2,
         snapshotPages,
         snapshotExpiresAt: expiresAt.toISOString(),
-        appliedOperationIds: accepted.map(a => a.id),
+        appliedOperationIds: accepted.map((a) => a.id),
         catalogRevision,
-        mode: useDelta ? 'delta' : 'snapshot',
-        mergeResources: useDelta ? ['lots','config','products'] : [],
+        mode: useDelta ? "delta" : "snapshot",
+        mergeResources: useDelta ? ["lots", "config", "products"] : [],
         // Replacing authorized collections also removes disabled memberships,
         // archived rewards and received deliveries from their active lists.
-        summary: {saleCount:summaryRows[0]?.count??0n,totalMillimes:summaryRows[0]?.total??0n},
+        summary: {
+          saleCount: summaryRows[0]?.count ?? 0n,
+          totalMillimes: summaryRows[0]?.total ?? 0n,
+        },
         store: storeData,
+        onboarding,
         permissions: scope.permissions,
         products,
         config,
@@ -448,7 +671,10 @@ export class WorkspaceService {
         points: points ?? { balance: 0, reserved: 0 },
         rewards,
         claims,
-        orders: orders.map(order => ({...order, fulfillment: fulfillment.get(order.id)})),
+        orders: orders.map((order) => ({
+          ...order,
+          fulfillment: fulfillment.get(order.id),
+        })),
         outstandingSupply: supply,
         deliveries,
         team: memberships.map((m) => ({
@@ -462,16 +688,30 @@ export class WorkspaceService {
         pagination: {
           lots: !useDelta && lots.length === 500 ? lots.at(-1)!.id : null,
           products: products.length === 1000 ? products.at(-1)!.id : null,
-          config: !useDelta && config.length === 1000 ? config.at(-1)!.id : null,
+          config:
+            !useDelta && config.length === 1000 ? config.at(-1)!.id : null,
         },
       };
     });
   }
   snapshotPage(actor: Actor, org: string, store: string, pageId: string) {
     return this.db.scoped(actor, org, store, async (tx, scope) => {
-      const page = await tx.syncSnapshotPage.findFirst({where:{id:pageId,organizationId:org,storeId:store,actorId:actor.id}});
-      requireRule(page && page.expiresAt > new Date() && page.permissions === JSON.stringify([...scope.permissions].sort()),
-        "SNAPSHOT_EXPIRED", "La copie du magasin a expiré. Recommencez la synchronisation.", 410);
+      const page = await tx.syncSnapshotPage.findFirst({
+        where: {
+          id: pageId,
+          organizationId: org,
+          storeId: store,
+          actorId: actor.id,
+        },
+      });
+      requireRule(
+        page &&
+          page.expiresAt > new Date() &&
+          page.permissions === JSON.stringify([...scope.permissions].sort()),
+        "SNAPSHOT_EXPIRED",
+        "La copie du magasin a expiré. Recommencez la synchronisation.",
+        410,
+      );
       return page.payload;
     });
   }
@@ -516,30 +756,112 @@ export class WorkspaceService {
       requireRule(false, "RESOURCE_NOT_FOUND", "Ressource introuvable.", 404);
     });
   }
-  history(actor:Actor,org:string,store:string,resource:string,productId?:string,before?:string){
-    return this.db.scoped(actor,org,store,async(tx,scope)=>{
-      const manage=scope.actor.platformAdmin||scope.permissions.includes('manage');
-      if(resource==='movements'||resource==='audit')this.manager(scope);
-      let cursor:{id:string;date:Date}|undefined;
-      if(before){
-        const parsed=JSON.parse(Buffer.from(before,'base64url').toString());
-        requireRule(typeof parsed.id==='string'&&/^[0-9a-f-]{36}$/.test(parsed.id)&&Number.isFinite(new Date(parsed.date).getTime()),'INVALID_CURSOR','Page invalide.');
-        cursor={id:parsed.id,date:new Date(parsed.date)};
+  history(
+    actor: Actor,
+    org: string,
+    store: string,
+    resource: string,
+    productId?: string,
+    before?: string,
+  ) {
+    return this.db.scoped(actor, org, store, async (tx, scope) => {
+      const manage =
+        scope.actor.platformAdmin || scope.permissions.includes("manage");
+      if (resource === "movements" || resource === "audit") this.manager(scope);
+      let cursor: { id: string; date: Date } | undefined;
+      if (before) {
+        const parsed = JSON.parse(Buffer.from(before, "base64url").toString());
+        requireRule(
+          typeof parsed.id === "string" &&
+            /^[0-9a-f-]{36}$/.test(parsed.id) &&
+            Number.isFinite(new Date(parsed.date).getTime()),
+          "INVALID_CURSOR",
+          "Page invalide.",
+        );
+        cursor = { id: parsed.id, date: new Date(parsed.date) };
       }
-      const dateKey=resource==='sales'?'occurredAt':'createdAt';
-      const options={orderBy:[{[dateKey]:'desc' as const},{id:'desc' as const}],take:100};
-      const base={storeId:store,...(cursor?{OR:[{[dateKey]:{lt:cursor.date}},{[dateKey]:cursor.date,id:{lt:cursor.id}}]}:{})};
-      let items:Record<string,any>[];
-      if(resource==='sales') items=await tx.sale.findMany({...options,where:{...base,...(!manage?{sellerId:actor.id}:{}),...(productId?{lines:{array_contains:[{productId}]}}:{})}});
-      else if(resource==='points') items=await tx.pointsEntry.findMany({...options,where:{...base,userId:actor.id}});
-      else if(resource==='movements'){
-        const lots=productId?await tx.inventoryLot.findMany({where:{storeId:store,productId},select:{id:true}}):null;
-        items=await tx.stockMovement.findMany({...options,where:{...base,...(lots?{lotId:{in:lots.map(l=>l.id)}}:{})}});
-      }else if(resource==='audit')items=await tx.auditEntry.findMany({...options,where:base});
-      else {requireRule(false,'RESOURCE_NOT_FOUND','Historique introuvable.',404);}
-      const last=items.at(-1);
-      const people=await tx.user.findMany({where:{id:{in:[...new Set(items.map(r=>r.actorId??r.sellerId??r.userId).filter(Boolean))]}},select:{id:true,name:true}});
-      return {items,people,nextCursor:items.length===100&&last?Buffer.from(JSON.stringify({id:last.id,date:last[dateKey]})).toString('base64url'):null};
+      const dateKey = resource === "sales" ? "occurredAt" : "createdAt";
+      const options = {
+        orderBy: [{ [dateKey]: "desc" as const }, { id: "desc" as const }],
+        take: 100,
+      };
+      const base = {
+        storeId: store,
+        ...(cursor
+          ? {
+              OR: [
+                { [dateKey]: { lt: cursor.date } },
+                { [dateKey]: cursor.date, id: { lt: cursor.id } },
+              ],
+            }
+          : {}),
+      };
+      let items: Record<string, any>[];
+      if (resource === "sales")
+        items = await tx.sale.findMany({
+          ...options,
+          where: {
+            ...base,
+            ...(!manage ? { sellerId: actor.id } : {}),
+            ...(productId
+              ? { lines: { array_contains: [{ productId }] } }
+              : {}),
+          },
+        });
+      else if (resource === "points")
+        items = await tx.pointsEntry.findMany({
+          ...options,
+          where: { ...base, userId: actor.id },
+        });
+      else if (resource === "movements") {
+        const lots = productId
+          ? await tx.inventoryLot.findMany({
+              where: { storeId: store, productId },
+              select: { id: true },
+            })
+          : null;
+        items = await tx.stockMovement.findMany({
+          ...options,
+          where: {
+            ...base,
+            ...(lots ? { lotId: { in: lots.map((l) => l.id) } } : {}),
+          },
+        });
+      } else if (resource === "audit")
+        items = await tx.auditEntry.findMany({ ...options, where: base });
+      else {
+        requireRule(
+          false,
+          "RESOURCE_NOT_FOUND",
+          "Historique introuvable.",
+          404,
+        );
+      }
+      const last = items.at(-1);
+      const people = await tx.user.findMany({
+        where: {
+          id: {
+            in: [
+              ...new Set(
+                items
+                  .map((r) => r.actorId ?? r.sellerId ?? r.userId)
+                  .filter(Boolean),
+              ),
+            ],
+          },
+        },
+        select: { id: true, name: true },
+      });
+      return {
+        items,
+        people,
+        nextCursor:
+          items.length === 100 && last
+            ? Buffer.from(
+                JSON.stringify({ id: last.id, date: last[dateKey] }),
+              ).toString("base64url")
+            : null,
+      };
     });
   }
   saleDetails(actor: Actor, org: string, store: string, saleId: string) {
