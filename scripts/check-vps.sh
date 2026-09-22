@@ -6,6 +6,7 @@ usage=$(df -P "$BACKUP_DIR" | awk 'NR==2{gsub(/%/,"",$5);print $5}')
 ((usage < 85)) || { printf 'Disk usage is %s%%\n' "$usage" >&2; exit 1; }
 recent=$(find "$BACKUP_DIR" -maxdepth 2 -name SHA256SUMS -mmin -1560 -print -quit)
 [[ -n "$recent" ]] || { printf 'No completed backup within 26 hours\n' >&2; exit 1; }
+python3 "$(dirname "${BASH_SOURCE[0]}")/backup_storage.py" health "$BACKUP_DIR"
 python3 - <<'PY'
 import os
 memory={row.split()[0].rstrip(':'):int(row.split()[1]) for row in open('/proc/meminfo') if row.split()[1].isdigit()}

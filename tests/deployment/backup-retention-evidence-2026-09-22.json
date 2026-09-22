@@ -1,0 +1,77 @@
+{
+  "dateUtc": "2026-09-22T14:37:25.670038+00:00",
+  "scope": "Automatic local backup retention on go2code; no mobile or API business-rule change",
+  "live": {
+    "status": "passed",
+    "settings": {
+      "BACKUP_MAX_BYTES": 4294967296,
+      "BACKUP_FREE_BYTES": 10737418240,
+      "BACKUP_DAILY_DAYS": 7,
+      "BACKUP_WEEKLY_WEEKS": 4
+    },
+    "backupSets": [
+      "20260922T143629Z-453a05e2",
+      "20260922T143315Z-09b2239b"
+    ],
+    "checksumVerification": "passed for both retained sets",
+    "usedBytes": 248040,
+    "freeDiskBytes": 30275166208,
+    "lastBackup": {
+      "latest": "20260922T143629Z-453a05e2",
+      "maximumBytes": 4294967296,
+      "removed": [
+        "20260922T135206Z"
+      ],
+      "removedCount": 1,
+      "status": "ok",
+      "time": "2026-09-22T14:36:30.232559+00:00",
+      "unverifiedRetained": [],
+      "unverifiedRetainedCount": 0,
+      "usedBytes": 247849
+    },
+    "services": {
+      "biobalance-backup.service": "success",
+      "biobalance-monitor.service": "success"
+    },
+    "nightlyTimer": "enabled"
+  },
+  "tests": {
+    "pythonReleaseSuitePassed": 34,
+    "covers": [
+      "seven daily and four weekly selection",
+      "same-day duplicate rotation",
+      "oldest-first quota pruning",
+      "newest valid copy preserved",
+      "impossible admission preserves history",
+      "corrupt or unknown snapshots retained for review",
+      "symbolic-link refusal",
+      "exclusive writer and shared restore locks",
+      "child lock inheritance",
+      "bounded live output and free-space checks",
+      "producer failure and partial cleanup",
+      "atomic publication",
+      "orphan cleanup",
+      "closed producer stdin",
+      "interrupted/stuck backup diagnostics",
+      "metadata size bounds"
+    ]
+  },
+  "restore": {
+    "status": "passed",
+    "sourceBackup": "20260922T143315Z-09b2239b",
+    "processedMediaFilesVerified": 2,
+    "isolatedDatabaseAndMediaRemovedAfterValidation": true,
+    "productionDatabaseUntouched": true
+  },
+  "initialSameDayDuplicatesRemoved": 3,
+  "finalValidationRemovedOlderDuplicate": 1,
+  "dockerLogs": "Existing rotation remains five files of 10 MB per service",
+  "limitations": [
+    "Retention points are upper targets within the storage budget, not guaranteed when snapshots grow.",
+    "The newest valid backup is never deleted to admit a new one; insufficient remaining room causes an explicit failure.",
+    "Free-space checks do not constrain writes from other applications on the shared VPS.",
+    "Unknown or corrupted backup data requires manual review.",
+    "Monitoring is local journald; independent alert delivery remains pending.",
+    "Backups remain on the VPS; off-server recovery is deferred."
+  ]
+}

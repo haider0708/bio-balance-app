@@ -327,3 +327,14 @@ Code de construction : **`d09c552c07ad7997c5f493fdbbe74bf5261d8ce4`**, version *
 - Résultats distants déjà acquis : backend réussi et compilation iOS release non signée réussie sur macOS. Les jobs Android sont encore en cours au relevé de clôture ; leur résultat final reste à consulter. Le téléchargement public de l’APK renvoie HTTP 200 et les trois assets GitHub correspondent aux empreintes locales.
 
 La publication de l’APK est distincte de l’acceptation générale : téléphones physiques, signature/distribution Apple, inscription Play, sauvegarde indépendante des clés, charge du VPS partagé, alertes externes, réception d’email et pilote restent à vérifier. Notes de version : [v1.0.0](releases/v1.0.0.md).
+
+## Rétention automatique des sauvegardes — 22 septembre 2026
+
+À la demande de l’utilisateur, les sauvegardes du VPS ne s’accumulent plus sans rotation. Jusqu’à 7 copies quotidiennes et 4 hebdomadaires sont conservées dans le budget de 4 Gio, copie en cours comprise, avec 10 Gio de réserve disque. Les copies les plus anciennes peuvent céder leur place, mais la dernière copie valide est toujours protégée. Une taille incompatible avec ces limites provoque un échec visible au lieu de remplir le serveur.
+
+- Contrôle SHA-256, verrou de sauvegarde hérité par les producteurs, verrou partagé pendant la restauration, taille des flux bornée, publication atomique, nettoyage des fichiers partiels et limite systemd d’une heure. Les copies corrompues ou étrangères restent disponibles pour examen ; les liens symboliques sont refusés.
+- 34 tests Python réussis. Le service réel a produit une nouvelle copie puis supprimé trois anciennes copies redondantes ; un second passage sur le code final a remplacé une autre copie ancienne. Deux ensembles valides restent présents, environ 248 Ko au total, sous le plafond prévu.
+- Restauration isolée de la copie créée par le nouveau service : base et deux médias traités vérifiés. Seules les sorties temporaires de cette recette ont ensuite été supprimées. Les données de production sont conservées.
+- Sauvegarde et moniteur terminent avec succès ; le timer nocturne reste actif. Journaux Docker déjà plafonnés à 5 × 10 Mo par service. Les erreurs de sauvegarde interrompue ou bloquée apparaissent dans la supervision locale ; acheminement externe et sauvegarde hors VPS restent reportés.
+
+Preuves : [rétention VPS](../tests/deployment/backup-retention-evidence-2026-09-22.json). Paramètres et restauration : [runbook](runbook.md).

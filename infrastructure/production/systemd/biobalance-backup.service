@@ -4,6 +4,9 @@ After=docker.service
 Requires=docker.service
 [Service]
 Type=oneshot
+TimeoutStartSec=1h
+TimeoutStopSec=30s
+KillMode=control-group
 EnvironmentFile=/etc/biobalance/backup.env
 WorkingDirectory=/opt/biobalance
 ExecStart=/opt/biobalance/scripts/local-backup.sh

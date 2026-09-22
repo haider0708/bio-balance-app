@@ -4,6 +4,9 @@ source "$(dirname "${BASH_SOURCE[0]}")/compose-common.sh"
 : "${COMPOSE_FILE:?Set compose file path}"
 : "${BACKUP_PATH:?Set the completed backup directory}"
 umask 077
+# Keep the source snapshot available while a restore is reading it.
+exec 9>>"$(dirname "$BACKUP_PATH")/.backup.lock"
+flock -s 9
 restore_database="biobalance_restore_$(date +%s)_${RANDOM}"
 (cd "$BACKUP_PATH" && sha256sum -c SHA256SUMS)
 restore_owner=$("${compose[@]}" exec -T postgres sh -c 'printf %s "$POSTGRES_USER"' </dev/null)
