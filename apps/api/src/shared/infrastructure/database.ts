@@ -64,6 +64,27 @@ export class Database extends PrismaClient implements OnModuleDestroy {
     storeId: string,
     fn: (tx: Prisma.TransactionClient, scope: Scope) => Promise<T>,
   ): Promise<T> {
+    return this.withScope(actor, organizationId, storeId, fn, "Serializable");
+  }
+
+  /** A consistent read view without retaining SSI predicate locks. Only
+   * pagination metadata may be persisted here; business writes use scoped(). */
+  scopedSnapshot<T>(
+    actor: Actor,
+    organizationId: string,
+    storeId: string,
+    fn: (tx: Prisma.TransactionClient, scope: Scope) => Promise<T>,
+  ): Promise<T> {
+    return this.withScope(actor, organizationId, storeId, fn, "RepeatableRead");
+  }
+
+  private withScope<T>(
+    actor: Actor,
+    organizationId: string,
+    storeId: string,
+    fn: (tx: Prisma.TransactionClient, scope: Scope) => Promise<T>,
+    isolationLevel: Prisma.TransactionIsolationLevel,
+  ): Promise<T> {
     return this.transaction(async (tx) => {
       // Resolve current identity, session and membership in the same
       // transaction as the operation, with one indexed read.
@@ -134,17 +155,18 @@ export class Database extends PrismaClient implements OnModuleDestroy {
         permissions,
       };
       return fn(tx, scope);
-    });
+    }, isolationLevel);
   }
 
   /** Database-only callbacks may be retried; external effects belong in jobs. */
   async transaction<T>(
     work: (tx: Prisma.TransactionClient) => Promise<T>,
+    isolationLevel: Prisma.TransactionIsolationLevel = "Serializable",
   ): Promise<T> {
     for (let attempt = 0; attempt < 4; attempt++) {
       try {
         return await this.$transaction(work, {
-          isolationLevel: "Serializable",
+          isolationLevel,
           maxWait: 5000,
           timeout: 15000,
         });

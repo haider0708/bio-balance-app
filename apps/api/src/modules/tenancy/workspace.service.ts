@@ -18,7 +18,7 @@ import { PrismaLedger } from "../operations/infrastructure/prisma-ledger";
 export class WorkspaceService {
   constructor(private readonly db: Database) {}
   async fulfillment(actor: Actor, org: string, store: string, orderId: string) {
-    return this.db.scoped(actor, org, store, async (tx, scope) => {
+    return this.db.scopedSnapshot(actor, org, store, async (tx, scope) => {
       requireRule(
         scope.permissions.includes("manage"),
         "FORBIDDEN",
@@ -417,7 +417,7 @@ export class WorkspaceService {
     protocol = 2,
     acknowledgmentIds: string[] = [],
   ) {
-    return this.db.scoped(actor, org, store, async (tx, scope) => {
+    return this.db.scopedSnapshot(actor, org, store, async (tx, scope) => {
       const manage =
         scope.permissions.includes("manage") || scope.actor.platformAdmin;
       const currentCursor = await tx.storeCursor.findUnique({
@@ -684,7 +684,7 @@ export class WorkspaceService {
     });
   }
   snapshotPage(actor: Actor, org: string, store: string, pageId: string) {
-    return this.db.scoped(actor, org, store, async (tx, scope) => {
+    return this.db.scopedSnapshot(actor, org, store, async (tx, scope) => {
       const page = await tx.syncSnapshotPage.findFirst({
         where: {
           id: pageId,
@@ -711,7 +711,7 @@ export class WorkspaceService {
     resource: string,
     after?: string,
   ) {
-    return this.db.scoped(actor, org, store, async (tx, scope) => {
+    return this.db.scopedSnapshot(actor, org, store, async (tx, scope) => {
       const base = { storeId: store, ...(after ? { id: { gt: after } } : {}) };
       const options = { orderBy: { id: "asc" as const }, take: 200 };
       if (resource === "lots")
@@ -754,7 +754,7 @@ export class WorkspaceService {
     productId?: string,
     before?: string,
   ) {
-    return this.db.scoped(actor, org, store, async (tx, scope) => {
+    return this.db.scopedSnapshot(actor, org, store, async (tx, scope) => {
       if (resource === "movements" || resource === "audit") this.manager(scope);
       let cursor: { id: string; date: Date } | undefined;
       if (before) {
@@ -839,7 +839,7 @@ export class WorkspaceService {
     });
   }
   saleDetails(actor: Actor, org: string, store: string, saleId: string) {
-    return this.db.scoped(actor, org, store, async (tx, scope) => {
+    return this.db.scopedSnapshot(actor, org, store, async (tx, scope) => {
       const sale = await tx.sale.findFirst({
         where: { id: saleId, storeId: store },
       });
@@ -867,7 +867,7 @@ export class WorkspaceService {
     });
   }
   changes(actor: Actor, org: string, store: string, after: string) {
-    return this.db.scoped(actor, org, store, async (tx) => {
+    return this.db.scopedSnapshot(actor, org, store, async (tx) => {
       const changes = await tx.change.findMany({
         where: { storeId: store, cursor: { gt: BigInt(after) } },
         orderBy: { cursor: "asc" },
@@ -881,7 +881,7 @@ export class WorkspaceService {
     });
   }
   ranking(actor: Actor, org: string, store: string) {
-    return this.db.scoped(actor, org, store, async (tx, scope) => {
+    return this.db.scopedSnapshot(actor, org, store, async (tx, scope) => {
       const month = localDate(new Date(), scope.timezone).slice(0, 7);
       const scores = await tx.$queryRaw<
         { userId: string; name: string; score: bigint; rank: bigint }[]

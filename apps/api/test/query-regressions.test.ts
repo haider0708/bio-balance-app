@@ -56,6 +56,55 @@ async function fixture(timezone = "Africa/Tunis") {
 describe.sequential(
   "indexed store reads retain their security and calendar rules",
   () => {
+    it("keeps read snapshots consistent, rechecks access, and retains serializable commands", async () => {
+      const f = await fixture();
+      const sale = await owner.sale.create({
+        data: {
+          id: randomUUID(),
+          organizationId: f.org.id,
+          storeId: f.store.id,
+          sellerId: f.actor.id,
+          occurredAt: new Date(),
+          lines: [],
+          totalMillimes: 1000n,
+          earnedPoints: 0n,
+        },
+      });
+      await db.scopedSnapshot(f.actor, f.org.id, f.store.id, async (tx) => {
+        const mode = await tx.$queryRaw<
+          { transaction_isolation: string }[]
+        >`SHOW transaction_isolation`;
+        expect(mode[0]!.transaction_isolation).toBe("repeatable read");
+        const before = await tx.sale.findUniqueOrThrow({
+          where: { id: sale.id },
+        });
+        await owner.sale.update({
+          where: { id: sale.id },
+          data: { totalMillimes: 2000n },
+        });
+        expect(
+          (await tx.sale.findUniqueOrThrow({ where: { id: sale.id } }))
+            .totalMillimes,
+        ).toBe(before.totalMillimes);
+      });
+      await db.scoped(f.actor, f.org.id, f.store.id, async (tx) => {
+        const mode = await tx.$queryRaw<
+          { transaction_isolation: string }[]
+        >`SHOW transaction_isolation`;
+        expect(mode[0]!.transaction_isolation).toBe("serializable");
+        expect(
+          (await tx.sale.findUniqueOrThrow({ where: { id: sale.id } }))
+            .totalMillimes,
+        ).toBe(2000n);
+      });
+      await owner.membership.updateMany({
+        where: { storeId: f.store.id },
+        data: { active: false },
+      });
+      await expect(
+        db.scopedSnapshot(f.actor, f.org.id, f.store.id, async () => true),
+      ).rejects.toMatchObject({ code: "STORE_ACCESS_REVOKED" });
+    });
     it("rechecks sale scope on reused connections and keeps admin reads read-only", async () => {
       const a = await fixture(),
         b = await fixture();
