@@ -78,13 +78,14 @@ class Journey {
   }
 
   Future<void> tap(String text) async {
-    final f = find.text(text).last;
+    final f = find.text(text);
     await seek(f);
     await until(
-      () => f.hitTestable().evaluate().isNotEmpty,
+      () =>
+          f.evaluate().isNotEmpty && f.last.hitTestable().evaluate().isNotEmpty,
       reason: 'tap target available: $text',
     );
-    await t.tap(f);
+    await t.tap(f.last);
     await t.pumpAndSettle();
   }
 

@@ -6,6 +6,7 @@ import 'package:biobalance/data/repositories/offline_repository.dart';
 import 'package:biobalance/data/services/api/generated/api_client.dart';
 import 'package:biobalance/data/services/local_database/database.dart';
 import 'package:biobalance/domain/models/models.dart';
+import 'package:biobalance/ui/features/sales/sale_screen.dart';
 import 'package:dio/dio.dart';
 import 'package:video_player/video_player.dart';
 import 'package:flutter/material.dart';
@@ -72,6 +73,10 @@ void main() {
       await j.fillLabel('Lot OPENING · 31/12/2030', '3');
       await j.tap('Ajouter à la vente');
       await j.tap('Enregistrer la vente');
+      await j.until(
+        () => find.byType(SaleScreen).evaluate().isEmpty,
+        reason: 'sale committed and editor closed before process termination',
+      );
       await j.ready();
       final pending = (await db.select(db.outboxRows).get()).singleWhere(
         (r) => r.accountId == user.id,

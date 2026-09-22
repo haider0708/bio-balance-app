@@ -358,3 +358,5 @@ Décision confirmée : les alertes métier restent dans l’application. Modèle
 Inventaire, aperçus, politique de reprise et ordre de déploiement : [emails](email-delivery.md).
 
 Le passage CI `35744591825` confirme la résolution de l’attente après réception, mais révèle ensuite un toast temporaire devant « Se déconnecter ». Le helper attend maintenant une cible réellement touchable avant de cliquer, sans désactiver les erreurs de hit-test. Une régression widget reproduit l’obstruction puis vérifie le clic après disparition du snackbar ; elle réussit. Le résultat complet distant du correctif suivant reste à confirmer.
+
+La reprise locale a aussi exercé un libellé non encore construit : le helper ne doit pas appliquer `.last` avant que le finder ait trouvé un résultat. Ce cas possède maintenant une seconde régression réussie. Le checkpoint de terminaison attend explicitement la fermeture de l’éditeur de vente après son commit SQLite, selon la même règle que la réception.

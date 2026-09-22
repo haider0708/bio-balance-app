@@ -4,6 +4,32 @@ import 'package:flutter_test/flutter_test.dart';
 import '../integration_test/role_journeys_test.dart' show Journey;
 
 void main() {
+  testWidgets('journey waits for a label that has not been built yet', (
+    tester,
+  ) async {
+    var taps = 0;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: FutureBuilder<void>(
+            future: Future<void>.delayed(const Duration(seconds: 1)),
+            builder: (context, snapshot) =>
+                snapshot.connectionState == ConnectionState.done
+                ? TextButton(
+                    onPressed: () => taps++,
+                    child: const Text('Rechercher'),
+                  )
+                : const SizedBox(),
+          ),
+        ),
+      ),
+    );
+    expect(find.text('Rechercher'), findsNothing);
+    await Journey(tester).tap('Rechercher');
+    expect(taps, 1);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('journey waits for a transient snackbar covering its target', (
     tester,
   ) async {
