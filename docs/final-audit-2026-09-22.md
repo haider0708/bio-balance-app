@@ -2,6 +2,8 @@
 
 Point de départ : `584f40f54a472950962c36e5c6cb81db0fa66afa`, branche `codex/biobalance-app`. Cette passe examine les frontières d’identité, les transactions et historiques, la synchronisation locale, les médias/workers, les interfaces et la distribution. Les corrections conservent les règles approuvées : ventes réelles même en cas de manque de stock, lots déclarés sans réception fictive, TND exact, points à la première synchronisation et isolation compte/magasin.
 
+Commit des corrections applicatives : **`6ac660d51877d68afe3283ac7a5f927fd8187abc`**. Les builds Android ci-dessous proviennent de ce commit avec un arbre Git propre. Le commit de clôture ajoute les preuves et corrige les harnais de déploiement/packaging, sans modifier à nouveau le code applicatif.
+
 **Les défauts confirmés ci-dessous sont corrigés. La diffusion en production reste soumise aux vérifications externes du registre [Conditions de diffusion](release-gates.md).** Les tests locaux ne prouvent ni l’absence universelle de vulnérabilités ni la fluidité sur un appareil physique non testé.
 
 ## Constats et corrections
@@ -46,13 +48,32 @@ Les commandes sont exécutées localement ; les journaux bruts restent sous `.ar
 | Parcours Android des trois rôles | Réussis sur émulateur API 36 avec HTTP/PostgreSQL isolé ; stock 21, points 20, réservation 0, trois révisions, réception et remise de cadeau confirmées |
 | Reprise Android et vidéo | Assertions réussies : arrêt réel, même compte/ID/payload, une vente, stock 7 v3, 30 points ; caméra refusée et vidéo H.264 vérifiée jouée hors ligne. Préparation manuelle de l’émulateur nécessaire, voir note. |
 | Entrée normale Android `lib/main.dart` | Build/lancement et hot reload réussis ; aucune erreur runtime rapportée |
-| Compose et builds release | Résultats finaux consignés ci-dessous après exécution |
+| Builds Android release | APK 79 715 246 octets et AAB 71 897 016 octets compilés depuis `lib/main.dart`, obfuscation et contrôle ZIP/ELF 16 Kio réussis ; non signés, environnement `.invalid` |
+| Compose | Harnais complet réussi, 13 migrations, isolation et TLS local, workers, rollback/retour, sauvegarde et restauration avec deux médias traités |
 
 La suite Flutter complète du code final compte 130 tests réussis ; les quatre scénarios dépendant d’un serveur sont exécutés avec leur harnais dédié.
 
 Deux essais de reprise Android ont échoué sur l’étape caméra alors que la vente était déjà restaurée/synchronisée : dialogue System UI ANR et demande de permission orpheline dans l’émulateur. Le harnais pose et vérifie désormais les drapeaux de refus après installation de l’APK. Pour la passe concluante, l’émulateur a été redémarré sans snapshot, le dialogue système fermé, le contrôleur de permission orphelin arrêté et l’activité relancée via ADB avant les assertions. Cette intervention de préparation est conservée dans les preuves ; ce résultat ne constitue pas une exécution native entièrement autonome ni une mesure sur téléphone réel. Le refus de caméra a ensuite été vérifié par le harnais, puis le lecteur natif et les effets SQL ont passé leurs assertions. Le parcours complet des trois rôles a ensuite été exécuté de façon autonome sur le code final et a réussi en 2 min 55 s.
 
 Les premières régressions ont reproduit les défauts d’autorité d’invitation, de récupération désactivée, de soumission après commit et d’éditions concurrentes. La première commande de test média n’avait pas FFmpeg dans son PATH ; la passe avec le binaire local et ses bibliothèques a réussi. Aucun test ignoré ou échec de harnais n’est compté comme réussite.
+
+## Déploiement et restauration
+
+`ROLLBACK_REF=584f40f bash tests/deployment/run.sh` a terminé avec le code 0. Images API et média compilées, 13 migrations présentes, rôle PostgreSQL restreint et RLS sans contexte refusée, deux API et workers séparés, TLS local et fichiers protégés avec plages HTTP vérifiés. L’invitation est envoyée à Mailpit uniquement. La reprise Flutter d’une vidéo via Nginx après interruption/réouverture SQLite et le remplacement du certificat local réussissent ; certificat/clé incompatibles refusés.
+
+La reprise du bail expiré, le diagnostic d’un job en échec et sa remise en file contrôlée réussissent. Rollback vers `584f40f`, puis retour aux images corrigées : **64 lectures de lots autorisées à chaque passage**, stock 4/version 3 conservés. Les snapshots avant/après et la relecture de la vente acceptée confirment 60 points et un seul effet de vente. Ce rollback ancien reste un exercice isolé de compatibilité ; il ne recommande pas de réintroduire en production les défauts d’identité corrigés.
+
+La sauvegarde restaurée contient un magasin, une vente/révision, deux mouvements, stock 4/version 3/points 60 et deux médias traités PNG/H.264. La projection métier avant/après est identique, chaque fichier correspond à sa taille et son SHA-256 enregistrés. Supervision finale : aucun service malsain, aucun job échoué, périmé ou en retard. Preuves privées : `.artifacts/evidence/final-audit-2026-09-22/deployment-final/`. Les services de laboratoire sont arrêtés après validation ; volumes, bases restaurées et preuves conservés.
+
+Deux incidents de harnais sont conservés : le registre Docker renvoyait 401 avec la configuration locale habituelle ; une configuration Docker temporaire vide a permis l’accès anonyme au même contenu public, sans modifier les identifiants utilisateur ni les images de base. Puis l’ancienne boucle de déploiement téléchargeait cinq snapshots complets par seconde et dépassait leur plafond de 12/minute. Elle utilise maintenant les lots autorisés une fois par seconde, avec snapshots avant/après, délais bornés et attente du processus Compose même si un probe échoue. Aucun plafond serveur n’a été relevé et aucun HTTP 429 n’est compté comme réussite.
+
+## Artefacts Android
+
+Les fichiers sont sous `.artifacts/releases/builds/20260922T122413Z-android-compile-only/`. Le manifeste indique le commit, l’empreinte des sources, l’entrée normale et les empreintes de chaque fichier. APK : `8da6a6a3b66c3adf58938b60ad6cc3ba5dda30045a4baf1a2188989d40c492a4`. AAB : `129da6dd14f5e37b9a2e6ba384b18896965a9f6e2067cdb616497b51365d1926`.
+
+Identité applicative, interdiction des sauvegardes/cleartext/debug en release, alignement natif 64 bits ≥16 Kio et absence de sections DWARF dans les bibliothèques empaquetées vérifiés. Les symboles privés restent hors du dossier distribuable. Aucune clé de signature de distribution n’a été utilisée ; `https://api.example.invalid` reste volontairement inutilisable. Ces fichiers prouvent la compilation, pas une version à installer chez les partenaires.
+
+Le packager inclut désormais les résumés JSON versionnés d’audit, sécurité et UX auxquels renvoie la documentation. Son test vérifie leur présence et l’exclusion des logs/credentials de laboratoire ignorés par Git. L’archive de sources et le manifeste Android conservent chacun leur commit propre.
 
 ## Limites de qualification
 

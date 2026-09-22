@@ -18,6 +18,10 @@ class ReleasePackageTest(unittest.TestCase):
         (self.root/'docs/release-gates.md').write_text('Physical devices and signing pending.\n')
         (self.root/'.gitignore').write_text('.artifacts/\n.env\n')
         (self.root/'.env').write_text('PRIVATE_VALUE=must-never-be-packaged\n')
+        (self.root/'tests/audit').mkdir(parents=True)
+        (self.root/'tests/audit/final-evidence-2026-09-22.json').write_text('{"productionAccepted":false}\n')
+        (self.root/'.artifacts/evidence').mkdir(parents=True)
+        (self.root/'.artifacts/evidence/private.log').write_text('private fixture token\n')
         for args in [['init','-q'],['add','.'],['-c','user.name=Test','-c','user.email=test@example.test','commit','-qm','Fixture']]:
             subprocess.run(['git',*args],cwd=self.root,check=True,stdout=subprocess.DEVNULL)
         self.build=self.root/'.artifacts/releases/builds/fixture';self.build.mkdir(parents=True)
@@ -34,6 +38,8 @@ class ReleasePackageTest(unittest.TestCase):
             names=tar.getnames()
             self.assertFalse(any('/.env' in p or '/.artifacts/' in p for p in names))
             self.assertTrue(any(p.endswith('/docs/release-gates.md') for p in names))
+            self.assertTrue(any(p.endswith('/project/tests/audit/final-evidence-2026-09-22.json') for p in names))
+            self.assertFalse(any(p.endswith('/private.log') for p in names))
             source=next(m for m in tar.getmembers() if m.name.endswith('/source.tar.gz'))
             with tarfile.open(fileobj=tar.extractfile(source),mode='r:gz') as src:
                 self.assertNotIn('.env',src.getnames())

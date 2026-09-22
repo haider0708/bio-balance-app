@@ -290,7 +290,7 @@ Commit d’implémentation : **`92df40d`**. Interface et preuves détaillées da
 
 ## Audit final — 22 septembre 2026
 
-Implémentation et régressions de cette passe : voir [rapport détaillé](final-audit-2026-09-22.md) et [preuves versionnées](../tests/audit/final-evidence-2026-09-22.json).
+Commit applicatif : **`6ac660d51877d68afe3283ac7a5f927fd8187abc`**. Implémentation et régressions de cette passe : voir [rapport détaillé](final-audit-2026-09-22.md) et [preuves versionnées](../tests/audit/final-evidence-2026-09-22.json).
 
 - Invitations et récupération revérifiées dans leur transaction, sessions iOS liées à l’appareil avec nouveau service Keychain, suppression bornée des pages expirées et codes d’emails en échec.
 - Soumission durable distincte de l’actualisation de l’écran, protection contre les doubles enregistrements et écritures tardives, brouillons par lot/vente complétés avec l’outbox, restauration et erreurs de stockage récupérables. Aucun historique métier ni payload en attente réécrit.
@@ -298,4 +298,8 @@ Implémentation et régressions de cette passe : voir [rapport détaillé](final
 - La reprise Android et la vidéo ont passé leurs assertions après réparation manuelle de l’état système de l’émulateur ; les deux essais précédents et cette limite sont décrits dans le rapport. iOS physique, VPS réel, CI distante et pilote restent non qualifiés.
 - Migration additive `202609220004_snapshot_cleanup`. Les utilisateurs iOS existants doivent se reconnecter ; leurs opérations locales restent conservées.
 
-Le prochain enregistrement de preuves renseigne les builds et le laboratoire Compose de ce commit. Il ne déclare pas le VPS de production ni les appareils physiques acceptés.
+- APK 79,7 Mo et AAB 71,9 Mo compilés depuis ce commit propre, entrée normale, obfuscation et contrôle ZIP/ELF 16 Kio réussis. Artefacts non signés, API `.invalid`, pas de distribution pilote. Le packager inclut les résumés versionnés d’audit/sécurité/UX ; 14 tests Python réussis après cette correction.
+- Compose complet réussi avec 13 migrations, TLS local, accès restreints, médias protégés, vidéo interrompue/reprise et workers. Rollback compatible puis retour : 64 lectures autorisées par passage, stock 4/v3/points 60 conservés ; restauration des mêmes projections et de deux médias PNG/H.264 vérifiés par taille/SHA-256. Laboratoire arrêté, données conservées.
+- Les premiers échecs de registre Docker et du harnais saturant le plafond de snapshots restent documentés. Le harnais utilise des lectures de lots bornées sans modifier les protections serveur. La clôture ajoute uniquement harnais/packaging et preuves ; aucun nouveau changement applicatif après le build.
+
+Le VPS réel, les versions signées pour les canaux de distribution, les appareils physiques, CI/macOS/iOS et le pilote restent des conditions de diffusion ouvertes ; aucune case externe n’a été transformée en réussite locale.

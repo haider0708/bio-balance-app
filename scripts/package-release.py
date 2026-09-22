@@ -24,7 +24,10 @@ allowed=('docs/','contracts/openapi/','apps/api/prisma/migrations/','infrastruct
 singles={'README.md','package.json','package-lock.json','.nvmrc','.fvmrc','apps/mobile/pubspec.yaml','apps/mobile/pubspec.lock','apps/api/prisma/schema.prisma','tests/deployment/evidence.json'}
 files=subprocess.check_output(['git','ls-files','-z'],cwd=root).decode().split('\0')
 for name in filter(None,files):
-    if name in singles or name.startswith(allowed):
+    # Copy versioned evidence summaries referenced by the release documents.
+    # Ignored lab credentials, binary fixtures and raw logs are never enumerated.
+    evidence = name.startswith('tests/') and pathlib.PurePosixPath(name).suffix == '.json' and 'evidence' in pathlib.PurePosixPath(name).stem
+    if name in singles or name.startswith(allowed) or evidence:
         target=output/'project'/name;target.parent.mkdir(parents=True,exist_ok=True);shutil.copy2(root/name,target)
 subprocess.run(['git','archive','--format=tar.gz',f'--output={output/"source.tar.gz"}',head],cwd=root,check=True)
 shutil.copytree(build,output/'mobile')

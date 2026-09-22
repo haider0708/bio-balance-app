@@ -52,7 +52,8 @@
       "points": 20
     },
     "pythonReleaseTests": 14,
-    "npmProductionVulnerabilitiesReported": 0
+    "npmProductionVulnerabilitiesReported": 0,
+    "releasePackageEvidenceInclusion": "passed; versioned JSON summaries included, private logs excluded"
   },
   "android": {
     "device": "API 36 x86_64 emulator",
@@ -89,18 +90,74 @@
     }
   },
   "deployment": {
-    "status": "pending",
-    "environment": "isolated local Compose"
+    "status": "passed",
+    "environment": "isolated local Compose",
+    "command": "ROLLBACK_REF=584f40f bash tests/deployment/run.sh",
+    "completedUtc": "2026-09-22T12:43:25.954174+00:00",
+    "exitCode": 0,
+    "migrations": 13,
+    "apiImage": "sha256:9fd9456ca43df5a0a5ae03348acfc144034e6d189136b4457b8f19ad8bb30943",
+    "mediaImage": "sha256:6edcf7a31294a997739090d2b4f86c67ee7ac6150b40fed351316fd9965b8a7f",
+    "rollbackRef": "584f40f54a472950962c36e5c6cb81db0fa66afa",
+    "rollbackAuthorizedStockReads": 64,
+    "rollForwardAuthorizedStockReads": 64,
+    "stockAndPointsPreserved": true,
+    "httpsProtectedMediaAndRanges": "passed",
+    "mobileInterruptedVideoDownload": "passed",
+    "restrictedDatabaseIdentityAndRls": "passed",
+    "certificateReplacementAndMismatchRejection": "passed",
+    "staleLeaseFailureDiagnosticsAndRecovery": "passed",
+    "processedMediaFilesRestored": 2,
+    "mediaSizeAndSha256": "matched",
+    "restoredBusinessProjection": {
+      "stores": 1,
+      "sales": 1,
+      "revisions": 1,
+      "movements": 2,
+      "sellable": 4,
+      "versions": 3,
+      "points": "60",
+      "media": "dbc7c74cb6b56a84facd217ea54d11544790d9fd657e51a3b2ceb1aa4fd364aa,25f685cabf207b32fb6bf2d7a2d7ae02a502259fea7e137a37621bb6190b9b8d"
+    },
+    "sourceAndRestoreProjections": "identical",
+    "unhealthyServices": 0,
+    "failedStaleOverdueJobs": 0,
+    "rolloutHarnessSha256": "8f4eae4369d2d517ecd1f2ac8adc1ff1b7b96470c1bc46823a12b37f9e93cc60",
+    "evidenceDirectory": ".artifacts/evidence/final-audit-2026-09-22/deployment-final",
+    "credentials": "synthetic, private and excluded from release package",
+    "productionQualification": false
   },
   "releaseCompilation": {
-    "status": "pending",
-    "productionSigned": false
+    "status": "passed",
+    "platform": "android",
+    "entrypoint": "lib/main.dart",
+    "commit": "6ac660d51877d68afe3283ac7a5f927fd8187abc",
+    "workingTreeDirty": false,
+    "mode": "compile-only",
+    "productionSigned": false,
+    "productionAccepted": false,
+    "directory": ".artifacts/releases/builds/20260922T122413Z-android-compile-only",
+    "apiUrl": "https://api.example.invalid",
+    "zipAnd64BitElf16KiBAlignment": "passed",
+    "packagedNativeDwarf": "absent",
+    "artifacts": {
+      "biobalance-compile-only.aab": {
+        "bytes": 71897016,
+        "sha256": "129da6dd14f5e37b9a2e6ba384b18896965a9f6e2067cdb616497b51365d1926"
+      },
+      "biobalance-compile-only.apk": {
+        "bytes": 79715246,
+        "sha256": "8da6a6a3b66c3adf58938b60ad6cc3ba5dda30045a4baf1a2188989d40c492a4"
+      }
+    }
   },
   "preservedFailures": [
     "backend authorization regressions before fixes",
     "sale/stock post-commit refresh failure and concurrent sale edits before fixes",
     "media runner missing local FFmpeg PATH, then corrected",
-    "two Android recovery attempts blocked by emulator System UI/permission state"
+    "two Android recovery attempts blocked by emulator System UI/permission state",
+    "Docker registry returned 401 with default local credentials; anonymous isolated Docker config succeeded without changing images or user configuration",
+    "rollout harness exceeded snapshot export budget; replaced repeated full snapshots with 1 Hz scoped lot reads, retaining before/after stock and points checks"
   ],
   "evidenceDirectory": ".artifacts/evidence/final-audit-2026-09-22",
   "productionAccepted": false,
@@ -115,5 +172,6 @@
     "closed-app OS push notifications, no Firebase",
     "device attestation and certificate pinning not active",
     "off-server backups, high availability and complete VPS-loss recovery"
-  ]
+  ],
+  "implementationCommit": "6ac660d51877d68afe3283ac7a5f927fd8187abc"
 }
