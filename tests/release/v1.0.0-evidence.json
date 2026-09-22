@@ -1,5 +1,5 @@
 {
-  "recordedAtUtc": "2026-09-22T14:12:40.662078+00:00",
+  "recordedAtUtc": "2026-09-22T14:14:16.960653+00:00",
   "repository": "https://github.com/haider0708/bio-balance-app",
   "branch": "main",
   "releaseUrl": "https://github.com/haider0708/bio-balance-app/releases/tag/v1.0.0",
@@ -82,8 +82,8 @@
       },
       {
         "name": "ios",
-        "status": "in_progress",
-        "conclusion": ""
+        "status": "completed",
+        "conclusion": "success"
       }
     ]
   },
