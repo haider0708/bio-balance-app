@@ -338,3 +338,9 @@ La publication de l’APK est distincte de l’acceptation générale : téléph
 - Sauvegarde et moniteur terminent avec succès ; le timer nocturne reste actif. Journaux Docker déjà plafonnés à 5 × 10 Mo par service. Les erreurs de sauvegarde interrompue ou bloquée apparaissent dans la supervision locale ; acheminement externe et sauvegarde hors VPS restent reportés.
 
 Preuves : [rétention VPS](../tests/deployment/backup-retention-evidence-2026-09-22.json). Paramètres et restauration : [runbook](runbook.md).
+
+## Correction du parcours Android CI — 22 septembre 2026
+
+Les trois premières exécutions GitHub ont terminé avec succès pour le backend, les builds Android et la compilation iOS non signée, mais ont échoué sur le parcours Android après la réception de stock. Le harnais attendait l’état inactif du workspace sous-jacent avant que l’écriture SQLite et la fermeture de la réception soient terminées. La navigation pouvait alors attendre un bouton Retour déjà disparu.
+
+Le parcours attend désormais explicitement la fermeture de `ReceiptScreen` après la sauvegarde avant de naviguer. Le helper reconnaît aussi le rail de navigation des grandes fenêtres. Aucun délai arbitraire ajouté, aucune assertion métier retirée, aucun changement de stock de production. Analyse du fichier d’intégration réussie ; nouveau passage complet local/distant encore à confirmer. Un premier essai local a été interrompu après une ANR de System UI dans l’ancien émulateur ; il ne constitue pas une validation applicative.

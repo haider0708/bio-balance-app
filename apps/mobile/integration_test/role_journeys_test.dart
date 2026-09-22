@@ -1,6 +1,7 @@
 import 'package:biobalance/main.dart';
 import 'package:biobalance/data/services/api/generated/api_client.dart';
 import 'package:biobalance/data/services/local_database/database.dart';
+import 'package:biobalance/ui/features/inventory/inventory_screens.dart';
 import 'package:biobalance/ui/features/workspace/workspace_screen.dart';
 import 'package:biobalance/ui/features/workspace/workspace_view_model.dart';
 import 'package:dio/dio.dart';
@@ -211,7 +212,8 @@ class Journey {
       var i = 0;
       i < 5 &&
           menu.evaluate().isEmpty &&
-          find.byType(NavigationBar).evaluate().isEmpty;
+          find.byType(NavigationBar).evaluate().isEmpty &&
+          find.byType(NavigationRail).evaluate().isEmpty;
       i++
     ) {
       await back();
@@ -229,8 +231,12 @@ class Journey {
       _ => text,
     };
     final f = find.descendant(
-      of: find.byType(NavigationBar),
-      matching: find.text(label),
+      of: find.byWidgetPredicate(
+        (w) => w is NavigationBar || w is NavigationRail,
+      ),
+      matching: find.text(
+        find.byType(NavigationRail).evaluate().isNotEmpty ? text : label,
+      ),
     );
     if (f.evaluate().isEmpty && ['Équipe', 'Catalogue'].contains(text)) {
       await nav('Plus');
@@ -260,6 +266,14 @@ class Journey {
     await tapKey('editor.save');
     await until(() => key('editor.save').evaluate().isEmpty);
     await tap('Confirmer la réception');
+    // The receipt commits SQLite before it closes. The underlying workspace can
+    // still report idle during that I/O; waiting only for ready() races the pop
+    // and makes nav() look for a Back button that has just disappeared.
+    await until(
+      () => find.byType(ReceiptScreen).evaluate().isEmpty,
+      reason: 'receipt committed and editor closed',
+    );
+    await t.pumpAndSettle();
     await ready();
   }
 
