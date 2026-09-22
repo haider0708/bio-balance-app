@@ -127,6 +127,17 @@ class Journey {
     await dismissKeyboard();
   }
 
+  Future<void> chooseSaleProduct(String name) async {
+    final search = find.byWidgetPredicate(
+      (w) =>
+          w is TextField && w.decoration?.hintText == 'Rechercher un produit',
+    );
+    await seek(search);
+    await t.enterText(search, name);
+    await dismissKeyboard();
+    await tap(name);
+  }
+
   Future<void> back() async {
     await t.pumpAndSettle();
     await until(
@@ -447,7 +458,7 @@ void main() {
     await j.back();
     await j.tap('Nouvelle vente');
     await j.tap('Rechercher');
-    await j.tap(product);
+    await j.chooseSaleProduct(product);
     await j.fillLabel('Lot DELIVERY · 31/12/2030', '0');
     await j.fillLabel('Lot OPENING · 31/12/2030', '3');
     await j.tap('Ajouter à la vente');
@@ -520,7 +531,7 @@ void main() {
     await j.back();
     await j.tap('Nouvelle vente');
     await j.tap('Rechercher');
-    await j.tap(product);
+    await j.chooseSaleProduct(product);
     await fixture.post('/__test/revoke');
     // A protected server read confirms revocation; the production listener saves
     // the draft and replaces the route. The pending operation owner never changes.

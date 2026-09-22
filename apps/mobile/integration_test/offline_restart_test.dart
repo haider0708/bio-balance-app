@@ -71,7 +71,7 @@ void main() {
     if (phase == 'save') {
       await j.tap('Nouvelle vente');
       await j.tap('Rechercher');
-      await j.tap(product);
+      await j.chooseSaleProduct(product);
       await j.fillLabel('Lot OPENING · 31/12/2030', '3');
       await j.tap('Ajouter à la vente');
       await j.tap('Enregistrer la vente');
@@ -129,7 +129,7 @@ void main() {
       );
       await j.tap('Utiliser la recherche manuelle');
       await j.tap('Rechercher');
-      await j.tap(product);
+      await j.chooseSaleProduct(product);
       expect(find.text('Ajouter à la vente'), findsOneWidget);
       await j.back();
       await j.back();

@@ -224,7 +224,8 @@ const owner = new PrismaClient({
       "PASS: Android role journeys with isolated HTTP/PostgreSQL and business-effect assertions.",
     );
   } finally {
-    if (child && !child.exitCode) child.kill("SIGTERM");
+    if (child?.exitCode === null && child.signalCode === null)
+      child.kill("SIGTERM");
     await app.close();
     await owner.$disconnect();
     await rm(root, { recursive: true, force: true });
