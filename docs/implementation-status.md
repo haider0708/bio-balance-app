@@ -303,3 +303,15 @@ Commit applicatif : **`6ac660d51877d68afe3283ac7a5f927fd8187abc`**. Implémentat
 - Les premiers échecs de registre Docker et du harnais saturant le plafond de snapshots restent documentés. Le harnais utilise des lectures de lots bornées sans modifier les protections serveur. La clôture ajoute uniquement harnais/packaging et preuves ; aucun nouveau changement applicatif après le build.
 
 Le VPS réel, les versions signées pour les canaux de distribution, les appareils physiques, CI/macOS/iOS et le pilote restent des conditions de diffusion ouvertes ; aucune case externe n’a été transformée en réussite locale.
+
+## Installation sur go2code — 22 septembre 2026
+
+Le backend est maintenant installé sur le VPS réel, accessible à **https://api.galylio.com**, derrière Cloudflare en mode Full (strict) confirmé. Le domaine `api.biobalance.com.tn`, encore absent du DNS public, a été remplacé à la demande de l’utilisateur.
+
+- Apache existant conservé, Nginx privé sur loopback, deux API et deux workers, PostgreSQL privé et 13 migrations. Accès direct à l’origine refusé, adresses client vérifiées, droits applicatifs restreints.
+- Compte administrateur avec MFA créé, configuration SMTP 465/TLS authentifiée, secrets conservés hors Git. Aucun email de test envoyé et aucune donnée métier factice créée.
+- Recette HTTPS/MFA/révocation, médias PNG/H.264, répétition de transfert, empreintes et plages réussies. Sauvegarde avec les deux médias restaurée sur une base séparée ; backups nocturnes et contrôle de santé interne/public activés.
+- Renouvellement Certbot simulé et hook Apache vérifié séparément. Correction des commandes Docker qui consommaient l’entrée du shell SSH lors d’une sauvegarde/restauration ; régression distante et 14 tests Python réussis. Les 19 tables RLS prévues par les migrations sont vérifiées ; l’autorisation des tables de répertoire reste assurée par les transactions serveur.
+- Endpoint mobile local configuré ; builds signés pour ce domaine, CI/iOS, téléphones physiques et pilote restent à réaliser. Ressources adaptées au serveur partagé ; capacité à grande échelle et supervision indépendante encore à qualifier.
+
+Compte rendu et résultats exacts : [déploiement VPS](vps-deployment-2026-09-22.md) et [preuves](../tests/deployment/vps-evidence-2026-09-22.json). Les anciennes étapes restent un historique de leurs environnements de test ; cette section consigne les vérifications réellement exécutées sur le VPS.

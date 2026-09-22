@@ -19,3 +19,25 @@ SELECT json_build_object('failed',count(*) FILTER(WHERE status='failed'),
   'stale',count(*) FILTER(WHERE status='running' AND "lockedAt"<now()-interval '16 minutes'),
   'overdue',count(*) FILTER(WHERE status='pending' AND "availableAt"<now()-interval '5 minutes')) FROM "Job";
 SQL
+if [[ -n "${PUBLIC_HEALTH_URL:-}" ]]; then
+  python3 - <<'PY'
+import json,os,urllib.request,urllib.parse
+url=os.environ['PUBLIC_HEALTH_URL']
+parsed=urllib.parse.urlsplit(url)
+if parsed.scheme!='https' or not parsed.hostname or parsed.username or parsed.password:
+    raise SystemExit('Public health check requires an HTTPS URL without credentials')
+class NoRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self,*args,**kwargs):return None
+request=urllib.request.Request(url,headers={'User-Agent':'BioBalance-Monitor/1.0','Accept':'application/json'})
+with urllib.request.build_opener(NoRedirect()).open(request,timeout=15) as response:
+    if response.status!=200 or json.loads(response.read(4096))!={'status':'ok'}:
+        raise SystemExit('Public API health check failed')
+print('PASS: public HTTPS endpoint and certificate trust')
+PY
+fi
+if [[ -n "${TLS_CERTIFICATE_FILE:-}" ]]; then
+  openssl x509 -in "$TLS_CERTIFICATE_FILE" -noout -checkend 604800 >/dev/null || {
+    echo 'Origin certificate expires within seven days or is unreadable' >&2; exit 1;
+  }
+  echo 'PASS: origin certificate remains valid for more than seven days'
+fi

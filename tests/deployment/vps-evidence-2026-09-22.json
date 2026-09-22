@@ -1,0 +1,250 @@
+{
+  "date": "2026-09-22",
+  "scope": "Live backend deployment on the existing shared go2code VPS; mobile release and pilot acceptance remain separate.",
+  "applicationImageSourceCommit": "cb0d68d374da4b93da7d4494c84b61cea004ec42",
+  "lastApplicationChangeCommit": "6ac660d51877d68afe3283ac7a5f927fd8187abc",
+  "operationsSourceRevision": "The Git commit containing this evidence and infrastructure/production/shared-vps.",
+  "backendDeployed": true,
+  "productionReleaseAccepted": false,
+  "host": {
+    "sshAlias": "go2code",
+    "originIpv4": "146.59.195.61",
+    "os": "Ubuntu 22.04 LTS",
+    "vcpus": 8,
+    "ramApproxGiB": 16,
+    "diskApproxGB": 155,
+    "diskUsedPercent": 82,
+    "diskFreeApproxGB": 29,
+    "existingApacheAndOtherApplicationsPreserved": true,
+    "globalFirewallSshOrRebootChanges": false,
+    "route": [
+      "Cloudflare HTTPS",
+      "Apache HTTPS",
+      "Nginx loopback 127.0.0.1:18081",
+      "Two API replicas and protected media"
+    ]
+  },
+  "dns": {
+    "hostname": "api.galylio.com",
+    "recordType": "A",
+    "name": "api",
+    "content": "146.59.195.61",
+    "proxied": true,
+    "ttl": "Auto",
+    "cloudflareSslMode": "Full (strict), confirmed by the user",
+    "originalHostname": "api.biobalance.com.tn",
+    "originalHostnameStatus": "Not publicly delegated at deployment; replacement explicitly requested by the user"
+  },
+  "https": {
+    "certificateProvider": "Let's Encrypt",
+    "originCertificateTrusted": true,
+    "expiresUtc": "2026-12-21T12:41:40Z",
+    "issuance": "passed via HTTP-01 through Cloudflare",
+    "renewalDryRun": "passed",
+    "scopedApacheDeployHook": "passed by separate explicit invocation with the correct RENEWED_LINEAGE",
+    "certbotTimer": "enabled and active",
+    "publicHealth": "200, status=ok",
+    "proxyChecks": {
+      "publicHttpsHealth": "passed",
+      "trustedClientIp": "passed",
+      "forgedXForwardedFor": "ignored",
+      "forgedCfConnectingIpAtEdge": "rejected",
+      "directOriginWithForgedCloudflareHeaders": "403",
+      "originCertificateTrusted": true,
+      "edge": "Cloudflare",
+      "flutterDartUserAgent": "200",
+      "genericUrllibUserAgent": "Cloudflare 1010 (browser integrity check)"
+    }
+  },
+  "images": [
+    {
+      "image": "biobalance-api:cb0d68d3",
+      "localId": "sha256:9fd9456ca43df5a0a5ae03348acfc144034e6d189136b4457b8f19ad8bb30943",
+      "remoteId": "sha256:76ad10279b5dc5e8459e7a63eae31bdc425deac9c53a5095b33abf0d95f377de",
+      "filesystemLayersIdentical": true,
+      "runtimeConfigurationIdentical": true,
+      "architecture": "amd64"
+    },
+    {
+      "image": "biobalance-media:cb0d68d3",
+      "localId": "sha256:6edcf7a31294a997739090d2b4f86c67ee7ac6150b40fed351316fd9965b8a7f",
+      "remoteId": "sha256:dae5f3b9d325f9404dfc90e40dafa2dc971628ff3f7490f220a82d1fe1e0617e",
+      "filesystemLayersIdentical": true,
+      "runtimeConfigurationIdentical": true,
+      "architecture": "amd64"
+    },
+    {
+      "image": "nginx:1.28.0-alpine",
+      "localId": "sha256:30f1c0d78e0ad60901648be663a710bdadf19e4c10ac6782c235200619158284",
+      "remoteId": "sha256:c318e336065b17ff460aeac6d14bce5d0b13e35f25d5cb1843b635359fc00c9a",
+      "filesystemLayersIdentical": true,
+      "runtimeConfigurationIdentical": true,
+      "architecture": "amd64"
+    },
+    {
+      "image": "postgres:17.7-alpine",
+      "localId": "sha256:bb377b7239d2774ac8cc76f481596ce96c5a6b5e9d141f6d0a0ee371a6e7c0f2",
+      "remoteId": "sha256:9104a94e25680111c00d6c9ad5913129d2f45c1bc51b363db177d638c313392e",
+      "filesystemLayersIdentical": true,
+      "runtimeConfigurationIdentical": true,
+      "architecture": "amd64"
+    }
+  ],
+  "services": {
+    "healthy": [
+      "api1",
+      "api2",
+      "worker",
+      "media-worker",
+      "postgres",
+      "nginx"
+    ],
+    "privatePostgresql": true,
+    "publicApiContainerPorts": false,
+    "publishedNginx": "127.0.0.1:18081",
+    "databaseVolume": "biobalance_database",
+    "mediaVolume": "biobalance_media",
+    "memoryLimitsMiB": {
+      "api1": 768,
+      "api2": 768,
+      "worker": 384,
+      "media-worker": 1024,
+      "postgres": 2048,
+      "nginx": 128
+    },
+    "operationalWorkerHasMediaMount": false
+  },
+  "database": {
+    "postgresVersion": "17.7",
+    "migrationsApplied": 13,
+    "runtimeIdentityCheck": {
+      "status": "passed",
+      "identity": "biobalance_app",
+      "superuser": false,
+      "bypassRls": false,
+      "forcedRlsTables": [
+        "Alert",
+        "Announcement",
+        "Change",
+        "ContentSubmission",
+        "Delivery",
+        "DeliveryReceipt",
+        "InventoryLot",
+        "PointsAccount",
+        "PointsEntry",
+        "ProcessedOperation",
+        "ReplenishmentOrder",
+        "Reward",
+        "RewardClaim",
+        "Sale",
+        "SaleRevision",
+        "StockMovement",
+        "StoreCursor",
+        "StoreProduct",
+        "SyncSnapshotPage"
+      ],
+      "note": "Store and membership directory authorization is enforced by authenticated server transactions; these metadata tables are not declared as RLS tables by the migrations."
+    },
+    "rlsScope": "All 19 FORCE RLS tables declared by the deployed migrations were checked. Store/membership directory authorization is enforced by server transactions, not PostgreSQL RLS on those metadata tables."
+  },
+  "identityAndSmtp": {
+    "administrator": "biobalance@galylio.com",
+    "randomPasswordAndTotpMfa": "configured; credentials only in private ignored local and root-owned remote files",
+    "liveMfaLoginMeLogoutAndRevocation": "passed",
+    "smtpHost": "mail.galylio.com",
+    "smtpPort": 465,
+    "tlsMode": "direct TLS with certificate verification",
+    "tlsAuthenticationAndNoop": "passed",
+    "testEmailsSent": 0,
+    "inboxReceipt": "pending first explicitly authorized real invitation/recovery email"
+  },
+  "mediaSmoke": {
+    "status": "passed internally and through public HTTPS",
+    "unpublishedTechnicalAssets": 2,
+    "types": [
+      "processed PNG",
+      "processed H.264 MP4"
+    ],
+    "checks": [
+      "protected endpoint denies anonymous access",
+      "public API documentation absent",
+      "direct internal media path inaccessible",
+      "repeated final upload chunk accepted without duplicate file",
+      "worker processing reaches ready",
+      "processed size and SHA-256 match metadata",
+      "206 Range and If-Range/ETag return expected bytes",
+      "Cache-Control contains no-store",
+      "Cloudflare response is not HIT, STALE or UPDATING",
+      "session rejected after logout"
+    ],
+    "syntheticStoresSalesAndInvitationsCreated": 0
+  },
+  "backupAndMonitoring": {
+    "nightlyBackupTimer": "enabled and active, approximately 02:30 UTC",
+    "monitorTimer": "enabled and active, every minute",
+    "latestVerifiedBackup": "/srv/biobalance-backups/20260922T135206Z",
+    "isolatedRestoredDatabase": "biobalance_restore_1790085126_26045",
+    "restoredProcessedMediaFiles": 2,
+    "restoredMediaSizesAndSha256": "passed",
+    "restoredBusinessCounts": {
+      "stores": 0,
+      "sales": 0,
+      "stockMovements": 0
+    },
+    "sshStdinRegression": "passed: caller continued after both backup and restore without caller-side stdin redirects",
+    "healthChecks": [
+      "six healthy services",
+      "host memory/load/disk",
+      "completed backup within 26 hours",
+      "no failed, stale or overdue jobs",
+      "public HTTPS health and trusted certificate",
+      "origin certificate valid beyond seven days"
+    ],
+    "independentExternalAlertDelivery": "not configured",
+    "offServerBackupAndHighAvailability": "deferred by agreed scope"
+  },
+  "storageLimits": {
+    "mediaBytes": 4294967296,
+    "perStoreImageBytes": 268435456,
+    "backupBytes": 4294967296,
+    "minimumFreeDiskBytes": 10737418240,
+    "monitorDiskUsedPercentThreshold": 85,
+    "automaticBackupDeletion": false
+  },
+  "localVerification": {
+    "releasePythonTests": {
+      "passed": 14,
+      "failed": 0
+    },
+    "shellSyntax": "passed",
+    "pythonSyntax": "passed",
+    "mobileProductionConfigurationValidation": {
+      "androidSigned": "passed",
+      "iosSigned": "passed",
+      "apiBaseUrl": "https://api.galylio.com",
+      "newMobileBuildProduced": false
+    },
+    "applicationTestRerun": "No new backend/mobile business change in this deployment; earlier application evidence remains in tests/audit/final-evidence-2026-09-22.json."
+  },
+  "resolvedDuringDeployment": [
+    "Original domain was not delegated; switched to api.galylio.com with explicit user authorization.",
+    "Existing Apache owns 80/443; used a scoped vhost and loopback Nginx without interrupting other sites.",
+    "A 2 GiB global media quota cannot admit video reserving 2 GiB plus source; raised to 4 GiB before final successful processing.",
+    "Cloudflare browser integrity check rejects generic Python urllib (1010). The harness identifies itself honestly; actual Dart and BioBalance clients pass without disabling Cloudflare protection.",
+    "Docker exec in backup scripts could consume later SSH shell input. Closed stdin for non-input exec calls and verified both scripts through an SSH heredoc.",
+    "An initial RLS diagnostic incorrectly assumed directory metadata tables had RLS. The final checker derives required RLS tables from deployed migrations; all 19 pass, with metadata authorization scope explicitly documented.",
+    "Local and remote Docker image stores expose different image IDs. Verified identical filesystem layers, runtime configuration, operating system and architecture instead of claiming equal IDs."
+  ],
+  "remainingReleaseWork": [
+    "Rebuild and qualify signed Android releases with this real API endpoint; Play/private APK distribution checks.",
+    "macOS/Xcode, Apple signing and native iOS validation.",
+    "Physical Android 4 GB and iOS profiling/accessibility/camera checks, real mobile networks and the invited pilot.",
+    "Remote repository and CI execution.",
+    "Representative full-stack load testing on this shared VPS and storage expansion/capacity review before broad rollout.",
+    "Independent external monitoring and alert routing.",
+    "Coordinated shared-host maintenance, including the already pending OS reboot; no global SSH changes made.",
+    "Mobile domain associations are not enabled on this replacement hostname; manual activation/recovery codes remain available."
+  ],
+  "privateEvidenceDirectory": ".artifacts/vps-deployment-2026-09-22/",
+  "limits": "No claim of zero vulnerabilities, physical performance acceptance, 500-store capacity or complete server-loss recovery. VPS-local backups cannot recover destruction or loss of the VPS."
+}

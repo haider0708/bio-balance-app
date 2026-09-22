@@ -6,8 +6,8 @@ source "$(dirname "${BASH_SOURCE[0]}")/compose-common.sh"
 umask 077
 restore_database="biobalance_restore_$(date +%s)_${RANDOM}"
 (cd "$BACKUP_PATH" && sha256sum -c SHA256SUMS)
-restore_owner=$("${compose[@]}" exec -T postgres sh -c 'printf %s "$POSTGRES_USER"')
-"${compose[@]}" exec -T postgres createdb -U "$restore_owner" "$restore_database"
+restore_owner=$("${compose[@]}" exec -T postgres sh -c 'printf %s "$POSTGRES_USER"' </dev/null)
+"${compose[@]}" exec -T postgres createdb -U "$restore_owner" "$restore_database" </dev/null
 "${compose[@]}" exec -T postgres pg_restore -U "$restore_owner" -d "$restore_database" --exit-on-error < "$BACKUP_PATH/database.dump"
 restore_media=$(mktemp -d -t biobalance-restore-media-XXXXXXXX)
 python3 - "$BACKUP_PATH/media.tar.gz" "$restore_media" <<'PY'
@@ -37,6 +37,6 @@ for line in (root/'references.jsonl').read_text().splitlines():
     count+=1
 print(f'PASS: {count} processed media files match database size and SHA-256')
 PYVERIFY
-"${compose[@]}" exec -T postgres psql -U "$restore_owner" -d "$restore_database" -v ON_ERROR_STOP=1 -c 'SELECT count(*) AS stores FROM "Store"; SELECT count(*) AS sales FROM "Sale"; SELECT count(*) AS movements FROM "StockMovement";'
+"${compose[@]}" exec -T postgres psql -U "$restore_owner" -d "$restore_database" -v ON_ERROR_STOP=1 -c 'SELECT count(*) AS stores FROM "Store"; SELECT count(*) AS sales FROM "Sale"; SELECT count(*) AS movements FROM "StockMovement";' </dev/null
 printf 'Restore verified: database=%s media=%s\n' "$restore_database" "$restore_media"
 # Both isolated outputs remain available for inspection. Production is untouched.

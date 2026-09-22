@@ -2,15 +2,15 @@
 
 Ce registre distingue l’implémentation, les preuves locales et l’acceptation réelle. Une case en attente ne devient jamais réussie par la seule compilation. Les références de commits sont dans `implementation-status.md`.
 
-| Porte de sortie | Preuve locale | Validation restante |
+| Porte de sortie | Vérifications réalisées | Validation restante |
 |---|---|---|
 | Métier / isolation / historique | Tests domaine, PostgreSQL restreint, contrats, synchronisation et parcours Android réussis | Recette signée avec données pilotes |
 | Accès / pannes / reprise | Révocation en cours de saisie, réponses perdues, force-stop et saturation SQLite testés | Appareils Android/iOS réels et lecteurs d’écran |
-| Images / vidéo / transfert | Traitement réel, reprise HTTPS Nginx, checksum, lecture hors ligne Android | iOS et connexions mobiles réelles |
-| Notifications | Audiences, sessions, doublons, workers et boîte interne vérifiés | SMTP de production ; alertes OS app fermée reportées, sans Firebase |
+| Images / vidéo / transfert | Traitement réel, HTTPS Nginx/Cloudflare sur VPS, checksum/plages, lecture hors ligne Android locale | iOS et connexions mobiles réelles |
+| Notifications | Audiences, sessions, doublons, workers et boîte interne vérifiés ; SMTP réel authentifié en TLS | Réception réelle des emails ; alertes OS app fermée reportées, sans Firebase |
 | Performance API | 100 req/s + pic 200 req/s réussis sur l’hôte local ; données 500 magasins/5 000 comptes/>2 M ventes | Rejouer derrière TLS/Nginx/workers sur le VPS cible |
 | Performance mobile | SQLite VM mesurée ; interface vérifiée sur émulateur | Android 4 Go : p95 démarrage ≤2,5 s, vente ≤250 ms, recherche ≤150 ms, images manquées <1 % ; iOS/caméra/mémoire |
-| Déploiement / reprise | Compose, migrations, RLS, médias protégés, jobs, rollback et restauration non vide réussis | VPS/DNS/SSH/firewall, ACME réel, timers et alertes externes |
+| Déploiement / reprise | VPS go2code installé, Cloudflare/HTTPS réel, 13 migrations, RLS, médias protégés, timers et restauration non vide ; rollback local vérifié | Charge du VPS partagé, maintenance SSH/hôte coordonnée et supervision/alertes indépendantes |
 | CI | Workflows versionnés ; commandes locales exécutées | Dépôt distant et exécutions Linux/macOS |
 | Android | APK debug normal et APK/AAB release non signés compilés ; alignement ZIP/ELF 16 Kio vérifié | Clés locales créées ; sauvegarde privée, inscription Play, builds ciblant le VPS réel, upgrades entre canaux et Play Internal Testing |
 | iOS | Configuration, entitlements et procédure préparées | Xcode/macOS, équipe/profil/certificat, archive et TestFlight |
