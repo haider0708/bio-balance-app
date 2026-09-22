@@ -356,3 +356,5 @@ Décision confirmée : les alertes métier restent dans l’application. Modèle
 - Envoi réel vers l’adresse Gmail autorisée et installation VPS à consigner après exécution ; la réception dans la boîte Gmail ne sera pas déduite de l’acceptation SMTP.
 
 Inventaire, aperçus, politique de reprise et ordre de déploiement : [emails](email-delivery.md).
+
+Le passage CI `35744591825` confirme la résolution de l’attente après réception, mais révèle ensuite un toast temporaire devant « Se déconnecter ». Le helper attend maintenant une cible réellement touchable avant de cliquer, sans désactiver les erreurs de hit-test. Une régression widget reproduit l’obstruction puis vérifie le clic après disparition du snackbar ; elle réussit. Le résultat complet distant du correctif suivant reste à confirmer.
