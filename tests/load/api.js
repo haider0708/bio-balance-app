@@ -1,8 +1,9 @@
 import http from "k6/http";
 import execution from "k6/execution";
 import { SharedArray } from "k6/data";
-import { check } from "k6";
-import { Counter } from "k6/metrics";
+import { check, sleep } from "k6";
+import { Counter, Trend } from "k6/metrics";
+import { submitSale } from "./operation-retry.mjs";
 const fixtures = new SharedArray("synthetic-accounts", () =>
   JSON.parse(open(__ENV.FIXTURES)),
 );
@@ -24,37 +25,45 @@ if (
   );
 const rejected = new Counter("rejected_operations");
 const acceptedOperations = new Counter("accepted_operations");
+const retryResponses = new Counter("retryable_responses");
+const saleDuration = new Trend("sale_operation_duration", true);
 const cursors = new Map(); // VU-local, scoped to the original account/store.
 const duration = __ENV.STEADY_DURATION || "5m";
+function durationMilliseconds(value) {
+  const match = /^(\d+(?:\.\d+)?)(ms|s|m|h)$/.exec(value);
+  if (!match) throw Error("Use a duration such as 10s, 5m or 1h");
+  return Number(match[1]) * { ms: 1, s: 1000, m: 60000, h: 3600000 }[match[2]];
+}
+const steadyMilliseconds = durationMilliseconds(duration);
+const steadyRate = Number(__ENV.STEADY_RATE || 100);
+const burstRate = Number(__ENV.BURST_RATE || 200);
 export const options = {
   scenarios: {
-    steady: {
-      executor: "constant-arrival-rate",
-      rate: Number(__ENV.STEADY_RATE || 100),
+    workload: {
+      executor: "ramping-arrival-rate",
+      startRate: steadyRate,
       timeUnit: "1s",
-      duration,
-      // Provision clients before measurement; allocating VMs during the burst
-      // competes with the API when the generator shares the reference VPS.
-      preAllocatedVUs: 100,
-      maxVUs: 200,
-    },
-    burst: {
-      executor: "constant-arrival-rate",
-      rate: Number(__ENV.BURST_RATE || 200),
-      timeUnit: "1s",
-      duration: __ENV.BURST_DURATION || "30s",
-      startTime: duration,
+      // One client pool preserves connections and per-account cursors across
+      // the rate change. Cold reconnection is a separate stress scenario.
       preAllocatedVUs: 200,
       maxVUs: 300,
+      stages: [
+        { duration, target: steadyRate },
+        { duration: "0s", target: burstRate },
+        { duration: __ENV.BURST_DURATION || "30s", target: burstRate },
+      ],
     },
   },
   thresholds: {
     "http_req_duration{kind:read}": ["p(95)<300"],
     "http_req_duration{kind:write}": ["p(95)<700"],
-    "http_req_duration{kind:read,scenario:steady}": ["p(95)<300"],
-    "http_req_duration{kind:write,scenario:steady}": ["p(95)<700"],
-    "http_req_duration{kind:read,scenario:burst}": ["p(95)<300"],
-    "http_req_duration{kind:write,scenario:burst}": ["p(95)<700"],
+    "http_req_duration{kind:read,phase:steady}": ["p(95)<300"],
+    "http_req_duration{kind:write,phase:steady}": ["p(95)<700"],
+    "http_req_duration{kind:read,phase:burst}": ["p(95)<300"],
+    "http_req_duration{kind:write,phase:burst}": ["p(95)<700"],
+    sale_operation_duration: ["p(95)<700"],
+    "sale_operation_duration{phase:steady}": ["p(95)<700"],
+    "sale_operation_duration{phase:burst}": ["p(95)<700"],
     http_req_failed: ["rate<0.001"],
     checks: ["rate==1"],
     rejected_operations: ["count==0"],
@@ -68,6 +77,10 @@ function uuid() {
   });
 }
 export default function () {
+  const phase =
+    Date.now() - execution.scenario.startTime < steadyMilliseconds
+      ? "steady"
+      : "burst";
   const base = bases[execution.scenario.iterationInTest % bases.length];
   const f = fixtures[execution.scenario.iterationInTest % fixtures.length];
   const key = f.userId + ":" + f.storeId;
@@ -85,7 +98,7 @@ export default function () {
     };
   if (__ENV.SYNTHETIC_PROXY === "yes") {
     const storeNumber = Math.floor((Number(f.n) - 1) / 10);
-    headers["X-Load-Phase"] = execution.scenario.name;
+    headers["X-Load-Phase"] = phase;
     headers["X-Load-Client-IP"] =
       `198.18.${Math.floor(storeNumber / 250)}.${(storeNumber % 250) + 1}`;
   }
@@ -114,26 +127,29 @@ export default function () {
         ],
       },
     };
-    const response = http.post(
-      base + "/v1/sync/push",
-      JSON.stringify({ operations: [operation] }),
-      { headers, tags: { kind: "write", endpoint: "sale" } },
+    const payload = JSON.stringify({ operations: [operation] });
+    const started = Date.now();
+    const outcome = submitSale(
+      () =>
+        http.post(base + "/v1/sync/push", payload, {
+          headers,
+          tags: { kind: "write", endpoint: "sale", phase },
+        }),
+      sleep,
+      operation.operationId,
+      (code) => {
+        retryResponses.add(1, { code, phase });
+        console.info(`Retryable sale response: ${code}`);
+      },
     );
-    const accepted =
-      response.status === 201 &&
-      response.json("results.0.status") === "accepted";
-    check(response, { "sale accepted": () => accepted });
-    const rejectionCode = accepted
-      ? "none"
-      : String(
-          response.json("results.0.code") ||
-            response.json("code") ||
-            `http_${response.status}`,
-        );
-    rejected.add(accepted ? 0 : 1, { code: rejectionCode });
-    if (!accepted && __ITER < 5)
-      console.warn(`Sale rejected: ${rejectionCode}`);
-    acceptedOperations.add(accepted ? 1 : 0);
+    saleDuration.add(Date.now() - started, { phase });
+    check(outcome.response, { "sale accepted": () => outcome.accepted });
+    rejected.add(outcome.accepted ? 0 : 1, { code: outcome.code });
+    if (!outcome.accepted)
+      console.warn(
+        `Sale failed after ${outcome.attempts} attempts: ${outcome.code}`,
+      );
+    acceptedOperations.add(outcome.accepted ? 1 : 0);
     // A committed write cursor cannot advance a client's read cursor: another
     // account may have changed the same store in between.
     return;
@@ -166,7 +182,7 @@ export default function () {
   }
   const response = http.get(base + url, {
     headers,
-    tags: { kind: "read", endpoint },
+    tags: { kind: "read", endpoint, phase },
   });
   const expired = endpoint === "snapshot-page" && response.status === 410;
   check(response, {

@@ -71,7 +71,7 @@ L’audit du 22 septembre centralise les transactions globales dans `Database.au
 
 ## VPS
 
-Référence à valider : Ubuntu 24.04, 8 vCPU, 16 Go RAM, 200 Go SSD/NVMe. Docker Compose déploie Nginx, deux API stateless, le worker de notifications, le worker média et PostgreSQL sans port public. Données et médias utilisent des volumes persistants locaux.
+Référence à valider : Ubuntu 24.04, 8 vCPU, 16 Go RAM, 200 Go SSD/NVMe. Docker Compose déploie Nginx, deux API stateless par défaut, le worker de notifications, le worker média et PostgreSQL sans port public. L’override du VPS partagé go2code configure quatre API ; sa topologie et ses limites sont détaillées dans [le relevé de qualification](vps-readiness-2026-09-22.md). Données et médias utilisent des volumes persistants locaux.
 
 Les environnements sont distincts. Images immuables, migration explicite avant bascule, journalisation bornée, secrets hors dépôt. SMTP nécessite ses identifiants de déploiement. Firebase est retiré ; les notifications téléphone en arrière-plan sont reportées.
 
