@@ -511,12 +511,14 @@ class TrainingReader extends StatefulWidget {
   final WorkspaceViewModel vm;
   final Json article;
   final bool preview, mediaReady;
+  final MediaDownloadRepository? downloads;
   const TrainingReader({
     super.key,
     required this.vm,
     required this.article,
     this.preview = false,
     this.mediaReady = true,
+    this.downloads,
   });
   @override
   State<TrainingReader> createState() => _TrainingReaderState();
@@ -524,10 +526,9 @@ class TrainingReader extends StatefulWidget {
 
 class _TrainingReaderState extends State<TrainingReader>
     with WidgetsBindingObserver {
-  late final downloads = MediaDownloadRepository(
-    widget.vm.repository,
-    widget.vm.api,
-  );
+  late final downloads =
+      widget.downloads ??
+      MediaDownloadRepository(widget.vm.repository, widget.vm.api);
   final transfers = CancelToken();
   VideoPlayerController? player;
   String? error;
@@ -554,14 +555,16 @@ class _TrainingReaderState extends State<TrainingReader>
     }
     final run = ++generation, binding = widget.vm.api.binding;
     final previous = player;
-    player = null;
-    await previous?.dispose();
-    if (!mounted || run != generation) return;
+    // Detach the player and its ready state together before native disposal
+    // yields. A progress, locale or route rebuild can occur during disposal.
     setState(() {
+      player = null;
       ready = false;
       error = null;
     });
     try {
+      await previous?.dispose();
+      if (!mounted || run != generation) return;
       final cached = await downloads.cached(
         widget.vm.user.id,
         widget.article['mediaId'],
@@ -604,79 +607,84 @@ class _TrainingReaderState extends State<TrainingReader>
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(
-      title: Text(widget.preview ? 'Aperçu de la formation' : 'Formation'),
-    ),
-    body: Content(
-      maxWidth: 840,
-      children: [
-        SectionTitle(widget.article['title']),
-        Wrap(
-          spacing: 8,
-          children: List<String>.from(widget.article['productIds'] ?? [])
-              .map((id) => Chip(label: Text(widget.vm.productName(id))))
-              .toList(),
-        ),
-        if (error != null) Notice(error!, error: true),
-        if (widget.article['type'] == 'video') ...[
-          if (!widget.mediaReady || widget.article['mediaId'] == null)
-            const Notice(
-              'La vidéo sera disponible après la fin de son transfert et de son traitement.',
-            )
-          else if (ready) ...[
-            AspectRatio(
-              aspectRatio: player!.value.aspectRatio,
-              child: VideoPlayer(player!),
-            ),
-            ValueListenableBuilder(
-              valueListenable: player!,
-              builder: (context, value, _) => Column(
-                children: [
-                  VideoProgressIndicator(
-                    player!,
-                    allowScrubbing: true,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                  ),
-                  IconButton.filled(
-                    onPressed: () =>
-                        value.isPlaying ? player!.pause() : player!.play(),
-                    icon: Icon(
-                      value.isPlaying ? Icons.pause : Icons.play_arrow,
+  Widget build(BuildContext context) {
+    final controller = player;
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(widget.preview ? 'Aperçu de la formation' : 'Formation'),
+      ),
+      body: Content(
+        maxWidth: 840,
+        children: [
+          SectionTitle(widget.article['title']),
+          Wrap(
+            spacing: 8,
+            children: List<String>.from(widget.article['productIds'] ?? [])
+                .map((id) => Chip(label: Text(widget.vm.productName(id))))
+                .toList(),
+          ),
+          if (error != null) Notice(error!, error: true),
+          if (widget.article['type'] == 'video') ...[
+            if (!widget.mediaReady || widget.article['mediaId'] == null)
+              const Notice(
+                'La vidéo sera disponible après la fin de son transfert et de son traitement.',
+              )
+            else if (ready && controller != null) ...[
+              AspectRatio(
+                aspectRatio: controller.value.aspectRatio,
+                child: VideoPlayer(controller),
+              ),
+              ValueListenableBuilder(
+                valueListenable: controller,
+                builder: (context, value, _) => Column(
+                  children: [
+                    VideoProgressIndicator(
+                      controller,
+                      allowScrubbing: true,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
                     ),
-                    tooltip: value.isPlaying ? 'Pause' : 'Lire',
-                  ),
-                ],
+                    IconButton.filled(
+                      onPressed: () => value.isPlaying
+                          ? controller.pause()
+                          : controller.play(),
+                      icon: Icon(
+                        value.isPlaying ? Icons.pause : Icons.play_arrow,
+                      ),
+                      tooltip: value.isPlaying ? 'Pause' : 'Lire',
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ] else if (error == null)
-            const Center(child: CircularProgressIndicator()),
-          if (!widget.preview) ...[
-            OutlinedButton.icon(
-              onPressed: downloading || offlineReady ? null : download,
-              icon: Icon(
-                offlineReady ? Icons.download_done : Icons.download_outlined,
+            ] else if (error == null)
+              const Center(child: CircularProgressIndicator()),
+            if (!widget.preview) ...[
+              OutlinedButton.icon(
+                onPressed: downloading || offlineReady ? null : download,
+                icon: Icon(
+                  offlineReady ? Icons.download_done : Icons.download_outlined,
+                ),
+                label: Text(
+                  offlineReady
+                      ? 'Vidéo disponible hors ligne'
+                      : 'Télécharger ou reprendre hors ligne',
+                ),
               ),
-              label: Text(
-                offlineReady
-                    ? 'Vidéo disponible hors ligne'
-                    : 'Télécharger ou reprendre hors ligne',
-              ),
-            ),
-            if (progress != null) ...[
-              LinearProgressIndicator(value: progress),
-              Text('${(progress! * 100).round()} % téléchargé'),
+              if (progress != null) ...[
+                LinearProgressIndicator(value: progress),
+                Text('${(progress! * 100).round()} % téléchargé'),
+              ],
             ],
           ],
+          const SizedBox(height: 20),
+          SelectableText(
+            TrainingText.plain(widget.article['body'] ?? ''),
+            style: Theme.of(context).textTheme.bodyLarge,
+          ),
         ],
-        const SizedBox(height: 20),
-        SelectableText(
-          TrainingText.plain(widget.article['body'] ?? ''),
-          style: Theme.of(context).textTheme.bodyLarge,
-        ),
-      ],
-    ),
-  );
+      ),
+    );
+  }
+
   Future<void> download() async {
     if (downloading) return;
     setState(() {

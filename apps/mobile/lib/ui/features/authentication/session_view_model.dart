@@ -52,6 +52,8 @@ class SessionViewModel extends ChangeNotifier {
     return next;
   }
 
+  Future<void> flushAccessState() => _storageTail;
+
   SessionState state = const SessionState(restoring: true);
   SessionViewModel(this.api, this.secureStorage, {this.notifications}) {
     _events = api.accessEvents.listen((event) {
@@ -73,6 +75,33 @@ class SessionViewModel extends ChangeNotifier {
           ].contains(state.status) &&
           status == SessionStatus.authenticated) {
         return;
+      }
+      if (status == SessionStatus.expired || status == SessionStatus.disabled) {
+        final token = event.binding.authorization?.replaceFirst('Bearer ', '');
+        unawaited(
+          _store(() async {
+            final value = await secureStorage.read(key: 'session');
+            if (value == null) return;
+            final saved = Map<String, dynamic>.from(jsonDecode(value));
+            // A queued denial must never overwrite a later successful login.
+            if (saved['token'] != token ||
+                saved['user']['id'] != event.binding.accountId) {
+              return;
+            }
+            saved['accessDenied'] = status.name;
+            await secureStorage.write(key: 'session', value: jsonEncode(saved));
+          }).catchError((Object _) {
+            if (!_closed && api.generation == event.binding.generation) {
+              _emit(
+                SessionState(
+                  user: state.user,
+                  status: status,
+                  error: 'Impossible de conserver l’état d’accès. Reconnectez-vous avant de continuer.',
+                ),
+              );
+            }
+          }),
+        );
       }
       _emit(SessionState(user: state.user, status: status));
     });
@@ -100,12 +129,20 @@ class SessionViewModel extends ChangeNotifier {
       final saved = Map<String, dynamic>.from(jsonDecode(value));
       api.authenticate(saved['token'], accountId: saved['user']['id']);
       final expiry = DateTime.tryParse('${saved['expiresAt']}');
-      final expired = expiry != null && !expiry.isAfter(DateTime.now());
+      final disabled = saved['accessDenied'] == 'disabled';
+      final expired =
+          disabled ||
+          saved['accessDenied'] == 'expired' ||
+          (expiry != null && !expiry.isAfter(DateTime.now()));
       if (expired) api.markExpired();
       _emit(
         SessionState(
           user: UserAccount.fromJson(saved['user']),
-          status: expired ? SessionStatus.expired : SessionStatus.offline,
+          status: disabled
+              ? SessionStatus.disabled
+              : expired
+              ? SessionStatus.expired
+              : SessionStatus.offline,
         ),
       );
       if (!expired) unawaited(notifications?.resume());

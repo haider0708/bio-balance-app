@@ -3,7 +3,6 @@
 <plist version="1.0">
 <dict>
     <key>FlutterDeepLinkingEnabled</key><false/>
-    <key>CFBundleURLTypes</key><array><dict><key>CFBundleURLName</key><string>tn.biobalance.account</string><key>CFBundleURLSchemes</key><array><string>biobalance</string></array></dict></array>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>CFBundleDevelopmentRegion</key>

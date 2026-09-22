@@ -280,4 +280,60 @@ void main() {
     );
     expect(session.state.user!.id, 'a');
   });
+  for (final condition in [AccessCondition.expired, AccessCondition.disabled]) {
+    test(
+      'confirmed ${condition.name} survives restart without replay or data loss',
+      () async {
+        savedSession();
+        final api = ApiClient(baseUrl: 'http://test');
+        final first = SessionViewModel(api, const FlutterSecureStorage());
+        await first.restore();
+        api.confirmAccessLoss(condition);
+        await first.flushAccessState();
+        first.dispose();
+        final restartedApi = ApiClient(baseUrl: 'http://test');
+        final restarted = SessionViewModel(
+          restartedApi,
+          const FlutterSecureStorage(),
+        );
+        addTearDown(restarted.dispose);
+        await restarted.restore();
+        expect(restartedApi.accessBlocked, isTrue);
+        expect(restarted.state.status.name, condition.name);
+        expect(restarted.state.user!.id, 'a');
+        await expectLater(
+          restartedApi.request('GET', '/v1/stores'),
+          throwsA(isA<DioException>()),
+        );
+      },
+    );
+  }
+  test('known store revocation revalidates with a read before submitting queued work', () async {
+    final server = DeferredServer();
+    final api = ApiClient(
+      baseUrl: 'http://test',
+      dio: Dio(BaseOptions(baseUrl: 'http://test'))..httpClientAdapter = server,
+    )..authenticate('old', accountId: 'a');
+    final db = AppDatabase(NativeDatabase.memory());
+    addTearDown(db.close);
+    final repo = OfflineRepository(db, api);
+    await repo.saveDraft('a', '', 'access', {
+      'revokedStores': ['store'],
+    });
+    final pending = repo.synchronize(user, store);
+    final failure = expectLater(pending, throwsA(isA<AppFailure>()));
+    await server.started.future;
+    server.response.complete(jsonBody([]));
+    await failure;
+    expect(await repo.draft('a', '', 'access'), {
+      'revokedStores': ['store'],
+    });
+    await expectLater(
+      repo.enqueue(user, store, {
+        'storeId': 'store',
+        'organizationId': 'org',
+      }, {}),
+      throwsA(isA<AppFailure>()),
+    );
+  });
 }

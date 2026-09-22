@@ -27,6 +27,14 @@ else
     test -f "$export_options"
   fi
 fi
+# Keep native Universal Links and the Dart allowlist on the same configured host.
+if [[ "$platform" == ios ]]; then
+  python3 - "$config" <<'PYLINK'
+import json,pathlib,sys
+host=json.load(open(sys.argv[1])).get('AUTH_LINK_HOST') or 'account-links.invalid'
+pathlib.Path('apps/mobile/ios/Flutter/AccountLinks.xcconfig').write_text('AUTH_LINK_HOST = '+host+'\n')
+PYLINK
+fi
 output="$PWD/.artifacts/releases/builds/$(date -u +%Y%m%dT%H%M%SZ)-$platform-$mode"
 mkdir -p "$output"
 cp "$config" "$output/public-mobile-config.json"

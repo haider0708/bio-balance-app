@@ -26,6 +26,10 @@ Scénario terminé avec code de sortie zéro : **100 requêtes/s pendant 5 minut
 
 [Résumé k6 complet](../tests/performance/evidence/api-load-2026-09-21.json). Journaux/profils et contrôles locaux : `.artifacts/evidence/step10/`. Empreinte SHA-256 du manifeste des sources API mesurées : `7b7c2e5cc8458d4a206e8409060c6e75c21781f3bd24d044396ab1813003ac7b`. Les sources API du commit `dfeeacd` correspondent à ce manifeste. Les échecs précédents sont conservés séparément dans les preuves locales et ne sont pas présentés comme des passes.
 
+## Contrôle après l’audit du 22 septembre
+
+La passe de non-régression du **22 septembre**, après l’audit de sécurité et de logique, a réexécuté le même scénario sur le même hôte : 36 001 requêtes, 3 603 ventes acceptées, zéro erreur ou itération perdue. p95 lecture/écriture : **18,36/36,62 ms** à 100 req/s et **104,87/214,55 ms** à 200 req/s. Les quatre contrôles d’intégrité passent (2 022 794 ventes conservées). Voir le [résumé k6](../tests/performance/evidence/api-load-2026-09-22.json), le [manifeste des sources](../tests/performance/evidence/api-sources-2026-09-22.json) et [l’audit](audit-2026-09-22.md), qui conserve aussi l’échec intermédiaire corrigé. Les exclusions Nginx/workers/VPS de cette mesure restent identiques.
+
 ## SQLite et recherche sur l’hôte
 
 Résultats reproductibles : [JSON du benchmark](../tests/performance/evidence/host-sqlite-2026-09-21.json).

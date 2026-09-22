@@ -1,3 +1,5 @@
+import { SnapshotPages } from "./infrastructure/snapshot-pages";
+import { decodeHistoryCursor } from "../../shared/domain/pagination";
 import { StoreReadQueries } from "./infrastructure/store-read-queries";
 import {
   orderFulfillment,
@@ -5,7 +7,6 @@ import {
 } from "../operations/infrastructure/order-fulfillment-query";
 import { onboardingProgress } from "./onboarding";
 import { requireImage } from "../training/media-authorization";
-import { randomUUID } from "node:crypto";
 import { Injectable } from "@nestjs/common";
 import { Database, json } from "../../shared/infrastructure/database";
 import { Actor, Scope } from "../operations/domain/contracts";
@@ -38,30 +39,35 @@ export class WorkspaceService {
     });
   }
   async organizations(actor: Actor) {
-    if (actor.platformAdmin)
-      return this.db.organization.findMany({
+    return this.db.authenticated(actor, async (tx, actor) => {
+      if (actor.platformAdmin)
+        return tx.organization.findMany({
+          orderBy: { name: "asc" },
+          take: 500,
+        });
+      const memberships = await tx.organizationMembership.findMany({
+        where: { userId: actor.id, active: true },
+      });
+      return tx.organization.findMany({
+        where: { id: { in: memberships.map((m) => m.organizationId) } },
         orderBy: { name: "asc" },
         take: 500,
       });
-    const memberships = await this.db.organizationMembership.findMany({
-      where: { userId: actor.id, active: true },
-    });
-    return this.db.organization.findMany({
-      where: { id: { in: memberships.map((m) => m.organizationId) } },
-      orderBy: { name: "asc" },
-      take: 500,
     });
   }
-  async stores(actor: Actor) {
-    const [owners, members] = await Promise.all([
-      this.db.organizationMembership.findMany({
-        where: { userId: actor.id, active: true },
-      }),
-      this.db.membership.findMany({
-        where: { userId: actor.id, active: true },
-      }),
-    ]);
-    const stores = await this.db.store.findMany({
+  stores(actor: Actor) {
+    return this.db.authenticated(actor, (tx, current) =>
+      this.storesInTransaction(tx, current),
+    );
+  }
+  async storesInTransaction(tx: Prisma.TransactionClient, actor: Actor) {
+    const owners = await tx.organizationMembership.findMany({
+      where: { userId: actor.id, active: true },
+    });
+    const members = await tx.membership.findMany({
+      where: { userId: actor.id, active: true },
+    });
+    const stores = await tx.store.findMany({
       where: actor.platformAdmin
         ? {}
         : {
@@ -73,7 +79,7 @@ export class WorkspaceService {
       orderBy: { name: "asc" },
       take: 1000,
     });
-    const organizations = await this.db.organization.findMany({
+    const organizations = await tx.organization.findMany({
       where: { id: { in: [...new Set(stores.map((s) => s.organizationId))] } },
     });
     return stores.map((s) => ({
@@ -97,7 +103,7 @@ export class WorkspaceService {
       phone?: string;
     },
   ) {
-    return this.db.$transaction(async (tx) => {
+    return this.db.authenticated(actor, async (tx, actor) => {
       const owner = await tx.organizationMembership.findUnique({
         where: {
           organizationId_userId: {
@@ -468,42 +474,44 @@ export class WorkspaceService {
       const changedProducts = changes
         .filter((c) => c.entity === "product.configure")
         .map((c) => c.entityId);
-      const [config, lots, sales, alerts, collections, memberships, storeData] =
-        await Promise.all([
-          useDelta && changedProducts.length === 0
-            ? Promise.resolve([])
-            : tx.storeProduct.findMany({
-                where: {
-                  storeId: store,
-                  ...(useDelta ? { productId: { in: changedProducts } } : {}),
-                },
-                orderBy: { id: "asc" },
-                take: 1000,
-              }),
-          useDelta && changedLots.length === 0
-            ? Promise.resolve([])
-            : tx.inventoryLot.findMany({
-                where: {
-                  storeId: store,
-                  ...(useDelta ? { id: { in: changedLots } } : {}),
-                },
-                orderBy: { id: "asc" },
-                take: useDelta ? 1500 : 500,
-              }),
-          new StoreReadQueries(tx, scope).recentSales(),
-          manage
-            ? tx.alert.findMany({
-                where: { storeId: store, active: true },
-                orderBy: { createdAt: "desc" },
-                take: 200,
-              })
-            : Promise.resolve([]),
-          new StoreReadQueries(tx, scope).snapshotCollections(),
-          manage
-            ? tx.membership.findMany({ where: { storeId: store }, take: 200 })
-            : Promise.resolve([]),
-          tx.store.findUniqueOrThrow({ where: { id: store } }),
-        ]);
+      const config = await (useDelta && changedProducts.length === 0
+        ? Promise.resolve([])
+        : tx.storeProduct.findMany({
+            where: {
+              storeId: store,
+              ...(useDelta ? { productId: { in: changedProducts } } : {}),
+            },
+            orderBy: { id: "asc" },
+            take: 1000,
+          }));
+      const lots = await (useDelta && changedLots.length === 0
+        ? Promise.resolve([])
+        : tx.inventoryLot.findMany({
+            where: {
+              storeId: store,
+              ...(useDelta ? { id: { in: changedLots } } : {}),
+            },
+            orderBy: { id: "asc" },
+            take: useDelta ? 1500 : 500,
+          }));
+      const sales = await new StoreReadQueries(tx, scope).recentSales();
+      const alerts = await (manage
+        ? tx.alert.findMany({
+            where: { storeId: store, active: true },
+            orderBy: { createdAt: "desc" },
+            take: 200,
+          })
+        : Promise.resolve([]));
+      const collections = await new StoreReadQueries(
+        tx,
+        scope,
+      ).snapshotCollections();
+      const memberships = await (manage
+        ? tx.membership.findMany({ where: { storeId: store }, take: 200 })
+        : Promise.resolve([]));
+      const storeData = await tx.store.findUniqueOrThrow({
+        where: { id: store },
+      });
       const { points, rewards, claims, orders, deliveries } = collections;
       const cursor = currentCursor;
       const fulfillment = await orderFulfillment(tx, org, store, orders);
@@ -554,7 +562,7 @@ export class WorkspaceService {
       }
       const snapshotPages: Record<string, string | null> = {};
       const expiresAt = new Date(Date.now() + 5 * 60_000);
-      if (protocol >= 3 && !useDelta) {
+      if (protocol >= 3) {
         await tx.syncSnapshotPage.deleteMany({
           where: {
             storeId: store,
@@ -562,66 +570,69 @@ export class WorkspaceService {
             expiresAt: { lte: new Date() },
           },
         });
+      }
+      const pages = new SnapshotPages(
+        tx,
+        scope,
+        (cursor?.value ?? 0n).toString(),
+        expiresAt,
+      );
+      if (protocol >= 3 && !useDelta) {
         for (const [resource, initial, limit] of [
           ["lots", lots, 500],
           ["products", products, 1000],
           ["config", config, 1000],
         ] as const) {
-          let after = initial.length === limit ? initial.at(-1)?.id : undefined;
-          let previousPage: string | null = null;
-          // Each page is materialized now; later requests never query live lots.
-          while (after) {
-            const options = { orderBy: { id: "asc" as const }, take: 200 };
-            const items =
-              resource === "lots"
-                ? await tx.inventoryLot.findMany({
-                    where: { storeId: store, id: { gt: after } },
-                    ...options,
-                  })
-                : resource === "config"
-                  ? await tx.storeProduct.findMany({
-                      where: { storeId: store, id: { gt: after } },
-                      ...options,
-                    })
-                  : await tx.product.findMany({
-                      where: { id: { gt: after } },
-                      ...options,
-                    });
-            const pageId = randomUUID();
-            const page = {
-              resource,
-              items,
-              nextPage: null as string | null,
-              cursor: (cursor?.value ?? 0n).toString(),
-            };
-            await tx.syncSnapshotPage.create({
-              data: {
-                id: pageId,
-                organizationId: org,
-                storeId: store,
-                actorId: actor.id,
-                permissions: JSON.stringify([...scope.permissions].sort()),
-                expiresAt,
-                payload: json(page),
-              },
-            });
-            if (previousPage) {
-              const previous = await tx.syncSnapshotPage.findUniqueOrThrow({
-                where: { id: previousPage },
+          snapshotPages[resource] = await pages.materialize(
+            resource,
+            initial.length === limit ? initial.at(-1)?.id : undefined,
+            async (after) => {
+              const options = { orderBy: { id: "asc" as const }, take: 200 };
+              if (resource === "lots")
+                return tx.inventoryLot.findMany({
+                  where: { storeId: store, id: { gt: after } },
+                  ...options,
+                });
+              if (resource === "config")
+                return tx.storeProduct.findMany({
+                  where: { storeId: store, id: { gt: after } },
+                  ...options,
+                });
+              return tx.product.findMany({
+                where: { id: { gt: after } },
+                ...options,
               });
-              await tx.syncSnapshotPage.update({
-                where: { id: previousPage },
-                data: {
-                  payload: json({
-                    ...(previous.payload as object),
-                    nextPage: pageId,
-                  }),
-                },
-              });
-            } else snapshotPages[resource] = pageId;
-            previousPage = pageId;
-            after = items.length === 200 ? items.at(-1)?.id : undefined;
-          }
+            },
+          );
+        }
+      }
+      // Page operational lists even in a delta; no unresolved work is truncated.
+      if (protocol >= 3) {
+        const queries = new StoreReadQueries(tx, scope);
+        for (const [resource, initial] of [
+          ["rewards", rewards],
+          ["claims", claims],
+          ["orders", orders],
+          ["deliveries", deliveries],
+        ] as const) {
+          snapshotPages[resource] = await pages.materialize(
+            resource,
+            initial.length === 200 ? initial.at(-1)?.id : undefined,
+            async (after) => {
+              const items = await queries.operationalPage(resource, after);
+              if (resource !== "orders") return items;
+              const fulfillment = await orderFulfillment(
+                tx,
+                org,
+                store,
+                items as import("@prisma/client").ReplenishmentOrder[],
+              );
+              return items.map((item) => ({
+                ...item,
+                fulfillment: fulfillment.get(item.id),
+              }));
+            },
+          );
         }
       }
       return {
@@ -747,15 +758,7 @@ export class WorkspaceService {
       if (resource === "movements" || resource === "audit") this.manager(scope);
       let cursor: { id: string; date: Date } | undefined;
       if (before) {
-        const parsed = JSON.parse(Buffer.from(before, "base64url").toString());
-        requireRule(
-          typeof parsed.id === "string" &&
-            /^[0-9a-f-]{36}$/.test(parsed.id) &&
-            Number.isFinite(new Date(parsed.date).getTime()),
-          "INVALID_CURSOR",
-          "Page invalide.",
-        );
-        cursor = { id: parsed.id, date: new Date(parsed.date) };
+        cursor = decodeHistoryCursor(before);
       }
       const dateKey = resource === "sales" ? "occurredAt" : "createdAt";
       const options = {

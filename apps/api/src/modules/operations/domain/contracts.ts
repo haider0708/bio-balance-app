@@ -12,9 +12,14 @@ export const saleLine = z
     allocations: z.array(allocation).min(1).max(50),
   })
   .strict();
-export const batchDeclaration = z.object({
-  lotId: id, productId: id, batch: z.string().trim().min(1).max(100), expiry: z.string().max(10),
-}).strict();
+export const batchDeclaration = z
+  .object({
+    lotId: id,
+    productId: id,
+    batch: z.string().trim().min(1).max(100),
+    expiry: z.string().max(10),
+  })
+  .strict();
 const saleFields = {
   batchDeclarations: z.array(batchDeclaration).max(5000).optional(),
   saleId: id,

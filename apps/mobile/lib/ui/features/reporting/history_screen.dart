@@ -1,3 +1,5 @@
+import '../../../domain/models/csv.dart';
+
 import 'dart:convert';
 import 'dart:typed_data';
 
@@ -66,10 +68,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
   }
 
   Future<void> export() async {
-    String cell(Object? v) =>
-        '"${(v ?? '').toString().replaceFirst(RegExp(r'^[=+@-]'), "'").replaceAll('"', '""')}"';
     final csv =
-        '\uFEFFDate;Utilisateur;Montant TND;Quantité;Points;Motif\n${items.map((r) => [dateLabel(r['occurredAt'] ?? r['createdAt']), people[r['actorId'] ?? r['sellerId'] ?? r['userId']] ?? '', r['totalMillimes'] == null ? '' : Money(integer(r['totalMillimes'])).formatted, r['quantity'], r['amount'], r['reason'] ?? r['action'] ?? r['kind']].map(cell).join(';')).join('\n')}';
+        '\uFEFFDate;Utilisateur;Montant TND;Quantité;Points;Motif\n${items.map((r) => [dateLabel(r['occurredAt'] ?? r['createdAt']), people[r['actorId'] ?? r['sellerId'] ?? r['userId']] ?? '', r['totalMillimes'] == null ? '' : Money(integer(r['totalMillimes'])).formatted, r['quantity'], r['amount'], r['reason'] ?? r['action'] ?? r['kind']].map(csvCell).join(';')).join('\n')}';
     await FilePicker.saveFile(
       fileName: 'biobalance-${widget.resource}.csv',
       mimeType: 'text/csv',

@@ -1,3 +1,4 @@
+import { mediaReservation, reserveMedia } from "./infrastructure/media-storage";
 import { Prisma, MediaAsset, TrainingContent } from "@prisma/client";
 import { Injectable } from "@nestjs/common";
 import { randomUUID, createHash } from "node:crypto";
@@ -22,21 +23,28 @@ export class TrainingService {
     );
   }
   list(actor: Actor, after?: string) {
-    return this.db.trainingContent.findMany({
-      where: {
-        ...(!actor.platformAdmin ? { status: "published" } : {}),
-        ...(after ? { id: { gt: after } } : {}),
-      },
-      orderBy: { id: "asc" },
-      take: 100,
-    });
+    return this.db.authenticated(actor, (tx, current) =>
+      tx.trainingContent.findMany({
+        where: {
+          ...(!current.platformAdmin ? { status: "published" } : {}),
+          ...(after ? { id: { gt: after } } : {}),
+        },
+        orderBy: { id: "asc" },
+        take: 100,
+      }),
+    );
   }
-  async get(actor: Actor, id: string) {
-    const content = await this.db.trainingContent.findFirst({
-      where: { id, ...(!actor.platformAdmin ? { status: "published" } : {}) },
+  get(actor: Actor, id: string) {
+    return this.db.authenticated(actor, async (tx, current) => {
+      const content = await tx.trainingContent.findFirst({
+        where: {
+          id,
+          ...(!current.platformAdmin ? { status: "published" } : {}),
+        },
+      });
+      requireRule(content, "NOT_FOUND", "Contenu introuvable.", 404);
+      return content;
     });
-    requireRule(content, "NOT_FOUND", "Contenu introuvable.", 404);
-    return content;
   }
   async save(
     actor: Actor,
@@ -67,160 +75,130 @@ export class TrainingService {
         }),
       )
       .digest("hex");
-    return this.retrySubmission(() =>
-      this.db.$transaction(
-        async (tx) => {
-          this.admin(await this.globalActor(tx, actor));
-          if (input.submissionId) {
-            const prior = await tx.contentSubmission.findUnique({
-              where: { id: input.submissionId },
-            });
-            if (prior) {
-              requireRule(
-                prior.payloadHash === payloadHash,
-                "SUBMISSION_REUSED",
-                "Ce contenu a changé depuis la tentative précédente.",
-                409,
-              );
-              return prior.result as unknown as Omit<
-                TrainingContent,
-                "updatedAt"
-              > & { updatedAt: string };
-            }
-          }
-          const products = new Set(input.productIds);
+    return this.db.transaction(async (tx) => {
+      this.admin(await this.globalActor(tx, actor));
+      if (input.submissionId) {
+        const prior = await tx.contentSubmission.findUnique({
+          where: { id: input.submissionId },
+        });
+        if (prior) {
           requireRule(
-            products.size === input.productIds.length &&
-              (await tx.product.count({
-                where: { id: { in: [...products] } },
-              })) === products.size,
-            "PRODUCT_NOT_FOUND",
-            "Vérifiez les produits associés.",
-          );
-          if (input.type === "video")
-            requireRule(input.mediaId, "MEDIA_REQUIRED", "Ajoutez une vidéo.");
-          if (input.mediaId) {
-            const media = await tx.mediaAsset.findUnique({
-              where: { id: input.mediaId },
-            });
-            requireRule(
-              media &&
-                media.ownerId === actor.id &&
-                media.purpose === "training" &&
-                !media.storeId,
-              "MEDIA_NOT_FOUND",
-              "Média introuvable.",
-            );
-            if (input.status === "published")
-              requireRule(
-                media.status === "ready",
-                "MEDIA_PROCESSING",
-                "Le traitement du média doit être terminé avant publication.",
-              );
-          }
-          const { id, expectedVersion, submissionId, ...values } = input;
-          const data = {
-            ...values,
-            body: sanitizeHtml(values.body, {
-              allowedTags: [
-                "p",
-                "br",
-                "h2",
-                "h3",
-                "strong",
-                "em",
-                "ul",
-                "ol",
-                "li",
-                "blockquote",
-                "a",
-              ],
-              allowedAttributes: { a: ["href", "title"] },
-              allowedSchemes: ["https"],
-            }),
-          };
-          const old = id
-            ? await tx.trainingContent.findUnique({ where: { id } })
-            : null;
-          requireRule(
-            input.status !== "published" ||
-              input.type !== "article" ||
-              sanitizeHtml(data.body, {
-                allowedTags: [],
-                allowedAttributes: {},
-              }).trim().length > 0,
-            "CONTENT_REQUIRED",
-            "Renseignez le contenu de l’article avant de publier.",
-          );
-          requireRule(
-            !id ||
-              (old ? old.version === expectedVersion : expectedVersion === 0),
-            "VERSION_CONFLICT",
-            "Ce contenu a été modifié.",
+            prior.actorId === actor.id && prior.payloadHash === payloadHash,
+            "SUBMISSION_REUSED",
+            "Ce contenu a changé depuis la tentative précédente.",
             409,
           );
-          const result = old
-            ? await tx.trainingContent.update({
-                where: { id },
-                data: { ...data, version: { increment: 1 } },
-              })
-            : await tx.trainingContent.create({
-                data: { ...data, ...(id ? { id } : {}), authorId: actor.id },
-              });
-          await tx.auditEntry.create({
-            data: {
-              actorId: actor.id,
-              action: "training.save",
-              targetId: result.id,
-              details: json({ status: result.status, version: result.version }),
-            },
-          });
-          const response = {
-            ...result,
-            updatedAt: result.updatedAt.toISOString(),
-          };
-          if (submissionId)
-            await tx.contentSubmission.create({
-              data: {
-                id: submissionId,
-                actorId: actor.id,
-                contentId: result.id,
-                payloadHash,
-                result: json(response),
-              },
-            });
-          return response;
-        },
-        { isolationLevel: "Serializable", timeout: 15000 },
-      ),
-    );
-  }
-  private async retrySubmission<T>(work: () => Promise<T>): Promise<T> {
-    for (let attempt = 0; ; attempt++) {
-      try {
-        return await work();
-      } catch (error) {
-        if (
-          attempt >= 3 ||
-          !(error instanceof Prisma.PrismaClientKnownRequestError) ||
-          !["P2002", "P2034"].includes(error.code)
-        )
-          throw error;
-        await new Promise((resolve) => setTimeout(resolve, 20 * 2 ** attempt));
+          return prior.result as unknown as Omit<
+            TrainingContent,
+            "updatedAt"
+          > & { updatedAt: string };
+        }
       }
-    }
+      const products = new Set(input.productIds);
+      requireRule(
+        products.size === input.productIds.length &&
+          (await tx.product.count({
+            where: { id: { in: [...products] } },
+          })) === products.size,
+        "PRODUCT_NOT_FOUND",
+        "Vérifiez les produits associés.",
+      );
+      if (input.type === "video")
+        requireRule(input.mediaId, "MEDIA_REQUIRED", "Ajoutez une vidéo.");
+      if (input.mediaId) {
+        const media = await tx.mediaAsset.findUnique({
+          where: { id: input.mediaId },
+        });
+        requireRule(
+          media &&
+            media.ownerId === actor.id &&
+            media.purpose === "training" &&
+            !media.storeId,
+          "MEDIA_NOT_FOUND",
+          "Média introuvable.",
+        );
+        if (input.status === "published")
+          requireRule(
+            media.status === "ready",
+            "MEDIA_PROCESSING",
+            "Le traitement du média doit être terminé avant publication.",
+          );
+      }
+      const { id, expectedVersion, submissionId, ...values } = input;
+      const data = {
+        ...values,
+        body: sanitizeHtml(values.body, {
+          allowedTags: [
+            "p",
+            "br",
+            "h2",
+            "h3",
+            "strong",
+            "em",
+            "ul",
+            "ol",
+            "li",
+            "blockquote",
+            "a",
+          ],
+          allowedAttributes: { a: ["href", "title"] },
+          allowedSchemes: ["https"],
+        }),
+      };
+      const old = id
+        ? await tx.trainingContent.findUnique({ where: { id } })
+        : null;
+      requireRule(
+        input.status !== "published" ||
+          input.type !== "article" ||
+          sanitizeHtml(data.body, {
+            allowedTags: [],
+            allowedAttributes: {},
+          }).trim().length > 0,
+        "CONTENT_REQUIRED",
+        "Renseignez le contenu de l’article avant de publier.",
+      );
+      requireRule(
+        !id || (old ? old.version === expectedVersion : expectedVersion === 0),
+        "VERSION_CONFLICT",
+        "Ce contenu a été modifié.",
+        409,
+      );
+      const result = old
+        ? await tx.trainingContent.update({
+            where: { id },
+            data: { ...data, version: { increment: 1 } },
+          })
+        : await tx.trainingContent.create({
+            data: { ...data, ...(id ? { id } : {}), authorId: actor.id },
+          });
+      await tx.auditEntry.create({
+        data: {
+          actorId: actor.id,
+          action: "training.save",
+          targetId: result.id,
+          details: json({ status: result.status, version: result.version }),
+        },
+      });
+      const response = {
+        ...result,
+        updatedAt: result.updatedAt.toISOString(),
+      };
+      if (submissionId)
+        await tx.contentSubmission.create({
+          data: {
+            id: submissionId,
+            actorId: actor.id,
+            contentId: result.id,
+            payloadHash,
+            result: json(response),
+          },
+        });
+      return response;
+    });
   }
-  private async globalActor(tx: Prisma.TransactionClient, actor: Actor) {
-    await this.db.verifySession(tx, actor);
-    await tx.$executeRaw`SELECT set_config('app.actor_id',${actor.id},true)`;
-    const user = await tx.user.findUnique({ where: { id: actor.id } });
-    requireRule(
-      user && !user.disabled,
-      "ACCESS_DISABLED",
-      "Votre accès a été désactivé.",
-      403,
-    );
-    return user;
+  private globalActor(tx: Prisma.TransactionClient, actor: Actor) {
+    return this.db.currentActor(tx, actor);
   }
   private async assetTransaction<T>(
     actor: Actor,
@@ -260,12 +238,8 @@ export class TrainingService {
             scope.actor.platformAdmin,
           ),
       );
-    return this.db.$transaction(
-      async (tx) => {
-        const user = await this.globalActor(tx, actor);
-        return execute(tx, user.platformAdmin, user.platformAdmin);
-      },
-      { timeout: 15000 },
+    return this.db.authenticated(actor, (tx, user) =>
+      execute(tx, user.platformAdmin, user.platformAdmin),
     );
   }
   async startUpload(
@@ -299,8 +273,41 @@ export class TrainingService {
       "L’image ne doit pas dépasser 10 Mo.",
     );
     const id = randomUUID();
-    const create = async (tx: Prisma.TransactionClient) =>
-      tx.mediaAsset.create({
+    const storageBytes = mediaReservation(size, mime);
+    const create = async (tx: Prisma.TransactionClient) => {
+      // A lost start response can safely recover the same immutable file identity.
+      if (context.sha256) {
+        const prior = await tx.mediaAsset.findFirst({
+          where: {
+            ownerId: actor.id,
+            purpose,
+            storeId: context.storeId ?? null,
+            organizationId: context.organizationId ?? null,
+            expectedSha256: context.sha256,
+            size: BigInt(size),
+            mime,
+            status: { in: ["uploading", "processing", "ready"] },
+          },
+          orderBy: { createdAt: "desc" },
+          select: {
+            id: true,
+            status: true,
+            received: true,
+            size: true,
+            expectedSha256: true,
+          },
+        });
+        if (prior) return prior;
+      }
+
+      await reserveMedia(
+        tx,
+        this.root,
+        actor.id,
+        context.storeId,
+        storageBytes,
+      );
+      return tx.mediaAsset.create({
         data: {
           id,
           ownerId: actor.id,
@@ -312,6 +319,7 @@ export class TrainingService {
           organizationId: context.organizationId,
           storeId: context.storeId,
           expectedSha256: context.sha256,
+          storageBytes,
         },
         select: {
           id: true,
@@ -321,6 +329,7 @@ export class TrainingService {
           expectedSha256: true,
         },
       });
+    };
     await mkdir(this.root, { recursive: true, mode: 0o750 });
     if (scoped)
       return this.db.scoped(
@@ -337,7 +346,7 @@ export class TrainingService {
           return create(tx);
         },
       );
-    return this.db.$transaction(async (tx) => {
+    return this.db.transaction(async (tx) => {
       const user = await this.globalActor(tx, actor);
       this.admin(user);
       return create(tx);
@@ -369,6 +378,25 @@ export class TrainingService {
         "Fragment hors du fichier.",
         409,
       );
+      requireRule(
+        media.status !== "expired",
+        "UPLOAD_EXPIRED",
+        "Ce transfert a expiré. Sélectionnez à nouveau le fichier.",
+        410,
+      );
+      const sha256 = createHash("sha256").update(buffer).digest("hex");
+      const prior = await tx.uploadChunk.findUnique({
+        where: { mediaId_offset: { mediaId: id, offset: BigInt(offset) } },
+      });
+      if (prior) {
+        requireRule(
+          prior.length === buffer.length && prior.sha256 === sha256,
+          "CHUNK_CONFLICT",
+          "Fragment différent de celui déjà reçu.",
+          409,
+        );
+        return { received: media.received, status: media.status };
+      }
       const source = path.join(this.root, `${id}.upload`);
       const handle = await open(source, "a+");
       await handle.close();
@@ -412,6 +440,14 @@ export class TrainingService {
       } finally {
         await file.close();
       }
+      await tx.uploadChunk.create({
+        data: {
+          mediaId: id,
+          offset: BigInt(offset),
+          length: buffer.length,
+          sha256,
+        },
+      });
       const received = BigInt(offset + buffer.length);
       const status = received === media.size ? "processing" : "uploading";
       await tx.mediaAsset.update({

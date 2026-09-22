@@ -67,6 +67,8 @@ Argon2id pour les mots de passe ; seuls les hash des sessions et codes d’invit
 
 Les téléversements sont bornés, identifiés par UUID et écrits par fragments à un offset validé. Le worker revalide le fichier et produit un média traité. Le HTML est assaini avant stockage. Les médias restent privés ; l’API contrôle l’accès et Nginx utilise une destination interne, avec support des plages vidéo.
 
+L’audit du 22 septembre centralise les transactions globales dans `Database.authenticated`, avec relecture de la session et du rôle. L’admission Argon2 et celle des corps binaires sont bornées par processus. Les médias réservent leur capacité en transaction et conservent des reçus de fragments pour les réponses perdues. Les liens de compte utilisent des codes manuels ou des associations HTTPS vérifiées. Un refus de session confirmé est conservé sur le téléphone sans effacer le travail en attente. Voir [audit et corrections](audit-2026-09-22.md).
+
 ## VPS
 
 Référence à valider : Ubuntu 24.04, 8 vCPU, 16 Go RAM, 200 Go SSD/NVMe. Docker Compose déploie Nginx, deux API stateless, le worker de notifications, le worker média et PostgreSQL sans port public. Données et médias utilisent des volumes persistants locaux.
@@ -84,6 +86,8 @@ Les seuils de performance du plan sont des **critères de recette**. La charge A
 Les commandes v1 existantes gardent leur payload et identifiant. Les nouvelles commandes v2 déclarent leurs dépendances ; les résultats acceptés exposent un curseur et les versions affectées. `/v1/sync/status` vérifie une soumission incertaine sans rejouer ses effets et fournit un watermark conservateur pour les anciens résultats. Le client conserve l’effet provisoire jusqu’à l’application atomique d’un état serveur qui inclut l’opération. Les retries sont persistés avec jitter et plafond de cinq minutes.
 
 Le snapshot de lecture protocole 3 matérialise les pages supplémentaires dans la même transaction sérialisable que son curseur. Les pages expirent après cinq minutes et vérifient compte, magasin et permissions à chaque lecture ; une expiration ne touche jamais l’outbox. Les projections de stock sont des opérations métier Dart, dont un dommage produit deux incréments de version.
+
+Les demandes de récompense, commandes non terminées, livraisons en cours et récompenses utilisent également ces pages immuables, y compris lors des rafraîchissements incrémentaux. Une page reste bornée à 200 éléments ; les opérations non terminées ne disparaissent pas derrière une limite arbitraire de l’historique récent. Les projections initiales sont regroupées dans une seule requête SQL ; les appels sur la même transaction restent séquentiels.
 
 ### Contrats et repositories typés
 

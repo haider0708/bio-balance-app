@@ -1,9 +1,8 @@
-import { Database } from "../../../shared/infrastructure/database";
-import { Notification } from "@prisma/client";
+import { Notification, Prisma } from "@prisma/client";
 
 /** Re-evaluated at delivery time; the original recipient list is not authority. */
 export class NotificationPolicy {
-  constructor(private readonly db: Database) {}
+  constructor(private readonly db: Prisma.TransactionClient) {}
   async allows(n: Notification) {
     const user = await this.db.user.findUnique({ where: { id: n.userId } });
     if (!user || user.disabled) return false;

@@ -32,3 +32,5 @@ apps/mobile/ios/Runner/GoogleService-Info.plist
 
 __pycache__/
 *.pyc
+
+apps/mobile/ios/Flutter/AccountLinks.xcconfig

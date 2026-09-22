@@ -48,47 +48,81 @@ export class ErrorFilter implements ExceptionFilter {
   catch(error: unknown, host: ArgumentsHost) {
     const request = host.switchToHttp().getRequest<AuthRequest>();
     const response = host.switchToHttp().getResponse<Response>();
-    const status =
-      error instanceof DomainError
-        ? error.status
-        : error instanceof ZodError
-          ? 400
-          : error instanceof HttpException
-            ? error.getStatus()
-            : 500;
-    const code =
-      error instanceof DomainError
-        ? error.code
-        : error instanceof ZodError
-          ? "VALIDATION"
-          : "SERVER_ERROR";
-    if (status >= 500)
-      console.error(
-        JSON.stringify({
-          level: "error",
-          correlationId: request.correlationId,
-          code,
-          error: error instanceof Error ? error.name : "Unknown",
-        }),
-      );
-    response
-      .status(status)
-      .json({
-        code,
-        message:
-          error instanceof DomainError
-            ? error.message
-            : error instanceof ZodError
-              ? "Vérifiez les informations saisies."
-              : "Le service est momentanément indisponible.",
-        fields:
-          error instanceof ZodError
-            ? error.issues.map((i) => ({
-                path: i.path.join("."),
-                message: i.message,
-              }))
-            : undefined,
-        correlationId: request.correlationId,
-      });
+    sendError(error, request, response);
   }
+}
+
+/** The same redacted contract is used before and after Nest dispatch. */
+export function sendError(
+  error: unknown,
+  request: Pick<AuthRequest, "correlationId">,
+  response: Response,
+) {
+  if (response.headersSent) {
+    response.end();
+    return;
+  }
+  const parser = error as { type?: string } | null;
+  const parserStatus =
+    parser?.type === "entity.too.large"
+      ? 413
+      : parser?.type === "entity.parse.failed"
+        ? 400
+        : undefined;
+  const status =
+    error instanceof DomainError
+      ? error.status
+      : error instanceof ZodError
+        ? 400
+        : error instanceof HttpException
+          ? error.getStatus()
+          : (parserStatus ?? 500);
+  const code =
+    error instanceof DomainError
+      ? error.code
+      : error instanceof ZodError
+        ? "VALIDATION"
+        : status < 500
+          ? `HTTP_${status}`
+          : "SERVER_ERROR";
+  if (status >= 500)
+    console.error(
+      JSON.stringify({
+        level: "error",
+        correlationId: request.correlationId,
+        code,
+        error: error instanceof Error ? error.name : "Unknown",
+      }),
+    );
+  const retry =
+    error instanceof DomainError
+      ? (error.details as { retryAfterSeconds?: number } | undefined)
+          ?.retryAfterSeconds
+      : undefined;
+  if (status === 429 || status === 503)
+    response.setHeader(
+      "Retry-After",
+      String(retry ?? (status === 429 ? 900 : 1)),
+    );
+  response.status(status).json({
+    code,
+    message:
+      error instanceof DomainError
+        ? error.message
+        : error instanceof ZodError
+          ? "Vérifiez les informations saisies."
+          : status === 413
+            ? "Le fichier ou la requête dépasse la taille autorisée."
+            : status < 500
+              ? "La requête est invalide ou la ressource est indisponible."
+              : "Le service est momentanément indisponible.",
+    fields:
+      error instanceof ZodError
+        ? error.issues.map((i) => ({
+            path: i.path.join("."),
+            message: i.message,
+          }))
+        : undefined,
+    correlationId: request.correlationId,
+  });
 }

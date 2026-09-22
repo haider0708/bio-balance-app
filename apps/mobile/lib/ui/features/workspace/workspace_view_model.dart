@@ -317,7 +317,7 @@ class WorkspaceViewModel extends ChangeNotifier {
 
   Future<void> synchronize({bool silent = false}) async {
     final store = state.store;
-    if (store == null || state.syncing) return;
+    if (store == null || state.syncing || api.accessBlocked) return;
     _emit(state.copy(syncing: true));
     try {
       await repository.synchronize(user, store);

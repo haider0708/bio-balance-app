@@ -169,7 +169,7 @@ export class PrismaLedger implements Ledger {
     requireRule(lot, "LOT_NOT_FOUND", "Lot introuvable dans ce magasin.", 404);
     return lot;
   }
-  lotsForProduct(productId: string) {
+  lotsForProduct(productId: string, requiredUnits: number) {
     return this.tx.inventoryLot.findMany({
       where: {
         ...this.context,
@@ -182,7 +182,7 @@ export class PrismaLedger implements Ledger {
         },
       },
       orderBy: [{ expiry: "asc" }, { id: "asc" }],
-      take: 1000,
+      take: requiredUnits,
     });
   }
   async declareBatch(
@@ -503,17 +503,15 @@ export class PrismaLedger implements Ledger {
   async alerts(productIds: string[]) {
     const ids = [...new Set(productIds)];
     if (!ids.length) return;
-    const [configurations, inventory, existing] = await Promise.all([
-      this.tx.storeProduct.findMany({
-        where: { ...this.context, productId: { in: ids } },
-      }),
-      this.tx.inventoryLot.findMany({
-        where: { ...this.context, productId: { in: ids } },
-      }),
-      this.tx.alert.findMany({
-        where: { ...this.context, productId: { in: ids } },
-      }),
-    ]);
+    const configurations = await this.tx.storeProduct.findMany({
+      where: { ...this.context, productId: { in: ids } },
+    });
+    const inventory = await this.tx.inventoryLot.findMany({
+      where: { ...this.context, productId: { in: ids } },
+    });
+    const existing = await this.tx.alert.findMany({
+      where: { ...this.context, productId: { in: ids } },
+    });
     const byProduct = new Map(
       configurations.map((config) => [config.productId, config]),
     );
@@ -584,22 +582,20 @@ export class PrismaLedger implements Ledger {
     }
   }
   async notify(key: string, title: string, body: string) {
-    const [members, owners, admins] = await Promise.all([
-      this.tx.membership.findMany({
-        where: {
-          ...this.context,
-          active: true,
-          permissions: { has: "manage" },
-        },
-      }),
-      this.tx.organizationMembership.findMany({
-        where: { organizationId: this.scope.organizationId, active: true },
-      }),
-      this.tx.user.findMany({
-        where: { platformAdmin: true, disabled: false },
-        select: { id: true },
-      }),
-    ]);
+    const members = await this.tx.membership.findMany({
+      where: {
+        ...this.context,
+        active: true,
+        permissions: { has: "manage" },
+      },
+    });
+    const owners = await this.tx.organizationMembership.findMany({
+      where: { organizationId: this.scope.organizationId, active: true },
+    });
+    const admins = await this.tx.user.findMany({
+      where: { platformAdmin: true, disabled: false },
+      select: { id: true },
+    });
     const users = new Set([
       ...members.map((m) => m.userId),
       ...owners.map((m) => m.userId),

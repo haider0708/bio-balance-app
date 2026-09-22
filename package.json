@@ -20,7 +20,9 @@
     "test:contracts": "npm run test:contracts -w apps/api",
     "test:notifications": "npm run test:notifications -w apps/api",
     "test:journeys": "npm run test:journeys -w apps/api",
-    "test:android-restart": "npm run test:android-restart -w apps/api"
+    "test:android-restart": "npm run test:android-restart -w apps/api",
+    "test:audit": "npm run test:audit -w apps/api",
+    "format:check": "npm run format:check -w apps/api"
   },
   "allowScripts": {
     "argon2@0.44.0": true,

@@ -1,4 +1,5 @@
-import {ReportingService} from './modules/reporting/reporting.service';
+import { PasswordHasher } from "./modules/identity/password-hasher";
+import { ReportingService } from "./modules/reporting/reporting.service";
 import { AdminService } from "./modules/reporting/admin.service";
 import { AdminController } from "./modules/reporting/admin.controller";
 import { Module, Controller, Get } from "@nestjs/common";
@@ -43,6 +44,7 @@ class HealthController {
     ReportingService,
     AdminService,
     Database,
+    { provide: PasswordHasher, useFactory: () => new PasswordHasher() },
     IdentityService,
     WorkspaceService,
     CatalogService,

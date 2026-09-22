@@ -79,7 +79,7 @@ def decode(s,value):
  kind=s.get('type')
  if kind=='array':return f'List.unmodifiable(({value} as List).map((item) => {decode(s["items"],"item")}))'
  if kind=='object':return f'Map.unmodifiable(({value} as Map).map((key, item) => MapEntry(key as String, {decode(s["additionalProperties"],"item")})))'
- if kind=='integer':return f'({value} as num).toInt()'
+ if kind=='integer':return f'wireInteger({value})'
  if kind=='number':return f'({value} as num).toDouble()'
  return f'{value} as '+dtype(s)
 
@@ -119,13 +119,14 @@ for name,s in schemas.items():
    args+=[prefix+typ+' '+f];initializer=('List' if core(p).get('type')=='array' else 'Map')+'.unmodifiable('+f+')'
    initializers+=[f+'='+ (f+' == null ? null : ' if f not in required or nullable(p) else '')+initializer]
   else:args += [prefix+'this.'+f]
- lines += [f' {c}({{{", ".join(args)}}}):'+', '.join(initializers)+';',f' factory {c}.fromJson(Map<String,dynamic> json)=>{c}(', '  presentFields:json.keys.toSet(),']
+ checks=' '.join(f'if(json[{literal(f)}] != {literal(p["const"])}) throw const FormatException("Invalid {name} {f}");' for f,p in props.items() if 'const' in p)
+ lines += [f' {c}({{{", ".join(args)}}}):'+', '.join(initializers)+';',f' factory {c}.fromJson(Map<String,dynamic> json) {{ {checks} return {c}(', '  presentFields:json.keys.toSet(),']
  for f,p in props.items():
   if 'const' in p:continue
   access="json["+literal(f)+"]";expr=decode(p,access)
   if f not in required and not nullable(p):expr=f'{access} == null ? null : '+expr
   lines += ['  '+f+': '+expr+',']
- lines += [' );',' Map<String,dynamic> toJson()=>{']
+ lines += [' ); }',' Map<String,dynamic> toJson()=>{']
  for f,p in props.items():
   if 'const' in p:expr=literal(p['const'])
   elif f not in required and not nullable(p):expr=f'{f} == null ? null : '+encode(p,f+'!')
@@ -139,6 +140,10 @@ Object? freezeJson(Object? value) {
  if(value is List) return List<Object?>.unmodifiable(value.map(freezeJson));
  if(value == null || value is String || value is bool || value is num) return value;
  throw const FormatException('Invalid JSON value');
+}
+int wireInteger(Object? value) {
+ if(value is int) return value;
+ throw const FormatException('Entier invalide dans la réponse du serveur.');
 }
 bool matchesWire(Object? value,String name)=>_matches(value,_schemas[name]!);
 bool _matches(Object? value,Map<String,dynamic> schema) {

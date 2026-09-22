@@ -73,7 +73,7 @@ class MediaUploadRepository {
     final key = 'upload:$purpose:$name:$size:$checksum';
     final cached = await local.draft(accountId, store?.id ?? '', key);
     api.requireBinding(binding);
-    Json asset;
+    Json? asset;
     if (cached != null && cached['id'] != null) {
       asset = await status(cached['id']);
       if (integer(asset['size']) != size ||
@@ -83,7 +83,9 @@ class MediaUploadRepository {
           'Le fichier ne correspond plus au téléversement.',
         );
       }
-    } else {
+      if (asset['status'] == 'expired') asset = null;
+    }
+    if (asset == null) {
       asset = (await api.trainingStart(
         body: TrainingStartRequestDto(
           fileName: name,

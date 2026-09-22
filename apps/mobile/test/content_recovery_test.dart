@@ -210,11 +210,14 @@ void main() {
   test('account links accept activation and recovery tokens only from configured routes', () {
     final token = 'a' * 43;
     expect(
-      AccountLink.parse(Uri.parse('biobalance://activate?token=$token'))?.token,
-      token,
+      AccountLink.parse(Uri.parse('biobalance://activate?token=$token')),
+      isNull,
     );
     expect(
-      AccountLink.parse(Uri.parse('biobalance://recover?token=$token'))?.mode,
+      AccountLink.parse(
+        Uri.parse('https://app.example.test/recover?token=$token'),
+        httpsHost: 'app.example.test',
+      )?.mode,
       'reset',
     );
     expect(

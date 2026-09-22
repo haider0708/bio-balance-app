@@ -1,4 +1,4 @@
-# État de l’implémentation — 21 septembre 2026
+# État de l’implémentation — 22 septembre 2026
 
 L’application est en développement et n’est pas encore qualifiée pour une diffusion en production. Ce document distingue les fonctionnalités codées des vérifications réalisées.
 
@@ -24,14 +24,16 @@ L’application est en développement et n’est pas encore qualifiée pour une 
 |---|---|
 | Compilation TypeScript | Réussie |
 | Tests domaine et reprise transactionnelle backend | 10 réussis |
-| Tests PostgreSQL réels avec rôle restreint | 22 réussis + 3 tests de traitement média réel + 5 tests notifications/workers |
-| Tests Flutter de reprise, migration et dispositions d’écran | 72 réussis ; 2 parcours HTTP, contrats Dart et reprise média HTTPS/Nginx exécutés séparément et réussis |
+| Tests PostgreSQL réels avec rôle restreint | 22 réussis + 14 régressions d’audit + 4 tests de traitement média réel + 5 tests notifications/workers |
+| Tests Flutter de reprise, migration et dispositions d’écran | 79 réussis ; 2 parcours HTTP, contrats Dart et reprise média HTTPS/Nginx exécutés séparément et réussis |
 | Build Android | Debug normal lancé/rechargé et APK/AAB release non signés compilés ; parcours/force-stop/vidéo réussis sur émulateur ; signatures et appareils physiques en attente |
 | Sauvegarde/restauration isolée | Réussie : données métier, image et vidéo traitées ; tailles/empreintes et projections comparées après restauration isolée |
 | OpenAPI et génération Dart | 45 endpoints vérifiés sur HTTP réel ; schémas Dart typés générés et aller-retour JSON validé |
 | Images Docker et émulateur | Parcours Android et Compose complet local réussis ; API/média, TLS, isolation, reprise et rollback vérifiés |
 
 Un passage des tests PostgreSQL a expiré pendant une forte saturation mémoire de l’hôte par les builds Android. Après arrêt des anciens daemons de compilation devenus inutiles, les 12 tests ont réussi sans allonger leur délai.
+
+Audit du 22 septembre : voir [constats corrigés et preuves](audit-2026-09-22.md). Les APK/AAB release non signés de l’étape 12 précèdent ces corrections ; ils restent des preuves historiques de compilation et doivent être reconstruits avant un pilote.
 
 ## Travail restant avant acceptation
 

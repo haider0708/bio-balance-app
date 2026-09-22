@@ -1,0 +1,81 @@
+{
+  "date": "2026-09-22",
+  "baselineCommit": "6e8ec3b150af4e005270ff912bbc3117f5781515",
+  "securityScanId": "405b4f79-2fd3-4e69-ba93-7608b88b1a00",
+  "validatedBaselineSecurityFindings": {
+    "high": 1,
+    "medium": 7,
+    "low": 1
+  },
+  "remediation": "implemented with regression coverage; see docs/audit-2026-09-22.md",
+  "checks": {
+    "backendDomainAndRetry": 10,
+    "postgresIntegration": 22,
+    "auditRegressions": 14,
+    "realMediaProcessing": 4,
+    "notificationsAndWorkers": 5,
+    "httpEndpointContracts": 45,
+    "standaloneFlutter": 79,
+    "serverDependentFlutterScenarios": 4,
+    "releaseAndBackupPython": 9,
+    "androidRoleJourneys": "passed",
+    "androidForceStopAndVideo": "passed",
+    "typescriptBuild": "passed",
+    "flutterAnalysis": "passed",
+    "dependencyLockfileInstallation": "passed",
+    "knownNpmVulnerabilities": 0,
+    "fullComposeAndRestore": "passed"
+  },
+  "load": {
+    "requests": 36001,
+    "acceptedSales": 3603,
+    "httpFailures": 0,
+    "droppedIterations": 0,
+    "steadyRps": 100,
+    "steadySeconds": 300,
+    "burstRps": 200,
+    "burstSeconds": 30,
+    "steadyReadP95Ms": 18.36,
+    "steadyWriteP95Ms": 36.62,
+    "burstReadP95Ms": 104.87,
+    "burstWriteP95Ms": 214.55,
+    "stockPointsRevisionIdentityConsistency": "passed",
+    "datasetStores": 500,
+    "datasetUsers": 5000,
+    "datasetLots": 300000,
+    "datasetSalesAfterExercise": 2022794
+  },
+  "androidRecovery": {
+    "sameAccountOperationIdAndPayload": true,
+    "acceptedSales": 1,
+    "sellable": 7,
+    "version": 3,
+    "points": "30",
+    "downloadedH264Playback": "passed"
+  },
+  "preservedFailures": [
+    "first burst-load regression before SQL round-trip reduction",
+    "MFA counter reuse in deployment test harness",
+    "native streaming-to-file player replacement crash before atomic state fix"
+  ],
+  "localEvidence": ".artifacts/evidence/audit-2026-09-22",
+  "pending": [
+    "macOS/iOS compilation and real-device checks",
+    "physical Android performance/camera/accessibility",
+    "owned VPS capacity, DNS/ACME, SSH/firewall and external monitoring",
+    "real SMTP and FCM/APNs",
+    "remote CI, signing, store publication and pilot acceptance"
+  ],
+  "deferred": [
+    "off-server backups",
+    "high availability",
+    "complete VPS-loss recovery"
+  ],
+  "androidNormalDebugBuild": {
+    "entryPoint": "lib/main.dart",
+    "status": "passed",
+    "bytes": 233454681,
+    "sha256": "bdd4d55f9c91ca8386ba9b5721834017e1c1fb76df1601da294e8c938d3c190b",
+    "productionSigned": false
+  }
+}

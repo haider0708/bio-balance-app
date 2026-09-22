@@ -137,4 +137,15 @@ void main() {
       );
     },
   );
+  test('transport rejects fractional integers and wrong tagged constants', () {
+    expect(
+      () => MoneyDto.fromJson({'currency': 'EUR', 'millimes': '1000'}),
+      throwsFormatException,
+    );
+    expect(
+      () => CommandOutcomeDto.fromJson({'id': 'id', 'version': 1.5}),
+      throwsFormatException,
+    );
+    expect(CommandOutcomeDto.fromJson({'id': 'id', 'version': 2}).version, 2);
+  });
 }

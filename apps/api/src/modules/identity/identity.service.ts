@@ -1,3 +1,4 @@
+import { accountTokenMessage } from "./account-links";
 import { Prisma } from "@prisma/client";
 import { TOTP, Secret } from "otpauth";
 import { Injectable } from "@nestjs/common";
@@ -8,7 +9,7 @@ import {
   createDecipheriv,
   timingSafeEqual,
 } from "node:crypto";
-import * as argon2 from "argon2";
+import { PasswordHasher } from "./password-hasher";
 import { Database } from "../../shared/infrastructure/database";
 import { requireRule } from "../../shared/domain/errors";
 import { Actor } from "../operations/domain/contracts";
@@ -55,24 +56,21 @@ export function totp(secretHex: string, step: bigint): string {
 }
 @Injectable()
 export class IdentityService {
-  constructor(private readonly db: Database) {}
+  constructor(
+    private readonly db: Database,
+    private readonly passwords: PasswordHasher = new PasswordHasher(),
+  ) {}
   async throttle(key: string, limit = 10) {
     const now = new Date(),
       start = new Date(now.getTime() - 900_000);
-    const row = await this.db.loginAttempt.upsert({
-      where: { key },
-      create: { key, count: 1 },
-      update: { count: { increment: 1 } },
-    });
-    if (row.windowStart < start) {
-      await this.db.loginAttempt.update({
-        where: { key },
-        data: { count: 1, windowStart: now },
-      });
-      return;
-    }
+    const [row] = await this.db.$queryRaw<{ count: number }[]>`
+      INSERT INTO "LoginAttempt" (key, count, "windowStart") VALUES (${key}, 1, ${now})
+      ON CONFLICT (key) DO UPDATE SET
+        count = CASE WHEN "LoginAttempt"."windowStart" <= ${start} THEN 1 ELSE LEAST("LoginAttempt".count + 1, 1000000) END,
+        "windowStart" = CASE WHEN "LoginAttempt"."windowStart" <= ${start} THEN ${now} ELSE "LoginAttempt"."windowStart" END
+      RETURNING count`;
     requireRule(
-      row.count <= limit,
+      row!.count <= limit,
       "TOO_MANY_ATTEMPTS",
       "Trop de tentatives. Réessayez dans 15 minutes.",
       429,
@@ -89,55 +87,73 @@ export class IdentityService {
     const user = await this.db.user.findUnique({ where: { email } });
     // Always perform a password hash operation to avoid a cheap account-enumeration timing path.
     const valid = user
-      ? await argon2.verify(user.passwordHash, password)
-      : await argon2.hash(password).then(() => false);
+      ? await this.passwords.verify(user.passwordHash, password)
+      : await this.passwords.hash(password).then(() => false);
     requireRule(
       user && valid && !user.disabled,
       "INVALID_CREDENTIALS",
       "Email ou mot de passe incorrect.",
       401,
     );
-    if (user.platformAdmin) {
-      requireRule(
-        user.mfaSecret,
-        "MFA_REQUIRED",
-        "La configuration MFA administrateur est obligatoire.",
-        401,
-      );
-      requireRule(
-        otp && /^\d{6}$/.test(otp),
-        "MFA_REQUIRED",
-        "Saisissez le code de votre application d’authentification.",
-        401,
-      );
-      const step = BigInt(Math.floor(Date.now() / 30_000)),
-        secret = decryptSecret(user.mfaSecret);
-      const matched = [step - 1n, step, step + 1n].find(
-        (s) =>
-          s > user.lastTotpStep &&
-          timingSafeEqual(Buffer.from(totp(secret, s)), Buffer.from(otp)),
-      );
-      requireRule(
-        matched !== undefined,
-        "INVALID_MFA",
-        "Code MFA invalide ou déjà utilisé.",
-        401,
-      );
-      const claimed = await this.db.user.updateMany({
-        where: { id: user.id, lastTotpStep: { lt: matched } },
-        data: { lastTotpStep: matched },
-      });
-      requireRule(
-        claimed.count === 1,
-        "INVALID_MFA",
-        "Code MFA déjà utilisé.",
-        401,
-      );
-    }
     const token = randomBytes(32).toString("base64url");
     const expiresAt = new Date(Date.now() + 12 * 3600_000);
-    await this.db.session.create({
-      data: { userId: user.id, tokenHash: tokenHash(token), expiresAt },
+    await this.db.transaction(async (tx) => {
+      // Serialize session issuance with password replacement. Hashing stays outside
+      // the transaction, and the credential snapshot is checked again under lock.
+      await tx.$queryRaw`SELECT id FROM "User" WHERE id=${user.id}::uuid FOR UPDATE`;
+      const current = await tx.user.findUniqueOrThrow({
+        where: { id: user.id },
+      });
+      requireRule(
+        !current.disabled &&
+          current.passwordHash === user.passwordHash &&
+          current.platformAdmin === user.platformAdmin &&
+          current.mfaSecret === user.mfaSecret,
+        "INVALID_CREDENTIALS",
+        "Email ou mot de passe incorrect.",
+        401,
+      );
+      if (user.platformAdmin) {
+        requireRule(
+          user.mfaSecret,
+          "MFA_REQUIRED",
+          "La configuration MFA administrateur est obligatoire.",
+          401,
+        );
+        requireRule(
+          otp && /^\d{6}$/.test(otp),
+          "MFA_REQUIRED",
+          "Saisissez le code de votre application d’authentification.",
+          401,
+        );
+        const step = BigInt(Math.floor(Date.now() / 30_000)),
+          secret = decryptSecret(user.mfaSecret);
+        const matched = [step - 1n, step, step + 1n].find(
+          (s) =>
+            s > user.lastTotpStep &&
+            timingSafeEqual(Buffer.from(totp(secret, s)), Buffer.from(otp)),
+        );
+        requireRule(
+          matched !== undefined,
+          "INVALID_MFA",
+          "Code MFA invalide ou déjà utilisé.",
+          401,
+        );
+        const claimed = await tx.user.updateMany({
+          where: { id: user.id, lastTotpStep: { lt: matched } },
+          data: { lastTotpStep: matched },
+        });
+        requireRule(
+          claimed.count === 1,
+          "INVALID_MFA",
+          "Code MFA déjà utilisé.",
+          401,
+        );
+      }
+
+      await tx.session.create({
+        data: { userId: user.id, tokenHash: tokenHash(token), expiresAt },
+      });
     });
     return {
       token,
@@ -184,9 +200,16 @@ export class IdentityService {
   }
 
   async logout(token: string) {
-    await this.db.session.updateMany({
-      where: { tokenHash: tokenHash(token) },
-      data: { revokedAt: new Date() },
+    await this.db.transaction(async (tx) => {
+      const session = await tx.session.findUnique({
+        where: { tokenHash: tokenHash(token) },
+      });
+      if (!session) return;
+      await tx.session.update({
+        where: { id: session.id },
+        data: { revokedAt: new Date() },
+      });
+      await tx.deviceToken.deleteMany({ where: { sessionId: session.id } });
     });
     return { ok: true };
   }
@@ -200,7 +223,7 @@ export class IdentityService {
       permissions: string[];
     },
   ) {
-    let organizationId = input.organizationId;
+    const organizationId = input.organizationId;
     if (input.storeId) {
       requireRule(organizationId, "VALIDATION", "Organisation requise.");
       requireRule(
@@ -219,8 +242,9 @@ export class IdentityService {
       );
     const token = randomBytes(32).toString("base64url");
     const create = async (tx: Prisma.TransactionClient) => {
-      if (!organizationId)
-        organizationId = (
+      const targetOrganization =
+        organizationId ??
+        (
           await tx.organization.create({
             data: { name: input.organizationName ?? input.email },
           })
@@ -230,7 +254,7 @@ export class IdentityService {
           email: input.email,
           tokenHash: tokenHash(token),
           purpose: "invite",
-          organizationId,
+          organizationId: targetOrganization,
           storeId: input.storeId,
           permissions: input.permissions,
           createdBy: actor.id,
@@ -244,14 +268,14 @@ export class IdentityService {
           payload: {
             to: input.email,
             subject: "Votre invitation BioBalance",
-            text: `Vous êtes invité sur BioBalance. Ouvrez ${process.env.ACTIVATION_URL ?? "biobalance://activate"}?token=${encodeURIComponent(token)} ou saisissez ce code dans l’application : ${token}. Cette invitation expire dans 48 heures.`,
+            text: accountTokenMessage("invite", token),
           },
         },
       });
       await tx.auditEntry.create({
         data: {
           actorId: actor.id,
-          organizationId,
+          organizationId: targetOrganization,
           action: "identity.invite",
           targetId: invitation.id,
           details: { email: input.email, storeId: input.storeId ?? null },
@@ -280,96 +304,118 @@ export class IdentityService {
         },
       );
     }
-    return this.db.$transaction(
-      async (tx) => {
-        await this.db.verifySession(tx, actor);
-        const current = await tx.user.findUnique({ where: { id: actor.id } });
-        requireRule(
-          current?.platformAdmin && !current.disabled,
-          "FORBIDDEN",
-          "Seul BioBalance peut inviter un responsable.",
-          403,
-        );
-        return create(tx);
-      },
-      { isolationLevel: "Serializable" },
-    );
+    return this.db.authenticated(actor, (tx) => create(tx), true);
   }
-  async activate(token: string, name: string, password: string) {
-    const hash = await argon2.hash(password, {
-      type: argon2.argon2id,
-      memoryCost: 65536,
-      timeCost: 3,
+
+  private async validToken(
+    token: string,
+    purpose: "invite" | "reset",
+    ip: string,
+  ) {
+    await this.throttle(`account-flow:${tokenHash(ip)}`, 30);
+    await this.throttle(`account-token:${tokenHash(token)}`, 10);
+    const row = await this.db.accessToken.findUnique({
+      where: { tokenHash: tokenHash(token) },
     });
-    return this.db.$transaction(
-      async (tx) => {
-        const invite = await tx.accessToken.findUnique({
-          where: { tokenHash: tokenHash(token) },
-        });
-        requireRule(
-          invite &&
-            invite.purpose === "invite" &&
-            !invite.usedAt &&
-            invite.expiresAt > new Date(),
-          "INVITATION_EXPIRED",
-          "Invitation invalide ou expirée. Demandez une nouvelle invitation.",
-        );
-        const used = await tx.accessToken.updateMany({
-          where: { id: invite.id, usedAt: null },
-          data: { usedAt: new Date() },
-        });
-        requireRule(
-          used.count === 1,
-          "INVITATION_EXPIRED",
-          "Invitation déjà utilisée.",
-        );
-        let user = await tx.user.findUnique({ where: { email: invite.email } });
-        if (user) {
-          requireRule(
-            !user.disabled &&
-              (await argon2.verify(user.passwordHash, password)),
-            "EXISTING_ACCOUNT",
-            "Pour rejoindre ce magasin, saisissez le mot de passe de votre compte existant.",
-            401,
-          );
-        } else
-          user = await tx.user.create({
-            data: { email: invite.email, name, passwordHash: hash },
-          });
-        if (invite.storeId) {
-          const store = await tx.store.findUniqueOrThrow({
-            where: { id: invite.storeId },
-          });
-          requireRule(
-            store.organizationId === invite.organizationId,
-            "INVITATION_INVALID",
-            "Invitation incohérente.",
-          );
-          await tx.membership.upsert({
-            where: { storeId_userId: { storeId: store.id, userId: user.id } },
-            create: {
-              organizationId: store.organizationId,
-              storeId: store.id,
-              userId: user.id,
-              permissions: invite.permissions,
-            },
-            update: { active: true, permissions: invite.permissions },
-          });
-        } else
-          await tx.organizationMembership.upsert({
-            where: {
-              organizationId_userId: {
-                organizationId: invite.organizationId!,
-                userId: user.id,
-              },
-            },
-            create: { organizationId: invite.organizationId!, userId: user.id },
-            update: { active: true },
-          });
-        return { ok: true, email: invite.email };
-      },
-      { timeout: 15000 },
+    requireRule(
+      row &&
+        row.purpose === purpose &&
+        !row.usedAt &&
+        row.expiresAt > new Date(),
+      purpose === "invite" ? "INVITATION_EXPIRED" : "RESET_EXPIRED",
+      "Code invalide ou expiré.",
     );
+    return row;
+  }
+
+  async activate(
+    token: string,
+    name: string,
+    password: string,
+    ip = "internal",
+  ) {
+    const invitation = await this.validToken(token, "invite", ip);
+    const existing = await this.db.user.findUnique({
+      where: { email: invitation.email },
+    });
+    const validExisting = existing
+      ? await this.passwords.verify(existing.passwordHash, password)
+      : false;
+    requireRule(
+      !existing || (!existing.disabled && validExisting),
+      "EXISTING_ACCOUNT",
+      "Pour rejoindre ce magasin, saisissez le mot de passe de votre compte existant.",
+      401,
+    );
+    const hash =
+      existing?.passwordHash ?? (await this.passwords.hash(password));
+    return this.db.transaction(async (tx) => {
+      const invite = await tx.accessToken.findUnique({
+        where: { tokenHash: tokenHash(token) },
+      });
+      requireRule(
+        invite &&
+          invite.purpose === "invite" &&
+          !invite.usedAt &&
+          invite.expiresAt > new Date(),
+        "INVITATION_EXPIRED",
+        "Invitation invalide ou expirée. Demandez une nouvelle invitation.",
+      );
+      const used = await tx.accessToken.updateMany({
+        where: { id: invite.id, usedAt: null },
+        data: { usedAt: new Date() },
+      });
+      requireRule(
+        used.count === 1,
+        "INVITATION_EXPIRED",
+        "Invitation déjà utilisée.",
+      );
+      let user = await tx.user.findUnique({ where: { email: invite.email } });
+      if (user) {
+        requireRule(
+          !user.disabled &&
+            existing?.id === user.id &&
+            user.passwordHash === existing.passwordHash,
+          "EXISTING_ACCOUNT",
+          "Pour rejoindre ce magasin, saisissez le mot de passe de votre compte existant.",
+          401,
+        );
+      } else
+        user = await tx.user.create({
+          data: { email: invite.email, name, passwordHash: hash },
+        });
+      if (invite.storeId) {
+        const store = await tx.store.findUniqueOrThrow({
+          where: { id: invite.storeId },
+        });
+        requireRule(
+          store.organizationId === invite.organizationId,
+          "INVITATION_INVALID",
+          "Invitation incohérente.",
+        );
+        await tx.membership.upsert({
+          where: { storeId_userId: { storeId: store.id, userId: user.id } },
+          create: {
+            organizationId: store.organizationId,
+            storeId: store.id,
+            userId: user.id,
+            permissions: invite.permissions,
+          },
+          update: { active: true, permissions: invite.permissions },
+        });
+      } else
+        await tx.organizationMembership.upsert({
+          where: {
+            organizationId_userId: {
+              organizationId: invite.organizationId!,
+              userId: user.id,
+            },
+          },
+          create: { organizationId: invite.organizationId!, userId: user.id },
+          update: { active: true },
+        });
+      return { ok: true, email: invite.email };
+    });
   }
   async forgot(email: string, ip: string) {
     await this.throttle(`reset:${tokenHash(ip)}`, 10);
@@ -393,7 +439,7 @@ export class IdentityService {
             payload: {
               to: email,
               subject: "Réinitialiser votre mot de passe BioBalance",
-              text: `Ouvrez ${process.env.RECOVERY_URL ?? "biobalance://recover"}?token=${encodeURIComponent(token)} ou saisissez votre code de réinitialisation : ${token}. Valable 30 minutes. Si vous n’avez pas demandé ce changement, ignorez ce message.`,
+              text: accountTokenMessage("reset", token),
             },
           },
         });
@@ -403,13 +449,10 @@ export class IdentityService {
       message: "Si un compte existe, un email de récupération a été envoyé.",
     };
   }
-  async reset(token: string, password: string) {
-    const passwordHash = await argon2.hash(password, {
-      type: argon2.argon2id,
-      memoryCost: 65536,
-      timeCost: 3,
-    });
-    return this.db.$transaction(async (tx) => {
+  async reset(token: string, password: string, ip = "internal") {
+    await this.validToken(token, "reset", ip);
+    const passwordHash = await this.passwords.hash(password);
+    return this.db.transaction(async (tx) => {
       const reset = await tx.accessToken.findUnique({
         where: { tokenHash: tokenHash(token) },
       });
@@ -429,6 +472,10 @@ export class IdentityService {
       const user = await tx.user.update({
         where: { email: reset.email },
         data: { passwordHash },
+      });
+      await tx.accessToken.updateMany({
+        where: { email: user.email, purpose: "reset", usedAt: null },
+        data: { usedAt: new Date() },
       });
       await tx.session.updateMany({
         where: { userId: user.id },

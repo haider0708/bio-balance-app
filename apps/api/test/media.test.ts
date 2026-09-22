@@ -1,6 +1,7 @@
+import { cleanupMedia } from "../src/modules/training/infrastructure/media-storage";
 import { beforeAll, afterAll, it, expect } from "vitest";
 import { randomUUID, createHash } from "node:crypto";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile, stat } from "node:fs/promises";
 import { execFileSync } from "node:child_process";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -141,6 +142,17 @@ it("processes a scoped image, verifies it, and refuses cross-store attachment an
     image.length,
     scope,
   );
+  expect(
+    (
+      await service.startUpload(
+        manager,
+        "image.png",
+        "image/png",
+        image.length,
+        scope,
+      )
+    ).id,
+  ).toBe(asset.id);
   await service.chunk(manager, asset.id, 0, image.subarray(0, 1000));
   await service.chunk(manager, asset.id, 1000, image.subarray(1000));
   const settings = {
@@ -158,6 +170,14 @@ it("processes a scoped image, verifies it, and refuses cross-store attachment an
   expect(ready.status).toBe("ready");
   expect(ready.sha256).toMatch(/^[a-f0-9]{64}$/);
   expect(ready.processedSize! > 0n).toBe(true);
+  await expect(
+    stat(path.join(root, `${asset.id}.upload`)),
+  ).rejects.toMatchObject({ code: "ENOENT" });
+  const altered = Buffer.from(image.subarray(1000));
+  altered[0] = altered[0]! ^ 255;
+  await expect(
+    service.chunk(manager, asset.id, 1000, altered),
+  ).rejects.toThrow();
   const content = await service.media(manager, asset.id);
   const dimensions = JSON.parse(
     execFileSync("ffprobe", [
@@ -374,4 +394,61 @@ it("processes a video before publication and serves authorized resumable bytes w
     data: { status: "archived" },
   });
   await expect(service.media(seller, asset.id)).rejects.toThrow();
+});
+
+it("reserves image capacity atomically and expires abandoned transfers without deleting ready media", async () => {
+  const oldLimit = process.env.MEDIA_PENDING_LIMIT;
+  try {
+    process.env.MEDIA_PENDING_LIMIT = "2";
+    // This owner already has one incomplete checksum test upload.
+    const results = await Promise.allSettled(
+      Array.from({ length: 2 }, (_, index) =>
+        service.startUpload(outsider, "quota.png", "image/png", image.length, {
+          purpose: "store",
+          organizationId: org,
+          storeId: otherStore,
+          sha256: String(index + 1).repeat(64),
+        }),
+      ),
+    );
+    expect(results.filter((r) => r.status === "fulfilled")).toHaveLength(1);
+    expect(results.find((r) => r.status === "rejected")).toMatchObject({
+      reason: { code: "MEDIA_QUOTA" },
+    });
+    const accepted = results.find(
+      (r) => r.status === "fulfilled",
+    ) as PromiseFulfilledResult<{ id: string }>;
+    await service.chunk(
+      outsider,
+      accepted.value.id,
+      0,
+      image.subarray(0, 1000),
+    );
+    const ready = await owner.mediaAsset.findFirstOrThrow({
+      where: { storeId: store, status: "ready" },
+    });
+    await owner.mediaAsset.update({
+      where: { id: ready.id },
+      data: { cleanedAt: null, createdAt: new Date(Date.now() - 8 * 86400000) },
+    });
+    await writeFile(path.join(root, `${ready.id}.upload`), image);
+    await owner.mediaAsset.update({
+      where: { id: accepted.value.id },
+      data: { createdAt: new Date(Date.now() - 8 * 86400000) },
+    });
+    await cleanupMedia(db, root);
+    expect(
+      (await service.uploadStatus(outsider, accepted.value.id)).status,
+    ).toBe("expired");
+    await expect(
+      service.chunk(outsider, accepted.value.id, 1000, image.subarray(1000)),
+    ).rejects.toMatchObject({ code: "UPLOAD_EXPIRED" });
+    await expect(
+      stat(path.join(root, `${ready.id}.upload`)),
+    ).rejects.toMatchObject({ code: "ENOENT" });
+    expect((await stat(path.join(root, ready.path))).size).toBeGreaterThan(0);
+  } finally {
+    if (oldLimit === undefined) delete process.env.MEDIA_PENDING_LIMIT;
+    else process.env.MEDIA_PENDING_LIMIT = oldLimit;
+  }
 });

@@ -235,7 +235,15 @@ class OfflineRepository implements WorkspaceRepository {
       snapshot.remove('snapshotPages') ?? {},
     );
     if (integer(snapshot['syncProtocol']) >= 3) {
-      for (final resource in ['lots', 'products', 'config']) {
+      for (final resource in [
+        'lots',
+        'products',
+        'config',
+        'rewards',
+        'claims',
+        'orders',
+        'deliveries',
+      ]) {
         String? token = pages[resource];
         final seen = <String>{};
         while (token != null) {
@@ -354,7 +362,18 @@ class OfflineRepository implements WorkspaceRepository {
         'Le magasin de cette opération a changé.',
       );
     }
+    final binding = api.binding;
     await db.transaction(() async {
+      api.requireBinding(binding);
+      final access = await draft(user.id, '', 'access');
+      if (api.accessBlocked ||
+          List<String>.from(access?['revokedStores'] ?? [])
+              .contains(store.id)) {
+        throw const AppFailure(
+          'ACCESS_BLOCKED',
+          'Votre accès doit être vérifié. Le brouillon est conservé.',
+        );
+      }
       if (supersedes.isNotEmpty) {
         await _resolve(
           user.id,
@@ -588,6 +607,29 @@ class OfflineRepository implements WorkspaceRepository {
     final binding = api.binding;
     try {
       _sameAccount(user);
+      if (api.accessBlocked) {
+        throw const AppFailure(
+          'SESSION_EXPIRED',
+          'Reconnectez-vous. Les opérations sont conservées.',
+        );
+      }
+      final access = await draft(user.id, '', 'access');
+      final revoked = List<String>.from(access?['revokedStores'] ?? []);
+      if (revoked.contains(store.id)) {
+        // Recheck access using a read before replaying any pending mutation.
+        final current = await stores(user, refresh: true);
+        api.requireBinding(binding);
+        if (!current.any(
+          (s) => s.id == store.id && s.organizationId == store.organizationId,
+        )) {
+          throw const AppFailure(
+            'STORE_ACCESS_REVOKED',
+            'Ce magasin n’est plus accessible. Les opérations sont conservées.',
+          );
+        }
+        revoked.remove(store.id);
+        await saveDraft(user.id, '', 'access', {'revokedStores': revoked});
+      }
       await _upgradeDependencyMetadata(user, store);
       final queued = await operations(user.id, store.id, includeResolved: true);
       final statuses = {for (final row in queued) row.operationId: row.status};

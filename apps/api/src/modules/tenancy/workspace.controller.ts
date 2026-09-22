@@ -1,4 +1,5 @@
-import {WorkspaceRequests} from '../../shared/contracts/requests';
+import { syncCursor } from "../../shared/domain/pagination";
+import { WorkspaceRequests } from "../../shared/contracts/requests";
 import {
   Body,
   Controller,
@@ -11,10 +12,9 @@ import {
 } from "@nestjs/common";
 import { ApiTags, ApiBearerAuth } from "@nestjs/swagger";
 import { z } from "zod";
-const uuid=z.uuid();
+const uuid = z.uuid();
 import { AuthRequest } from "../../shared/infrastructure/http";
 import { WorkspaceService } from "./workspace.service";
-
 
 @ApiTags("stores")
 @ApiBearerAuth()
@@ -28,11 +28,7 @@ export class WorkspaceController {
     return this.service.stores(r.actor);
   }
   @Post("stores") create(@Req() r: AuthRequest, @Body() b: unknown) {
-    return this.service.createStore(
-      r.actor,
-      WorkspaceRequests.Create
-        .parse(b),
-    );
+    return this.service.createStore(r.actor, WorkspaceRequests.Create.parse(b));
   }
   @Patch("stores/:store") updateStore(
     @Req() r: AuthRequest,
@@ -44,8 +40,7 @@ export class WorkspaceController {
       r.actor,
       uuid.parse(org),
       uuid.parse(store),
-      WorkspaceRequests.UpdateStore
-        .parse(body),
+      WorkspaceRequests.UpdateStore.parse(body),
     );
   }
   @Get("stores/:store/snapshot") snapshot(
@@ -60,10 +55,7 @@ export class WorkspaceController {
     const since =
       after !== undefined && catalogRevision !== undefined
         ? {
-            cursor: z
-              .string()
-              .regex(/^\d{1,19}$/)
-              .parse(after),
+            cursor: syncCursor.parse(after),
             catalogRevision: z
               .string()
               .regex(/^\d+:\d+$/)
@@ -173,10 +165,7 @@ export class WorkspaceController {
       r.actor,
       uuid.parse(o),
       uuid.parse(s),
-      z
-        .string()
-        .regex(/^\d{1,19}$/)
-        .parse(after),
+      syncCursor.parse(after),
     );
   }
   @Get("stores/:store/ranking") ranking(
@@ -198,8 +187,7 @@ export class WorkspaceController {
       uuid.parse(o),
       uuid.parse(s),
       uuid.parse(p),
-      WorkspaceRequests.Config
-        .parse(b),
+      WorkspaceRequests.Config.parse(b),
     );
   }
   @Patch("stores/:store/team/:user") member(
@@ -214,8 +202,7 @@ export class WorkspaceController {
       uuid.parse(o),
       uuid.parse(s),
       uuid.parse(u),
-      WorkspaceRequests.Member
-        .parse(b),
+      WorkspaceRequests.Member.parse(b),
     );
   }
   @Patch("stores/:store/onboarding") onboarding(
@@ -228,8 +215,7 @@ export class WorkspaceController {
       r.actor,
       uuid.parse(o),
       uuid.parse(s),
-      WorkspaceRequests.Onboarding
-        .parse(b),
+      WorkspaceRequests.Onboarding.parse(b),
     );
   }
   @Post("stores/:store/rewards") reward(
@@ -242,8 +228,7 @@ export class WorkspaceController {
       r.actor,
       uuid.parse(o),
       uuid.parse(s),
-      WorkspaceRequests.Reward
-        .parse(b),
+      WorkspaceRequests.Reward.parse(b),
     );
   }
 }

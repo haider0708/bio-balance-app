@@ -4,12 +4,10 @@ class AccountLink {
   static AccountLink? parse(Uri uri, {String httpsHost = ''}) {
     if (uri.userInfo.isNotEmpty || uri.fragment.isNotEmpty) return null;
     final action =
-        uri.scheme == 'biobalance' && (uri.path.isEmpty || uri.path == '/')
-        ? uri.host
-        : uri.scheme == 'https' &&
-              httpsHost.isNotEmpty &&
-              uri.host == httpsHost &&
-              uri.port == 443
+        uri.scheme == 'https' &&
+            httpsHost.isNotEmpty &&
+            uri.host == httpsHost &&
+            uri.port == 443
         ? uri.path.replaceFirst('/', '')
         : '';
     if (!['activate', 'recover'].contains(action)) return null;

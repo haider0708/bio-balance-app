@@ -4,6 +4,9 @@
     <uses-feature android:name="android.hardware.camera" android:required="false" />
     <application
         android:label="BioBalance"
+        android:allowBackup="false"
+        android:fullBackupContent="@xml/backup_rules"
+        android:dataExtractionRules="@xml/data_extraction_rules"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
@@ -24,12 +27,12 @@
               android:resource="@style/NormalTheme"
               />
             <meta-data android:name="flutter_deeplinking_enabled" android:value="false" />
-            <intent-filter>
+            <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="biobalance" android:host="activate" />
-                <data android:scheme="biobalance" android:host="recover" />
+                <data android:scheme="https" android:host="${authLinkHost}" android:path="/activate" />
+                <data android:scheme="https" android:host="${authLinkHost}" android:path="/recover" />
             </intent-filter>
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>

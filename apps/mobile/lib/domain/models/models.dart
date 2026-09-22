@@ -154,8 +154,30 @@ class StoreData {
   }
 
   final Map<String, List<Json>> _lists = {};
-  List<Json> list(String name) =>
-      _lists.putIfAbsent(name, () => List.unmodifiable(objects(raw[name])));
+  List<Json> list(String name) => _lists.putIfAbsent(name, () {
+    final items = objects(raw[name]);
+    // Snapshot pages use record IDs; presentation must retain useful ordering.
+    if (['claims', 'orders', 'deliveries'].contains(name)) {
+      items.sort((a, b) {
+        if (name == 'claims' || name == 'orders') {
+          bool pending(Json item) => name == 'claims'
+              ? item['status'] == 'requested'
+              : item['status'] != 'received';
+          if (pending(a) != pending(b)) return pending(a) ? -1 : 1;
+        }
+        final key = name == 'deliveries' ? 'dispatchedAt' : 'createdAt';
+        final first =
+            DateTime.tryParse('${a[key]}')?.millisecondsSinceEpoch ?? 0;
+        final second =
+            DateTime.tryParse('${b[key]}')?.millisecondsSinceEpoch ?? 0;
+        final date = second.compareTo(first);
+        return date != 0 ? date : '${a['id']}'.compareTo('${b['id']}');
+      });
+    } else if (name == 'rewards') {
+      items.sort((a, b) => '${a['title']}'.compareTo('${b['title']}'));
+    }
+    return List.unmodifiable(items);
+  });
   late final Map<String, Json> _configIndex = {
     for (final c in list('config')) c['productId']: c,
   };

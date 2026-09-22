@@ -69,7 +69,11 @@ export class Sale {
       return {
         ...line,
         pointsPerUnit:
-          accepted?.pointsPerUnit ?? previous?.lines.find(old=>old.productId===line.productId)?.pointsPerUnit ?? rates.get(line.productId) ?? 0,
+          accepted?.pointsPerUnit ??
+          previous?.lines.find((old) => old.productId === line.productId)
+            ?.pointsPerUnit ??
+          rates.get(line.productId) ??
+          0,
       };
     });
     const returned = previous?.returned ?? {};

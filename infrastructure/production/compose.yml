@@ -6,8 +6,13 @@ x-database: &database-env
 x-api-environment: &api-env
   <<: *database-env
   MFA_ENCRYPTION_KEY: ${MFA_ENCRYPTION_KEY:?Set a 32-byte MFA encryption key}
-  ACTIVATION_URL: ${ACTIVATION_URL:-biobalance://activate}
-  RECOVERY_URL: ${RECOVERY_URL:-biobalance://recover}
+  ACTIVATION_URL: ${ACTIVATION_URL:-}
+  RECOVERY_URL: ${RECOVERY_URL:-}
+  MEDIA_TOTAL_BYTES: ${MEDIA_TOTAL_BYTES:-53687091200}
+  MEDIA_STORE_BYTES: ${MEDIA_STORE_BYTES:-1073741824}
+  MEDIA_ASSET_LIMIT: ${MEDIA_ASSET_LIMIT:-1000}
+  MEDIA_PENDING_LIMIT: ${MEDIA_PENDING_LIMIT:-20}
+  MEDIA_FREE_BYTES: ${MEDIA_FREE_BYTES:-1073741824}
   MEDIA_INTERNAL_REDIRECT: 'true'
 x-app: &app
   image: ${API_IMAGE:?Set an immutable API image tag or digest}
@@ -59,6 +64,7 @@ services:
     cpus: 1.5
   worker:
     <<: *app
+    volumes: []
     command: [node,dist/worker.js]
     environment:
       <<: *database-env

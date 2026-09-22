@@ -64,25 +64,22 @@ export class Database extends PrismaClient implements OnModuleDestroy {
     storeId: string,
     fn: (tx: Prisma.TransactionClient, scope: Scope) => Promise<T>,
   ): Promise<T> {
-    for (let attempt = 0; attempt < 4; attempt++) {
-      try {
-        return await this.$transaction(
-          async (tx) => {
-            // Resolve current identity, session and membership in the same
-            // transaction as the operation, with one indexed read.
-            const [access] = await tx.$queryRaw<
-              {
-                storeId: string | null;
-                userId: string | null;
-                timezone: string | null;
-                disabled: boolean | null;
-                platformAdmin: boolean | null;
-                memberActive: boolean;
-                ownerActive: boolean;
-                permissions: string[];
-                sessionValid: boolean;
-              }[]
-            >`SELECT s.id AS "storeId",s.timezone,u.id AS "userId",u.disabled,u."platformAdmin",
+    return this.transaction(async (tx) => {
+      // Resolve current identity, session and membership in the same
+      // transaction as the operation, with one indexed read.
+      const [access] = await tx.$queryRaw<
+        {
+          storeId: string | null;
+          userId: string | null;
+          timezone: string | null;
+          disabled: boolean | null;
+          platformAdmin: boolean | null;
+          memberActive: boolean;
+          ownerActive: boolean;
+          permissions: string[];
+          sessionValid: boolean;
+        }[]
+      >`SELECT s.id AS "storeId",s.timezone,u.id AS "userId",u.disabled,u."platformAdmin",
               COALESCE(m.active,false) AS "memberActive",COALESCE(o.active,false) AS "ownerActive",
               COALESCE(m.permissions,'{}'::text[]) AS permissions,
               (${actor.sessionId ?? null}::uuid IS NULL OR EXISTS(
@@ -94,52 +91,63 @@ export class Database extends PrismaClient implements OnModuleDestroy {
               LEFT JOIN "User" u ON u.id=${actor.id}::uuid
               LEFT JOIN "Membership" m ON m."storeId"=s.id AND m."userId"=u.id
               LEFT JOIN "OrganizationMembership" o ON o."organizationId"=s."organizationId" AND o."userId"=u.id`;
-            requireRule(
-              access,
-              "INTERNAL_ERROR",
-              "Vérification d’accès indisponible.",
-              500,
-            );
-            requireRule(
-              access.sessionValid,
-              "SESSION_EXPIRED",
-              "Votre session a expiré. Vos opérations locales sont conservées.",
-              401,
-            );
-            requireRule(
-              access.storeId,
-              "STORE_ACCESS_REVOKED",
-              "Magasin inaccessible.",
-              403,
-            );
-            requireRule(
-              access.userId && !access.disabled,
-              "ACCESS_DISABLED",
-              "Votre accès a été désactivé.",
-              403,
-            );
-            requireRule(
-              access.platformAdmin || access.memberActive || access.ownerActive,
-              "STORE_ACCESS_REVOKED",
-              "Magasin inaccessible.",
-              403,
-            );
-            const permissions =
-              access.platformAdmin || access.ownerActive
-                ? ["manage", "sell", "receive"]
-                : access.permissions;
-            await tx.$executeRaw`SELECT set_config('app.organization_id',${organizationId},true), set_config('app.store_id',${storeId},true), set_config('app.actor_id',${actor.id},true)`;
-            const scope: Scope = {
-              actor: { ...actor, platformAdmin: access.platformAdmin! },
-              organizationId,
-              storeId,
-              timezone: access.timezone!,
-              permissions,
-            };
-            return fn(tx, scope);
-          },
-          { isolationLevel: "Serializable", maxWait: 5000, timeout: 15000 },
-        );
+      requireRule(
+        access,
+        "INTERNAL_ERROR",
+        "Vérification d’accès indisponible.",
+        500,
+      );
+      requireRule(
+        access.sessionValid,
+        "SESSION_EXPIRED",
+        "Votre session a expiré. Vos opérations locales sont conservées.",
+        401,
+      );
+      requireRule(
+        access.storeId,
+        "STORE_ACCESS_REVOKED",
+        "Magasin inaccessible.",
+        403,
+      );
+      requireRule(
+        access.userId && !access.disabled,
+        "ACCESS_DISABLED",
+        "Votre accès a été désactivé.",
+        403,
+      );
+      requireRule(
+        access.platformAdmin || access.memberActive || access.ownerActive,
+        "STORE_ACCESS_REVOKED",
+        "Magasin inaccessible.",
+        403,
+      );
+      const permissions =
+        access.platformAdmin || access.ownerActive
+          ? ["manage", "sell", "receive"]
+          : access.permissions;
+      await tx.$executeRaw`SELECT set_config('app.organization_id',${organizationId},true), set_config('app.store_id',${storeId},true), set_config('app.actor_id',${actor.id},true)`;
+      const scope: Scope = {
+        actor: { ...actor, platformAdmin: access.platformAdmin! },
+        organizationId,
+        storeId,
+        timezone: access.timezone!,
+        permissions,
+      };
+      return fn(tx, scope);
+    });
+  }
+
+  /** Database-only callbacks may be retried; external effects belong in jobs. */
+  async transaction<T>(
+    work: (tx: Prisma.TransactionClient) => Promise<T>,
+  ): Promise<T> {
+    for (let attempt = 0; attempt < 4; attempt++) {
+      try {
+        return await this.$transaction(work, {
+          isolationLevel: "Serializable",
+          maxWait: 5000,
+          timeout: 15000,
+        });
       } catch (error) {
         if (isRetryableTransaction(error) && attempt < 3) {
           await new Promise((r) =>
@@ -166,5 +174,57 @@ export class Database extends PrismaClient implements OnModuleDestroy {
       }
     }
     throw new DomainError("RETRY_LATER", "Opération occupée. Réessayez.", 503);
+  }
+
+  async currentActor(
+    tx: Prisma.TransactionClient,
+    actor: Actor,
+  ): Promise<Actor> {
+    const [user] = await tx.$queryRaw<
+      (Actor & { disabled: boolean; sessionValid: boolean })[]
+    >`
+      SELECT u.id,u.name,u.email,u."platformAdmin",u.disabled,
+        (${actor.sessionId ?? null}::uuid IS NULL OR EXISTS(SELECT 1 FROM "Session" s
+          WHERE s.id=${actor.sessionId ?? null}::uuid AND s."userId"=u.id AND s."revokedAt" IS NULL
+            AND s."expiresAt">(CURRENT_TIMESTAMP AT TIME ZONE 'UTC'))) AS "sessionValid",
+        set_config('app.actor_id',${actor.id},true)
+      FROM "User" u WHERE u.id=${actor.id}::uuid`;
+    requireRule(
+      user?.sessionValid,
+      "SESSION_EXPIRED",
+      "Votre session a expiré. Vos opérations locales sont conservées.",
+      401,
+    );
+    requireRule(
+      !user.disabled,
+      "ACCESS_DISABLED",
+      "Votre accès a été désactivé.",
+      403,
+    );
+    return {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      platformAdmin: user.platformAdmin,
+      sessionId: actor.sessionId,
+    };
+  }
+
+  /** Global endpoints use current identity in the same transaction as their work. */
+  authenticated<T>(
+    actor: Actor,
+    work: (tx: Prisma.TransactionClient, current: Actor) => Promise<T>,
+    admin = false,
+  ): Promise<T> {
+    return this.transaction(async (tx) => {
+      const current = await this.currentActor(tx, actor);
+      requireRule(
+        !admin || current.platformAdmin,
+        "FORBIDDEN",
+        "Accès réservé à BioBalance.",
+        403,
+      );
+      return work(tx, current);
+    });
   }
 }

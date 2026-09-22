@@ -47,3 +47,13 @@ python3 scripts/package-release.py .artifacts/releases/builds/LE_DOSSIER_CHOISI
 ```
 
 Le package contient seulement des fichiers suivis et autorisés (documentation, contrat, migrations, configuration exemple, scripts et preuves résumées), une archive des sources du commit et les artefacts choisis vérifiés par leur manifeste. Aucun volume, secret, token de charge ou backup de données n’est copié. Un package compile-only reste explicitement non diffusable.
+
+## Liens de compte HTTPS vérifiés
+
+L’activation et la récupération utilisent un code manuel lorsque `ACTIVATION_URL` / `RECOVERY_URL` sont vides. Supprimer toute ancienne valeur `biobalance://` de l’environnement ; le serveur refuse cette configuration au démarrage.
+
+Pour activer les liens, ajouter le champ public optionnel `AUTH_LINK_HOST` au JSON mobile et fournir les deux URL `https://HOTE/activate` et `https://HOTE/recover` au backend. Android utilise ce même champ dans son filtre App Links vérifié. Le script de release iOS écrit `ios/Flutter/AccountLinks.xcconfig` avec cet hôte ; activer Associated Domains dans l’équipe Apple. Un build Xcode manuel doit utiliser le même hôte dans cet xcconfig et dans les Dart defines.
+
+Servir sur l’hôte détenu, sans redirection, les fichiers `/.well-known/assetlinks.json` (package `tn.biobalance.app`, SHA-256 du certificat de signature effectivement distribué) et `/.well-known/apple-app-site-association` (identifiant `TEAM_ID.tn.biobalance.app`, chemins `/activate` et `/recover`). Les modèles sont dans `config/account-links/`. Remplacer les valeurs exemples seulement avec les identités réelles ; ne pas publier les modèles. Ajouter une page de secours sans analytics, ressources tierces ou transfert de query, invitant à saisir le code du mail lorsque l’application n’est pas installée.
+
+Vérifier l’association sur les appareils Android/iOS signés, y compris une installation concurrente déclarant un schéma privé, les liens expirés et une session déjà ouverte. La saisie manuelle reste disponible. Une configuration seule ne prouve pas que l’OS a vérifié le domaine.

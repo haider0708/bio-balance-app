@@ -1,7 +1,6 @@
-import {CatalogRequests} from '../../shared/contracts/requests';
+import { CatalogRequests } from "../../shared/contracts/requests";
 import { Body, Controller, Post, Req } from "@nestjs/common";
 import { ApiTags, ApiBearerAuth } from "@nestjs/swagger";
-import { z } from "zod";
 import { AuthRequest } from "../../shared/infrastructure/http";
 import { CatalogService } from "./catalog.service";
 
@@ -14,8 +13,7 @@ export class CatalogController {
     return this.service.save(r.actor, CatalogRequests.Save.parse(b));
   }
   @Post("import") import(@Req() r: AuthRequest, @Body() b: unknown) {
-    const input = CatalogRequests.Import
-      .parse(b);
+    const input = CatalogRequests.Import.parse(b);
     return this.service.import(r.actor, input.rows, input.commit);
   }
 }

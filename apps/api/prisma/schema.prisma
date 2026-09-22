@@ -40,6 +40,7 @@ model LoginAttempt {
   key String @id
   count Int @default(0)
   windowStart DateTime @default(now())
+  @@index([windowStart])
 }
 model Organization {
   id String @id @default(uuid()) @db.Uuid
@@ -339,6 +340,7 @@ model DeviceToken {
   token String @unique
   platform String
   updatedAt DateTime @updatedAt
+  @@index([userId, id])
 }
 model Job {
   id String @id @default(uuid()) @db.Uuid
@@ -371,6 +373,10 @@ model MediaAsset {
   sha256 String?
   createdAt DateTime @default(now())
   @@index([storeId,purpose])
+  storageBytes BigInt @default(0)
+  cleanedAt DateTime?
+  @@index([createdAt, cleanedAt])
+  @@index([ownerId,expectedSha256])
 }
 model TrainingContent {
   id String @id @default(uuid()) @db.Uuid
@@ -415,4 +421,12 @@ model PushDelivery {
   sessionId String @db.Uuid
   deliveredAt DateTime @default(now())
   @@unique([notificationId,deviceId,sessionId])
+}
+
+model UploadChunk {
+  mediaId String @db.Uuid
+  offset BigInt
+  length Int
+  sha256 String
+  @@id([mediaId, offset])
 }

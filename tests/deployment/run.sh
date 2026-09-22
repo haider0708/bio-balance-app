@@ -28,6 +28,8 @@ if [[ ! -s "$lab/bootstrap/credentials.json" ]]; then
 fi
 if [[ ! -s "$lab/fixture.json" ]]; then
   "${compose[@]}" run --rm -T migrate node - < tests/deployment/seed.cjs > "$lab/fixture.json" 2> "$evidence/fixture.log"
+else
+  "${compose[@]}" run --rm -T -v "$lab/fixture.json:/run/deployment-fixture.json:ro" migrate node - < tests/deployment/refresh-fixture.cjs > "$evidence/fixture-refresh.log" 2>&1
 fi
 "${compose[@]}" up -d --wait api1 api2 worker media-worker nginx > "$evidence/up-app.log" 2>&1
 export NODE_EXTRA_CA_CERTS="$lab/certificates/fullchain.pem"

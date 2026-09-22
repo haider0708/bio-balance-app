@@ -14,6 +14,7 @@ for(const service of ['api1','api2','worker','media-worker','postgres']){
   assert(!('SMTP_PASSWORD' in env));assert(!container.Mounts.some(m=>m.Destination.includes('firebase')));
  }
  if(service==='media-worker')assert(!('MFA_ENCRYPTION_KEY' in env));
+ if(service==='worker')assert(!container.Mounts.some(m=>m.Destination==='/var/lib/biobalance/media'));
  if(service==='postgres')assert(!Object.values(container.NetworkSettings.Ports).some(Boolean));
  if(service==='media-worker')assert.equal(container.Config.StopTimeout,660);
  console.log(`PASS: ${service} environment, identity and exposure`);

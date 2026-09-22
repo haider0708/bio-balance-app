@@ -1,3 +1,4 @@
+import { DeviceToken } from "@prisma/client";
 import { Database } from "../../../shared/infrastructure/database";
 import { NotificationPolicy } from "./notification-policy";
 
@@ -21,16 +22,15 @@ export class PushDeliveryService {
       where: { id: notificationId },
     });
     if (!n || !(await this.policy.allows(n))) return;
-    let after: string | undefined;
     let failed = false;
-    do {
-      const devices = await this.db.deviceToken.findMany({
-        where: { userId: n.userId, ...(after ? { id: { gt: after } } : {}) },
-        orderBy: { id: "asc" },
-        take: 100,
-      });
-      if (!devices.length) break;
-      after = devices[devices.length - 1]!.id;
+    {
+      // Bound even legacy registrations created before the per-account cap.
+      const devices = await this.db.$queryRaw<
+        DeviceToken[]
+      >`SELECT d.* FROM "DeviceToken" d
+        JOIN "Session" s ON s.id=d."sessionId" AND s."userId"=d."userId"
+        WHERE d."userId"=${n.userId}::uuid AND s."revokedAt" IS NULL AND s."expiresAt">now()
+        ORDER BY d."updatedAt" DESC,d.id DESC LIMIT 10`;
       const eligible = [];
       for (const device of devices) {
         if (!device.sessionId) continue;
@@ -53,7 +53,7 @@ export class PushDeliveryService {
         });
         if (session && !sent) eligible.push(device);
       }
-      if (!eligible.length) continue;
+      if (!eligible.length) return;
       if (!(await stillOwned()) || !(await this.policy.allows(n))) return;
       // No business text in OS notifications: an already queued platform message
       // may arrive after logout. The app obtains content via the authorized inbox.
@@ -95,7 +95,7 @@ export class PushDeliveryService {
           });
         } else failed = true;
       }
-    } while (after);
+    }
     if (failed) throw new Error("PUSH_DELIVERY_FAILED");
   }
 }

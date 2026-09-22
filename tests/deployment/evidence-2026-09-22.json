@@ -1,0 +1,36 @@
+{
+  "date": "2026-09-22",
+  "baseline": "6e8ec3b",
+  "environment": "isolated local Compose, loopback HTTPS, self-signed certificate, Mailpit",
+  "fullRunner": "passed",
+  "migrations": 11,
+  "rollbackSource": "6e8ec3b",
+  "continuousAuthorizedReads": {
+    "rollback": 275,
+    "rollForward": 289
+  },
+  "restoredBusinessProjection": {
+    "stores": 1,
+    "sales": 1,
+    "revisions": 1,
+    "movements": 2,
+    "sellable": 4,
+    "versions": 3,
+    "points": "60",
+    "media": "dbc7c74cb6b56a84facd217ea54d11544790d9fd657e51a3b2ceb1aa4fd364aa,25f685cabf207b32fb6bf2d7a2d7ae02a502259fea7e137a37621bb6190b9b8d"
+  },
+  "verifiedProcessedMedia": 2,
+  "images": {
+    "biobalance-api:step11-local": "sha256:a2f091ed2b87f5ff71f7dfb73f9010e67e07b4349b74b87281dd20edfd577607",
+    "biobalance-media:step11-local": "sha256:dc5c680b5211826f08adb3f5caa84e334fecd4b5e688a7c02bfeedb1b8e918a2",
+    "biobalance-api:rollback-6e8ec3b": "sha256:dfa09c28ed3649ba53eeed5734e5ee1d8e9b28e4bf8ce0ccaf1c65581476452c",
+    "biobalance-media:rollback-6e8ec3b": "sha256:ba94ca02003652f2049901393446b425648ac7cae2daf4441f7f52f4d61535bc"
+  },
+  "evidenceDirectory": ".artifacts/evidence/audit-2026-09-22/deployment-final",
+  "limitations": [
+    "local certificate tests do not validate real ACME",
+    "rollback to baseline only tested in isolated lab; baseline contains corrected security issues",
+    "no external SMTP, FCM/APNs, VPS, remote CI or iOS validation",
+    "local restore does not cover loss of the VPS"
+  ]
+}

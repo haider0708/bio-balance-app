@@ -1,7 +1,8 @@
+import { imageOutputLimit, videoOutputLimit } from "./media-storage";
 import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
 import { createReadStream } from "node:fs";
-import { open, rename, stat } from "node:fs/promises";
+import { open, rename, stat, unlink } from "node:fs/promises";
 import path from "node:path";
 import { Database } from "../../../shared/infrastructure/database";
 
@@ -62,6 +63,7 @@ export class MediaProcessor {
           },
         });
       }
+      await this.removeAcceptedSource(id);
       return;
     }
     if (media.status !== "processing") throw new Error("MEDIA_NOT_UPLOADED");
@@ -177,19 +179,64 @@ export class MediaProcessor {
         ];
     await run(
       "ffmpeg",
-      [...common, ...encoding, output],
+      [
+        ...common,
+        ...encoding,
+        "-fs",
+        String(video ? videoOutputLimit : imageOutputLimit),
+        output,
+      ],
       video ? 600_000 : 60_000,
     );
+    const outputSize = BigInt((await stat(output)).size);
+    if (outputSize >= (video ? videoOutputLimit : imageOutputLimit))
+      throw new Error("MEDIA_OUTPUT_LIMIT");
     await rename(output, path.join(this.root, target));
-    await this.db.mediaAsset.update({
-      where: { id: media.id },
+    const published = await this.db.mediaAsset.updateMany({
+      where: { id: media.id, status: "processing" },
       data: {
         status: "ready",
         path: target,
         mime: video ? "video/mp4" : media.mime,
         sha256: await digest(path.join(this.root, target)),
-        processedSize: BigInt((await stat(path.join(this.root, target))).size),
+        processedSize: outputSize,
+        storageBytes: media.size + outputSize,
       },
     });
+    if (!published.count) {
+      const current = await this.db.mediaAsset.findUniqueOrThrow({
+        where: { id },
+      });
+      if (current.status !== "ready") {
+        await unlink(path.join(this.root, target)).catch((error) => {
+          if (error.code !== "ENOENT") throw error;
+        });
+        throw new Error("MEDIA_UPLOAD_EXPIRED");
+      }
+    }
+    await this.removeAcceptedSource(id);
+  }
+  private async removeAcceptedSource(id: string) {
+    const media = await this.db.mediaAsset.findUniqueOrThrow({ where: { id } });
+    if (
+      media.status !== "ready" ||
+      media.processedSize === null ||
+      media.cleanedAt
+    )
+      return;
+    // Accepted chunk hashes preserve idempotent retries after the source is removed.
+    const chunks = await this.db.uploadChunk.aggregate({
+      where: { mediaId: id },
+      _sum: { length: true },
+    });
+    if (BigInt(chunks._sum.length ?? 0) === media.size) {
+      await unlink(path.join(this.root, `${id}.upload`)).catch((error) => {
+        if (error.code !== "ENOENT") throw error;
+      });
+      await this.db.mediaAsset.update({
+        where: { id },
+        data: { storageBytes: media.processedSize, cleanedAt: new Date() },
+      });
+    }
   }
 }

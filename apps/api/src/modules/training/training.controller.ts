@@ -1,4 +1,4 @@
-import {TrainingRequests} from '../../shared/contracts/requests';
+import { TrainingRequests } from "../../shared/contracts/requests";
 import {
   Body,
   Controller,
@@ -26,18 +26,13 @@ export class TrainingController {
     return this.service.list(r.actor, z.uuid().optional().parse(after));
   }
   @Post("training") save(@Req() r: AuthRequest, @Body() b: unknown) {
-    return this.service.save(
-      r.actor,
-      TrainingRequests.Save
-        .parse(b),
-    );
+    return this.service.save(r.actor, TrainingRequests.Save.parse(b));
   }
   @Get("training/:id") get(@Req() r: AuthRequest, @Param("id") id: string) {
     return this.service.get(r.actor, z.uuid().parse(id));
   }
   @Post("media/uploads") start(@Req() r: AuthRequest, @Body() b: unknown) {
-    const v = TrainingRequests.Start
-      .parse(b);
+    const v = TrainingRequests.Start.parse(b);
     return this.service.startUpload(r.actor, v.fileName, v.mime, v.size, v);
   }
   @Get("media/uploads/:id") status(

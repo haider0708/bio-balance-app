@@ -37,9 +37,13 @@ Le bouton « Activer les notifications » demande la permission au moment utile.
 
 La signature Android lit `BIOBALANCE_KEYSTORE`, `BIOBALANCE_KEYSTORE_PASSWORD`, `BIOBALANCE_KEY_ALIAS`, `BIOBALANCE_KEY_PASSWORD`. Vérifier les noms exacts dans `android/app/build.gradle.kts`. iOS demande les certificats/profils Apple sur macOS. Le build debug disponible n’est pas un livrable signé de production.
 
+Les invitations/récupérations envoient un code manuel tant que `ACTIVATION_URL` et `RECOVERY_URL` sont vides. Pour activer les liens, utiliser les chemins HTTPS `/activate` et `/recover` du domaine possédé, renseigner le même `AUTH_LINK_HOST` au build mobile et publier les associations Android/iOS décrites dans `mobile-release.md`. Les liens `biobalance://` ne sont plus acceptés. Vérifier l’association sur les deux plateformes avant de diffuser ces liens ; la saisie manuelle reste disponible.
+
 ## Sauvegarde et restauration
 
 Configurer `/etc/biobalance/backup.env` avec `COMPOSE_FILE`, `COMPOSE_ENV_FILE` et `BACKUP_DIR`, absolus. `COMPOSE_PROJECT_NAME` et `COMPOSE_OVERRIDE_FILE` sont optionnels pour un environnement isolé. Installer les unités `infrastructure/production/systemd/biobalance-backup.*` dans `/etc/systemd/system/`, `systemctl daemon-reload`, puis activer le timer. Il crée un dump PostgreSQL et une archive média avec sommes SHA256 chaque nuit ; il ne supprime pas automatiquement d’anciennes sauvegardes.
+
+L’admission vérifie les sauvegardes existantes, une estimation conservatrice de la prochaine copie et l’espace libre. `BACKUP_MAX_BYTES` vaut 64 Gio par défaut et `BACKUP_FREE_BYTES` réserve 10 Gio pour les données opérationnelles. Une limite atteinte fait échouer le job explicitement : vérifier, archiver ou supprimer les anciennes copies avant de relancer. Ces paramètres doivent être ajustés au disque réel et restent complémentaires à la supervision et aux quotas du système de fichiers.
 
 ```sh
 COMPOSE_FILE=/opt/biobalance/infrastructure/production/compose.yml BACKUP_DIR=/srv/biobalance-backups scripts/local-backup.sh
@@ -70,6 +74,8 @@ Aucune diffusion générale avant : tests métier/RLS/reprise passants, restaura
 ## Diagnostic des workers
 
 `WORKER_CONCURRENCY` borne le worker opérationnel entre 1 et 4 (2 par défaut). Le worker média reste à 1 et ne prend que les tâches média. Chaque tâche porte un bail UUID renouvelable ; une ancienne exécution ne peut pas terminer la tâche après récupération du bail. Les jobs horaires réutilisent leur identifiant d’opération et les envois push conservent leurs reçus par appareil/session.
+
+Les tâches horaires nettoient aussi les compteurs d’authentification expirés et les inscriptions push invalides. Le worker opérationnel ne monte pas le volume média. Le worker média expire les transferts abandonnés depuis sept jours et retire les sources temporaires ; les fichiers finalisés restent conservés. L’API réserve avant admission le volume maximal du fichier et de son traitement : `MEDIA_TOTAL_BYTES` (50 Gio), `MEDIA_STORE_BYTES` (1 Gio), `MEDIA_ASSET_LIMIT` (1 000 par périmètre), `MEDIA_PENDING_LIMIT` (20 par propriétaire), `MEDIA_FREE_BYTES` (1 Gio de marge). Une réponse `MEDIA_QUOTA` impose une action de l’opérateur ; ne pas effacer directement des fichiers prêts référencés en base.
 
 Examiner `Job.kind`, `key`, `attempts`, `availableAt`, `lockedAt`, `status`, `lastError` sans exporter les payloads (ils peuvent contenir des invitations). Après correction de la cause, relancer un job précis en conservant son `id`/`key`/`payload` : remettre `status='pending'`, `attempts=0`, `availableAt=now()`, `lockedAt=NULL`, `leaseToken=NULL` uniquement si son statut est `failed`. Ne jamais modifier un job courant pour le relancer. Les appels FCM/SMTP restent au moins une fois en cas de réponse externe perdue.
 

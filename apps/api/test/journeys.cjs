@@ -100,7 +100,7 @@ const owner = new PrismaClient({
       });
       return (
         job?.payload.text.match(
-          /biobalance:\/\/activate\?token=([\w-]+)/,
+          / : ([\w-]{43})\./,
         )?.[1] ?? null
       );
     };

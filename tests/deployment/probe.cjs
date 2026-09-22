@@ -16,7 +16,19 @@ const wait=ms=>new Promise(r=>setTimeout(r,ms));
   assert.equal(response.status,expected,`${method} ${url.split('?')[0]} status ${response.status}: ${data.code??''}`);
   return {data,response};
  };
- const login=await call('POST','/v1/identity/login',{email:setup.email,password:setup.password,otp:URI.parse(setup.totpUri).generate()},null);
+ // Consecutive probes must respect the server's one-use MFA counter.
+ const authenticator=URI.parse(setup.totpUri),period=authenticator.period*1000;
+ const stepFile=path.join(lab,'admin-login-step');
+ let previous=-1;
+ try {previous=Number(await fs.readFile(stepFile,'utf8'));}
+ catch(error){if(error.code!=='ENOENT')throw error;}
+ assert(Number.isSafeInteger(previous));
+ const delay=(previous+1)*period-Date.now()+250;
+ assert(delay<=period+1000,'Invalid deployment probe clock');
+ if(delay>0)await wait(delay);
+ const loginStep=Math.floor(Date.now()/period);
+ const login=await call('POST','/v1/identity/login',{email:setup.email,password:setup.password,otp:authenticator.generate()},null);
+ await fs.writeFile(stepFile,String(loginStep),{mode:0o600});
  const admin=login.data.token;
  let state;
  if(process.argv[2]==='verify') state=JSON.parse(await fs.readFile(path.join(lab,'state.json')));

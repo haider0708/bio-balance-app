@@ -33,3 +33,5 @@ flutter test test/performance/local_workflows_benchmark.dart
 ```
 
 This records host timings in `build/local-benchmark.json`: four cached stores, 200 products/600 lots/100 recent sales each, 120 durable queued sales, cached search, store switching and SQLite reopen. It excludes native startup and rendering. Physical device gates and capture procedure are in `tests/performance/devices.md`.
+
+Pour réutiliser la base synthétique conservée après expiration des sessions, appliquer les migrations puis exécuter `LOAD_OWNER_DATABASE_URL=... node tests/load/refresh-sessions.cjs`. Le script vérifie les identités `load-N@example.test`, renouvelle les seules sessions des fixtures et reprend les curseurs courants ; il ne reconstruit ni ne supprime les historiques.

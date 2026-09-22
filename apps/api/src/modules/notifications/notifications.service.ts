@@ -12,66 +12,81 @@ export class NotificationsService {
     private readonly workspace: WorkspaceService,
   ) {}
   async list(actor: Actor, after?: string) {
-    const stores = await this.workspace.stores(actor);
-    const managed = stores
-      .filter((s) => s.permissions.includes("manage"))
-      .map((s) => s.id);
-    const selling = stores
-      .filter((s) => s.permissions.includes("sell"))
-      .map((s) => s.id);
-    return this.db.notification.findMany({
-      where: {
-        userId: actor.id,
-        ...(actor.platformAdmin
-          ? {}
-          : {
-              OR: [
-                { kind: "operational", storeId: { in: managed } },
-                {
-                  kind: "announcement",
-                  audience: "all",
-                  storeId: { in: stores.map((s) => s.id) },
-                },
-                {
-                  kind: "announcement",
-                  audience: "salespeople",
-                  storeId: { in: selling },
-                },
-              ],
-            }),
-        ...(after ? { createdAt: { lt: new Date(after) } } : {}),
-      },
-      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-      take: 100,
+    return this.db.authenticated(actor, async (tx, current) => {
+      const stores = await this.workspace.storesInTransaction(tx, current);
+      const managed = stores
+        .filter((s) => s.permissions.includes("manage"))
+        .map((s) => s.id);
+      const selling = stores
+        .filter((s) => s.permissions.includes("sell"))
+        .map((s) => s.id);
+      return tx.notification.findMany({
+        where: {
+          userId: actor.id,
+          ...(current.platformAdmin
+            ? {}
+            : {
+                OR: [
+                  { kind: "operational", storeId: { in: managed } },
+                  {
+                    kind: "announcement",
+                    audience: "all",
+                    storeId: { in: stores.map((s) => s.id) },
+                  },
+                  {
+                    kind: "announcement",
+                    audience: "salespeople",
+                    storeId: { in: selling },
+                  },
+                ],
+              }),
+          ...(after ? { createdAt: { lt: new Date(after) } } : {}),
+        },
+        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+        take: 100,
+      });
     });
   }
-  async get(actor: Actor, id: string) {
-    const n = await this.db.notification.findFirst({
+  get(actor: Actor, id: string) {
+    return this.db.authenticated(actor, (tx) =>
+      this.authorizedNotification(tx, actor, id),
+    );
+  }
+  private async authorizedNotification(
+    tx: import("@prisma/client").Prisma.TransactionClient,
+    actor: Actor,
+    id: string,
+  ) {
+    const n = await tx.notification.findFirst({
       where: { id, userId: actor.id },
     });
     requireRule(
-      n && (await new NotificationPolicy(this.db).allows(n)),
+      n && (await new NotificationPolicy(tx).allows(n)),
       "NOT_FOUND",
       "Notification indisponible.",
       404,
     );
     return n!;
   }
-  async read(actor: Actor, id: string) {
-    await this.get(actor, id);
-    return this.db.notification.updateMany({
-      where: { id, userId: actor.id },
-      data: { readAt: new Date() },
+  read(actor: Actor, id: string) {
+    return this.db.authenticated(actor, async (tx) => {
+      await this.authorizedNotification(tx, actor, id);
+      return tx.notification.updateMany({
+        where: { id, userId: actor.id },
+        data: { readAt: new Date() },
+      });
     });
   }
   removeDevice(actor: Actor, token: string) {
-    return this.db.deviceToken.deleteMany({
-      where: { userId: actor.id, token, sessionId: actor.sessionId },
-    });
+    return this.db.authenticated(actor, (tx) =>
+      tx.deviceToken.deleteMany({
+        where: { userId: actor.id, token, sessionId: actor.sessionId },
+      }),
+    );
   }
   async device(actor: Actor, token: string, platform: string) {
-    return this.db.$transaction(async (tx) => {
-      await this.db.verifySession(tx, actor);
+    return this.db.authenticated(actor, async (tx) => {
+      await tx.$queryRaw`SELECT id FROM "User" WHERE id=${actor.id}::uuid FOR UPDATE`;
       const user = await tx.user.findUnique({ where: { id: actor.id } });
       requireRule(
         user && !user.disabled,
@@ -91,8 +106,33 @@ export class NotificationsService {
         const current = await tx.session.findUniqueOrThrow({
           where: { id: actor.sessionId! },
         });
-        requireRule(!old || old.createdAt <= current.createdAt, "DEVICE_SESSION_OUTDATED", "Cet appareil utilise une session plus récente.", 409);
+        requireRule(
+          !old || old.createdAt <= current.createdAt,
+          "DEVICE_SESSION_OUTDATED",
+          "Cet appareil utilise une session plus récente.",
+          409,
+        );
       }
+      // A renewed token replaces the old token for this installation/session.
+      await tx.deviceToken.deleteMany({
+        where: {
+          userId: actor.id,
+          sessionId: actor.sessionId,
+          platform,
+          token: { not: token },
+        },
+      });
+      await tx.$executeRaw`DELETE FROM "DeviceToken" d WHERE d."userId"=${actor.id}::uuid AND
+        NOT EXISTS (SELECT 1 FROM "Session" s WHERE s.id=d."sessionId" AND s."userId"=d."userId" AND s."revokedAt" IS NULL AND s."expiresAt">now())`;
+      const count = await tx.deviceToken.count({
+        where: { userId: actor.id, token: { not: token } },
+      });
+      requireRule(
+        count < 10,
+        "DEVICE_LIMIT",
+        "Dix appareils sont déjà enregistrés. Déconnectez un ancien appareil avant de continuer.",
+        409,
+      );
       return tx.deviceToken.upsert({
         where: { token },
         create: {

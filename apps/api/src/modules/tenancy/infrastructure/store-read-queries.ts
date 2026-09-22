@@ -10,9 +10,10 @@ import {
 } from "@prisma/client";
 import { Scope } from "../../operations/domain/contracts";
 
-type JsonScalar<T> = T extends Date | bigint ? string : T;
-type DatabaseJson<T> = { [K in keyof T]: JsonScalar<T[K]> };
-const utcTimestamp = (value: string) => new Date(`${value}Z`);
+type Serialized<T> = {
+  [K in keyof T]: T[K] extends Date | bigint ? string : T[K];
+};
+const timestamp = (value: string) => new Date(`${value}Z`);
 
 /** Bounded read projections retain the caller's transaction and RLS context. */
 export class StoreReadQueries {
@@ -22,35 +23,22 @@ export class StoreReadQueries {
   ) {}
 
   async snapshotCollections() {
-    const store = this.scope.storeId,
-      user = this.scope.actor.id;
-    const manage =
-      this.scope.actor.platformAdmin ||
-      this.scope.permissions.includes("manage");
+    // One round trip for independent bounded projections on the same connection.
     const [row] = await this.tx.$queryRaw<
       {
-        points: DatabaseJson<PointsAccount> | null;
+        points: Serialized<PointsAccount> | null;
         rewards: Reward[];
-        claims: DatabaseJson<RewardClaim>[];
-        orders: DatabaseJson<ReplenishmentOrder>[];
-        deliveries: DatabaseJson<Delivery>[];
+        claims: Serialized<RewardClaim>[];
+        orders: Serialized<ReplenishmentOrder>[];
+        deliveries: Serialized<Delivery>[];
       }[]
-    >`SELECT
+    >(Prisma.sql`SELECT
       (SELECT to_jsonb(p)||jsonb_build_object('balance',p.balance::text,'reserved',p.reserved::text)
-       FROM "PointsAccount" p WHERE p."storeId"=${store}::uuid AND p."userId"=${user}::uuid) AS points,
-      COALESCE((SELECT jsonb_agg(r ORDER BY r.title,r.id) FROM
-        (SELECT * FROM "Reward" WHERE "storeId"=${store}::uuid AND (${manage} OR active)
-         ORDER BY title,id LIMIT 200) r),'[]'::jsonb) AS rewards,
-      COALESCE((SELECT jsonb_agg(c ORDER BY c."createdAt" DESC,c.id DESC) FROM
-        (SELECT * FROM "RewardClaim" WHERE "storeId"=${store}::uuid AND (${manage} OR "userId"=${user}::uuid)
-         ORDER BY "createdAt" DESC,id DESC LIMIT 100) c),'[]'::jsonb) AS claims,
-      COALESCE((SELECT jsonb_agg(o ORDER BY o."createdAt" DESC,o.id DESC) FROM
-        (SELECT * FROM "ReplenishmentOrder" WHERE "storeId"=${store}::uuid
-         ORDER BY "createdAt" DESC,id DESC LIMIT 100) o),'[]'::jsonb) AS orders,
-      COALESCE((SELECT jsonb_agg(d ORDER BY d."dispatchedAt" DESC,d.id DESC) FROM
-        (SELECT * FROM "Delivery" WHERE "storeId"=${store}::uuid AND status='dispatched'
-         ORDER BY "dispatchedAt" DESC,id DESC LIMIT 100) d),'[]'::jsonb) AS deliveries`;
-    // PostgreSQL timestamp columns have UTC semantics; JSON lacks the suffix.
+        FROM "PointsAccount" p WHERE p."storeId"=${this.scope.storeId}::uuid AND p."userId"=${this.scope.actor.id}::uuid) AS points,
+      COALESCE((SELECT jsonb_agg(r ORDER BY r.id) FROM (${this.operationalQuery("rewards")}) r),'[]'::jsonb) AS rewards,
+      COALESCE((SELECT jsonb_agg(c ORDER BY c.id) FROM (${this.operationalQuery("claims")}) c),'[]'::jsonb) AS claims,
+      COALESCE((SELECT jsonb_agg(o ORDER BY o.id) FROM (${this.operationalQuery("orders")}) o),'[]'::jsonb) AS orders,
+      COALESCE((SELECT jsonb_agg(d ORDER BY d.id) FROM (${this.operationalQuery("deliveries")}) d),'[]'::jsonb) AS deliveries`);
     return {
       points: row!.points
         ? {
@@ -62,19 +50,54 @@ export class StoreReadQueries {
       rewards: row!.rewards,
       claims: row!.claims.map((c) => ({
         ...c,
-        createdAt: utcTimestamp(c.createdAt),
-        resolvedAt: c.resolvedAt ? utcTimestamp(c.resolvedAt) : null,
+        createdAt: timestamp(c.createdAt),
+        resolvedAt: c.resolvedAt ? timestamp(String(c.resolvedAt)) : null,
       })),
       orders: row!.orders.map((o) => ({
         ...o,
-        createdAt: utcTimestamp(o.createdAt),
+        createdAt: timestamp(o.createdAt),
       })),
       deliveries: row!.deliveries.map((d) => ({
         ...d,
-        dispatchedAt: utcTimestamp(d.dispatchedAt),
-        receivedAt: d.receivedAt ? utcTimestamp(d.receivedAt) : null,
+        dispatchedAt: timestamp(d.dispatchedAt),
+        receivedAt: d.receivedAt ? timestamp(String(d.receivedAt)) : null,
       })),
     };
+  }
+
+  /** All unresolved work plus a recent resolved tail, in stable bounded pages. */
+  operationalPage(
+    resource: "rewards" | "claims" | "orders" | "deliveries",
+    after?: string,
+  ): Promise<(Reward | RewardClaim | ReplenishmentOrder | Delivery)[]> {
+    return this.tx.$queryRaw(this.operationalQuery(resource, after));
+  }
+  private operationalQuery(
+    resource: "rewards" | "claims" | "orders" | "deliveries",
+    after?: string,
+  ) {
+    const store = this.scope.storeId,
+      user = this.scope.actor.id;
+    const manage =
+      this.scope.actor.platformAdmin ||
+      this.scope.permissions.includes("manage");
+    const boundary = after ? Prisma.sql`AND id>${after}::uuid` : Prisma.empty;
+    if (resource === "rewards")
+      return Prisma.sql`SELECT * FROM "Reward"
+      WHERE "storeId"=${store}::uuid AND (${manage} OR active) ${boundary} ORDER BY id LIMIT 200`;
+    if (resource === "claims")
+      return Prisma.sql`SELECT * FROM "RewardClaim"
+      WHERE "storeId"=${store}::uuid AND (${manage} OR "userId"=${user}::uuid)
+      AND (status='requested' OR id IN (SELECT id FROM "RewardClaim" WHERE "storeId"=${store}::uuid
+        AND (${manage} OR "userId"=${user}::uuid) ORDER BY "createdAt" DESC,id DESC LIMIT 100))
+      ${boundary} ORDER BY id LIMIT 200`;
+    if (resource === "orders")
+      return Prisma.sql`SELECT * FROM "ReplenishmentOrder"
+      WHERE "storeId"=${store}::uuid AND (status<>'received' OR id IN (SELECT id FROM "ReplenishmentOrder"
+        WHERE "storeId"=${store}::uuid ORDER BY "createdAt" DESC,id DESC LIMIT 100))
+      ${boundary} ORDER BY id LIMIT 200`;
+    return Prisma.sql`SELECT * FROM "Delivery" WHERE "storeId"=${store}::uuid AND status='dispatched'
+      ${boundary} ORDER BY id LIMIT 200`;
   }
 
   recentSales(

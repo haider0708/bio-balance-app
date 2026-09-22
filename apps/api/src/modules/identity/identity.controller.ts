@@ -1,10 +1,8 @@
-import {IdentityRequests} from '../../shared/contracts/requests';
+import { IdentityRequests } from "../../shared/contracts/requests";
 import { Body, Controller, Get, Post, Req } from "@nestjs/common";
 import { ApiTags, ApiBearerAuth } from "@nestjs/swagger";
-import { z } from "zod";
 import { IdentityService } from "./identity.service";
 import { AuthRequest, Public } from "../../shared/infrastructure/http";
-
 
 @ApiTags("identity")
 @ApiBearerAuth()
@@ -15,8 +13,7 @@ export class IdentityController {
     @Body() raw: unknown,
     @Req() req: AuthRequest,
   ) {
-    const v = IdentityRequests.Login
-      .parse(raw);
+    const v = IdentityRequests.Login.parse(raw);
     return this.service.login(v.email, v.password, v.otp, req.ip ?? "unknown");
   }
   @Get("me") me(@Req() req: AuthRequest) {
@@ -26,16 +23,19 @@ export class IdentityController {
     return this.service.logout(req.bearer);
   }
   @Post("invitations") invite(@Req() req: AuthRequest, @Body() raw: unknown) {
-    return this.service.invite(
-      req.actor,
-      IdentityRequests.Invite
-        .parse(raw),
-    );
+    return this.service.invite(req.actor, IdentityRequests.Invite.parse(raw));
   }
-  @Public() @Post("activate") activate(@Body() raw: unknown) {
-    const v = IdentityRequests.Activate
-      .parse(raw);
-    return this.service.activate(v.token, v.name, v.password);
+  @Public() @Post("activate") activate(
+    @Body() raw: unknown,
+    @Req() req: AuthRequest,
+  ) {
+    const v = IdentityRequests.Activate.parse(raw);
+    return this.service.activate(
+      v.token,
+      v.name,
+      v.password,
+      req.ip ?? "unknown",
+    );
   }
   @Public() @Post("forgot-password") forgot(
     @Body() raw: unknown,
@@ -46,9 +46,11 @@ export class IdentityController {
       req.ip ?? "unknown",
     );
   }
-  @Public() @Post("reset-password") reset(@Body() raw: unknown) {
-    const v = IdentityRequests.Reset
-      .parse(raw);
-    return this.service.reset(v.token, v.password);
+  @Public() @Post("reset-password") reset(
+    @Body() raw: unknown,
+    @Req() req: AuthRequest,
+  ) {
+    const v = IdentityRequests.Reset.parse(raw);
+    return this.service.reset(v.token, v.password, req.ip ?? "unknown");
   }
 }

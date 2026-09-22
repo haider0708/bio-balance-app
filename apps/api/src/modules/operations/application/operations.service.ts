@@ -5,7 +5,6 @@ import {
   Actor,
   Operation,
   OperationResult,
-  Command,
   CommandOutcome,
   SaleRecord,
 } from "../domain/contracts";
@@ -23,13 +22,24 @@ function canonical(value: unknown): string {
 export class OperationsService {
   constructor(private readonly unitOfWork: UnitOfWork) {}
   async status(actor: Actor, operation: Operation) {
-    const hash = createHash("sha256").update(canonical(operation)).digest("hex");
-    return this.unitOfWork.run(actor, operation.organizationId, operation.storeId, async ledger => {
-      const prior = await ledger.prior(operation.operationId, hash);
-      // A conservative watermark also covers legacy accepted results, without rewriting them.
-      return prior ? { ...prior, committedCursor: prior.committedCursor ?? await ledger.cursor() }
-        : {operationId: operation.operationId, status: "unknown" as const};
-    });
+    const hash = createHash("sha256")
+      .update(canonical(operation))
+      .digest("hex");
+    return this.unitOfWork.run(
+      actor,
+      operation.organizationId,
+      operation.storeId,
+      async (ledger) => {
+        const prior = await ledger.prior(operation.operationId, hash);
+        // A conservative watermark also covers legacy accepted results, without rewriting them.
+        return prior
+          ? {
+              ...prior,
+              committedCursor: prior.committedCursor ?? (await ledger.cursor()),
+            }
+          : { operationId: operation.operationId, status: "unknown" as const };
+      },
+    );
   }
   async submit(actor: Actor, operation: Operation): Promise<OperationResult> {
     const hash = createHash("sha256")
@@ -43,8 +53,16 @@ export class OperationsService {
         async (ledger) => {
           const prior = await ledger.prior(operation.operationId, hash);
           if (prior) return prior;
-          if (!(await ledger.dependenciesAccepted(operation.dependencies ?? []))) {
-            return { operationId: operation.operationId, status: "blocked", code: "DEPENDENCY_PENDING", message: "Une opération précédente doit être synchronisée ou corrigée." };
+          if (
+            !(await ledger.dependenciesAccepted(operation.dependencies ?? []))
+          ) {
+            return {
+              operationId: operation.operationId,
+              status: "blocked",
+              code: "DEPENDENCY_PENDING",
+              message:
+                "Une opération précédente doit être synchronisée ou corrigée.",
+            };
           }
           const data = await this.apply(ledger, operation);
           const result: OperationResult = {
@@ -67,7 +85,12 @@ export class OperationsService {
       if (!(error instanceof DomainError)) throw error;
       return {
         operationId: operation.operationId,
-        status: error.status >= 500 || error.status === 429 ? "retryable" : error.status === 409 ? "conflict" : "rejected",
+        status:
+          error.status >= 500 || error.status === 429
+            ? "retryable"
+            : error.status === 409
+              ? "conflict"
+              : "rejected",
         code: error.code,
         message: error.message,
       };
@@ -110,10 +133,7 @@ export class OperationsService {
     this.version(sale.version, expected);
     return sale;
   }
-  private async apply(
-    ledger: Ledger,
-    op: Operation,
-  ): Promise<CommandOutcome> {
+  private async apply(ledger: Ledger, op: Operation): Promise<CommandOutcome> {
     const cmd = op.command,
       actor = ledger.scope.actor,
       affected = new Set<string>();
@@ -130,13 +150,29 @@ export class OperationsService {
         409,
       );
       const declarations = cmd.batchDeclarations ?? [];
-      requireRule(new Set(declarations.map(d => d.lotId)).size === declarations.length,
-        "DUPLICATE_LOT", "Un lot est déclaré plusieurs fois.");
+      requireRule(
+        new Set(declarations.map((d) => d.lotId)).size === declarations.length,
+        "DUPLICATE_LOT",
+        "Un lot est déclaré plusieurs fois.",
+      );
       for (const declaration of declarations) {
-        requireRule(cmd.lines.some(line => line.productId === declaration.productId &&
-          line.allocations.some(allocation => allocation.lotId === declaration.lotId)),
-          "UNUSED_BATCH", "Le lot déclaré doit correspondre à un produit de cette vente.");
-        await ledger.declareBatch(declaration.lotId, declaration.productId, declaration.batch, expiryDate(declaration.expiry));
+        requireRule(
+          cmd.lines.some(
+            (line) =>
+              line.productId === declaration.productId &&
+              line.allocations.some(
+                (allocation) => allocation.lotId === declaration.lotId,
+              ),
+          ),
+          "UNUSED_BATCH",
+          "Le lot déclaré doit correspondre à un produit de cette vente.",
+        );
+        await ledger.declareBatch(
+          declaration.lotId,
+          declaration.productId,
+          declaration.batch,
+          expiryDate(declaration.expiry),
+        );
       }
       const lots = new Map();
       const rates = new Map<string, number>();
@@ -321,7 +357,9 @@ export class OperationsService {
           "Produit répété.",
         );
         for (const line of cmd.lines) {
-          const remaining = fulfillment.find(l => l.productId === line.productId)?.remainingToDispatch ?? 0;
+          const remaining =
+            fulfillment.find((l) => l.productId === line.productId)
+              ?.remainingToDispatch ?? 0;
           requireRule(
             line.quantity <= remaining,
             "DELIVERY_EXCEEDS_ORDER",
@@ -360,8 +398,11 @@ export class OperationsService {
         "Cette livraison a déjà été réceptionnée.",
         409,
       );
-      requireRule(cmd.lines.length > 0 || cmd.note.trim().length > 0,
-        "MISSING_DELIVERY_REASON", "Expliquez pourquoi aucune unité n’a été reçue.");
+      requireRule(
+        cmd.lines.length > 0 || cmd.note.trim().length > 0,
+        "MISSING_DELIVERY_REASON",
+        "Expliquez pourquoi aucune unité n’a été reçue.",
+      );
       const actual = new Map<string, number>();
       for (const line of cmd.lines) {
         requireRule(
@@ -402,15 +443,20 @@ export class OperationsService {
       await ledger.saveDelivery(delivery);
       const order = await ledger.order(delivery.orderId);
       const fulfillment = await ledger.fulfillment(order);
-      order.status = fulfillment.every(l => l.remainingToReceive === 0 && l.inTransit === 0)
-        ? "received" : "partial";
+      order.status = fulfillment.every(
+        (l) => l.remainingToReceive === 0 && l.inTransit === 0,
+      )
+        ? "received"
+        : "partial";
       order.version++;
       await ledger.saveOrder(order);
       await ledger.alerts([...affected]);
       await ledger.notify(
         op.operationId,
         "Livraison réceptionnée",
-        cmd.lines.length ? "Les quantités reçues ont été ajoutées au stock." : "Le magasin n’a reçu aucune unité. Consultez le motif et préparez le suivi.",
+        cmd.lines.length
+          ? "Les quantités reçues ont été ajoutées au stock."
+          : "Le magasin n’a reçu aucune unité. Consultez le motif et préparez le suivi.",
       );
       return { id: delivery.id, version: delivery.version, differences };
     }
@@ -465,7 +511,9 @@ export class OperationsService {
           409,
         );
         if (claim.productId) {
-          const lots = (await ledger.lotsForProduct(claim.productId)).filter(
+          const lots = (
+            await ledger.lotsForProduct(claim.productId, claim.quantity)
+          ).filter(
             (l) =>
               l.sellable > 0 &&
               l.expiry.toISOString().slice(0, 10) >=
@@ -479,6 +527,7 @@ export class OperationsService {
           );
           let remaining = claim.quantity;
           for (const lot of lots) {
+            if (!remaining) break;
             const used = Math.min(remaining, lot.sellable);
             if (used)
               await ledger.move(

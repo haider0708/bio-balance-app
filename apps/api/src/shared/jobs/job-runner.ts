@@ -81,7 +81,7 @@ export class JobRunner {
       });
       if (result.count && failed && job.kind === "media")
         await tx.mediaAsset.updateMany({
-          where: { id: job.payload.mediaId, status: { not: "ready" } },
+          where: { id: job.payload.mediaId, status: "processing" },
           data: { status: "failed" },
         });
     });

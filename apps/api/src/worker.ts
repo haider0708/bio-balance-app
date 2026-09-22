@@ -1,3 +1,9 @@
+import {
+  cleanupAuthentication,
+  scheduleMaintenance,
+} from "./shared/jobs/maintenance";
+import { cleanupMedia } from "./modules/training/infrastructure/media-storage";
+import path from "node:path";
 import "reflect-metadata";
 import { Database } from "./shared/infrastructure/database";
 import { createTransport } from "nodemailer";
@@ -53,6 +59,12 @@ const push = new PushDeliveryService(db, {
   },
 });
 const execute: JobExecutor = async (job, owned) => {
+  if (job.kind === "auth-cleanup") return cleanupAuthentication(db);
+  if (job.kind === "media-cleanup")
+    return cleanupMedia(
+      db,
+      path.resolve(process.env.MEDIA_ROOT ?? "../../.volumes/media"),
+    );
   if (job.kind === "push")
     return push.deliver(job.payload.notificationId!, owned);
   if (job.kind === "media")
@@ -92,7 +104,9 @@ async function main() {
     : Math.max(1, Math.min(4, Number(process.env.WORKER_CONCURRENCY) || 2));
   const runner = new JobRunner(
     db,
-    mediaMode ? ["media"] : ["email", "push", "inventory-check"],
+    mediaMode
+      ? ["media", "media-cleanup"]
+      : ["email", "push", "inventory-check", "auth-cleanup"],
     execute,
   );
   let nextSchedule = 0;
@@ -109,8 +123,9 @@ async function main() {
     (async () => {
       while (!stopping) {
         try {
-          if (index === 0 && !mediaMode && Date.now() >= nextSchedule) {
-            await scheduleInventoryChecks(db);
+          if (index === 0 && Date.now() >= nextSchedule) {
+            if (!mediaMode) await scheduleInventoryChecks(db);
+            await scheduleMaintenance(db, mediaMode);
             nextSchedule = Date.now() + 3600000;
           }
           const running = runner.tick();

@@ -12,6 +12,11 @@ Object? freezeJson(Object? value) {
   throw const FormatException('Invalid JSON value');
 }
 
+int wireInteger(Object? value) {
+  if (value is int) return value;
+  throw const FormatException('Entier invalide dans la réponse du serveur.');
+}
+
 bool matchesWire(Object? value, String name) =>
     _matches(value, _schemas[name]!);
 bool _matches(Object? value, Map<String, dynamic> schema) {
@@ -1478,6 +1483,10 @@ const Map<String, Map<String, dynamic>> _schemas = {
       {"\$ref": "#/components/schemas/SnapshotPageLots"},
       {"\$ref": "#/components/schemas/SnapshotPageProducts"},
       {"\$ref": "#/components/schemas/SnapshotPageConfig"},
+      {"\$ref": "#/components/schemas/SnapshotPageRewards"},
+      {"\$ref": "#/components/schemas/SnapshotPageClaims"},
+      {"\$ref": "#/components/schemas/SnapshotPageOrders"},
+      {"\$ref": "#/components/schemas/SnapshotPageDeliveries"},
     ],
     "discriminator": {"propertyName": "resource"},
   },
@@ -2268,6 +2277,82 @@ const Map<String, Map<String, dynamic>> _schemas = {
     "required": ["resource", "items", "nextPage", "cursor"],
     "additionalProperties": false,
   },
+  "SnapshotPageRewards": {
+    "type": "object",
+    "properties": {
+      "resource": {"const": "rewards", "type": "string"},
+      "items": {
+        "type": "array",
+        "items": {"\$ref": "#/components/schemas/Reward"},
+      },
+      "nextPage": {
+        "anyOf": [
+          {"type": "string", "format": "uuid"},
+          {"type": "null"},
+        ],
+      },
+      "cursor": {"type": "string", "pattern": "^-?[0-9]+\$"},
+    },
+    "required": ["resource", "items", "nextPage", "cursor"],
+    "additionalProperties": false,
+  },
+  "SnapshotPageClaims": {
+    "type": "object",
+    "properties": {
+      "resource": {"const": "claims", "type": "string"},
+      "items": {
+        "type": "array",
+        "items": {"\$ref": "#/components/schemas/RewardClaim"},
+      },
+      "nextPage": {
+        "anyOf": [
+          {"type": "string", "format": "uuid"},
+          {"type": "null"},
+        ],
+      },
+      "cursor": {"type": "string", "pattern": "^-?[0-9]+\$"},
+    },
+    "required": ["resource", "items", "nextPage", "cursor"],
+    "additionalProperties": false,
+  },
+  "SnapshotPageOrders": {
+    "type": "object",
+    "properties": {
+      "resource": {"const": "orders", "type": "string"},
+      "items": {
+        "type": "array",
+        "items": {"\$ref": "#/components/schemas/Order"},
+      },
+      "nextPage": {
+        "anyOf": [
+          {"type": "string", "format": "uuid"},
+          {"type": "null"},
+        ],
+      },
+      "cursor": {"type": "string", "pattern": "^-?[0-9]+\$"},
+    },
+    "required": ["resource", "items", "nextPage", "cursor"],
+    "additionalProperties": false,
+  },
+  "SnapshotPageDeliveries": {
+    "type": "object",
+    "properties": {
+      "resource": {"const": "deliveries", "type": "string"},
+      "items": {
+        "type": "array",
+        "items": {"\$ref": "#/components/schemas/Delivery"},
+      },
+      "nextPage": {
+        "anyOf": [
+          {"type": "string", "format": "uuid"},
+          {"type": "null"},
+        ],
+      },
+      "cursor": {"type": "string", "pattern": "^-?[0-9]+\$"},
+    },
+    "required": ["resource", "items", "nextPage", "cursor"],
+    "additionalProperties": false,
+  },
   "SnapshotSnapshotPages": {
     "type": "object",
     "properties": {
@@ -2284,6 +2369,30 @@ const Map<String, Map<String, dynamic>> _schemas = {
         ],
       },
       "products": {
+        "anyOf": [
+          {"type": "string", "format": "uuid"},
+          {"type": "null"},
+        ],
+      },
+      "rewards": {
+        "anyOf": [
+          {"type": "string", "format": "uuid"},
+          {"type": "null"},
+        ],
+      },
+      "claims": {
+        "anyOf": [
+          {"type": "string", "format": "uuid"},
+          {"type": "null"},
+        ],
+      },
+      "orders": {
+        "anyOf": [
+          {"type": "string", "format": "uuid"},
+          {"type": "null"},
+        ],
+      },
+      "deliveries": {
         "anyOf": [
           {"type": "string", "format": "uuid"},
           {"type": "null"},

@@ -1,3 +1,5 @@
+import java.util.Base64
+
 plugins {
     id("com.android.application")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
@@ -16,6 +18,13 @@ android {
 
     defaultConfig {
         applicationId = "tn.biobalance.app"
+        val defines = (project.findProperty("dart-defines") as? String).orEmpty()
+            .split(",").filter { it.isNotEmpty() }
+            .map { String(Base64.getDecoder().decode(it)) }
+        val authLinkHost = defines.firstOrNull { it.startsWith("AUTH_LINK_HOST=") }?.substringAfter("=").orEmpty()
+        require(authLinkHost.isEmpty() || Regex("[a-z0-9]+(?:[a-z0-9.-]*[a-z0-9])?").matches(authLinkHost)) { "AUTH_LINK_HOST must be a DNS name" }
+        manifestPlaceholders["authLinkHost"] = authLinkHost.ifEmpty { "account-links.invalid" }
+
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
