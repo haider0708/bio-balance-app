@@ -59,3 +59,11 @@ La rétention automatique ajoutée à la demande de l’utilisateur remplace la 
 Le moniteur alerte à 85 % d’utilisation disque. Étendre/libérer de façon contrôlée le stockage et qualifier la charge du VPS complet avant une grande diffusion. Les limites mémoire/CPU protègent la cohabitation ; elles ne prouvent pas la capacité de 500 magasins. Le redémarrage système déjà demandé par Ubuntu et le durcissement global des accès aux autres applications relèvent d’une maintenance coordonnée de l’hôte, qui n’a pas été imposée pendant cette installation.
 
 Le fichier mobile local `config/mobile/production.local.json` pointe maintenant vers cette API et passe la validation Android/iOS. Les applications signées doivent être reconstruites avec cette configuration avant le pilote. CI distante/macOS, mesures physiques et pilote restent soumis aux [conditions de diffusion](release-gates.md). Sauvegardes hors serveur et haute disponibilité restent reportées ; la restauration locale ne couvre pas la perte complète du VPS.
+
+## Mise à jour des emails — 22 septembre 2026
+
+Les API et workers utilisent désormais `biobalance-api:caa50b4` / `biobalance-media:caa50b4`, construits depuis `caa50b4e828d4f4e92a79c99819f50ad4f575e3c`. Les couches de système de fichiers ont été comparées entre le poste de construction et le VPS (15 API, 16 média). Une sauvegarde valide précède le déploiement. Worker mis à jour avant les deux API, puis worker média ; aucune migration ni suppression de donnée métier. Nginx rechargé après validation. Les six services, HTTPS public, connexion MFA, identité, révocation à la déconnexion et moniteur réussissent après installation.
+
+Un email de test explicitement autorisé vers la boîte Gmail du propriétaire a été envoyé via le worker réel et accepté par `mail.galylio.com:465` en une tentative. Le job est terminé, sa charge effacée, et aucun compte partenaire/magasin/vente n’a été créé. La réception et le classement dans Gmail attendent la confirmation du destinataire ; l’acceptation SMTP seule ne les établit pas. Les anciennes mentions « aucun email envoyé » ci-dessus décrivent l’installation initiale, avant ce test.
+
+Inventaire et modèles : [emails](email-delivery.md). Preuves de cette mise à jour : [qualification email et CI](../tests/deployment/email-evidence-2026-09-22.json).

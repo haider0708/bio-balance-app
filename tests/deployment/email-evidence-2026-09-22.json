@@ -1,0 +1,87 @@
+{
+  "verifiedAt": "2026-09-22T15:37:16Z",
+  "backendSourceCommit": "caa50b4e828d4f4e92a79c99819f50ad4f575e3c",
+  "journeySourceCommit": "c2ccab498ff29bdf0370f1b893c282879ae2af21",
+  "images": {
+    "biobalance-api:caa50b4": {
+      "matchingFilesystemLayers": 15,
+      "verified": true
+    },
+    "biobalance-media:caa50b4": {
+      "matchingFilesystemLayers": 16,
+      "verified": true
+    }
+  },
+  "automatedTests": {
+    "email": 11,
+    "integration": 22,
+    "security": 13,
+    "audit": 14,
+    "notifications": 5,
+    "domainAndDatabaseRetry": 10,
+    "releasePython": 34,
+    "navigationRegressions": 2,
+    "httpContracts": 45,
+    "ciBackendTotal": 79,
+    "ciMedia": 4,
+    "localAndroidRoleJourneys": "passed",
+    "localAndroidRestartAndOfflineVideo": "passed"
+  },
+  "vps": {
+    "host": "go2code",
+    "api": "https://api.galylio.com",
+    "healthyServices": 6,
+    "beforeDeploymentBackup": "passed",
+    "migrationRequired": false,
+    "adminMfaAndLogout": "passed",
+    "monitor": "passed",
+    "smtpSecretsExcludedFromApi": true,
+    "environmentFileMode": "0600 root:root",
+    "businessData": {
+      "stores": 0,
+      "sales": 0,
+      "users": 1
+    }
+  },
+  "email": {
+    "recipient": "explicitly authorized owner Gmail mailbox (address omitted from public evidence)",
+    "subject": "BioBalance — test de livraison des emails",
+    "jobId": "4422585e-1a37-47ca-bbab-86f1aa659972",
+    "messageId": "<4422585e-1a37-47ca-bbab-86f1aa659972@galylio.com>",
+    "jobCompleted": true,
+    "smtpAccepted": true,
+    "attempts": 1,
+    "payloadCleared": true,
+    "gmailInboxConfirmation": "pending user confirmation",
+    "externalEmailsSent": 1,
+    "targetedBounceCheck": {
+      "query": "exact authorized test Message-ID, INBOX only",
+      "matchingMessages": 0,
+      "deliveryFailures": [],
+      "check": "completed"
+    }
+  },
+  "ci": {
+    "run": "https://github.com/haider0708/bio-balance-app/actions/runs/35746770350",
+    "headSha": "c2ccab498ff29bdf0370f1b893c282879ae2af21",
+    "status": "completed",
+    "conclusion": "success",
+    "backend": "passed",
+    "iosUnsignedCompilation": "passed",
+    "android": "passed",
+    "androidJourneys": "passed",
+    "androidRestartResult": {
+      "accountAndOperationPayloadPreserved": true,
+      "acceptedSales": 1,
+      "stock": 7,
+      "lotVersion": 3,
+      "points": 30,
+      "offlineVideoPlayback": "passed"
+    }
+  },
+  "limitations": [
+    "SMTP acceptance does not prove Gmail inbox placement",
+    "No physical-device qualification",
+    "No signed iOS or pilot acceptance"
+  ]
+}

@@ -360,3 +360,15 @@ Inventaire, aperçus, politique de reprise et ordre de déploiement : [emails](e
 Le passage CI `35744591825` confirme la résolution de l’attente après réception, mais révèle ensuite un toast temporaire devant « Se déconnecter ». Le helper attend maintenant une cible réellement touchable avant de cliquer, sans désactiver les erreurs de hit-test. Une régression widget reproduit l’obstruction puis vérifie le clic après disparition du snackbar ; elle réussit. Le résultat complet distant du correctif suivant reste à confirmer.
 
 La reprise locale a aussi exercé un libellé non encore construit : le helper ne doit pas appliquer `.last` avant que le finder ait trouvé un résultat. Ce cas possède maintenant une seconde régression réussie. Le checkpoint de terminaison attend explicitement la fermeture de l’éditeur de vente après son commit SQLite, selon la même règle que la réception.
+
+## Clôture CI et emails — 22 septembre 2026
+
+Le commit **`c2ccab498ff29bdf0370f1b893c282879ae2af21`** passe les quatre jobs de [GitHub Actions 35746770350](https://github.com/haider0708/bio-balance-app/actions/runs/35746770350) : backend, Android, parcours Android et compilation iOS release non signée sur macOS. Les échecs intermédiaires ci-dessus restent l’historique de diagnostic ; leur statut en attente est remplacé par cette exécution complète réussie.
+
+- 79 tests backend, 34 tests Python de release, 45 contrats HTTP/décodage Dart, analyse et vérifications Android réussissent dans ce pipeline. Les deux régressions de navigation ont aussi réussi localement.
+- Parcours Android des trois rôles et arrêt réel du processus/reprise réussis en local et en CI. Compte, identifiant et payload de l’outbox conservés, une seule vente acceptée, stock **7**, version **3**, points **30** ; vidéo téléchargée lue hors ligne.
+- Backend email **`caa50b4e828d4f4e92a79c99819f50ad4f575e3c`** installé sur le VPS après sauvegarde ; six services sains, HTTPS/MFA/déconnexion/moniteur réussis, aucun partenaire ou magasin factice créé. Les deux commits suivants concernent uniquement le harnais Android ; le code backend déployé est celui testé par la CI finale.
+- Un email de diagnostic explicitement autorisé est accepté par le relais SMTP en une tentative ; job terminé et charge effacée. La recherche ciblée du Message-ID dans la boîte de l’expéditeur ne trouve aucun retour d’échec. **Réception et classement Gmail : confirmation du destinataire encore attendue.**
+- Alertes métier conservées dans l’application. Les invitations responsable/équipe, récupération et confirmation de changement de mot de passe utilisent les modèles centralisés HTML/texte. L’APK signé v1.0.0+2 reste compatible ; aucun widget de production ni nouvelle version mobile n’a été nécessaire pour cette passe.
+
+Preuves : [CI, déploiement et email](../tests/deployment/email-evidence-2026-09-22.json). Les mesures physiques, la distribution Apple/Play et le pilote conservent leurs conditions ouvertes dans [le registre de diffusion](release-gates.md). Cette clôture ne les compte pas comme réalisés.
