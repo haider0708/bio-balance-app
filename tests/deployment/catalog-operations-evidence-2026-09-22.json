@@ -1,0 +1,615 @@
+{
+  "date": "2026-09-22",
+  "productionReleaseAccepted": false,
+  "applicationImageSourceCommit": "2c89538d40e00d66a40284776642f0ea1ad6e0e6",
+  "catalog": {
+    "activeProducts": 51,
+    "processedProductImages": 51,
+    "spreadsheetBarcodes": 39,
+    "missingBarcodes": 12,
+    "officialTunisianPrices": 42,
+    "otherVerifiedTunisianPrices": 2,
+    "explicitlyAuthorizedSamplePrices": 7,
+    "deodorantReferencesKeptSeparate": true,
+    "sourceRegister": "docs/data/catalogue-2026-09-22.csv"
+  },
+  "simulation": {
+    "organizations": 2,
+    "stores": 5,
+    "fictitiousAccounts": 7,
+    "directSales": 100,
+    "saleRevisions": 110,
+    "originalAcceptedCommands": 151,
+    "additionalOpeningReceipts": 5,
+    "realRetailersContacted": false,
+    "prefix": "DÉMO —",
+    "liveVerification": {
+      "products": 51,
+      "images": 51,
+      "barcodes": 39,
+      "stores": [
+        {
+          "store": "DÉMO — DAS PARA Sahloul",
+          "sales": 20,
+          "revisions": 22,
+          "receipts": 0,
+          "stockConsistent": true,
+          "pointsConsistent": true,
+          "reservationsConsistent": true
+        },
+        {
+          "store": "DÉMO — Eden Pharma Ariana",
+          "sales": 20,
+          "revisions": 22,
+          "receipts": 1,
+          "stockConsistent": true,
+          "pointsConsistent": true,
+          "reservationsConsistent": true
+        },
+        {
+          "store": "DÉMO — Parapharmacie Plus El Ain",
+          "sales": 20,
+          "revisions": 22,
+          "receipts": 1,
+          "stockConsistent": true,
+          "pointsConsistent": true,
+          "reservationsConsistent": true
+        },
+        {
+          "store": "DÉMO — Parapharmacie Plus L’Aouina",
+          "sales": 20,
+          "revisions": 22,
+          "receipts": 1,
+          "stockConsistent": true,
+          "pointsConsistent": true,
+          "reservationsConsistent": true
+        },
+        {
+          "store": "DÉMO — Parapharmacie Santé+",
+          "sales": 20,
+          "revisions": 22,
+          "receipts": 0,
+          "stockConsistent": true,
+          "pointsConsistent": true,
+          "reservationsConsistent": true
+        }
+      ]
+    },
+    "accessChecks": {
+      "crossOrganizationDenied": true,
+      "forgedStoreScopeDenied": true,
+      "managerCannotReadPlatformAdmin": true,
+      "catalogProducts": 51,
+      "distinctDeodorants": true,
+      "samplePriceLabels": 7,
+      "logoutRevoked": true,
+      "anonymousMediaDenied": true
+    }
+  },
+  "postImportRestore": {
+    "checkedAt": "2026-09-22T16:59:16.196890+00:00",
+    "backup": "20260922T165913Z-a8031624",
+    "processedMediaVerified": 53,
+    "businessTablesMatched": 17,
+    "records": [
+      {
+        "table": "Product",
+        "count": 51,
+        "fingerprintMd5": "802a9f0e7680ff139c6170df2a2b0557"
+      },
+      {
+        "table": "Store",
+        "count": 5,
+        "fingerprintMd5": "d24a7a2faea9974aa1967d0ae3eb973f"
+      },
+      {
+        "table": "StoreProduct",
+        "count": 255,
+        "fingerprintMd5": "a11dcdbfaf7e6e74d77a4015d61a3218"
+      },
+      {
+        "table": "InventoryLot",
+        "count": 267,
+        "fingerprintMd5": "e1d3c5a52a5426e36411e0fb03fd6e41"
+      },
+      {
+        "table": "Sale",
+        "count": 100,
+        "fingerprintMd5": "a2fa8adbc2e6634c539925bba0169a08"
+      },
+      {
+        "table": "SaleRevision",
+        "count": 110,
+        "fingerprintMd5": "7bc9ee9597108a783db803b94c9f1e18"
+      },
+      {
+        "table": "StockMovement",
+        "count": 392,
+        "fingerprintMd5": "9d12e4a6932acecb4f66cf65b373a37d"
+      },
+      {
+        "table": "PointsEntry",
+        "count": 115,
+        "fingerprintMd5": "1be130c299cb154f087ac1dc3dfad1ae"
+      },
+      {
+        "table": "PointsAccount",
+        "count": 5,
+        "fingerprintMd5": "e25e07475a1a3328eba317e7ad5c7192"
+      },
+      {
+        "table": "Reward",
+        "count": 10,
+        "fingerprintMd5": "d1e878f50acd38d1c4c412ea79061e22"
+      },
+      {
+        "table": "RewardClaim",
+        "count": 10,
+        "fingerprintMd5": "11a0d6df82469f9d18aea465ea1100be"
+      },
+      {
+        "table": "ReplenishmentOrder",
+        "count": 5,
+        "fingerprintMd5": "6126f9fba95db214c5ff4d10fb4c020e"
+      },
+      {
+        "table": "Delivery",
+        "count": 4,
+        "fingerprintMd5": "15e11841dda69fd1247509db262e5518"
+      },
+      {
+        "table": "DeliveryReceipt",
+        "count": 3,
+        "fingerprintMd5": "839d5c81951f60edb5235add48854770"
+      },
+      {
+        "table": "TrainingContent",
+        "count": 6,
+        "fingerprintMd5": "39795f3b35b82ff503be4d7a367506f1"
+      },
+      {
+        "table": "Announcement",
+        "count": 10,
+        "fingerprintMd5": "620b8f516b421c90c9c08c6fc5145b1e"
+      },
+      {
+        "table": "MediaAsset",
+        "count": 53,
+        "fingerprintMd5": "6b3a827d9a4d81718851fd6db0d3d7a1"
+      }
+    ],
+    "isolatedRestoreRemoved": true,
+    "productionPreserved": true,
+    "backupStatus": {
+      "latest": "20260922T165913Z-a8031624",
+      "maximumBytes": 4294967296,
+      "removed": [
+        "20260922T155440Z-a4e9de44"
+      ],
+      "removedCount": 1,
+      "status": "ok",
+      "time": "2026-09-22T16:59:13.991320+00:00",
+      "unverifiedRetained": [],
+      "unverifiedRetainedCount": 0,
+      "usedBytes": 2471509
+    }
+  },
+  "tls": {
+    "scopedTimer": "biobalance-tls.timer",
+    "renewalDryRun": "passed",
+    "apacheDeployHook": "passed",
+    "otherDomainCertificatesUnchanged": true
+  },
+  "email": {
+    "recipientConfirmedReceipt": true,
+    "recipientReportedPlacement": "Spam",
+    "recipientReportedAuthentication": {
+      "spf": "PASS",
+      "dkim": "PASS",
+      "dmarc": "PASS"
+    },
+    "inboxPlacementResolved": false
+  },
+  "signingBackup": {
+    "encrypted": "OpenPGP AES-256",
+    "roundTripVerifiedFiles": 7,
+    "independentOwnerCopy": "pending"
+  },
+  "sharedHostScope": {
+    "legacyMySqlRepair": "excluded by user",
+    "hostPackageUpgradePerformed": false,
+    "hostRebootPerformed": false,
+    "note": "A pre-existing missing legacy MySQL tablespace was found during maintenance preparation. No completed legacy backup or recovery is claimed."
+  },
+  "externalGates": [
+    "real business approval of demo prices, absent EANs and training",
+    "physical Android 4 GB and iOS performance/accessibility/camera tests",
+    "Apple signing and TestFlight",
+    "Play and cross-channel upgrades",
+    "five-store fourteen-day pilot",
+    "independent signing-key backup copy"
+  ],
+  "deferred": [
+    "off-server database/media backups",
+    "high availability",
+    "closed-app OS notifications without Firebase",
+    "app attestation and certificate pinning"
+  ],
+  "privateEvidenceDirectory": ".artifacts/catalog-operations-2026-09-22/",
+  "operationsSourceCommit": "3be538967955eeb1f09f4c0b0dff23b15463921c",
+  "capacity": {
+    "result": "passed",
+    "requestMix": "Approximately 90 percent reads and 10 percent sales",
+    "phases": [
+      {
+        "rate": 100,
+        "durationSeconds": 300
+      },
+      {
+        "rate": 200,
+        "durationSeconds": 30
+      }
+    ],
+    "clients": "One persistent external k6 pool, verified TLS through SSH loopback tunnel; gzip negotiated",
+    "dataset": {
+      "stores": 500,
+      "businessUsers": 5000,
+      "technicalNonLoginAdmins": 1,
+      "products": 200,
+      "lots": 300000,
+      "salesAfterLoad": 2041301
+    },
+    "httpRequests": 35999,
+    "acceptedSales": 3614,
+    "rejectedSales": 0,
+    "retryableResponses": 0,
+    "droppedIterations": 0,
+    "httpFailureRate": 0,
+    "thresholdsPassed": true,
+    "p95Milliseconds": {
+      "http_req_duration{kind:write}": 264.034,
+      "sale_operation_duration{phase:burst}": 550,
+      "http_req_duration{kind:write,phase:burst}": 549.464,
+      "sale_operation_duration": 267.35,
+      "sale_operation_duration{phase:steady}": 203.9,
+      "http_req_duration{kind:read}": 144.825,
+      "http_req_duration{kind:write,phase:steady}": 200.472,
+      "http_req_duration{kind:read,phase:steady}": 122.362,
+      "http_req_duration{kind:read,phase:burst}": 277.357
+    },
+    "serverTimings": {
+      "source": "Nginx request_time, includes server processing and response sending",
+      "groups": {
+        "steady:read": {
+          "count": 26996,
+          "p95Ms": 58.0,
+          "maximumMs": 849.0,
+          "targetMs": 300,
+          "latencyPassed": true
+        },
+        "steady:write": {
+          "count": 3003,
+          "p95Ms": 136.0,
+          "maximumMs": 797.0,
+          "targetMs": 700,
+          "latencyPassed": true
+        },
+        "burst:read": {
+          "count": 5389,
+          "p95Ms": 223.6,
+          "maximumMs": 982.0,
+          "targetMs": 300,
+          "latencyPassed": true
+        },
+        "burst:write": {
+          "count": 611,
+          "p95Ms": 490.0,
+          "maximumMs": 1061.0,
+          "targetMs": 700,
+          "latencyPassed": true
+        }
+      },
+      "errors": 0,
+      "latencyPassed": true
+    },
+    "ledgerChecks": {
+      "stockAndVersions": true,
+      "points": true,
+      "revisions": true,
+      "identities": true
+    },
+    "limits": [
+      "Cold reconnection stress runs previously missed thresholds and remain retained failures.",
+      "Shared-host quotas do not reserve CPU against other applications.",
+      "No physical mobile measurements are inferred from this server test."
+    ]
+  },
+  "rollback": {
+    "previousImage": "biobalance-api:2b3769b",
+    "schemaMigrations": 14,
+    "startup": true,
+    "read": true,
+    "crossStoreDenied": true,
+    "crossOrganizationDenied": true,
+    "sale": true,
+    "identicalRetryResult": true,
+    "ledgerVerified": true,
+    "salesAfterRollbackProbe": 2041302
+  },
+  "capacityEvidenceArchive": {
+    "sha256": "e8c9e4fb49e15b35096570f7a479b8f2eceb58707b03cd614bd18aadf1f7565e",
+    "bytes": 1226748,
+    "members": 331,
+    "privateCredentialsIncluded": false
+  },
+  "production": {
+    "checkedAt": "2026-09-22T21:43:51.625580+00:00",
+    "services": [
+      {
+        "service": "api1",
+        "image": "biobalance-api:2c89538",
+        "imageId": "sha256:fb6e41bfe636edc92c0e033a6a29c1c458a66c8bfe77a284bbbdfab04268edbc",
+        "health": "healthy",
+        "restarts": 0,
+        "oomKilled": false,
+        "cpuLimit": 1.5,
+        "memoryBytes": 805306368,
+        "readOnlyRoot": true,
+        "user": "node"
+      },
+      {
+        "service": "api2",
+        "image": "biobalance-api:2c89538",
+        "imageId": "sha256:fb6e41bfe636edc92c0e033a6a29c1c458a66c8bfe77a284bbbdfab04268edbc",
+        "health": "healthy",
+        "restarts": 0,
+        "oomKilled": false,
+        "cpuLimit": 1.5,
+        "memoryBytes": 805306368,
+        "readOnlyRoot": true,
+        "user": "node"
+      },
+      {
+        "service": "api3",
+        "image": "biobalance-api:2c89538",
+        "imageId": "sha256:fb6e41bfe636edc92c0e033a6a29c1c458a66c8bfe77a284bbbdfab04268edbc",
+        "health": "healthy",
+        "restarts": 0,
+        "oomKilled": false,
+        "cpuLimit": 1.5,
+        "memoryBytes": 805306368,
+        "readOnlyRoot": true,
+        "user": "node"
+      },
+      {
+        "service": "api4",
+        "image": "biobalance-api:2c89538",
+        "imageId": "sha256:fb6e41bfe636edc92c0e033a6a29c1c458a66c8bfe77a284bbbdfab04268edbc",
+        "health": "healthy",
+        "restarts": 0,
+        "oomKilled": false,
+        "cpuLimit": 1.5,
+        "memoryBytes": 805306368,
+        "readOnlyRoot": true,
+        "user": "node"
+      },
+      {
+        "service": "worker",
+        "image": "biobalance-api:2c89538",
+        "imageId": "sha256:fb6e41bfe636edc92c0e033a6a29c1c458a66c8bfe77a284bbbdfab04268edbc",
+        "health": "healthy",
+        "restarts": 0,
+        "oomKilled": false,
+        "cpuLimit": 0.5,
+        "memoryBytes": 402653184,
+        "readOnlyRoot": true,
+        "user": "node"
+      },
+      {
+        "service": "media-worker",
+        "image": "biobalance-media:2c89538",
+        "imageId": "sha256:2b4cf44cdd2664301bff39f69e7caaee7e64aa5c411530c0eaa910ed53443e1d",
+        "health": "healthy",
+        "restarts": 0,
+        "oomKilled": false,
+        "cpuLimit": 1.0,
+        "memoryBytes": 1073741824,
+        "readOnlyRoot": true,
+        "user": "node"
+      },
+      {
+        "service": "postgres",
+        "image": "postgres:17.7-alpine",
+        "imageId": "sha256:9104a94e25680111c00d6c9ad5913129d2f45c1bc51b363db177d638c313392e",
+        "health": "healthy",
+        "restarts": 0,
+        "oomKilled": false,
+        "cpuLimit": 4.0,
+        "memoryBytes": 2147483648,
+        "readOnlyRoot": false,
+        "user": ""
+      },
+      {
+        "service": "nginx",
+        "image": "nginx:1.28.0-alpine",
+        "imageId": "sha256:c318e336065b17ff460aeac6d14bce5d0b13e35f25d5cb1843b635359fc00c9a",
+        "health": "healthy",
+        "restarts": 0,
+        "oomKilled": false,
+        "cpuLimit": 1.0,
+        "memoryBytes": 134217728,
+        "readOnlyRoot": true,
+        "user": ""
+      }
+    ],
+    "monitor": {
+      "schemaVersion": 1,
+      "checkedAt": "2026-09-22T21:43:51.617005+00:00",
+      "problems": [],
+      "diskUsedPercent": 82.4,
+      "diskFreeBytes": 29257302016,
+      "backupAgeSeconds": 31,
+      "rebootRequired": true
+    },
+    "labContainers": [],
+    "labVolumes": [],
+    "capacityDirectoryRemoved": true
+  },
+  "postDeploymentRestore": {
+    "checkedAt": "2026-09-22T21:43:22.217399+00:00",
+    "backup": "20260922T214318Z-fb17bd65",
+    "processedMediaVerified": 53,
+    "businessTablesMatched": 17,
+    "records": [
+      {
+        "table": "Product",
+        "count": 51,
+        "fingerprintMd5": "802a9f0e7680ff139c6170df2a2b0557"
+      },
+      {
+        "table": "Store",
+        "count": 5,
+        "fingerprintMd5": "d24a7a2faea9974aa1967d0ae3eb973f"
+      },
+      {
+        "table": "StoreProduct",
+        "count": 255,
+        "fingerprintMd5": "a11dcdbfaf7e6e74d77a4015d61a3218"
+      },
+      {
+        "table": "InventoryLot",
+        "count": 267,
+        "fingerprintMd5": "e1d3c5a52a5426e36411e0fb03fd6e41"
+      },
+      {
+        "table": "Sale",
+        "count": 100,
+        "fingerprintMd5": "a2fa8adbc2e6634c539925bba0169a08"
+      },
+      {
+        "table": "SaleRevision",
+        "count": 110,
+        "fingerprintMd5": "7bc9ee9597108a783db803b94c9f1e18"
+      },
+      {
+        "table": "StockMovement",
+        "count": 392,
+        "fingerprintMd5": "9d12e4a6932acecb4f66cf65b373a37d"
+      },
+      {
+        "table": "PointsEntry",
+        "count": 115,
+        "fingerprintMd5": "1be130c299cb154f087ac1dc3dfad1ae"
+      },
+      {
+        "table": "PointsAccount",
+        "count": 5,
+        "fingerprintMd5": "e25e07475a1a3328eba317e7ad5c7192"
+      },
+      {
+        "table": "Reward",
+        "count": 10,
+        "fingerprintMd5": "d1e878f50acd38d1c4c412ea79061e22"
+      },
+      {
+        "table": "RewardClaim",
+        "count": 10,
+        "fingerprintMd5": "11a0d6df82469f9d18aea465ea1100be"
+      },
+      {
+        "table": "ReplenishmentOrder",
+        "count": 5,
+        "fingerprintMd5": "6126f9fba95db214c5ff4d10fb4c020e"
+      },
+      {
+        "table": "Delivery",
+        "count": 4,
+        "fingerprintMd5": "15e11841dda69fd1247509db262e5518"
+      },
+      {
+        "table": "DeliveryReceipt",
+        "count": 3,
+        "fingerprintMd5": "839d5c81951f60edb5235add48854770"
+      },
+      {
+        "table": "TrainingContent",
+        "count": 6,
+        "fingerprintMd5": "39795f3b35b82ff503be4d7a367506f1"
+      },
+      {
+        "table": "Announcement",
+        "count": 10,
+        "fingerprintMd5": "620b8f516b421c90c9c08c6fc5145b1e"
+      },
+      {
+        "table": "MediaAsset",
+        "count": 53,
+        "fingerprintMd5": "6b3a827d9a4d81718851fd6db0d3d7a1"
+      }
+    ],
+    "isolatedRestoreRemoved": true,
+    "productionPreserved": true,
+    "backupStatus": {
+      "latest": "20260922T214318Z-fb17bd65",
+      "maximumBytes": 4294967296,
+      "removed": [
+        "20260922T165913Z-a8031624"
+      ],
+      "removedCount": 1,
+      "status": "ok",
+      "time": "2026-09-22T21:43:19.682640+00:00",
+      "unverifiedRetained": [],
+      "unverifiedRetainedCount": 0,
+      "usedBytes": 4705937
+    }
+  },
+  "productionChecks": {
+    "health": true,
+    "adminMfaLogin": true,
+    "sessionRevocation": true,
+    "protectedMediaChecksumAndRanges": true,
+    "sameTwoUnpublishedMediaReused": true
+  },
+  "ci": {
+    "sourceCommit": "3be538967955eeb1f09f4c0b0dff23b15463921c",
+    "runId": 35784854922,
+    "jobs": {
+      "backend": "success",
+      "android": "success",
+      "android-journeys": "success",
+      "ios-unsigned": "success"
+    }
+  },
+  "externalMonitoring": {
+    "scheduledIncidentRun": 35776577391,
+    "postCleanupChecks": [
+      {
+        "runId": 35788371179,
+        "result": "success",
+        "problems": [],
+        "email": "not_needed"
+      },
+      {
+        "runId": 35788470485,
+        "result": "success",
+        "problems": [],
+        "email": "recovery"
+      }
+    ],
+    "smtpRecoveryAccepted": true,
+    "gmailInboxConfirmed": false
+  },
+  "cleanup": {
+    "disposableCapacityContainersAndVolumesRemoved": true,
+    "testResultsArchived": true,
+    "oldImagesRemoved": [
+      "biobalance-api:6a43944",
+      "biobalance-media:6a43944",
+      "biobalance-api:caa50b4",
+      "biobalance-media:caa50b4"
+    ],
+    "currentAndPreviousImagesRetained": true,
+    "localTestApiAndSshTunnelStopped": true,
+    "unrelatedDatabasesModified": false
+  }
+}

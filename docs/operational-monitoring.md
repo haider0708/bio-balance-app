@@ -21,4 +21,4 @@ Un changement d’incident déclenche un message, puis au maximum un rappel tout
 - Les workflows cron d’un dépôt public peuvent être désactivés par GitHub après une longue période sans activité. Contrôler leur exécution dans Actions et les réactiver si nécessaire. Une supervision avec engagement de disponibilité exige un fournisseur dédié.
 - Sauvegardes locales : plafond de 4 Gio, réserve de 10 Gio, rotation 7 quotidiennes/4 hebdomadaires, dernière copie valide protégée. Les contrôles ne constituent pas une sauvegarde hors VPS.
 
-Validation locale : tests de transition incident/rappel/rétablissement, lecture SSH forcée et contrôle HTTPS. La validation du runner distant et de l’email est consignée dans le registre d’implémentation après exécution.
+Validation locale : tests de transition incident/rappel/rétablissement, lecture SSH forcée et contrôle HTTPS. Le runner distant, un incident observé par cron et les deux contrôles sains de rétablissement ont été exécutés ; le message de rétablissement a été accepté par SMTP. Les identifiants et limites sont consignés dans le [relevé d’exploitation](vps-readiness-2026-09-22.md).
