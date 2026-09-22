@@ -174,6 +174,9 @@ class ProtectedImage extends StatelessWidget {
       vm.api.mediaUri(id, vm.api.binding).toString(),
       headers: {'Authorization': vm.api.binding.authorization ?? ''},
       height: height,
+      cacheHeight: (height * MediaQuery.devicePixelRatioOf(context))
+          .ceil()
+          .clamp(1, 1024),
       fit: BoxFit.contain,
       errorBuilder: (_, _, _) => const Icon(Icons.image_not_supported_outlined),
       loadingBuilder: (_, child, event) => event == null

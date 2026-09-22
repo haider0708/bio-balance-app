@@ -88,7 +88,7 @@ class WorkspaceViewModel extends ChangeNotifier {
   WorkspaceState state = const WorkspaceState(loading: true);
   Timer? _timer;
   int _selection = 0;
-  bool _closed = false;
+  bool _closed = false, _foreground = true;
   final _revokedStores = <String>{};
   final _draftGuards = <Future<void> Function()>{};
   late final StreamSubscription<AccessEvent> _accessEvents;
@@ -237,11 +237,26 @@ class WorkspaceViewModel extends ChangeNotifier {
         ),
       );
     }
+    _scheduleSync();
+  }
+
+  void setForeground(bool value) {
+    if (_closed || _foreground == value) return;
+    _foreground = value;
     _timer?.cancel();
-    _timer = Timer.periodic(const Duration(seconds: 30), (_) {
-      if (!state.syncing && state.store != null) {
-        unawaited(synchronize(silent: true));
-      }
+    if (value) {
+      unawaited(synchronize(silent: true));
+      _scheduleSync();
+    }
+  }
+
+  void _scheduleSync() {
+    _timer?.cancel();
+    if (_closed || !_foreground) return;
+    _timer = Timer(const Duration(seconds: 30), () async {
+      if (_closed || !_foreground) return;
+      await synchronize(silent: true);
+      _scheduleSync();
     });
   }
 
@@ -317,7 +332,13 @@ class WorkspaceViewModel extends ChangeNotifier {
 
   Future<void> synchronize({bool silent = false}) async {
     final store = state.store;
-    if (store == null || state.syncing || api.accessBlocked) return;
+    if (_closed ||
+        !_foreground ||
+        store == null ||
+        state.syncing ||
+        api.accessBlocked) {
+      return;
+    }
     _emit(state.copy(syncing: true));
     try {
       await repository.synchronize(user, store);
@@ -410,8 +431,7 @@ class WorkspaceViewModel extends ChangeNotifier {
   }
 
   String productName(String id) =>
-      state.data?.products.where((p) => p.id == id).firstOrNull?.name ??
-      'Produit';
+      state.data?.productsById[id]?.name ?? 'Produit';
   @override
   void dispose() {
     _closed = true;

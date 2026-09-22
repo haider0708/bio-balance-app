@@ -1,4 +1,5 @@
 import '../../core/navigation.dart';
+import 'stock_view_model.dart';
 
 import 'dart:async';
 
@@ -7,7 +8,6 @@ import 'package:flutter/material.dart';
 import '../reporting/history_screen.dart';
 
 import '../../../domain/models/models.dart';
-import '../../../domain/models/inventory_rules.dart';
 import '../../../domain/models/tunis_dates.dart';
 import '../../../domain/models/money.dart';
 import '../../core/design.dart';
@@ -25,107 +25,126 @@ class StockPage extends StatefulWidget {
 }
 
 class _StockPageState extends State<StockPage> {
-  String query = '', filter = 'all';
+  late StockViewModel stock;
   @override
-  Widget build(BuildContext context) {
-    final vm = widget.vm, data = vm.state.data;
-    final all = data?.products ?? [];
-    final products = all.where((p) {
-      if (!'${p.name} ${p.reference} ${p.barcode}'.toLowerCase().contains(
-        query.toLowerCase(),
-      )) {
-        return false;
-      }
-      return StockSummary.forProduct(data!, p.id).matches(filter);
-    }).toList();
-    return Content(
-      children: [
-        SectionTitle(
-          'Stock du magasin',
-          subtitle: 'Les lots, les quantités et les dates au même endroit.',
-          action: FilledButton.icon(
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => ReceiptScreen(vm: vm)),
-            ),
-            icon: const Icon(Icons.add),
-            label: const Text('Entrée de stock'),
-          ),
-        ),
-        TextField(
-          onChanged: (q) => setState(() => query = q),
-          decoration: const InputDecoration(
-            hintText: 'Produit, référence ou code-barres',
-            prefixIcon: Icon(Icons.search),
-          ),
-        ),
-        const SizedBox(height: 16),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            for (final e in {
-              'all': 'Tous',
-              'low': 'Stock faible',
-              'discrepancy': 'À vérifier',
-              'approaching': 'Péremption ≤ 30 jours',
-              'expired': 'Périmés',
-            }.entries)
-              ChoiceChip(
-                label: Text(e.value),
-                selected: filter == e.key,
-                onSelected: (_) => setState(() => filter = e.key),
+  void initState() {
+    super.initState();
+    stock = StockViewModel(widget.vm);
+  }
+
+  @override
+  void didUpdateWidget(covariant StockPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.vm != widget.vm) {
+      stock.dispose();
+      stock = StockViewModel(widget.vm);
+    }
+    stock.refresh();
+  }
+
+  @override
+  void dispose() {
+    stock.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => ListenableBuilder(
+    listenable: stock,
+    builder: (context, _) {
+      final vm = widget.vm, products = stock.rows;
+      return Content.builder(
+        itemCount: products.length,
+        itemBuilder: (context, index) => productCard(products[index]),
+        children: [
+          SectionTitle(
+            'Stock du magasin',
+            subtitle: 'Les lots, les quantités et les dates au même endroit.',
+            action: FilledButton.icon(
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => ReceiptScreen(vm: vm)),
               ),
-          ],
-        ),
-        const SizedBox(height: 20),
-        if (products.isEmpty)
-          const EmptyState(
-            title: 'Aucun produit à afficher',
-            description:
-                'Changez les filtres ou ajoutez vos premières références.',
-          ),
-        ...products.map((p) {
-          final summary = StockSummary.forProduct(data!, p.id);
-          final quantity = summary.available, low = summary.low;
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 10),
-            child: Card(
-              child: ListTile(
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 12,
-                ),
-                leading: Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: low
-                        ? const Color(0xFFFFF3DE)
-                        : const Color(0xFFEDF6E9),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(
-                    low ? Icons.inventory_2_outlined : Icons.spa_outlined,
-                    color: low ? const Color(0xFF815B12) : darkGreen,
-                  ),
-                ),
-                title: Text(p.name),
-                subtitle: Text(
-                  '${p.reference}\n$quantity unité(s) disponible(s)${low ? ' · À réapprovisionner' : ''}',
-                ),
-                isThreeLine: true,
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => ProductDetail(vm: vm, product: p),
-                  ),
-                ),
-              ),
+              icon: const Icon(Icons.add),
+              label: const Text('Entrée de stock'),
             ),
-          );
-        }),
-      ],
+          ),
+          TextField(
+            onChanged: stock.search,
+            decoration: const InputDecoration(
+              hintText: 'Produit, référence ou code-barres',
+              prefixIcon: Icon(Icons.search),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (final e in {
+                'all': 'Tous',
+                'low': 'Stock faible',
+                'discrepancy': 'À vérifier',
+                'approaching': 'Péremption ≤ 30 jours',
+                'expired': 'Périmés',
+              }.entries)
+                ChoiceChip(
+                  label: Text(e.value),
+                  selected: stock.filter == e.key,
+                  onSelected: (_) => stock.selectFilter(e.key),
+                ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          if (stock.loading) const LinearProgressIndicator(),
+          if (stock.error != null) Notice(stock.error!, error: true),
+          if (!stock.loading && stock.error == null && products.isEmpty)
+            const EmptyState(
+              title: 'Aucun produit à afficher',
+              description:
+                  'Changez les filtres ou ajoutez vos premières références.',
+            ),
+        ],
+      );
+    },
+  );
+
+  Widget productCard(StockRow row) {
+    final p = row.product, summary = row.summary;
+    final quantity = summary.available, low = summary.low;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Card(
+        child: ListTile(
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 12,
+          ),
+          leading: Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: low ? const Color(0xFFFFF3DE) : const Color(0xFFEDF6E9),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(
+              low ? Icons.inventory_2_outlined : Icons.spa_outlined,
+              color: low ? const Color(0xFF815B12) : darkGreen,
+            ),
+          ),
+          title: Text(p.name),
+          subtitle: Text(
+            '${p.reference}\n$quantity unité(s) disponible(s)${low ? ' · À réapprovisionner' : ''}',
+          ),
+          isThreeLine: true,
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => ProductDetail(vm: widget.vm, product: p),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

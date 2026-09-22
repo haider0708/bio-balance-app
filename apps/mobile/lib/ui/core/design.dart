@@ -86,13 +86,30 @@ ThemeData appTheme() => ThemeData(
 class Content extends StatelessWidget {
   final List<Widget> children;
   final double maxWidth;
-  const Content({super.key, required this.children, this.maxWidth = 1100});
+  final IndexedWidgetBuilder? itemBuilder;
+  final int itemCount;
+  const Content({super.key, required this.children, this.maxWidth = 1100})
+    : itemBuilder = null,
+      itemCount = 0;
+  const Content.builder({
+    super.key,
+    this.children = const [],
+    this.maxWidth = 1100,
+    required this.itemCount,
+    required this.itemBuilder,
+  });
   @override
   Widget build(BuildContext context) => Align(
     alignment: Alignment.topCenter,
     child: ConstrainedBox(
       constraints: BoxConstraints(maxWidth: maxWidth),
-      child: ListView(padding: const EdgeInsets.all(20), children: children),
+      child: ListView.builder(
+        padding: const EdgeInsets.all(20),
+        itemCount: children.length + itemCount,
+        itemBuilder: (context, index) => index < children.length
+            ? children[index]
+            : itemBuilder!(context, index - children.length),
+      ),
     ),
   );
 }

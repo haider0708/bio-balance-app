@@ -4,7 +4,10 @@ import 'dart:convert';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:mobile_scanner/mobile_scanner.dart';
+
+import '../scanning/scanner_screen.dart';
+export '../scanning/scanner_screen.dart';
+
 import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
 
@@ -245,9 +248,7 @@ class _SaleEditorState extends State<_SaleEditor> {
       MaterialPageRoute(builder: (_) => const ScannerScreen()),
     );
     if (code == null || !mounted) return;
-    final product = vm.workspace.state.data?.products
-        .where((p) => p.active && p.barcode == code)
-        .firstOrNull;
+    final product = vm.workspace.state.data?.productForBarcode(code);
     if (product == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -316,12 +317,9 @@ class _ProductPickerState extends State<ProductPicker> {
   String query = '';
   @override
   Widget build(BuildContext context) {
+    final normalized = query.trim().toLowerCase();
     final products = widget.products
-        .where(
-          (p) => '${p.name} ${p.reference} ${p.barcode}'.toLowerCase().contains(
-            query.toLowerCase(),
-          ),
-        )
+        .where((p) => p.matches(normalized))
         .toList();
     return SizedBox(
       height: MediaQuery.sizeOf(context).height * .8,
@@ -659,114 +657,4 @@ class _LineEditorState extends State<LineEditor> {
       );
     }
   }
-}
-
-class ScannerScreen extends StatefulWidget {
-  const ScannerScreen({super.key});
-  @override
-  State<ScannerScreen> createState() => _ScannerScreenState();
-}
-
-class _ScannerScreenState extends State<ScannerScreen>
-    with WidgetsBindingObserver {
-  final controller = MobileScannerController(
-    detectionSpeed: DetectionSpeed.noDuplicates,
-  );
-  bool captured = false, closing = false, cameraUnavailable = false;
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addObserver(this);
-  }
-
-  Future<void> cameraAction(Future<void> Function() action) async {
-    try {
-      await action();
-      if (mounted && !closing && cameraUnavailable) {
-        setState(() => cameraUnavailable = false);
-      }
-    } catch (_) {
-      // Native permission/lifecycle failures must leave manual entry usable.
-      if (mounted && !closing) {
-        setState(() => cameraUnavailable = true);
-      }
-    }
-  }
-
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) {
-      if (!captured && !controller.value.isStarting) {
-        unawaited(cameraAction(controller.start));
-      }
-    } else {
-      unawaited(cameraAction(controller.stop));
-    }
-  }
-
-  @override
-  void dispose() {
-    closing = true;
-    WidgetsBinding.instance.removeObserver(this);
-    unawaited(cameraAction(controller.dispose));
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(
-      title: const Text('Scanner un code-barres'),
-      actions: [
-        IconButton(
-          onPressed: () => cameraAction(controller.toggleTorch),
-          icon: const Icon(Icons.flashlight_on_outlined),
-          tooltip: 'Lampe torche',
-        ),
-      ],
-    ),
-    body: Column(
-      children: [
-        Expanded(
-          child: MobileScanner(
-            controller: controller,
-            useAppLifecycleState: false,
-            errorBuilder: (_, error) => const SingleChildScrollView(
-              child: EmptyState(
-                title: 'Caméra indisponible',
-                description: 'Autorisez la caméra dans les réglages ou utilisez la recherche manuelle.',
-                icon: Icons.no_photography_outlined,
-              ),
-            ),
-            onDetect: (capture) {
-              final code = capture.barcodes.firstOrNull?.rawValue;
-              if (!captured && code != null) {
-                captured = true;
-                unawaited(cameraAction(controller.stop));
-                completeRoute(context, code);
-              }
-            },
-          ),
-        ),
-        SafeArea(
-          top: false,
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              children: [
-                Text(
-                  cameraUnavailable
-                      ? 'Caméra indisponible.'
-                      : 'Placez le code-barres dans le cadre.',
-                ),
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('Utiliser la recherche manuelle'),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    ),
-  );
 }

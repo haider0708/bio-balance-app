@@ -65,6 +65,8 @@ class Store {
 class Product {
   final String id, name, reference, barcode, description;
   final bool active;
+  late final String searchText = '$name $reference $barcode'.toLowerCase();
+  bool matches(String normalizedQuery) => searchText.contains(normalizedQuery);
   Product.fromJson(Json v)
     : id = v['id'],
       name = v['name'],
@@ -141,6 +143,33 @@ class StoreData {
   late final List<Product> products = List.unmodifiable(
     objects(raw['products']).map(Product.fromJson),
   );
+  late final Map<String, Product> productsById = Map.unmodifiable({
+    for (final product in products) product.id: product,
+  });
+  late final Map<String, Product> _productsByBarcode = Map.unmodifiable({
+    for (final product in products.reversed)
+      if (product.active && product.barcode.isNotEmpty)
+        product.barcode: product,
+  });
+  Product? productForBarcode(String code) {
+    final exact = _productsByBarcode[code];
+    if (exact != null) return exact;
+    // iOS may report UPC-A as EAN-13 with a leading zero. Preserve the
+    // original identifiers, and use this equivalent representation only as fallback.
+    if (!RegExp(r'^\d{12,13}$').hasMatch(code)) return null;
+    var checksum = 0, weight = 1;
+    for (var i = code.length - 1; i >= 0; i--) {
+      checksum += (code.codeUnitAt(i) - 48) * weight;
+      weight = weight == 1 ? 3 : 1;
+    }
+    if (checksum % 10 != 0) return null;
+    return code.length == 12
+        ? _productsByBarcode['0$code']
+        : code.startsWith('0')
+        ? _productsByBarcode[code.substring(1)]
+        : null;
+  }
+
   late final List<InventoryLot> lots = List.unmodifiable(
     objects(raw['lots']).map(InventoryLot.fromJson),
   );

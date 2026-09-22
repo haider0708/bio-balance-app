@@ -13,27 +13,13 @@ class CatalogPage extends StatelessWidget {
   final WorkspaceViewModel vm;
   const CatalogPage({super.key, required this.vm});
   @override
-  Widget build(BuildContext context) => Content(
-    children: [
-      SectionTitle(
-        'Catalogue BioBalance',
-        action: FilledButton.icon(
-          onPressed: () => edit(context),
-          icon: const Icon(Icons.add),
-          label: const Text('Ajouter un produit'),
-        ),
-      ),
-      OutlinedButton.icon(
-        onPressed: () => Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => CatalogImportScreen(vm: vm)),
-        ),
-        icon: const Icon(Icons.upload_file),
-        label: const Text('Importer un CSV'),
-      ),
-      const SizedBox(height: 16),
-      ...objects(vm.state.data?.raw['products']).map(
-        (p) => Card(
+  Widget build(BuildContext context) {
+    final products = vm.state.data?.list('products') ?? <Json>[];
+    return Content.builder(
+      itemCount: products.length,
+      itemBuilder: (context, index) {
+        final p = products[index];
+        return Card(
           child: ListTile(
             contentPadding: const EdgeInsets.all(16),
             leading: const Icon(Icons.spa_outlined, color: darkGreen),
@@ -44,10 +30,30 @@ class CatalogPage extends StatelessWidget {
             trailing: const Icon(Icons.edit_outlined),
             onTap: () => edit(context, p),
           ),
+        );
+      },
+      children: [
+        SectionTitle(
+          'Catalogue BioBalance',
+          action: FilledButton.icon(
+            onPressed: () => edit(context),
+            icon: const Icon(Icons.add),
+            label: const Text('Ajouter un produit'),
+          ),
         ),
-      ),
-    ],
-  );
+        OutlinedButton.icon(
+          onPressed: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => CatalogImportScreen(vm: vm)),
+          ),
+          icon: const Icon(Icons.upload_file),
+          label: const Text('Importer un CSV'),
+        ),
+        const SizedBox(height: 16),
+      ],
+    );
+  }
+
   Future<void> edit(BuildContext context, [Json? p]) async {
     if (await openEditor(
       context,

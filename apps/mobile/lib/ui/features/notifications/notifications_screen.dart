@@ -1,8 +1,6 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 
-import '../../../domain/models/models.dart';
+import 'notifications_view_model.dart';
 import '../../core/design.dart';
 import '../authentication/session_view_model.dart';
 import '../workspace/workspace_view_model.dart';
@@ -14,60 +12,53 @@ class NotificationsScreen extends StatefulWidget {
   State<NotificationsScreen> createState() => _NotificationsScreenState();
 }
 
-class _NotificationsScreenState extends State<NotificationsScreen> {
-  List<Json> items = [];
-  String? error;
-  bool loading = true, fetching = false;
-  Timer? timer;
+class _NotificationsScreenState extends State<NotificationsScreen>
+    with WidgetsBindingObserver {
+  late final inbox = NotificationsViewModel(widget.vm.inbox);
+  bool current = false;
+  bool foreground =
+      WidgetsBinding.instance.lifecycleState == null ||
+      WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed;
+  String? openError;
   @override
   void initState() {
     super.initState();
-    load();
-    timer = Timer.periodic(const Duration(seconds: 4), (_) => load());
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    current = ModalRoute.isCurrentOf(context) ?? true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) inbox.setActive(current && foreground);
+    });
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    foreground = state == AppLifecycleState.resumed;
+    inbox.setActive(current && foreground);
   }
 
   @override
   void dispose() {
-    timer?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
+    inbox.dispose();
     super.dispose();
   }
 
-  Future<void> load() async {
-    if (fetching) return;
-    fetching = true;
-    try {
-      final result = objects(await widget.vm.inbox.list());
-      if (mounted) {
-        setState(() {
-          items = result;
-          error = null;
-        });
-      }
-    } catch (e) {
-      if (mounted) setState(() => error = SessionViewModel.message(e));
-    } finally {
-      fetching = false;
-      if (mounted) setState(() => loading = false);
-    }
-  }
-
   @override
-  Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('Notifications')),
-    body: Content(
-      maxWidth: 760,
-      children: [
-        if (error != null) Notice(error!, retry: load),
-        if (loading) const Center(child: CircularProgressIndicator()),
-        if (!loading && items.isEmpty)
-          const EmptyState(
-            title: 'Aucune notification',
-            description:
-                'Les informations utiles à votre activité apparaîtront ici.',
-            icon: Icons.notifications_none,
-          ),
-        ...items.map(
-          (n) => Padding(
+  Widget build(BuildContext context) => ListenableBuilder(
+    listenable: inbox,
+    builder: (context, _) => Scaffold(
+      appBar: AppBar(title: const Text('Notifications')),
+      body: Content.builder(
+        maxWidth: 760,
+        itemCount: inbox.items.length,
+        itemBuilder: (context, index) {
+          final n = inbox.items[index];
+          return Padding(
             padding: const EdgeInsets.only(bottom: 12),
             child: Card(
               child: ListTile(
@@ -101,18 +92,30 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                         ],
                       ),
                     );
-                    await load();
+                    await inbox.load();
                   } catch (e) {
                     if (mounted) {
-                      setState(() => error = SessionViewModel.message(e));
+                      setState(() => openError = SessionViewModel.message(e));
                     }
                   }
                 },
               ),
             ),
-          ),
-        ),
-      ],
+          );
+        },
+        children: [
+          if ((openError ?? inbox.error) != null)
+            Notice((openError ?? inbox.error)!, retry: inbox.load),
+          if (inbox.loading) const Center(child: CircularProgressIndicator()),
+          if (!inbox.loading && inbox.items.isEmpty)
+            const EmptyState(
+              title: 'Aucune notification',
+              description:
+                  'Les informations utiles à votre activité apparaîtront ici.',
+              icon: Icons.notifications_none,
+            ),
+        ],
+      ),
     ),
   );
 }

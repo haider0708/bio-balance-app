@@ -111,6 +111,10 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    context.read<WorkspaceViewModel>().setForeground(
+      WidgetsBinding.instance.lifecycleState == null ||
+          WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed,
+    );
     push = context.read<SessionViewModel?>()?.notifications;
     pendingPush = push?.pendingTap;
     pushEvents = push?.events.listen(
@@ -127,8 +131,10 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    context.read<WorkspaceViewModel>().setForeground(
+      state == AppLifecycleState.resumed,
+    );
     if (state == AppLifecycleState.resumed) {
-      context.read<WorkspaceViewModel>().synchronize(silent: true);
       unawaited(push?.resume());
     }
   }
