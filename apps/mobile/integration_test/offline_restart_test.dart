@@ -1,3 +1,5 @@
+import '../test/support/test_origin.dart';
+
 import 'dart:async';
 import 'dart:convert';
 
@@ -88,8 +90,8 @@ void main() {
         {'operationId': pending.operationId, 'payload': pending.payload},
       );
       await Dio(
-        BaseOptions(
-          baseUrl: base,
+        testOptions(
+          base,
           headers: {'x-test-key': const String.fromEnvironment('TEST_KEY')},
         ),
       ).post(
@@ -114,8 +116,8 @@ void main() {
       );
       expect(api.accountId, user.id);
       await Dio(
-        BaseOptions(
-          baseUrl: base,
+        testOptions(
+          base,
           headers: {'x-test-key': const String.fromEnvironment('TEST_KEY')},
         ),
       ).post('/__test/deny-camera');

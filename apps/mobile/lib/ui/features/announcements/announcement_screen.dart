@@ -29,7 +29,11 @@ class _AnnouncementScreenState extends State<AnnouncementScreen> {
   );
   late final FormDraftController draft;
   String id = const Uuid().v4(), audience = 'all';
-  bool busy = false, loading = true, uncertain = false;
+  bool busy = false,
+      loading = true,
+      uncertain = false,
+      restored = false,
+      confirming = false;
   String? error;
   @override
   void initState() {
@@ -41,6 +45,10 @@ class _AnnouncementScreenState extends State<AnnouncementScreen> {
   }
 
   Future<void> restore() async {
+    setState(() {
+      loading = true;
+      error = null;
+    });
     try {
       final saved = await draft.restore() ?? {};
       final pending = await repository.pending(widget.vm.user.id, store);
@@ -51,12 +59,13 @@ class _AnnouncementScreenState extends State<AnnouncementScreen> {
       title.text = values['title'] ?? '';
       message.text = values['body'] ?? '';
       audience = values['audience'] ?? 'all';
+      restored = true;
     } catch (e) {
       if (mounted) error = SessionViewModel.message(e);
     } finally {
       if (mounted) {
         setState(() => loading = false);
-        persist();
+        if (restored) persist();
       }
     }
   }
@@ -68,7 +77,7 @@ class _AnnouncementScreenState extends State<AnnouncementScreen> {
     'audience': audience,
   };
   void persist() {
-    if (!loading) {
+    if (!loading && restored) {
       unawaited(
         draft.change(values()).catchError((Object e) {
           if (mounted) setState(() => error = SessionViewModel.message(e));
@@ -102,17 +111,22 @@ class _AnnouncementScreenState extends State<AnnouncementScreen> {
           ),
         if (error != null) Notice(error!, error: true),
         if (loading) const LinearProgressIndicator(),
+        if (!loading && !restored)
+          TextButton(
+            onPressed: restore,
+            child: const Text('Réessayer de récupérer le brouillon'),
+          ),
         const SizedBox(height: 16),
         TextField(
           controller: title,
-          enabled: !busy && !loading && !uncertain,
+          enabled: restored && !busy && !loading && !uncertain,
           maxLength: 120,
           decoration: const InputDecoration(labelText: 'Titre'),
         ),
         const SizedBox(height: 16),
         TextField(
           controller: message,
-          enabled: !busy && !loading && !uncertain,
+          enabled: restored && !busy && !loading && !uncertain,
           maxLength: 2000,
           minLines: 4,
           maxLines: 10,
@@ -130,7 +144,7 @@ class _AnnouncementScreenState extends State<AnnouncementScreen> {
               child: Text('Vendeurs uniquement'),
             ),
           ],
-          onChanged: busy || loading || uncertain
+          onChanged: !restored || busy || loading || uncertain
               ? null
               : (value) {
                   setState(() => audience = value!);
@@ -140,7 +154,7 @@ class _AnnouncementScreenState extends State<AnnouncementScreen> {
         ),
         const SizedBox(height: 24),
         FilledButton(
-          onPressed: busy || loading ? null : send,
+          onPressed: !restored || busy || confirming || loading ? null : send,
           child: Text(
             uncertain
                 ? 'Vérifier et reprendre l’envoi'
@@ -151,19 +165,21 @@ class _AnnouncementScreenState extends State<AnnouncementScreen> {
     ),
   );
   Future<void> send() async {
+    if (!restored || busy || confirming || draft.completed) return;
     if (title.text.trim().length < 2 || message.text.trim().length < 2) {
       setState(() => error = 'Renseignez un titre et un message.');
       return;
     }
-    if (!await confirmAction(
+    setState(() => confirming = true);
+    final confirmed = await confirmAction(
       context,
       'Confirmer l’annonce',
       'Magasin : ${store.name}\nDestinataires : ${audience == 'all' ? 'Toute l’équipe' : 'Vendeurs uniquement'}\n\n${title.text}\n\n${message.text}',
       label: 'Envoyer à cette équipe',
-    )) {
-      return;
-    }
+    );
     if (!mounted) return;
+    setState(() => confirming = false);
+    if (!confirmed) return;
     setState(() {
       busy = true;
       error = null;
@@ -172,7 +188,19 @@ class _AnnouncementScreenState extends State<AnnouncementScreen> {
       widget.vm.requireAccess(store, 'manage');
       await draft.change(values());
       await repository.send(widget.vm.user.id, store, values());
-      await draft.complete();
+      try {
+        await draft.complete();
+      } catch (_) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Annonce envoyée. Le brouillon sera à nettoyer après récupération du stockage.',
+              ),
+            ),
+          );
+        }
+      }
       if (mounted) completeRoute(context);
     } catch (e) {
       var hasPending = true;

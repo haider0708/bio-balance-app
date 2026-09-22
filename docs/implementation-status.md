@@ -2,7 +2,7 @@
 
 Les corrections de la dernière passe d’audit sont implémentées et vérifiées localement ; l’application n’est pas encore qualifiée pour une diffusion en production. Ce document distingue les fonctionnalités codées des vérifications réalisées.
 
-Dernière passe : [audit final et qualification](final-audit-2026-09-22.md). Les résultats des étapes antérieures ci-dessous sont historiques.
+Dernière passe : [revue, fiabilité et finition](review-polish-2026-09-22.md). Le [registre VPS](vps-readiness-2026-09-22.md) établit le déploiement, la charge et la restauration actuels. Les comptes de tests et états des étapes antérieures ci-dessous sont historiques.
 
 ## Fonctionnalités présentes
 
@@ -39,14 +39,13 @@ Audit du 22 septembre : voir [constats corrigés et preuves](audit-2026-09-22.md
 
 ## Travail restant avant acceptation
 
-- Déploiement/restauration avec médias traités et rollback vérifiés localement ; valider ces procédures sur le VPS cible.
-- Parcours UI Android, révocation en cours de saisie, erreur SQLite et force-stop vérifiés ; compléter la recette native iOS et les essais physiques.
-- Lecture vidéo hors ligne vérifiée sur émulateur Android ; liens natifs et transferts interrompus sur appareils physiques restent à vérifier.
-- Exécuter tests caméra/notifications internes, accessibilité, rotation et stabilité mémoire sur Android/iOS physiques ; compiler iOS sur macOS et produire les builds signés.
-- Charge locale 100/200 req/s et benchmark SQLite exécutés (voir étape 10). Rejouer sur le VPS de référence ; démarrage, persistance/recherche et fluidité restent à qualifier sur appareils physiques.
-- Renseigner VPS/domaine/SMTP, inscription Play avec la clé locale et signature Apple, valider renouvellement TLS/supervision, puis effectuer le pilote et corriger ses retours.
+- Essais physiques Android 4 Go et iOS : caméra, accessibilité, mémoire, démarrage, fluidité et transferts interrompus.
+- Compte Apple, signature iOS/TestFlight, inscription Google Play et validation des mises à jour Play/APK avec la même clé.
+- Validation des données commerciales réelles ; les stocks, lots, comptes et sept prix de démonstration doivent rester identifiés comme tels jusqu’à leur remplacement.
+- Pilote de cinq magasins pendant au moins deux semaines, correction et nouvelle vérification des retours.
+- SPF/DKIM/DMARC passent et les messages arrivent ; leur classement Gmail doit encore être suivi avec de vrais envois consentis.
 
-Les sauvegardes hors VPS, la haute disponibilité, les abonnements payants, l’admin web, WhatsApp et les classements hors magasin restent reportés conformément au périmètre approuvé.
+Le VPS, HTTPS, SMTP, sauvegarde/restauration et qualification 100/200 req/s disposent de preuves dans le registre VPS. Les notifications OS application fermée, les sauvegardes hors VPS, la haute disponibilité, les abonnements payants, l’admin web, WhatsApp et les classements hors magasin restent reportés selon le périmètre approuvé.
 
 ## Plan séquentiel — registre des étapes
 

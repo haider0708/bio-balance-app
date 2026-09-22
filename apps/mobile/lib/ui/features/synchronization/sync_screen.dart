@@ -33,8 +33,53 @@ class SyncScreen extends StatefulWidget {
 
 class _SyncScreenState extends State<SyncScreen> {
   bool history = false, busy = false;
-  String? error;
+  String? error, storeId;
+  Object? lastData;
+  DateTime? syncedAt;
+  int pending = -1;
+  late Future<List<OutboxRow>> rows;
+
+  @override
+  void initState() {
+    super.initState();
+    reload();
+    widget.vm.addListener(workspaceChanged);
+  }
+
+  void reload() {
+    final state = widget.vm.state;
+    storeId = state.store?.id;
+    lastData = state.data;
+    syncedAt = state.syncedAt;
+    pending = state.pending;
+    rows = storeId == null
+        ? Future.value(<OutboxRow>[])
+        : widget.vm.repository.operations(
+            widget.vm.user.id,
+            storeId!,
+            includeResolved: history,
+          );
+  }
+
+  void workspaceChanged() {
+    final state = widget.vm.state;
+    if (mounted &&
+        (state.store?.id != storeId ||
+            state.data != lastData ||
+            state.syncedAt != syncedAt ||
+            state.pending != pending)) {
+      setState(reload);
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.vm.removeListener(workspaceChanged);
+    super.dispose();
+  }
+
   Future<void> action(Future<void> Function() work) async {
+    if (busy) return;
     setState(() {
       busy = true;
       error = null;
@@ -44,103 +89,125 @@ class _SyncScreenState extends State<SyncScreen> {
     } catch (e) {
       if (mounted) setState(() => error = SessionViewModel.message(e));
     } finally {
-      if (mounted) setState(() => busy = false);
+      if (mounted) {
+        setState(() {
+          busy = false;
+          reload();
+        });
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(title: const Text('Synchronisation')),
-    body: Content(
-      maxWidth: 760,
-      children: [
-        const Notice(
-          'Chaque opération conserve son compte et son magasin d’origine. Une erreur n’efface pas les informations enregistrées.',
-        ),
-        const SizedBox(height: 20),
-        if (error != null) Notice(error!, error: true),
-        FilledButton.icon(
-          onPressed: busy ? null : () => action(widget.vm.synchronize),
-          icon: const Icon(Icons.sync),
-          label: const Text('Synchroniser maintenant'),
-        ),
-        SwitchListTile(
-          contentPadding: EdgeInsets.zero,
-          value: history,
-          onChanged: (v) => setState(() => history = v),
-          title: const Text('Afficher les résolutions précédentes'),
-        ),
-        if (widget.vm.state.store == null)
-          const Notice('Sélectionnez un magasin pour consulter ses opérations.')
-        else
-          FutureBuilder(
-            future: widget.vm.repository.operations(
-              widget.vm.user.id,
-              widget.vm.state.store!.id,
-              includeResolved: history,
-            ),
-            builder: (context, snapshot) {
-              if (snapshot.hasError) {
-                return const Notice(
-                  'Impossible de lire les opérations de ce téléphone.',
-                  error: true,
-                );
-              }
-              if (!snapshot.hasData) return const CircularProgressIndicator();
-              final rows = snapshot.data!;
-              if (rows.isEmpty) {
-                return const EmptyState(
-                  title: 'Tout est synchronisé',
-                  description: 'Aucune opération en attente sur ce magasin.',
-                  icon: Icons.cloud_done_outlined,
-                );
-              }
-              return Column(
-                children: rows.map((r) {
-                  final command = Map<String, dynamic>.from(
-                    jsonDecode(r.payload)['command'],
-                  );
-                  final failed = ['conflict', 'rejected'].contains(r.status);
-                  return CompactRow(
-                    title: operationLabel(command['type']),
-                    subtitle: dateLabel(r.createdAt.toIso8601String()),
-                    footer: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        StatusChip(
-                          r.status == 'resolved'
-                              ? 'Résolue'
-                              : failed
-                              ? 'À vérifier'
-                              : r.status == 'accepted'
-                              ? 'Confirmée · actualisation en cours'
-                              : r.status == 'blocked'
-                              ? 'Bloquée par une saisie précédente'
-                              : r.status == 'retryable'
-                              ? 'Nouvelle tentative programmée'
-                              : 'En attente',
-                        ),
-                        Text(
-                          r.resolution ??
-                              r.error ??
-                              'Conservée sur ce téléphone.',
-                        ),
-                        if (failed)
-                          TextButton.icon(
-                            onPressed: busy
-                                ? null
-                                : () => action(() => review(r, rows)),
-                            icon: const Icon(Icons.rule),
-                            label: const Text('Vérifier et résoudre'),
-                          ),
-                      ],
+    body: FutureBuilder<List<OutboxRow>>(
+      future: rows,
+      builder: (context, snapshot) {
+        final loading = snapshot.connectionState == ConnectionState.waiting;
+        final operations = loading
+            ? <OutboxRow>[]
+            : snapshot.data ?? <OutboxRow>[];
+        return Content.builder(
+          maxWidth: 760,
+          itemCount: operations.length,
+          itemBuilder: (context, index) {
+            final row = operations[index];
+            final command = Map<String, dynamic>.from(
+              jsonDecode(row.payload)['command'],
+            );
+            final failed = ['conflict', 'rejected'].contains(row.status);
+            final resolved = row.status == 'resolved';
+            return CompactRow(
+              title: operationLabel(command['type']),
+              subtitle: dateLabel(row.createdAt.toIso8601String()),
+              footer: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  StatusChip(
+                    resolved
+                        ? 'Résolue'
+                        : failed
+                        ? 'À vérifier'
+                        : row.status == 'accepted'
+                        ? 'Confirmée · actualisation en cours'
+                        : row.status == 'blocked'
+                        ? 'Bloquée par une saisie précédente'
+                        : row.status == 'retryable'
+                        ? 'Nouvelle tentative programmée'
+                        : 'En attente',
+                    tone: failed
+                        ? AppTone.danger
+                        : resolved
+                        ? AppTone.success
+                        : AppTone.warning,
+                    icon: failed
+                        ? Icons.error_outline
+                        : resolved
+                        ? Icons.check_circle_outline
+                        : Icons.schedule,
+                  ),
+                  Text(
+                    row.resolution ??
+                        row.error ??
+                        'Conservée sur ce téléphone.',
+                  ),
+                  if (failed)
+                    TextButton.icon(
+                      onPressed: busy
+                          ? null
+                          : () => action(() => review(row, operations)),
+                      icon: const Icon(Icons.rule),
+                      label: const Text('Vérifier et résoudre'),
                     ),
-                  );
-                }).toList(),
-              );
-            },
-          ),
-      ],
+                ],
+              ),
+            );
+          },
+          children: [
+            const Notice(
+              'Chaque opération conserve son compte et son magasin d’origine. Une erreur n’efface pas les informations enregistrées.',
+            ),
+            const SizedBox(height: 20),
+            if (error != null) Notice(error!, error: true),
+            FilledButton.icon(
+              onPressed: busy ? null : () => action(widget.vm.synchronize),
+              icon: const Icon(Icons.sync),
+              label: const Text('Synchroniser maintenant'),
+            ),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              value: history,
+              onChanged: (value) => setState(() {
+                history = value;
+                reload();
+              }),
+              title: const Text('Afficher les résolutions précédentes'),
+            ),
+            if (storeId == null)
+              const Notice(
+                'Sélectionnez un magasin pour consulter ses opérations.',
+              )
+            else if (snapshot.hasError)
+              Notice(
+                'Impossible de lire les opérations de ce téléphone.',
+                error: true,
+                retry: () => setState(reload),
+              )
+            else if (loading)
+              const LinearProgressIndicator()
+            else if (operations.isEmpty)
+              EmptyState(
+                title: history
+                    ? 'Aucune opération enregistrée'
+                    : 'Tout est synchronisé',
+                description:
+                    'Aucune opération ${history ? 'enregistrée' : 'en attente'} sur ce magasin.',
+                icon: Icons.cloud_done_outlined,
+              ),
+          ],
+        );
+      },
     ),
   );
 

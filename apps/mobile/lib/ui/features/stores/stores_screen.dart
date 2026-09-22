@@ -1,3 +1,6 @@
+import '../inventory/inventory_screens.dart';
+import '../team/team_screen.dart';
+import '../workspace/operation_helpers.dart';
 import '../../core/navigation.dart';
 
 import 'dart:async';
@@ -13,8 +16,6 @@ import '../../../domain/models/models.dart';
 import '../../core/design.dart';
 import '../../core/forms.dart';
 import '../workspace/workspace_view_model.dart';
-import '../workspace/operations_screens.dart';
-import '../workspace/team_rewards_orders.dart';
 
 class StoresPage extends StatefulWidget {
   final WorkspaceViewModel vm;

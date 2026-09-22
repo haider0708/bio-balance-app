@@ -1,4 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+
+import 'ranking_view_model.dart';
 
 import '../media/image_input.dart';
 
@@ -21,23 +25,37 @@ class RewardsPage extends StatefulWidget {
 }
 
 class _RewardsPageState extends State<RewardsPage> {
-  List<Json> ranking = [];
+  late final RankingViewModel rankingModel;
+  late final Store store = widget.vm.state.store!;
+  DateTime? lastSync;
+  final busyActions = <String>{};
   @override
   void initState() {
     super.initState();
-    loadRanking();
+    rankingModel = RankingViewModel(() => widget.vm.rewards.ranking(store));
+    lastSync = widget.vm.state.syncedAt;
+    widget.vm.addListener(workspaceChanged);
+    unawaited(rankingModel.refresh());
   }
 
-  Future<void> loadRanking() async {
-    try {
-      final result = await widget.vm.rewards.ranking(widget.vm.state.store!);
-      if (mounted) setState(() => ranking = objects(result['scores']));
-    } catch (_) {}
+  void workspaceChanged() {
+    final current = widget.vm.state;
+    if (current.store?.id == store.id && current.syncedAt != lastSync) {
+      lastSync = current.syncedAt;
+      unawaited(rankingModel.refresh());
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.vm.removeListener(workspaceChanged);
+    rankingModel.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) => ListenableBuilder(
-    listenable: widget.vm,
+    listenable: Listenable.merge([widget.vm, rankingModel]),
     builder: (context, _) => content(context),
   );
   Widget content(BuildContext context) {
@@ -47,6 +65,7 @@ class _RewardsPageState extends State<RewardsPage> {
         children: [Notice('Accès à vérifier. Vos saisies sont conservées.')],
       );
     }
+    final ranking = rankingModel.state.value?.scores ?? [];
     final rewards = data.list('rewards'), claims = data.list('claims');
     final manage = vm.state.store!.canManage || vm.user.admin;
     return Content.builder(
@@ -58,6 +77,7 @@ class _RewardsPageState extends State<RewardsPage> {
             title: reward['title'],
             value: '${reward['cost']} pts',
             subtitle: reward['active'] == false ? 'Archivée' : 'Disponible',
+            tone: AppTone.reward,
             icon: reward['imageId'] == null ? Icons.redeem_outlined : null,
             leading: reward['imageId'] == null
                 ? null
@@ -75,7 +95,8 @@ class _RewardsPageState extends State<RewardsPage> {
               children: [
                 TextButton(
                   onPressed:
-                      data.available < integer(reward['cost']) ||
+                      busyActions.contains('reward:${reward['id']}') ||
+                          data.available < integer(reward['cost']) ||
                           reward['active'] == false
                       ? null
                       : () => requestReward(context, reward),
@@ -112,16 +133,24 @@ class _RewardsPageState extends State<RewardsPage> {
                     children: [
                       if (manage) ...[
                         FilledButton.tonal(
-                          onPressed: () => resolve(context, claim, 'fulfilled'),
+                          onPressed:
+                              busyActions.contains('claim:${claim['id']}')
+                              ? null
+                              : () => resolve(context, claim, 'fulfilled'),
                           child: const Text('Confirmer la remise'),
                         ),
                         TextButton(
-                          onPressed: () => resolve(context, claim, 'rejected'),
+                          onPressed:
+                              busyActions.contains('claim:${claim['id']}')
+                              ? null
+                              : () => resolve(context, claim, 'rejected'),
                           child: const Text('Refuser'),
                         ),
                       ],
                       TextButton(
-                        onPressed: () => resolve(context, claim, 'cancelled'),
+                        onPressed: busyActions.contains('claim:${claim['id']}')
+                            ? null
+                            : () => resolve(context, claim, 'cancelled'),
                         child: const Text('Annuler la demande'),
                       ),
                     ],
@@ -132,18 +161,39 @@ class _RewardsPageState extends State<RewardsPage> {
         if (next == 0) {
           return Padding(
             padding: const EdgeInsets.only(top: 20),
-            child: SectionTitle(
-              'Classement du mois',
-              subtitle: ranking.isEmpty
-                  ? 'Disponible après les premières ventes synchronisées.'
-                  : 'Les cadeaux échangés ne diminuent pas votre classement.',
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SectionTitle(
+                  'Classement du mois',
+                  subtitle: rankingModel.state.loading
+                      ? 'Actualisation…'
+                      : ranking.isEmpty && rankingModel.state.error == null
+                      ? 'Disponible après les premières ventes synchronisées.'
+                      : 'Les cadeaux échangés ne diminuent pas votre classement.',
+                  action: IconButton(
+                    tooltip: 'Actualiser le classement',
+                    onPressed: rankingModel.state.loading
+                        ? null
+                        : rankingModel.refresh,
+                    icon: const Icon(Icons.refresh),
+                  ),
+                ),
+                if (rankingModel.state.error != null)
+                  Notice(
+                    rankingModel.state.value == null
+                        ? 'Classement indisponible. Réessayez lorsque la connexion revient.'
+                        : 'Actualisation indisponible. Le dernier classement chargé reste affiché.',
+                    retry: rankingModel.refresh,
+                  ),
+              ],
             ),
           );
         }
         final score = ranking[next - 1];
         return CompactRow(
-          title: '${score['rank']}. ${score['name']}',
-          value: '${score['score']} pts',
+          title: '${score.rank}. ${score.name}',
+          value: '${score.points} pts',
         );
       },
       children: [
@@ -223,20 +273,27 @@ class _RewardsPageState extends State<RewardsPage> {
       );
 
   Future<void> requestReward(BuildContext context, Json reward) async {
-    if (await confirmAction(
-      context,
-      'Réserver cette récompense ?',
-      '${reward['cost']} points seront réservés. Ils seront déduits quand le responsable confirmera la remise.',
-    )) {
-      if (!context.mounted) return;
-      await run(
+    final key = 'reward:${reward['id']}';
+    if (!busyActions.add(key)) return;
+    setState(() {});
+    try {
+      if (await confirmAction(
         context,
-        () => widget.vm.online({
-          'type': 'reward.request',
-          'claimId': const Uuid().v4(),
-          'rewardId': reward['id'],
-        }),
-      );
+        'Réserver cette récompense ?',
+        '${reward['cost']} points seront réservés. Ils seront déduits quand le responsable confirmera la remise.',
+      )) {
+        if (!context.mounted) return;
+        await run(
+          context,
+          () => widget.vm.online({
+            'type': 'reward.request',
+            'claimId': const Uuid().v4(),
+            'rewardId': reward['id'],
+          }, targetStore: store),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => busyActions.remove(key));
     }
   }
 
@@ -245,24 +302,35 @@ class _RewardsPageState extends State<RewardsPage> {
     Json claim,
     String decision,
   ) async {
-    if (await confirmAction(
-      context,
-      decision == 'fulfilled'
-          ? 'Confirmer la remise physique ?'
-          : 'Traiter cette demande ?',
-      decision == 'fulfilled'
-          ? 'Confirmez après avoir donné la récompense. Les points et les éventuels produits seront déduits une seule fois.'
-          : 'Les points réservés seront libérés.',
-    )) {
-      if (!context.mounted) return;
-      await run(
+    final key = 'claim:${claim['id']}';
+    if (!busyActions.add(key)) return;
+    setState(() {});
+    try {
+      if (await confirmAction(
         context,
-        () => widget.vm.online({
-          'type': 'reward.resolve',
-          'claimId': claim['id'],
-          'decision': decision,
-        }, expectedVersion: integer(claim['version'])),
-      );
+        decision == 'fulfilled'
+            ? 'Confirmer la remise physique ?'
+            : 'Traiter cette demande ?',
+        decision == 'fulfilled'
+            ? 'Confirmez après avoir donné la récompense. Les points et les éventuels produits seront déduits une seule fois.'
+            : 'Les points réservés seront libérés.',
+      )) {
+        if (!context.mounted) return;
+        await run(
+          context,
+          () => widget.vm.online(
+            {
+              'type': 'reward.resolve',
+              'claimId': claim['id'],
+              'decision': decision,
+            },
+            expectedVersion: integer(claim['version']),
+            targetStore: store,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => busyActions.remove(key));
     }
   }
 

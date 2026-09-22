@@ -6,6 +6,9 @@ import subprocess
 import tarfile
 import tempfile
 import unittest
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "scripts"))
+from release_integrity import source_identity
 
 class ReleasePackageTest(unittest.TestCase):
     def setUp(self):
@@ -14,9 +17,10 @@ class ReleasePackageTest(unittest.TestCase):
         self.root = Path(self.temp.name)
         (self.root/'scripts').mkdir()
         shutil.copy2(Path(__file__).resolve().parents[2]/'scripts/package-release.py', self.root/'scripts/package-release.py')
+        shutil.copy2(Path(__file__).resolve().parents[2]/'scripts/release_integrity.py', self.root/'scripts/release_integrity.py')
         (self.root/'docs').mkdir()
         (self.root/'docs/release-gates.md').write_text('Physical devices and signing pending.\n')
-        (self.root/'.gitignore').write_text('.artifacts/\n.env\n')
+        (self.root/'.gitignore').write_text('.artifacts/\n.env\n__pycache__/\n')
         (self.root/'.env').write_text('PRIVATE_VALUE=must-never-be-packaged\n')
         (self.root/'tests/audit').mkdir(parents=True)
         (self.root/'tests/audit/final-evidence-2026-09-22.json').write_text('{"productionAccepted":false}\n')
@@ -27,6 +31,7 @@ class ReleasePackageTest(unittest.TestCase):
         self.build=self.root/'.artifacts/releases/builds/fixture';self.build.mkdir(parents=True)
         (self.build/'example.apk').write_bytes(b'compilation-test-bytes')
         self.manifest={'mode':'compile-only','platform':'android','entrypoint':'lib/main.dart','sha256':{'example.apk':hashlib.sha256(b'compilation-test-bytes').hexdigest()}}
+        self.manifest.update(source_identity(self.root))
         self.save()
     def save(self): (self.build/'manifest.json').write_text(json.dumps(self.manifest))
     def run_package(self):
@@ -54,4 +59,19 @@ class ReleasePackageTest(unittest.TestCase):
         self.assertNotEqual(self.run_package().returncode,0)
         self.manifest['entrypoint']='lib/main.dart';self.manifest['mode']='../../outside';self.save()
         self.assertNotEqual(self.run_package().returncode,0)
+    def test_stale_source_or_dirty_build_metadata_is_rejected(self):
+        original = self.manifest.copy()
+        for field, wrong in [('gitHead', '0' * 40), ('trackedSourceSha256', '0' * 64), ('workingTreeDirty', True)]:
+            with self.subTest(field=field):
+                self.manifest = {**original, field: wrong}
+                self.save()
+                self.assertNotEqual(self.run_package().returncode, 0)
+        self.assertFalse(list((self.root/'.artifacts/releases').glob('*.tar.gz')))
+
+    def test_forged_signed_label_cannot_authenticate_arbitrary_bytes(self):
+        self.manifest['mode'] = 'signed'
+        self.save()
+        self.assertNotEqual(self.run_package().returncode, 0)
+        self.assertFalse(list((self.root/'.artifacts/releases').glob('*.tar.gz')))
+
 if __name__ == '__main__': unittest.main()

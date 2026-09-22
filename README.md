@@ -4,6 +4,8 @@ Application Flutter en français pour les vendeurs, responsables de magasins et 
 
 **État : backend déployé sur https://api.galylio.com et APK Android v1.0.0 signé ; qualification physique, distribution Play/iOS et pilote en attente.** [Télécharger la release Android](https://github.com/haider0708/bio-balance-app/releases/tag/v1.0.0). Voir [l’état détaillé](docs/implementation-status.md), la [spécification](docs/specification-fonctionnelle.md), l’[architecture](docs/architecture-technique.md) et le [runbook](docs/runbook.md).
 
+Dernière revue : [corrections, nettoyage et interface](docs/review-polish-2026-09-22.md).
+
 ## Organisation
 
 ```text
@@ -27,7 +29,7 @@ Installer Flutter **3.47.5**, Node.js **24.21.0**, Docker Compose, Python 3 et l
 
 ```sh
 docker compose -f infrastructure/development/compose.yml up -d
-npm ci
+bash scripts/install-dependencies.sh
 cp apps/api/.env.example apps/api/.env
 npm run db:generate
 ```
@@ -81,6 +83,6 @@ Les icônes et écrans de lancement sont générés depuis le logo fourni par `p
 
 ## Livraison
 
-Voir [la release v1.0.0](docs/releases/v1.0.0.md), [le runbook](docs/runbook.md), [les builds mobiles](docs/mobile-release.md), [les portes de diffusion](docs/release-gates.md) et [le pilote](docs/pilot-plan.md). Le VPS, HTTPS, SMTP authentifié et la restauration locale sont vérifiés. Restent nécessaires la réception réelle des emails, l’inscription Play et la signature Apple, la qualification du VPS sous charge, les mesures physiques et le pilote. [GitHub Actions](https://github.com/haider0708/bio-balance-app/actions) fournit les résultats CI distants. Les sauvegardes hors VPS et la haute disponibilité sont hors du périmètre convenu.
+Voir [la release v1.0.0](docs/releases/v1.0.0.md), [le runbook](docs/runbook.md), [les builds mobiles](docs/mobile-release.md), [les portes de diffusion](docs/release-gates.md) et [le pilote](docs/pilot-plan.md). Le VPS, HTTPS, SMTP authentifié et la restauration locale sont vérifiés. La réception email, la charge du VPS et la restauration de médias sont désormais vérifiées ; Gmail a classé le message dans le spam malgré SPF/DKIM/DMARC valides. Restent l’inscription Play, la signature Apple, les mesures physiques et le pilote. [GitHub Actions](https://github.com/haider0708/bio-balance-app/actions) fournit les résultats CI distants. Les sauvegardes hors VPS et la haute disponibilité sont hors du périmètre convenu.
 
 La [configuration de sécurité et de signature](docs/security-hardening.md) documente les protections, clés privées hors dépôt, certificats publics et validations restantes. Firebase a été retiré ; les notifications sont disponibles dans la boîte interne du VPS.

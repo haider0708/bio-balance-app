@@ -20,6 +20,7 @@ const ownerUrl =
   "postgresql://biobalance:local-development-only@localhost:54329/biobalance_test";
 if (![appUrl, ownerUrl].every((v) => new URL(v).pathname.endsWith("_test")))
   throw Error("ISOLATED_TEST_DATABASE_REQUIRED");
+require("./test-database.cjs").assertTestDatabases(appUrl, ownerUrl);
 process.env.DATABASE_URL = appUrl;
 const owner = new PrismaClient({
   adapter: new PrismaPg({ connectionString: ownerUrl }),

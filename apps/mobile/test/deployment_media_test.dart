@@ -1,3 +1,5 @@
+import 'support/test_origin.dart';
+
 import 'dart:io';
 import 'dart:convert';
 
@@ -24,7 +26,7 @@ void main() {
       );
       final context = SecurityContext(withTrustedRoots: false)
         ..setTrustedCertificates(fixture['certificate'] as String);
-      final dio = Dio(BaseOptions(baseUrl: fixture['baseUrl'] as String))
+      final dio = Dio(testOptions(fixture['baseUrl'] as String))
         ..httpClientAdapter = IOHttpClientAdapter(
           createHttpClient: () => HttpClient(context: context),
         );

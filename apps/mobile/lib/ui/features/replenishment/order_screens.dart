@@ -1,3 +1,4 @@
+import '../inventory/inventory_screens.dart';
 import '../../core/navigation.dart';
 
 import 'dart:async';
@@ -17,7 +18,6 @@ import '../../core/design.dart';
 import '../../core/forms.dart';
 import '../authentication/session_view_model.dart';
 import '../workspace/workspace_view_model.dart';
-import '../workspace/operations_screens.dart';
 
 import '../workspace/operation_helpers.dart';
 
@@ -48,6 +48,7 @@ class OrdersPage extends StatelessWidget {
             subtitle: d['syncStatus'] != null
                 ? 'Réception enregistrée · ${statusLabel(d['syncStatus'])}'
                 : '${objects(d['lines']).fold<int>(0, (sum, l) => sum + integer(l['quantity']))} unités annoncées',
+            tone: AppTone.info,
             icon: Icons.local_shipping_outlined,
             onTap: d['syncStatus'] != null || !canReceive
                 ? null
@@ -235,7 +236,7 @@ class _OrderEditorState extends State<OrderEditor> {
   late final StoreData data = widget.vm.state.data!;
   late final FormDraftController draft;
   String orderId = const Uuid().v4();
-  bool busy = false, loading = true, uncertain = false;
+  bool busy = false, loading = true, uncertain = false, restored = false;
   String? error;
   @override
   void initState() {
@@ -245,6 +246,10 @@ class _OrderEditorState extends State<OrderEditor> {
   }
 
   Future<void> restore() async {
+    setState(() {
+      loading = true;
+      error = null;
+    });
     try {
       final values = await draft.restore() ?? {};
       final submission = await widget.vm.repository.draft(
@@ -253,6 +258,10 @@ class _OrderEditorState extends State<OrderEditor> {
         'online:order.create:new',
       );
       if (!mounted) return;
+      for (final controller in quantities.values) {
+        controller.dispose();
+      }
+      quantities.clear();
       orderId = values['_orderId'] ?? orderId;
       for (final entry in values.entries) {
         if (entry.key != '_orderId' &&
@@ -279,6 +288,7 @@ class _OrderEditorState extends State<OrderEditor> {
       if (!uncertain && initial != null) {
         quantities.putIfAbsent(initial, () => TextEditingController());
       }
+      restored = true;
       await persist();
     } catch (e) {
       if (mounted) setState(() => error = SessionViewModel.message(e));
@@ -323,6 +333,11 @@ class _OrderEditorState extends State<OrderEditor> {
         const SizedBox(height: 16),
         if (error != null) Notice(error!, error: true),
         if (loading) const LinearProgressIndicator(),
+        if (!loading && !restored)
+          TextButton(
+            onPressed: restore,
+            child: const Text('Réessayer de récupérer le brouillon'),
+          ),
         for (final entry in quantities.entries) product(entry),
         if (quantities.isEmpty && !loading)
           const EmptyState(
@@ -330,13 +345,13 @@ class _OrderEditorState extends State<OrderEditor> {
             description: 'Saisissez les quantités nécessaires pour ce magasin.',
           ),
         OutlinedButton.icon(
-          onPressed: loading || busy || uncertain ? null : add,
+          onPressed: !restored || loading || busy || uncertain ? null : add,
           icon: const Icon(Icons.add),
           label: const Text('Ajouter un produit'),
         ),
         const SizedBox(height: 24),
         FilledButton(
-          onPressed: loading || busy ? null : save,
+          onPressed: !restored || loading || busy ? null : save,
           child: Text(busy ? 'Transmission…' : 'Envoyer la commande'),
         ),
       ],
@@ -356,7 +371,7 @@ class _OrderEditorState extends State<OrderEditor> {
           children: [
             TextField(
               controller: entry.value,
-              enabled: !busy && !loading && !uncertain,
+              enabled: restored && !busy && !loading && !uncertain,
               onChanged: (_) => changed(),
               keyboardType: TextInputType.number,
               decoration: const InputDecoration(
@@ -385,6 +400,7 @@ class _OrderEditorState extends State<OrderEditor> {
   }
 
   Future<void> add() async {
+    if (!restored || loading || busy || uncertain) return;
     final product = await showModalBottomSheet<Product>(
       context: context,
       isScrollControlled: true,
@@ -401,6 +417,7 @@ class _OrderEditorState extends State<OrderEditor> {
   }
 
   Future<void> save() async {
+    if (!restored || loading || busy || draft.completed) return;
     setState(() {
       busy = true;
       error = null;
@@ -424,7 +441,19 @@ class _OrderEditorState extends State<OrderEditor> {
         'orderId': orderId,
         'lines': lines,
       }, targetStore: store);
-      await draft.complete();
+      try {
+        await draft.complete();
+      } catch (_) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Commande envoyée. Le brouillon n’a pas pu être effacé.',
+              ),
+            ),
+          );
+        }
+      }
       if (mounted) completeRoute(context);
     } catch (e) {
       if (mounted) setState(() => error = SessionViewModel.message(e));

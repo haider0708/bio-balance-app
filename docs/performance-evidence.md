@@ -45,7 +45,7 @@ Quatre magasins en cache, 600 lots et 100 ventes récentes par magasin, 120 opé
 
 ## Validations externes restantes
 
-Rejouer le scénario sur le VPS de référence, avec les deux API, Nginx et workers actifs. Les objectifs physiques (Android 4 Go, iOS, démarrage ≤2,5 s, sauvegarde ≤250 ms, recherche ≤150 ms et moins de 1 % d’images en retard) restent à démontrer. Procédure : [appareils](../tests/performance/devices.md). Aucun résultat sur émulateur ou hôte n’est compté comme validation physique.
+Le scénario a depuis été exécuté sur le VPS avec quatre API, Nginx et workers actifs : voir [qualification VPS](vps-readiness-2026-09-22.md). Les objectifs physiques (Android 4 Go, iOS, démarrage ≤2,5 s, sauvegarde ≤250 ms, recherche ≤150 ms et moins de 1 % d’images en retard) restent à démontrer. Procédure : [appareils](../tests/performance/devices.md). Aucun résultat sur émulateur ou hôte n’est compté comme validation physique.
 
 ## Renforcement de sécurité du 22 septembre
 

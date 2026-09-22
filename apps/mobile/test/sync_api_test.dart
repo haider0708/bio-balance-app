@@ -1,3 +1,5 @@
+import 'support/test_origin.dart';
+
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -67,7 +69,7 @@ void main() {
         'permissions': ['manage', 'sell', 'receive'],
       });
       final product = env['BIOBALANCE_TEST_PRODUCT']!;
-      final dio = Dio(BaseOptions(baseUrl: env['BIOBALANCE_TEST_URL']!));
+      final dio = Dio(testOptions(env['BIOBALANCE_TEST_URL']!));
       dio.httpClientAdapter = LostResponseAdapter(dio.httpClientAdapter);
       final api = ApiClient(baseUrl: env['BIOBALANCE_TEST_URL']!, dio: dio)
         ..authenticate(env['BIOBALANCE_TEST_TOKEN'], accountId: user.id);

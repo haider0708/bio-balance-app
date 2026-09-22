@@ -1,3 +1,4 @@
+import { assertTestDatabases } from "./test-database.cjs";
 import {beforeAll,afterAll,it,expect} from 'vitest';
 import {randomUUID} from 'node:crypto';
 import {PrismaClient} from '@prisma/client';
@@ -10,6 +11,8 @@ import {JobRunner,scheduleInventoryChecks} from '../src/shared/jobs/job-runner';
 import {PrismaUnitOfWork} from '../src/modules/operations/infrastructure/prisma-ledger';
 process.env.DATABASE_URL=process.env.TEST_APP_DATABASE_URL??'postgresql://biobalance_app:local-app-only@localhost:54329/biobalance_test';
 if(!new URL(process.env.DATABASE_URL).pathname.endsWith('_test'))throw new Error('TEST_DATABASE_REQUIRED');
+assertTestDatabases(process.env.DATABASE_URL, process.env.TEST_OWNER_DATABASE_URL ??
+  'postgresql://biobalance:local-development-only@localhost:54329/biobalance_test');
 const db=new Database(), owner=new PrismaClient({adapter:new PrismaPg({connectionString:process.env.TEST_OWNER_DATABASE_URL??'postgresql://biobalance:local-development-only@localhost:54329/biobalance_test'})});
 const org=randomUUID(),store=randomUUID(),product=randomUUID();
 const actor=(name:string,admin=false)=>({id:randomUUID(),name,email:`${randomUUID()}@example.test`,platformAdmin:admin});

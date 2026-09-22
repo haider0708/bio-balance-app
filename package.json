@@ -26,12 +26,6 @@
     "test:security": "npm run test:security -w apps/api",
     "test:email": "npm run test:email -w apps/api"
   },
-  "allowScripts": {
-    "argon2@0.44.0": true,
-    "prisma@7.10.0": true,
-    "@prisma/engines@7.10.0": true,
-    "esbuild@0.28.2": true
-  },
   "overrides": {
     "@prisma/config": {
       "deepmerge-ts": "8.0.2"
@@ -39,5 +33,13 @@
     "prisma": {
       "mysql2": "3.24.4"
     }
+  },
+  "allowScripts": {
+    "argon2@0.44.0": true,
+    "prisma@7.10.0": true,
+    "@prisma/engines@7.10.0": true,
+    "esbuild@0.28.2": true,
+    "@scarf/scarf@1.4.0": false,
+    "fsevents@2.3.3": false
   }
 }

@@ -1,3 +1,4 @@
+import { assertTestDatabases } from "./test-database.cjs";
 import { cleanupMedia } from "../src/modules/training/infrastructure/media-storage";
 import { beforeAll, afterAll, it, expect } from "vitest";
 import { randomUUID, createHash } from "node:crypto";
@@ -17,6 +18,8 @@ process.env.DATABASE_URL =
   "postgresql://biobalance_app:local-app-only@localhost:54329/biobalance_test";
 if (!new URL(process.env.DATABASE_URL).pathname.endsWith("_test"))
   throw new Error("ISOLATED_TEST_DATABASE_REQUIRED");
+assertTestDatabases(process.env.DATABASE_URL, process.env.TEST_OWNER_DATABASE_URL ??
+  'postgresql://biobalance:local-development-only@localhost:54329/biobalance_test');
 const owner = new PrismaClient({
   adapter: new PrismaPg({
     connectionString:

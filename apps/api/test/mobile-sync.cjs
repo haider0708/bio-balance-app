@@ -10,6 +10,7 @@ require('reflect-metadata');
 const appUrl = process.env.TEST_APP_DATABASE_URL ?? 'postgresql://biobalance_app:local-app-only@localhost:54329/biobalance_test';
 const ownerUrl = process.env.TEST_OWNER_DATABASE_URL ?? 'postgresql://biobalance:local-development-only@localhost:54329/biobalance_test';
 if (![appUrl, ownerUrl].every(value => new URL(value).pathname.endsWith('_test'))) throw Error('An isolated *_test database is required');
+require("./test-database.cjs").assertTestDatabases(appUrl, ownerUrl);
 process.env.DATABASE_URL = appUrl;
 const { AppModule } = require('../dist/app.module');
 const owner = new PrismaClient({adapter: new PrismaPg({connectionString:ownerUrl})});

@@ -33,7 +33,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
   final people = <String, String>{};
   late final Store store;
   String? cursor, error;
-  bool busy = true;
+  bool busy = false;
   @override
   void initState() {
     super.initState();
@@ -42,6 +42,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
   }
 
   Future<void> load() async {
+    if (busy) return;
     setState(() => busy = true);
     try {
       final result = await widget.vm.reporting.history(

@@ -11,23 +11,30 @@ class FormDraftController {
   late final void Function() _unregister;
   Map<String, String> values;
   Future<void> _tail = Future.value();
-  int revision = 0;
+  Future<Map<String, String>?>? _restoration;
+  int revision = 0, _persistedRevision = -1;
+  bool _writing = false;
   bool completed = false, submitting = false;
   FormDraftController(this.workspace, this.store, this.key, this.values) {
     _unregister = workspace.registerDraft(flush);
   }
-  Future<Map<String, String>?> restore() async {
+  Future<Map<String, String>?> restore() => _restoration = _restore();
+
+  Future<Map<String, String>?> _restore() async {
     final draft = await workspace.repository.draft(
       workspace.user.id,
       store?.id ?? '',
       key,
     );
-    if (revision != 0 || draft == null || submitting || completed) return null;
+    if (revision != 0 || submitting || completed) return null;
+    _persistedRevision = revision;
+    if (draft == null) return null;
     final restored = draft['values'] is Map ? draft['values'] as Map : draft;
     values = {
       for (final e in restored.entries)
         if (e.value is String) '${e.key}': e.value as String,
     };
+    _persistedRevision = revision;
     return values;
   }
 
@@ -38,27 +45,44 @@ class FormDraftController {
     return flush();
   }
 
-  Future<void> flush() {
+  Future<void> flush() async {
+    await _restoration;
+    return _flush();
+  }
+
+  Future<void> _flush() {
     if (completed) return Future.value();
     if (submitting) return _tail;
-    final captured = Map<String, String>.from(values);
-    final next = _tail
-        .catchError((Object _) {})
-        .then(
-          (_) => workspace.repository.saveDraft(
-            workspace.user.id,
-            store?.id ?? '',
-            key,
-            {'values': captured},
-          ),
+    if (_writing || _persistedRevision == revision) return _tail;
+    _writing = true;
+    _tail = _drain();
+    return _tail;
+  }
+
+  Future<void> _drain() async {
+    try {
+      // Coalesce rapid edits while SQLite is busy. Never enqueue an unbounded
+      // write per keystroke, and keep the latest revision dirty after a failure.
+      while (_persistedRevision != revision) {
+        final capturedRevision = revision;
+        final captured = Map<String, String>.from(values);
+        await workspace.repository.saveDraft(
+          workspace.user.id,
+          store?.id ?? '',
+          key,
+          {'values': captured},
         );
-    _tail = next;
-    return next;
+        _persistedRevision = capturedRevision;
+      }
+    } finally {
+      _writing = false;
+    }
   }
 
   Future<void> beginSubmission() async {
-    final persisted = flush();
+    await flush();
     submitting = true;
+    final persisted = _tail;
     // Every prior write must finish before an outbox transaction removes this
     // draft. Access/lifecycle guards may await it, but cannot append stale data.
     await persisted;

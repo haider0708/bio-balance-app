@@ -1,9 +1,10 @@
 FROM node:24.21.0-bookworm-slim AS build
 WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends openssl ca-certificates && rm -rf /var/lib/apt/lists/*
-COPY package.json package-lock.json ./
+COPY package.json package-lock.json .npmrc ./
+COPY scripts/install-dependencies.sh scripts/install-dependencies.sh
 COPY apps/api/package.json apps/api/package.json
-RUN npm ci --no-audit --no-fund
+RUN bash scripts/install-dependencies.sh
 COPY apps/api apps/api
 RUN npm run db:generate && npm run build
 FROM node:24.21.0-bookworm-slim AS runtime

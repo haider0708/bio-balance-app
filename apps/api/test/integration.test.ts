@@ -1,3 +1,4 @@
+import { assertTestDatabases } from "./test-database.cjs";
 import { beforeAll, afterAll, describe, it, expect } from "vitest";
 import { randomUUID } from "node:crypto";
 import { PrismaClient } from "@prisma/client";
@@ -27,6 +28,8 @@ import { WorkspaceService } from "../src/modules/tenancy/workspace.service";
 process.env.DATABASE_URL =
   process.env.TEST_APP_DATABASE_URL ??
   "postgresql://biobalance_app:local-app-only@localhost:54329/biobalance_test";
+assertTestDatabases(process.env.DATABASE_URL, process.env.TEST_OWNER_DATABASE_URL ??
+  'postgresql://biobalance:local-development-only@localhost:54329/biobalance_test');
 const owner = new PrismaClient({
   adapter: new PrismaPg({
     connectionString:

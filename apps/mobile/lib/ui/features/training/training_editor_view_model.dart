@@ -42,7 +42,7 @@ class TrainingEditorViewModel extends ChangeNotifier {
     workspace.api,
   );
   final cancel = CancelToken();
-  bool closed = false;
+  bool closed = false, restored = false;
   TrainingEditorState state = const TrainingEditorState({}, loading: true);
   TrainingEditorViewModel(this.workspace, Json? article) {
     final values = <String, String>{
@@ -86,18 +86,23 @@ class TrainingEditorViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> restore() async {
+  Future<bool> restore() async {
+    emit(loading: true);
     try {
       final saved = await draft.restore();
-      if (closed) return;
+      if (closed) return false;
+      restored = true;
       emit(fields: {...state.fields, ...?saved}, loading: false);
       await draft.change(state.fields);
+      return true;
     } catch (e) {
       emit(loading: false, error: SessionViewModel.message(e));
+      return restored;
     }
   }
 
   void change(Map<String, String> values) {
+    if (!restored || closed || draft.completed) return;
     emit(fields: {...state.fields, ...values});
     unawaited(
       draft
@@ -109,7 +114,7 @@ class TrainingEditorViewModel extends ChangeNotifier {
   List<String> get productIds =>
       List<String>.from(jsonDecode(state.value('productIds')));
   Future<void> upload(String path, String name) async {
-    if (state.busy) return;
+    if (!restored || closed || state.busy || draft.completed) return;
     change({'filePath': path, 'fileName': name});
     emit(busy: true, progress: 0);
     try {
@@ -144,6 +149,7 @@ class TrainingEditorViewModel extends ChangeNotifier {
   }
 
   Future<bool> save() async {
+    if (!restored || closed || state.busy || draft.completed) return false;
     emit(busy: true);
     try {
       final fields = state.fields;
@@ -179,8 +185,11 @@ class TrainingEditorViewModel extends ChangeNotifier {
         fields: {...state.fields, 'version': '${accepted['version']}'},
         conflict: false,
       );
-      await draft.change(state.fields);
-      await draft.complete();
+      try {
+        await draft.complete();
+      } catch (_) {
+        emit(error: 'Contenu enregistré. Le brouillon n’a pas pu être effacé.');
+      }
       return true;
     } catch (e) {
       emit(

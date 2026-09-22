@@ -1,3 +1,4 @@
+import { assertTestDatabases } from "./test-database.cjs";
 import { afterAll, beforeAll, expect, it } from "vitest";
 import { createHash, randomUUID } from "node:crypto";
 import { gzipSync } from "node:zlib";
@@ -15,6 +16,7 @@ process.env.DATABASE_URL =
   "postgresql://biobalance_app:local-app-only@localhost:54329/biobalance_test";
 if (!new URL(process.env.DATABASE_URL).pathname.endsWith("_test"))
   throw Error("ISOLATED_TEST_DATABASE_REQUIRED");
+assertTestDatabases(process.env.DATABASE_URL);
 const db = new Database();
 const second = new Database();
 const budget = new RequestBudget(db),

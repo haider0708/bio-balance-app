@@ -1,7 +1,7 @@
 name: biobalance
 description: "BioBalance : magasins, stocks, ventes et récompenses."
 publish_to: 'none'
-version: 1.0.0+2
+version: 1.0.1+3
 
 environment:
   sdk: ^3.13.4
@@ -19,12 +19,10 @@ dependencies:
     sdk: flutter
   flutter_secure_storage: ^11.2.0
   html: ^0.15.7
-  intl: ^0.20.3
   mobile_scanner: ^7.4.2
   path: ^1.9.1
   path_provider: ^2.1.6
   provider: ^6.1.5+1
-  url_launcher: ^6.3.2
   uuid: ^4.6.0
   video_player: ^2.14.0
 

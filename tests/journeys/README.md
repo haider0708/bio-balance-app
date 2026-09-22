@@ -5,7 +5,7 @@ The test harnesses use only databases whose names end in `_journeys_test`. All u
 ## Run on an Android emulator
 
 ```sh
-npm ci
+bash scripts/install-dependencies.sh
 npm run db:generate
 bash scripts/setup-journey-db.sh
 cd apps/mobile && flutter pub get --enforce-lockfile && cd ../..

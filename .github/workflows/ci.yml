@@ -26,7 +26,7 @@ jobs:
       - run: python3 -m unittest discover -s tests/release -p '*_test.py'
       - run: python3 -m unittest discover -s tests/operations -p '*_test.py'
       - run: python3 -m unittest discover -s tests/catalog -p '*_test.py'
-      - run: npm ci
+      - run: bash scripts/install-dependencies.sh
       - run: npm run db:generate
       - run: npm run db:migrate
         env:
@@ -102,7 +102,7 @@ jobs:
         with: { distribution: temurin, java-version: "17" }
       - uses: subosito/flutter-action@v2
         with: { flutter-version: "3.47.5", channel: stable, cache: true }
-      - run: npm ci && npm run db:generate && npm run db:migrate
+      - run: bash scripts/install-dependencies.sh && npm run db:generate && npm run db:migrate
         env:
           DATABASE_URL: postgresql://biobalance:local-development-only@localhost:54329/biobalance_journeys_test
       - run: psql "$OWNER_URL" -v app_password=local-app-only -f scripts/provision-role.sql

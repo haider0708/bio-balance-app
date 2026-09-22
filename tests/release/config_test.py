@@ -20,3 +20,15 @@ class BuildConfigTest(unittest.TestCase):
         value={k:'' for k in module.FIELDS};value['API_BASE_URL']='https://api.example.invalid'
         module.validate(value,'compile-only','android')
 if __name__ == '__main__': unittest.main()
+
+class BuildToolchainPolicyTest(unittest.TestCase):
+    def test_installs_disable_unapproved_hooks_and_gradle_is_checksum_pinned(self):
+        root = Path(__file__).resolve().parents[2]
+        self.assertIn('ignore-scripts=true', (root / '.npmrc').read_text())
+        self.assertIn('strict-allow-scripts=true', (root / '.npmrc').read_text())
+        script = (root / 'scripts/install-dependencies.sh').read_text()
+        self.assertIn('npm ci --ignore-scripts', script)
+        self.assertIn('npm rebuild --ignore-scripts=false argon2 prisma @prisma/engines esbuild', script)
+        import re
+        properties = (root / 'apps/mobile/android/gradle/wrapper/gradle-wrapper.properties').read_text()
+        self.assertRegex(properties, r'distributionSha256Sum=[a-f0-9]{64}')

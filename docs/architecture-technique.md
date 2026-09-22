@@ -79,7 +79,7 @@ Sauvegarde locale : dump PostgreSQL puis copie des médias immuables, checksums,
 
 ## Validation
 
-Les seuils de performance du plan sont des **critères de recette**. La charge API et SQLite ont été mesurées localement (voir `performance-evidence.md`) ; la qualification du VPS complet et des téléphones physiques reste en attente. Les tests unitaires, transactionnels et de reprise locale sont complétés par des parcours Android/iOS, profils sur appareil physique, tests de charge et restauration. L’état des vérifications et les éléments non terminés doivent rester visibles dans le registre de réalisation.
+Les seuils de performance du plan sont des **critères de recette**. La charge API et SQLite ont été mesurées localement (voir `performance-evidence.md`) ; la qualification du VPS est documentée dans `vps-readiness-2026-09-22.md` ; celle des téléphones physiques reste en attente. Les tests unitaires, transactionnels et de reprise locale sont complétés par des parcours Android/iOS, profils sur appareil physique, tests de charge et restauration. L’état des vérifications et les éléments non terminés doivent rester visibles dans le registre de réalisation.
 
 ### Synchronisation v2 et stockage local v3
 

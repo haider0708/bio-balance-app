@@ -38,6 +38,9 @@ class WorkspaceNavigation extends StatelessWidget {
           ? [0, 1, 2, 4]
           : List.generate(labels.length, (i) => i);
       return NavigationBar(
+        animationDuration: media.disableAnimations || media.accessibleNavigation
+            ? Duration.zero
+            : const Duration(milliseconds: 180),
         height: 72,
         selectedIndex: indices.contains(selected)
             ? indices.indexOf(selected)

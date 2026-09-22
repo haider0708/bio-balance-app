@@ -23,6 +23,7 @@ if (
   )
 )
   throw Error("ISOLATED_JOURNEY_DATABASE_REQUIRED");
+require("./test-database.cjs").assertTestDatabases(appUrl, ownerUrl);
 process.env.DATABASE_URL = appUrl;
 const { AppModule } = require("../dist/app.module"),
   {

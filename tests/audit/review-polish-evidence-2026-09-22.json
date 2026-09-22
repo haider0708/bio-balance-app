@@ -1,0 +1,114 @@
+{
+  "schema": 1,
+  "date": "2026-09-22",
+  "baseCommit": "85b82996eb4cfab843dbfa13bc531c950c93a456",
+  "mobileVersion": "1.0.1+3",
+  "productionAccepted": false,
+  "securityScan": {
+    "id": "192cee76-90d7-4fcb-a227-0af917713478",
+    "reportedLow": 1,
+    "fix": "Independent signature verification and source binding in release packaging",
+    "coverage": "Handwritten app source and tooling reviewed; generated mappings structurally checked; no production penetration testing"
+  },
+  "checks": {
+    "backend_unit": {
+      "passed": 19,
+      "log": "backend-unit-final.log",
+      "logSha256": "9ebe61beb03e03c66036d28c9a516a4767061f26de2c014cb7ed6a461151037e"
+    },
+    "backend_transactions": {
+      "passed": 26,
+      "log": "backend-integration-final.log",
+      "logSha256": "6eb8f2c34c0b65764d87c9e9a7c2dce625dc59c1d034eb9a117be8c6db53fd9e"
+    },
+    "backend_audit": {
+      "passed": 14,
+      "log": "backend-audit-final.log",
+      "logSha256": "4a1ec5bc7f9d9a6504c0b68da8057f798de999dcba2781756765d185fc94322a"
+    },
+    "backend_security": {
+      "passed": 13,
+      "log": "backend-security-final.log",
+      "logSha256": "2c04ef04e9a466769f30401a040548c9f8eee4788d10ea2e78c0f846d381ad2a"
+    },
+    "media": {
+      "passed": 4,
+      "log": "backend-media-final.log",
+      "logSha256": "00629d0d4f4e8c085a1e33ae80f3ed862a9886d73c612467bc565e42416d019e"
+    },
+    "notifications": {
+      "passed": 5,
+      "log": "backend-notifications-final.log",
+      "logSha256": "2c9ea030929612f8aeb603c2d60a78c50e08dfea2507bfc87c5f0c5641180425"
+    },
+    "email": {
+      "passed": 11,
+      "log": "backend-email-final.log",
+      "logSha256": "f4440b022945574409e1e5d3f65e154a7abb292a46072d3f26d0a82a0e83e72d"
+    },
+    "contracts": {
+      "endpoints": 45,
+      "log": "backend-contracts-final.log",
+      "logSha256": "89925c11a7c8a8dfbc468609c508171adff8947c82fc30267f6145b407a2788d"
+    },
+    "real_mobile_sync": {
+      "passed": 2,
+      "log": "backend-mobile-sync-final.log",
+      "logSha256": "cf93657caeae0376d7bb84f8dbfc7c72ead5a6b93b13b2eed1ae4f30af513be3"
+    },
+    "flutter": {
+      "passed": 146,
+      "skipped_fixture_dependent": 4,
+      "log": "flutter-final.log",
+      "logSha256": "ac2c513dd1a482ac90d0ab96078a3629e938c06199865f8e67470b56eb9eca25"
+    },
+    "python_release": {
+      "passed": 37,
+      "log": "release-tests.log",
+      "logSha256": "782c77ea31587f4c4c19bbb9a4f82179aa58b14cd23f892a0154bcb829d83f6c"
+    },
+    "flutter_analysis": {
+      "passed": true,
+      "log": "flutter-analysis.log",
+      "logSha256": "a1fea1b1343ff1e7e4f0ce3a22f2b513cf1d05aac8356d905a6c0ca1d517cd1e"
+    },
+    "contract_drift": {
+      "passed": true,
+      "log": "contract-drift.log",
+      "logSha256": "1ba0de26291bc13fa8a19686da475b971e60254825480068a2ee4ee65a0e6299"
+    },
+    "docker_build": {
+      "passed": true,
+      "log": "docker-build.log",
+      "logSha256": "a59bf7d1f40ac43645e1bcb08227c8f422579b4dbe97669543095a568a0d1401"
+    },
+    "docker_runtime": {
+      "passed": true,
+      "log": "docker-runtime.log",
+      "logSha256": "38f082574ecab2659958d82cd56a63384c8af64dfa9d9b349d769b3b7ecb6b5c"
+    },
+    "approved_dependency_hooks": {
+      "passed": true,
+      "log": "npm-approved-hooks.log",
+      "logSha256": "5fea06889844726ffbf8e27f38feb7a12898a3d5a295ed2d1284ad720672f18e"
+    },
+    "apk_identity_rejection": {
+      "passed": true,
+      "log": "apk-signer-negative-test.json",
+      "logSha256": "121f84e69d1915c82111de8144aca6e361c00aed249a92e5e549609fe16da497"
+    }
+  },
+  "pending": [
+    "Final native Android journeys and restart verification",
+    "Signed Android package from clean reviewed commit",
+    "Remote CI for this revision",
+    "Physical Android/iOS qualification",
+    "Apple signing and app-store onboarding",
+    "Real-data validation and invited pilot"
+  ],
+  "limitations": [
+    "No claim of zero vulnerabilities",
+    "No high availability or off-server restore coverage",
+    "Local VM benchmarks do not qualify physical phones"
+  ]
+}

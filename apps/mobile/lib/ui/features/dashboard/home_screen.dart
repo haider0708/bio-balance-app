@@ -1,3 +1,8 @@
+import '../inventory/inventory_screens.dart';
+import '../sales/sales_history_screen.dart';
+import '../replenishment/order_screens.dart';
+import '../rewards/rewards_screen.dart';
+
 import 'package:flutter/material.dart';
 
 import '../../../domain/models/models.dart';
@@ -5,8 +10,6 @@ import '../../../domain/models/money.dart';
 import '../../core/design.dart';
 import '../sales/sale_screen.dart';
 import '../workspace/workspace_view_model.dart';
-import '../workspace/operations_screens.dart';
-import '../workspace/team_rewards_orders.dart';
 import '../stores/stores_screen.dart';
 
 class HomePage extends StatelessWidget {
@@ -42,6 +45,7 @@ class HomePage extends StatelessWidget {
         return CompactRow(
           title: vm.productName(alert['productId'] ?? ''),
           subtitle: alert['message'],
+          tone: AppTone.warning,
           icon: Icons.warning_amber_outlined,
           onTap: () {
             if (['low', 'zero'].contains(alert['kind']) &&
@@ -114,6 +118,7 @@ class HomePage extends StatelessWidget {
           CompactRow(
             title: 'Livraisons à réceptionner',
             value: '$deliveries',
+            tone: AppTone.info,
             icon: Icons.local_shipping_outlined,
             onTap: () => open(context, 'Livraisons', OrdersPage(vm: vm)),
           ),
@@ -123,6 +128,7 @@ class HomePage extends StatelessWidget {
               ? 'Valider les remises à l’équipe'
               : 'Consulter les cadeaux et mes demandes',
           value: pendingClaims > 0 ? '$pendingClaims en attente' : null,
+          tone: AppTone.reward,
           icon: Icons.redeem_outlined,
           onTap: () => open(context, 'Récompenses', RewardsPage(vm: vm)),
         ),

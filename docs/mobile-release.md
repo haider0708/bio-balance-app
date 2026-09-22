@@ -50,7 +50,7 @@ Depuis un arbre Git propre, créer le dossier de livraison :
 python3 scripts/package-release.py .artifacts/releases/builds/LE_DOSSIER_CHOISI
 ```
 
-Le package contient seulement des fichiers suivis et autorisés (documentation, contrat, migrations, configuration exemple, scripts et preuves résumées), une archive des sources du commit et les artefacts choisis vérifiés par leur manifeste. Aucun volume, secret, token de charge ou backup de données n’est copié. Un package compile-only reste explicitement non diffusable.
+Le package contient seulement des fichiers suivis et autorisés (documentation, contrat, migrations, configuration exemple, scripts et preuves résumées), une archive des sources du commit et les artefacts choisis. Le manifeste doit correspondre au commit propre et à l’empreinte des sources ; le packageur revalide les signatures APK/AAB contre les certificats versionnés, ou l’IPA contre l’équipe Apple sur macOS. Ces contrôles portent également sur les fichiers copiés. Un manifeste auto-déclaré ne prouve pas à lui seul la provenance du binaire : utiliser le script de build sur l’hôte de confiance. Aucun volume, secret, token de charge ou backup de données n’est copié. Un package compile-only reste explicitement non diffusable.
 
 ## Liens de compte HTTPS vérifiés
 

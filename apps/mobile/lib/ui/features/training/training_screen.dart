@@ -28,7 +28,8 @@ class TrainingPage extends StatefulWidget {
 
 class _TrainingPageState extends State<TrainingPage> {
   List<Json> articles = [];
-  bool loading = true;
+  bool loading = true, fetching = false;
+  Map<String, String> searchText = {};
   String query = '';
   String? productFilter;
   String? error;
@@ -39,23 +40,37 @@ class _TrainingPageState extends State<TrainingPage> {
   }
 
   Future<void> load() async {
+    if (fetching) return;
+    fetching = true;
+    setState(() => loading = true);
     final vm = widget.vm;
     final repository = TrainingRepository(vm.repository, vm.api);
     try {
       final cached = await repository.cached(vm.user.id);
-      if (mounted) setState(() => articles = cached);
+      if (mounted) setState(() => applyArticles(cached));
       final items = await repository.refresh(vm.user.id);
       if (mounted) {
         setState(() {
-          articles = items;
+          applyArticles(items);
           error = null;
         });
       }
     } catch (e) {
       if (mounted) setState(() => error = SessionViewModel.message(e));
     } finally {
+      fetching = false;
       if (mounted) setState(() => loading = false);
     }
+  }
+
+  void applyArticles(List<Json> values) {
+    articles = values;
+    searchText = {
+      for (final article in values)
+        '${article['id']}':
+            '${article['title']} ${TrainingText.plain(article['body'] ?? '')}'
+                .toLowerCase(),
+    };
   }
 
   @override
@@ -64,9 +79,7 @@ class _TrainingPageState extends State<TrainingPage> {
         .where(
           (a) =>
               (widget.vm.user.admin || a['status'] == 'published') &&
-              '${a['title']} ${TrainingText.plain(a['body'] ?? '')}'
-                  .toLowerCase()
-                  .contains(query.toLowerCase()) &&
+              (searchText['${a['id']}'] ?? '').contains(query.toLowerCase()) &&
               (productFilter == null ||
                   (a['productIds'] as List? ?? []).contains(productFilter)),
         )
@@ -79,6 +92,7 @@ class _TrainingPageState extends State<TrainingPage> {
           title: article['title'],
           subtitle:
               '${article['type'] == 'video' ? 'Vidéo' : 'Article'}${widget.vm.user.admin ? ' · ${publicationLabel(article['status'])}' : ''}',
+          tone: AppTone.reward,
           icon: article['type'] == 'video'
               ? Icons.play_circle_outline
               : Icons.menu_book_outlined,
@@ -177,8 +191,8 @@ class _TrainingEditorState extends State<TrainingEditor> {
   }
 
   Future<void> restore() async {
-    await editor.restore();
-    if (!mounted) return;
+    final recovered = await editor.restore();
+    if (!mounted || !recovered) return;
     title.text = editor.state.value('title');
     body.text = editor.state.value('body');
     title.addListener(() => editor.change({'title': title.text}));
@@ -211,7 +225,12 @@ class _TrainingEditorState extends State<TrainingEditor> {
                 onPressed: blocked ? null : compareVersion,
                 child: const Text('Comparer avec la version actuelle'),
               ),
-            if (!initialized) const LinearProgressIndicator(),
+            if (state.loading) const LinearProgressIndicator(),
+            if (!initialized && !state.loading)
+              TextButton(
+                onPressed: restore,
+                child: const Text('Réessayer de récupérer le brouillon'),
+              ),
             TextField(
               controller: title,
               enabled: initialized && !state.busy,

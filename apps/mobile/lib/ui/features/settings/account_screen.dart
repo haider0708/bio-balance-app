@@ -59,9 +59,17 @@ class AccountScreen extends StatelessWidget {
               'Se déconnecter ?',
               'Vos opérations locales seront conservées pour ce compte.',
             )) {
-              await session.logout();
-              if (context.mounted) {
+              final signedOut = await session.logout();
+              if (context.mounted && signedOut) {
                 Navigator.popUntil(context, (route) => route.isFirst);
+              } else if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      session.state.error ?? 'Déconnexion interrompue.',
+                    ),
+                  ),
+                );
               }
             }
           },

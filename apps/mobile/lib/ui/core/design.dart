@@ -1,8 +1,10 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 const brandGreen = Color(0xFF6ABE4E);
 const darkGreen = Color(0xFF286B34);
-const ink = Color(0xFF1C1E22);
+const ink = Color(0xFF161C18);
 const muted = Color(0xFF606164);
 ThemeData appTheme() => ThemeData(
   useMaterial3: true,
@@ -12,6 +14,9 @@ ThemeData appTheme() => ThemeData(
     seedColor: darkGreen,
     primary: darkGreen,
     surface: Colors.white,
+    onSurface: ink,
+    primaryContainer: const Color(0xFFEAF6E5),
+    onPrimaryContainer: darkGreen,
     error: const Color(0xFFAF342C),
   ),
   scaffoldBackgroundColor: Colors.white,
@@ -51,6 +56,8 @@ ThemeData appTheme() => ThemeData(
   ),
   filledButtonTheme: FilledButtonThemeData(
     style: FilledButton.styleFrom(
+      backgroundColor: brandGreen,
+      foregroundColor: ink,
       minimumSize: const Size(48, 48),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -75,6 +82,9 @@ ThemeData appTheme() => ThemeData(
     ),
   ),
   navigationBarTheme: const NavigationBarThemeData(
+    backgroundColor: Colors.white,
+    surfaceTintColor: Colors.transparent,
+    indicatorColor: Color(0xFFE4F5DC),
     labelPadding: EdgeInsets.zero,
     labelTextStyle: WidgetStatePropertyAll(
       TextStyle(fontSize: 14, letterSpacing: -0.3, fontWeight: FontWeight.w500),
@@ -141,7 +151,10 @@ class SectionTitle extends StatelessWidget {
           runSpacing: 8,
           crossAxisAlignment: WrapCrossAlignment.center,
           children: [
-            Text(title, style: Theme.of(context).textTheme.titleLarge),
+            Semantics(
+              header: true,
+              child: Text(title, style: Theme.of(context).textTheme.titleLarge),
+            ),
             ?action,
           ],
         ),
@@ -228,22 +241,99 @@ class Notice extends StatelessWidget {
   );
 }
 
+enum AppTone {
+  success(Color(0xFF286B34), Color(0xFFEAF6E5)),
+  info(Color(0xFF185D91), Color(0xFFEAF4FD)),
+  warning(Color(0xFF88500A), Color(0xFFFFF3DC)),
+  danger(Color(0xFFAF342C), Color(0xFFFBECE9)),
+  reward(Color(0xFF7140A4), Color(0xFFF3EBFB));
+
+  const AppTone(this.foreground, this.background);
+  final Color foreground, background;
+}
+
 class StatusChip extends StatelessWidget {
   final String text;
   final IconData icon;
+  final AppTone tone;
   const StatusChip(
     this.text, {
     super.key,
     this.icon = Icons.check_circle_outline,
+    this.tone = AppTone.success,
   });
   @override
-  Widget build(BuildContext context) => Wrap(
-    crossAxisAlignment: WrapCrossAlignment.center,
-    spacing: 5,
-    children: [
-      Icon(icon, size: 18, color: darkGreen),
-      Text(text, style: Theme.of(context).textTheme.bodySmall),
-    ],
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+    decoration: BoxDecoration(
+      color: tone.background,
+      borderRadius: BorderRadius.circular(8),
+    ),
+    child: Wrap(
+      crossAxisAlignment: WrapCrossAlignment.center,
+      spacing: 6,
+      children: [
+        Icon(icon, size: 18, color: tone.foreground),
+        Text(
+          text,
+          style: Theme.of(context).textTheme.bodySmall
+              ?.copyWith(color: tone.foreground),
+        ),
+      ],
+    ),
+  );
+}
+
+/// A single short transition when a destination changes. No retained outgoing
+/// store page, background loop, blur, or animation on synchronization updates.
+class PageEntrance extends StatefulWidget {
+  final Widget child;
+  const PageEntrance({super.key, required this.child});
+  @override
+  State<PageEntrance> createState() => _PageEntranceState();
+}
+
+class _PageEntranceState extends State<PageEntrance>
+    with SingleTickerProviderStateMixin {
+  late final controller = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 180),
+  );
+  late final animation = CurvedAnimation(
+    parent: controller,
+    curve: Curves.easeOutCubic,
+  );
+  bool started = false;
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (MediaQuery.disableAnimationsOf(context) ||
+        MediaQuery.accessibleNavigationOf(context)) {
+      controller.value = 1;
+      started = true;
+    } else if (!started) {
+      started = true;
+      controller.forward();
+    }
+  }
+
+  @override
+  void dispose() {
+    animation.dispose();
+    controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => FadeTransition(
+    opacity: animation,
+    child: SlideTransition(
+      position: Tween(
+        begin: const Offset(0, .015),
+        end: Offset.zero,
+      ).animate(animation),
+      child: widget.child,
+    ),
   );
 }
 
@@ -256,6 +346,7 @@ class CompactRow extends StatelessWidget {
   final Widget? leading, trailing, footer;
   final VoidCallback? onTap;
   final bool selected;
+  final AppTone tone;
   const CompactRow({
     super.key,
     required this.title,
@@ -267,6 +358,7 @@ class CompactRow extends StatelessWidget {
     this.footer,
     this.onTap,
     this.selected = false,
+    this.tone = AppTone.success,
   });
   @override
   Widget build(BuildContext context) => LayoutBuilder(
@@ -294,7 +386,16 @@ class CompactRow extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 if (leading != null || icon != null) ...[
-                  leading ?? Icon(icon, size: 24, color: darkGreen),
+                  leading ??
+                      Container(
+                        width: 36,
+                        height: 36,
+                        decoration: BoxDecoration(
+                          color: tone.background,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Icon(icon, size: 22, color: tone.foreground),
+                      ),
                   const SizedBox(width: 12),
                 ],
                 Expanded(
@@ -358,18 +459,41 @@ class MetricStrip extends StatelessWidget {
   @override
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, constraints) {
-      final minimum = MediaQuery.textScalerOf(context).scale(104);
-      final columns = (constraints.maxWidth / minimum).floor().clamp(
-        1,
-        metrics.length,
+      if (metrics.isEmpty) return const SizedBox.shrink();
+      final scaler = MediaQuery.textScalerOf(context);
+      final valueStyle = Theme.of(context).textTheme.titleLarge!
+          .copyWith(fontSize: 20);
+      final labelStyle = Theme.of(context).textTheme.bodySmall!;
+      double measured(String text, TextStyle style) {
+        final painter = TextPainter(
+          text: TextSpan(text: text, style: style),
+          textDirection: Directionality.of(context),
+          textScaler: scaler,
+        )..layout();
+        final width = painter.width;
+        painter.dispose();
+        return width;
+      }
+
+      final minimum = metrics.fold<double>(
+        scaler.scale(96),
+        (width, metric) => math.max(
+          width,
+          math.max(
+                measured(metric.value, valueStyle),
+                measured(metric.label, labelStyle),
+              ) +
+              12,
+        ),
       );
-      final width = constraints.maxWidth / columns;
+      final available = math.max(0.0, constraints.maxWidth - 2);
+      final columns = (available / minimum).floor().clamp(1, metrics.length);
+      final width = (available / columns).floorToDouble();
       return Container(
-        decoration: const BoxDecoration(
-          border: Border(
-            top: BorderSide(color: Color(0xFFE8ECE6)),
-            bottom: BorderSide(color: Color(0xFFE8ECE6)),
-          ),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF5FAF2),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFFE4EEDD)),
         ),
         child: Wrap(
           children: [
@@ -379,15 +503,12 @@ class MetricStrip extends StatelessWidget {
                 child: Padding(
                   padding: const EdgeInsets.symmetric(
                     vertical: 12,
-                    horizontal: 4,
+                    horizontal: 6,
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        metric.value,
-                        style: Theme.of(context).textTheme.titleLarge,
-                      ),
+                      Text(metric.value, style: valueStyle),
                       const SizedBox(height: 2),
                       Text(
                         metric.label,

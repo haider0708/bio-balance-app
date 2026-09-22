@@ -1,3 +1,4 @@
+import { assertTestDatabases } from "./test-database.cjs";
 import { PrismaLedger } from "../src/modules/operations/infrastructure/prisma-ledger";
 import express from "express";
 import { EventEmitter } from "node:events";
@@ -34,6 +35,8 @@ process.env.DATABASE_URL =
   "postgresql://biobalance_app:local-app-only@localhost:54329/biobalance_test";
 if (!new URL(process.env.DATABASE_URL).pathname.endsWith("_test"))
   throw new Error("ISOLATED_TEST_DATABASE_REQUIRED");
+assertTestDatabases(process.env.DATABASE_URL, process.env.TEST_OWNER_DATABASE_URL ??
+  'postgresql://biobalance:local-development-only@localhost:54329/biobalance_test');
 const owner = new PrismaClient({
   adapter: new PrismaPg({
     connectionString:

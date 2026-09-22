@@ -46,6 +46,7 @@ class SessionViewModel extends ChangeNotifier {
   late final StreamSubscription<AccessEvent> _events;
   bool _closed = false;
   int _action = 0;
+  Future<bool>? _loggingOut;
   Future<void> _storageTail = Future.value();
   Future<void> _store(Future<void> Function() action) {
     final next = _storageTail.then((_) => action());
@@ -193,21 +194,41 @@ class SessionViewModel extends ChangeNotifier {
     }
   }
 
-  Future<void> logout() async {
-    ++_action;
+  Future<bool> logout() => _loggingOut ??= _logout().whenComplete(() {
+    _loggingOut = null;
+  });
+
+  Future<bool> _logout() async {
+    final action = ++_action;
+    final previous = api.binding;
     try {
       await Future.wait(_exitGuards.toList().map((save) => save()));
-      final previous = api.binding;
-      await _store(() => secureStorage.delete(key: 'session'));
+      if (action != _action || _closed) return false;
+      await _store(() async {
+        if (action == _action && !_closed) {
+          await secureStorage.delete(key: 'session');
+        }
+      });
+      if (action != _action || _closed) return false;
       api.authenticate(null);
       _emit(const SessionState());
-      // Network cleanup cannot prevent a local logout or affect a later account.
+      // Cleanup uses the old binding; network failure cannot block local logout.
       unawaited(api.revoke(previous).catchError((Object _) {}));
       unawaited(notifications?.unbind().catchError((Object _) {}));
+      return true;
     } catch (e) {
-      _emit(
-        SessionState(user: state.user, status: state.status, error: message(e)),
-      );
+      if (action == _action && !_closed) {
+        _emit(
+          SessionState(
+            user: state.user,
+            status: state.status,
+            error:
+                'Déconnexion interrompue. Vos brouillons restent ouverts. '
+                'Vérifiez le stockage du téléphone, puis réessayez.',
+          ),
+        );
+      }
+      return false;
     }
   }
 

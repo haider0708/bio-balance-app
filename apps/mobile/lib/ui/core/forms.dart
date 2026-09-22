@@ -64,7 +64,7 @@ class _EditorScreenState extends State<EditorScreen> {
   bool busy = false, mediaBusy = false, completed = false;
   String? error;
   FormDraftController? draft;
-  bool restoringDraft = false;
+  bool restoringDraft = false, draftReady = true;
   Store? draftStore;
   @override
   void initState() {
@@ -77,6 +77,7 @@ class _EditorScreenState extends State<EditorScreen> {
     final store = workspace?.state.store;
     draftStore = store;
     if (workspace != null) {
+      draftReady = false;
       draft = FormDraftController(
         workspace,
         store,
@@ -95,21 +96,26 @@ class _EditorScreenState extends State<EditorScreen> {
   }
 
   Future<void> restoreDraft() async {
+    setState(() {
+      restoringDraft = true;
+      error = null;
+    });
     try {
       final restored = await draft?.restore();
-      if (!mounted || restored == null) return;
-      restoringDraft = true;
-      for (final entry in restored.entries) {
+      if (!mounted) return;
+      for (final entry in (restored ?? <String, String>{}).entries) {
         controllers[entry.key]?.text = entry.value;
       }
-      restoringDraft = false;
+      draftReady = true;
     } catch (e) {
-      if (mounted) setState(() => error = SessionViewModel.message(e));
+      if (mounted) error = SessionViewModel.message(e);
+    } finally {
+      if (mounted) setState(() => restoringDraft = false);
     }
   }
 
   void persist() {
-    if (restoringDraft || draft == null) return;
+    if (!draftReady || restoringDraft || draft == null) return;
     unawaited(
       draft!
           .change({for (final e in controllers.entries) e.key: e.value.text})
@@ -149,6 +155,13 @@ class _EditorScreenState extends State<EditorScreen> {
           Notice(error!, error: true),
           const SizedBox(height: 16),
         ],
+        if (restoringDraft) const LinearProgressIndicator(),
+        if (!draftReady && !restoringDraft)
+          TextButton.icon(
+            onPressed: restoreDraft,
+            icon: const Icon(Icons.refresh),
+            label: const Text('Réessayer de récupérer le brouillon'),
+          ),
         Form(
           key: key,
           child: Column(
@@ -165,7 +178,7 @@ class _EditorScreenState extends State<EditorScreen> {
                             purpose: f.imagePurpose!,
                             label: f.label,
                             controller: controllers[f.key]!,
-                            enabled: !busy && !completed,
+                            enabled: draftReady && !busy && !completed,
                             onBusyChanged: (value) {
                               if (mounted) {
                                 setState(() => mediaBusy = value);
@@ -176,7 +189,8 @@ class _EditorScreenState extends State<EditorScreen> {
                         ? TextFormField(
                             key: ValueKey('field.${f.key}'),
                             controller: controllers[f.key],
-                            enabled: !busy && !mediaBusy && !completed,
+                            enabled:
+                                draftReady && !busy && !mediaBusy && !completed,
                             textInputAction: f.multiline
                                 ? TextInputAction.newline
                                 : widget.fields.last.key == f.key
@@ -212,7 +226,8 @@ class _EditorScreenState extends State<EditorScreen> {
                             options: f.options!,
                             controller: controllers[f.key]!,
                             required: f.required,
-                            enabled: !busy && !mediaBusy && !completed,
+                            enabled:
+                                draftReady && !busy && !mediaBusy && !completed,
                           ),
                   ),
                 )
@@ -226,7 +241,9 @@ class _EditorScreenState extends State<EditorScreen> {
       child: BottomAction(
         child: FilledButton(
           key: const ValueKey('editor.save'),
-          onPressed: busy || mediaBusy || completed ? null : save,
+          onPressed: !draftReady || busy || mediaBusy || completed
+              ? null
+              : save,
           child: Text(
             completed
                 ? 'Enregistré'
@@ -239,7 +256,7 @@ class _EditorScreenState extends State<EditorScreen> {
     ),
   );
   Future<void> save() async {
-    if (busy || mediaBusy || completed) return;
+    if (!draftReady || busy || mediaBusy || completed) return;
     final invalid = key.currentState!.validateGranularly();
     if (invalid.isNotEmpty) {
       await Scrollable.ensureVisible(

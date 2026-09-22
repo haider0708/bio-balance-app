@@ -1,3 +1,8 @@
+import '../inventory/inventory_screens.dart';
+import '../sales/sales_history_screen.dart';
+import '../replenishment/order_screens.dart';
+import '../team/team_screen.dart';
+import '../rewards/rewards_screen.dart';
 import '../dashboard/admin_dashboard.dart';
 import '../../../data/services/notifications/push_notifications.dart';
 
@@ -16,8 +21,6 @@ import '../../core/design.dart';
 import '../../core/workspace_navigation.dart';
 import '../training/training_screen.dart';
 import 'workspace_view_model.dart';
-import 'operations_screens.dart';
-import 'team_rewards_orders.dart';
 
 import '../dashboard/home_screen.dart';
 import '../stores/stores_screen.dart';
@@ -360,7 +363,9 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
                               ? Icons.sync
                               : Icons.cloud_done_outlined,
                           size: 18,
-                          color: darkGreen,
+                          color: state.offline
+                              ? AppTone.warning.foreground
+                              : darkGreen,
                         ),
                         const SizedBox(width: 8),
                         Expanded(
@@ -400,7 +405,14 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
                           ),
                       ],
                     ),
-                  Expanded(child: page),
+                  Expanded(
+                    child: PageEntrance(
+                      key: ValueKey(
+                        '${vm.user.id}:${state.store?.id}:$admin:$manager:$selected:${page.runtimeType}',
+                      ),
+                      child: page,
+                    ),
+                  ),
                 ],
               ),
             ),

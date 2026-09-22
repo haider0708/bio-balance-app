@@ -105,7 +105,18 @@ class _AccountLinksState extends State<AccountLinks> {
           ),
         );
         if (confirmed != true || !mounted) return;
-        await session!.logout();
+        if (!await session!.logout()) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  session!.state.error ?? 'Déconnexion interrompue.',
+                ),
+              ),
+            );
+          }
+          return;
+        }
       }
       if (!mounted) return;
       navigator.popUntil((route) => route.isFirst);

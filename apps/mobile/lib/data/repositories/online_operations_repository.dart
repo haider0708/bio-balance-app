@@ -12,13 +12,29 @@ class OnlineOperationsRepository {
   final OfflineRepository local;
   final UserAccount user;
   OnlineOperationsRepository(this.context, this.local, this.user);
-  Future<void> submit(Store store, Json command, {int? expectedVersion}) async {
+  final _inflight = <String, Future<void>>{};
+  Future<void> submit(Store store, Json command, {int? expectedVersion}) {
     final target =
         command['rewardId'] ??
         command['claimId'] ??
         (command['type'] == 'order.create' ? 'new' : command['orderId']) ??
         'new';
     final key = 'online:${command['type']}:$target';
+    final scope = '${store.organizationId}:${store.id}:$key';
+    return _inflight.putIfAbsent(
+      scope,
+      () => _submit(store, command, key, expectedVersion).whenComplete(() {
+        _inflight.remove(scope);
+      }),
+    );
+  }
+
+  Future<void> _submit(
+    Store store,
+    Json command,
+    String key,
+    int? expectedVersion,
+  ) async {
     final prior = await local.draft(user.id, store.id, key);
     final operation =
         prior?['operation'] as Json? ??

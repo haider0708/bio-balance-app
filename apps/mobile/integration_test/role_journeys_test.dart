@@ -1,3 +1,5 @@
+import '../test/support/test_origin.dart';
+
 import 'package:biobalance/main.dart';
 import 'package:biobalance/data/services/api/generated/api_client.dart';
 import 'package:biobalance/data/services/local_database/database.dart';
@@ -22,8 +24,8 @@ const password = String.fromEnvironment('TEST_PASSWORD'),
     seller = String.fromEnvironment('SELLER_EMAIL'),
     admin = String.fromEnvironment('ADMIN_EMAIL');
 final fixture = Dio(
-  BaseOptions(
-    baseUrl: base,
+  testOptions(
+    base,
     headers: {'x-test-key': const String.fromEnvironment('TEST_KEY')},
   ),
 );
