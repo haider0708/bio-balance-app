@@ -1,0 +1,41 @@
+{
+  "verifiedAt": "2026-09-22T16:00:46Z",
+  "sourceCommit": "2b3769bad8a78969c3eeb0a8c93ef427a72d241d",
+  "change": "Layout and French copy only; email access policy, recipients, tokens and jobs unchanged",
+  "checks": {
+    "format": "passed",
+    "typescriptBuild": "passed",
+    "emailTests": 11,
+    "narrowPhonePreview": "visually reviewed"
+  },
+  "images": {
+    "biobalance-api:2b3769b": {
+      "verified": true,
+      "matchingFilesystemLayers": 15
+    },
+    "biobalance-media:2b3769b": {
+      "verified": true,
+      "matchingFilesystemLayers": 16
+    }
+  },
+  "vps": {
+    "beforeDeploymentBackup": "passed",
+    "healthyServices": 6,
+    "nginxConfiguration": "passed",
+    "httpsHealth": "passed",
+    "workerTemplateSha256": "56a9f97a5cb8352a8f9c925f480c11fa5d4c78d6c6130936cb8f5eda190ac653",
+    "workerMatchesLocalTemplate": true,
+    "schemaChanged": false
+  },
+  "externalEmailsSentThisRevision": 0,
+  "ci": {
+    "run": "https://github.com/haider0708/bio-balance-app/actions/runs/35750395277",
+    "backend": "passed",
+    "iosUnsignedCompilation": "passed",
+    "android": "in progress at this evidence capture",
+    "androidJourneys": "in progress at this evidence capture"
+  },
+  "limitations": [
+    "Browser and Mailpit verification; native Gmail/Outlook client rendering not independently verified"
+  ]
+}
