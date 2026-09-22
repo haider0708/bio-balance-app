@@ -43,6 +43,10 @@ Private symbol files are kept under `.artifacts/private-symbols/` and must be re
 
 A real Apple developer team, distribution certificate/profile and macOS/Xcode host are still required. `scripts/build-mobile-release.sh` exports the IPA; `scripts/verify-ios-signature.py` verifies its code signature, team, bundle identifier, entitlements and disabled debugger entitlement. The privacy cover and ATS settings are implemented but require native iOS verification. No Apple signing identity has been invented or generated on this Linux host.
 
+Session credentials now use `unlocked_this_device` and the separate Keychain service `tn.biobalance.session.v2`. The app removes the legacy default-service session instead of silently importing a transferable token. Existing iOS installations must sign in again; account-scoped drafts and queued operations are retained. This does not revoke a token already copied before the update, which remains subject to the server's normal session expiry/revocation. Physical encrypted-backup/device-transfer validation remains a release check.
+
+Invitation activation also revalidates the issuing account's current authority inside the transaction, and password recovery rejects currently disabled accounts. Failed credential-email payloads and expired snapshot pages are removed by bounded maintenance. See the [final audit](final-audit-2026-09-22.md) for regression evidence.
+
 ## Notifications without Firebase
 
 Messages are committed to the authorized VPS inbox. The open notification screen refreshes every four seconds, and reopening it retrieves current messages. Staff still receive only deliberate manager announcements; automatic operational messages remain scoped to managers/admin. The client makes no push-provider registration calls. New events do not enqueue unavailable push work. Legacy push jobs are drained with an explicit `push.skipped / inbox_only` diagnostic; no successful device-delivery receipt is fabricated and inbox history is retained.

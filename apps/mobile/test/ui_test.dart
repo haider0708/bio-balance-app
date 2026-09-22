@@ -248,6 +248,30 @@ void main() {
     }
   }
 
+  for (final role in ['manager', 'salesperson', 'admin']) {
+    testWidgets(
+      '$role offline error remains usable in landscape with large text',
+      (t) async {
+        viewport(t, const Size(800, 360));
+        final f = RoleFixture(role);
+        f.vm.state = f.vm.state.copy(
+          offline: true,
+          pending: 3,
+          error: 'Connexion indisponible. Vos données et brouillons sont conservés.',
+        );
+        await t.pumpWidget(f.app(const WorkspaceScreen(), scale: 2));
+        await t.pumpAndSettle();
+        expect(t.takeException(), isNull);
+        expect(
+          find.byKey(const ValueKey('workspace.navigationMenu')).hitTestable(),
+          findsOneWidget,
+        );
+        await t.pumpWidget(const SizedBox());
+        await f.close();
+      },
+    );
+  }
+
   testWidgets(
     'manager can find and open product settings from a narrow phone',
     (t) async {

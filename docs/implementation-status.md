@@ -1,6 +1,8 @@
 # État de l’implémentation — 22 septembre 2026
 
-L’application est en développement et n’est pas encore qualifiée pour une diffusion en production. Ce document distingue les fonctionnalités codées des vérifications réalisées.
+Les corrections de la dernière passe d’audit sont implémentées et vérifiées localement ; l’application n’est pas encore qualifiée pour une diffusion en production. Ce document distingue les fonctionnalités codées des vérifications réalisées.
+
+Dernière passe : [audit final et qualification](final-audit-2026-09-22.md). Les résultats des étapes antérieures ci-dessous sont historiques.
 
 ## Fonctionnalités présentes
 
@@ -24,8 +26,8 @@ L’application est en développement et n’est pas encore qualifiée pour une 
 |---|---|
 | Compilation TypeScript | Réussie |
 | Tests domaine et reprise transactionnelle backend | 10 réussis |
-| Tests PostgreSQL réels avec rôle restreint | 22 réussis + 14 régressions d’audit + 4 tests de traitement média réel + 5 tests notifications/workers + 7 tests sécurité |
-| Tests Flutter de reprise, migration et dispositions d’écran | 83 réussis ; 2 parcours HTTP, contrats Dart et reprise média HTTPS/Nginx exécutés séparément et réussis |
+| Tests PostgreSQL réels avec rôle restreint | 22 réussis + 14 régressions d’audit + 4 tests de traitement média réel + 5 tests notifications/workers + 13 tests sécurité |
+| Tests Flutter de reprise, migration et dispositions d’écran | 130 réussis ; 2 parcours HTTP, contrats Dart et reprise média HTTPS/Nginx exécutés séparément et réussis |
 | Build Android | Debug normal lancé/rechargé et APK/AAB release non signés compilés ; parcours/force-stop/vidéo réussis sur émulateur ; APK/AAB inertes signés vérifiés et installation/mise à jour testées ; signature Apple et appareils physiques en attente |
 | Sauvegarde/restauration isolée | Réussie : données métier, image et vidéo traitées ; tailles/empreintes et projections comparées après restauration isolée |
 | OpenAPI et génération Dart | 45 endpoints vérifiés sur HTTP réel ; schémas Dart typés générés et aller-retour JSON validé |
@@ -285,3 +287,15 @@ Commit d’implémentation : **`92df40d`**. Interface et preuves détaillées da
 - **115 tests Flutter réussis**, quatre cas dépendant d’un serveur exclus de cette suite, analyse Dart sans constat et formatage propre. Matrice des trois rôles à 360×800, 800×360 et 1024×768 en texte 100 %/200 %, mille choix recherchables, mises à jour catalogue/équipe et permissions de réception vérifiés. Captures Inter générées et examinées pour les trois accueils et les paramètres de produits.
 - Parcours Android API 36 avec vraie API/PostgreSQL isolée réussi : activation, magasin/catalogue, réception, vente, correction, retour, cadeau, annonce et retrait d’accès depuis un éditeur. Vérifications finales : **stock 21, points 20, réservation 0, trois révisions**, livraison reçue et récompense remise. L’application normale `lib/main.dart` est ensuite recompilée/lancée ; hot reload réussi, aucune erreur runtime rapportée.
 - Limites : émulateur en debug, aucune nouvelle mesure physique de cadence d’images/batterie/mémoire ou validation native iOS. Les essais sur téléphone Android de 4 Go, TalkBack/VoiceOver réels et pilote humain restent à réaliser. Les premiers échecs et les passes finales sont conservés sous `.artifacts/evidence/role-ux/`. Aucun déploiement ni nouveau build signé de distribution n’est déclaré par cette passe.
+
+## Audit final — 22 septembre 2026
+
+Implémentation et régressions de cette passe : voir [rapport détaillé](final-audit-2026-09-22.md) et [preuves versionnées](../tests/audit/final-evidence-2026-09-22.json).
+
+- Invitations et récupération revérifiées dans leur transaction, sessions iOS liées à l’appareil avec nouveau service Keychain, suppression bornée des pages expirées et codes d’emails en échec.
+- Soumission durable distincte de l’actualisation de l’écran, protection contre les doubles enregistrements et écritures tardives, brouillons par lot/vente complétés avec l’outbox, restauration et erreurs de stockage récupérables. Aucun historique métier ni payload en attente réécrit.
+- 68 tests backend et 130 Flutter réussis, analyse propre, 45 endpoints/contrats et deux parcours HTTP/SQLite/PostgreSQL validés, 14 tests Python. Parcours autonome Android des trois rôles réussi sur le code final ; application normale lancée puis hot reload sans erreur runtime.
+- La reprise Android et la vidéo ont passé leurs assertions après réparation manuelle de l’état système de l’émulateur ; les deux essais précédents et cette limite sont décrits dans le rapport. iOS physique, VPS réel, CI distante et pilote restent non qualifiés.
+- Migration additive `202609220004_snapshot_cleanup`. Les utilisateurs iOS existants doivent se reconnecter ; leurs opérations locales restent conservées.
+
+Le prochain enregistrement de preuves renseigne les builds et le laboratoire Compose de ce commit. Il ne déclare pas le VPS de production ni les appareils physiques acceptés.

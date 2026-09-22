@@ -33,4 +33,6 @@ The scripts preserve existing database fixtures and create unique identities per
 
 The first phase intentionally loses its app connection after the acknowledged durable checkpoint. The harness verifies a running Android PID before force-stop and its absence afterward; Flutter may return zero even after this disconnect, so its first exit code is not treated as a test result. A missing checkpoint, unverified termination, failed second phase or incorrect database effects fails the harness.
 
-The CI Android emulator job runs both native probes. Logs, reference hardware profiles, manual screen-reader use, physical camera scanning, iOS native execution and real FCM/APNs remain separate evidence; an emulator pass does not establish those release gates.
+The CI Android emulator job runs both native probes. Logs, reference hardware profiles, manual screen-reader use, physical camera scanning, iOS native execution and production SMTP remain separate evidence (closed-app OS alerts are deferred, without Firebase); an emulator pass does not establish those release gates.
+
+The restart harness sets and verifies camera-denial flags after the restore APK is installed. A previous permission dialog or Android System UI ANR can survive an emulator snapshot and block a new app launch. Prepare a healthy emulator before running; retain any failed run and explicitly record manual device preparation in its evidence instead of reporting an unattended pass. Do not clear BioBalance app data to fix the emulator: pending-operation recovery is part of this test.

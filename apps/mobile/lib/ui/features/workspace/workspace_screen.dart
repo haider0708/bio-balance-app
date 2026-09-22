@@ -200,6 +200,19 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
           ),
         ],
       );
+    } else if (state.data == null && state.error != null) {
+      page = Content(
+        children: [
+          EmptyState(
+            title: 'Impossible de charger votre espace',
+            description: 'Vos données et opérations en attente sont conservées. Vérifiez la connexion et l’espace disponible, puis réessayez.',
+            action: FilledButton(
+              onPressed: vm.initialize,
+              child: const Text('Réessayer'),
+            ),
+          ),
+        ],
+      );
     } else if (state.store == null) {
       page = Content(
         children: [

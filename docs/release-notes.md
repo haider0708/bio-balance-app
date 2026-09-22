@@ -8,6 +8,12 @@ Les douze étapes ont un registre dans `docs/implementation-status.md`. Les cont
 
 **Diffusion non autorisée par les preuves actuelles.** Les APK/AAB `compile-only` sont non signés, utilisent `https://api.example.invalid` et ne sont pas connectables à une installation. Le debug est signé uniquement avec la clé de développement Android. Aucun compte réel ni credential serveur n’est inclus.
 
-À fournir/vérifier : domaine et VPS, SMTP réel, projets Firebase/APNs, certificats/signatures, dépôt/CI macOS, appareils physiques et cinq magasins pilotes pendant au moins deux semaines. Les versions signées devront être reconstruites avec leur configuration plateforme puis soumises à la recette.
+À fournir/vérifier : domaine et VPS, SMTP réel, certificats/signatures, dépôt/CI macOS, appareils physiques et cinq magasins pilotes pendant au moins deux semaines. Les versions signées devront être reconstruites avec leur configuration plateforme puis soumises à la recette.
 
 Sont reportés : abonnements payants, administration web, WhatsApp, classements régionaux/nationaux, sauvegarde hors serveur et haute disponibilité. Les sauvegardes locales ne couvrent pas la destruction du VPS.
+
+## Audit final du 22 septembre
+
+Contrôle de l’émetteur à l’activation d’invitation, récupération interdite aux comptes désactivés, sessions iOS liées à l’appareil, nettoyage des snapshots expirés et codes d’emails en échec. Soumission locale distincte de son affichage, éditions/brouillons sérialisés, dommages et retours liés au lot/à la vente et terminés atomiquement avec leur outbox, initialisation récupérable et régressions UI. Voir [preuves et limites de qualification](final-audit-2026-09-22.md).
+
+Appliquer la migration additive `202609220004_snapshot_cleanup`. Les anciennes installations iOS doivent se reconnecter après la migration du service Keychain ; les opérations locales restent conservées pour le compte d’origine. Les anciens brouillons d’ajustement sans identifiant de lot sont conservés mais ne sont pas réutilisés automatiquement sur un autre lot. Aucun Firebase n’est requis ; notifications dans la boîte VPS et alertes OS app fermée reportées.

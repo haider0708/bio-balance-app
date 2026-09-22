@@ -1,0 +1,119 @@
+{
+  "date": "2026-09-22",
+  "baselineCommit": "584f40f54a472950962c36e5c6cb81db0fa66afa",
+  "securityScanId": "6e51883b-fab7-40fd-b8a2-a4827a65a56a",
+  "security": {
+    "baselineFindings": {
+      "high": 1,
+      "medium": 2
+    },
+    "remediation": "implemented; backend and mobile regressions passed; physical iOS backup transfer pending",
+    "coverage": "partial, source-backed boundaries and focused reviews; not exhaustive verification of every file",
+    "usage": {
+      "totalTokens": 21515665,
+      "inputTokens": 21354913,
+      "outputTokens": 160752,
+      "coverage": "partial",
+      "warnings": [
+        "rollout_record_invalid"
+      ],
+      "note": "Aggregate rollout telemetry returned by the scanner, not a verified billing estimate for this pass"
+    }
+  },
+  "checks": {
+    "typescriptBuild": "passed",
+    "dartAnalysis": {
+      "status": "passed",
+      "findings": 0
+    },
+    "backend": {
+      "domainAndRetry": 10,
+      "postgresIntegration": 22,
+      "audit": 14,
+      "security": 13,
+      "media": 4,
+      "notifications": 5,
+      "total": 68
+    },
+    "flutter": {
+      "passed": 130,
+      "skippedServerDependent": 4
+    },
+    "httpContracts": 45,
+    "generatedContractDrift": "passed",
+    "realMobileSync": {
+      "passed": 2,
+      "operations": 5,
+      "movements": 6,
+      "revisions": 3,
+      "sellable": 7,
+      "damaged": 1,
+      "lotVersion": 7,
+      "points": 20
+    },
+    "pythonReleaseTests": 14,
+    "npmProductionVulnerabilitiesReported": 0
+  },
+  "android": {
+    "device": "API 36 x86_64 emulator",
+    "physical": false,
+    "roleJourneys": {
+      "status": "passed",
+      "unattended": true,
+      "assertedEffects": {
+        "sellable": 21,
+        "points": 20,
+        "reserved": 0,
+        "revisions": 3,
+        "deliveryReceived": true,
+        "productRewardFulfilled": true
+      }
+    },
+    "restartAndVideo": {
+      "assertions": "passed",
+      "unattended": false,
+      "manualPreparation": "Cleared Android System UI ANR and orphan permission controller; relaunched activity via ADB. No app data cleared.",
+      "sameAccountIdPayload": true,
+      "acceptedSales": 1,
+      "stock": 7,
+      "version": 3,
+      "points": 30,
+      "cameraDeniedFallback": "passed",
+      "verifiedH264OfflinePlayback": "passed"
+    },
+    "normalEntrypoint": {
+      "entrypoint": "lib/main.dart",
+      "buildAndLaunch": "passed",
+      "hotReload": "passed",
+      "reportedRuntimeErrors": 0
+    }
+  },
+  "deployment": {
+    "status": "pending",
+    "environment": "isolated local Compose"
+  },
+  "releaseCompilation": {
+    "status": "pending",
+    "productionSigned": false
+  },
+  "preservedFailures": [
+    "backend authorization regressions before fixes",
+    "sale/stock post-commit refresh failure and concurrent sale edits before fixes",
+    "media runner missing local FFmpeg PATH, then corrected",
+    "two Android recovery attempts blocked by emulator System UI/permission state"
+  ],
+  "evidenceDirectory": ".artifacts/evidence/final-audit-2026-09-22",
+  "productionAccepted": false,
+  "pending": [
+    "owned VPS/domain/DNS/ACME, SMTP and external monitoring",
+    "remote CI and macOS/Xcode/Apple signing",
+    "physical 4GB Android/iOS performance, camera, accessibility and iOS backup transfer",
+    "Play enrollment with matching app key, signing-key backup and builds for real API",
+    "five-store two-week pilot on Android/iOS"
+  ],
+  "deferred": [
+    "closed-app OS push notifications, no Firebase",
+    "device attestation and certificate pinning not active",
+    "off-server backups, high availability and complete VPS-loss recovery"
+  ]
+}

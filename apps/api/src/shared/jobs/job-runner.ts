@@ -73,6 +73,9 @@ export class JobRunner {
         where: this.owned(job),
         data: {
           status: failed ? "failed" : "pending",
+          // A terminal mail failure is diagnosed by its code, never by keeping
+          // a password-reset or invitation bearer code indefinitely.
+          ...(failed && job.kind === "email" ? { payload: {} } : {}),
           availableAt: new Date(Date.now() + delay),
           lastError: message,
           leaseToken: null,

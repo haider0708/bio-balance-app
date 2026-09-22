@@ -12,7 +12,7 @@ class FormDraftController {
   Map<String, String> values;
   Future<void> _tail = Future.value();
   int revision = 0;
-  bool completed = false;
+  bool completed = false, submitting = false;
   FormDraftController(this.workspace, this.store, this.key, this.values) {
     _unregister = workspace.registerDraft(flush);
   }
@@ -22,7 +22,7 @@ class FormDraftController {
       store?.id ?? '',
       key,
     );
-    if (revision != 0 || draft == null) return null;
+    if (revision != 0 || draft == null || submitting || completed) return null;
     final restored = draft['values'] is Map ? draft['values'] as Map : draft;
     values = {
       for (final e in restored.entries)
@@ -32,6 +32,7 @@ class FormDraftController {
   }
 
   Future<void> change(Map<String, String> next) {
+    if (completed || submitting) return _tail;
     revision++;
     values = Map.unmodifiable(next);
     return flush();
@@ -39,6 +40,7 @@ class FormDraftController {
 
   Future<void> flush() {
     if (completed) return Future.value();
+    if (submitting) return _tail;
     final captured = Map<String, String>.from(values);
     final next = _tail
         .catchError((Object _) {})
@@ -54,7 +56,18 @@ class FormDraftController {
     return next;
   }
 
+  Future<void> beginSubmission() async {
+    final persisted = flush();
+    submitting = true;
+    // Every prior write must finish before an outbox transaction removes this
+    // draft. Access/lifecycle guards may await it, but cannot append stale data.
+    await persisted;
+  }
+
+  void submissionFailed() => submitting = false;
+
   Future<void> complete() async {
+    completed = true;
     await _tail.catchError((Object _) {});
     await workspace.repository.saveDraft(
       workspace.user.id,
@@ -62,7 +75,6 @@ class FormDraftController {
       key,
       {},
     );
-    completed = true;
   }
 
   void dispose() {

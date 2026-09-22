@@ -361,6 +361,40 @@ export class IdentityService {
         "INVITATION_EXPIRED",
         "Invitation invalide ou expirée. Demandez une nouvelle invitation.",
       );
+      // An invitation is a deferred grant, not a permanent delegation from an
+      // account that may since have been disabled or lost its authority.
+      const issuer = invite.createdBy
+        ? await tx.user.findUnique({ where: { id: invite.createdBy } })
+        : null;
+      let authorized = !!issuer && !issuer.disabled && issuer.platformAdmin;
+      if (
+        issuer &&
+        !issuer.disabled &&
+        invite.storeId &&
+        invite.organizationId
+      ) {
+        const owner = await tx.organizationMembership.findUnique({
+          where: {
+            organizationId_userId: {
+              organizationId: invite.organizationId,
+              userId: issuer.id,
+            },
+          },
+        });
+        const member = await tx.membership.findUnique({
+          where: {
+            storeId_userId: { storeId: invite.storeId, userId: issuer.id },
+          },
+        });
+        authorized ||=
+          owner?.active === true ||
+          (member?.active === true && member.permissions.includes("manage"));
+      }
+      requireRule(
+        authorized,
+        "INVITATION_EXPIRED",
+        "Cette invitation n’est plus autorisée. Demandez une nouvelle invitation.",
+      );
       const used = await tx.accessToken.updateMany({
         where: { id: invite.id, usedAt: null },
         data: { usedAt: new Date() },
@@ -461,6 +495,14 @@ export class IdentityService {
           reset.purpose === "reset" &&
           !reset.usedAt &&
           reset.expiresAt > new Date(),
+        "RESET_EXPIRED",
+        "Code invalide ou expiré.",
+      );
+      const current = await tx.user.findUnique({
+        where: { email: reset.email },
+      });
+      requireRule(
+        current && !current.disabled,
         "RESET_EXPIRED",
         "Code invalide ou expiré.",
       );

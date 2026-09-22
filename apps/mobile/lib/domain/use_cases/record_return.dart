@@ -15,6 +15,7 @@ class RecordReturn {
     required int quantity,
     required bool sellable,
     required String reason,
+    String? draftKey,
   }) async {
     if (quantity < 1 || quantity > 1000000) {
       throw const AppFailure(
@@ -69,6 +70,7 @@ class RecordReturn {
           'local': true,
         },
       },
+      draftKey: draftKey,
     );
   }
 }

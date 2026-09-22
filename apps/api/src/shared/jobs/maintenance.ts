@@ -1,7 +1,22 @@
 import { Database } from "../infrastructure/database";
 
-/** Retain audit/operation records; prune only expired authentication telemetry. */
+/** Retain business histories; expire temporary pages, credentials and telemetry. */
 export async function cleanupAuthentication(db: Database, now = new Date()) {
+  // Expiring snapshots must be cleaned even when their original user never
+  // returns. The narrow database capability exposes no other tenant's pages.
+  // Remove credentials retained by terminal failures from older releases.
+  // Keep pending email intact so delivery retries still work.
+  for (;;) {
+    const removed =
+      await db.$executeRaw`UPDATE "Job" SET payload='{}'::jsonb WHERE id IN
+      (SELECT id FROM "Job" WHERE kind='email' AND status='failed' AND payload<>'{}'::jsonb LIMIT 1000)`;
+    if (removed < 1000) break;
+  }
+  for (;;) {
+    const [result] = await db.$queryRaw<{ removed: number }[]>`
+      SELECT prune_expired_sync_snapshots() AS removed`;
+    if (!result || result.removed < 1000) break;
+  }
   for (;;) {
     const removed =
       await db.$executeRaw`DELETE FROM "RequestBudget" WHERE "windowStart" < ${new Date(now.getTime() - 86400000)} AND key IN

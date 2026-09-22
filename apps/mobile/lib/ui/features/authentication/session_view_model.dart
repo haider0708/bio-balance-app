@@ -41,6 +41,7 @@ class SessionViewModel extends ChangeNotifier {
   final ApiClient api;
   final PushNotifications? notifications;
   final FlutterSecureStorage secureStorage;
+  final Future<void> Function()? prepareStorage;
   final _exitGuards = <Future<void> Function()>{};
   late final StreamSubscription<AccessEvent> _events;
   bool _closed = false;
@@ -55,7 +56,12 @@ class SessionViewModel extends ChangeNotifier {
   Future<void> flushAccessState() => _storageTail;
 
   SessionState state = const SessionState(restoring: true);
-  SessionViewModel(this.api, this.secureStorage, {this.notifications}) {
+  SessionViewModel(
+    this.api,
+    this.secureStorage, {
+    this.notifications,
+    this.prepareStorage,
+  }) {
     _events = api.accessEvents.listen((event) {
       if (event.binding.generation != api.generation ||
           state.user?.id != event.binding.accountId) {
@@ -120,6 +126,7 @@ class SessionViewModel extends ChangeNotifier {
   Future<void> restore() async {
     final action = ++_action;
     try {
+      await prepareStorage?.call();
       final value = await secureStorage.read(key: 'session');
       if (action != _action || _closed) return;
       if (value == null) {

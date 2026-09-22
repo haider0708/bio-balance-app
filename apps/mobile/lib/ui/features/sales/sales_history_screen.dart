@@ -256,6 +256,7 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
     await openEditor(
       context,
       title: 'Retour client',
+      draftKey: 'return:${currentSale['id']}',
       fields: [
         FieldSpec('allocation', 'Produit et lot', options: choices),
         const FieldSpec(
@@ -272,7 +273,7 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
         ),
         const FieldSpec('reason', 'Motif', initial: 'Retour client'),
       ],
-      submit: (v) async {
+      submitWithDraft: (v, draftKey) async {
         final ids = v['allocation']!.split(':');
         final q = whole(v['quantity']!);
         final current = currentSale;
@@ -286,9 +287,9 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
           quantity: q,
           sellable: v['sellable'] == 'yes',
           reason: v['reason']!,
+          draftKey: draftKey,
         );
-        await widget.vm.reloadLocal();
-        unawaited(widget.vm.synchronize(silent: true));
+        await widget.vm.afterLocalCommit();
         if (mounted) setState(() => details = null);
       },
     );

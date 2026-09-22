@@ -232,7 +232,10 @@ const owner = new PrismaClient({
           reject(error);
         } finally {
           setTimeout(() => {
-            if (saveDriver?.exitCode === null && saveDriver.signalCode === null) {
+            if (
+              saveDriver?.exitCode === null &&
+              saveDriver.signalCode === null
+            ) {
               saveDriver.kill("SIGTERM");
             }
           }, 500);
@@ -242,6 +245,49 @@ const owner = new PrismaClient({
     // Attach an error handler immediately; the driver can exit before we await.
     termination.catch(() => {});
     res.json({ ok: true });
+  });
+  // Configure the installed restore APK, not the previous build. Android may
+  // reset user permission flags during an update/reinstall by flutter drive.
+  app.use("/__test/deny-camera", async (req, res) => {
+    if (req.headers["x-test-key"] !== key) return res.sendStatus(404);
+    try {
+      await promisify(execFile)(adb, [
+        "-s",
+        device,
+        "shell",
+        "pm",
+        "revoke",
+        "tn.biobalance.app",
+        "android.permission.CAMERA",
+      ]);
+      await promisify(execFile)(adb, [
+        "-s",
+        device,
+        "shell",
+        "pm",
+        "set-permission-flags",
+        "tn.biobalance.app",
+        "android.permission.CAMERA",
+        "user-set",
+        "user-fixed",
+      ]);
+      const permissions = await promisify(execFile)(adb, [
+        "-s",
+        device,
+        "shell",
+        "dumpsys",
+        "package",
+        "tn.biobalance.app",
+      ]);
+      assert.match(
+        permissions.stdout,
+        /android\.permission\.CAMERA: granted=false, flags=\[[^\]]*USER_FIXED/,
+      );
+      res.json({ ok: true });
+    } catch (error) {
+      console.error("Camera denial fixture failed", error.message);
+      res.sendStatus(500);
+    }
   });
   app
     .getHttpAdapter()
@@ -270,27 +316,6 @@ const owner = new PrismaClient({
       TEST_VIDEO_TITLE: videoTitle,
     };
     for (const phase of ["save", "restore"]) {
-      if (phase === "restore") {
-        await promisify(execFile)(adb, [
-          "-s",
-          device,
-          "shell",
-          "pm",
-          "revoke",
-          "tn.biobalance.app",
-          "android.permission.CAMERA",
-        ]);
-        await promisify(execFile)(adb, [
-          "-s",
-          device,
-          "shell",
-          "pm",
-          "set-permission-flags",
-          "tn.biobalance.app",
-          "android.permission.CAMERA",
-          "user-fixed",
-        ]);
-      }
       const config = path.join(root, phase + ".json");
       await writeFile(config, JSON.stringify({ ...base, TEST_PHASE: phase }), {
         mode: 0o600,
@@ -366,6 +391,7 @@ const owner = new PrismaClient({
       "clear-permission-flags",
       "tn.biobalance.app",
       "android.permission.CAMERA",
+      "user-set",
       "user-fixed",
     ]).catch(() => {});
     await owner.session.update({

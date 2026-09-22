@@ -38,18 +38,22 @@ class EditorScreen extends StatefulWidget {
   final String title;
   final String? description;
   final List<FieldSpec> fields;
-  final Future<void> Function(Map<String, String>) submit;
+  final Future<void> Function(Map<String, String>)? submit;
+  final Future<void> Function(Map<String, String>, String?)? submitWithDraft;
+  final String? draftKey;
   final String submitLabel;
   final WorkspaceViewModel? workspace;
   const EditorScreen({
     super.key,
     required this.title,
     required this.fields,
-    required this.submit,
+    this.submit,
+    this.submitWithDraft,
+    this.draftKey,
     this.description,
     this.workspace,
     this.submitLabel = 'Enregistrer',
-  });
+  }) : assert((submit == null) != (submitWithDraft == null));
   @override
   State<EditorScreen> createState() => _EditorScreenState();
 }
@@ -57,7 +61,7 @@ class EditorScreen extends StatefulWidget {
 class _EditorScreenState extends State<EditorScreen> {
   final key = GlobalKey<FormState>();
   late final Map<String, TextEditingController> controllers;
-  bool busy = false, mediaBusy = false;
+  bool busy = false, mediaBusy = false, completed = false;
   String? error;
   FormDraftController? draft;
   bool restoringDraft = false;
@@ -76,10 +80,11 @@ class _EditorScreenState extends State<EditorScreen> {
       draft = FormDraftController(
         workspace,
         store,
-        'editor:${jsonEncode([
-          widget.title,
-          widget.fields.map((f) => [f.key, f.initial]).toList(),
-        ])}',
+        widget.draftKey ??
+            'editor:${jsonEncode([
+              widget.title,
+              widget.fields.map((f) => [f.key, f.initial]).toList(),
+            ])}',
         {for (final entry in controllers.entries) entry.key: entry.value.text},
       );
       for (final controller in controllers.values) {
@@ -160,7 +165,7 @@ class _EditorScreenState extends State<EditorScreen> {
                             purpose: f.imagePurpose!,
                             label: f.label,
                             controller: controllers[f.key]!,
-                            enabled: !busy,
+                            enabled: !busy && !completed,
                             onBusyChanged: (value) {
                               if (mounted) {
                                 setState(() => mediaBusy = value);
@@ -171,7 +176,7 @@ class _EditorScreenState extends State<EditorScreen> {
                         ? TextFormField(
                             key: ValueKey('field.${f.key}'),
                             controller: controllers[f.key],
-                            enabled: !busy && !mediaBusy,
+                            enabled: !busy && !mediaBusy && !completed,
                             textInputAction: f.multiline
                                 ? TextInputAction.newline
                                 : widget.fields.last.key == f.key
@@ -207,7 +212,7 @@ class _EditorScreenState extends State<EditorScreen> {
                             options: f.options!,
                             controller: controllers[f.key]!,
                             required: f.required,
-                            enabled: !busy && !mediaBusy,
+                            enabled: !busy && !mediaBusy && !completed,
                           ),
                   ),
                 )
@@ -221,14 +226,20 @@ class _EditorScreenState extends State<EditorScreen> {
       child: BottomAction(
         child: FilledButton(
           key: const ValueKey('editor.save'),
-          onPressed: busy || mediaBusy ? null : save,
-          child: Text(busy ? 'Enregistrement…' : widget.submitLabel),
+          onPressed: busy || mediaBusy || completed ? null : save,
+          child: Text(
+            completed
+                ? 'Enregistré'
+                : busy
+                ? 'Enregistrement…'
+                : widget.submitLabel,
+          ),
         ),
       ),
     ),
   );
   Future<void> save() async {
-    if (busy || mediaBusy) return;
+    if (busy || mediaBusy || completed) return;
     final invalid = key.currentState!.validateGranularly();
     if (invalid.isNotEmpty) {
       await Scrollable.ensureVisible(
@@ -245,12 +256,34 @@ class _EditorScreenState extends State<EditorScreen> {
       error = null;
     });
     try {
-      await widget.submit({
+      await draft?.beginSubmission();
+      final values = {
         for (final e in controllers.entries) e.key: e.value.text.trim(),
-      });
-      await draft?.complete();
+      };
+      if (widget.submitWithDraft != null) {
+        await widget.submitWithDraft!(values, draft?.key);
+      } else {
+        await widget.submit!(values);
+      }
+      completed = true;
+      // Submission has succeeded. Draft cleanup cannot turn it into a failed
+      // operation and offer a second submission of the same business action.
+      try {
+        await draft?.complete();
+      } catch (_) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Opération enregistrée. Le brouillon n’a pas pu être effacé ; vérifiez l’espace disponible.',
+              ),
+            ),
+          );
+        }
+      }
       if (mounted) completeRoute(context, true);
     } catch (e) {
+      draft?.submissionFailed();
       if (mounted) setState(() => error = SessionViewModel.message(e));
     } finally {
       if (mounted) setState(() => busy = false);
@@ -262,7 +295,9 @@ Future<bool> openEditor(
   BuildContext context, {
   required String title,
   required List<FieldSpec> fields,
-  required Future<void> Function(Map<String, String>) submit,
+  Future<void> Function(Map<String, String>)? submit,
+  Future<void> Function(Map<String, String>, String?)? submitWithDraft,
+  String? draftKey,
   String? description,
   String submitLabel = 'Enregistrer',
 }) async =>
@@ -274,6 +309,8 @@ Future<bool> openEditor(
           workspace: context.read<WorkspaceViewModel?>(),
           fields: fields,
           submit: submit,
+          submitWithDraft: submitWithDraft,
+          draftKey: draftKey,
           description: description,
           submitLabel: submitLabel,
         ),

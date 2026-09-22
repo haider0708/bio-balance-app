@@ -249,11 +249,13 @@ class ProductDetail extends StatelessWidget {
     InventoryLot lot,
     bool damage,
   ) async {
+    final store = vm.state.store!;
     await openEditor(
       context,
+      draftKey: 'stock:${damage ? 'damage' : 'adjust'}:${lot.id}',
       title: damage ? 'Enregistrer des dommages' : 'Réconcilier le stock',
       description:
-          'Cette modification sera conservée avec votre identité et son motif.',
+          '${vm.productName(lot.productId)} · Lot ${lot.batch}. Cette modification sera conservée avec votre identité et son motif.',
       fields: [
         FieldSpec(
           'quantity',
@@ -262,12 +264,17 @@ class ProductDetail extends StatelessWidget {
         ),
         const FieldSpec('reason', 'Motif'),
       ],
-      submit: (v) => vm.queue({
-        'type': damage ? 'stock.damage' : 'stock.adjust',
-        'lotId': lot.id,
-        'quantity': whole(v['quantity']!, allowZero: !damage),
-        'reason': v['reason'],
-      }, expectedVersion: lot.version),
+      submitWithDraft: (v, draftKey) => vm.queue(
+        {
+          'type': damage ? 'stock.damage' : 'stock.adjust',
+          'lotId': lot.id,
+          'quantity': whole(v['quantity']!, allowZero: !damage),
+          'reason': v['reason'],
+        },
+        expectedVersion: lot.version,
+        targetStore: store,
+        draftKey: draftKey,
+      ),
     );
   }
 }
@@ -284,7 +291,12 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
   List<Json> lines = [];
   final note = TextEditingController();
   String? error;
-  bool busy = false, loading = true, missing = false, completed = false;
+  bool busy = false,
+      loading = true,
+      missing = false,
+      completed = false,
+      restored = false,
+      committing = false;
   Future<void> _tail = Future.value();
   late final VoidCallback unregister;
 
@@ -310,6 +322,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
           lines = objects(draft?['lines']);
           note.text = draft?['note'] ?? '';
           missing = draft?['missing'] == true;
+          restored = true;
         });
       }
     } catch (e) {
@@ -320,7 +333,8 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
   }
 
   Future<void> persist() {
-    if (completed || loading) return Future.value();
+    if (completed || !restored) return Future.value();
+    if (committing) return _tail;
     final values = <String, dynamic>{
       'lines': List<Json>.from(lines),
       'note': note.text,
@@ -366,6 +380,17 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
         const SizedBox(height: 20),
         if (error != null) Notice(error!, error: true),
         if (loading) const LinearProgressIndicator(),
+        if (!loading && !restored)
+          TextButton(
+            onPressed: () {
+              setState(() {
+                loading = true;
+                error = null;
+              });
+              unawaited(restore());
+            },
+            child: const Text('Recharger le brouillon'),
+          ),
         if (widget.delivery != null) ...[
           const Notice(
             'Saisissez les quantités réellement reçues. Les écarts seront conservés et cette livraison ne pourra être confirmée qu’une seule fois.',
@@ -384,7 +409,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
             subtitle: const Text(
               'Signaler une livraison entièrement manquante.',
             ),
-            onChanged: busy || loading || lines.isNotEmpty
+            onChanged: busy || !restored || lines.isNotEmpty
                 ? null
                 : (value) {
                     setState(() => missing = value ?? false);
@@ -393,7 +418,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
           ),
           TextField(
             controller: note,
-            enabled: !busy && !loading,
+            enabled: !busy && restored,
             maxLength: 500,
             maxLines: 3,
             decoration: InputDecoration(
@@ -405,7 +430,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
           const SizedBox(height: 20),
         ],
         FilledButton.icon(
-          onPressed: busy || loading || missing ? null : add,
+          onPressed: busy || !restored || missing ? null : add,
           icon: const Icon(Icons.add),
           label: const Text('Ajouter un produit et un lot'),
         ),
@@ -416,7 +441,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
             subtitle:
                 '${e.value['quantity']} unités · Lot ${e.value['batch']}\nPéremption : ${TunisDates.dateOnlyLabel(e.value['expiry'])}',
             trailing: IconButton(
-              onPressed: busy || loading
+              onPressed: busy || !restored
                   ? null
                   : () {
                       setState(() => lines.removeAt(e.key));
@@ -434,7 +459,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
           ),
         const SizedBox(height: 24),
         FilledButton(
-          onPressed: busy || loading || (lines.isEmpty && !missing)
+          onPressed: busy || !restored || (lines.isEmpty && !missing)
               ? null
               : save,
           child: Text(busy ? 'Enregistrement…' : 'Confirmer la réception'),
@@ -483,6 +508,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
   }
 
   Future<void> save() async {
+    if (busy || !restored || completed) return;
     setState(() => busy = true);
     try {
       final vm = widget.vm;
@@ -504,6 +530,8 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
           return;
         }
       }
+      committing = true;
+      await _tail;
       await vm.queue(
         widget.delivery == null
             ? {'type': 'stock.receive', 'reason': 'receipt', 'lines': lines}
@@ -531,6 +559,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
     } catch (e) {
       if (mounted) setState(() => error = SessionViewModel.message(e));
     } finally {
+      committing = false;
       if (mounted) setState(() => busy = false);
     }
   }

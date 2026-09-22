@@ -1,12 +1,112 @@
 import 'dart:async';
 
+import 'package:biobalance/data/repositories/offline_repository.dart';
+import 'package:biobalance/data/services/api/generated/api_client.dart';
+import 'package:biobalance/data/services/local_database/database.dart';
+import 'package:biobalance/domain/models/models.dart';
+import 'package:biobalance/ui/features/workspace/workspace_view_model.dart';
+import 'package:drift/native.dart';
+
 import 'package:biobalance/ui/core/design.dart';
 import 'package:biobalance/ui/core/forms.dart';
 import 'package:biobalance/ui/core/option_field.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+class FailedCleanupRepository extends OfflineRepository {
+  FailedCleanupRepository(super.db, super.api);
+  Json? saved;
+  @override
+  Future<Json?> draft(String accountId, String storeId, String key) async =>
+      saved;
+  @override
+  Future<void> saveDraft(
+    String accountId,
+    String storeId,
+    String key,
+    Json value,
+  ) async {
+    if (value.isEmpty) throw const AppFailure('STORAGE_FULL', 'Stockage plein');
+    saved = value;
+  }
+}
+
 void main() {
+  testWidgets('accepted form stays successful when its draft cleanup fails', (
+    t,
+  ) async {
+    final database = AppDatabase(NativeDatabase.memory());
+    final api = ApiClient(baseUrl: 'http://unused');
+    final repository = FailedCleanupRepository(database, api);
+    final workspace = WorkspaceViewModel(
+      const UserAccount(
+        id: 'audit',
+        name: 'Audit',
+        email: 'audit@example.test',
+        admin: false,
+      ),
+      repository,
+      api,
+    );
+    var submissions = 0;
+    await t.pumpWidget(
+      MaterialApp(
+        home: EditorScreen(
+          workspace: workspace,
+          title: 'Test',
+          fields: const [FieldSpec('name', 'Nom', initial: 'Valeur')],
+          submit: (_) async {
+            submissions++;
+          },
+        ),
+      ),
+    );
+    await t.pumpAndSettle();
+    await t.enterText(find.byKey(const ValueKey('field.name')), 'Saisie');
+    await t.tap(find.byKey(const ValueKey('editor.save')));
+    await t.pumpAndSettle();
+    expect(submissions, 1);
+    expect(find.text('Enregistré'), findsOneWidget);
+    expect(find.textContaining('Opération enregistrée.'), findsOneWidget);
+    expect(
+      t
+          .widget<FilledButton>(find.byKey(const ValueKey('editor.save')))
+          .onPressed,
+      isNull,
+    );
+    final savedBefore = repository.saved;
+    await workspace.flushDrafts();
+    expect(repository.saved, same(savedBefore));
+    expect(t.takeException(), isNull);
+    await t.pumpWidget(const SizedBox());
+    workspace.dispose();
+    api.http.close();
+    await database.close();
+  });
+
+  testWidgets('successful root form cannot submit the operation twice', (
+    t,
+  ) async {
+    var submissions = 0;
+    await t.pumpWidget(
+      MaterialApp(
+        home: EditorScreen(
+          title: 'Test',
+          fields: const [FieldSpec('name', 'Nom', initial: 'Nom')],
+          submit: (_) async {
+            submissions++;
+          },
+        ),
+      ),
+    );
+    final save = find.byKey(const ValueKey('editor.save'));
+    await t.tap(save);
+    await t.pumpAndSettle();
+    expect(submissions, 1);
+    expect(find.text('Enregistré'), findsOneWidget);
+    expect(t.widget<FilledButton>(save).onPressed, isNull);
+  });
+
   testWidgets(
     'save stays reachable above keyboard, prevents double submit and retains failed input',
     (t) async {

@@ -108,6 +108,12 @@ void main() {
                 .join('\n'),
       );
       expect(api.accountId, user.id);
+      await Dio(
+        BaseOptions(
+          baseUrl: base,
+          headers: {'x-test-key': const String.fromEnvironment('TEST_KEY')},
+        ),
+      ).post('/__test/deny-camera');
       await j.tap('Nouvelle vente');
       await j.tap('Scanner un produit');
       await j.until(

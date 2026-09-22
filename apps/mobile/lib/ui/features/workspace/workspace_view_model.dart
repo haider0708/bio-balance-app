@@ -188,21 +188,22 @@ class WorkspaceViewModel extends ChangeNotifier {
   }
 
   Future<void> initialize() async {
-    final access = await repository.draft(user.id, '', 'access');
-    _revokedStores.addAll(List<String>.from(access?['revokedStores'] ?? []));
-    final cached = await repository.stores(user);
-    _emit(state.copy(stores: cached));
-    if (cached.isNotEmpty) {
-      final saved = await repository.draft(user.id, '', 'selection');
-      await select(
-        cached.firstWhere(
-          (s) => s.id == saved?['storeId'],
-          orElse: () => cached.first,
-        ),
-        refresh: false,
-      );
-    }
+    _emit(state.copy(loading: true));
     try {
+      final access = await repository.draft(user.id, '', 'access');
+      _revokedStores.addAll(List<String>.from(access?['revokedStores'] ?? []));
+      final cached = await repository.stores(user);
+      _emit(state.copy(stores: cached));
+      if (cached.isNotEmpty) {
+        final saved = await repository.draft(user.id, '', 'selection');
+        await select(
+          cached.firstWhere(
+            (s) => s.id == saved?['storeId'],
+            orElse: () => cached.first,
+          ),
+          refresh: false,
+        );
+      }
       final stores = await repository.stores(user, refresh: true);
       final previousStore = state.store;
       if (previousStore != null &&
@@ -270,17 +271,19 @@ class WorkspaceViewModel extends ChangeNotifier {
         accessBlocked: _revokedStores.contains(store.id) || api.accessBlocked,
       ),
     );
-    await repository.saveDraft(user.id, '', 'selection', {'storeId': store.id});
-    final data = await repository.load(user, store);
-    if (selection != _selection) return;
-    _emit(
-      state.copy(
-        data: data,
-        loading: false,
-        pending: await repository.pendingCount(user.id),
-      ),
-    );
-    if (refresh) await synchronize();
+    try {
+      await repository.saveDraft(user.id, '', 'selection', {
+        'storeId': store.id,
+      });
+      final data = await repository.load(user, store);
+      final pending = await repository.pendingCount(user.id);
+      if (selection != _selection) return;
+      _emit(state.copy(data: data, loading: false, pending: pending));
+      if (refresh) await synchronize();
+    } catch (e) {
+      if (selection != _selection) return;
+      _emit(state.copy(loading: false, error: SessionViewModel.message(e)));
+    }
   }
 
   Future<Json> openNotification(String id) async {
@@ -305,14 +308,17 @@ class WorkspaceViewModel extends ChangeNotifier {
 
   Future<void> reloadLocal() async {
     final store = state.store;
+    final selection = _selection;
     if (store == null || state.accessBlocked) return;
     final data = await repository.load(user, store);
-    if (store.id != state.store?.id) return;
+    final pending = await repository.pendingCount(user.id);
+    if (selection != _selection || state.accessBlocked || _closed) return;
     final permissions = List<String>.from(
       data?.raw['permissions'] ?? store.permissions,
     );
     if (store.permissions.any((p) => !permissions.contains(p))) {
       await flushDrafts();
+      if (selection != _selection || state.accessBlocked || _closed) return;
       accessRevision++;
     }
     _emit(
@@ -325,7 +331,7 @@ class WorkspaceViewModel extends ChangeNotifier {
                 ...Map<String, dynamic>.from(data.raw['store'] ?? {}),
                 'permissions': data.raw['permissions'] ?? store.permissions,
               }),
-        pending: await repository.pendingCount(user.id),
+        pending: pending,
       ),
     );
   }
@@ -415,7 +421,23 @@ class WorkspaceViewModel extends ChangeNotifier {
       effect,
       draftKey: draftKey,
     );
-    await reloadLocal();
+    await afterLocalCommit();
+  }
+
+  /// The durable operation already exists. A failed readback must never invite
+  /// the caller to submit it again with another operation identifier.
+  Future<void> afterLocalCommit() async {
+    try {
+      await reloadLocal();
+    } catch (_) {
+      _emit(
+        state.copy(
+          loading: false,
+          error: 'Opération enregistrée sur ce téléphone. L’affichage n’a pas pu être actualisé. Réessayez la synchronisation.',
+        ),
+      );
+      return;
+    }
     unawaited(synchronize(silent: true));
   }
 

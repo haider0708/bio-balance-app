@@ -81,24 +81,36 @@ class _SaleEditorState extends State<_SaleEditor> {
             Notice(vm.state.error!, error: true),
             const SizedBox(height: 16),
           ],
+          if (vm.state.restoring)
+            const LinearProgressIndicator(
+              semanticsLabel: 'Chargement du brouillon',
+            ),
+          if (!vm.state.restoring &&
+              !vm.canEdit &&
+              !vm.state.saving &&
+              vm.state.error != null)
+            TextButton(
+              onPressed: vm.restore,
+              child: const Text('Recharger le brouillon'),
+            ),
           Wrap(
             spacing: 12,
             runSpacing: 12,
             children: [
               FilledButton.icon(
-                onPressed: () => scan(vm),
+                onPressed: vm.canEdit ? () => scan(vm) : null,
                 icon: const Icon(Icons.qr_code_scanner),
                 label: const Text('Scanner un produit'),
               ),
               OutlinedButton.icon(
-                onPressed: () => choose(vm),
+                onPressed: vm.canEdit ? () => choose(vm) : null,
                 icon: const Icon(Icons.search),
                 label: const Text('Rechercher'),
               ),
             ],
           ),
           const SizedBox(height: 24),
-          if (vm.state.lines.isEmpty)
+          if (vm.canEdit && vm.state.lines.isEmpty)
             const EmptyState(
               title: 'Votre vente commence ici',
               description: 'Scannez un produit ou recherchez sa référence. Le brouillon est enregistré automatiquement.',
@@ -116,16 +128,14 @@ class _SaleEditorState extends State<_SaleEditor> {
                 spacing: 8,
                 children: [
                   TextButton.icon(
-                    onPressed: vm.state.saving
+                    onPressed: !vm.canEdit
                         ? null
                         : () => editLine(vm, line.productId, line),
                     icon: const Icon(Icons.edit_outlined),
                     label: const Text('Modifier'),
                   ),
                   TextButton.icon(
-                    onPressed: vm.state.saving
-                        ? null
-                        : () => vm.remove(line.id),
+                    onPressed: !vm.canEdit ? null : () => vm.remove(line.id),
                     icon: const Icon(Icons.delete_outline),
                     label: const Text('Retirer'),
                   ),
@@ -137,6 +147,7 @@ class _SaleEditorState extends State<_SaleEditor> {
             const SizedBox(height: 16),
             TextField(
               controller: reason,
+              enabled: vm.canEdit,
               decoration: const InputDecoration(
                 labelText: 'Motif de la correction',
               ),
@@ -185,7 +196,7 @@ class _SaleEditorState extends State<_SaleEditor> {
                   SizedBox(
                     width: double.infinity,
                     child: FilledButton.icon(
-                      onPressed: vm.state.saving || vm.state.lines.isEmpty
+                      onPressed: !vm.canEdit || vm.state.lines.isEmpty
                           ? null
                           : () => save(vm),
                       icon: const Icon(Icons.check),

@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:provider/provider.dart';
 
 import 'data/services/api/generated/api_client.dart';
 import 'data/services/api/transport_security.dart';
+import 'data/services/api/session_storage.dart';
 
 import 'package:flutter/foundation.dart';
 
@@ -60,7 +60,8 @@ class BioBalanceApp extends StatelessWidget {
   Widget build(BuildContext context) => ChangeNotifierProvider(
     create: (_) => SessionViewModel(
       api,
-      const FlutterSecureStorage(),
+      SessionStorage.secure,
+      prepareStorage: SessionStorage.prepare,
       notifications: PushNotifications(api),
     )..restore(),
     child: MaterialApp(
