@@ -1,6 +1,6 @@
 # État de l’implémentation — 22 septembre 2026
 
-Les corrections de la dernière passe d’audit sont implémentées et vérifiées localement ; l’application n’est pas encore qualifiée pour une diffusion en production. Ce document distingue les fonctionnalités codées des vérifications réalisées.
+Les corrections de la dernière passe d’audit sont implémentées, vérifiées localement et en CI. Une candidate Android 1.0.1+3 est signée et sa mise à jour depuis 1.0.0+2 est vérifiée sur émulateur ; l’application n’est pas encore qualifiée sur appareils physiques et en pilote. Ce document distingue les fonctionnalités codées des vérifications réalisées.
 
 Dernière passe : [revue, fiabilité et finition](review-polish-2026-09-22.md). Le [registre VPS](vps-readiness-2026-09-22.md) établit le déploiement, la charge et la restauration actuels. Les comptes de tests et états des étapes antérieures ci-dessous sont historiques.
 
@@ -20,22 +20,22 @@ Dernière passe : [revue, fiabilité et finition](review-polish-2026-09-22.md). 
 - Vue administrateur, historiques paginés de ventes/points/audit/mouvements et export des lignes affichées.
 - Docker Compose VPS, deux API, workers séparés, Nginx, migrations, sauvegarde locale, restauration isolée, CI et scénario k6.
 
-## Vérifications réalisées localement
+## Vérifications actuelles
 
 | Vérification | Résultat constaté |
 |---|---|
 | Compilation TypeScript | Réussie |
-| Tests domaine et reprise transactionnelle backend | 10 réussis |
-| Tests PostgreSQL réels avec rôle restreint | 22 réussis + 14 régressions d’audit + 4 tests de traitement média réel + 5 tests notifications/workers + 13 tests sécurité |
-| Tests Flutter de reprise, migration et dispositions d’écran | 130 réussis ; 2 parcours HTTP, contrats Dart et reprise média HTTPS/Nginx exécutés séparément et réussis |
-| Build Android | Debug normal lancé/rechargé et APK/AAB release non signés compilés ; parcours/force-stop/vidéo réussis sur émulateur ; APK/AAB inertes signés vérifiés et installation/mise à jour testées ; signature Apple et appareils physiques en attente |
+| Tests domaine et harnais backend | 19 réussis |
+| Tests PostgreSQL réels et services | 26 transactions + 14 régressions d’audit + 4 médias + 5 notifications/workers + 13 sécurité + 11 email réussis |
+| Tests Flutter de reprise, migration et dispositions d’écran | 146 réussis ; 4 tests à fixtures omis par défaut. Contrats et 2 parcours HTTP relancés séparément ; preuve HTTPS/Nginx antérieure conservée |
+| Builds et parcours natifs | APK/AAB 1.0.1+3 signés, sécurité du manifeste et alignement natif vérifiés ; parcours/force-stop/vidéo réussis ; mise à jour APK 1.0.0+2 → 1.0.1+3 réussie sur émulateur ; compilation iOS CI réussie, signature Apple et appareils physiques en attente |
 | Sauvegarde/restauration isolée | Réussie : données métier, image et vidéo traitées ; tailles/empreintes et projections comparées après restauration isolée |
 | OpenAPI et génération Dart | 45 endpoints vérifiés sur HTTP réel ; schémas Dart typés générés et aller-retour JSON validé |
 | Images Docker et émulateur | Parcours Android et Compose complet local réussis ; API/média, TLS, isolation, reprise et rollback vérifiés |
 
 Un passage des tests PostgreSQL a expiré pendant une forte saturation mémoire de l’hôte par les builds Android. Après arrêt des anciens daemons de compilation devenus inutiles, les 12 tests ont réussi sans allonger leur délai.
 
-Audit du 22 septembre : voir [constats corrigés et preuves](audit-2026-09-22.md). Les APK/AAB release non signés de l’étape 12 précèdent ces corrections ; ils restent des preuves historiques de compilation et doivent être reconstruits avant un pilote.
+Audit précédent : [constats et preuves](audit-2026-09-22.md). La [dernière passe](review-polish-2026-09-22.md) fournit les commits, CI, empreintes et candidate Android qui remplacent les anciens artefacts de compilation. Les entrées détaillées ci-dessous conservent l’historique des étapes.
 
 ## Travail restant avant acceptation
 
@@ -73,11 +73,11 @@ Implémentation et vérifications locales terminées : commit `7f25895`.
 | 5. Onboarding/images | Implémentation et vérification locale terminées (voir registre ci-dessous) |
 | 6. Brouillons et transferts | Implémentation et vérification locale terminées (voir registre ci-dessous) |
 | 7. Contrats et nettoyage | Implémentation et vérification locale terminées (voir registre ci-dessous) |
-| 8. Notifications/workers | Implémentation et vérification locale terminées ; FCM/APNs réels en attente |
+| 8. Notifications/workers | Boîte interne VPS et workers vérifiés ; Firebase retiré et notifications OS app fermée reportées |
 | 9. Parcours complets | Vérification locale terminée sur émulateur Android ; iOS/appareils physiques en attente |
-| 10. Performances/appareils | Charge API et SQLite mesurées localement ; VPS/appareils physiques en attente |
-| 11. Déploiement/reprise | Compose, reprise et rollback vérifiés localement ; CI distante/VPS/ACME en attente |
-| 12. Versions signées/pilote | Préparation locale et APK/AAB non signés terminés ; signatures, iOS et pilote de deux semaines en attente |
+| 10. Performances/appareils | Charge VPS 100/200 req/s et SQLite vérifiées ; qualification sur appareils physiques en attente |
+| 11. Déploiement/reprise | Compose, VPS/HTTPS, CI, sauvegarde/restauration et rollback vérifiés ; aucun rétablissement hors serveur prévu |
+| 12. Versions signées/pilote | Candidate Android 1.0.1+3 signée et mise à jour privée testée ; Apple, Play et pilote de deux semaines en attente |
 
 ### Étape 2 — Accès et reprise de session
 

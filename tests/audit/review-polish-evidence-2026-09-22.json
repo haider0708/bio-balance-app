@@ -70,7 +70,7 @@
     "flutter_analysis": {
       "passed": true,
       "log": "flutter-analysis.log",
-      "logSha256": "a1fea1b1343ff1e7e4f0ce3a22f2b513cf1d05aac8356d905a6c0ca1d517cd1e"
+      "logSha256": "d57c8a633d0f92cd2d84821f43ba6e0c0a6deefbb7f3d4762a66f84780aeccca"
     },
     "contract_drift": {
       "passed": true,
@@ -96,12 +96,92 @@
       "passed": true,
       "log": "apk-signer-negative-test.json",
       "logSha256": "121f84e69d1915c82111de8144aca6e361c00aed249a92e5e549609fe16da497"
+    },
+    "native_android_role_assertions": {
+      "passed": true,
+      "roles": [
+        "admin",
+        "manager",
+        "salesperson"
+      ],
+      "localWrapperExit": 143,
+      "cleanExitConfirmation": "GitHub run 35792773050 android-journeys passed",
+      "log": "android-journeys.log",
+      "logSha256": "e9e6bbefaf3ee1853361392222ed7fb97275bc9b1695955ffa62e81e13595a67"
+    },
+    "native_android_recovery": {
+      "passed": true,
+      "exitCode": 0,
+      "realForceStop": true,
+      "preservedOperationIdentity": true,
+      "acceptedSales": 1,
+      "sellableStock": 7,
+      "lotVersion": 3,
+      "points": 30,
+      "cameraDenialFallback": true,
+      "offlineVideoPlayback": true,
+      "log": "android-restart.log",
+      "logSha256": "47de8da3820b003a73f948c5eb34277a06d938079c81fc57109ce5d95934291f"
+    },
+    "signed_android": {
+      "passed": true,
+      "independentCertificatesVerified": true,
+      "releaseManifestVerified": true,
+      "zipAnd64BitElfAlignmentKiB": 16,
+      "embeddedDwarfDebugSections": false,
+      "log": "android-signed-build.log",
+      "logSha256": "f08c7115daa879d8afd0bc54eea1907d17a98677c50677e6666acd4a8ac2c16c"
+    },
+    "release_package": {
+      "passed": true,
+      "log": "release-package.log",
+      "logSha256": "03dfe7c79b9889e37b91a314b5b71a1205c633351af415a38cdba9db3dee51e8"
+    },
+    "npm_runtime_advisories": {
+      "passed": true,
+      "knownVulnerabilities": 0,
+      "log": "npm-runtime-audit.json",
+      "logSha256": "7337706d9604d7b718ecef175adfdae9843d79b88fdcccf1945e73cac461e7df"
+    },
+    "github_ci": {
+      "passed": true,
+      "runId": 35792773050,
+      "commit": "b377cf3c38229fe93bc3f2c90449b8ba0bd3db65",
+      "jobs": [
+        "backend",
+        "android",
+        "ios",
+        "android-journeys"
+      ],
+      "iosCodesigned": false,
+      "log": "ci-b377cf3.json",
+      "logSha256": "eb7976b3460c9fd8e8e946ee582fcb814c8e9a61ca8d9ee3d22f67f9bcaf1b28"
+    },
+    "private_apk_upgrade": {
+      "passed": true,
+      "fromVersion": "1.0.0+2",
+      "toVersion": "1.0.1+3",
+      "clearedAppData": false,
+      "verification": "Native installation, versionCode and UI automation login semantics; release screenshots remain black under FLAG_SECURE",
+      "log": "private-apk-upgrade.json",
+      "logSha256": "14119546920094008ffa9c604abe1c33a6622a14036ea1d1151f102289802966"
+    },
+    "github_ci_final_harness": {
+      "passed": true,
+      "runId": 35793743555,
+      "commit": "be3d2a719181ee9e3738d3940885bf4ebd4f7323",
+      "jobs": [
+        "backend",
+        "android",
+        "ios",
+        "android-journeys"
+      ],
+      "iosCodesigned": false,
+      "log": "ci-be3d2a7.json",
+      "logSha256": "3a08724b0d1ac457522f4bc76b4d93961e0a873cb3781d7931e8b8bd2101a3f8"
     }
   },
   "pending": [
-    "Final native Android journeys and restart verification",
-    "Signed Android package from clean reviewed commit",
-    "Remote CI for this revision",
     "Physical Android/iOS qualification",
     "Apple signing and app-store onboarding",
     "Real-data validation and invited pilot"
@@ -110,5 +190,44 @@
     "No claim of zero vulnerabilities",
     "No high availability or off-server restore coverage",
     "Local VM benchmarks do not qualify physical phones"
-  ]
+  ],
+  "implementationCommits": [
+    "7bd809a5d6b7028b91b7ff23ef6af3d147bd933a",
+    "b377cf3c38229fe93bc3f2c90449b8ba0bd3db65",
+    "be3d2a719181ee9e3738d3940885bf4ebd4f7323"
+  ],
+  "androidRelease": {
+    "version": "1.0.1+3",
+    "sourceCommit": "b377cf3c38229fe93bc3f2c90449b8ba0bd3db65",
+    "sourceDirty": false,
+    "trackedSourceSha256": "fd681c09fb435999c1947d92d514c7d922bd7d27b076a14f0518f81160d91733",
+    "directory": ".artifacts/releases/builds/20260922T223307Z-android-signed",
+    "apkSha256": "0ab064bf34a32d78a4c501f3d5bbd02f1ebb28b40e1c026df135ada6c51b377b",
+    "aabSha256": "3bf3f3563fc8f8d11a70b70169232abf8e3ee3a6f06d1dbfd7776dfa553a72cd",
+    "package": ".artifacts/releases/biobalance-b377cf3c-android-signed.tar.gz",
+    "packageSha256": "b68ed57b0389200e7ae0d502ab6e105bfe0cf3e51c9374428b5ba2da1e45708a",
+    "published": false
+  },
+  "intermediateChecks": [
+    {
+      "log": "android-restart-keyboard-failure.log",
+      "result": "failed before force-stop: item obscured by keyboard; product selection now searches and dismisses the native keyboard; revised local and CI runs passed"
+    },
+    {
+      "log": "ci-7bd809a-failure.log",
+      "result": "camera-denial assertion failed in older CI; packaged revision passed all four CI jobs; disposable CI emulator is additionally kept awake and foreground prerequisite asserted"
+    },
+    {
+      "log": "android-journeys-invalidated-build.log",
+      "result": "invalidated while an autofix temporarily damaged pubspec assets; configuration restored before final build"
+    }
+  ],
+  "fixtureDependentChecks": {
+    "skippedInDefaultFlutterSuite": 4,
+    "currentSeparateExecutions": [
+      "Dart HTTP contracts",
+      "real mobile synchronization (two tests)"
+    ],
+    "notRerun": "isolated Compose/Nginx download fixture; prior deployment evidence retained, current native offline playback and media backend tests passed"
+  }
 }

@@ -37,9 +37,27 @@ La saisie de ventes historiques et leur péremption à la date enregistrée rest
 
 ## Vérification
 
-Les résultats exécutés et les empreintes des journaux sont conservés dans [le registre de preuves](../tests/audit/review-polish-evidence-2026-09-22.json). Les vérifications natives et les artefacts signés seront ajoutés après leur fin, sans convertir un contrôle en attente en succès.
+Les résultats exécutés et les empreintes des journaux sont conservés dans [le registre de preuves](../tests/audit/review-polish-evidence-2026-09-22.json). Corrections applicatives : `7bd809a` ; sélection native des produits et nettoyage du harnais : `b377cf3` ; précondition de premier plan de l’émulateur CI : `be3d2a7`.
 
-Échecs intermédiaires conservés : ffmpeg absent du premier environnement de test puis PATH corrigé ; fixture de contrat corrigée ; redondance d’import et erreur de nom dans un nouveau test corrigées ; montage initial des métriques corrigé après inspection visuelle. Un autofix Dart a altéré la section assets du pubspec pendant une compilation Android : le fichier a été restauré et ce premier parcours invalidé, puis reconstruit. Les preuves finales portent sur la configuration corrigée.
+| Contrôle | Résultat |
+|---|---|
+| Flutter | 146 tests réussis, 4 tests nécessitant des fixtures omis par défaut ; contrats et deux tests de synchronisation exécutés séparément ; analyse sans diagnostic |
+| Backend | 92 tests réussis : domaine, transactions, audit, sécurité, médias, notifications et email |
+| Contrats/synchronisation | 45 endpoints HTTP, décodage Dart, deux parcours HTTP/SQLite/PostgreSQL ; génération reproductible |
+| Outils de release | 37 tests réussis ; signatures non approuvées refusées ; package vérifié avant et après copie |
+| Android natif | Parcours des trois rôles réussis en CI ; arrêt réel après vente locale, reprise unique (stock 7, version 3, points 30), refus caméra et vidéo hors ligne réussis |
+| Dépendances/runtime | Aucun avis de vulnérabilité npm pour les dépendances de production au moment du contrôle ; image Docker construite et imports du runtime vérifiés |
+| CI du code livré | [35792773050](https://github.com/haider0708/bio-balance-app/actions/runs/35792773050) : backend, Android, parcours Android et compilation iOS réussis ; iOS non signé |
+| CI finale du harnais | [35793743555](https://github.com/haider0708/bio-balance-app/actions/runs/35793743555), commit `be3d2a7` : les quatre jobs réussissent avec l’émulateur éveillé et la précondition de premier plan |
+| Mise à jour APK privée | Installation de 1.0.0+2 puis mise à jour vers 1.0.1+3 sur un émulateur neuf, sans effacement des données ; lancement et écran de connexion vérifiés par l’automatisation native |
+
+Le quatrième test Flutter à fixture (téléchargement à travers Compose/Nginx) conserve sa preuve de déploiement antérieure ; il n’a pas été relancé dans cette passe. Les tests média backend et la lecture native hors ligne ont été relancés. Les captures du binaire de diffusion restent noires conformément à `FLAG_SECURE` ; les captures de présentation ci-dessus proviennent des widgets de test.
+
+APK et AAB **1.0.1+3** construits depuis l’arbre propre `b377cf3`. Certificats APK/application et AAB/upload vérifiés séparément ; manifeste sans débogage, sauvegarde Android ni HTTP clair ; bibliothèques distribuées sans sections DWARF, alignement ZIP/ELF 16 Kio vérifié. Les symboles privés restent hors du package. Archive locale : `.artifacts/releases/biobalance-b377cf3c-android-signed.tar.gz`, SHA-256 `b68ed57b0389200e7ae0d502ab6e105bfe0cf3e51c9374428b5ba2da1e45708a`. Cette candidate n’est pas publiée ; la release publique v1.0.0 reste inchangée.
+
+Les changements après `b377cf3` concernent le harnais CI et les preuves, sans modification du runtime mobile/backend ni de la configuration livrée. Une mesure fiable des tokens de cette seule passe n’est pas disponible : les agrégats du scan incluaient des historiques partiels et ne sont pas présentés comme une consommation de cette revue.
+
+Échecs intermédiaires conservés : ffmpeg absent du premier environnement de test puis PATH corrigé ; fixture de contrat corrigée ; redondance d’import et erreur de nom dans un nouveau test corrigées ; montage initial des métriques corrigé après inspection visuelle. Un autofix Dart a altéré la section assets du pubspec pendant une compilation Android : le fichier a été restauré et ce premier parcours invalidé, puis reconstruit. Un choix de produit masqué par le clavier dans le harnais natif a été remplacé par une recherche explicite suivie de la fermeture du clavier. Un ancien contrôle caméra CI a échoué ; le parcours du commit livré est vert, et la CI garde désormais son émulateur éveillé avec une précondition explicite de premier plan. Le premier wrapper local du parcours des rôles s’est terminé par signal après toutes les assertions ; sa sortie propre est confirmée par le parcours CI. Les preuves finales portent sur la configuration corrigée.
 
 ## Acceptation restante
 
