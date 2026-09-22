@@ -315,3 +315,14 @@ Le backend est maintenant installé sur le VPS réel, accessible à **https://ap
 - Endpoint mobile local configuré ; builds signés pour ce domaine, CI/iOS, téléphones physiques et pilote restent à réaliser. Ressources adaptées au serveur partagé ; capacité à grande échelle et supervision indépendante encore à qualifier.
 
 Compte rendu et résultats exacts : [déploiement VPS](vps-deployment-2026-09-22.md) et [preuves](../tests/deployment/vps-evidence-2026-09-22.json). Les anciennes étapes restent un historique de leurs environnements de test ; cette section consigne les vérifications réellement exécutées sur le VPS.
+
+## Publication Android v1.0.0 — 22 septembre 2026
+
+Code de construction : **`d09c552c07ad7997c5f493fdbbe74bf5261d8ce4`**, version **1.0.0+2**. Historique poussé sur `main` dans [le dépôt GitHub](https://github.com/haider0708/bio-balance-app). Les anciens APK de compilation utilisant `.invalid` ne sont pas les fichiers de cette release.
+
+- APK universel signé avec la clé d’application existante, API compilée `https://api.galylio.com`, trois architectures vérifiées. AAB signé avec la clé d’upload conservé en privé pour l’inscription Play.
+- Signature APK v2/RSA-4096, identité attendue, restrictions manifest, absence de sections DWARF natives et alignement 16 Kio vérifiés. Installation sur un émulateur Android 36 neuf et affichage de la connexion française réussis ; aucune erreur fatale BioBalance observée. L’essai d’installation trop tôt pendant le premier démarrage de l’émulateur a été repris après disponibilité du système.
+- APK : 79 727 534 octets, SHA-256 `386f5b00c16dd82e3f030ca4b7c6b5335e4c45f80a4b2cafc7b2cc60c29bf21e`. Manifest et sommes de contrôle joints à la [release](https://github.com/haider0708/bio-balance-app/releases/tag/v1.0.0). Les clés, credentials, symboles privés et données locales sont exclus.
+- GitHub Actions a démarré pour le commit de construction : backend, Android, parcours Android et compilation iOS non signée. Un job en cours ne vaut pas une validation ; consulter [l’exécution](https://github.com/haider0708/bio-balance-app/actions/runs/35738028697).
+
+La publication de l’APK est distincte de l’acceptation générale : téléphones physiques, signature/distribution Apple, inscription Play, sauvegarde indépendante des clés, charge du VPS partagé, alertes externes, réception d’email et pilote restent à vérifier. Notes de version : [v1.0.0](releases/v1.0.0.md).

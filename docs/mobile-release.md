@@ -16,8 +16,10 @@ Les APK/AAB produits sous `.artifacts/releases/builds/` sont **non signés** et 
 
 Copier `config/mobile/production.example.json` vers `config/mobile/android.local.json` et renseigner uniquement l’origine HTTPS réelle et l’éventuel `AUTH_LINK_HOST`. Aucun paramètre Firebase n’est accepté. Les clés initiales ont été créées dans un répertoire privé hors dépôt ; voir [sécurité et signatures](security-hardening.md).
 
+Pour le backend actuellement déployé, `config/mobile/production.json` contient déjà l’origine publique `https://api.galylio.com`, sans secret. La release GitHub `v1.0.0` utilise ce fichier et la version `1.0.0+2`.
+
 ```sh
-python3 scripts/build-signed-android.py config/mobile/android.local.json /home/haydar/.local/share/biobalance/signing
+python3 scripts/build-signed-android.py config/mobile/production.json /home/haydar/.local/share/biobalance/signing
 ```
 
 La clé d’application signe l’APK ; la clé d’upload signe l’AAB. Vérification des empreintes publiques versionnées avant compilation, puis contrôle de la signature APK, de chaque entrée AAB, de l’alignement ELF/ZIP et de l’absence de DWARF dans l’APK. Flutter obfusque les builds de diffusion et conserve les symboles hors des fichiers de distribution. Le build Gradle refuse un release sans clé, sauf le mode de compilation explicitement choisi par le script.
@@ -40,7 +42,7 @@ Vérifier l’archive et l’IPA avec Xcode Organizer/codesign, puis transmettre
 
 Utiliser des fichiers distincts staging/production et par plateforme. Ne pas changer le serveur d’une installation qui contient des opérations en attente : synchroniser/exporter le diagnostic puis utiliser une installation de test distincte si nécessaire. Les mots de passe et tokens restent dans le stockage sécurisé, jamais dans les paramètres de compilation.
 
-Les workflows CI sont préparés mais nécessitent le dépôt distant. Le job macOS compile sans signature ; la signature requiert un runner autorisé disposant des credentials ci-dessus. Avant pilote, suivre `release-gates.md` puis `pilot-plan.md`.
+Les workflows CI sont disponibles dans [GitHub Actions](https://github.com/haider0708/bio-balance-app/actions). Le job macOS compile sans signature ; la signature requiert un runner autorisé disposant des credentials ci-dessus. Avant pilote, suivre `release-gates.md` puis `pilot-plan.md`.
 
 Depuis un arbre Git propre, créer le dossier de livraison :
 

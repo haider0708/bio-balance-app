@@ -2,7 +2,7 @@
 
 Application Flutter en français pour les vendeurs, responsables de magasins et l’administration BioBalance. API NestJS, PostgreSQL et stockage local Drift ; architecture objet avec MVVM, injection par constructeur et règles métier séparées des interfaces.
 
-**État : implémentation et validations locales réalisées ; qualification physique, signatures et pilote en attente.** Voir [l’état détaillé](docs/implementation-status.md), la [spécification](docs/specification-fonctionnelle.md), l’[architecture](docs/architecture-technique.md) et le [runbook](docs/runbook.md).
+**État : backend déployé sur https://api.galylio.com et APK Android v1.0.0 signé ; qualification physique, distribution Play/iOS et pilote en attente.** [Télécharger la release Android](https://github.com/haider0708/bio-balance-app/releases/tag/v1.0.0). Voir [l’état détaillé](docs/implementation-status.md), la [spécification](docs/specification-fonctionnelle.md), l’[architecture](docs/architecture-technique.md) et le [runbook](docs/runbook.md).
 
 ## Organisation
 
@@ -81,6 +81,6 @@ Les icônes et écrans de lancement sont générés depuis le logo fourni par `p
 
 ## Livraison
 
-Voir [le runbook](docs/runbook.md), [les builds mobiles](docs/mobile-release.md), [les portes de diffusion](docs/release-gates.md) et [le pilote](docs/pilot-plan.md). Charge locale et reprise Docker sont vérifiées ; restent nécessaires VPS/domaine, SMTP, inscription Play/signature Apple, CI distante/macOS, mesures physiques et pilote. Les sauvegardes hors VPS et la haute disponibilité sont hors du périmètre convenu.
+Voir [la release v1.0.0](docs/releases/v1.0.0.md), [le runbook](docs/runbook.md), [les builds mobiles](docs/mobile-release.md), [les portes de diffusion](docs/release-gates.md) et [le pilote](docs/pilot-plan.md). Le VPS, HTTPS, SMTP authentifié et la restauration locale sont vérifiés. Restent nécessaires la réception réelle des emails, l’inscription Play et la signature Apple, la qualification du VPS sous charge, les mesures physiques et le pilote. [GitHub Actions](https://github.com/haider0708/bio-balance-app/actions) fournit les résultats CI distants. Les sauvegardes hors VPS et la haute disponibilité sont hors du périmètre convenu.
 
 La [configuration de sécurité et de signature](docs/security-hardening.md) documente les protections, clés privées hors dépôt, certificats publics et validations restantes. Firebase a été retiré ; les notifications sont disponibles dans la boîte interne du VPS.

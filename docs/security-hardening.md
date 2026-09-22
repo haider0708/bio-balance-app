@@ -55,7 +55,7 @@ Android does not guarantee that an arbitrary background connection remains alive
 
 ## Remaining activation and verification
 
-- Configure the owned API domain, publicly trusted TLS certificate, SMTP and VPS firewall/SSH/monitoring; run the existing renewal/restore procedures on that VPS.
+- The API domain, trusted TLS, SMTP authentication, scoped ingress, renewal and restore are verified on the real VPS. Finish independent outage alerts, real email receipt, shared-host load qualification and coordinated host maintenance; see the [deployment record](vps-deployment-2026-09-22.md).
 - Securely back up the Android signing identity, enroll Play App Signing with the matching key, and verify real cross-channel upgrades and verified account links.
 - Obtain the Apple team/signing environment and run iOS build, ATS, privacy, media and device tests.
 - To require server-verifiable proof of the official client/device, integrate and validate Play Integrity and Apple App Attest using their respective platform accounts. Neither requires Firebase. Private APK acceptance and offline synchronization must be tested explicitly. There is no fake fallback based on an app name, User-Agent, embedded secret or self-reported signature. **Attestation is not active in this version.**
