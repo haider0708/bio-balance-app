@@ -50,3 +50,7 @@ Rejouer le scénario sur le VPS de référence, avec les deux API, Nginx et work
 ## Renforcement de sécurité du 22 septembre
 
 Nouvelle charge avec les budgets compte actifs : 36 001 requêtes, zéro erreur ou itération perdue ; p95 lecture/écriture 26,11/46,69 ms à 100 req/s puis 124,47/232,06 ms à 200 req/s. 3 602 nouvelles ventes, aucune divergence des projections. Voir `tests/security/evidence.json`. Deux processus API locaux, mêmes limites d’interprétation que la mesure précédente : VPS, Nginx/workers et appareils physiques non qualifiés par ce test.
+
+## Scanner et interface mobile du 22 septembre
+
+Le commit `873f641` limite le décodage caméra, construit les grandes listes à la demande et prépare les grands index de stock hors du thread UI. Comparaison du calcul de filtrage sur 2 000 produits / 6 000 lots : p95 16,413 ms auparavant, 0,531 ms avec résumés préparés. Préparation initiale : 66,327 ms écoulées, dans un isolate. Sauvegarde SQLite durable : 11,499 ms p95 sur l’hôte. Ces mesures n’établissent pas les temps caméra, le budget de rendu ou la consommation sur téléphone. [Rapport et limites](mobile-performance-2026-09-22.md), [preuves JSON](../tests/performance/evidence/mobile-resources-2026-09-22.json).

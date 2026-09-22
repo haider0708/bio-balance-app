@@ -1,0 +1,127 @@
+{
+  "sourceCommit": "873f641da71e933b96fbd42efc312a8f7a79cb60",
+  "date": "2026-09-22",
+  "physicalReferenceDevice": false,
+  "verification": {
+    "flutterAnalyzer": "passed",
+    "flutterTestsPassed": 96,
+    "flutterTestsSkipped": 4,
+    "skippedReason": "Existing server-dependent tests; not counted as passes in this change.",
+    "androidReleaseCompile": "APK and AAB passed, unsigned with inert API domain",
+    "nativeBinaryPolicy": "16 KiB alignment, release application policy, no packaged native DWARF: passed"
+  },
+  "localBefore": {
+    "timestamp": "2026-09-22T10:42:22.348456Z",
+    "runtime": "3.13.4 (stable) (Tue Sep 15 01:01:15 2026 -0700) on \"linux_x64\"",
+    "os": "linux",
+    "physicalReferenceDevice": false,
+    "mode": "host Flutter test VM; not release or cold app startup",
+    "fixture": {
+      "cachedStores": 4,
+      "productsPerStore": 200,
+      "lotsPerStore": 600,
+      "recentSalesPerStore": 100,
+      "pendingSales": 120
+    },
+    "localSalePersistence": {
+      "samples": 120,
+      "p50Ms": 8.726,
+      "p95Ms": 10.951,
+      "maxMs": 52.401
+    },
+    "cachedStoreLoadAndSwitch": {
+      "samples": 100,
+      "p50Ms": 4.721,
+      "p95Ms": 7.719,
+      "maxMs": 8.74
+    },
+    "cachedProductSearch": {
+      "samples": 100,
+      "p50Ms": 0.048,
+      "p95Ms": 0.095,
+      "maxMs": 0.421
+    },
+    "sqliteReopenAndLoad": {
+      "samples": 30,
+      "p50Ms": 8.741,
+      "p95Ms": 10.531,
+      "maxMs": 10.962
+    }
+  },
+  "localAfter": {
+    "timestamp": "2026-09-22T10:50:53.206578Z",
+    "runtime": "3.13.4 (stable) (Tue Sep 15 01:01:15 2026 -0700) on \"linux_x64\"",
+    "os": "linux",
+    "physicalReferenceDevice": false,
+    "mode": "host Flutter test VM; not release or cold app startup",
+    "fixture": {
+      "cachedStores": 4,
+      "productsPerStore": 200,
+      "lotsPerStore": 600,
+      "recentSalesPerStore": 100,
+      "pendingSales": 120
+    },
+    "localSalePersistence": {
+      "samples": 120,
+      "p50Ms": 9.09,
+      "p95Ms": 11.499,
+      "maxMs": 57.607
+    },
+    "cachedStoreLoadAndSwitch": {
+      "samples": 100,
+      "p50Ms": 4.928,
+      "p95Ms": 8.333,
+      "maxMs": 11.486
+    },
+    "cachedProductSearch": {
+      "samples": 100,
+      "p50Ms": 0.052,
+      "p95Ms": 0.091,
+      "maxMs": 0.493
+    },
+    "sqliteReopenAndLoad": {
+      "samples": 30,
+      "p50Ms": 9.155,
+      "p95Ms": 12.131,
+      "maxMs": 12.23
+    }
+  },
+  "stockComparison": {
+    "timestamp": "2026-09-22T10:54:13.676176Z",
+    "runtime": "3.13.4 (stable) (Tue Sep 15 01:01:15 2026 -0700) on \"linux_x64\"",
+    "mode": "Linux Flutter test VM; calculation only, excludes widget layout/raster and native camera",
+    "physicalReferenceDevice": false,
+    "fixture": {
+      "products": 2000,
+      "lots": 6000,
+      "queries": 120
+    },
+    "initialStockIndexWallMs": 66.327,
+    "initialStockIndexOffUiThread": true,
+    "previousStockFilterAndCardSummaries": {
+      "samples": 120,
+      "p50Ms": 2.742,
+      "p95Ms": 16.413,
+      "maxMs": 25.768
+    },
+    "cachedStockFilter": {
+      "samples": 120,
+      "p50Ms": 0.302,
+      "p95Ms": 0.531,
+      "maxMs": 0.671
+    }
+  },
+  "limits": [
+    "Host Flutter test VM, not physical Android or iOS.",
+    "Stock comparison measures computation only; excludes layout, raster and camera.",
+    "Existing SQLite benchmark retains its original linear search loop for before/after comparability.",
+    "Camera test uses a controlled native-platform adapter, not an optical performance measurement.",
+    "Battery, thermal behavior, physical camera decoding and release frame budgets remain pending."
+  ],
+  "artifacts": {
+    "biobalance-compile-only.aab": "c6bd567decfce4d9e2599addeb8ac4b7a57a8e767b21eaccfe6b8996069821cd",
+    "biobalance-compile-only.apk": "fc373aa7a6bc4e260f8ac6f085b85f08d8fd9031a77157f1a32e83e159db6ae5"
+  },
+  "localLogs": ".artifacts/evidence/mobile-performance/",
+  "localBuild": ".artifacts/releases/builds/20260922T105428Z-android-compile-only"
+}

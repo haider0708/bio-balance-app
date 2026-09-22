@@ -267,3 +267,9 @@ Charge après renforcement : 36 001 requêtes, 3 602 ventes acceptées, aucune r
 
 Commit du renforcement : `c341080`. Contrats régénérés après commit : aucune dérive. Les clés privées restent hors du dépôt ; seules leurs empreintes publiques sont versionnées.
 Reprise Flutter de média HTTPS/Nginx rejouée après le commit : réussie, avec autorité de test explicite, interruption, ETag et requêtes Range. Laboratoire et émulateur de sécurité arrêtés ; données et preuves conservées.
+
+## Scanner et consommation mobile — 22 septembre 2026
+
+Commit d’implémentation : **`873f641`**. Scanner à décodage limité, transitions caméra sérialisées et capture unique, cadre/torche/reprise ; index des codes et équivalence UPC/EAN validée. Stock/catalogue paresseux, préparation des grands inventaires dans un isolate borné, résumés réutilisés, images décodées à la taille affichée, polling suspendu hors écran/en arrière-plan et reprise avec délai après échec.
+
+Validation : **96 tests Flutter réussis**, analyse propre, benchmarks SQLite et inventaire exécutés, APK/AAB release obfusqués non signés compilés et contrôlés. Quatre tests historiques dépendant d’un serveur ne sont pas comptés dans cette passe. Le calcul de filtrage sur 2 000 produits/6 000 lots passe de 16,413 à 0,531 ms p95 sur l’hôte ; la préparation initiale est déportée du thread UI. Caméra, batterie, mémoire et fluidité sur appareils physiques restent à vérifier. Voir [rapport détaillé](mobile-performance-2026-09-22.md) et [preuves](../tests/performance/evidence/mobile-resources-2026-09-22.json).
