@@ -99,7 +99,7 @@ const owner = new PrismaClient({
         orderBy: { createdAt: "desc" },
       });
       return (
-        job?.payload.text.match(
+        job?.payload.token ?? job?.payload.text?.match(
           / : ([\w-]{43})\./,
         )?.[1] ?? null
       );

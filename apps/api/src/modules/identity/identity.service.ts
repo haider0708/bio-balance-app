@@ -1,4 +1,6 @@
-import { accountTokenMessage } from "./account-links";
+import { accountLink } from "./account-links";
+import { invitationIsAuthorized } from "./invitation-policy";
+import type { EmailPayload } from "../../shared/email/email-delivery";
 import { Prisma } from "@prisma/client";
 import { TOTP, Secret } from "otpauth";
 import { Injectable } from "@nestjs/common";
@@ -241,6 +243,7 @@ export class IdentityService {
         403,
       );
     const token = randomBytes(32).toString("base64url");
+    accountLink("invite", token);
     const create = async (tx: Prisma.TransactionClient) => {
       const targetOrganization =
         organizationId ??
@@ -266,10 +269,12 @@ export class IdentityService {
           kind: "email",
           key: `invite:${invitation.id}`,
           payload: {
+            version: "1",
+            template: "invite",
             to: input.email,
-            subject: "Votre invitation BioBalance",
-            text: accountTokenMessage("invite", token),
-          },
+            accessTokenId: invitation.id,
+            token,
+          } satisfies EmailPayload,
         },
       });
       await tx.auditEntry.create({
@@ -361,37 +366,8 @@ export class IdentityService {
         "INVITATION_EXPIRED",
         "Invitation invalide ou expirée. Demandez une nouvelle invitation.",
       );
-      // An invitation is a deferred grant, not a permanent delegation from an
-      // account that may since have been disabled or lost its authority.
-      const issuer = invite.createdBy
-        ? await tx.user.findUnique({ where: { id: invite.createdBy } })
-        : null;
-      let authorized = !!issuer && !issuer.disabled && issuer.platformAdmin;
-      if (
-        issuer &&
-        !issuer.disabled &&
-        invite.storeId &&
-        invite.organizationId
-      ) {
-        const owner = await tx.organizationMembership.findUnique({
-          where: {
-            organizationId_userId: {
-              organizationId: invite.organizationId,
-              userId: issuer.id,
-            },
-          },
-        });
-        const member = await tx.membership.findUnique({
-          where: {
-            storeId_userId: { storeId: invite.storeId, userId: issuer.id },
-          },
-        });
-        authorized ||=
-          owner?.active === true ||
-          (member?.active === true && member.permissions.includes("manage"));
-      }
       requireRule(
-        authorized,
+        await invitationIsAuthorized(tx, invite),
         "INVITATION_EXPIRED",
         "Cette invitation n’est plus autorisée. Demandez une nouvelle invitation.",
       );
@@ -453,9 +429,11 @@ export class IdentityService {
   }
   async forgot(email: string, ip: string) {
     await this.throttle(`reset:${tokenHash(ip)}`, 10);
+    await this.throttle(`reset-address:${tokenHash(email)}`, 3);
     const user = await this.db.user.findUnique({ where: { email } });
     if (user && !user.disabled) {
       const token = randomBytes(32).toString("base64url");
+      accountLink("reset", token);
       await this.db.$transaction(async (tx) => {
         const reset = await tx.accessToken.create({
           data: {
@@ -471,10 +449,12 @@ export class IdentityService {
             kind: "email",
             key: `reset:${reset.id}`,
             payload: {
+              version: "1",
+              template: "reset",
               to: email,
-              subject: "Réinitialiser votre mot de passe BioBalance",
-              text: accountTokenMessage("reset", token),
-            },
+              accessTokenId: reset.id,
+              token,
+            } satisfies EmailPayload,
           },
         });
       });
@@ -519,9 +499,23 @@ export class IdentityService {
         where: { email: user.email, purpose: "reset", usedAt: null },
         data: { usedAt: new Date() },
       });
+      const changedAt = new Date();
       await tx.session.updateMany({
         where: { userId: user.id },
-        data: { revokedAt: new Date() },
+        data: { revokedAt: changedAt },
+      });
+      await tx.job.create({
+        data: {
+          kind: "email",
+          key: `password-changed:${reset.id}`,
+          payload: {
+            version: "1",
+            template: "password-changed",
+            to: user.email,
+            userId: user.id,
+            changedAt: changedAt.toISOString(),
+          } satisfies EmailPayload,
+        },
       });
       return { ok: true };
     });

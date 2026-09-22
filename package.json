@@ -23,7 +23,8 @@
     "test:android-restart": "npm run test:android-restart -w apps/api",
     "test:audit": "npm run test:audit -w apps/api",
     "format:check": "npm run format:check -w apps/api",
-    "test:security": "npm run test:security -w apps/api"
+    "test:security": "npm run test:security -w apps/api",
+    "test:email": "npm run test:email -w apps/api"
   },
   "allowScripts": {
     "argon2@0.44.0": true,

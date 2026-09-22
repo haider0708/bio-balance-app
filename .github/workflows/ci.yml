@@ -6,6 +6,9 @@ jobs:
   backend:
     runs-on: ubuntu-24.04
     services:
+      mailpit:
+        image: axllent/mailpit:v1.27
+        ports: ["1029:1025", "8029:8025"]
       postgres:
         image: postgres:17.7-alpine
         env:
@@ -29,7 +32,7 @@ jobs:
         env:
           OWNER_URL: postgresql://biobalance:local-development-only@localhost:54329/biobalance_test
       - run: sudo apt-get update && sudo apt-get install -y ffmpeg
-      - run: npm run format:check && npm run build && npm test && npm run test:integration && npm run test:audit && npm run test:security && npm run test:media && npm run test:notifications
+      - run: npm run format:check && npm run build && npm test && npm run test:integration && npm run test:audit && npm run test:security && npm run test:media && npm run test:notifications && npm run test:email
         env:
           TEST_APP_DATABASE_URL: postgresql://biobalance_app:local-app-only@localhost:54329/biobalance_test
           TEST_OWNER_DATABASE_URL: postgresql://biobalance:local-development-only@localhost:54329/biobalance_test

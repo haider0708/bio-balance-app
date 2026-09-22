@@ -344,3 +344,15 @@ Preuves : [rétention VPS](../tests/deployment/backup-retention-evidence-2026-09
 Les trois premières exécutions GitHub ont terminé avec succès pour le backend, les builds Android et la compilation iOS non signée, mais ont échoué sur le parcours Android après la réception de stock. Le harnais attendait l’état inactif du workspace sous-jacent avant que l’écriture SQLite et la fermeture de la réception soient terminées. La navigation pouvait alors attendre un bouton Retour déjà disparu.
 
 Le parcours attend désormais explicitement la fermeture de `ReceiptScreen` après la sauvegarde avant de naviguer. Le helper reconnaît aussi le rail de navigation des grandes fenêtres. Aucun délai arbitraire ajouté, aucune assertion métier retirée, aucun changement de stock de production. Analyse du fichier d’intégration réussie ; nouveau passage complet local/distant encore à confirmer. Un premier essai local a été interrompu après une ANR de System UI dans l’ancien émulateur ; il ne constitue pas une validation applicative.
+
+## Emails d’accès et sécurité — 22 septembre 2026
+
+Décision confirmée : les alertes métier restent dans l’application. Modèles HTML/texte centralisés pour invitation responsable/équipe, récupération et confirmation de changement de mot de passe. Rendu français minimal, contexte échappé, date d’expiration en heure de Tunis, codes manuels et liens HTTPS optionnels. Un test opérateur ne crée ni compte ni accès.
+
+- Jobs versionnés, compatibilité en lecture des anciens jobs texte, autorisation d’invitation partagée entre activation et envoi, contrôle du compte/code avant chaque tentative, lease revérifiée avant SMTP, Message-ID stable et expurgation des codes après traitement.
+- Confirmation de sécurité atomique avec changement du mot de passe/révocation des sessions ; récupération limitée aussi par destinataire. Les logs SMTP ne contiennent ni corps ni code.
+- 11 tests email réussis, dont réception HTML/texte de trois messages dans Mailpit ; 22 tests d’intégration, 13 tests de sécurité, 14 d’audit, 5 de notifications et 10 de domaine/reprise DB réussis. Les 45 contrats HTTP et le décodage Dart réussissent.
+- Parcours Android complet des trois rôles réussi avec le correctif de réception et les nouveaux jobs. L’essai local de reprise a été interrompu par la disparition du processus d’émulateur avant installation ; la CI distante doit encore confirmer l’ensemble. L’essai de contrats sans FFmpeg dans le PATH a été relancé avec l’outillage configuré et a réussi.
+- Envoi réel vers l’adresse Gmail autorisée et installation VPS à consigner après exécution ; la réception dans la boîte Gmail ne sera pas déduite de l’acceptation SMTP.
+
+Inventaire, aperçus, politique de reprise et ordre de déploiement : [emails](email-delivery.md).

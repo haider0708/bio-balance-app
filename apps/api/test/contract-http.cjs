@@ -246,7 +246,7 @@ const owner = new PrismaClient({
     const mail = await owner.job.findUniqueOrThrow({
       where: { key: `invite:${invitation.id}` },
     });
-    const activation = mail.payload.text.match(/ : ([\w-]{43})\./)[1];
+    const activation = mail.payload.token;
     await call("POST", "/v1/identity/activate", {
       as: null,
       body: { token: activation, name: "Invited seller", password },
@@ -262,7 +262,7 @@ const owner = new PrismaClient({
       },
       orderBy: { createdAt: "desc" },
     });
-    const recoveryToken = recovery.payload.text.match(/ : ([\w-]{43})\./)[1];
+    const recoveryToken = recovery.payload.token;
     await call("POST", "/v1/identity/reset-password", {
       as: null,
       body: { token: recoveryToken, password: password + "-new" },

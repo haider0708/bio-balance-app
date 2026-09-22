@@ -70,9 +70,7 @@ async function inviteFixture() {
   const job = await db.job.findUniqueOrThrow({
     where: { key: `invite:${invitation.id}` },
   });
-  const token = (job.payload as { text: string }).text.match(
-    /: ([A-Za-z0-9_-]{43})\./,
-  )![1]!;
+  const token = (job.payload as { token: string }).token;
   return { admin, issuer, org, store, email, invitation, token };
 }
 

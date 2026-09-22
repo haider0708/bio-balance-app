@@ -21,7 +21,8 @@
     "test:android-restart": "npm run build && node test/restart.cjs",
     "test:audit": "vitest run test/audit.test.ts --maxWorkers=1",
     "format:check": "prettier --check \"src/**/*.ts\"",
-    "test:security": "vitest run test/security.test.ts test/final-audit.test.ts --maxWorkers=1"
+    "test:security": "vitest run test/security.test.ts test/final-audit.test.ts --maxWorkers=1",
+    "test:email": "vitest run test/email.test.ts --maxWorkers=1"
   },
   "dependencies": {
     "@nestjs/common": "^12.0.4",

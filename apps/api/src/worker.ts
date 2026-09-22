@@ -6,7 +6,8 @@ import { cleanupMedia } from "./modules/training/infrastructure/media-storage";
 import path from "node:path";
 import "reflect-metadata";
 import { Database } from "./shared/infrastructure/database";
-import { createTransport } from "nodemailer";
+import { EmailDeliveryService } from "./shared/email/email-delivery";
+import { SmtpEmailTransport } from "./shared/email/smtp-transport";
 import { MediaProcessor } from "./modules/training/infrastructure/media-processor";
 import { writeFile } from "node:fs/promises";
 import { PrismaUnitOfWork } from "./modules/operations/infrastructure/prisma-ledger";
@@ -18,18 +19,9 @@ import {
 const db = new Database();
 let stopping = false;
 const mediaMode = process.env.WORKER_KIND === "media";
-const smtp = createTransport({
-  host: process.env.SMTP_HOST,
-  port: Number(process.env.SMTP_PORT ?? 587),
-  secure: process.env.SMTP_SECURE === "true",
-  requireTLS: process.env.SMTP_REQUIRE_TLS === "true",
-  auth: process.env.SMTP_USER
-    ? { user: process.env.SMTP_USER, pass: process.env.SMTP_PASSWORD }
-    : undefined,
-  connectionTimeout: 10000,
-  socketTimeout: 30000,
-});
-const execute: JobExecutor = async (job) => {
+const smtp = mediaMode ? undefined : new SmtpEmailTransport();
+const emails = smtp ? new EmailDeliveryService(db, smtp) : undefined;
+const execute: JobExecutor = async (job, stillOwned) => {
   if (job.kind === "auth-cleanup") return cleanupAuthentication(db);
   if (job.kind === "media-cleanup")
     return cleanupMedia(
@@ -51,13 +43,10 @@ const execute: JobExecutor = async (job) => {
   if (job.kind === "media")
     return new MediaProcessor(db).process(job.payload.mediaId!);
   if (job.kind === "email") {
-    await smtp.sendMail({
-      from: process.env.SMTP_FROM,
-      to: job.payload.to,
-      subject: job.payload.subject,
-      text: job.payload.text,
-      messageId: `<${job.id}@biobalance>`,
-    });
+    if (!emails) throw new Error("EMAIL_WORKER_REQUIRED");
+    const outcome = await emails.deliver(job, stillOwned);
+    if (outcome === "suppressed")
+      console.log(JSON.stringify({ event: "email.suppressed", jobId: job.id }));
     return;
   }
   if (job.kind === "inventory-check") {
@@ -140,7 +129,7 @@ async function main() {
   );
   await Promise.all(workers);
   clearInterval(heartbeat);
-  smtp.close();
+  smtp?.close();
   await db.$disconnect();
 }
 void main();
