@@ -245,7 +245,7 @@ it("upgrades legacy queued text in memory without changing IDs, payload bytes or
   expect(await r.service.deliver(legacy, async () => true)).toBe("accepted");
   expect(JSON.stringify(legacy)).toBe(before);
   expect(r.sent[0]!.id).toBe(f.job.id);
-  expect(r.sent[0]!.content.html).toContain("Bienvenue sur BioBalance");
+  expect(r.sent[0]!.content.html).toContain("Activer votre accès");
 });
 
 it("reset and confirmation are transactional, single use, close sessions, and keep secrets out of confirmation", async () => {

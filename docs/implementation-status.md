@@ -372,3 +372,9 @@ Le commit **`c2ccab498ff29bdf0370f1b893c282879ae2af21`** passe les quatre jobs d
 - Alertes métier conservées dans l’application. Les invitations responsable/équipe, récupération et confirmation de changement de mot de passe utilisent les modèles centralisés HTML/texte. L’APK signé v1.0.0+2 reste compatible ; aucun widget de production ni nouvelle version mobile n’a été nécessaire pour cette passe.
 
 Preuves : [CI, déploiement et email](../tests/deployment/email-evidence-2026-09-22.json). Les mesures physiques, la distribution Apple/Play et le pilote conservent leurs conditions ouvertes dans [le registre de diffusion](release-gates.md). Cette clôture ne les compte pas comme réalisés.
+
+## Simplification des emails — 22 septembre 2026
+
+À la demande de l’utilisateur, les cinq modèles adoptent une colonne blanche de 480 px, une signature discrète, des titres/textes raccourcis et un code à bordure fine. Barres décoratives, grands aplats verts, pied répété et URL longue dupliquée retirés. Expiration directement sous le code, dates numériques en heure de Tunis et consignes de sécurité conservées. Aucun changement des autorisations, tokens, audiences, jobs ou migrations.
+
+Compilation TypeScript, formatage et **11 tests email réussis**, dont l’envoi multipart vers Mailpit isolé. Aperçu mobile examiné avec code et expiration lisibles. Les exemples HTML/texte sont régénérés dans `.artifacts/email-previews/`. L’installation de cette révision et son commit seront consignés après vérification sur le VPS ; la précédente confirmation Gmail reste attendue.
