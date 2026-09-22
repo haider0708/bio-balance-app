@@ -9,6 +9,7 @@ CODES={
  'BACKUP_TIMER':'Planification des sauvegardes inactive','MONITOR_TIMER':'Planification des contrôles inactive',
  'BACKUP_FAILED':'Échec de sauvegarde','LOCAL_CHECK_FAILED':'Échec du contrôle local (services, jobs, sauvegardes ou certificat)',
  'MONITOR_STALE':'Contrôle local trop ancien','BACKUP_STALE':'Aucune sauvegarde récente','REPORT_FAILED':'Rapport du serveur invalide',
+ 'TLS_TIMER':'Planification du renouvellement HTTPS inactive','TLS_RENEWAL_FAILED':'Échec du renouvellement HTTPS BioBalance',
 }
 class NoRedirect(urllib.request.HTTPRedirectHandler):
     def redirect_request(self,*args,**kwargs):return None

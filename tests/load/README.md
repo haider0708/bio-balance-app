@@ -25,6 +25,8 @@ For a route smoke check only, set `STEADY_DURATION=10s BURST_DURATION=5s STEADY_
 
 Record p95 reads ≤300 ms and writes ≤700 ms separately for steady and burst workloads, HTTP/business failures and dropped iterations. Preserve k6 output, database counts/size, CPU/RAM/I/O, host specification, image/commit and server logs with credentials excluded. After load, the verifier compares lot quantities/versions to movements, balances to points entries and sales to revisions. Verify on the reference VPS with both API instances and workers before claiming 500-store readiness. Host measurements do not establish VPS capacity.
 
+For the isolated full-stack VPS lab, `SYNTHETIC_PROXY=yes` distributes the 500 synthetic stores over reserved benchmark IPs. This option refuses all URLs except `https://load.biobalance.invalid:<port>`. The lab resolves that host to loopback, trusts its test CA, and has a private Nginx configuration trusting the synthetic header only from its Docker gateway. Production Nginx must never trust this header. Rate limits remain enabled; do not use a certificate-verification bypass or point this workload at the live API.
+
 ## Local persistence benchmark
 
 ```sh

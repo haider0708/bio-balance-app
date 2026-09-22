@@ -1,0 +1,12 @@
+[Unit]
+Description=Renew only the BioBalance certificate on the shared Apache host
+After=apache2.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+# The existing Certbot deploy hook validates and reloads Apache. Its renewal
+# configuration retains the webroot challenge and the owned API hostname.
+ExecStart=/usr/bin/certbot renew --cert-name api.galylio.com --non-interactive --quiet
+TimeoutStartSec=15min
+UMask=0077

@@ -13,9 +13,9 @@ def main():
     mem={line.split(':')[0]:int(line.split()[1]) for line in pathlib.Path('/proc/meminfo').read_text().splitlines() if len(line.split())>=2 and line.split()[1].isdigit()}
     if mem['MemAvailable']/mem['MemTotal']<.10:problems.append('MEMORY_LOW')
     if os.getloadavg()[1]>(os.cpu_count() or 1)*1.5:problems.append('CPU_HIGH')
-    for unit,code in [('biobalance-backup.timer','BACKUP_TIMER'),('biobalance-monitor.timer','MONITOR_TIMER')]:
+    for unit,code in [('biobalance-backup.timer','BACKUP_TIMER'),('biobalance-monitor.timer','MONITOR_TIMER'),('biobalance-tls.timer','TLS_TIMER')]:
         if command(['/usr/bin/systemctl','is-active',unit])!='active':problems.append(code)
-    for unit,code in [('biobalance-backup.service','BACKUP_FAILED'),('biobalance-monitor.service','LOCAL_CHECK_FAILED')]:
+    for unit,code in [('biobalance-backup.service','BACKUP_FAILED'),('biobalance-monitor.service','LOCAL_CHECK_FAILED'),('biobalance-tls.service','TLS_RENEWAL_FAILED')]:
         props=command(['/usr/bin/systemctl','show',unit,'--property=Result,ActiveEnterTimestamp,InactiveEnterTimestamp,ActiveState,ExecMainStartTimestamp,ExecMainExitTimestamp'])
         data=dict(x.split('=',1) for x in props.splitlines() if '=' in x)
         if data.get('Result')!='success':problems.append(code)

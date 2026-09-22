@@ -6,6 +6,8 @@ Le compte SSH `biobalance-monitor` ne peut exécuter que le rapport JSON fixe in
 
 Le rapport contrôle disque, mémoire, charge, état et fraîcheur du moniteur local, service/timer de sauvegarde et âge de la dernière copie. Le moniteur local couvre aussi conteneurs, jobs, sommes de contrôle et expiration du certificat d’origine. HTTPS est vérifié séparément avec trois tentatives bornées.
 
+Sur le VPS partagé, `biobalance-tls.timer` renouvelle uniquement `api.galylio.com` deux fois par jour. Son service utilise le hook Certbot existant qui valide puis recharge Apache. Les échecs de renouvellement de domaines étrangers au projet ne bloquent donc pas cette unité. Le rapport surveille le timer et le résultat du service ; l’ancien timer Certbot global reste disponible pour les autres sites.
+
 Les alertes d’infrastructure sont envoyées au destinataire autorisé, conservé dans le secret `MONITOR_EMAIL_TO`. Elles ne modifient pas la règle métier : stock, commandes et récompenses restent dans l’application. SMTP utilise TLS avec vérification de certificat depuis GitHub, donc une panne du VPS n’empêche pas la tentative d’envoi.
 
 Un changement d’incident déclenche un message, puis au maximum un rappel toutes les six heures tant que l’incident est identique. Le rétablissement exige deux passages sains. Les messages SMTP peuvent être remis en double si une confirmation est perdue ; aucune promesse de livraison exactement une fois n’est faite. L’état sans donnée personnelle est conservé dans un petit artefact GitHub pendant sept jours. Seuls les artefacts de ce workflow sur `main`, déclenchés par cron ou manuellement, sont acceptés. Les clés temporaires du runner sont supprimées, jamais jointes aux artefacts.

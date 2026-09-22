@@ -392,3 +392,13 @@ Supervision indépendante préparée dans GitHub Actions, compte SSH limité au 
 L’utilisateur confirme la réception des emails précédents **dans Spam** et les résultats **SPF PASS, DKIM PASS, DMARC PASS**. Cela confirme l’authentification du domaine mais ne permet pas d’attribuer le classement à une cause précise ni de garantir la boîte principale. Aucun changement DNS arbitraire effectué.
 
 Le relevé VPS trouve environ 28 Gio libres, six conteneurs BioBalance sains, une sauvegarde récente et une maintenance système avec redémarrage en attente. Le serveur héberge aussi d’autres applications. Les échecs du service Certbot global concernent six anciens certificats d’autres domaines ; le certificat BioBalance est valide. Charge cible, restauration après import et maintenance coordonnée restent à consigner après exécution. Les appareils physiques et le pilote humain ne sont pas remplacés par les données de simulation.
+
+### Complément confirmé : tarifs de démonstration
+
+Les sept prix manquants peuvent être fictifs, sur autorisation explicite de l’utilisateur. Sept images correspondantes supplémentaires ont été trouvées et vérifiées ; les tarifs portent « prix démo » dans le nom et la description. Le [relevé du catalogue](catalogue-simulation.md) distingue sources tunisiennes et simulation. L’amendement est séparé du premier import et respecte sa version ; son rejeu local ne double pas les cinq réceptions complémentaires. Vérification locale : 51 produits/images, 39 EAN, 51 configurations dans chacun des cinq magasins, stocks/versions/points/réservations cohérents. 14 tests d’import/amendement et 6 tests de supervision réussissent.
+
+Les 151 opérations de la simulation initiale sont maintenant acceptées sur le VPS. L’application des sept tarifs complémentaires et les vérifications de restauration après import sont en cours au présent relevé.
+
+La supervision distante a réussi : première exécution `35755117973`, email de diagnostic accepté par SMTP ; seconde `35755455044`, état précédent restauré et aucun email répété en situation saine. La réception en boîte principale reste distincte de cette preuve. Le pipeline complet [35755063945](https://github.com/haider0708/bio-balance-app/actions/runs/35755063945) est réussi pour le commit `2750fdd` : backend, Android, parcours Android et iOS non signé.
+
+Sauvegarde des clés Android préparée hors dépôt : OpenPGP AES-256 avec clé de récupération aléatoire, export des deux certificats vérifié, sept fichiers déchiffrés identiques aux originaux. Aucun fichier de clé n’est régénéré. La copie indépendante par le propriétaire demeure à réaliser ; deux fichiers sur le même ordinateur ne couvrent pas sa perte.

@@ -15,6 +15,13 @@ if (__ENV.ALLOW_SYNTHETIC_LOAD !== "yes")
   throw Error(
     "Set ALLOW_SYNTHETIC_LOAD=yes only for the isolated synthetic database",
   );
+if (
+  __ENV.SYNTHETIC_PROXY === "yes" &&
+  bases.some((base) => !/^https:\/\/load\.biobalance\.invalid:\d+$/.test(base))
+)
+  throw Error(
+    "Synthetic proxy headers are limited to the isolated loopback TLS lab",
+  );
 const rejected = new Counter("rejected_operations");
 const acceptedOperations = new Counter("accepted_operations");
 const cursors = new Map(); // VU-local, scoped to the original account/store.
@@ -73,6 +80,11 @@ export default function () {
       Authorization: `Bearer ${f.token}`,
       "Content-Type": "application/json",
     };
+  if (__ENV.SYNTHETIC_PROXY === "yes") {
+    const storeNumber = Math.floor((Number(f.n) - 1) / 10);
+    headers["X-Load-Client-IP"] =
+      `198.18.${Math.floor(storeNumber / 250)}.${(storeNumber % 250) + 1}`;
+  }
   const prefix = `/v1/stores/${f.storeId}`,
     scope = `organizationId=${f.organizationId}`;
   const mode = (__ITER + __VU * 7) % 100;
