@@ -20,7 +20,7 @@ for name,digest in manifest['sha256'].items():
 head=subprocess.check_output(['git','rev-parse','HEAD'],cwd=root,text=True).strip()
 output=root/'.artifacts/releases'/f'biobalance-{head[:8]}-{manifest["platform"]}-{manifest["mode"]}'
 output.mkdir(exist_ok=False)
-allowed=('docs/','contracts/openapi/','apps/api/prisma/migrations/','infrastructure/production/','scripts/','config/mobile/','tests/release/','tests/performance/evidence/')
+allowed=('docs/','contracts/openapi/','apps/api/prisma/migrations/','infrastructure/production/','scripts/','config/mobile/','config/signing/','tests/release/','tests/performance/evidence/')
 singles={'README.md','package.json','package-lock.json','.nvmrc','.fvmrc','apps/mobile/pubspec.yaml','apps/mobile/pubspec.lock','apps/api/prisma/schema.prisma','tests/deployment/evidence.json'}
 files=subprocess.check_output(['git','ls-files','-z'],cwd=root).decode().split('\0')
 for name in filter(None,files):

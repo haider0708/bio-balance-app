@@ -1,9 +1,6 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
-
 import '../../../domain/models/models.dart';
 import '../api/generated/api_client.dart';
 import '../api/generated/models.dart';
@@ -26,67 +23,26 @@ abstract interface class PushPlatform {
   Future<PushSignal?> initialMessage();
 }
 
-class FirebasePushPlatform implements PushPlatform {
+/// The VPS inbox works without an OS push provider or platform registration.
+class InboxOnlyPlatform implements PushPlatform {
   @override
-  bool get configured =>
-      const String.fromEnvironment('FIREBASE_APP_ID').isNotEmpty;
+  bool get configured => false;
   @override
   String get platform => Platform.isIOS ? 'ios' : 'android';
   @override
-  Future<void> initialize() async {
-    if (Firebase.apps.isEmpty) {
-      await Firebase.initializeApp(
-        options: const FirebaseOptions(
-          apiKey: String.fromEnvironment('FIREBASE_API_KEY'),
-          appId: String.fromEnvironment('FIREBASE_APP_ID'),
-          messagingSenderId: String.fromEnvironment('FIREBASE_SENDER_ID'),
-          projectId: String.fromEnvironment('FIREBASE_PROJECT_ID'),
-          iosBundleId: 'tn.biobalance.app',
-        ),
-      );
-    }
-  }
-
+  Future<void> initialize() async {}
   @override
-  Future<bool> permission({required bool request}) async {
-    final settings = request
-        ? await FirebaseMessaging.instance.requestPermission()
-        : await FirebaseMessaging.instance.getNotificationSettings();
-    return [
-      AuthorizationStatus.authorized,
-      AuthorizationStatus.provisional,
-    ].contains(settings.authorizationStatus);
-  }
-
+  Future<bool> permission({required bool request}) async => false;
   @override
-  Future<String?> token() => FirebaseMessaging.instance.getToken();
+  Future<String?> token() async => null;
   @override
-  Future<void> deleteToken() => FirebaseMessaging.instance.deleteToken();
+  Future<void> deleteToken() async {}
   @override
-  Stream<String> get tokens => FirebaseMessaging.instance.onTokenRefresh;
-  PushSignal signal(RemoteMessage m, bool tapped) => PushSignal(
-    '${m.data['notificationId'] ?? ''}',
-    '${m.data['userId'] ?? ''}',
-    tapped: tapped,
-  );
+  Stream<String> get tokens => const Stream.empty();
   @override
-  Stream<PushSignal> get messages => Stream.multi((controller) {
-    final foreground = FirebaseMessaging.onMessage.listen(
-      (m) => controller.add(signal(m, false)),
-    );
-    final opened = FirebaseMessaging.onMessageOpenedApp.listen(
-      (m) => controller.add(signal(m, true)),
-    );
-    controller.onCancel = () async {
-      await foreground.cancel();
-      await opened.cancel();
-    };
-  });
+  Stream<PushSignal> get messages => const Stream.empty();
   @override
-  Future<PushSignal?> initialMessage() async {
-    final message = await FirebaseMessaging.instance.getInitialMessage();
-    return message == null ? null : signal(message, true);
-  }
+  Future<PushSignal?> initialMessage() async => null;
 }
 
 /// Serializes platform token mutation; account generation guards every callback.
@@ -101,7 +57,7 @@ class PushNotifications {
   int _epoch = 0;
   PushSignal? pendingTap;
   PushNotifications(this.api, {PushPlatform? platform})
-    : platform = platform ?? FirebasePushPlatform();
+    : platform = platform ?? InboxOnlyPlatform();
   bool get configured => platform.configured;
   Stream<PushSignal> get events => _events.stream;
   Future<void> _serialize(Future<void> Function() action) {

@@ -76,10 +76,6 @@ services:
       SMTP_FROM: ${SMTP_FROM:?Set sender}
       SMTP_USER: ${SMTP_USER:-}
       SMTP_PASSWORD: ${SMTP_PASSWORD:-}
-      GOOGLE_APPLICATION_CREDENTIALS: /run/secrets/firebase-service-account.json
-    secrets:
-      - source: firebase
-        target: firebase-service-account.json
     healthcheck: *worker-health
     stop_grace_period: 60s
     mem_limit: 768m
@@ -131,6 +127,3 @@ networks:
 volumes:
   database:
   media:
-secrets:
-  firebase:
-    file: ${FIREBASE_CREDENTIALS_FILE:?Set service account file path}

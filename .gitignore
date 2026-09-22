@@ -34,3 +34,8 @@ __pycache__/
 *.pyc
 
 apps/mobile/ios/Flutter/AccountLinks.xcconfig
+
+# Runtime dumps may contain authentication/signing secrets.
+*.hprof
+*.dmp
+*.p8

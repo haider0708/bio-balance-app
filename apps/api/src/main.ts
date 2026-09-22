@@ -31,6 +31,8 @@ export async function bootstrap() {
       "X-Correlation-Id",
       (req as Request & { correlationId: string }).correlationId,
     );
+    res.setHeader("Cache-Control", "no-store");
+    res.setHeader("Pragma", "no-cache");
     res.on("finish", () =>
       console.log(
         JSON.stringify({
@@ -51,7 +53,7 @@ export async function bootstrap() {
     "/v1/media/uploads",
     uploadIngress(app.get(IdentityService), app.get(TrainingService)),
   );
-  app.use(json({ limit: "1mb" }));
+  app.use(json({ limit: "1mb", inflate: false }));
   app
     .getHttpAdapter()
     .getInstance()
@@ -73,6 +75,12 @@ export async function bootstrap() {
     SwaggerModule.setup("docs", app, applyContract(doc));
   }
   await app.listen(Number(process.env.PORT ?? 3000), "0.0.0.0");
+  const server = app.getHttpServer();
+  server.headersTimeout = 10000;
+  server.requestTimeout = 30000;
+  server.keepAliveTimeout = 5000;
+  server.maxHeadersCount = 100;
+  server.maxRequestsPerSocket = 1000;
   return app;
 }
 if (require.main === module) void bootstrap();

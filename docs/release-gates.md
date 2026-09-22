@@ -7,12 +7,12 @@ Ce registre distingue l’implémentation, les preuves locales et l’acceptatio
 | Métier / isolation / historique | Tests domaine, PostgreSQL restreint, contrats, synchronisation et parcours Android réussis | Recette signée avec données pilotes |
 | Accès / pannes / reprise | Révocation en cours de saisie, réponses perdues, force-stop et saturation SQLite testés | Appareils Android/iOS réels et lecteurs d’écran |
 | Images / vidéo / transfert | Traitement réel, reprise HTTPS Nginx, checksum, lecture hors ligne Android | iOS et connexions mobiles réelles |
-| Notifications | Audiences, sessions, doublons, workers et boîte interne vérifiés | FCM/APNs et SMTP de production, permissions natives |
+| Notifications | Audiences, sessions, doublons, workers et boîte interne vérifiés | SMTP de production ; alertes OS app fermée reportées, sans Firebase |
 | Performance API | 100 req/s + pic 200 req/s réussis sur l’hôte local ; données 500 magasins/5 000 comptes/>2 M ventes | Rejouer derrière TLS/Nginx/workers sur le VPS cible |
 | Performance mobile | SQLite VM mesurée ; interface vérifiée sur émulateur | Android 4 Go : p95 démarrage ≤2,5 s, vente ≤250 ms, recherche ≤150 ms, images manquées <1 % ; iOS/caméra/mémoire |
 | Déploiement / reprise | Compose, migrations, RLS, médias protégés, jobs, rollback et restauration non vide réussis | VPS/DNS/SSH/firewall, ACME réel, timers et alertes externes |
 | CI | Workflows versionnés ; commandes locales exécutées | Dépôt distant et exécutions Linux/macOS |
-| Android | APK debug normal et APK/AAB release non signés compilés ; alignement ZIP/ELF 16 Kio vérifié | Clé existante, AAB/APK signés, installation/upgrade et Play Internal Testing |
+| Android | APK debug normal et APK/AAB release non signés compilés ; alignement ZIP/ELF 16 Kio vérifié | Clés locales créées ; sauvegarde privée, inscription Play, builds ciblant le VPS réel, upgrades entre canaux et Play Internal Testing |
 | iOS | Configuration, entitlements et procédure préparées | Xcode/macOS, équipe/profil/certificat, archive et TestFlight |
 | Pilote | Plan, recette et registre d’incidents préparés | 5 magasins, ≥14 jours, les 3 rôles et les 2 plateformes |
 
@@ -23,3 +23,5 @@ Aucun élargissement à 50 magasins avant fermeture des défauts critiques de s�
 Pour chaque validation : date UTC, version/commit et SHA-256 de l’artefact, environnement/appareil/OS, données utilisées, commande/scénario, résultat, journaux expurgés, personne responsable et lien d’incident si échec. Conserver les résultats échoués ; une correction exige le nouveau résultat et le test de non-régression concerné.
 
 Les fichiers sous `.artifacts/deployment-lab/`, les tokens de charge, certificats privés et fichiers de signature ne font pas partie du dossier public. Les sorties résumées versionnées sont distribuables ; les logs bruts doivent être vérifiés avant partage.
+
+Attestation Play Integrity/App Attest et pinning ne sont pas actifs. Les [limites de la protection](security-hardening.md) doivent rester explicites ; aucun indicateur client ne remplace l’autorisation serveur.

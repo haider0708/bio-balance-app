@@ -7,8 +7,6 @@ import path from "node:path";
 import "reflect-metadata";
 import { Database } from "./shared/infrastructure/database";
 import { createTransport } from "nodemailer";
-import { applicationDefault, initializeApp, getApps } from "firebase-admin/app";
-import { getMessaging } from "firebase-admin/messaging";
 import { MediaProcessor } from "./modules/training/infrastructure/media-processor";
 import { writeFile } from "node:fs/promises";
 import { PrismaUnitOfWork } from "./modules/operations/infrastructure/prisma-ledger";
@@ -17,7 +15,6 @@ import {
   JobExecutor,
   scheduleInventoryChecks,
 } from "./shared/jobs/job-runner";
-import { PushDeliveryService } from "./modules/notifications/infrastructure/push-delivery";
 const db = new Database();
 let stopping = false;
 const mediaMode = process.env.WORKER_KIND === "media";
@@ -32,41 +29,25 @@ const smtp = createTransport({
   connectionTimeout: 10000,
   socketTimeout: 30000,
 });
-const push = new PushDeliveryService(db, {
-  async send(tokens, data) {
-    if (!process.env.GOOGLE_APPLICATION_CREDENTIALS)
-      throw new Error("FCM_NOT_CONFIGURED");
-    if (!getApps().length) initializeApp({ credential: applicationDefault() });
-    const result = await getMessaging().sendEachForMulticast({
-      tokens,
-      data,
-      notification: {
-        title: "BioBalance",
-        body: "Un nouveau message est disponible dans votre espace.",
-      },
-      android: { collapseKey: data.notificationId, ttl: 300_000 },
-      apns: {
-        headers: {
-          "apns-collapse-id": data.notificationId!,
-          "apns-expiration": String(Math.floor(Date.now() / 1000) + 300),
-        },
-      },
-    });
-    return result.responses.map((r) => ({
-      success: r.success,
-      errorCode: r.error?.code,
-    }));
-  },
-});
-const execute: JobExecutor = async (job, owned) => {
+const execute: JobExecutor = async (job) => {
   if (job.kind === "auth-cleanup") return cleanupAuthentication(db);
   if (job.kind === "media-cleanup")
     return cleanupMedia(
       db,
       path.resolve(process.env.MEDIA_ROOT ?? "../../.volumes/media"),
     );
-  if (job.kind === "push")
-    return push.deliver(job.payload.notificationId!, owned);
+  if (job.kind === "push") {
+    // Drain legacy transport jobs without inventing successful device delivery.
+    // Their authorized inbox records remain available on the VPS.
+    console.log(
+      JSON.stringify({
+        event: "push.skipped",
+        reason: "inbox_only",
+        jobId: job.id,
+      }),
+    );
+    return;
+  }
   if (job.kind === "media")
     return new MediaProcessor(db).process(job.payload.mediaId!);
   if (job.kind === "email") {

@@ -2,6 +2,11 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+    <key>NSAppTransportSecurity</key><dict>
+        <key>NSAllowsArbitraryLoads</key><false/>
+        <key>NSAllowsArbitraryLoadsForMedia</key><false/>
+        <key>NSAllowsLocalNetworking</key><false/>
+    </dict>
     <key>FlutterDeepLinkingEnabled</key><false/>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
@@ -69,6 +74,6 @@
 	</array>
 <key>NSCameraUsageDescription</key><string>Scannez les codes-barres des produits BioBalance.</string>
 <key>NSPhotoLibraryUsageDescription</key><string>Sélectionnez les images et vidéos de vos contenus.</string>
-<key>UIBackgroundModes</key><array><string>remote-notification</string></array>
+
 </dict>
 </plist>

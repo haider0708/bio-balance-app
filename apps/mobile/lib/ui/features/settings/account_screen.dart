@@ -22,28 +22,13 @@ class AccountScreen extends StatelessWidget {
           title: Text('Français · TND'),
           subtitle: Text('Montants en millimes · Dates jour/mois/année'),
         ),
-        OutlinedButton.icon(
-          icon: const Icon(Icons.notifications_active_outlined),
-          label: const Text('Activer les notifications sur ce téléphone'),
-          onPressed: () async {
-            final notifications = context
-                .read<SessionViewModel>()
-                .notifications;
-            try {
-              await notifications?.enable();
-              if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Notifications activées.')),
-                );
-              }
-            } catch (e) {
-              if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text(SessionViewModel.message(e))),
-                );
-              }
-            }
-          },
+        const ListTile(
+          contentPadding: EdgeInsets.zero,
+          leading: Icon(Icons.notifications_outlined),
+          title: Text('Notifications dans l’application'),
+          subtitle: Text(
+            'Retrouvez les alertes et les messages dans votre boîte de notifications.',
+          ),
         ),
         const SizedBox(height: 16),
         const SectionTitle('Besoin d’aide ?'),

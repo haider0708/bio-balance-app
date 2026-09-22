@@ -14,19 +14,21 @@ Les APK/AAB produits sous `.artifacts/releases/builds/` sont **non signés** et 
 
 ## Android signé
 
-Copier `config/mobile/production.example.json` vers un fichier `android.local.json`, renseigner l’origine HTTPS réellement détenue et l’application Firebase Android. Ces valeurs Firebase sont publiques côté client ; ne jamais inclure la clé de service du worker. Fournir les variables `BIOBALANCE_KEYSTORE`, `BIOBALANCE_KEYSTORE_PASSWORD`, `BIOBALANCE_KEY_ALIAS`, `BIOBALANCE_KEY_PASSWORD` par le coffre de secrets du runner/local, sans les versionner ni les afficher.
+Copier `config/mobile/production.example.json` vers `config/mobile/android.local.json` et renseigner uniquement l’origine HTTPS réelle et l’éventuel `AUTH_LINK_HOST`. Aucun paramètre Firebase n’est accepté. Les clés initiales ont été créées dans un répertoire privé hors dépôt ; voir [sécurité et signatures](security-hardening.md).
 
 ```sh
-bash scripts/build-mobile-release.sh signed android config/mobile/android.local.json
+python3 scripts/build-signed-android.py config/mobile/android.local.json /home/haydar/.local/share/biobalance/signing
 ```
 
-Le script exige la clé existante, construit APK et AAB, vérifie la signature APK, la présence/vérification de la signature du bundle et l’alignement ZIP/ELF des bibliothèques 64 bits pour les pages Android de 16 Kio. Comparer l’empreinte du certificat au certificat d’upload enregistré dans Play, tester installation puis mise à jour sans effacer SQLite/outbox. Mettre à jour `pubspec.yaml` avec un numéro de build supérieur avant une nouvelle diffusion. Configurer le projet Firebase pour `tn.biobalance.app` et les empreintes de signature requises.
+La clé d’application signe l’APK ; la clé d’upload signe l’AAB. Vérification des empreintes publiques versionnées avant compilation, puis contrôle de la signature APK, de chaque entrée AAB, de l’alignement ELF/ZIP et de l’absence de DWARF dans l’APK. Flutter obfusque les builds de diffusion et conserve les symboles hors des fichiers de distribution. Le build Gradle refuse un release sans clé, sauf le mode de compilation explicitement choisi par le script.
+
+L’inscription Google Play doit importer la même clé d’application pour permettre les mises à jour entre Google Play et APK privés. Une sauvegarde chiffrée des clés et la vérification des mises à jour sont obligatoires avant diffusion.
 
 ## iOS signé et TestFlight
 
-Dans Xcode, enregistrer `tn.biobalance.app` dans l’équipe Apple existante, activer Push Notifications, installer le certificat/profil correspondant et connecter APNs à Firebase. Copier `ios/Flutter/Signing.xcconfig.example` vers `Signing.xcconfig` et renseigner l’équipe ; copier l’exemple ExportOptions vers un fichier `.local.plist` avec la même équipe. Utiliser une configuration Firebase **iOS** distincte.
+Dans Xcode, enregistrer `tn.biobalance.app` dans l’équipe Apple existante, installer le certificat/profil de distribution correspondant. Copier `ios/Flutter/Signing.xcconfig.example` vers `Signing.xcconfig` et renseigner l’équipe ; copier l’exemple ExportOptions vers un fichier `.local.plist` avec la même équipe. Utiliser une configuration d’origine API HTTPS pour iOS ; aucun paramètre Firebase n’est requis.
 
-Les entitlements utilisent APNs `development` en debug et `production` en release/profile ; vérifier les entitlements de l’archive effectivement signée et le profil d’export. Le provisioning n’est pas déduit de cette configuration.
+Les entitlements de liens vérifiés sont conservés ; la capacité push n’est pas demandée dans cette version. Le script contrôle l’IPA exportée : équipe, identifiant, signature complète et absence de permission de débogage. Vérifier ensuite le profil et l’acceptation TestFlight sur macOS.
 
 ```sh
 bash scripts/build-mobile-release.sh signed ios config/mobile/ios.local.json config/mobile/ExportOptions.local.plist

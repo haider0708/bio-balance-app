@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:dio/dio.dart';
 
 import '../../../domain/models/models.dart';
+import 'transport_security.dart';
 
 enum AccessCondition {
   authenticated,
@@ -34,6 +35,7 @@ class AccessEvent {
 /// All transport calls capture credentials and generation before starting I/O.
 class SessionTransport {
   final Dio http;
+  late final TransportSecurity _security;
   final _events = StreamController<AccessEvent>.broadcast(sync: true);
   String? _accountId, _authorization;
   int _generation = 0, _accessEpoch = 0;
@@ -47,7 +49,11 @@ class SessionTransport {
               connectTimeout: const Duration(seconds: 8),
               receiveTimeout: const Duration(seconds: 20),
             ),
-          );
+          ) {
+    _security = TransportSecurity(baseUrl);
+    http.options.baseUrl = baseUrl;
+    http.interceptors.insert(0, _security);
+  }
   String? get accountId => _accountId;
   int get generation => _generation;
   bool get accessBlocked => _accessBlocked;
@@ -238,7 +244,7 @@ class SessionTransport {
 
   Uri mediaUri(String id, SessionBinding captured) {
     requireBinding(captured);
-    return Uri.parse(http.options.baseUrl)
+    return _security.origin
         .resolve('/v1/media/${Uri.encodeComponent(id)}')
         .replace(queryParameters: {'session': '${captured.generation}'});
   }

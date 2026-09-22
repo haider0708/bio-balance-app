@@ -1,6 +1,5 @@
 #include "Generated.xcconfig"
 
-APNS_ENVIRONMENT = production
 AUTH_LINK_HOST = account-links.invalid
 #include? "AccountLinks.xcconfig"
 #include? "Signing.xcconfig"

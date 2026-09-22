@@ -46,3 +46,7 @@ Quatre magasins en cache, 600 lots et 100 ventes récentes par magasin, 120 opé
 ## Validations externes restantes
 
 Rejouer le scénario sur le VPS de référence, avec les deux API, Nginx et workers actifs. Les objectifs physiques (Android 4 Go, iOS, démarrage ≤2,5 s, sauvegarde ≤250 ms, recherche ≤150 ms et moins de 1 % d’images en retard) restent à démontrer. Procédure : [appareils](../tests/performance/devices.md). Aucun résultat sur émulateur ou hôte n’est compté comme validation physique.
+
+## Renforcement de sécurité du 22 septembre
+
+Nouvelle charge avec les budgets compte actifs : 36 001 requêtes, zéro erreur ou itération perdue ; p95 lecture/écriture 26,11/46,69 ms à 100 req/s puis 124,47/232,06 ms à 200 req/s. 3 602 nouvelles ventes, aucune divergence des projections. Voir `tests/security/evidence.json`. Deux processus API locaux, mêmes limites d’interprétation que la mesure précédente : VPS, Nginx/workers et appareils physiques non qualifiés par ce test.

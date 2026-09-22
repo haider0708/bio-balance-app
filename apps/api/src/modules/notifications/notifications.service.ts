@@ -210,7 +210,7 @@ export class NotificationsService {
         },
       });
       for (const user of users) {
-        const notification = await tx.notification.create({
+        await tx.notification.create({
           data: {
             organizationId,
             storeId,
@@ -220,13 +220,6 @@ export class NotificationsService {
             eventKey: id,
             kind: "announcement",
             audience,
-          },
-        });
-        await tx.job.create({
-          data: {
-            kind: "push",
-            key: `push:${notification.id}`,
-            payload: { notificationId: notification.id, userId: user.id },
           },
         });
       }

@@ -606,18 +606,9 @@ export class PrismaLedger implements Ledger {
       select: { id: true },
     });
     for (const { id: userId } of enabled) {
-      const n = await this.tx.notification.upsert({
+      await this.tx.notification.upsert({
         where: { userId_eventKey: { userId, eventKey: key } },
         create: { ...this.context, userId, eventKey: key, title, body },
-        update: {},
-      });
-      await this.tx.job.upsert({
-        where: { key: `push:${n.id}` },
-        create: {
-          key: `push:${n.id}`,
-          kind: "push",
-          payload: { notificationId: n.id, userId },
-        },
         update: {},
       });
     }

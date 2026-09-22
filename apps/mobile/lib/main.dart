@@ -4,6 +4,10 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:provider/provider.dart';
 
 import 'data/services/api/generated/api_client.dart';
+import 'data/services/api/transport_security.dart';
+
+import 'package:flutter/foundation.dart';
+
 import 'data/services/notifications/push_notifications.dart';
 import 'data/services/local_database/database.dart';
 import 'data/repositories/offline_repository.dart';
@@ -16,12 +20,33 @@ import 'ui/features/workspace/workspace_navigator.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  final api = ApiClient(
-    baseUrl: const String.fromEnvironment(
-      'API_BASE_URL',
-      defaultValue: 'http://10.0.2.2:3000',
-    ),
+  const baseUrl = String.fromEnvironment(
+    'API_BASE_URL',
+    defaultValue: 'http://10.0.2.2:3000',
   );
+  try {
+    TransportSecurity.validateOrigin(baseUrl, release: kReleaseMode);
+  } on FormatException {
+    runApp(
+      MaterialApp(
+        theme: appTheme(),
+        home: const Scaffold(
+          body: SafeArea(
+            child: Center(
+              child: Padding(
+                padding: EdgeInsets.all(24),
+                child: Text(
+                  'Cette version de BioBalance est mal configurée. Contactez votre administrateur.',
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    return;
+  }
+  final api = ApiClient(baseUrl: baseUrl);
   final database = AppDatabase.open();
   runApp(BioBalanceApp(api: api, database: database));
 }

@@ -5,6 +5,7 @@ import { AdminController } from "./modules/reporting/admin.controller";
 import { Module, Controller, Get } from "@nestjs/common";
 import { APP_GUARD, APP_FILTER } from "@nestjs/core";
 import { Database } from "./shared/infrastructure/database";
+import { RequestBudget } from "./shared/infrastructure/request-budget";
 import { AuthGuard, ErrorFilter, Public } from "./shared/infrastructure/http";
 import { IdentityService } from "./modules/identity/identity.service";
 import { IdentityController } from "./modules/identity/identity.controller";
@@ -44,6 +45,7 @@ class HealthController {
     ReportingService,
     AdminService,
     Database,
+    RequestBudget,
     { provide: PasswordHasher, useFactory: () => new PasswordHasher() },
     IdentityService,
     WorkspaceService,

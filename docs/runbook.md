@@ -2,9 +2,9 @@
 
 ## Environnements et secrets
 
-Développement, staging et production utilisent des bases, médias, clés MFA et projets Firebase distincts. L’API de production refuse de démarrer sans base et clé MFA de 32 octets. Ne jamais incorporer les mots de passe PostgreSQL, SMTP, clés de compte de service Firebase ou clés de signature dans l’application.
+Développement, staging et production utilisent des bases, médias, clés MFA distinctes. L’API de production refuse de démarrer sans base et clé MFA de 32 octets. Ne jamais incorporer les mots de passe PostgreSQL, SMTP ou clés de signature dans l’application.
 
-Copier `infrastructure/production/.env.example` vers `.env` sur le VPS, chmod 0600, remplacer toutes les valeurs d’exemple. `DATABASE_URL` utilise **biobalance_app** ; `MIGRATION_DATABASE_URL` utilise le propriétaire. `FIREBASE_CREDENTIALS_FILE` désigne un fichier privé monté comme secret. Le worker s’exécute en UID 1000 : rendre son fichier Firebase lisible par cet UID (`chown 1000:1000`, `chmod 0400`). Les API et le worker média ne montent pas ce fichier. Chaque service reçoit uniquement les variables déclarées dans Compose ; les credentials propriétaire/migration restent exclus des API/workers. `SMTP_REQUIRE_TLS=true` impose STARTTLS ; la désactivation est réservée au SMTP local de test.
+Copier `infrastructure/production/.env.example` vers `.env` sur le VPS, chmod 0600, remplacer toutes les valeurs d’exemple. `DATABASE_URL` utilise **biobalance_app** ; `MIGRATION_DATABASE_URL` utilise le propriétaire. Chaque service reçoit uniquement les variables déclarées dans Compose ; les credentials propriétaire/migration restent exclus des API/workers. `SMTP_REQUIRE_TLS=true` impose STARTTLS ; la désactivation est réservée au SMTP local de test.
 
 Garder la clé MFA aussi longtemps que des secrets chiffrés l’utilisent ; elle est nécessaire après restauration de la base. Les répertoires de secrets/certificats et les artefacts privés sont exclus de Git et du contexte Docker.
 
@@ -31,11 +31,9 @@ Démarrer les deux API, worker notifications/tâches, worker média et Nginx ave
 
 ## Téléphones
 
-Définir `API_BASE_URL` HTTPS au build. La notification push utilise les paramètres Firebase publics via `--dart-define-from-file` : `FIREBASE_APP_ID`, `FIREBASE_API_KEY`, `FIREBASE_SENDER_ID`, `FIREBASE_PROJECT_ID`. Ils diffèrent pour Android et iOS. Configurer les identifiants `tn.biobalance.app`, APNs dans Firebase et la capacité Push Notifications dans Xcode. Le worker utilise uniquement le compte de service privé côté serveur.
+Définir `API_BASE_URL` HTTPS au build. Firebase est retiré ; aucun compte de service ni SDK Firebase n’est requis. Les messages sont accessibles dans la boîte de notifications du VPS. Les alertes OS app fermée sont reportées. SMTP reste utilisé pour les invitations et la récupération.
 
-Le bouton « Activer les notifications » demande la permission au moment utile. Le worker exclut les sessions expirées/révoquées avant envoi. Un message déjà confié à la plateforme peut arriver plus tard ; le texte OS reste générique et l’application revérifie l’accès avant de charger le contenu. Les contrôles de caméra, notifications réelles et lecture vidéo doivent être exécutés sur Android et iOS physiques.
-
-La signature Android lit `BIOBALANCE_KEYSTORE`, `BIOBALANCE_KEYSTORE_PASSWORD`, `BIOBALANCE_KEY_ALIAS`, `BIOBALANCE_KEY_PASSWORD`. Vérifier les noms exacts dans `android/app/build.gradle.kts`. iOS demande les certificats/profils Apple sur macOS. Le build debug disponible n’est pas un livrable signé de production.
+La signature Android utilise une clé d’installation APK et une clé d’upload AAB distinctes ; les empreintes publiques attendues sont versionnées. Utiliser `scripts/build-signed-android.py` et suivre [la procédure de sécurité](security-hardening.md) pour le stockage privé, la sauvegarde et l’inscription Play avec la même clé d’application. iOS nécessite les certificats/profils Apple et macOS. Les artefacts de compilation et de test ciblant `.invalid` ne sont pas des releases de pilote.
 
 Les invitations/récupérations envoient un code manuel tant que `ACTIVATION_URL` et `RECOVERY_URL` sont vides. Pour activer les liens, utiliser les chemins HTTPS `/activate` et `/recover` du domaine possédé, renseigner le même `AUTH_LINK_HOST` au build mobile et publier les associations Android/iOS décrites dans `mobile-release.md`. Les liens `biobalance://` ne sont plus acceptés. Vérifier l’association sur les deux plateformes avant de diffuser ces liens ; la saisie manuelle reste disponible.
 
@@ -69,15 +67,15 @@ Conserver le digest précédent et ses variables d’environnement. Les migratio
 
 ## Portes de sortie
 
-Aucune diffusion générale avant : tests métier/RLS/reprise passants, restauration vérifiée avec médias réels, signatures Android/iOS, tests caméra/push et accessibilité, profils physiques, scénario de charge représentatif, acceptation des trois rôles sur un petit pilote. Étendre ensuite à 50 magasins et enfin 500 suivant les métriques et incidents.
+Aucune diffusion générale avant : tests métier/RLS/reprise passants, restauration vérifiée avec médias réels, signatures Android/iOS, tests caméra/notifications internes et accessibilité, profils physiques, scénario de charge représentatif, acceptation des trois rôles sur un petit pilote. Étendre ensuite à 50 magasins et enfin 500 suivant les métriques et incidents.
 
 ## Diagnostic des workers
 
-`WORKER_CONCURRENCY` borne le worker opérationnel entre 1 et 4 (2 par défaut). Le worker média reste à 1 et ne prend que les tâches média. Chaque tâche porte un bail UUID renouvelable ; une ancienne exécution ne peut pas terminer la tâche après récupération du bail. Les jobs horaires réutilisent leur identifiant d’opération et les envois push conservent leurs reçus par appareil/session.
+`WORKER_CONCURRENCY` borne le worker opérationnel entre 1 et 4 (2 par défaut). Le worker média reste à 1 et ne prend que les tâches média. Chaque tâche porte un bail UUID renouvelable ; une ancienne exécution ne peut pas terminer la tâche après récupération du bail. Les jobs horaires réutilisent leur identifiant d’opération ; les anciens jobs push sont consommés avec le diagnostic `push.skipped` sans simuler de livraison.
 
 Les tâches horaires nettoient aussi les compteurs d’authentification expirés et les inscriptions push invalides. Le worker opérationnel ne monte pas le volume média. Le worker média expire les transferts abandonnés depuis sept jours et retire les sources temporaires ; les fichiers finalisés restent conservés. L’API réserve avant admission le volume maximal du fichier et de son traitement : `MEDIA_TOTAL_BYTES` (50 Gio), `MEDIA_STORE_BYTES` (1 Gio), `MEDIA_ASSET_LIMIT` (1 000 par périmètre), `MEDIA_PENDING_LIMIT` (20 par propriétaire), `MEDIA_FREE_BYTES` (1 Gio de marge). Une réponse `MEDIA_QUOTA` impose une action de l’opérateur ; ne pas effacer directement des fichiers prêts référencés en base.
 
-Examiner `Job.kind`, `key`, `attempts`, `availableAt`, `lockedAt`, `status`, `lastError` sans exporter les payloads (ils peuvent contenir des invitations). Après correction de la cause, relancer un job précis en conservant son `id`/`key`/`payload` : remettre `status='pending'`, `attempts=0`, `availableAt=now()`, `lockedAt=NULL`, `leaseToken=NULL` uniquement si son statut est `failed`. Ne jamais modifier un job courant pour le relancer. Les appels FCM/SMTP restent au moins une fois en cas de réponse externe perdue.
+Examiner `Job.kind`, `key`, `attempts`, `availableAt`, `lockedAt`, `status`, `lastError` sans exporter les payloads (ils peuvent contenir des invitations). Après correction de la cause, relancer un job précis en conservant son `id`/`key`/`payload` : remettre `status='pending'`, `attempts=0`, `availableAt=now()`, `lockedAt=NULL`, `leaseToken=NULL` uniquement si son statut est `failed`. Ne jamais modifier un job courant pour le relancer. Les appels SMTP restent au moins une fois en cas de réponse externe perdue.
 
 ## Recette locale et retour arrière vérifié
 
@@ -86,3 +84,7 @@ Examiner `Job.kind`, `key`, `attempts`, `availableAt`, `lockedAt`, `status`, `la
 Pour déployer ou revenir au code précédent, sélectionner un fichier d’environnement privé contenant les digests testés puis : migration compatible, `up -d --no-deps --force-recreate --wait api1`, contrôle autorisé du magasin, même commande pour `api2`, puis pour `worker media-worker`. Garder l’autre API disponible pendant chaque remplacement. Contrôler les images effectives, rejouer une opération connue (son résultat doit rester identique), vérifier stock/points/média et les jobs. Ne jamais exécuter `down -v` sur la production pour changer une image. Si le schéma n’est pas compatible, utiliser une migration corrective ou la procédure de restauration avec arrêt des écritures.
 
 La recette locale a testé l’ancien code `a8b4610` avec le packaging runtime corrigé, puis le code actuel sur le même schéma additif. Ce n’est pas une autorisation générale de revenir à n’importe quelle ancienne version. La CI distante et les opérations sur le VPS attendent le dépôt et les accès correspondants.
+
+## Limites de requêtes
+
+Les budgets compte partagés entre API, limites Nginx et réponses `Retry-After` sont décrits dans [security-hardening.md](security-hardening.md). Ne pas supprimer des commandes mobiles pour résoudre un HTTP 429. Corréler volumes, comptes et types de routes sans journaliser les tokens. Les API doivent rester inaccessibles directement depuis Internet.

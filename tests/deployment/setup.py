@@ -16,11 +16,9 @@ settings={
  'APP_PASSWORD':app,'MFA_ENCRYPTION_KEY':base64.b64encode(secrets.token_bytes(32)).decode(),
  'SMTP_HOST':'mailpit','SMTP_PORT':'1025','SMTP_SECURE':'false','SMTP_REQUIRE_TLS':'false',
  'SMTP_FROM':'BioBalance test <no-reply@example.test>',
- 'FIREBASE_CREDENTIALS_FILE':str(lab/'secrets/firebase.json'),
 }
 (lab/'.env').write_text(''.join(f'{key}={json.dumps(value)}\n' for key,value in settings.items()))
 (lab/'.env').chmod(0o600)
-(lab/'secrets/firebase.json').write_text('{}');(lab/'secrets/firebase.json').chmod(0o600)
 subprocess.run(['openssl','req','-x509','-newkey','rsa:2048','-nodes','-days','30',
  '-keyout',str(lab/'certificates/privkey.pem'),'-out',str(lab/'certificates/fullchain.pem'),
  '-subj','/CN=localhost','-addext','subjectAltName=DNS:localhost,IP:127.0.0.1'],check=True,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)

@@ -2,9 +2,16 @@ import { Database } from "../infrastructure/database";
 
 /** Retain audit/operation records; prune only expired authentication telemetry. */
 export async function cleanupAuthentication(db: Database, now = new Date()) {
+  for (;;) {
+    const removed =
+      await db.$executeRaw`DELETE FROM "RequestBudget" WHERE "windowStart" < ${new Date(now.getTime() - 86400000)} AND key IN
+      (SELECT key FROM "RequestBudget" WHERE "windowStart" < ${new Date(now.getTime() - 86400000)} LIMIT 1000)`;
+    if (removed < 1000) break;
+  }
   // Bounded deletes keep maintenance from holding locks over the whole table.
   for (;;) {
-    const removed = await db.$executeRaw`DELETE FROM "LoginAttempt" WHERE key IN
+    const removed =
+      await db.$executeRaw`DELETE FROM "LoginAttempt" WHERE "windowStart" < ${new Date(now.getTime() - 86400000)} AND key IN
       (SELECT key FROM "LoginAttempt" WHERE "windowStart" < ${new Date(now.getTime() - 86400000)} LIMIT 1000)`;
     if (removed < 1000) break;
   }

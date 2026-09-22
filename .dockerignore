@@ -18,3 +18,10 @@ apps/mobile
 config/mobile/*.local.json
 config/mobile/*.local.plist
 **/Signing.xcconfig
+
+# Runtime dumps may contain authentication/signing secrets.
+*.hprof
+*.dmp
+*.p8
+**/*.p12
+**/*.mobileprovision

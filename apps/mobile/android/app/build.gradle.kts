@@ -50,7 +50,22 @@ android {
     }
     buildTypes {
         release {
+            isMinifyEnabled = true
+            isShrinkResources = true
             if (keystorePath != null) signingConfig = signingConfigs.getByName("production")
+        }
+    }
+}
+
+// Inspect the actual graph so aggregate tasks (assemble/bundle) cannot bypass
+// the release gate by omitting "Release" from their command-line task name.
+gradle.taskGraph.whenReady {
+    val buildsRelease = allTasks.any {
+        it.project.path == project.path && it.name.contains("release", ignoreCase = true)
+    }
+    if (buildsRelease) {
+        require(System.getenv("BIOBALANCE_KEYSTORE") != null || System.getenv("BIOBALANCE_BUILD_MODE") == "compile-only") {
+            "Release signing is required. Use scripts/build-signed-android.py or the explicit compile-only workflow."
         }
     }
 }

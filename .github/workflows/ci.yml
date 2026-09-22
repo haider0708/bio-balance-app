@@ -29,7 +29,7 @@ jobs:
         env:
           OWNER_URL: postgresql://biobalance:local-development-only@localhost:54329/biobalance_test
       - run: sudo apt-get update && sudo apt-get install -y ffmpeg
-      - run: npm run format:check && npm run build && npm test && npm run test:integration && npm run test:audit && npm run test:media && npm run test:notifications
+      - run: npm run format:check && npm run build && npm test && npm run test:integration && npm run test:audit && npm run test:security && npm run test:media && npm run test:notifications
         env:
           TEST_APP_DATABASE_URL: postgresql://biobalance_app:local-app-only@localhost:54329/biobalance_test
           TEST_OWNER_DATABASE_URL: postgresql://biobalance:local-development-only@localhost:54329/biobalance_test

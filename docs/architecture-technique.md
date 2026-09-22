@@ -49,7 +49,7 @@ L’identité est dérivée de la session opaque ; les rôles reçus du client n
 
 Les politiques RLS utilisent un contexte `SET LOCAL` via `set_config(..., true)` dans la transaction de la requête. Les lectures globales admin passent par un service explicite, contrôlé et audité ; leurs politiques n’autorisent pas de mutations globales.
 
-Une opération métier enregistre atomiquement l’objet, sa révision, les mouvements, les écritures de points, les projections de solde, l’audit, le résultat idempotent et le changement à synchroniser. Les notifications durables sont créées dans la transaction ; les appels SMTP/FCM se font ensuite dans le worker.
+Une opération métier enregistre atomiquement l’objet, sa révision, les mouvements, les écritures de points, les projections de solde, l’audit, le résultat idempotent et le changement à synchroniser. Les notifications durables sont créées dans la transaction ; les appels SMTP se font ensuite dans le worker ; les notifications sont consultées dans la boîte VPS.
 
 Identifiant d’opération stable + hash canonique du contenu + acteur : réutiliser un identifiant avec un contenu différent est un conflit. Les versions évitent l’écrasement de corrections concurrentes. Les transactions sérialisables sont reprises de manière bornée sur conflits PostgreSQL `40001`/`40P01`, y compris leur représentation par l’adaptateur Prisma.
 
@@ -73,7 +73,7 @@ L’audit du 22 septembre centralise les transactions globales dans `Database.au
 
 Référence à valider : Ubuntu 24.04, 8 vCPU, 16 Go RAM, 200 Go SSD/NVMe. Docker Compose déploie Nginx, deux API stateless, le worker de notifications, le worker média et PostgreSQL sans port public. Données et médias utilisent des volumes persistants locaux.
 
-Les environnements sont distincts. Images immuables, migration explicite avant bascule, journalisation bornée, secrets hors dépôt. FCM/APNs et SMTP nécessitent leurs identifiants de déploiement.
+Les environnements sont distincts. Images immuables, migration explicite avant bascule, journalisation bornée, secrets hors dépôt. SMTP nécessite ses identifiants de déploiement. Firebase est retiré ; les notifications téléphone en arrière-plan sont reportées.
 
 Sauvegarde locale : dump PostgreSQL puis copie des médias immuables, checksums, restauration dans une base isolée. Les sauvegardes hors serveur sont reportées à la demande du propriétaire. Il n’y a aucune promesse de haute disponibilité ni de récupération après perte complète du VPS dans cette phase.
 
@@ -98,6 +98,10 @@ Les demandes de récompense, commandes non terminées, livraisons en cours et r�
 
 ### Preuves de déploiement et distribution
 
-Le Compose limite les credentials par service : compte propriétaire uniquement pour PostgreSQL et migrations, compte restreint pour les applications, SMTP/Firebase uniquement pour le worker concerné. Les remplacements d’API utilisent la résolution DNS Docker par Nginx. La reprise média persiste l’ETag opaque reçu du proxy et vérifie toujours longueur/SHA-256 avant lecture hors ligne.
+Le Compose limite les credentials par service : compte propriétaire uniquement pour PostgreSQL et migrations, compte restreint pour les applications, SMTP uniquement pour le worker concerné. Les remplacements d’API utilisent la résolution DNS Docker par Nginx. La reprise média persiste l’ETag opaque reçu du proxy et vérifie toujours longueur/SHA-256 avant lecture hors ligne.
 
 `tests/deployment/run.sh` vérifie un environnement isolé complet, une restauration avec médias traités et le retour à une version applicative compatible. `scripts/build-mobile-release.sh` sépare compilation sans credentials et signature avec configuration de plateforme. Le package contient des preuves et un état de diffusion explicite ; la compilation ne valide ni les plateformes ni le pilote. Voir `release-gates.md` et `pilot-plan.md`.
+
+## Renforcement de sécurité et distribution
+
+Voir [sécurité et signatures](security-hardening.md) : certificats Android publics versionnés, clés privées hors dépôt, APK/AAB signés séparément, transport limité à une origine HTTPS et budgets PostgreSQL partagés entre sessions/API. Firebase est retiré conformément à la décision du 22 septembre ; la boîte de notifications demeure hébergée sur le VPS. L’attestation distante des appareils reste à configurer et ne sert pas de prétexte à faire confiance au client.

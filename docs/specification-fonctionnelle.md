@@ -53,7 +53,7 @@ Les abonnements payants, le web admin, WhatsApp, les classements régionaux/nati
 - Images magasin/récompense gérées par leur responsable autorisé, images catalogue par BioBalance ; JPEG/PNG jusqu’à 10 Mo, redimensionnés et attachables après traitement uniquement.
 - Téléversement vidéo par fragments, position de reprise confirmée côté serveur. Consultation et téléchargement choisi pour usage hors connexion.
 - Notifications automatiques opérationnelles : responsables et administrateur uniquement. Les vendeurs reçoivent les annonces explicitement envoyées par leur responsable.
-- Le message et son audience/magasin sont visibles avant envoi. Centre de notifications, FCM/APNs et emails d’activation/récupération.
+- Le message et son audience/magasin sont visibles avant envoi. Centre de notifications hébergé sur le VPS et emails d’activation/récupération. Firebase est retiré ; les alertes OS lorsque l’application est fermée sont reportées.
 - Catalogue maintenable par BioBalance, import CSV validé, supervision des magasins, audit et exports contrôlés.
 
 ## Hors connexion
@@ -72,7 +72,7 @@ Identité officielle : logo BioBalance, vert `#6ABE4E`, boutons vert foncé cont
 
 Toutes les fonctionnalités doivent couvrir chargement, absence de données, recherche vide, cache hors ligne, erreurs récupérables, permissions refusées, session expirée et conflits. Les formulaires conservent leurs valeurs.
 
-L’application, PostgreSQL et les médias sont hébergés sur un VPS. Les services mobiles FCM/APNs restent nécessaires. Les sauvegardes locales sont vérifiées par restauration isolée ; elles ne couvrent pas la perte du serveur entier.
+L’application, PostgreSQL et les médias sont hébergés sur un VPS. Aucun service Firebase n’est utilisé. La boîte de notifications est disponible dans l’application ; un transport OS en arrière-plan pourra être choisi séparément. Les sauvegardes locales sont vérifiées par restauration isolée ; elles ne couvrent pas la perte du serveur entier.
 
 ### Lots absents lors d’une vente
 

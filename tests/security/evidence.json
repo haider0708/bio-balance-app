@@ -1,0 +1,114 @@
+{
+  "dateUtc": "2026-09-22T10:35:10.464564+00:00",
+  "baselineCommit": "625702c",
+  "codeCommit": "recorded after implementation commit",
+  "productionReady": false,
+  "firebase": "removed; VPS inbox only",
+  "checks": {
+    "backendTests": 62,
+    "flutterStandaloneTests": 83,
+    "finalMobileSecurityAndLayoutChecks": 25,
+    "httpEndpointContracts": 45,
+    "httpSqlitePostgresJourneys": 2,
+    "pythonReleaseBackupSigningTests": 14,
+    "typescriptBuild": "passed",
+    "flutterAnalysis": "passed",
+    "npmCi": "passed",
+    "dependencyAuditKnownVulnerabilities": 0,
+    "androidRelease": "obfuscated APK/AAB compiled; manifest security and ELF/ZIP checks passed",
+    "unsignedAggregateBuild": "refused before task execution",
+    "compose": "12 migrations, current API/media images, restricted DB, worker health, TLS and private media/ranges verified",
+    "ingress": [
+      "TLS 1.2/1.3",
+      "TLS 1.1 refused",
+      "untrusted certificate refused",
+      "rate-limit JSON and Retry-After",
+      "case variants share identity IP quota",
+      "logout bypasses exhausted identity quota; general flood control remains"
+    ]
+  },
+  "load": {
+    "environment": "local, two API processes; no Nginx/workers or Compose CPU limits in load measurement",
+    "steady": {
+      "requestsPerSecond": 100,
+      "durationSeconds": 300
+    },
+    "burst": {
+      "requestsPerSecond": 200,
+      "durationSeconds": 30
+    },
+    "requests": 36001,
+    "failedRequestRate": 0,
+    "rejectedOperations": 0,
+    "droppedIterations": 0,
+    "acceptedSales": 3602,
+    "p95Milliseconds": {
+      "read": {
+        "steady": 26.11,
+        "burst": 124.47
+      },
+      "write": {
+        "steady": 46.69,
+        "burst": 232.06
+      }
+    },
+    "data": {
+      "stores": 500,
+      "accounts": 5000,
+      "lots": 300000,
+      "historicalSalesAfterRun": 2026396
+    },
+    "integrity": "zero stock, points, revision or identity discrepancies",
+    "scopeNote": "HTTP hot path unchanged after measurement; maintenance expiry recheck was subsequently regression-tested on PostgreSQL."
+  },
+  "androidSignatures": {
+    "productionReady": false,
+    "apiOrigin": "https://api.example.invalid",
+    "checks": [
+      "APK app signature",
+      "AAB upload signature and every entry",
+      "wrong APK signer rejected",
+      "modified APK rejected"
+    ],
+    "sha256": {
+      "upload-inert.apk": "a28214dad5076b7186378959f0c8ff40e67c6194234c3926356ab0aade77304c",
+      "upload-inert.aab": "0d2dc901b6c30a5c7efb48ed50dfbcda0d92cf7696b17548e1e305ae55987c1a",
+      "app-inert.apk": "7068d361800148fa010b0edd0a51b11e8637d31333186f562386d7979771c1b1"
+    },
+    "certificates": {
+      "applicationId": "tn.biobalance.app",
+      "appCertificateSha256": "7da034f1b99fe4b6d26da07ab637824aa9f13f896b18c410489e45cf7853b487",
+      "uploadCertificateSha256": "dbb7b6bb53827d1a2c07ff4156e419cfdb81e79309e68e25644d57505a2bca7f"
+    }
+  },
+  "androidInstallation": {
+    "device": "BioBalance_Security_API36",
+    "androidApi": 36,
+    "productionReady": false,
+    "artifactSha256": "7068d361800148fa010b0edd0a51b11e8637d31333186f562386d7979771c1b1",
+    "passed": [
+      "signed release install/launch",
+      "SECURE window",
+      "wrong-key update rejected",
+      "same-key update accepted"
+    ]
+  },
+  "privateKeys": "created outside repository; no private key material or passwords included in this evidence",
+  "externalPending": [
+    "encrypted signing-key backup",
+    "Google Play enrollment with matching app signing key and separate upload certificate",
+    "real cross-channel upgrades",
+    "Apple team/macOS/iOS signing and native tests",
+    "owned API domain and production VPS/TLS/SMTP",
+    "Play Integrity / App Attest integration and validation for Play and private APK distribution",
+    "certificate pinning with rotation and native-video coverage if required",
+    "closed-app Android push transport choice",
+    "physical-device security/performance checks and pilot"
+  ],
+  "limitations": [
+    "inert signed artifacts target api.example.invalid and are not pilot builds",
+    "rooted/compromised endpoints and authorized data extraction are not made impossible",
+    "off-server business-data backups and high availability remain deferred"
+  ],
+  "evidenceDirectory": ".artifacts/evidence/security-hardening/"
+}

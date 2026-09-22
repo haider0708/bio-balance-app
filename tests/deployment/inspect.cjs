@@ -21,5 +21,4 @@ for(const service of ['api1','api2','worker','media-worker','postgres']){
 }
 const appProbe=`const {Database}=require('./dist/shared/infrastructure/database');const db=new Database();(async()=>{const [r]=await db.$queryRawUnsafe('SELECT current_user AS name,rolsuper,rolbypassrls FROM pg_roles WHERE rolname=current_user');if(r.name!=='biobalance_app'||r.rolsuper||r.rolbypassrls)throw Error('privileged role');if((await db.inventoryLot.findMany()).length)throw Error('missing RLS context leaked rows');console.log('PASS: runtime database identity and RLS isolation')})().finally(()=>db.$disconnect());`;
 process.stdout.write(execFileSync('docker',[...args,'exec','-T','api1','node','-e',appProbe],{encoding:'utf8'}));
-execFileSync('docker',[...args,'exec','-T','worker','test','-r','/run/secrets/firebase-service-account.json']);
-console.log('PASS: only the notification worker can read its mounted provider file');
+console.log('PASS: no external push provider is required');

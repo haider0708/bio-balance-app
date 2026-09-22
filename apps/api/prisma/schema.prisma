@@ -36,6 +36,13 @@ model AccessToken {
   usedAt DateTime?
   createdBy String? @db.Uuid
 }
+model RequestBudget {
+  key String @id
+  count Int
+  windowStart DateTime @default(now()) @db.Timestamptz(3)
+  @@index([windowStart])
+}
+
 model LoginAttempt {
   key String @id
   count Int @default(0)

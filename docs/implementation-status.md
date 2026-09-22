@@ -14,7 +14,7 @@ L’application est en développement et n’est pas encore qualifiée pour une 
 - SQLite avec outbox durable, brouillons, reprise après arrêt, isolation compte/magasin, résolution des saisies rejetées et migration avec file peuplée.
 - Synchronisation différentielle des lots/configurations ; collections autorisées actualisées et rechargement complet si catalogue modifié ou backlog important.
 - Articles/vidéos, téléversement par fragments, traitement média, publication contrôlée, cache de formation et téléchargement vidéo.
-- Annonces du responsable, notifications opérationnelles, enregistrement push lié à une session valide, historique consultable dans l’application.
+- Annonces du responsable, notifications opérationnelles, boîte interne hébergée sur le VPS ; Firebase retiré, alertes OS app fermée reportées.
 - Vue administrateur, historiques paginés de ventes/points/audit/mouvements et export des lignes affichées.
 - Docker Compose VPS, deux API, workers séparés, Nginx, migrations, sauvegarde locale, restauration isolée, CI et scénario k6.
 
@@ -24,9 +24,9 @@ L’application est en développement et n’est pas encore qualifiée pour une 
 |---|---|
 | Compilation TypeScript | Réussie |
 | Tests domaine et reprise transactionnelle backend | 10 réussis |
-| Tests PostgreSQL réels avec rôle restreint | 22 réussis + 14 régressions d’audit + 4 tests de traitement média réel + 5 tests notifications/workers |
-| Tests Flutter de reprise, migration et dispositions d’écran | 79 réussis ; 2 parcours HTTP, contrats Dart et reprise média HTTPS/Nginx exécutés séparément et réussis |
-| Build Android | Debug normal lancé/rechargé et APK/AAB release non signés compilés ; parcours/force-stop/vidéo réussis sur émulateur ; signatures et appareils physiques en attente |
+| Tests PostgreSQL réels avec rôle restreint | 22 réussis + 14 régressions d’audit + 4 tests de traitement média réel + 5 tests notifications/workers + 7 tests sécurité |
+| Tests Flutter de reprise, migration et dispositions d’écran | 83 réussis ; 2 parcours HTTP, contrats Dart et reprise média HTTPS/Nginx exécutés séparément et réussis |
+| Build Android | Debug normal lancé/rechargé et APK/AAB release non signés compilés ; parcours/force-stop/vidéo réussis sur émulateur ; APK/AAB inertes signés vérifiés et installation/mise à jour testées ; signature Apple et appareils physiques en attente |
 | Sauvegarde/restauration isolée | Réussie : données métier, image et vidéo traitées ; tailles/empreintes et projections comparées après restauration isolée |
 | OpenAPI et génération Dart | 45 endpoints vérifiés sur HTTP réel ; schémas Dart typés générés et aller-retour JSON validé |
 | Images Docker et émulateur | Parcours Android et Compose complet local réussis ; API/média, TLS, isolation, reprise et rollback vérifiés |
@@ -40,9 +40,9 @@ Audit du 22 septembre : voir [constats corrigés et preuves](audit-2026-09-22.md
 - Déploiement/restauration avec médias traités et rollback vérifiés localement ; valider ces procédures sur le VPS cible.
 - Parcours UI Android, révocation en cours de saisie, erreur SQLite et force-stop vérifiés ; compléter la recette native iOS et les essais physiques.
 - Lecture vidéo hors ligne vérifiée sur émulateur Android ; liens natifs et transferts interrompus sur appareils physiques restent à vérifier.
-- Exécuter tests caméra/push, accessibilité, rotation et stabilité mémoire sur Android/iOS physiques ; compiler iOS sur macOS et produire les builds signés.
+- Exécuter tests caméra/notifications internes, accessibilité, rotation et stabilité mémoire sur Android/iOS physiques ; compiler iOS sur macOS et produire les builds signés.
 - Charge locale 100/200 req/s et benchmark SQLite exécutés (voir étape 10). Rejouer sur le VPS de référence ; démarrage, persistance/recherche et fluidité restent à qualifier sur appareils physiques.
-- Renseigner VPS/domaine/SMTP/Firebase/APNs/signatures, valider renouvellement TLS/supervision, puis effectuer le pilote et corriger ses retours.
+- Renseigner VPS/domaine/SMTP, inscription Play avec la clé locale et signature Apple, valider renouvellement TLS/supervision, puis effectuer le pilote et corriger ses retours.
 
 Les sauvegardes hors VPS, la haute disponibilité, les abonnements payants, l’admin web, WhatsApp et les classements hors magasin restent reportés conformément au périmètre approuvé.
 
@@ -249,3 +249,18 @@ Commit de correction : `2ccfbc5778eacfd45269f6eec0cdce45f4ca23ec`. Configuration
 - Scan Codex Security finalisé et indexé sous `405b4f79-2fd3-4e69-ba93-7608b88b1a00` ; les constats du rapport concernent le commit initial. Les correctifs, résultats et échecs intermédiaires sont reliés dans le dossier d’audit. Les bibliothèques/binaires tiers ne sont pas présentés comme du code relu manuellement.
 
 Limites restantes : CI distante/macOS/iOS, appareils physiques, associations de domaine, VPS/ACME/supervision réels, SMTP/push réels, signatures et pilote. Les anciens APK/AAB release doivent être reconstruits avec les correctifs avant le pilote. Aucun objectif physique ni capacité du VPS complet n’est déclaré validé par ces tests locaux. Sauvegardes hors serveur et haute disponibilité restent reportées.
+
+## Renforcement de sécurité — distribution Play et APK privés
+
+Décision utilisateur du 22 septembre : aucun Firebase. La boîte interne demeure hébergée sur le VPS ; les notifications OS app fermée sont reportées. Les mentions FCM/APNs dans les étapes historiques décrivent l’ancien choix et ne constituent plus des prérequis de cette version. Voir [sécurité et signatures](security-hardening.md).
+
+- Deux clés Android RSA-4096 créées hors dépôt (application/upload), empreintes publiques versionnées et vérification avant/après build. Obfuscation Flutter, R8, symboles privés et contrôle des sections DWARF natives. L’installation et la mise à jour avec la bonne clé réussissent ; Android refuse la mauvaise clé sur l’émulateur isolé API 36.
+- HTTPS requis en release, cleartext interdit, requêtes authentifiées limitées à l’origine API et redirections refusées. Écran Android sécurisé et couverture du sélecteur d’apps iOS ; validation iOS native encore externe.
+- Budgets PostgreSQL atomiques partagés entre sessions et réplicas, coûts des lots de synchronisation, plafonds d’exports/snapshots, réponses 429 avec `Retry-After`, nettoyage borné. La déconnexion reste disponible après épuisement d’un budget. Migration 12 additive, sans modification des historiques/outbox.
+- Limites Nginx, TLS 1.2/1.3, corps JSON compressés refusés, timeouts HTTP bornés, `no-store`. SDK/configuration Firebase retirés des clients, API et workers ; aucun job push neuf, jobs historiques consommés sans inventer de livraison. L’écran compte présente la boîte interne au lieu d’un bouton d’activation indisponible.
+- Vérifications locales : 62 tests backend au total, 83 tests Flutter, 45 contrats HTTP et aller-retour Dart, 2 parcours HTTP/SQLite/PostgreSQL, 14 tests Python de release/backup/signature. TLS et CA non fiables refusés, 429 JSON testés, isolement et médias/ranges vérifiés sur les vrais conteneurs. Les artefacts de signature ciblent `.invalid` et ne sont pas des builds de pilote.
+- Restent : sauvegarde chiffrée des clés, inscription Play et essais entre canaux réels, domaine/TLS/VPS réel, macOS/équipe Apple, essais physiques et pilote. Attestation Play Integrity/App Attest et pinning non actifs ; ces protections exigent leur configuration et une validation compatible avec les APK privés et la reprise hors ligne.
+
+Les preuves détaillées de cette passe sont conservées sous `.artifacts/evidence/security-hardening/` et résumées dans `tests/security/evidence.json`. Le rapport d’audit précédent reste immuable ; ce renforcement ne réécrit pas ses constats historiques.
+
+Charge après renforcement : 36 001 requêtes, 3 602 ventes acceptées, aucune requête échouée/opération rejetée/itération perdue. p95 lecture/écriture à 100 req/s : 26,11/46,69 ms ; à 200 req/s : 124,47/232,06 ms. Deux API locales sans Nginx/workers ni quotas CPU Compose dans cette mesure ; ne pas présenter ces chiffres comme une qualification du VPS. Le contrôle d’expiration concurrente des compteurs de maintenance a été ajouté ensuite sans modification du chemin HTTP mesuré.
