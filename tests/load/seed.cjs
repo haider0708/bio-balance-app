@@ -17,9 +17,66 @@ const output = path.resolve(
 );
 (async () => {
   await db.connect();
-  if (Number((await db.query('SELECT count(*) FROM "User"')).rows[0].count))
-    throw Error("Database must be empty; existing records are never deleted");
-  await db.query(`CREATE FUNCTION pg_temp.fid(kind text,n bigint) RETURNS uuid LANGUAGE sql IMMUTABLE AS $$ SELECT overlay(overlay(md5('biobalance-load-v1:'||kind||':'||n) placing '4' from 13 for 1) placing '8' from 17 for 1)::uuid $$;
+  const users = Number(
+    (await db.query('SELECT count(*) FROM "User"')).rows[0].count,
+  );
+  let firstSale = 1;
+  await db.query(
+    `CREATE FUNCTION pg_temp.fid(kind text,n bigint) RETURNS uuid LANGUAGE sql IMMUTABLE AS $$ SELECT overlay(overlay(md5('biobalance-load-v1:'||kind||':'||n) placing '4' from 13 for 1) placing '8' from 17 for 1)::uuid $$;`,
+  );
+  if (users) {
+    if (process.env.LOAD_RESUME_SEED !== "yes")
+      throw Error("Database must be empty; existing records are never deleted");
+    // Resume only an interrupted v1 batch seed before projections or sessions
+    // exist. A database that has served even one API write cannot qualify.
+    const {
+      rows: [state],
+    } = await db.query(`SELECT
+      (SELECT count(*) FROM "User" WHERE email !~ '^load-[0-9]+@example.test$' OR "passwordHash"<>'!synthetic-session-only')::int foreign_users,
+      (SELECT count(*) FROM "Store")::int stores,
+      (SELECT count(*) FROM "Product")::int products,
+      (SELECT count(*) FROM "InventoryLot")::int lots,
+      (SELECT count(*) FROM "Sale")::int sales,
+      (SELECT count(*) FROM "SaleRevision")::int revisions,
+      (SELECT count(*) FROM "PointsEntry")::int points,
+      (SELECT count(*) FROM "StockMovement")::int movements,
+      (SELECT count(*) FROM "AuditEntry")::int audits,
+      (SELECT count(*) FROM "Change")::int changes,
+      (SELECT count(*) FROM "ProcessedOperation")::int operations,
+      (SELECT count(*) FROM "ProcessedOperation" WHERE "payloadHash"<>repeat('0',64))::int accepted_api_operations,
+      (SELECT count(*) FROM "Session")::int sessions,
+      (SELECT count(*) FROM "PointsAccount")::int accounts,
+      (SELECT count(*) FROM "StoreCursor")::int cursors`);
+    if (
+      users !== 5000 ||
+      state.foreign_users ||
+      state.stores !== 500 ||
+      state.products !== 200 ||
+      state.lots !== 300000 ||
+      state.sessions ||
+      state.accounts ||
+      state.cursors ||
+      state.accepted_api_operations ||
+      state.sales >= count ||
+      state.sales % 50000 !== 0 ||
+      [
+        state.revisions,
+        state.points,
+        state.audits,
+        state.changes,
+        state.operations,
+      ].some((n) => n !== state.sales) ||
+      state.movements !== state.sales + 300000
+    )
+      throw Error(
+        "Resume requires an untouched synthetic dataset at a committed batch boundary",
+      );
+    firstSale = state.sales + 1;
+    console.log(
+      `Resuming synthetic history after ${state.sales} committed sales; no records removed.`,
+    );
+  } else {
+    await db.query(`
  INSERT INTO "Organization" (id,name) SELECT pg_temp.fid('org',n),'Partenaire synthétique '||n FROM generate_series(1,125)n;
  INSERT INTO "User" (id,email,name,"passwordHash") SELECT pg_temp.fid('user',n),'load-'||n||'@example.test','Compte synthétique '||n,'!synthetic-session-only' FROM generate_series(1,5000)n;
  INSERT INTO "Store" (id,"organizationId",name,address,city,"onboardingStep") SELECT pg_temp.fid('store',n),pg_temp.fid('org',(n+3)/4),'Magasin synthétique '||n,'Adresse de test','Tunis',5 FROM generate_series(1,500)n;
@@ -30,10 +87,11 @@ const output = path.resolve(
  INSERT INTO "InventoryLot" (id,"organizationId","storeId","productId",batch,expiry,sellable,version) SELECT pg_temp.fid('lot',n),pg_temp.fid('org',(((n-1)/600+1)+3)/4),pg_temp.fid('store',(n-1)/600+1),pg_temp.fid('product',((n-1)%600)/3+1),'LOAD-'||((n-1)%3+1),(current_date+interval '2 years'+((n-1)%3)*interval '30 days')::date,1000,2 FROM generate_series(1,300000)n;
  INSERT INTO "StockMovement" (id,"organizationId","storeId","lotId",quantity,reason,"sourceId","actorId","operationId") SELECT pg_temp.fid('opening-movement',n),pg_temp.fid('org',(((n-1)/600+1)+3)/4),pg_temp.fid('store',(n-1)/600+1),pg_temp.fid('lot',n),1000,'opening',pg_temp.fid('opening',n),pg_temp.fid('user',((n-1)/600)*10+1),pg_temp.fid('opening',n) FROM generate_series(1,300000)n;
  `);
-  console.log(
-    "Seeded 125 organizations, 500 stores, 5,000 accounts, 200 products and 300,000 lots.",
-  );
-  for (let start = 1; start <= count; start += 50000) {
+    console.log(
+      "Seeded 125 organizations, 500 stores, 5,000 accounts, 200 products and 300,000 lots.",
+    );
+  }
+  for (let start = firstSale; start <= count; start += 50000) {
     await db.query("BEGIN");
     try {
       await db.query(

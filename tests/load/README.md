@@ -27,6 +27,10 @@ Record p95 reads ≤300 ms and writes ≤700 ms separately for steady and burst 
 
 For the isolated full-stack VPS lab, `SYNTHETIC_PROXY=yes` distributes the 500 synthetic stores over reserved benchmark IPs. This option refuses all URLs except `https://load.biobalance.invalid:<port>`. The lab resolves that host to loopback, trusts its test CA, and has a private Nginx configuration trusting the synthetic header only from its Docker gateway. Production Nginx must never trust this header. Rate limits remain enabled; do not use a certificate-verification bypass or point this workload at the live API.
 
+`vps-qualification.sh smoke|acceptance` runs against that prepared lab, verifies the two-million-sale minimum and certificate trust, captures resource usage, and stops if shared-host reserves fall below 12 GiB disk/1.5 GiB available memory or the live API fails three probes. It records failed thresholds and runs the ledger verifier even after a failed measurement. The load generator shares the reference host; include its overhead in the interpretation.
+
+If the initial generator is interrupted between historical batches, `LOAD_RESUME_SEED=yes` can resume the same isolated database. It requires 5,000 synthetic-only accounts, the expected directory/lot counts, equal committed history counts at a 50,000-sale boundary, no sessions, no balance/cursor projections, and no accepted API operations. An already exercised load database is rejected. No existing history is removed or rewritten; this option is not an application-data migration.
+
 ## Local persistence benchmark
 
 ```sh
