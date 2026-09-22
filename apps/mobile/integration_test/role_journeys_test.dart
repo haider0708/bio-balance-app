@@ -160,7 +160,16 @@ class Journey {
     await ready();
     if (email == admin && (await state())['store'] != null) {
       await tapKey('workspace.storeSelector');
-      await tap(store);
+      final sheet = find.byType(BottomSheet);
+      await t.enterText(
+        find.descendant(of: sheet, matching: find.byType(TextField)),
+        store,
+      );
+      await dismissKeyboard();
+      final choice = find.descendant(of: sheet, matching: find.text(store));
+      await seek(choice);
+      await t.tap(choice.last);
+      await t.pumpAndSettle();
       await ready();
     }
   }
@@ -196,10 +205,38 @@ class Journey {
   }
 
   Future<void> nav(String text) async {
+    // A narrow phone groups team/catalogue under Plus; large text uses Menu.
+    final menu = find.byKey(const ValueKey('workspace.navigationMenu'));
+    for (
+      var i = 0;
+      i < 5 &&
+          menu.evaluate().isEmpty &&
+          find.byType(NavigationBar).evaluate().isEmpty;
+      i++
+    ) {
+      await back();
+    }
+    if (menu.evaluate().isNotEmpty) {
+      await t.tap(menu);
+      await t.pumpAndSettle();
+      await tap(text);
+      return;
+    }
+    final label = switch (text) {
+      'Mes ventes' => 'Ventes',
+      'Récompenses' => 'Cadeaux',
+      'Vue d’ensemble' => 'Accueil',
+      _ => text,
+    };
     final f = find.descendant(
       of: find.byType(NavigationBar),
-      matching: find.text(text),
+      matching: find.text(label),
     );
+    if (f.evaluate().isEmpty && ['Équipe', 'Catalogue'].contains(text)) {
+      await nav('Plus');
+      await tap(text == 'Équipe' ? 'Équipe et accès' : 'Catalogue');
+      return;
+    }
     await t.tap(f.last);
     await t.pumpAndSettle();
   }
@@ -252,6 +289,7 @@ void main() {
   testWidgets('admin, manager and seller complete the BioBalance workflows', (
     tester,
   ) async {
+    WidgetController.hitTestWarningShouldBeFatal = true;
     if (base.isEmpty) {
       fail('Run npm run test:journeys with the isolated test harness.');
     }
@@ -375,7 +413,7 @@ void main() {
     );
     await j.activate('${(await state())['sellerCode']}', 'Vendeur parcours');
     await j.login(seller);
-    await j.tap('Réceptionner');
+    await j.tap('Recevoir');
     final deliveryText = find.textContaining('Livraison ');
     await j.seek(deliveryText);
     await tester.tap(deliveryText.first);

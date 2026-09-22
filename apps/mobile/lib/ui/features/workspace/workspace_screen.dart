@@ -8,10 +8,12 @@ import 'package:flutter/material.dart';
 import '../announcements/announcement_screen.dart';
 
 import '../stores/store_settings_screen.dart';
+import '../stores/product_settings_screen.dart';
 
 import 'package:provider/provider.dart';
 
 import '../../core/design.dart';
+import '../../core/workspace_navigation.dart';
 import '../training/training_screen.dart';
 import 'workspace_view_model.dart';
 import 'operations_screens.dart';
@@ -321,52 +323,53 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
                   retry: vm.synchronize,
                 ),
               ),
-            Material(
-              color: state.offline
-                  ? const Color(0xFFFFF3DE)
-                  : const Color(0xFFF0F5ED),
-              child: InkWell(
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => SyncScreen(vm: vm)),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 10,
+            if (state.offline || state.pending > 0 || state.accessBlocked)
+              Material(
+                color: state.offline
+                    ? const Color(0xFFFFF3DE)
+                    : const Color(0xFFF0F5ED),
+                child: InkWell(
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => SyncScreen(vm: vm)),
                   ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        state.offline
-                            ? Icons.cloud_off
-                            : state.syncing
-                            ? Icons.sync
-                            : Icons.cloud_done_outlined,
-                        size: 18,
-                        color: darkGreen,
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          state.accessBlocked
-                              ? 'Accès à vérifier · données locales conservées'
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 10,
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          state.offline
+                              ? Icons.cloud_off
                               : state.syncing
-                              ? 'Synchronisation en cours…'
-                              : state.offline
-                              ? 'Hors connexion · travail enregistré sur ce téléphone'
-                              : state.pending > 0
-                              ? '${state.pending} opération(s) à synchroniser'
-                              : 'Vos données sont synchronisées',
-                          style: const TextStyle(fontSize: 14),
+                              ? Icons.sync
+                              : Icons.cloud_done_outlined,
+                          size: 18,
+                          color: darkGreen,
                         ),
-                      ),
-                      const Icon(Icons.chevron_right, size: 18),
-                    ],
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            state.accessBlocked
+                                ? 'Accès à vérifier · données locales conservées'
+                                : state.syncing
+                                ? 'Synchronisation en cours…'
+                                : state.offline
+                                ? 'Hors connexion · travail enregistré sur ce téléphone'
+                                : state.pending > 0
+                                ? '${state.pending} opération(s) à synchroniser'
+                                : 'Vos données sont synchronisées',
+                            style: const TextStyle(fontSize: 14),
+                          ),
+                        ),
+                        const Icon(Icons.chevron_right, size: 18),
+                      ],
+                    ),
                   ),
                 ),
               ),
-            ),
             Expanded(
               child: Row(
                 children: [
@@ -393,19 +396,11 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
       ),
       bottomNavigationBar: wide
           ? null
-          : NavigationBar(
-              height: MediaQuery.textScalerOf(context).scale(14) > 20
-                  ? 100
-                  : 80,
-              selectedIndex: selected,
-              onDestinationSelected: (i) => setState(() => selected = i),
-              destinations: [
-                for (var i = 0; i < destinations.length; i++)
-                  NavigationDestination(
-                    icon: Icon(icons[i]),
-                    label: destinations[i],
-                  ),
-              ],
+          : WorkspaceNavigation(
+              labels: destinations,
+              icons: icons,
+              selected: selected,
+              onSelected: (i) => setState(() => selected = i),
             ),
     );
   }
@@ -414,103 +409,131 @@ class _WorkspaceScreenState extends State<WorkspaceScreen>
 class MorePage extends StatelessWidget {
   final WorkspaceViewModel vm;
   const MorePage({super.key, required this.vm});
+  Widget link(
+    BuildContext context,
+    String title,
+    IconData icon,
+    Widget page, {
+    bool fullScreen = false,
+    String? subtitle,
+  }) => CompactRow(
+    title: title,
+    subtitle: subtitle,
+    icon: icon,
+    onTap: () => Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => fullScreen
+            ? page
+            : Scaffold(
+                appBar: AppBar(title: Text(vm.state.store?.name ?? title)),
+                body: page,
+              ),
+      ),
+    ),
+  );
   @override
-  Widget build(BuildContext context) => Content(
-    children: [
-      const SectionTitle('Tout votre espace'),
-      if (vm.state.store?.canManage == true)
-        Card(
-          child: ListTile(
-            leading: const Icon(Icons.checklist_outlined),
-            title: const Text('Guide de configuration'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => OnboardingScreen(vm: vm)),
-            ),
-          ),
-        ),
-      for (final item in [
-        (
+  Widget build(BuildContext context) {
+    final manage = vm.user.admin || vm.state.store?.canManage == true;
+    return Content(
+      children: [
+        const SectionTitle('Plus'),
+        const SectionTitle('Activité'),
+        if (vm.user.admin)
+          link(context, 'Catalogue', Icons.spa_outlined, CatalogPage(vm: vm)),
+        link(
+          context,
           'Ventes & corrections',
           Icons.receipt_long_outlined,
           SalesPage(vm: vm),
         ),
-        (
+        link(
+          context,
           'Récompenses & classement',
           Icons.redeem_outlined,
           RewardsPage(vm: vm),
         ),
-        ('Formation', Icons.school_outlined, TrainingPage(vm: vm)),
-        ('Magasins', Icons.storefront_outlined, StoresPage(vm: vm)),
-        if (vm.state.store?.canManage == true)
-          (
-            'Paramètres du magasin',
-            Icons.settings_outlined,
-            StoreSettingsPage(vm: vm),
-          ),
-        (
-          'Historique et exports',
-          Icons.assessment_outlined,
-          HistoryScreen(
-            vm: vm,
-            resource: 'sales',
-            title: 'Historique des ventes',
-          ),
-        ),
-        (
-          'Journal d’audit',
-          Icons.manage_search,
-          HistoryScreen(vm: vm, resource: 'audit', title: 'Journal d’audit'),
-        ),
-      ])
-        Card(
-          child: ListTile(
-            contentPadding: const EdgeInsets.all(16),
-            leading: Icon(item.$2, color: darkGreen),
-            title: Text(item.$1),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => Scaffold(
-                  appBar: AppBar(title: Text(item.$1)),
-                  body: item.$3,
-                ),
-              ),
-            ),
-          ),
-        ),
-      const SizedBox(height: 16),
-      if (vm.state.store?.canManage == true || vm.user.admin)
-        Card(
-          child: ListTile(
-            contentPadding: const EdgeInsets.all(16),
-            leading: const Icon(Icons.campaign_outlined, color: darkGreen),
-            title: const Text('Envoyer une annonce'),
-            subtitle: const Text(
-              'Choisissez le message à transmettre à votre équipe.',
-            ),
-            onTap: () => announce(context),
-          ),
-        ),
-      Card(
-        child: ListTile(
-          contentPadding: const EdgeInsets.all(16),
-          leading: const Icon(Icons.settings_outlined),
-          title: const Text('Compte, aide et synchronisation'),
-          onTap: () => Navigator.push(
+        link(context, 'Formation', Icons.school_outlined, TrainingPage(vm: vm)),
+        if (manage) ...[
+          link(
             context,
-            MaterialPageRoute(builder: (_) => AccountScreen(vm: vm)),
+            'Envoyer une annonce',
+            Icons.campaign_outlined,
+            AnnouncementScreen(vm: vm),
+            fullScreen: true,
           ),
+          const SizedBox(height: 20),
+          const SectionTitle('Configuration du magasin'),
+          link(
+            context,
+            'Paramètres du magasin',
+            Icons.storefront_outlined,
+            StoreSettingsPage(vm: vm),
+            subtitle: 'Nom, coordonnées et image',
+          ),
+          link(
+            context,
+            'Prix, points et seuils',
+            Icons.tune_outlined,
+            ProductSettingsPage(vm: vm),
+          ),
+          link(
+            context,
+            'Équipe et accès',
+            Icons.groups_outlined,
+            TeamPage(vm: vm),
+          ),
+          link(
+            context,
+            'Guide de configuration',
+            Icons.checklist_outlined,
+            OnboardingScreen(vm: vm),
+            fullScreen: true,
+          ),
+          link(
+            context,
+            'Magasins',
+            Icons.storefront_outlined,
+            StoresPage(vm: vm),
+          ),
+          const SizedBox(height: 20),
+          const SectionTitle('Suivi'),
+          link(
+            context,
+            'Historique et exports',
+            Icons.assessment_outlined,
+            HistoryScreen(
+              vm: vm,
+              resource: 'sales',
+              title: 'Historique des ventes',
+            ),
+            fullScreen: true,
+          ),
+          link(
+            context,
+            'Journal d’audit',
+            Icons.manage_search,
+            HistoryScreen(vm: vm, resource: 'audit', title: 'Journal d’audit'),
+            fullScreen: true,
+          ),
+        ],
+        const SizedBox(height: 20),
+        const SectionTitle('Compte et aide'),
+        link(
+          context,
+          'Synchronisation',
+          Icons.sync,
+          SyncScreen(vm: vm),
+          fullScreen: true,
         ),
-      ),
-    ],
-  );
-  Future<void> announce(BuildContext context) async {
-    await Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => AnnouncementScreen(vm: vm)),
+        link(
+          context,
+          'Compte, aide et synchronisation',
+          Icons.settings_outlined,
+          AccountScreen(vm: vm),
+          fullScreen: true,
+        ),
+      ],
     );
   }
 }

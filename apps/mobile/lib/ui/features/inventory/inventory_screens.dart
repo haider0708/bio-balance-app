@@ -72,7 +72,7 @@ class _StockPageState extends State<StockPage> {
           TextField(
             onChanged: stock.search,
             decoration: const InputDecoration(
-              hintText: 'Produit, référence ou code-barres',
+              hintText: 'Rechercher un produit',
               prefixIcon: Icon(Icons.search),
             ),
           ),
@@ -111,38 +111,20 @@ class _StockPageState extends State<StockPage> {
 
   Widget productCard(StockRow row) {
     final p = row.product, summary = row.summary;
-    final quantity = summary.available, low = summary.low;
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Card(
-        child: ListTile(
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 16,
-            vertical: 12,
-          ),
-          leading: Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: low ? const Color(0xFFFFF3DE) : const Color(0xFFEDF6E9),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(
-              low ? Icons.inventory_2_outlined : Icons.spa_outlined,
-              color: low ? const Color(0xFF815B12) : darkGreen,
-            ),
-          ),
-          title: Text(p.name),
-          subtitle: Text(
-            '${p.reference}\n$quantity unité(s) disponible(s)${low ? ' · À réapprovisionner' : ''}',
-          ),
-          isThreeLine: true,
-          trailing: const Icon(Icons.chevron_right),
-          onTap: () => Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => ProductDetail(vm: widget.vm, product: p),
-            ),
-          ),
+    return CompactRow(
+      title: p.name,
+      subtitle: [
+        p.reference,
+        if (summary.low) 'À réapprovisionner',
+        if (summary.discrepancy) 'Stock à vérifier',
+        if (summary.expired) 'Lots périmés',
+      ].join(' · '),
+      value: '${summary.available} u.',
+      icon: summary.low ? Icons.inventory_2_outlined : Icons.spa_outlined,
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => ProductDetail(vm: widget.vm, product: p),
         ),
       ),
     );
@@ -234,47 +216,23 @@ class ProductDetail extends StatelessWidget {
                 description: 'Enregistrez votre stock initial ou réceptionnez une livraison.',
               ),
             ...lots.map(
-              (lot) => Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Lot ${lot.batch}',
-                          style: Theme.of(context).textTheme.titleMedium,
-                        ),
-                        Text('Péremption : ${dateLabel(lot.expiry)}'),
-                        Text(
-                          '${lot.sellable} unités · ${lot.damaged} non vendables',
-                        ),
-                        if (lot.expired)
-                          const StatusChip(
-                            'Périmé · exclu du stock vendable',
-                            icon: Icons.event_busy,
-                          ),
-                        if (lot.sellable < 0)
-                          const Notice(
-                            'Écart de stock : vérifiez la quantité physique.',
-                          ),
-                        Wrap(
-                          spacing: 8,
-                          children: [
-                            TextButton(
-                              onPressed: () => adjust(context, lot, false),
-                              child: const Text('Ajuster'),
-                            ),
-                            TextButton(
-                              onPressed: () => adjust(context, lot, true),
-                              child: const Text('Signaler des dommages'),
-                            ),
-                          ],
-                        ),
-                      ],
+              (lot) => CompactRow(
+                title: 'Lot ${lot.batch}',
+                subtitle:
+                    '${dateLabel(lot.expiry)} · ${lot.damaged} non vendables${lot.expired ? ' · Périmé' : ''}${lot.sellable < 0 ? ' · Stock à vérifier' : ''}',
+                value: '${lot.sellable} u.',
+                footer: Wrap(
+                  spacing: 8,
+                  children: [
+                    TextButton(
+                      onPressed: () => adjust(context, lot, false),
+                      child: const Text('Ajuster'),
                     ),
-                  ),
+                    TextButton(
+                      onPressed: () => adjust(context, lot, true),
+                      child: const Text('Signaler des dommages'),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -283,57 +241,8 @@ class ProductDetail extends StatelessWidget {
       );
     },
   );
-  Future<void> configure(BuildContext context) async {
-    final config = vm.state.data!.config(product.id), store = vm.state.store!;
-    if (await openEditor(
-      context,
-      title: 'Paramétrer le produit',
-      fields: [
-        FieldSpec(
-          'price',
-          'Prix par défaut (TND)',
-          initial: Money(integer(config['priceMillimes'])).input,
-          numeric: true,
-        ),
-        FieldSpec(
-          'threshold',
-          'Seuil de réapprovisionnement',
-          initial: '${config['threshold']}',
-          numeric: true,
-        ),
-        FieldSpec(
-          'points',
-          'Points par unité vendue',
-          initial: '${config['pointsPerUnit']}',
-          numeric: true,
-        ),
-      ],
-      submit: (v) async {
-        final points = whole(v['points']!, allowZero: true);
-        if (points == 0 &&
-            !await confirmAction(
-              context,
-              'Confirmer : zéro point',
-              'Les ventes de ${product.name} ne rapporteront aucun point dans ${store.name}.',
-              label: 'Confirmer zéro point',
-            )) {
-          throw const FormatException(
-            'Configuration non enregistrée. Confirmez le choix de zéro point.',
-          );
-        }
-        vm.requireAccess(store, 'manage');
-        await vm.catalog.configure(store, product.id, {
-          'priceMillimes': Money.parse(v['price']!).millimes.toString(),
-          'threshold': whole(v['threshold']!, allowZero: true),
-          'pointsPerUnit': points,
-          'zeroPointsConfirmed': points == 0,
-          if (config['version'] != null) 'expectedVersion': config['version'],
-        });
-      },
-    )) {
-      await vm.synchronize();
-    }
-  }
+  Future<void> configure(BuildContext context) =>
+      configureStoreProduct(context, vm, product);
 
   Future<void> adjust(
     BuildContext context,
@@ -502,22 +411,19 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
         ),
         const SizedBox(height: 20),
         ...lines.asMap().entries.map(
-          (e) => Card(
-            child: ListTile(
-              title: Text(widget.vm.productName(e.value['productId'])),
-              subtitle: Text(
+          (e) => CompactRow(
+            title: widget.vm.productName(e.value['productId']),
+            subtitle:
                 '${e.value['quantity']} unités · Lot ${e.value['batch']}\nPéremption : ${TunisDates.dateOnlyLabel(e.value['expiry'])}',
-              ),
-              trailing: IconButton(
-                onPressed: busy || loading
-                    ? null
-                    : () {
-                        setState(() => lines.removeAt(e.key));
-                        changed();
-                      },
-                icon: const Icon(Icons.close),
-                tooltip: 'Retirer',
-              ),
+            trailing: IconButton(
+              onPressed: busy || loading
+                  ? null
+                  : () {
+                      setState(() => lines.removeAt(e.key));
+                      changed();
+                    },
+              icon: const Icon(Icons.close),
+              tooltip: 'Retirer',
             ),
           ),
         ),
@@ -627,5 +533,61 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
     } finally {
       if (mounted) setState(() => busy = false);
     }
+  }
+}
+
+Future<void> configureStoreProduct(
+  BuildContext context,
+  WorkspaceViewModel vm,
+  Product product,
+) async {
+  final config = vm.state.data!.config(product.id), store = vm.state.store!;
+  if (await openEditor(
+    context,
+    title: 'Paramétrer le produit',
+    fields: [
+      FieldSpec(
+        'price',
+        'Prix par défaut (TND)',
+        initial: Money(integer(config['priceMillimes'])).input,
+        numeric: true,
+      ),
+      FieldSpec(
+        'threshold',
+        'Seuil de réapprovisionnement',
+        initial: '${config['threshold']}',
+        numeric: true,
+      ),
+      FieldSpec(
+        'points',
+        'Points par unité vendue',
+        initial: '${config['pointsPerUnit']}',
+        numeric: true,
+      ),
+    ],
+    submit: (v) async {
+      final points = whole(v['points']!, allowZero: true);
+      if (points == 0 &&
+          !await confirmAction(
+            context,
+            'Confirmer : zéro point',
+            'Les ventes de ${product.name} ne rapporteront aucun point dans ${store.name}.',
+            label: 'Confirmer zéro point',
+          )) {
+        throw const FormatException(
+          'Configuration non enregistrée. Confirmez le choix de zéro point.',
+        );
+      }
+      vm.requireAccess(store, 'manage');
+      await vm.catalog.configure(store, product.id, {
+        'priceMillimes': Money.parse(v['price']!).millimes.toString(),
+        'threshold': whole(v['threshold']!, allowZero: true),
+        'pointsPerUnit': points,
+        'zeroPointsConfirmed': points == 0,
+        if (config['version'] != null) 'expectedVersion': config['version'],
+      });
+    },
+  )) {
+    await vm.synchronize();
   }
 }

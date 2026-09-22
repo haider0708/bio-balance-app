@@ -66,164 +66,141 @@ class _SaleEditorState extends State<_SaleEditor> {
           vm.original == null ? 'Nouvelle vente' : 'Corriger la vente',
         ),
       ),
-      body: Column(
+      body: Content(
+        maxWidth: 760,
         children: [
-          Expanded(
-            child: Content(
-              maxWidth: 760,
-              children: [
-                StatusChip(vm.store.name, icon: Icons.storefront_outlined),
-                const SizedBox(height: 20),
-                if (vm.recovery != null) ...[
-                  const Notice(
-                    'Vérifiez les lignes proposées avec la vente réelle. La version synchronisée sert de référence ; les anciennes saisies restent dans l’historique de résolution.',
+          StatusChip(vm.store.name, icon: Icons.storefront_outlined),
+          const SizedBox(height: 20),
+          if (vm.recovery != null) ...[
+            const Notice(
+              'Vérifiez les lignes proposées avec la vente réelle. La version synchronisée sert de référence ; les anciennes saisies restent dans l’historique de résolution.',
+            ),
+            const SizedBox(height: 16),
+          ],
+          if (vm.state.error != null) ...[
+            Notice(vm.state.error!, error: true),
+            const SizedBox(height: 16),
+          ],
+          Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: [
+              FilledButton.icon(
+                onPressed: () => scan(vm),
+                icon: const Icon(Icons.qr_code_scanner),
+                label: const Text('Scanner un produit'),
+              ),
+              OutlinedButton.icon(
+                onPressed: () => choose(vm),
+                icon: const Icon(Icons.search),
+                label: const Text('Rechercher'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          if (vm.state.lines.isEmpty)
+            const EmptyState(
+              title: 'Votre vente commence ici',
+              description: 'Scannez un produit ou recherchez sa référence. Le brouillon est enregistré automatiquement.',
+              icon: Icons.shopping_bag_outlined,
+            ),
+          ...vm.state.lines.map(
+            (line) => CompactRow(
+              title: vm.workspace.productName(line.productId),
+              subtitle:
+                  '${line.quantity} unité${line.quantity > 1 ? 's' : ''} × ${line.price.formatted}\n${line.allocations.map((a) {
+                    final lot = vm.workspace.state.data?.lots.where((l) => l.id == a['lotId']).firstOrNull;
+                    return 'Lot ${lot?.batch ?? '—'} · ${a['quantity']} u.';
+                  }).join(' / ')}',
+              footer: Wrap(
+                spacing: 8,
+                children: [
+                  TextButton.icon(
+                    onPressed: vm.state.saving
+                        ? null
+                        : () => editLine(vm, line.productId, line),
+                    icon: const Icon(Icons.edit_outlined),
+                    label: const Text('Modifier'),
                   ),
-                  const SizedBox(height: 16),
-                ],
-                if (vm.state.error != null) ...[
-                  Notice(vm.state.error!, error: true),
-                  const SizedBox(height: 16),
-                ],
-                Wrap(
-                  spacing: 12,
-                  runSpacing: 12,
-                  children: [
-                    FilledButton.icon(
-                      onPressed: () => scan(vm),
-                      icon: const Icon(Icons.qr_code_scanner),
-                      label: const Text('Scanner un produit'),
-                    ),
-                    OutlinedButton.icon(
-                      onPressed: () => choose(vm),
-                      icon: const Icon(Icons.search),
-                      label: const Text('Rechercher'),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 24),
-                if (vm.state.lines.isEmpty)
-                  const EmptyState(
-                    title: 'Votre vente commence ici',
-                    description: 'Scannez un produit ou recherchez sa référence. Le brouillon est enregistré automatiquement.',
-                    icon: Icons.shopping_bag_outlined,
-                  ),
-                ...vm.state.lines.map(
-                  (line) => Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: Card(
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              vm.workspace.productName(line.productId),
-                              style: Theme.of(context).textTheme.titleMedium,
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              '${line.quantity} unité${line.quantity > 1 ? 's' : ''} × ${line.price.formatted}',
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              line.allocations
-                                  .map((a) {
-                                    final lot = vm.workspace.state.data?.lots
-                                        .where((l) => l.id == a['lotId'])
-                                        .firstOrNull;
-                                    return 'Lot ${lot?.batch ?? '—'} · ${a['quantity']} u.';
-                                  })
-                                  .join('  /  '),
-                              style: Theme.of(context).textTheme.bodySmall,
-                            ),
-                            Wrap(
-                              spacing: 8,
-                              children: [
-                                TextButton.icon(
-                                  onPressed: () =>
-                                      editLine(vm, line.productId, line),
-                                  icon: const Icon(Icons.edit_outlined),
-                                  label: const Text('Modifier'),
-                                ),
-                                TextButton.icon(
-                                  onPressed: () => vm.remove(line.id),
-                                  icon: const Icon(Icons.delete_outline),
-                                  label: const Text('Retirer'),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                if (vm.original != null) ...[
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: reason,
-                    decoration: const InputDecoration(
-                      labelText: 'Motif de la correction',
-                    ),
+                  TextButton.icon(
+                    onPressed: vm.state.saving
+                        ? null
+                        : () => vm.remove(line.id),
+                    icon: const Icon(Icons.delete_outline),
+                    label: const Text('Retirer'),
                   ),
                 ],
-                const SizedBox(height: 16),
-                const Notice(
-                  'Le prix et le lot doivent correspondre aux produits réellement vendus. Les points seront confirmés à la synchronisation.',
-                ),
-              ],
+              ),
             ),
           ),
-          SafeArea(
-            top: false,
-            child: Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(20),
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                border: Border(top: BorderSide(color: Color(0xFFE5E9E1))),
-              ),
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 760),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Wrap(
-                      spacing: 24,
-                      runSpacing: 8,
-                      alignment: WrapAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          Money(vm.total).formatted,
-                          style: Theme.of(context).textTheme.titleLarge,
-                        ),
-                        Text(
-                          '≈ ${vm.estimatedPoints} points',
-                          style: const TextStyle(color: darkGreen),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    SizedBox(
-                      width: double.infinity,
-                      child: FilledButton.icon(
-                        onPressed: vm.state.saving || vm.state.lines.isEmpty
-                            ? null
-                            : () => save(vm),
-                        icon: const Icon(Icons.check),
-                        label: Text(
-                          vm.state.saving
-                              ? 'Enregistrement…'
-                              : 'Enregistrer la vente',
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+          if (vm.original != null) ...[
+            const SizedBox(height: 16),
+            TextField(
+              controller: reason,
+              decoration: const InputDecoration(
+                labelText: 'Motif de la correction',
               ),
             ),
+          ],
+          const SizedBox(height: 16),
+          const Notice(
+            'Le prix et le lot doivent correspondre aux produits réellement vendus. Les points seront confirmés à la synchronisation.',
           ),
         ],
+      ),
+      bottomNavigationBar: Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.viewInsetsOf(context).bottom,
+        ),
+        child: SafeArea(
+          top: false,
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              border: Border(top: BorderSide(color: Color(0xFFE5E9E1))),
+            ),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 760),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Wrap(
+                    spacing: 24,
+                    runSpacing: 8,
+                    alignment: WrapAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        Money(vm.total).formatted,
+                        style: Theme.of(context).textTheme.titleLarge,
+                      ),
+                      Text(
+                        '≈ ${vm.estimatedPoints} points',
+                        style: const TextStyle(color: darkGreen),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton.icon(
+                      onPressed: vm.state.saving || vm.state.lines.isEmpty
+                          ? null
+                          : () => save(vm),
+                      icon: const Icon(Icons.check),
+                      label: Text(
+                        vm.state.saving
+                            ? 'Enregistrement…'
+                            : 'Enregistrer la vente',
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -322,38 +299,43 @@ class _ProductPickerState extends State<ProductPicker> {
         .where((p) => p.matches(normalized))
         .toList();
     return SizedBox(
-      height: MediaQuery.sizeOf(context).height * .8,
+      height: MediaQuery.sizeOf(context).height * .85,
       child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          children: [
-            const SectionTitle('Choisir un produit'),
-            TextField(
-              autofocus: true,
-              onChanged: (q) => setState(() => query = q),
-              decoration: const InputDecoration(
-                hintText: 'Nom, référence ou code-barres',
-                prefixIcon: Icon(Icons.search),
+        padding: EdgeInsets.fromLTRB(
+          16,
+          16,
+          16,
+          16 + MediaQuery.viewInsetsOf(context).bottom,
+        ),
+        child: CustomScrollView(
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+          slivers: [
+            const SliverToBoxAdapter(child: SectionTitle('Choisir un produit')),
+            SliverToBoxAdapter(
+              child: TextField(
+                autofocus: true,
+                onChanged: (q) => setState(() => query = q),
+                decoration: const InputDecoration(
+                  hintText: 'Rechercher un produit',
+                  prefixIcon: Icon(Icons.search),
+                ),
               ),
             ),
-            const SizedBox(height: 16),
-            Expanded(
-              child: products.isEmpty
-                  ? const EmptyState(
-                      title: 'Aucun produit trouvé',
-                      description: 'Essayez une autre référence.',
-                    )
-                  : ListView.separated(
-                      itemCount: products.length,
-                      separatorBuilder: (_, i) => const Divider(),
-                      itemBuilder: (_, i) => ListTile(
-                        contentPadding: const EdgeInsets.symmetric(vertical: 8),
-                        title: Text(products[i].name),
-                        subtitle: Text(products[i].reference),
-                        trailing: const Icon(Icons.add),
-                        onTap: () => Navigator.pop(context, products[i]),
-                      ),
-                    ),
+            if (products.isEmpty)
+              const SliverToBoxAdapter(
+                child: EmptyState(
+                  title: 'Aucun produit trouvé',
+                  description: 'Essayez une autre référence.',
+                ),
+              ),
+            SliverList.builder(
+              itemCount: products.length,
+              itemBuilder: (_, i) => CompactRow(
+                title: products[i].name,
+                subtitle: products[i].reference,
+                trailing: const Icon(Icons.add),
+                onTap: () => Navigator.pop(context, products[i]),
+              ),
             ),
           ],
         ),

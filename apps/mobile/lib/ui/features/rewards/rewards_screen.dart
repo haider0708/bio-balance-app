@@ -36,14 +36,121 @@ class _RewardsPageState extends State<RewardsPage> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    final vm = widget.vm, data = vm.state.data!;
-    return Content(
+  Widget build(BuildContext context) => ListenableBuilder(
+    listenable: widget.vm,
+    builder: (context, _) => content(context),
+  );
+  Widget content(BuildContext context) {
+    final vm = widget.vm, data = vm.state.data;
+    if (data == null || vm.state.store == null) {
+      return const Content(
+        children: [Notice('Accès à vérifier. Vos saisies sont conservées.')],
+      );
+    }
+    final rewards = data.list('rewards'), claims = data.list('claims');
+    final manage = vm.state.store!.canManage || vm.user.admin;
+    return Content.builder(
+      itemCount: rewards.length + claims.length + ranking.length + 2,
+      itemBuilder: (context, index) {
+        if (index < rewards.length) {
+          final reward = rewards[index];
+          return CompactRow(
+            title: reward['title'],
+            value: '${reward['cost']} pts',
+            subtitle: reward['active'] == false ? 'Archivée' : 'Disponible',
+            icon: reward['imageId'] == null ? Icons.redeem_outlined : null,
+            leading: reward['imageId'] == null
+                ? null
+                : SizedBox(
+                    width: 40,
+                    child: ProtectedImage(
+                      vm: vm,
+                      id: reward['imageId'],
+                      height: 40,
+                    ),
+                  ),
+            onTap: () => rewardDetails(context, reward),
+            footer: Wrap(
+              spacing: 8,
+              children: [
+                TextButton(
+                  onPressed:
+                      data.available < integer(reward['cost']) ||
+                          reward['active'] == false
+                      ? null
+                      : () => requestReward(context, reward),
+                  child: const Text('Demander cette récompense'),
+                ),
+                if (manage)
+                  TextButton(
+                    onPressed: () => configure(context, reward),
+                    child: const Text('Modifier la récompense'),
+                  ),
+              ],
+            ),
+          );
+        }
+        var next = index - rewards.length;
+        if (next == 0) {
+          return const Padding(
+            padding: EdgeInsets.only(top: 20),
+            child: SectionTitle('Demandes'),
+          );
+        }
+        next--;
+        if (next < claims.length) {
+          final claim = claims[next];
+          return CompactRow(
+            title: claim['title'],
+            value: '${claim['cost']} pts',
+            subtitle:
+                '${statusLabel(claim['status'])}${manage ? ' · ${data.list('team').where((m) => m['userId'] == claim['userId']).firstOrNull?['name'] ?? (claim['userId'] == vm.user.id ? vm.user.name : 'Membre de l’équipe')}' : ''}',
+            footer: claim['status'] != 'requested'
+                ? null
+                : Wrap(
+                    spacing: 8,
+                    children: [
+                      if (manage) ...[
+                        FilledButton.tonal(
+                          onPressed: () => resolve(context, claim, 'fulfilled'),
+                          child: const Text('Confirmer la remise'),
+                        ),
+                        TextButton(
+                          onPressed: () => resolve(context, claim, 'rejected'),
+                          child: const Text('Refuser'),
+                        ),
+                      ],
+                      TextButton(
+                        onPressed: () => resolve(context, claim, 'cancelled'),
+                        child: const Text('Annuler la demande'),
+                      ),
+                    ],
+                  ),
+          );
+        }
+        next -= claims.length;
+        if (next == 0) {
+          return Padding(
+            padding: const EdgeInsets.only(top: 20),
+            child: SectionTitle(
+              'Classement du mois',
+              subtitle: ranking.isEmpty
+                  ? 'Disponible après les premières ventes synchronisées.'
+                  : 'Les cadeaux échangés ne diminuent pas votre classement.',
+            ),
+          );
+        }
+        final score = ranking[next - 1];
+        return CompactRow(
+          title: '${score['rank']}. ${score['name']}',
+          value: '${score['score']} pts',
+        );
+      },
       children: [
         SectionTitle(
           'Récompenses',
-          subtitle: 'Les points et les cadeaux de ${vm.state.store!.name}.',
-          action: vm.state.store!.canManage || vm.user.admin
+          subtitle: 'Points et cadeaux du magasin',
+          action: manage
               ? OutlinedButton.icon(
                   onPressed: () => configure(context),
                   icon: const Icon(Icons.add),
@@ -51,175 +158,69 @@ class _RewardsPageState extends State<RewardsPage> {
                 )
               : null,
         ),
-        Container(
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: darkGreen,
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Vos points disponibles',
-                style: TextStyle(color: Colors.white, fontSize: 16),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                '${data.available}',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 40,
-                  fontWeight: FontWeight.w700,
+        MetricStrip(
+          metrics: [
+            (label: 'Disponibles', value: '${data.available}'),
+            (label: 'Réservés', value: '${data.reserved}'),
+            (label: 'Solde', value: '${data.balance}'),
+          ],
+        ),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: TextButton.icon(
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => HistoryScreen(
+                  vm: vm,
+                  resource: 'points',
+                  title: 'Historique des points',
                 ),
               ),
-              Text(
-                '${data.reserved} réservés · Solde ${data.balance}',
-                style: const TextStyle(color: Colors.white, fontSize: 14),
-              ),
-            ],
-          ),
-        ),
-        OutlinedButton.icon(
-          onPressed: () => Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => HistoryScreen(
-                vm: widget.vm,
-                resource: 'points',
-                title: 'Historique des points',
-              ),
             ),
+            icon: const Icon(Icons.history),
+            label: const Text('Historique des points'),
           ),
-          icon: const Icon(Icons.history),
-          label: const Text('Historique des points'),
         ),
-        const SizedBox(height: 24),
+        const SizedBox(height: 8),
         const SectionTitle('À échanger'),
-        if (data.list('rewards').isEmpty)
+        if (rewards.isEmpty)
           const EmptyState(
             title: 'Les récompenses arrivent bientôt',
             description:
                 'Le responsable peut créer les récompenses de ce magasin.',
             icon: Icons.redeem_outlined,
           ),
-        ...data
-            .list('rewards')
-            .map(
-              (r) => Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(18),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        if (r['imageId'] != null)
-                          ProtectedImage(vm: vm, id: r['imageId']),
-                        Text(
-                          r['title'],
-                          style: Theme.of(context).textTheme.titleMedium,
-                        ),
-                        if (r['description'] != '') Text(r['description']),
-                        const SizedBox(height: 8),
-                        Text(
-                          '${r['cost']} points',
-                          style: const TextStyle(
-                            color: darkGreen,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        if (vm.state.store!.canManage || vm.user.admin)
-                          TextButton.icon(
-                            onPressed: () => configure(context, r),
-                            icon: const Icon(Icons.edit_outlined),
-                            label: const Text('Modifier la récompense'),
-                          ),
-                        FilledButton.tonal(
-                          onPressed:
-                              data.available < integer(r['cost']) ||
-                                  r['active'] == false
-                              ? null
-                              : () => requestReward(context, r),
-                          child: const Text('Demander cette récompense'),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-        const SizedBox(height: 24),
-        const SectionTitle('Demandes en cours'),
-        ...data
-            .list('claims')
-            .map(
-              (c) => Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        c['title'],
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
-                      Text('${c['cost']} points · ${statusLabel(c['status'])}'),
-                      if (vm.state.store!.canManage || vm.user.admin)
-                        Text(
-                          'Demandé par ${data.list('team').where((m) => m['userId'] == c['userId']).firstOrNull?['name'] ?? (c['userId'] == vm.user.id ? vm.user.name : 'Membre de l’équipe')}',
-                        ),
-                      if (c['status'] == 'requested')
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: [
-                            if (vm.state.store!.canManage || vm.user.admin) ...[
-                              FilledButton.tonal(
-                                onPressed: () =>
-                                    resolve(context, c, 'fulfilled'),
-                                child: const Text('Confirmer la remise'),
-                              ),
-                              TextButton(
-                                onPressed: () =>
-                                    resolve(context, c, 'rejected'),
-                                child: const Text('Refuser'),
-                              ),
-                            ],
-                            TextButton(
-                              onPressed: () => resolve(context, c, 'cancelled'),
-                              child: const Text('Annuler la demande'),
-                            ),
-                          ],
-                        ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-        const SizedBox(height: 24),
-        const SectionTitle(
-          'Classement du mois',
-          subtitle: 'Points gagnés nets. Les échanges de cadeaux ne diminuent pas votre classement.',
-        ),
-        if (ranking.isEmpty)
-          const Text(
-            'Le classement sera disponible après les premières ventes synchronisées.',
-          ),
-        ...ranking.map(
-          (r) => ListTile(
-            leading: CircleAvatar(
-              backgroundColor: const Color(0xFFEBF5E7),
-              child: Text('${r['rank']}'),
-            ),
-            title: Text(r['name']),
-            trailing: Text('${r['score']} pts'),
-          ),
-        ),
       ],
     );
   }
+
+  Future<void> rewardDetails(BuildContext context, Json reward) =>
+      showDialog<void>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text(reward['title']),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (reward['imageId'] != null)
+                  ProtectedImage(vm: widget.vm, id: reward['imageId']),
+                Text('${reward['cost']} points'),
+                const SizedBox(height: 12),
+                Text(reward['description'] ?? ''),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Fermer'),
+            ),
+          ],
+        ),
+      );
 
   Future<void> requestReward(BuildContext context, Json reward) async {
     if (await confirmAction(

@@ -58,49 +58,40 @@ class _NotificationsScreenState extends State<NotificationsScreen>
         itemCount: inbox.items.length,
         itemBuilder: (context, index) {
           final n = inbox.items[index];
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: Card(
-              child: ListTile(
-                contentPadding: const EdgeInsets.all(16),
-                leading: Icon(
-                  n['readAt'] == null
-                      ? Icons.notifications_active_outlined
-                      : Icons.notifications_none,
-                  color: darkGreen,
-                ),
-                title: Text(n['title']),
-                subtitle: Text(n['body']),
-                onTap: () async {
-                  try {
-                    final message = await widget.vm.openNotification(n['id']);
-                    if (!context.mounted) return;
-                    await showDialog<void>(
-                      context: context,
-                      builder: (context) => AlertDialog(
-                        title: Text(message['title']),
-                        content: SingleChildScrollView(
-                          child: Text(
-                            '${widget.vm.state.store?.name ?? 'BioBalance'}\n\n${message['body']}',
-                          ),
-                        ),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(context),
-                            child: const Text('Fermer'),
-                          ),
-                        ],
+          return CompactRow(
+            title: n['title'],
+            subtitle: n['body'],
+            icon: n['readAt'] == null
+                ? Icons.notifications_active_outlined
+                : Icons.notifications_none,
+            onTap: () async {
+              try {
+                final message = await widget.vm.openNotification(n['id']);
+                if (!context.mounted) return;
+                await showDialog<void>(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    title: Text(message['title']),
+                    content: SingleChildScrollView(
+                      child: Text(
+                        '${widget.vm.state.store?.name ?? 'BioBalance'}\n\n${message['body']}',
                       ),
-                    );
-                    await inbox.load();
-                  } catch (e) {
-                    if (mounted) {
-                      setState(() => openError = SessionViewModel.message(e));
-                    }
-                  }
-                },
-              ),
-            ),
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text('Fermer'),
+                      ),
+                    ],
+                  ),
+                );
+                await inbox.load();
+              } catch (e) {
+                if (mounted) {
+                  setState(() => openError = SessionViewModel.message(e));
+                }
+              }
+            },
           );
         },
         children: [

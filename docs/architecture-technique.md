@@ -105,3 +105,7 @@ Le Compose limite les credentials par service : compte propriétaire uniquement 
 ## Renforcement de sécurité et distribution
 
 Voir [sécurité et signatures](security-hardening.md) : certificats Android publics versionnés, clés privées hors dépôt, APK/AAB signés séparément, transport limité à une origine HTTPS et budgets PostgreSQL partagés entre sessions/API. Firebase est retiré conformément à la décision du 22 septembre ; la boîte de notifications demeure hébergée sur le VPS. L’attestation distante des appareils reste à configurer et ne sert pas de prétexte à faire confiance au client.
+
+## Présentation mobile compacte
+
+`CompactRow`, `MetricStrip`, `BottomAction` et `WorkspaceNavigation` centralisent les lignes, indicateurs, validation de formulaire et adaptation de la navigation. `OptionField` expose une sélection contrôlée par le formulaire, recherchable et compatible avec la restauration de brouillons. Les listes de collections restent paresseuses ; les pages secondaires écoutent leur modèle pour afficher les changements synchronisés sans navigation supplémentaire. Ces composants n’accèdent pas à la base et ne déplacent pas les règles transactionnelles dans l’interface. Voir [la passe UX](mobile-ux-2026-09-22.md).

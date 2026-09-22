@@ -17,21 +17,60 @@ class SalesPage extends StatelessWidget {
   final WorkspaceViewModel vm;
   const SalesPage({super.key, required this.vm});
   @override
-  Widget build(BuildContext context) {
-    final sales = vm.state.data?.list('sales') ?? [];
-    return Content(
+  Widget build(BuildContext context) => ListenableBuilder(
+    listenable: vm,
+    builder: (context, _) => content(context),
+  );
+  Widget content(BuildContext context) {
+    if (vm.state.store == null || vm.state.data == null) {
+      return const Content(
+        children: [Notice('Accès à vérifier. Vos saisies sont conservées.')],
+      );
+    }
+    final sales = vm.state.data!.list('sales');
+    return Content.builder(
+      itemCount: sales.length,
+      itemBuilder: (context, index) {
+        final sale = sales[index];
+        final status = sale['syncStatus'];
+        return CompactRow(
+          title: Money(integer(sale['totalMillimes'])).formatted,
+          subtitle:
+              '${dateLabel(sale['occurredAt'])} · ${objects(sale['lines']).length} produit(s)',
+          footer: StatusChip(
+            ['conflict', 'rejected', 'blocked'].contains(status)
+                ? 'À vérifier'
+                : ['pending', 'retryable'].contains(status)
+                ? 'En attente de synchronisation'
+                : sale['local'] == true
+                ? 'Enregistrée sur ce téléphone'
+                : 'Synchronisée',
+            icon: status != null ? Icons.sync : Icons.check_circle_outline,
+          ),
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => SaleDetailScreen(vm: vm, sale: sale),
+            ),
+          ),
+        );
+      },
       children: [
         SectionTitle(
           vm.state.store!.canManage ? 'Ventes du magasin' : 'Mes ventes',
-          subtitle: 'Les ventes et leur historique de correction.',
-          action: FilledButton.icon(
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => SaleScreen(workspace: vm)),
-            ),
-            icon: const Icon(Icons.add),
-            label: const Text('Nouvelle vente'),
-          ),
+          subtitle: 'Ventes, corrections et retours',
+          action: vm.state.store!.canSell || vm.user.admin
+              ? FilledButton.icon(
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => SaleScreen(workspace: vm),
+                    ),
+                  ),
+                  icon: const Icon(Icons.add),
+                  label: const Text('Nouvelle vente'),
+                )
+              : null,
         ),
         if (sales.isEmpty)
           const EmptyState(
@@ -39,45 +78,6 @@ class SalesPage extends StatelessWidget {
             description: 'Enregistrez une vente pour suivre le stock et gagner des points.',
             icon: Icons.receipt_long_outlined,
           ),
-        ...sales.map(
-          (sale) => Padding(
-            padding: const EdgeInsets.only(bottom: 10),
-            child: Card(
-              child: ListTile(
-                contentPadding: const EdgeInsets.all(16),
-                title: Text(Money(integer(sale['totalMillimes'])).formatted),
-                subtitle: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '${dateLabel(sale['occurredAt'])} · ${objects(sale['lines']).length} produit(s)',
-                    ),
-                    StatusChip(
-                      sale['syncStatus'] == 'pending'
-                          ? 'En attente de synchronisation'
-                          : sale['syncStatus'] == 'conflict' ||
-                                sale['syncStatus'] == 'rejected'
-                          ? 'À vérifier'
-                          : sale['local'] == true
-                          ? 'Enregistrée sur ce téléphone'
-                          : 'Synchronisée',
-                      icon: sale['syncStatus'] != null
-                          ? Icons.sync
-                          : Icons.check_circle_outline,
-                    ),
-                  ],
-                ),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => SaleDetailScreen(vm: vm, sale: sale),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
       ],
     );
   }

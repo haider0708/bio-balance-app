@@ -283,12 +283,12 @@ void main() {
           await indexReady(t, builder.listenable as StockViewModel);
           await t.pump();
         }
-        expect(find.byType(Card).evaluate().length, greaterThan(0));
-        expect(find.byType(Card).evaluate().length, lessThan(20));
+        expect(find.byType(CompactRow).evaluate().length, greaterThan(0));
+        expect(find.byType(CompactRow).evaluate().length, lessThan(20));
         expect(find.text('Produit 1999'), findsNothing);
         await t.drag(find.byType(Scrollable).first, const Offset(0, -1600));
         await t.pumpAndSettle();
-        expect(find.byType(Card).evaluate().length, lessThan(25));
+        expect(find.byType(CompactRow).evaluate().length, lessThan(25));
         expect(t.takeException(), isNull);
         await t.pumpWidget(const SizedBox());
         stock.dispose();

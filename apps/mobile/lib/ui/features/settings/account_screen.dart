@@ -5,6 +5,8 @@ import '../../core/design.dart';
 import '../../core/forms.dart';
 import '../authentication/session_view_model.dart';
 import '../workspace/workspace_view_model.dart';
+import '../notifications/notifications_screen.dart';
+import '../synchronization/sync_screen.dart';
 
 class AccountScreen extends StatelessWidget {
   final WorkspaceViewModel vm;
@@ -16,18 +18,27 @@ class AccountScreen extends StatelessWidget {
       maxWidth: 640,
       children: [
         SectionTitle(vm.user.name, subtitle: vm.user.email),
-        const ListTile(
-          contentPadding: EdgeInsets.zero,
-          leading: Icon(Icons.language),
-          title: Text('Français · TND'),
-          subtitle: Text('Montants en millimes · Dates jour/mois/année'),
+        const CompactRow(
+          icon: Icons.language,
+          title: 'Français · TND',
+          subtitle: 'Dates au format jour/mois/année',
         ),
-        const ListTile(
-          contentPadding: EdgeInsets.zero,
-          leading: Icon(Icons.notifications_outlined),
-          title: Text('Notifications dans l’application'),
-          subtitle: Text(
-            'Retrouvez les alertes et les messages dans votre boîte de notifications.',
+        CompactRow(
+          icon: Icons.notifications_outlined,
+          title: 'Notifications',
+          subtitle: 'Alertes et messages de votre équipe',
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => NotificationsScreen(vm: vm)),
+          ),
+        ),
+        CompactRow(
+          icon: Icons.sync,
+          title: 'Synchronisation',
+          subtitle: 'Opérations en attente et état de connexion',
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => SyncScreen(vm: vm)),
           ),
         ),
         const SizedBox(height: 16),

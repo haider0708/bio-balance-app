@@ -24,19 +24,27 @@ class StoreSettingsPage extends StatelessWidget {
         children: [
           SectionTitle(
             store.name,
-            subtitle: 'Coordonnées et image de votre magasin.',
+            subtitle: 'Coordonnées et image',
+            action: FilledButton.icon(
+              onPressed: () =>
+                  edit(context, store, Map<String, dynamic>.from(saved)),
+              icon: const Icon(Icons.edit_outlined),
+              label: const Text('Modifier le magasin'),
+            ),
           ),
           if (saved['imageId'] != null)
             ProtectedImage(vm: vm, id: saved['imageId'], height: 160),
-          Text('${saved['address']}\n${saved['city']}'),
-          if (saved['phone'] != null && saved['phone'] != '')
-            Text(saved['phone']),
-          const SizedBox(height: 24),
-          FilledButton.icon(
-            onPressed: () =>
-                edit(context, store, Map<String, dynamic>.from(saved)),
-            icon: const Icon(Icons.edit_outlined),
-            label: const Text('Modifier le magasin'),
+          CompactRow(
+            title: 'Adresse',
+            subtitle: '${saved['address']}\n${saved['city']}',
+            icon: Icons.location_on_outlined,
+          ),
+          CompactRow(
+            title: 'Téléphone',
+            subtitle: '${saved['phone'] ?? ''}'.isEmpty
+                ? 'Non renseigné'
+                : saved['phone'],
+            icon: Icons.phone_outlined,
           ),
         ],
       );

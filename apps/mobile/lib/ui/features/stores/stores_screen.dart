@@ -4,6 +4,7 @@ import 'dart:async';
 
 import '../../../data/repositories/store_settings_repository.dart';
 import 'store_settings_screen.dart';
+import 'product_settings_screen.dart';
 import '../media/image_input.dart';
 
 import 'package:flutter/material.dart';
@@ -15,47 +16,88 @@ import '../workspace/workspace_view_model.dart';
 import '../workspace/operations_screens.dart';
 import '../workspace/team_rewards_orders.dart';
 
-class StoresPage extends StatelessWidget {
+class StoresPage extends StatefulWidget {
   final WorkspaceViewModel vm;
   const StoresPage({super.key, required this.vm});
   @override
-  Widget build(BuildContext context) => Content(
-    children: [
-      SectionTitle(
-        'Vos magasins',
-        action: FilledButton.icon(
-          onPressed: () => createStore(context, vm),
-          icon: const Icon(Icons.add_business_outlined),
-          label: const Text('Ajouter'),
-        ),
-      ),
-      if (vm.user.admin)
-        OutlinedButton(
-          onPressed: () => inviteManager(context, vm),
-          child: const Text('Inviter un responsable'),
-        ),
-      const SizedBox(height: 20),
-      ...vm.state.stores.map(
-        (s) => Card(
-          child: ListTile(
-            contentPadding: const EdgeInsets.all(16),
-            leading: s.imageId == null
-                ? const Icon(Icons.storefront_outlined, color: darkGreen)
-                : SizedBox(
-                    width: 48,
-                    child: ProtectedImage(vm: vm, id: s.imageId!, height: 48),
-                  ),
-            title: Text(s.name),
-            subtitle: Text('${s.organizationName} · ${s.city}'),
-            trailing: s.id == vm.state.store?.id
-                ? const Icon(Icons.check_circle, color: darkGreen)
-                : const Icon(Icons.chevron_right),
-            onTap: () => vm.select(s),
+  State<StoresPage> createState() => _StoresPageState();
+}
+
+class _StoresPageState extends State<StoresPage> {
+  String query = '';
+  @override
+  Widget build(BuildContext context) => ListenableBuilder(
+    listenable: widget.vm,
+    builder: (context, _) => content(context),
+  );
+  Widget content(BuildContext context) {
+    final vm = widget.vm;
+    final stores = vm.state.stores
+        .where(
+          (s) => '${s.name} ${s.organizationName} ${s.city}'
+              .toLowerCase()
+              .contains(query),
+        )
+        .toList();
+    return Content.builder(
+      itemCount: stores.length,
+      itemBuilder: (context, index) {
+        final store = stores[index];
+        return CompactRow(
+          title: store.name,
+          subtitle: [
+            store.organizationName,
+            store.city,
+          ].where((s) => s.isNotEmpty).join(' · '),
+          icon: store.imageId == null ? Icons.storefront_outlined : null,
+          leading: store.imageId == null
+              ? null
+              : SizedBox(
+                  width: 40,
+                  child: ProtectedImage(vm: vm, id: store.imageId!, height: 40),
+                ),
+          selected: store.id == vm.state.store?.id,
+          trailing: store.id == vm.state.store?.id
+              ? const Icon(
+                  Icons.check_circle_outline,
+                  color: darkGreen,
+                  semanticLabel: 'Magasin sélectionné',
+                )
+              : null,
+          onTap: () => run(context, () => vm.select(store)),
+        );
+      },
+      children: [
+        SectionTitle(
+          'Vos magasins',
+          action: FilledButton.icon(
+            onPressed: () => createStore(context, vm),
+            icon: const Icon(Icons.add_business_outlined),
+            label: const Text('Ajouter'),
           ),
         ),
-      ),
-    ],
-  );
+        if (vm.user.admin)
+          OutlinedButton(
+            onPressed: () => inviteManager(context, vm),
+            child: const Text('Inviter un responsable'),
+          ),
+        const SizedBox(height: 8),
+        TextField(
+          onChanged: (value) =>
+              setState(() => query = value.trim().toLowerCase()),
+          decoration: const InputDecoration(
+            hintText: 'Magasin, organisation ou ville',
+            prefixIcon: Icon(Icons.search),
+          ),
+        ),
+        if (stores.isEmpty)
+          const EmptyState(
+            title: 'Aucun magasin trouvé',
+            description: 'Essayez un autre nom ou une autre ville.',
+          ),
+      ],
+    );
+  }
 }
 
 Future<void> switchStore(BuildContext context, WorkspaceViewModel vm) async {
@@ -63,14 +105,18 @@ Future<void> switchStore(BuildContext context, WorkspaceViewModel vm) async {
     context: context,
     isScrollControlled: true,
     useSafeArea: true,
-    builder: (_) => _StorePicker(stores: vm.state.stores),
+    builder: (_) =>
+        _StorePicker(stores: vm.state.stores, selectedId: vm.state.store?.id),
   );
-  if (selected != null) await vm.select(selected);
+  if (selected != null && context.mounted) {
+    await run(context, () => vm.select(selected));
+  }
 }
 
 class _StorePicker extends StatefulWidget {
   final List<Store> stores;
-  const _StorePicker({required this.stores});
+  final String? selectedId;
+  const _StorePicker({required this.stores, this.selectedId});
   @override
   State<_StorePicker> createState() => _StorePickerState();
 }
@@ -87,35 +133,48 @@ class _StorePickerState extends State<_StorePicker> {
         )
         .toList();
     return SizedBox(
-      height: MediaQuery.sizeOf(context).height * .7,
+      height: MediaQuery.sizeOf(context).height * .85,
       child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          children: [
-            const SectionTitle('Changer de magasin'),
-            const Text(
-              'Vos brouillons et vos opérations restent dans leur magasin d’origine.',
-              style: TextStyle(fontSize: 14, color: muted),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              onChanged: (v) => setState(() => q = v),
-              decoration: const InputDecoration(
-                hintText: 'Magasin, organisation ou ville',
-                prefixIcon: Icon(Icons.search),
+        padding: EdgeInsets.fromLTRB(
+          16,
+          16,
+          16,
+          16 + MediaQuery.viewInsetsOf(context).bottom,
+        ),
+        child: CustomScrollView(
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+          slivers: [
+            const SliverToBoxAdapter(child: SectionTitle('Changer de magasin')),
+            SliverToBoxAdapter(
+              child: TextField(
+                onChanged: (value) => setState(() => q = value.trim()),
+                decoration: const InputDecoration(
+                  hintText: 'Magasin, organisation ou ville',
+                  prefixIcon: Icon(Icons.search),
+                ),
               ),
             ),
-            const SizedBox(height: 16),
-            Expanded(
-              child: ListView.builder(
-                itemCount: stores.length,
-                itemBuilder: (_, i) => ListTile(
-                  contentPadding: const EdgeInsets.symmetric(vertical: 8),
-                  leading: const Icon(Icons.storefront_outlined),
-                  title: Text(stores[i].name),
-                  subtitle: Text(stores[i].organizationName),
-                  onTap: () => Navigator.pop(context, stores[i]),
+            if (stores.isEmpty)
+              const SliverToBoxAdapter(
+                child: EmptyState(
+                  title: 'Aucun magasin trouvé',
+                  description: 'Essayez une autre recherche.',
                 ),
+              ),
+            SliverList.builder(
+              itemCount: stores.length,
+              itemBuilder: (_, i) => CompactRow(
+                title: stores[i].name,
+                subtitle: stores[i].organizationName,
+                icon: Icons.storefront_outlined,
+                selected: stores[i].id == widget.selectedId,
+                trailing: stores[i].id == widget.selectedId
+                    ? const Icon(
+                        Icons.check,
+                        semanticLabel: 'Magasin sélectionné',
+                      )
+                    : null,
+                onTap: () => Navigator.pop(context, stores[i]),
               ),
             ),
           ],
@@ -235,30 +294,21 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               (
                 'products',
                 'Configurer prix, seuils et points',
-                StockPage(vm: vm),
+                ProductSettingsPage(vm: vm),
               ),
             ])
-              Card(
-                child: ListTile(
-                  contentPadding: const EdgeInsets.all(16),
-                  leading: Icon(
-                    progress[step.$1] == true
-                        ? Icons.check_circle_outline
-                        : Icons.radio_button_unchecked,
-                    color: darkGreen,
-                  ),
-                  title: Text(step.$2),
-                  subtitle: Text(
-                    progress[step.$1] == true ? 'Terminé' : 'À compléter',
-                  ),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => Scaffold(
-                        appBar: AppBar(title: Text(step.$2)),
-                        body: step.$3,
-                      ),
+              CompactRow(
+                title: step.$2,
+                subtitle: progress[step.$1] == true ? 'Terminé' : 'À compléter',
+                icon: progress[step.$1] == true
+                    ? Icons.check_circle_outline
+                    : Icons.radio_button_unchecked,
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => Scaffold(
+                      appBar: AppBar(title: Text(step.$2)),
+                      body: step.$3,
                     ),
                   ),
                 ),

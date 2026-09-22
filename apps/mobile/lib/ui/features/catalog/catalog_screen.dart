@@ -9,27 +9,40 @@ import '../../core/design.dart';
 import '../../core/forms.dart';
 import '../workspace/workspace_view_model.dart';
 
-class CatalogPage extends StatelessWidget {
+class CatalogPage extends StatefulWidget {
   final WorkspaceViewModel vm;
   const CatalogPage({super.key, required this.vm});
   @override
-  Widget build(BuildContext context) {
-    final products = vm.state.data?.list('products') ?? <Json>[];
+  State<CatalogPage> createState() => _CatalogPageState();
+}
+
+class _CatalogPageState extends State<CatalogPage> {
+  WorkspaceViewModel get vm => widget.vm;
+  String query = '';
+  @override
+  Widget build(BuildContext context) => ListenableBuilder(
+    listenable: vm,
+    builder: (context, _) => content(context),
+  );
+  Widget content(BuildContext context) {
+    final products = (vm.state.data?.list('products') ?? <Json>[])
+        .where(
+          (p) => '${p['name']} ${p['reference']} ${p['barcode'] ?? ''}'
+              .toLowerCase()
+              .contains(query),
+        )
+        .toList();
     return Content.builder(
       itemCount: products.length,
       itemBuilder: (context, index) {
         final p = products[index];
-        return Card(
-          child: ListTile(
-            contentPadding: const EdgeInsets.all(16),
-            leading: const Icon(Icons.spa_outlined, color: darkGreen),
-            title: Text(p['name']),
-            subtitle: Text(
+        return CompactRow(
+          title: p['name'],
+          subtitle:
               '${p['reference']} · ${p['active'] == true ? 'Actif' : 'Archivé'}',
-            ),
-            trailing: const Icon(Icons.edit_outlined),
-            onTap: () => edit(context, p),
-          ),
+          icon: Icons.spa_outlined,
+          trailing: const Icon(Icons.edit_outlined, size: 20, color: muted),
+          onTap: () => edit(context, p),
         );
       },
       children: [
@@ -50,6 +63,24 @@ class CatalogPage extends StatelessWidget {
           label: const Text('Importer un CSV'),
         ),
         const SizedBox(height: 16),
+        TextField(
+          onChanged: (value) =>
+              setState(() => query = value.trim().toLowerCase()),
+          decoration: const InputDecoration(
+            hintText: 'Rechercher un produit',
+            prefixIcon: Icon(Icons.search),
+          ),
+        ),
+        const SizedBox(height: 8),
+        if (products.isEmpty)
+          EmptyState(
+            title: query.isEmpty
+                ? 'Votre catalogue est vide'
+                : 'Aucun produit trouvé',
+            description: query.isEmpty
+                ? 'Ajoutez un produit ou importez votre catalogue.'
+                : 'Essayez un autre nom, une référence ou un code-barres.',
+          ),
       ],
     );
   }

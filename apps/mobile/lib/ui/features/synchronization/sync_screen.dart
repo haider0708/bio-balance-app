@@ -101,45 +101,39 @@ class _SyncScreenState extends State<SyncScreen> {
                     jsonDecode(r.payload)['command'],
                   );
                   final failed = ['conflict', 'rejected'].contains(r.status);
-                  return Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            operationLabel(command['type']),
-                            style: Theme.of(context).textTheme.titleMedium,
+                  return CompactRow(
+                    title: operationLabel(command['type']),
+                    subtitle: dateLabel(r.createdAt.toIso8601String()),
+                    footer: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        StatusChip(
+                          r.status == 'resolved'
+                              ? 'Résolue'
+                              : failed
+                              ? 'À vérifier'
+                              : r.status == 'accepted'
+                              ? 'Confirmée · actualisation en cours'
+                              : r.status == 'blocked'
+                              ? 'Bloquée par une saisie précédente'
+                              : r.status == 'retryable'
+                              ? 'Nouvelle tentative programmée'
+                              : 'En attente',
+                        ),
+                        Text(
+                          r.resolution ??
+                              r.error ??
+                              'Conservée sur ce téléphone.',
+                        ),
+                        if (failed)
+                          TextButton.icon(
+                            onPressed: busy
+                                ? null
+                                : () => action(() => review(r, rows)),
+                            icon: const Icon(Icons.rule),
+                            label: const Text('Vérifier et résoudre'),
                           ),
-                          Text(dateLabel(r.createdAt.toIso8601String())),
-                          StatusChip(
-                            r.status == 'resolved'
-                                ? 'Résolue'
-                                : failed
-                                ? 'À vérifier'
-                                : r.status == 'accepted'
-                                ? 'Confirmée · actualisation en cours'
-                                : r.status == 'blocked'
-                                ? 'Bloquée par une saisie précédente'
-                                : r.status == 'retryable'
-                                ? 'Nouvelle tentative programmée'
-                                : 'En attente',
-                          ),
-                          Text(
-                            r.resolution ??
-                                r.error ??
-                                'Conservée sur ce téléphone.',
-                          ),
-                          if (failed)
-                            TextButton.icon(
-                              onPressed: busy
-                                  ? null
-                                  : () => action(() => review(r, rows)),
-                              icon: const Icon(Icons.rule),
-                              label: const Text('Vérifier et résoudre'),
-                            ),
-                        ],
-                      ),
+                      ],
                     ),
                   );
                 }).toList(),

@@ -11,62 +11,55 @@ class TeamPage extends StatelessWidget {
   final WorkspaceViewModel vm;
   const TeamPage({super.key, required this.vm});
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => ListenableBuilder(
+    listenable: vm,
+    builder: (context, _) => content(context),
+  );
+  Widget content(BuildContext context) {
     final team = vm.state.data?.list('team') ?? [],
         invitations = vm.state.data?.list('invitations') ?? [];
-    return Content(
+    return Content.builder(
+      itemCount: team.length + invitations.length,
+      itemBuilder: (context, index) {
+        if (index >= team.length) {
+          final invitation = invitations[index - team.length];
+          return CompactRow(
+            title: invitation['email'],
+            subtitle: 'Invité · activation attendue',
+            icon: Icons.mark_email_unread_outlined,
+          );
+        }
+        final member = team[index];
+        final name = '${member['name'] ?? member['email'] ?? 'Membre'}';
+        return CompactRow(
+          title: name.isEmpty ? 'Membre' : name,
+          subtitle:
+              '${member['email'] ?? ''}\n${member['active'] == true ? 'Actif' : 'Désactivé'} · ${(member['permissions'] as List? ?? []).contains('manage') ? 'Responsable' : 'Vendeur'}',
+          icon: Icons.person_outline,
+          trailing: IconButton(
+            tooltip: 'Gérer l’accès',
+            icon: const Icon(Icons.manage_accounts_outlined),
+            onPressed: member['userId'] == vm.user.id
+                ? null
+                : () => access(context, member),
+          ),
+        );
+      },
       children: [
         SectionTitle(
           'Votre équipe',
-          subtitle: 'Un accès personnel, une activité toujours attribuée.',
+          subtitle:
+              '${team.length} membre(s) · ${invitations.length} invitation(s)',
           action: FilledButton.icon(
             onPressed: () => invite(context),
             icon: const Icon(Icons.person_add_alt),
             label: const Text('Inviter'),
           ),
         ),
-        ...team.map(
-          (m) => Padding(
-            padding: const EdgeInsets.only(bottom: 10),
-            child: Card(
-              child: ListTile(
-                contentPadding: const EdgeInsets.all(16),
-                leading: CircleAvatar(
-                  backgroundColor: const Color(0xFFEBF5E7),
-                  child: Text(
-                    (m['name'] ?? '?').toString().substring(0, 1).toUpperCase(),
-                  ),
-                ),
-                title: Text(m['name'] ?? m['email'] ?? ''),
-                subtitle: Text(
-                  '${m['email']}\n${m['active'] == true ? 'Actif' : 'Désactivé'} · ${(m['permissions'] as List).contains('manage') ? 'Responsable' : 'Vendeur'}',
-                ),
-                trailing: IconButton(
-                  onPressed: m['userId'] == vm.user.id
-                      ? null
-                      : () => access(context, m),
-                  tooltip: 'Gérer l’accès',
-                  icon: const Icon(Icons.manage_accounts_outlined),
-                ),
-              ),
-            ),
-          ),
-        ),
-        if (invitations.isNotEmpty) ...[
-          const SizedBox(height: 24),
-          const SectionTitle('Invitations en attente'),
-          ...invitations.map(
-            (i) => ListTile(
-              leading: const Icon(Icons.mark_email_unread_outlined),
-              title: Text(i['email']),
-              subtitle: const Text('Invité · activation attendue'),
-            ),
-          ),
-        ],
         if (team.isEmpty && invitations.isEmpty)
           const EmptyState(
             title: 'Invitez votre premier collègue',
-            description: 'Il recevra un email pour créer son mot de passe et rejoindre ce magasin.',
+            description: 'Il recevra un email pour rejoindre ce magasin.',
           ),
       ],
     );

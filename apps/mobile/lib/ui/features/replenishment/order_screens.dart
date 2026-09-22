@@ -33,115 +33,121 @@ class OrdersPage extends StatelessWidget {
   Widget content(BuildContext context) {
     final orders = vm.state.data?.list('orders') ?? [],
         deliveries = vm.state.data?.list('deliveries') ?? [];
-    return Content(
+    final manage = vm.user.admin || vm.state.store?.canManage == true;
+    final canReceive =
+        manage || vm.state.store?.permissions.contains('receive') == true;
+    return Content.builder(
+      itemCount: deliveries.length + orders.length + 1,
+      itemBuilder: (context, index) {
+        if (index < deliveries.length) {
+          final d = deliveries[index];
+          final id = d['id'].toString();
+          return CompactRow(
+            title:
+                'Livraison ${id.substring(0, id.length < 8 ? id.length : 8).toUpperCase()}',
+            subtitle: d['syncStatus'] != null
+                ? 'Réception enregistrée · ${statusLabel(d['syncStatus'])}'
+                : '${objects(d['lines']).fold<int>(0, (sum, l) => sum + integer(l['quantity']))} unités annoncées',
+            icon: Icons.local_shipping_outlined,
+            onTap: d['syncStatus'] != null || !canReceive
+                ? null
+                : () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => ReceiptScreen(vm: vm, delivery: d),
+                    ),
+                  ),
+          );
+        }
+        if (index == deliveries.length) {
+          return const Padding(
+            padding: EdgeInsets.only(top: 20),
+            child: SectionTitle('Historique des commandes'),
+          );
+        }
+        final order = orders[index - deliveries.length - 1],
+            id = orders[index - deliveries.length - 1]['id'].toString();
+        return CompactRow(
+          title:
+              'Commande ${id.substring(0, id.length < 8 ? id.length : 8).toUpperCase()}',
+          subtitle:
+              '${statusLabel(order['status'])} · ${objects(order['lines']).length} produit(s)',
+          onTap: () => showOrder(context, order),
+          footer: vm.user.admin && order['status'] != 'received'
+              ? Wrap(
+                  spacing: 8,
+                  children: [
+                    TextButton(
+                      onPressed: () => run(
+                        context,
+                        () => vm.online({
+                          'type': 'order.prepare',
+                          'orderId': order['id'],
+                        }, expectedVersion: integer(order['version'])),
+                      ),
+                      child: const Text('En préparation'),
+                    ),
+                    FilledButton.tonal(
+                      onPressed: () =>
+                          run(context, () => dispatch(context, order)),
+                      child: const Text('Expédier une livraison'),
+                    ),
+                  ],
+                )
+              : null,
+        );
+      },
       children: [
         SectionTitle(
-          'Commandes & livraisons',
-          subtitle:
-              'Demandez vos produits. Confirmez les quantités à leur arrivée.',
-          action: FilledButton.icon(
-            onPressed: () => create(context),
-            icon: const Icon(Icons.add),
-            label: const Text('Commander'),
-          ),
+          manage ? 'Commandes & livraisons' : 'Livraisons',
+          subtitle: manage
+              ? 'Approvisionnement du magasin'
+              : 'Confirmez les quantités reçues',
+          action: manage
+              ? FilledButton.icon(
+                  onPressed: () => create(context),
+                  icon: const Icon(Icons.add),
+                  label: const Text('Commander'),
+                )
+              : null,
         ),
-        if (deliveries.isNotEmpty) ...[
-          const SectionTitle('À réceptionner'),
-          ...deliveries.map(
-            (d) => Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: Card(
-                child: ListTile(
-                  contentPadding: const EdgeInsets.all(16),
-                  leading: const Icon(
-                    Icons.local_shipping_outlined,
-                    color: darkGreen,
-                  ),
-                  title: Text(
-                    'Livraison ${d['id'].toString().substring(0, 8).toUpperCase()}',
-                  ),
-                  subtitle: Text(
-                    d['syncStatus'] != null
-                        ? 'Réception enregistrée · ${statusLabel(d['syncStatus'])}'
-                        : '${objects(d['lines']).fold<int>(0, (s, l) => s + integer(l['quantity']))} unités annoncées',
-                  ),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: d['syncStatus'] != null
-                      ? null
-                      : () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => ReceiptScreen(vm: vm, delivery: d),
-                          ),
-                        ),
-                ),
-              ),
-            ),
-          ),
-        ],
-        const SizedBox(height: 16),
-        const SectionTitle('Historique des commandes'),
-        if (orders.isEmpty)
+        if (deliveries.isNotEmpty) const SectionTitle('À réceptionner'),
+        if (orders.isEmpty && deliveries.isEmpty)
           const EmptyState(
             title: 'Aucune commande pour le moment',
-            description: 'Vous pouvez commander à tout moment, même sans alerte de stock.',
+            description: 'Les commandes et livraisons apparaîtront ici.',
           ),
-        ...orders.map(
-          (o) => Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Commande ${o['id'].toString().substring(0, 8).toUpperCase()}',
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    const SizedBox(height: 8),
-                    StatusChip(
-                      statusLabel(o['status']),
-                      icon: Icons.local_shipping_outlined,
-                    ),
-                    const SizedBox(height: 12),
-                    ...objects(o['lines']).map(
-                      (l) => Text(
-                        '${vm.productName(l['productId'])} · ${l['quantity']} unités',
-                      ),
-                    ),
-                    if (vm.user.admin && o['status'] != 'received') ...[
-                      const SizedBox(height: 12),
-                      Wrap(
-                        spacing: 8,
-                        children: [
-                          TextButton(
-                            onPressed: () => run(
-                              context,
-                              () => vm.online({
-                                'type': 'order.prepare',
-                                'orderId': o['id'],
-                              }, expectedVersion: integer(o['version'])),
-                            ),
-                            child: const Text('En préparation'),
-                          ),
-                          FilledButton.tonal(
-                            onPressed: () =>
-                                run(context, () => dispatch(context, o)),
-                            child: const Text('Expédier une livraison'),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ),
       ],
     );
   }
+
+  Future<void> showOrder(BuildContext context, Json order) => showDialog<void>(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: const Text('Détail de la commande'),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(statusLabel(order['status'])),
+            const SizedBox(height: 12),
+            for (final line in objects(order['lines']))
+              CompactRow(
+                title: vm.productName(line['productId']),
+                value: '${line['quantity']} u.',
+              ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Fermer'),
+        ),
+      ],
+    ),
+  );
 
   Future<void> create(BuildContext context) async {
     await Navigator.push(
@@ -338,22 +344,16 @@ class _OrderEditorState extends State<OrderEditor> {
   );
   Widget product(MapEntry<String, TextEditingController> entry) {
     final stock = StockSummary.forProduct(data, entry.key);
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
+    return CompactRow(
+      title:
+          data.products.where((p) => p.id == entry.key).firstOrNull?.name ??
+          'Produit',
+      subtitle:
+          'Stock : ${stock.available} · Seuil : ${stock.threshold}\nEn attente : ${FulfillmentLine.outstanding(data, entry.key)} unités',
+      footer: Padding(
+        padding: const EdgeInsets.only(top: 6),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              data.products.where((p) => p.id == entry.key).firstOrNull?.name ??
-                  'Produit',
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Stock : ${stock.available} · Seuil : ${stock.threshold}\nEn attente : ${FulfillmentLine.outstanding(data, entry.key)} unités',
-            ),
-            const SizedBox(height: 12),
             TextField(
               controller: entry.value,
               enabled: !busy && !loading && !uncertain,
@@ -364,14 +364,19 @@ class _OrderEditorState extends State<OrderEditor> {
               ),
             ),
             if (!uncertain)
-              TextButton(
-                onPressed: busy
-                    ? null
-                    : () {
-                        setState(() => quantities.remove(entry.key)?.dispose());
-                        changed();
-                      },
-                child: const Text('Retirer'),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton(
+                  onPressed: busy
+                      ? null
+                      : () {
+                          setState(
+                            () => quantities.remove(entry.key)?.dispose(),
+                          );
+                          changed();
+                        },
+                  child: const Text('Retirer'),
+                ),
               ),
           ],
         ),

@@ -1,0 +1,112 @@
+{
+  "date": "2026-09-22",
+  "scope": "Flutter role UX, compact layouts, phone configuration and form recovery",
+  "flutter": "3.47.5",
+  "dart": "3.13.4",
+  "unit_and_widget_tests": {
+    "passed": 115,
+    "skipped_server_dependent": 4,
+    "log": ".artifacts/evidence/role-ux/flutter-tests-final.log"
+  },
+  "static_analysis": {
+    "result": "passed",
+    "findings": 0,
+    "log": ".artifacts/evidence/role-ux/analyzer-final.log"
+  },
+  "layout_matrix": {
+    "roles": [
+      "admin",
+      "manager",
+      "salesperson"
+    ],
+    "viewports_dp": [
+      [
+        360,
+        800
+      ],
+      [
+        800,
+        360
+      ],
+      [
+        1024,
+        768
+      ]
+    ],
+    "text_scales": [
+      1,
+      2
+    ]
+  },
+  "regressions": [
+    "store settings search and navigation",
+    "live catalogue/team updates",
+    "receive-only permissions",
+    "store selection with landscape keyboard and 200% text",
+    "search among 1000 choices and restored selection label",
+    "save with keyboard and notification overlay",
+    "duplicate submission prevention and failed-input retention",
+    "keyboard Next advances one field",
+    "first invalid field is revealed"
+  ],
+  "android_journeys": {
+    "result": "passed",
+    "device": "Android API 36 x86_64 emulator",
+    "physical_device": false,
+    "missed_taps_fatal": true,
+    "isolated_database": "biobalance_journeys_test",
+    "asserted_effects": {
+      "remaining_sellable_stock": 21,
+      "salesperson_points": 20,
+      "reserved_points": 0,
+      "sale_revisions": 3,
+      "delivery_received": true,
+      "product_reward_fulfilled": true
+    },
+    "log": ".artifacts/evidence/role-ux/android-journeys.log"
+  },
+  "android_manifest": {
+    "debug_build": "passed",
+    "release_source_cleartext": false,
+    "debug_profile_local_http_override": true
+  },
+  "screenshots": {
+    "manager-home": {
+      "path": "docs/screenshots/manager-home.png",
+      "sha256": "0f63711d0c60cfb60a6718ed0a79c6d16fc681d7c06c49610eb9a8fab5989c26",
+      "data": "synthetic"
+    },
+    "salesperson-home": {
+      "path": "docs/screenshots/salesperson-home.png",
+      "sha256": "00d028fe1eee38b782119d8bf739d308bda614f3e95fe97f432e2c0a1eb1e41c",
+      "data": "synthetic"
+    },
+    "admin-home": {
+      "path": "docs/screenshots/admin-home.png",
+      "sha256": "2b215ed10e3ad20f754b315b24a0e829c42ae07428c6850db48481e2554c0fa8",
+      "data": "synthetic"
+    },
+    "manager-product-settings": {
+      "path": "docs/screenshots/manager-product-settings.png",
+      "sha256": "c5f618e1cab3f5edcf549161297ea01aa0d54acd1c3051439369e0a37ded4af4",
+      "data": "synthetic"
+    }
+  },
+  "pending": [
+    "physical low-memory Android performance and battery measurements",
+    "native iOS validation",
+    "human TalkBack/VoiceOver and pilot usability acceptance"
+  ],
+  "notes": [
+    "No backend transactions, migrations, queued payloads or signing keys changed.",
+    "Debug emulator execution does not establish release frame-rate or physical-device performance.",
+    "Earlier failed runs are retained locally: manifest conflict, covered footer, test-fixture selector ambiguity."
+  ],
+  "normal_android_app": {
+    "entrypoint": "lib/main.dart",
+    "debug_build_and_launch": "passed",
+    "hot_reload": "passed",
+    "runtime_errors_reported": 0,
+    "log": ".artifacts/evidence/role-ux/android-normal-app.log"
+  }
+}

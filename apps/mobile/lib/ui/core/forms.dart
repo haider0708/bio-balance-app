@@ -14,6 +14,7 @@ import 'package:flutter/material.dart';
 
 import '../features/authentication/session_view_model.dart';
 import 'design.dart';
+import 'option_field.dart';
 
 class FieldSpec {
   final String key, label;
@@ -133,8 +134,11 @@ class _EditorScreenState extends State<EditorScreen> {
       maxWidth: 640,
       children: [
         if (widget.description != null) ...[
-          Notice(widget.description!),
-          const SizedBox(height: 24),
+          Text(
+            widget.description!,
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+          const SizedBox(height: 16),
         ],
         if (error != null) ...[
           Notice(error!, error: true),
@@ -146,7 +150,7 @@ class _EditorScreenState extends State<EditorScreen> {
             children: widget.fields
                 .map(
                   (f) => Padding(
-                    padding: const EdgeInsets.only(bottom: 20),
+                    padding: const EdgeInsets.only(bottom: 16),
                     child: f.imagePurpose != null && widget.workspace != null
                         ? ImageInput(
                             vm: widget.workspace!,
@@ -158,19 +162,36 @@ class _EditorScreenState extends State<EditorScreen> {
                             controller: controllers[f.key]!,
                             enabled: !busy,
                             onBusyChanged: (value) {
-                              if (mounted) setState(() => mediaBusy = value);
+                              if (mounted) {
+                                setState(() => mediaBusy = value);
+                              }
                             },
                           )
                         : f.options == null
                         ? TextFormField(
                             key: ValueKey('field.${f.key}'),
                             controller: controllers[f.key],
+                            enabled: !busy && !mediaBusy,
+                            textInputAction: f.multiline
+                                ? TextInputAction.newline
+                                : widget.fields.last.key == f.key
+                                ? TextInputAction.done
+                                : TextInputAction.next,
+                            onFieldSubmitted: (_) {
+                              if (widget.fields.last.key == f.key) {
+                                save();
+                              }
+                            },
                             keyboardType: f.numeric
                                 ? const TextInputType.numberWithOptions(
                                     decimal: true,
                                   )
                                 : f.multiline
                                 ? TextInputType.multiline
+                                : f.key.toLowerCase().contains('email')
+                                ? TextInputType.emailAddress
+                                : f.key.toLowerCase().contains('phone')
+                                ? TextInputType.phone
                                 : TextInputType.text,
                             minLines: f.multiline ? 4 : 1,
                             maxLines: f.multiline ? 12 : 1,
@@ -180,47 +201,45 @@ class _EditorScreenState extends State<EditorScreen> {
                                 ? 'Ce champ est requis.'
                                 : null,
                           )
-                        : DropdownButtonFormField<String>(
+                        : OptionField(
                             key: ValueKey('field.${f.key}'),
-                            initialValue:
-                                f.options!.containsKey(controllers[f.key]!.text)
-                                ? controllers[f.key]!.text
-                                : null,
-                            isExpanded: true,
-                            decoration: InputDecoration(labelText: f.label),
-                            items: f.options!.entries
-                                .map(
-                                  (e) => DropdownMenuItem(
-                                    value: e.key,
-                                    child: Text(
-                                      e.value,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                )
-                                .toList(),
-                            onChanged: (v) =>
-                                controllers[f.key]!.text = v ?? '',
-                            validator: (value) => f.required && value == null
-                                ? 'Choisissez une valeur.'
-                                : null,
+                            label: f.label,
+                            options: f.options!,
+                            controller: controllers[f.key]!,
+                            required: f.required,
+                            enabled: !busy && !mediaBusy,
                           ),
                   ),
                 )
                 .toList(),
           ),
         ),
-        const SizedBox(height: 12),
-        FilledButton(
+      ],
+    ),
+    bottomNavigationBar: Padding(
+      padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
+      child: BottomAction(
+        child: FilledButton(
           key: const ValueKey('editor.save'),
           onPressed: busy || mediaBusy ? null : save,
           child: Text(busy ? 'Enregistrement…' : widget.submitLabel),
         ),
-      ],
+      ),
     ),
   );
   Future<void> save() async {
-    if (!key.currentState!.validate()) return;
+    if (busy || mediaBusy) return;
+    final invalid = key.currentState!.validateGranularly();
+    if (invalid.isNotEmpty) {
+      await Scrollable.ensureVisible(
+        invalid.first.context,
+        alignment: .1,
+        duration: MediaQuery.disableAnimationsOf(context)
+            ? Duration.zero
+            : const Duration(milliseconds: 120),
+      );
+      return;
+    }
     setState(() {
       busy = true;
       error = null;

@@ -89,7 +89,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
           ),
         if (items.isNotEmpty && store.canManage)
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
+            padding: const EdgeInsets.symmetric(horizontal: 16),
             child: OutlinedButton.icon(
               onPressed: () async {
                 try {
@@ -112,7 +112,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                       'L’historique apparaîtra après les premières opérations.',
                 )
               : ListView.builder(
-                  padding: const EdgeInsets.all(20),
+                  padding: const EdgeInsets.all(16),
                   itemCount: items.length + 1,
                   itemBuilder: (context, i) {
                     if (i == items.length) {
@@ -135,18 +135,14 @@ class _HistoryScreenState extends State<HistoryScreen> {
                         : r['quantity'] != null
                         ? '${r['quantity']} unités'
                         : r['action'] ?? 'Opération';
-                    return Card(
-                      child: ListTile(
-                        contentPadding: const EdgeInsets.all(16),
-                        title: Text(value),
-                        subtitle: Text(
+                    return CompactRow(
+                      title: value,
+                      subtitle:
                           '${dateLabel(r['occurredAt'] ?? r['createdAt'])} · ${people[r['actorId'] ?? r['sellerId'] ?? r['userId']] ?? ''}\n${r['reason'] ?? (r['kind'] == 'redemption'
                                   ? 'Récompense remise'
                                   : r['kind'] == 'earned'
                                   ? 'Vente, correction ou retour'
                                   : '')}',
-                        ),
-                      ),
                     );
                   },
                 ),

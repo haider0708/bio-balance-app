@@ -31,16 +31,16 @@ class _LoginScreenState extends State<LoginScreen> {
         child: Content(
           maxWidth: 480,
           children: [
-            const SizedBox(height: 40),
+            const SizedBox(height: 24),
             Image.asset(
               'assets/brand/biobalance-logo.jpg',
-              height: 110,
+              height: 72,
               semanticLabel: 'BioBalance, Back to nature',
             ),
-            const SizedBox(height: 40),
+            const SizedBox(height: 24),
             const SectionTitle(
-              'Bienvenue chez BioBalance',
-              subtitle: 'Votre magasin. Votre équipe. Votre progression.',
+              'Connexion',
+              subtitle: 'Accédez à votre espace BioBalance',
             ),
             if (vm.state.error != null) ...[
               Notice(vm.state.error!, error: true),

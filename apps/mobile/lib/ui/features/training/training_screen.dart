@@ -71,11 +71,36 @@ class _TrainingPageState extends State<TrainingPage> {
                   (a['productIds'] as List? ?? []).contains(productFilter)),
         )
         .toList();
-    return Content(
+    return Content.builder(
+      itemCount: items.length,
+      itemBuilder: (context, index) {
+        final article = items[index];
+        return CompactRow(
+          title: article['title'],
+          subtitle:
+              '${article['type'] == 'video' ? 'Vidéo' : 'Article'}${widget.vm.user.admin ? ' · ${publicationLabel(article['status'])}' : ''}',
+          icon: article['type'] == 'video'
+              ? Icons.play_circle_outline
+              : Icons.menu_book_outlined,
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => TrainingReader(vm: widget.vm, article: article),
+            ),
+          ),
+          trailing: widget.vm.user.admin
+              ? IconButton(
+                  tooltip: 'Modifier / publier',
+                  icon: const Icon(Icons.edit_outlined),
+                  onPressed: () => edit(article),
+                )
+              : null,
+        );
+      },
       children: [
         SectionTitle(
-          'La connaissance fait la différence',
-          subtitle: 'Vos produits, leurs bénéfices et les bons conseils pour les présenter.',
+          'Formation',
+          subtitle: 'Articles et vidéos sur vos produits',
           action: widget.vm.user.admin
               ? FilledButton.icon(
                   onPressed: () => edit(),
@@ -118,53 +143,6 @@ class _TrainingPageState extends State<TrainingPage> {
             description: 'Les articles et vidéos publiés par BioBalance apparaîtront ici.',
             icon: Icons.school_outlined,
           ),
-        ...items.map(
-          (article) => Padding(
-            padding: const EdgeInsets.only(bottom: 16),
-            child: Card(
-              child: InkWell(
-                borderRadius: BorderRadius.circular(16),
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) =>
-                        TrainingReader(vm: widget.vm, article: article),
-                  ),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Icon(
-                        article['type'] == 'video'
-                            ? Icons.play_circle_outline
-                            : Icons.menu_book_outlined,
-                        color: darkGreen,
-                        size: 36,
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        article['title'],
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
-                      const SizedBox(height: 8),
-                      StatusChip(
-                        '${article['type'] == 'video' ? 'Vidéo' : 'Article'}${widget.vm.user.admin ? ' · ${publicationLabel(article['status'])}' : ''}',
-                        icon: Icons.school_outlined,
-                      ),
-                      if (widget.vm.user.admin)
-                        TextButton(
-                          onPressed: () => edit(article),
-                          child: const Text('Modifier / publier'),
-                        ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
       ],
     );
   }

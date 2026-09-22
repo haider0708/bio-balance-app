@@ -77,3 +77,7 @@ L’application, PostgreSQL et les médias sont hébergés sur un VPS. Aucun ser
 ### Lots absents lors d’une vente
 
 Un vendeur peut déclarer le numéro de lot et sa date de péremption pendant la saisie. Le serveur crée uniquement les métadonnées manquantes puis enregistre la sortie réelle dans une transaction unique. Une quantité négative produit un écart à vérifier ; aucune entrée fictive ne compense la vente. Les produits globaux restent administrés par BioBalance. La proposition FEFO privilégie les lots valides ayant du stock positif ; la péremption est évaluée à la date de la vente d’origine, y compris lors d’une correction.
+
+### Ergonomie mobile — précision du 22 septembre 2026
+
+L’interface utilise des lignes compactes et des indicateurs simples. Les options moins fréquentes sont regroupées dans Plus. Les petites largeurs regroupent Équipe/Catalogue dans ce menu ; les textes agrandis et les écrans bas utilisent une navigation verticale défilante. Les responsables disposent d’une page de recherche dédiée aux prix, points et seuils. Les sélecteurs sont recherchables et les formulaires partagés gardent leur validation visible au-dessus du clavier. Voir [les parcours et captures](mobile-ux-2026-09-22.md).
