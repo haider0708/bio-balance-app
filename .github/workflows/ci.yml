@@ -122,7 +122,13 @@ jobs:
           arch: x86_64
           profile: pixel_2
           disable-animations: true
-          script: npm run test:journeys && npm run test:android-restart
+          # WidgetTester input does not reset Android's display-idle timer.
+          # Keep the disposable emulator awake for real camera/video assertions.
+          script: |
+            adb -s emulator-5554 shell svc power stayon true
+            adb -s emulator-5554 shell input keyevent KEYCODE_WAKEUP
+            adb -s emulator-5554 shell wm dismiss-keyguard
+            npm run test:journeys && npm run test:android-restart
       - uses: actions/upload-artifact@v4
         if: always()
         with:

@@ -115,6 +115,11 @@ void main() {
                 .join('\n'),
       );
       expect(api.accountId, user.id);
+      await j.until(
+        () =>
+            WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed,
+        reason: 'native camera probe requires an awake, foreground Android app',
+      );
       await Dio(
         testOptions(
           base,
