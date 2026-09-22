@@ -402,3 +402,13 @@ Les 151 opérations de la simulation initiale sont maintenant acceptées sur le 
 La supervision distante a réussi : première exécution `35755117973`, email de diagnostic accepté par SMTP ; seconde `35755455044`, état précédent restauré et aucun email répété en situation saine. La réception en boîte principale reste distincte de cette preuve. Le pipeline complet [35755063945](https://github.com/haider0708/bio-balance-app/actions/runs/35755063945) est réussi pour le commit `2750fdd` : backend, Android, parcours Android et iOS non signé.
 
 Sauvegarde des clés Android préparée hors dépôt : OpenPGP AES-256 avec clé de récupération aléatoire, export des deux certificats vérifié, sept fichiers déchiffrés identiques aux originaux. Aucun fichier de clé n’est régénéré. La copie indépendante par le propriétaire demeure à réaliser ; deux fichiers sur le même ordinateur ne couvrent pas sa perte.
+
+### Qualification VPS : correction des lectures volumineuses
+
+Le premier essai du laboratoire complet (500 magasins, 5 000 comptes métier, 300 000 lots et deux millions de ventes) ne satisfait pas les seuils. PostgreSQL sature sous les quotas prévus ; ses historiques, stocks, versions et points restent cohérents après l’essai. Ce résultat échoué est conservé. Des diagnostics SQL ont été exécutés pendant cette passe : elle sert au diagnostic, pas à une mesure d’acceptation finale.
+
+Deux causes sont vérifiées par les plans d’exécution : l’estimation des politiques RLS conduit les ventes récentes à lire/trier environ 4 000 lignes pour en retourner 100 ; le classement applique une fonction sur chaque date au lieu d’une borne indexable. Une migration conserve les droits SELECT/écriture et évalue le contexte transactionnel une fois par requête. Le classement utilise les bornes UTC du mois local, inclusif/exclusif, avec changements d’heure corrects. Aucune donnée ni historique n’est réécrit.
+
+Validation avant image : compilation et formatage réussis, 25 tests d’intégration, 14 tests d’audit et 13 tests de sécurité réussis. Les trois nouvelles régressions couvrent absence/changement de contexte, refus d’écriture hors magasin y compris en lecture admin, bornes de mois à Tunis et à New York avec changement d’heure, dépenses exclues et points négatifs. La nouvelle mesure complète et son installation restent à consigner après exécution. Le commit antérieur `a7ff2b1` passe les quatre jobs CI (`35769095754`).
+
+Le propriétaire demande de limiter la suite à BioBalance : aucune réparation de la base MySQL d’un autre site, mise à niveau globale ou redémarrage de l’hôte partagé ne sera effectué dans cette phase.

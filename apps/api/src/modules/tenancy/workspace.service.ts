@@ -885,7 +885,13 @@ export class WorkspaceService {
       const month = localDate(new Date(), scope.timezone).slice(0, 7);
       const scores = await tx.$queryRaw<
         { userId: string; name: string; score: bigint; rank: bigint }[]
-      >`SELECT p."userId",u.name,SUM(p.amount)::bigint AS score,DENSE_RANK() OVER(ORDER BY SUM(p.amount) DESC)::bigint AS rank FROM "PointsEntry" p JOIN "User" u ON u.id=p."userId" WHERE p."storeId"=${store}::uuid AND p.kind='earned' AND to_char(p."createdAt" AT TIME ZONE 'UTC' AT TIME ZONE ${scope.timezone},'YYYY-MM')=${month} GROUP BY p."userId",u.name ORDER BY score DESC,u.name LIMIT 200`;
+      >`SELECT p."userId",u.name,SUM(p.amount)::bigint AS score,
+          DENSE_RANK() OVER(ORDER BY SUM(p.amount) DESC)::bigint AS rank
+        FROM "PointsEntry" p JOIN "User" u ON u.id=p."userId"
+        WHERE p."storeId"=${store}::uuid AND p.kind='earned'
+          AND p."createdAt">=(${month + "-01"}::timestamp AT TIME ZONE ${scope.timezone} AT TIME ZONE 'UTC')
+          AND p."createdAt"<((${month + "-01"}::timestamp + interval '1 month') AT TIME ZONE ${scope.timezone} AT TIME ZONE 'UTC')
+        GROUP BY p."userId",u.name ORDER BY score DESC,u.name LIMIT 200`;
       return { month, scores };
     });
   }
