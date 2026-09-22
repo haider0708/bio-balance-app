@@ -1,7 +1,7 @@
 {
   "dateUtc": "2026-09-22T10:35:10.464564+00:00",
   "baselineCommit": "625702c",
-  "codeCommit": "recorded after implementation commit",
+  "codeCommit": "c341080e8ec2f6ed188a0a16a502d62b47776aaa",
   "productionReady": false,
   "firebase": "removed; VPS inbox only",
   "checks": {
@@ -25,7 +25,9 @@
       "rate-limit JSON and Retry-After",
       "case variants share identity IP quota",
       "logout bypasses exhausted identity quota; general flood control remains"
-    ]
+    ],
+    "generatedContractDrift": "passed",
+    "flutterHttpsMediaResume": "passed against real Nginx with a test-only trusted CA; interrupted download and ranges verified"
   },
   "load": {
     "environment": "local, two API processes; no Nginx/workers or Compose CPU limits in load measurement",

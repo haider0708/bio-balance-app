@@ -264,3 +264,6 @@ Décision utilisateur du 22 septembre : aucun Firebase. La boîte interne demeur
 Les preuves détaillées de cette passe sont conservées sous `.artifacts/evidence/security-hardening/` et résumées dans `tests/security/evidence.json`. Le rapport d’audit précédent reste immuable ; ce renforcement ne réécrit pas ses constats historiques.
 
 Charge après renforcement : 36 001 requêtes, 3 602 ventes acceptées, aucune requête échouée/opération rejetée/itération perdue. p95 lecture/écriture à 100 req/s : 26,11/46,69 ms ; à 200 req/s : 124,47/232,06 ms. Deux API locales sans Nginx/workers ni quotas CPU Compose dans cette mesure ; ne pas présenter ces chiffres comme une qualification du VPS. Le contrôle d’expiration concurrente des compteurs de maintenance a été ajouté ensuite sans modification du chemin HTTP mesuré.
+
+Commit du renforcement : `c341080`. Contrats régénérés après commit : aucune dérive. Les clés privées restent hors du dépôt ; seules leurs empreintes publiques sont versionnées.
+Reprise Flutter de média HTTPS/Nginx rejouée après le commit : réussie, avec autorité de test explicite, interruption, ETag et requêtes Range. Laboratoire et émulateur de sécurité arrêtés ; données et preuves conservées.
