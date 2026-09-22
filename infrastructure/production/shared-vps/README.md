@@ -18,7 +18,7 @@ Pour une modification Nginx montée par fichier, recréer **uniquement** son con
 
 ## Ressources et exploitation
 
-Plafonds : quatre API de 768 Mio (1,5 CPU pour api1/api2, 1 CPU pour api3/api4), worker 384 Mio/0,5 CPU, média 1 Gio/1 CPU, PostgreSQL 2 Gio/4 CPU, Nginx 128 Mio/0,25 CPU. Les deux processus supplémentaires héritent de la même définition applicative avec `extends`, sans copie des paramètres sensibles. PostgreSQL borne les connexions à 60 et le suivi des prédicats à 1 024 verrous par transaction/512 par relation. Ces plafonds ne réservent pas physiquement des ressources face aux autres sites. La qualification et ses limites sont consignées dans [le relevé du VPS](../../../docs/vps-readiness-2026-09-22.md).
+Plafonds : quatre API de 768 Mio (1,5 CPU pour api1/api2, 1 CPU pour api3/api4), worker 384 Mio/0,5 CPU, média 1 Gio/1 CPU, PostgreSQL 2 Gio/4 CPU, Nginx 128 Mio/1 CPU. Les deux processus supplémentaires héritent de la même définition applicative avec `extends`, sans copie des paramètres sensibles. PostgreSQL borne les connexions à 60 et le suivi des prédicats à 1 024 verrous par transaction/512 par relation. Ces plafonds ne réservent pas physiquement des ressources face aux autres sites. La qualification et ses limites sont consignées dans [le relevé du VPS](../../../docs/vps-readiness-2026-09-22.md).
 
 Médias : quota global initial 4 Gio, images d’un magasin 256 Mio, réserve disque 10 Gio. Une vidéo réserve jusqu’à 2 Gio plus sa source avant traitement ; un plafond global de 2 Gio empêcherait toute vidéo. Les fichiers finalisés remplacent ensuite cette réservation par leur taille réelle. Les valeurs doivent être réévaluées avec l’espace disponible et la charge réelle.
 

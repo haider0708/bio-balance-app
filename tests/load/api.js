@@ -44,7 +44,7 @@ export const options = {
       timeUnit: "1s",
       duration: __ENV.BURST_DURATION || "30s",
       startTime: duration,
-      preAllocatedVUs: 100,
+      preAllocatedVUs: 200,
       maxVUs: 300,
     },
   },
@@ -80,10 +80,12 @@ export default function () {
   const state = cursors.get(key),
     headers = {
       Authorization: `Bearer ${f.token}`,
+      "Accept-Encoding": "gzip",
       "Content-Type": "application/json",
     };
   if (__ENV.SYNTHETIC_PROXY === "yes") {
     const storeNumber = Math.floor((Number(f.n) - 1) / 10);
+    headers["X-Load-Phase"] = execution.scenario.name;
     headers["X-Load-Client-IP"] =
       `198.18.${Math.floor(storeNumber / 250)}.${(storeNumber % 250) + 1}`;
   }
