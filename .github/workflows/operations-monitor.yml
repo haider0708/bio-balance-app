@@ -1,0 +1,62 @@
+name: BioBalance operational monitoring
+on:
+  schedule:
+    - cron: "3,13,23,33,43,53 * * * *"
+  workflow_dispatch:
+    inputs:
+      diagnostic:
+        description: Send one infrastructure email test
+        type: boolean
+        default: false
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: biobalance-operations-monitor
+  cancel-in-progress: false
+jobs:
+  check:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Restore incident state
+        run: python3 scripts/monitor-state.py
+        env:
+          GH_TOKEN: ${{ github.token }}
+      - name: Prepare restricted SSH identity
+        shell: bash
+        env:
+          PRIVATE_KEY: ${{ secrets.MONITOR_SSH_KEY }}
+          HOST_KEYS: ${{ secrets.MONITOR_KNOWN_HOSTS }}
+        run: |
+          umask 077
+          mkdir -p .monitor
+          printf '%s\n' "$PRIVATE_KEY" > .monitor/key
+          printf '%s\n' "$HOST_KEYS" > .monitor/known_hosts
+          test -s .monitor/key && test -s .monitor/known_hosts
+      - name: Check VPS and notify on changes
+        shell: bash
+        env:
+          MONITOR_SSH_KEY: .monitor/key
+          MONITOR_KNOWN_HOSTS: .monitor/known_hosts
+          MONITOR_SMTP_USER: ${{ secrets.MONITOR_SMTP_USER }}
+          MONITOR_SMTP_PASSWORD: ${{ secrets.MONITOR_SMTP_PASSWORD }}
+          MONITOR_EMAIL_TO: ${{ secrets.MONITOR_EMAIL_TO }}
+          DIAGNOSTIC: ${{ inputs.diagnostic }}
+        run: |
+          options=()
+          if [[ "$DIAGNOSTIC" == true ]]; then options+=(--diagnostic); fi
+          python3 scripts/external-monitor.py --state .monitor/state.json "${options[@]}"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: ops-monitor-state
+          path: .monitor/state.json
+          include-hidden-files: true
+          retention-days: 7
+          if-no-files-found: warn
+      - name: Remove temporary SSH credentials
+        if: always()
+        run: rm -f .monitor/key .monitor/known_hosts

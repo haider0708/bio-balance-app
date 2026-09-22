@@ -23,6 +23,8 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version-file: .nvmrc, cache: npm }
       - run: python3 -m unittest discover -s tests/release -p '*_test.py'
+      - run: python3 -m unittest discover -s tests/operations -p '*_test.py'
+      - run: python3 -m unittest discover -s tests/catalog -p '*_test.py'
       - run: npm ci
       - run: npm run db:generate
       - run: npm run db:migrate

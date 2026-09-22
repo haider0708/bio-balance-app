@@ -39,3 +39,5 @@ apps/mobile/ios/Flutter/AccountLinks.xcconfig
 *.hprof
 *.dmp
 *.p8
+
+.monitor/
