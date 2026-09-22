@@ -33,7 +33,9 @@ export const options = {
       rate: Number(__ENV.STEADY_RATE || 100),
       timeUnit: "1s",
       duration,
-      preAllocatedVUs: 50,
+      // Provision clients before measurement; allocating VMs during the burst
+      // competes with the API when the generator shares the reference VPS.
+      preAllocatedVUs: 100,
       maxVUs: 200,
     },
     burst: {
@@ -42,7 +44,7 @@ export const options = {
       timeUnit: "1s",
       duration: __ENV.BURST_DURATION || "30s",
       startTime: duration,
-      preAllocatedVUs: 80,
+      preAllocatedVUs: 100,
       maxVUs: 300,
     },
   },

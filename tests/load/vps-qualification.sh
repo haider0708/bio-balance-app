@@ -13,9 +13,13 @@ set +a
 compose=(docker compose -p biobalance-capacity-lab -f /opt/biobalance/infrastructure/production/compose.yml --env-file "$lab/backend.env" -f "$lab/override.yml")
 sales=$("${compose[@]}" exec -T postgres sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Atc '\''SELECT count(*) FROM "Sale"'\''' </dev/null)
 ((sales>=2000000)) || { echo 'Full historical dataset required'; exit 1; }
-out="$lab/results/$mode-$(date -u +%Y%m%dT%H%M%SZ)"
+transport=${CAPACITY_EXTERNAL:-no}
+[[ "$transport" == yes || "$transport" == no ]]
+label="$mode"; [[ "$transport" == no ]] || label="$mode-external"
+out="$lab/results/$label-$(date -u +%Y%m%dT%H%M%SZ)"
 mkdir -p "$out"
 "${compose[@]}" ps --format json > "$out/services-before.jsonl"
+mapfile -t service_containers < <("${compose[@]}" ps -q)
 df -PB1 / > "$out/disk-before.txt"
 free -b > "$out/memory-before.txt"
 uname -r > "$out/kernel.txt"
@@ -30,8 +34,16 @@ else
 fi
 curl --fail --silent --show-error --max-time 10 --cacert "$SSL_CERT_FILE" \
   --resolve load.biobalance.invalid:18443:127.0.0.1 "$BASE_URLS/health" > "$out/tls-health.json"
-"$lab/tools/k6" run --config "$lab/k6-config.json" --summary-export "$out/summary.json" "$lab/tools/api.js" > "$out/k6.log" 2>&1 &
-load_pid=$!
+if [[ "$transport" == yes ]]; then
+  # The SSH client runs k6 elsewhere and publishes its result before this marker.
+  # A lost client is bounded; the safety loop below still protects the live host.
+  timeout 8m sh -c 'while [ ! -f "$1/client.done" ]; do sleep 1; done' sh "$out" &
+  load_pid=$!
+  printf 'CAPACITY_READY:%s\n' "$out"
+else
+  "$lab/tools/k6" run --config "$lab/k6-config.json" --summary-export "$out/summary.json" "$lab/tools/api.js" > "$out/k6.log" 2>&1 &
+  load_pid=$!
+fi
 abort_reason=''
 health_failures=0
 stop_load() {
@@ -57,15 +69,17 @@ while kill -0 "$load_pid" 2>/dev/null; do
     break
   fi
   { date -u +%FT%TZ; docker stats --no-stream --format '{{json .}}' \
-      biobalance-capacity-lab-api1-1 biobalance-capacity-lab-api2-1 \
-      biobalance-capacity-lab-postgres-1 biobalance-capacity-lab-worker-1 \
-      biobalance-capacity-lab-media-worker-1 biobalance-capacity-lab-nginx-1; } >> "$out/resources.jsonl"
+      "${service_containers[@]}"; } >> "$out/resources.jsonl"
   sleep 5
 done
 set +e
 wait "$load_pid"
 load_status=$?
 set -e
+if [[ "$transport" == yes && "$load_status" == 0 ]]; then
+  load_status=$(cat "$out/client-exit-status.txt")
+  [[ "$load_status" =~ ^[0-9]{1,3}$ ]] || exit 1
+fi
 trap - EXIT INT TERM
 printf '%s\n' "$load_status" > "$out/k6-exit-status.txt"
 printf '%s\n' "$abort_reason" > "$out/abort-reason.txt"
