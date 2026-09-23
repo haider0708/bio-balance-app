@@ -1,0 +1,148 @@
+{
+  "date": "2026-09-23",
+  "sourceCommit": "955684dcec6136fce8edacd9f51ede37286be4b2",
+  "version": "1.1.5+9",
+  "scope": "Three isolated private Android installations and user-authorized BioBalance business reset",
+  "databaseReset": {
+    "backup": "20260923T165738Z-f086e3d0",
+    "counts": {
+      "products": 51,
+      "images": 51,
+      "users": 1,
+      "groups": 0,
+      "stores": 0,
+      "sales": 0,
+      "stock": 0,
+      "sessions": 0,
+      "orders": 0,
+      "training": 0
+    }
+  },
+  "preservation": {
+    "businessRows": 0,
+    "catalogProducts": 51,
+    "withImages": 51,
+    "barcodes": 39,
+    "samplePrices": 7,
+    "migrations": 20,
+    "immutableTriggers": 7,
+    "maintenanceAudit": {
+      "backupId": "20260923T165738Z-f086e3d0",
+      "mediaPreserved": 51,
+      "sessionsRevoked": true,
+      "productsPreserved": 51
+    },
+    "jobs": [
+      {
+        "kind": "media-cleanup",
+        "status": "completed"
+      },
+      {
+        "kind": "auth-cleanup",
+        "status": "completed"
+      }
+    ]
+  },
+  "media": {
+    "verifiedCatalogFiles": 102,
+    "removedTrainingFiles": 2,
+    "remainingFiles": 102
+  },
+  "rehearsal": {
+    "isolatedRestore": true,
+    "processedFilesVerified": 104,
+    "invalidConfirmationRejected": true,
+    "unexpectedProductCountRejected": true,
+    "temporaryDatabaseAndFilesRemoved": true
+  },
+  "checks": {
+    "flutterAnalysis": "pass",
+    "flutterTestsPassed": 252,
+    "fixtureDependentTestsSkipped": 4,
+    "pythonReleaseTestsPassed": 38,
+    "publicHealth": "ok",
+    "allEightComposeServicesHealthy": true,
+    "backupMonitorTlsTimersActive": true
+  },
+  "localReset": "Existing Android test cache and credentials cleared explicitly; server admin password and MFA preserved. No startup or migration data-deletion code added.",
+  "limitations": [
+    "Catalog retains 12 missing barcodes and seven approved sample prices.",
+    "No responsible or salesperson accounts are precreated; create them through invitations.",
+    "Private copies use manual account codes.",
+    "These are private APK installations, not three Play Store releases.",
+    "Backups remain local and bounded; no full-VPS-loss recovery claim."
+  ],
+  "installations": [
+    {
+      "installation": "admin",
+      "package": "tn.biobalance.app",
+      "version": "1.1.5+9",
+      "apk": ".artifacts/releases/builds/20260923T165809Z-android-signed/biobalance-signed.apk",
+      "sha256": "da5a1c9b4a76c793a747b23f3a065896e2d327497c7bd067920a0fbdc749a6bc",
+      "loginObserved": true,
+      "signatureVerified": true,
+      "nativeAlignmentVerified": true,
+      "releaseManifestVerified": true
+    },
+    {
+      "installation": "responsable",
+      "package": "tn.biobalance.app.responsable",
+      "version": "1.1.5+9",
+      "apk": ".artifacts/releases/builds/20260923T170240Z-android-signed/biobalance-signed.apk",
+      "sha256": "9942016ee912c0b1422f382b8ebfb2e0c7104822bcd3beb844c3553f6331581a",
+      "loginObserved": true,
+      "signatureVerified": true,
+      "nativeAlignmentVerified": true,
+      "releaseManifestVerified": true
+    },
+    {
+      "installation": "vendeur",
+      "package": "tn.biobalance.app.vendeur",
+      "version": "1.1.5+9",
+      "apk": ".artifacts/releases/builds/20260923T170719Z-android-signed/biobalance-signed.apk",
+      "sha256": "3a390176a32a0c087e16816d6e320e384d5aec2220e7a97685a1554f15f86b4d",
+      "loginObserved": true,
+      "signatureVerified": true,
+      "nativeAlignmentVerified": true,
+      "releaseManifestVerified": true
+    }
+  ],
+  "phone": {
+    "model": "Samsung SM-G975F",
+    "distinctAndroidUids": 3,
+    "allLoginScreensVerified": true,
+    "observedRuntimeErrors": {
+      "admin": false,
+      "responsable": false,
+      "vendeur": false
+    }
+  },
+  "ci": {
+    "runId": 35892569971,
+    "url": "https://github.com/haider0708/bio-balance-app/actions/runs/35892569971",
+    "conclusion": "success",
+    "jobs": [
+      {
+        "conclusion": "success",
+        "name": "backend",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "android",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "ios",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "android-journeys",
+        "status": "completed"
+      }
+    ],
+    "status": "completed"
+  }
+}

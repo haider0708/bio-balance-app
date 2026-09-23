@@ -49,3 +49,10 @@ Preuves : [registre de refonte](redesign-2026-09-23.md), [captures](screenshot-i
 La qualification de pic de charge de la refonte reste ouverte : sur l’hôte de développement, lectures/écritures p95 323/708 ms à 200 req/s dépassent les cibles 300/700 ms. L’installation Samsung attend sa connexion ADB ; performances physiques Android 4 Go, iOS, lecteurs d’écran et recette pilote restent à valider. Cette candidate n’est pas une attestation de préparation au déploiement sur 500 magasins.
 
 Publication Play/App Store, signature Apple, pilote commercial, sauvegardes hors VPS et haute disponibilité restent hors de cette refonte. Les sauvegardes locales ne couvrent pas la destruction du VPS.
+
+## 1.1.5+9 — Trois installations pour essai manuel
+
+- Copies privées Android Admin, Responsable et Vendeur, avec stockage/session indépendants et libellés explicites. Les permissions restent déterminées par le compte serveur.
+- Aucun changement des règles de stock, vente, points ou autorisations.
+- Catalogue conservé et données de démonstration réinitialisées sur demande, après sauvegarde et répétition sur une restauration isolée.
+- Guide : [test manuel des rôles](manual-role-testing.md). Les trois APK ont été vérifiés puis installés sur le Samsung ; aucune publication Play Store n’a été effectuée.
