@@ -1,6 +1,6 @@
 # État de l’implémentation — 23 septembre 2026
 
-La refonte réseau/groupe/magasin et des tableaux de bord est implémentée. Le [registre du 23 septembre](redesign-2026-09-23.md) décrit le comportement, les migrations, les captures et les résultats courants ; il remplace les descriptions de navigation et exports ci-dessous. Le déploiement et la candidate Android 1.1.0+4 sont en cours de validation. Les entrées du 22 septembre restent l’historique de la précédente version.
+La refonte réseau/groupe/magasin et des tableaux de bord est implémentée. Le [registre du 23 septembre](redesign-2026-09-23.md) décrit le comportement, les migrations, les captures et les résultats courants ; il remplace les descriptions de navigation et exports ci-dessous. Le backend `09217a6` est déployé ; une candidate Android 1.1.0+4 est signée. Les quatre jobs CI passent. L’installation Samsung attend sa connexion ; les seuils du pic de charge et les mesures physiques restent ouverts. Les entrées du 22 septembre restent l’historique de la précédente version.
 
 # Historique — 22 septembre 2026
 

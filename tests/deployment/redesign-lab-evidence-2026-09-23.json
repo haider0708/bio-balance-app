@@ -1,0 +1,51 @@
+{
+  "date": "2026-09-23",
+  "sourceCommit": "09217a6f06d220646b812fee7b4636f24cb7143a",
+  "apiImage": "biobalance-api:09217a6",
+  "mediaImage": "biobalance-media:09217a6",
+  "migrations": 6,
+  "rollbackImage": "biobalance-api:rollback-2c89538",
+  "passed": {
+    "migrate.log": {
+      "sha256": "747f8be986fd16859ee44e0c6f6c51035c31d253d1f8d43fc0d19d9486c9f155"
+    },
+    "reporting-backfill.log": {
+      "sha256": "1f298076b995e1f2e5cfe9c4e45075d2fde2e0c23b348fb63cd2676652fd512d"
+    },
+    "redesign.log": {
+      "sha256": "ac8a3935b6a1b4bf1e000548b49014c3f3fcef590da6411fe2092f13acd4ed41"
+    },
+    "isolation.log": {
+      "sha256": "be45df19f7cfe1d0272ba742f30647e13e2a910b23209191a9193559361c3dc3"
+    },
+    "mail.log": {
+      "sha256": "c2796009d17f4d387aa12262eba99abd92bd77006a61c76acb1789e1df8a2c69"
+    },
+    "proxy-download.log": {
+      "sha256": "81cf20ffb5258061cd2e79d3e02cdacae000358a6a7170dc3e448687b6aa5ad9"
+    },
+    "tls.log": {
+      "sha256": "4a05ca5ebebcdc5fcd85ac1591e619666b61c3dd288351cc4ba7f207264159c8"
+    },
+    "job-recovery.log": {
+      "sha256": "936ccdc6b4de610d6264548f102f66fc4c475616dca44e284fe199c90cd5511b"
+    },
+    "rollback.log": {
+      "sha256": "f6804e890ddf3b87c004e446dac7351e33a067a7c2cb055c209306357366d605"
+    },
+    "roll-forward.log": {
+      "sha256": "8d92622b4742c1ddd6d72e5de505ee1597496d3df589db32ff95896021b8d4d9"
+    },
+    "restore.log": {
+      "sha256": "9a24dff3007622258c08a4bb23f77fea41c43b9996730afcedf7c9707097e820"
+    },
+    "monitor.log": {
+      "sha256": "7d92214e2ae984f7c63d152f6780aa7d3be237c83314424cad14ef75045b47d3"
+    }
+  },
+  "notes": [
+    "One obsolete failed synthetic invitation was explicitly cancelled after diagnosis; its record and error retained, replacement invitation delivered through TLS Mailpit.",
+    "Flutter plugin files are shared build outputs; tests and signed builds were serialized after a concurrent generation failure."
+  ],
+  "restoredRepresentativeRecordsMatch": true
+}

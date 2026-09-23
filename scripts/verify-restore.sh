@@ -21,6 +21,13 @@ PY
 "${compose[@]}" exec -T postgres psql -U "$restore_owner" -d "$restore_database" -v ON_ERROR_STOP=1 -At > "$restore_media/references.jsonl" <<'SQL'
 SELECT json_build_object('path',path,'size',"processedSize"::text,'sha256',sha256) FROM "MediaAsset" WHERE status='ready';
 SQL
+# Older backup schemas predate thumbnails; keep their restore path valid.
+has_thumbnails=$("${compose[@]}" exec -T postgres psql -U "$restore_owner" -d "$restore_database" -At -c "SELECT EXISTS(SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='MediaAsset' AND column_name='thumbnailPath')" </dev/null)
+if [[ "$has_thumbnails" == t ]]; then
+  "${compose[@]}" exec -T postgres psql -U "$restore_owner" -d "$restore_database" -v ON_ERROR_STOP=1 -At >> "$restore_media/references.jsonl" <<'SQL'
+SELECT json_build_object('path',"thumbnailPath",'size',"thumbnailSize"::text,'sha256',"thumbnailSha256") FROM "MediaAsset" WHERE status='ready' AND "thumbnailPath" IS NOT NULL;
+SQL
+fi
 python3 - "$restore_media" <<'PYVERIFY'
 import sys,json,pathlib,hashlib,re
 root=pathlib.Path(sys.argv[1]);count=0

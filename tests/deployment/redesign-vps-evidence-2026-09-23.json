@@ -1,0 +1,123 @@
+{
+  "date": "2026-09-23",
+  "applicationCommit": "09217a6f06d220646b812fee7b4636f24cb7143a",
+  "apiUrl": "https://api.galylio.com",
+  "apiImage": "biobalance-api:09217a6",
+  "mediaImage": "biobalance-media:09217a6",
+  "httpProcesses": 4,
+  "healthyServices": 8,
+  "appliedMigrations": [
+    "202609230001_groups_reporting",
+    "202609230002_report_exports",
+    "202609230003_image_thumbnails",
+    "202609230004_reporting_indexes",
+    "202609230005_preserve_configured_zero_prices",
+    "202609230006_reporting_scope_plans"
+  ],
+  "reporting": {
+    "processedSales": 100,
+    "saleMismatches": 0,
+    "dayMismatches": 0,
+    "productMismatches": 0
+  },
+  "businessCountsAndStorePricesUnchanged": {
+    "sales": 100,
+    "users": 8,
+    "groups": 2,
+    "orders": 5,
+    "stores": 5,
+    "products": 51,
+    "pointsEntries": 115,
+    "stockMovements": 392,
+    "storePriceHash": "b269e0c3b8d89c6aa4350685592d1d52",
+    "restrictedManagers": 0
+  },
+  "catalog": {
+    "products": 51,
+    "barcodes": 39,
+    "missingBarcodes": 12,
+    "samplePrices": 7,
+    "verifiedInstructions": 36,
+    "verifiedPackageSizes": 27,
+    "processedThumbnails": 51
+  },
+  "backup": {
+    "path": "/srv/biobalance-backups/20260923T125348Z-541036d4",
+    "restoredDatabase": "biobalance_restore_1790168029_22341",
+    "verifiedMediaFiles": 104,
+    "storageMiB": 9.7,
+    "retentionBounded": true,
+    "restoreCopies": "Removed after checksum and record verification; managed backups retained"
+  },
+  "monitor": {
+    "failedJobs": 0,
+    "staleJobs": 0,
+    "overdueJobs": 0,
+    "https": "passed",
+    "originCertificate": "passed",
+    "backupTimer": "active",
+    "monitorTimer": "active",
+    "tlsTimer": "active"
+  },
+  "ci": {
+    "run": "https://github.com/haider0708/bio-balance-app/actions/runs/35861741970",
+    "backend": "success",
+    "android": "success",
+    "androidJourneys": "success",
+    "iosUnsigned": "success"
+  },
+  "logs": {
+    "rollout.log": "0ba11058ab973e19480d07e76457ec8d3148395207a5f0f5145100187c3efed4",
+    "backfill.log": "8f579e7fb5eade7678e5f87d7204b074d39d7f7f2d00fa57b66155704d70a986",
+    "catalog-final.log": "877db49a02786609672ddc9bbad2569d3cd5d62fa59a7a7c28a00d5a1b1a7408",
+    "thumbnails.log": "b8405dc053eb31d9a20abd03a3986f19c6e0f8fea586d3c90b3dd26eab65a374",
+    "postdeploy-restore.log": "08fb869f1e36639d40b8a64ecde9677cee336dc57508b57fe6034ef0b6773877",
+    "monitor.log": "db212d683e8e34adc956691997c7f49c980600aa18e0c790479c1f93367a95ba",
+    "image-load.log": "ef02e22d5e92f76aec764527340de2f56f1ac553dfaeecb73f5e77bc65ca07b8"
+  },
+  "httpSmoke": {
+    "groups": 2,
+    "stores": 5,
+    "network": {
+      "netMillimes": 9952500,
+      "netUnits": 225,
+      "saleCount": 100
+    },
+    "exactOrdersReadThreeTimes": 5,
+    "verifiedProductThumbnails": 51,
+    "exportedSales": 100,
+    "anonymousAccess": "denied"
+  },
+  "databaseSecurity": {
+    "status": "passed",
+    "identity": "biobalance_app",
+    "superuser": false,
+    "bypassRls": false,
+    "forcedRlsTables": [
+      "Alert",
+      "Announcement",
+      "Change",
+      "ContentSubmission",
+      "Delivery",
+      "DeliveryReceipt",
+      "InventoryLot",
+      "PointsAccount",
+      "PointsEntry",
+      "ProcessedOperation",
+      "ReplenishmentOrder",
+      "ReportExportRow",
+      "Reward",
+      "RewardClaim",
+      "Sale",
+      "SaleRevision",
+      "SalesContribution",
+      "SalesDay",
+      "SalesProductDay",
+      "StockMovement",
+      "StoreCursor",
+      "StoreProduct",
+      "SyncSnapshotPage"
+    ],
+    "note": "Store and membership directory authorization is enforced by authenticated server transactions; these metadata tables are not declared as RLS tables by the migrations."
+  }
+}

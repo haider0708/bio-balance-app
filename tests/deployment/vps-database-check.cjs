@@ -23,6 +23,11 @@ const db = new Database();
       expected.add(match[1]);
     }
   }
+  // The reporting migration creates these policies in a dynamic SQL loop.
+  // They must still be verified in the running database.
+  for (const name of ["SalesDay", "SalesProductDay", "SalesContribution"]) {
+    expected.add(name);
+  }
   assert(expected.size > 0);
   const [identity] = await db.$queryRawUnsafe(
     "SELECT current_user::text AS identity,rolsuper,rolbypassrls FROM pg_roles WHERE rolname=current_user",

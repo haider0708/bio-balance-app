@@ -92,3 +92,11 @@ La recette locale a testé l’ancien code `a8b4610` avec le packaging runtime c
 ## Limites de requêtes
 
 Les budgets compte partagés entre API, limites Nginx et réponses `Retry-After` sont décrits dans [security-hardening.md](security-hardening.md). Ne pas supprimer des commandes mobiles pour résoudre un HTTP 429. Corréler volumes, comptes et types de routes sans journaliser les tokens. Les API doivent rester inaccessibles directement depuis Internet.
+
+## Refonte du 23 septembre 2026
+
+Images applicatives `biobalance-api:09217a6` et `biobalance-media:09217a6`, six migrations additives et backfill `node dist/modules/reporting/backfill.js` via le service `migrate` avec la connexion propriétaire. Exécuter `migrate` avec l’entrée standard fermée lorsqu’il est appelé depuis un script SSH transmis sur stdin. Le backfill est reprenable et termine par une réconciliation indépendante.
+
+La configuration antérieure et l’environnement privé root sont conservés dans `/opt/biobalance/rollback-redesign-09217a6/`. Le rollback applicatif vers `2c89538` a été testé en laboratoire sur le schéma enrichi ; il ne rétablit pas les endpoints groupes/dashboards attendus par la candidate 1.1.0. Suspendre donc sa diffusion en cas de rollback, privilégier une correction compatible et ne jamais annuler les migrations ou restaurer une ancienne sauvegarde sur la base active pour un simple rollback applicatif.
+
+Les exports sont temporaires, expirent sous 24 h et utilisent un volume distinct ; ils sont recréables et exclus des sauvegardes métier. Les miniatures restent dans le volume média et leur taille/empreinte sont vérifiées par la recette de restauration. Après validation, supprimer uniquement la base et le dossier temporaires dont les noms exacts sont fournis par cette recette ; conserver les preuves et la sauvegarde gérée. Ne jamais supprimer de volume de production.
