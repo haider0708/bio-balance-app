@@ -40,3 +40,11 @@ Legacy v1/v2 queued envelopes and accepted results remain readable. An old zero-
 ## Execution still in progress
 
 Native Android role/restart journeys; additional uncertain-response and lifecycle/receipt screenshot checks; generated drift verification; commit/push/CI; immutable images and compatible VPS rollout; signed three-app installation; final quiesced backup/reset and exact post-reset counts. Final evidence and any unavailable platform checks must be stated explicitly. Physical iOS, public store publishing, off-server backup and HA are outside this update.
+
+## Final local checks
+
+Full Flutter rerun after presentation review: **267 passed**, analyzer clean. The notification list now includes group/store labels, and navigation captures the freshly authorized target without switching the originating workspace. Receipt discrepancies display expected/accepted/damaged/refused/surplus quantities; unresolved commitments are labelled as engaged quantities rather than incorrectly calling them all in transit.
+
+The native Android restart harness passed: force-stop/relaunch preserves the account, original outbox ID and payload; one accepted sale yields stock 7/version 3 and 30 points. A downloaded, integrity-verified H.264 training video plays offline on Android. Generated contract drift check passed. These are emulator results; they do not claim reference-device performance measurements.
+
+Implementation commit `505795b` contains the backend and migrations. Backend images were built from that commit; subsequent changes are mobile presentation and evidence only. CI run `35919781530` passed backend and iOS checks while Android checks continued. Final CI outcome, deployment and phone/reset results are recorded in the handover evidence.

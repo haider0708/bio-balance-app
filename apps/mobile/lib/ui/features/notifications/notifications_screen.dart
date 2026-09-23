@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../domain/models/models.dart';
+
 import 'notifications_view_model.dart';
 import '../dashboard/attention_screen.dart';
 import '../replenishment/scoped_order_screen.dart';
@@ -63,9 +65,21 @@ class _NotificationsScreenState extends State<NotificationsScreen>
         itemCount: inbox.items.length,
         itemBuilder: (context, index) {
           final n = inbox.items[index];
+          final location = widget.vm.state.stores
+              .where(
+                (s) =>
+                    s.id == n['storeId'] &&
+                    s.organizationId == n['organizationId'],
+              )
+              .firstOrNull;
+          final scope = location == null
+              ? (n['storeId'] == null
+                    ? 'BioBalance'
+                    : 'Magasin ${n['storeId'].toString().split('-').first}')
+              : '${location.organizationName} · ${location.name}';
           return CompactRow(
             title: n['title'],
-            subtitle: n['body'],
+            subtitle: '$scope\n${n['body']}',
             icon: n['readAt'] == null
                 ? AppIcons.notificationsActiveOutlined
                 : AppIcons.notificationsNone,
@@ -73,13 +87,17 @@ class _NotificationsScreenState extends State<NotificationsScreen>
               try {
                 final message = await widget.vm.openNotification(n['id']);
                 if (!context.mounted) return;
-                final store = widget.vm.state.stores
-                    .where(
-                      (s) =>
-                          s.id == message['storeId'] &&
-                          s.organizationId == message['organizationId'],
-                    )
-                    .firstOrNull;
+                final store = message['authorizedStore'] != null
+                    ? Store.fromJson(
+                        Map<String, dynamic>.from(message['authorizedStore']),
+                      )
+                    : widget.vm.state.stores
+                          .where(
+                            (s) =>
+                                s.id == message['storeId'] &&
+                                s.organizationId == message['organizationId'],
+                          )
+                          .firstOrNull;
                 if (store != null &&
                     message['targetType'] == 'order' &&
                     message['targetId'] != null) {
@@ -124,7 +142,7 @@ class _NotificationsScreenState extends State<NotificationsScreen>
                       title: Text(message['title']),
                       content: SingleChildScrollView(
                         child: Text(
-                          '${message['storeName'] ?? 'BioBalance'}\n\n${message['body']}',
+                          '${message['groupName'] ?? 'BioBalance'} · ${message['storeName'] ?? ''}\n\n${message['body']}',
                         ),
                       ),
                       actions: [

@@ -403,6 +403,8 @@ class WorkspaceViewModel extends ChangeNotifier {
       // Reading the inbox must not silently replace the operational workspace.
       // Navigation is owned by the scope coordinator, not by a notification read.
       message['storeName'] = target.name;
+      message['groupName'] = target.organizationName;
+      message['authorizedStore'] = target.toJson();
     }
     await inbox.read(id);
     return message;

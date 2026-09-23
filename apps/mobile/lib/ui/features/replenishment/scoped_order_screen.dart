@@ -492,7 +492,7 @@ class _ExactOrderScreenState extends State<ExactOrderScreen> {
                 CompactRow(
                   title: issue['reason'],
                   subtitle:
-                      '${statusLabel(issue['status'])} · ${TunisDates.timestampLabel(issue['createdAt'])}${issue['resolutionNote'] == null ? '' : '\n${issue['resolutionNote']}'}',
+                      '${statusLabel(issue['status'])} · ${TunisDates.timestampLabel(issue['createdAt'])}${objects(issue['heldLines']).map((l) => '\n${vm.productName(l['productId'])} : ${l['quantity']} unités à régler').join()}${issue['resolutionNote'] == null ? '' : '\n${issue['resolutionNote']}'}',
                   icon: AppIcons.infoOutline,
                   tone: issue['status'] == 'resolved'
                       ? AppTone.success
@@ -643,8 +643,24 @@ class _ExactOrderScreenState extends State<ExactOrderScreen> {
       if (units('refused') > 0) '${units('refused')} refusées',
     ].join(' · ');
     final note = receipt['differences']?['note']?.toString() ?? '';
+    final differences = objects(receipt['differences']?['lines'])
+        .where(
+          (l) =>
+              integer(l['expected']) != integer(l['actual']) ||
+              integer(l['damaged']) > 0 ||
+              integer(l['refused']) > 0 ||
+              integer(l['surplus']) > 0,
+        )
+        .map(
+          (l) =>
+              '${vm.productName(l['productId'])} : ${l['expected']} attendues, ${l['actual']} acceptées'
+              '${integer(l['damaged']) > 0 ? ', ${l['damaged']} abîmées' : ''}'
+              '${integer(l['refused']) > 0 ? ', ${l['refused']} refusées' : ''}'
+              '${integer(l['surplus']) > 0 ? ', ${l['surplus']} supplémentaires' : ''}',
+        )
+        .join('\n');
     return Text(
-      '$details · ${TunisDates.timestampLabel(receipt['createdAt'])}${note.isEmpty ? '' : '\n$note'}',
+      '$details · ${TunisDates.timestampLabel(receipt['createdAt'])}${differences.isEmpty ? '' : '\n$differences'}${note.isEmpty ? '' : '\n$note'}',
       style: const TextStyle(fontSize: 14, color: muted),
     );
   }

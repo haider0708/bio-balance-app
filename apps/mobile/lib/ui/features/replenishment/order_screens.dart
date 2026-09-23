@@ -57,7 +57,7 @@ class OrdersPage extends StatelessWidget {
       context,
       title: 'Préparer une livraison',
       description:
-          '${store.name}\n${remaining.lines.map((l) => '${vm.productName(l.productId)} : ${l.received} reçues, ${l.inTransit} en route, ${l.remainingToDispatch} à expédier').join('\n')}',
+          '${store.name}\n${remaining.lines.map((l) => '${vm.productName(l.productId)} : ${l.received} reçues, ${l.inTransit} engagées (en route ou à vérifier), ${l.remainingToDispatch} à expédier').join('\n')}',
       fields: lines
           .map(
             (l) => FieldSpec(
