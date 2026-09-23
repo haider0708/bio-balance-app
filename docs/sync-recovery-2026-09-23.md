@@ -28,3 +28,11 @@ Les résultats exécutés et l’identifiant de la candidate sont consignés dan
 La synchronisation automatique en arrière-plan demeure soumise aux limites du système mobile. La reprise fiable s’effectue lorsque l’application est ouverte et connectée. Un conflit métier exige une vérification explicite ; il ne doit pas être effacé pour faire disparaître le compteur.
 
 La reprise native Android réussit après arrêt forcé : identité et payload inchangés, une seule vente acceptée, stock 7 / version 3 et 30 points. Le même scénario vérifie le refus caméra, sa solution de recherche manuelle et la vidéo H.264 téléchargée lue sans réseau. Ce scénario émulateur ne constitue pas une mesure de performance physique.
+
+## Candidate installée sur Samsung
+
+Version **1.1.4+8**, APK/AAB signés depuis le commit propre `ef99ad3`. La signature et l’alignement des bibliothèques natives sont vérifiés. Mise à jour de 1.1.3+7 par installation conservant les données : UID, date de première installation et session administrateur inchangés.
+
+L’entrée masquée a été identifiée comme une réception en conflit pour le magasin de démonstration Plus El Ain. La production conservait déjà une réception de zéro unité, motif « test ». Après vérification sur le téléphone, l’entrée apparaît « Résolue — Données synchronisées conservées après vérification » dans l’historique, et la file indique « Tout est synchronisé », aucune opération restante pour le compte. L’agent n’a effacé aucune file et n’a modifié aucune donnée du serveur. Les paramètres ne proposent plus les sélecteurs redondants. Aucun crash ou exception non gérée observé dans le processus lors du contrôle.
+
+[Preuve de livraison](../tests/deployment/sync-recovery-evidence-2026-09-23.json). La CI du code est suivie séparément : backend, tests/build Android et compilation iOS réussis ; le job parcours Android a échoué pendant le téléchargement du SDK émulateur, avant de lancer les tests de l’application. La deuxième tentative du seul job parcours Android a été lancée et reste en cours au moment de la livraison. Les résultats figurent dans la preuve horodatée ; le parcours de reprise local sur Android a réussi.

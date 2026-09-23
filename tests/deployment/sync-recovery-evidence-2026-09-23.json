@@ -31,9 +31,99 @@
     "sync-native-restart.log": {
       "path": ".artifacts/sync-native-restart.log",
       "sha256": "e9562002fa557e565d70e3ffc7621ab0ba04508b3c867d1b6f6eeb5b06f81449"
+    },
+    "sync-signed-build.log": {
+      "path": ".artifacts/sync-signed-build.log",
+      "sha256": "7099fe06e0c5ac2540422b9f8d3fe1537ee9adfc0f2f4adec68669b3e1a77f95"
+    },
+    "sync-samsung-before.txt": {
+      "path": ".artifacts/sync-samsung-before.txt",
+      "sha256": "22dc6eac1fd86378fe205534fb41fe8e6515b5516339562bdfc8f1a2b210539f"
+    },
+    "sync-samsung-after.txt": {
+      "path": ".artifacts/sync-samsung-after.txt",
+      "sha256": "7a3fcdefad03f0c044255c54c936d65ffc15801954ae57e4d14b356344db67e7"
+    },
+    "sync-samsung-install.log": {
+      "path": ".artifacts/sync-samsung-install.log",
+      "sha256": "781a31c82430c97897af612ece5e0ca2205e301cb5ff121ce2660541ea5182c7"
+    },
+    "sync-samsung-final.xml": {
+      "path": ".artifacts/sync-samsung-final.xml",
+      "sha256": "fd5e6129e305495647c32a729497a2b1a3e981b0ea97bc961341494f5e9a6549"
+    },
+    "sync-samsung-history.xml": {
+      "path": ".artifacts/sync-samsung-history.xml",
+      "sha256": "705c513ca9238a60a26a28cd68f8ebc513029c99fc66aa00ec9b340e0578cd05"
+    },
+    "sync-samsung-settings.xml": {
+      "path": ".artifacts/sync-samsung-settings.xml",
+      "sha256": "25ff0d19be908add648c682e79dfc6d59d32f937cfe539bd0692e9a0b37c5483"
+    },
+    "sync-samsung-errors.log": {
+      "path": ".artifacts/sync-samsung-errors.log",
+      "sha256": "23264b07a4855d9dfd4b5afdf1dcc1a1df1dc0e21dd9eb220562e72546445938"
     }
   },
-  "androidBuild": null,
-  "samsungVerification": "pending",
-  "ci": "pending"
+  "androidBuild": {
+    "directory": ".artifacts/releases/builds/20260923T163407Z-android-signed",
+    "version": "1.1.4+8",
+    "sourceClean": true,
+    "apkSha256": "f06ab5045861bc1644998e85f11c9cf4b4d28f7723cf134cea54e07141bcb5b7",
+    "aabSha256": "c3bdd1678e7e2e4e7c5dc8476bcf9b60d4883807cd1d478b29ebec15669b2f9d",
+    "signatureVerified": true,
+    "nativeAlignment16KiB": "passed"
+  },
+  "samsungVerification": {
+    "model": "SM-G975F",
+    "versionBefore": "1.1.3+7",
+    "versionAfter": "1.1.4+8",
+    "install": "adb install -r --no-incremental: Success",
+    "appUidBefore": 10358,
+    "appUidAfter": 10358,
+    "firstInstallTimePreserved": "2026-09-22 15:20:11",
+    "administratorSessionPreserved": true,
+    "finalSyncStatus": "Tout est synchronisé",
+    "remainingOperations": 0,
+    "history": "Rejected delivery reception observed as Résolue; server data retained. No outbox deletion or database write was performed by the agent.",
+    "duplicateSettingsSelectorsRemoved": true,
+    "fatalOrUnhandledErrors": 0
+  },
+  "ci": {
+    "runId": 35889639496,
+    "url": "https://github.com/haider0708/bio-balance-app/actions/runs/35889639496",
+    "observedAt": "2026-09-23T16:48:05.813607+00:00",
+    "jobs": [
+      {
+        "conclusion": "failure",
+        "name": "android-journeys",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "backend",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "android",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "ios",
+        "status": "completed"
+      }
+    ],
+    "emulatorInfrastructureFailure": "SDK Android Emulator download: Error on ZipFile unknown archive. Before app tests.",
+    "retry": {
+      "conclusion": null,
+      "head_sha": "ef99ad3401893e94e64d5c976e8b596424fae89f",
+      "html_url": "https://github.com/haider0708/bio-balance-app/actions/runs/35889639496",
+      "id": 35889639496,
+      "run_attempt": 2,
+      "status": "in_progress"
+    }
+  },
+  "sourceCommit": "ef99ad3401893e94e64d5c976e8b596424fae89f"
 }
