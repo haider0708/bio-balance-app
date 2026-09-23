@@ -61,3 +61,7 @@ Pour activer les liens, ajouter le champ public optionnel `AUTH_LINK_HOST` au JS
 Servir sur l’hôte détenu, sans redirection, les fichiers `/.well-known/assetlinks.json` (package `tn.biobalance.app`, SHA-256 du certificat de signature effectivement distribué) et `/.well-known/apple-app-site-association` (identifiant `TEAM_ID.tn.biobalance.app`, chemins `/activate` et `/recover`). Les modèles sont dans `config/account-links/`. Remplacer les valeurs exemples seulement avec les identités réelles ; ne pas publier les modèles. Ajouter une page de secours sans analytics, ressources tierces ou transfert de query, invitant à saisir le code du mail lorsque l’application n’est pas installée.
 
 Vérifier l’association sur les appareils Android/iOS signés, y compris une installation concurrente déclarant un schéma privé, les liens expirés et une session déjà ouverte. La saisie manuelle reste disponible. Une configuration seule ne prouve pas que l’OS a vérifié le domaine.
+
+## Installations privées pour tester les trois rôles
+
+Le champ optionnel `ANDROID_INSTALLATION` accepte `admin`, `responsable` ou `vendeur`, uniquement pour Android. Sans ce champ, l’identité de production habituelle est inchangée. Voir [le guide de test manuel](manual-role-testing.md) pour les packages, comptes et configurations. Ces variantes n’ajoutent aucune permission et ne préremplissent aucun compte.

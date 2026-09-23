@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'session_view_model.dart';
 import '../../core/design.dart';
 import '../../core/recovery_code_field.dart';
+import '../../core/installation.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -40,8 +41,8 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
             const SizedBox(height: 24),
             const SectionTitle(
-              'Connexion',
-              subtitle: 'Accédez à votre espace BioBalance',
+              Installation.variant == '' ? 'Connexion' : Installation.label,
+              subtitle: Installation.loginHint,
             ),
             if (vm.state.error != null) ...[
               Notice(vm.state.error!, error: true),

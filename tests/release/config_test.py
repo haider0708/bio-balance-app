@@ -19,6 +19,13 @@ class BuildConfigTest(unittest.TestCase):
         with self.assertRaises(ValueError): module.validate(self.config,'compile-only','android')
         value={k:'' for k in module.FIELDS};value['API_BASE_URL']='https://api.example.invalid'
         module.validate(value,'compile-only','android')
+    def test_private_installations_are_explicit_and_android_only(self):
+        for installation in ['admin','responsable','vendeur']:
+            value = {**self.config,'ANDROID_INSTALLATION':installation}
+            module.validate(value,'signed','android')
+            with self.assertRaises(ValueError): module.validate(value,'signed','ios')
+        with self.assertRaises(ValueError):
+            module.validate({**self.config,'ANDROID_INSTALLATION':'arbitrary.package'},'signed','android')
 if __name__ == '__main__': unittest.main()
 
 class BuildToolchainPolicyTest(unittest.TestCase):

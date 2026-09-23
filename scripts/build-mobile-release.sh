@@ -80,7 +80,13 @@ cp "$config" "$output/public-mobile-config.json"
 if [[ "$platform" == android ]]; then
   sdk=${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}
   [[ -n "$sdk" ]] || { echo 'ANDROID_HOME is required to verify the APK signature' >&2; exit 1; }
-  python3 scripts/verify-android-binary.py "$output/biobalance-$mode.apk" "$sdk" > "$output/native-alignment.txt"
+  application_id=$(python3 - "$config" <<'PYID'
+import json,sys
+installation=json.load(open(sys.argv[1])).get('ANDROID_INSTALLATION','')
+print('tn.biobalance.app'+('.'+installation if installation in {'responsable','vendeur'} else ''))
+PYID
+)
+  python3 scripts/verify-android-binary.py "$output/biobalance-$mode.apk" "$sdk" "$application_id" > "$output/native-alignment.txt"
   apksigner=$(find "$sdk/build-tools" -name apksigner -type f | sort -V | tail -n 1)
   if [[ "$mode" == signed ]]; then
     python3 scripts/verify-android-signer.py apk "$output/biobalance-signed.apk" "$apksigner" "$BIOBALANCE_CERT_SHA256" > "$output/apk-signature.txt"

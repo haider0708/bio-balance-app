@@ -8,6 +8,9 @@ import tempfile
 import zipfile
 
 apk, sdk = pathlib.Path(sys.argv[1]).resolve(), pathlib.Path(sys.argv[2]).resolve()
+application_id = sys.argv[3] if len(sys.argv) > 3 else 'tn.biobalance.app'
+if application_id not in {'tn.biobalance.app', 'tn.biobalance.app.responsable', 'tn.biobalance.app.vendeur'}:
+    sys.exit('Unsupported Android application ID')
 readers = sorted(sdk.glob('ndk/*/toolchains/llvm/prebuilt/*/bin/llvm-readelf'))
 if not readers:
     sys.exit('Install the pinned Android NDK before verifying native alignment')
@@ -17,7 +20,7 @@ if not aligners:
 subprocess.run([str(aligners[-1]), '-c', '-P', '16', '4', str(apk)], check=True)
 aapt = sorted(sdk.glob('build-tools/*/aapt2'))[-1]
 manifest = subprocess.check_output([str(aapt), 'dump', 'xmltree', str(apk), '--file', 'AndroidManifest.xml'], text=True)
-if 'A: package="tn.biobalance.app"' not in manifest:
+if f'A: package="{application_id}"' not in manifest:
     sys.exit('Unexpected Android application ID')
 for attribute in ['allowBackup', 'usesCleartextTraffic']:
     if not re.search(r':'+attribute+r'\([^)]*\)=false', manifest):

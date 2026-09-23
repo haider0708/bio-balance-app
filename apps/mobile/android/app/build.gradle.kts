@@ -17,13 +17,27 @@ android {
     }
 
     defaultConfig {
-        applicationId = "tn.biobalance.app"
         val defines = (project.findProperty("dart-defines") as? String).orEmpty()
             .split(",").filter { it.isNotEmpty() }
             .map { String(Base64.getDecoder().decode(it)) }
+        // Independent private installations share code and signing, never permissions.
+        val installation = defines.firstOrNull { it.startsWith("ANDROID_INSTALLATION=") }
+            ?.substringAfter("=").orEmpty()
+        val identity = when (installation) {
+            "" -> "tn.biobalance.app" to "BioBalance"
+            "admin" -> "tn.biobalance.app" to "BioBalance Admin"
+            "responsable" -> "tn.biobalance.app.responsable" to "BioBalance Responsable"
+            "vendeur" -> "tn.biobalance.app.vendeur" to "BioBalance Vendeur"
+            else -> error("Unsupported Android installation")
+        }
+        applicationId = identity.first
+        manifestPlaceholders["appLabel"] = identity.second
         val authLinkHost = defines.firstOrNull { it.startsWith("AUTH_LINK_HOST=") }?.substringAfter("=").orEmpty()
         require(authLinkHost.isEmpty() || Regex("[a-z0-9]+(?:[a-z0-9.-]*[a-z0-9])?").matches(authLinkHost)) { "AUTH_LINK_HOST must be a DNS name" }
-        manifestPlaceholders["authLinkHost"] = authLinkHost.ifEmpty { "account-links.invalid" }
+        // Only the main installation handles verified links. Private copies use
+        // manual invitation/recovery codes, without competing for the same URL.
+        manifestPlaceholders["authLinkHost"] = if (installation in listOf("responsable", "vendeur"))
+            "account-links.invalid" else authLinkHost.ifEmpty { "account-links.invalid" }
 
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.

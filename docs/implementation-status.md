@@ -468,3 +468,11 @@ La configuration uniforme passe la qualification complète : **35 999 requêtes*
 ## 23 septembre — retour utilisateur sur Samsung, 1.1.1+5
 
 [Suivi de correction](phone-feedback-2026-09-23.md) : récupération courte et retour connexion, un sélecteur de groupe, retour Android, formulaires, cache photos, commandes par étape, magasin/vendeur dans les ventes, invitations uniques et affectation multiple des vendeurs. Données installées et contrats antérieurs conservés ; résultats de livraison dans ce suivi.
+
+## 2026-09-23 — Installations indépendantes et remise à zéro pour essai manuel
+
+À la demande du propriétaire, ajout des configurations Android Admin / Responsable / Vendeur (v1.1.5+9), avec identifiants, stockage et sessions séparés. Même code métier, mêmes contrôles serveur et mêmes certificats de signature ; aucun privilège ni compte de test intégré. Guide : `docs/manual-role-testing.md`.
+
+Préparation de la remise à zéro limitée à BioBalance : sauvegarde complète, restauration isolée avec 104 fichiers média vérifiés, répétition du script transactionnel et refus vérifié d’une mauvaise confirmation ou d’un nombre de produits inattendu. Les 51 produits, leurs 51 médias et l’administrateur existant sont préservés exactement ; sessions et données de démonstration sont retirées. Les contrôles d’immutabilité et les migrations restent actifs. Une trace de maintenance identifie la sauvegarde.
+
+Validation du code : analyse Flutter sans anomalie ; 252 tests Flutter réussis, 4 tests dépendants de fixtures ignorés ; 38 tests Python de release réussis. Installation des trois APK et vérification finale VPS : preuves de livraison à compléter après signature.

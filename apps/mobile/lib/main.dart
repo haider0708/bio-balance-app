@@ -13,6 +13,7 @@ import 'data/services/notifications/push_notifications.dart';
 import 'data/services/local_database/database.dart';
 import 'data/repositories/offline_repository.dart';
 import 'ui/core/design.dart';
+import 'ui/core/installation.dart';
 import 'ui/features/authentication/session_view_model.dart';
 import 'ui/features/authentication/login_screen.dart';
 import 'ui/features/authentication/account_links.dart';
@@ -71,7 +72,7 @@ class BioBalanceApp extends StatelessWidget {
       notifications: PushNotifications(api),
     )..restore(),
     child: MaterialApp(
-      title: 'BioBalance',
+      title: Installation.label,
       navigatorKey: navigator,
       builder: (context, child) =>
           AccountLinks(navigator: navigator, child: child!),

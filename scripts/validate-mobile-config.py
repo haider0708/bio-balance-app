@@ -11,8 +11,13 @@ FIELDS = {'API_BASE_URL'}
 def validate(config, mode, platform):
     if mode not in {'compile-only', 'signed'} or platform not in {'android', 'ios'}:
         raise ValueError('Use compile-only|signed and android|ios')
-    if not FIELDS <= set(config) or set(config) - FIELDS - {'AUTH_LINK_HOST'} or any(not isinstance(v, str) for v in config.values()):
+    if not FIELDS <= set(config) or set(config) - FIELDS - {'AUTH_LINK_HOST', 'ANDROID_INSTALLATION'} or any(not isinstance(v, str) for v in config.values()):
         raise ValueError('Exactly the documented public mobile configuration fields are required')
+    installation = config.get('ANDROID_INSTALLATION', '')
+    if installation not in {'', 'admin', 'responsable', 'vendeur'}:
+        raise ValueError('Unsupported Android installation')
+    if platform != 'android' and installation:
+        raise ValueError('Private Android installations cannot be used for iOS')
     host = config.get('AUTH_LINK_HOST', '')
     if host and (not re.fullmatch(r'[a-z0-9]+(?:[a-z0-9.-]*[a-z0-9])?',host) or '.' not in host or host.endswith(('.invalid','.test','.local'))):
         raise ValueError('AUTH_LINK_HOST must be an owned public DNS name')
