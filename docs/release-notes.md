@@ -4,7 +4,7 @@ Codes de récupération courts, retour automatique à la connexion, navigation g
 
 Les commandes se répartissent en préparation, expédition/réception et terminées, avec détail des quantités et des livraisons. Les invitations sont uniques par personne/groupe ; les responsables ont un accès de groupe et les vendeurs une sélection explicite de magasins.
 
-Pas de migration de données. Les signatures Android existantes sont conservées, avec code de version 5. [Corrections, compatibilité et preuves](phone-feedback-2026-09-23.md).
+Backend `a9fd576` déployé, huit services sains ; version 1.1.1+5 installée et ouverte sur le Samsung. Pas de migration ni effacement de données. Les signatures Android existantes sont conservées, avec code de version 5. [Corrections, compatibilité et preuves](phone-feedback-2026-09-23.md).
 
 ---
 

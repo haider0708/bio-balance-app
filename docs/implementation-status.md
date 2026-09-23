@@ -1,6 +1,8 @@
 # État de l’implémentation — 23 septembre 2026
 
-La refonte réseau/groupe/magasin et des tableaux de bord est implémentée. Le [registre du 23 septembre](redesign-2026-09-23.md) décrit le comportement, les migrations, les captures et les résultats courants ; il remplace les descriptions de navigation et exports ci-dessous. Le backend `09217a6` est déployé ; une candidate Android 1.1.0+4 est signée. Les quatre jobs CI passent. L’installation Samsung attend sa connexion ; les seuils du pic de charge et les mesures physiques restent ouverts. Les entrées du 22 septembre restent l’historique de la précédente version.
+Les [corrections après essai Samsung](phone-feedback-2026-09-23.md) sont déployées : backend `a9fd576`, APK Android 1.1.1+5 signé et installé sur le Samsung sans effacement des données. Code de récupération à huit caractères, formulaires, retour Android, sélecteur de groupe unique, commandes, photos et invitations ont leurs régressions vérifiées. Résultats : 105 tests backend, 220 tests Flutter, contrats HTTP et parcours Android locaux réussis. Les preuves de déploiement, restauration, conservation des données et installation sont liées au registre ; la CI distante distingue ses jobs terminés et encore en cours.
+
+Le [registre de refonte](redesign-2026-09-23.md) conserve le détail des migrations, tableaux de bord et essais de charge. Les seuils du pic de charge, la qualification physique complète et le pilote restent ouverts. Les entrées du 22 septembre ci-dessous sont historiques.
 
 # Historique — 22 septembre 2026
 
