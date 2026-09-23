@@ -1,0 +1,84 @@
+{
+  "recordedUtc": "2026-09-23T16:09:08.274230+00:00",
+  "version": "1.1.3+7",
+  "sourceCommit": "cd867b232feea985c8858a17427d6dfc9a941eb0",
+  "backendChanged": false,
+  "migrationRequired": false,
+  "localValidation": {
+    "flutterAnalysis": "passed without diagnostics",
+    "flutterTests": {
+      "passed": 239,
+      "fixtureDependentSkipped": 4,
+      "newExplorationTests": 8
+    },
+    "scopeRegression": "Reproduced incorrect s2 history from the s1 chart before the fix; corrected original store, group, title and date pass.",
+    "logSha256": {
+      "chart-refinement-analyze.log": "5cd23c954dc24d3e386dcc5efcabddd0cb01115f806e23564ae79837574b8728",
+      "chart-refinement-full-tests.log": "97a9152860c7f71c80652584fa1361285669aa2df1b2127c17d60a3e473ce77e",
+      "chart-refinement-scope-regression-before.log": "fa96dec4180c0a3c0e8733fa5f10ab7027e8933ad194cfda39eb1d7bef79aa6d"
+    },
+    "manuallyReviewedScreenshots": [
+      "interactive-sales-chart.png",
+      "interactive-sales-chart-short.png",
+      "interactive-sales-chart-expanded.png"
+    ]
+  },
+  "signedAndroid": {
+    "cleanSource": true,
+    "directory": ".artifacts/releases/builds/20260923T160054Z-android-signed",
+    "apkSha256": "109e033614bb5c7f0122433ae26621d5e4eefeda3ee24283ed643be7c2ee953f",
+    "aabSha256": "5de9099221b5637c343c736a7286c25388e5c0638514d2192cdbc4bf42c490a4",
+    "manifestSha256": "b0853fc4779e709519930b9fce2e47b23d970e035362fcbbaaa0afa0acb1de70",
+    "checks": "App and upload certificates match existing identities; release policy, native 16 KiB and ZIP alignment checks passed."
+  },
+  "samsung": {
+    "model": "SM-G975F",
+    "update": "1.1.2+6 to 1.1.3+7 using adb install -r --no-incremental",
+    "sameUidAndFirstInstallation": true,
+    "launch": "Status ok; authenticated admin network dashboard with synchronized data",
+    "observedControls": [
+      "Montant",
+      "Unités",
+      "Ventes",
+      "Agrandir le graphique",
+      "Jour précédent",
+      "Jour suivant"
+    ],
+    "interactionLimit": "Workspace changed during the interaction check; further remote taps stopped. Expanded-view and metric behavior is verified by widget tests; a complete physical interaction journey is not claimed.",
+    "fatalOrUnhandledAppErrors": 0
+  },
+  "ci": {
+    "runId": 35885738012,
+    "url": "https://github.com/haider0708/bio-balance-app/actions/runs/35885738012",
+    "snapshot": {
+      "conclusion": "",
+      "jobs": [
+        {
+          "conclusion": "success",
+          "name": "ios",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "backend",
+          "status": "completed"
+        },
+        {
+          "conclusion": "",
+          "name": "android-journeys",
+          "status": "in_progress"
+        },
+        {
+          "conclusion": "",
+          "name": "android",
+          "status": "in_progress"
+        }
+      ],
+      "status": "in_progress"
+    }
+  },
+  "limitations": [
+    "Full physical performance and accessibility qualification was not rerun.",
+    "Running CI jobs in the snapshot remain pending, not passed."
+  ]
+}

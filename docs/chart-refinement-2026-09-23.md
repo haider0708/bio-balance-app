@@ -24,4 +24,17 @@ Huit scénarios ajoutés couvrent les mesures et la moyenne avec jours nuls, le 
 
 La revue visuelle a corrigé un symbole de légende absent de la police, réduit la hauteur des commandes en paysage et réservé de la place à la bulle pour qu’elle ne masque pas le point sélectionné. Les captures utilisent des données synthétiques identifiées dans les tests ; elles ne représentent pas une nouvelle saisie commerciale.
 
-Analyse Flutter sans diagnostic ; suite complète : **239 tests réussis**, quatre scénarios à fixtures restent ignorés dans la commande générique. Aucun tap de test manqué. La régression de périmètre a d’abord échoué (Sousse au lieu de Tunis), puis réussi après correction. Journaux locaux : `.artifacts/chart-refinement-analyze.log`, `.artifacts/chart-refinement-full-tests.log` et `.artifacts/chart-refinement-scope-regression-before.log`. Le commit, les signatures et l’installation sont enregistrés après livraison. Les tests physiques de performance Android 4 Go et la qualification iOS restent distincts de cette mise à jour.
+Analyse Flutter sans diagnostic ; suite complète : **239 tests réussis**, quatre scénarios à fixtures restent ignorés dans la commande générique. Aucun tap de test manqué. La régression de périmètre a d’abord échoué (Sousse au lieu de Tunis), puis réussi après correction. Journaux locaux : `.artifacts/chart-refinement-analyze.log`, `.artifacts/chart-refinement-full-tests.log` et `.artifacts/chart-refinement-scope-regression-before.log`. Le code livré est `cd867b232feea985c8858a17427d6dfc9a941eb0`, poussé sur `codex/biobalance-app`. Les tests physiques de performance Android 4 Go et la qualification iOS restent distincts de cette mise à jour.
+
+
+## Livraison Android
+
+APK et AAB signés depuis le commit propre `cd867b2`. Les certificats existants, le manifeste de release, l’alignement ZIP/natif 16 Kio et l’absence de DWARF dans les bibliothèques distribuées sont vérifiés.
+
+Mise à jour **1.1.2+6 → 1.1.3+7** installée sur Samsung SM-G975F sans désinstallation ni effacement. UID et date de première installation conservés. Démarrage réussi avec la session administrateur existante et données synchronisées ; les commandes montant/unités/ventes et agrandissement sont présentes. Le périmètre affiché ayant changé pendant l’essai, les taps distants ont été arrêtés ; le parcours interactif complet sur appareil n’est pas revendiqué. Aucun crash ni exception non gérée relevé dans le processus.
+
+APK SHA-256 : `109e033614bb5c7f0122433ae26621d5e4eefeda3ee24283ed643be7c2ee953f`.
+
+AAB SHA-256 : `5de9099221b5637c343c736a7286c25388e5c0638514d2192cdbc4bf42c490a4`.
+
+[Preuves détaillées](../tests/deployment/chart-refinement-evidence-2026-09-23.json). [CI de cette mise à jour](https://github.com/haider0708/bio-balance-app/actions/runs/35885738012) : résultats constatés dans la preuve horodatée ; les jobs encore en cours restent en attente. La CI de la version précédente `35881790786` est désormais entièrement réussie.
