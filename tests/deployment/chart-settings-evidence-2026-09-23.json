@@ -1,0 +1,114 @@
+{
+  "recordedUtc": "2026-09-23T15:37:21.609233+00:00",
+  "sourceCommit": "95ceaa6f4d31fe629e757c18e2fc511d556f4a55",
+  "version": "1.1.2+6",
+  "backend": {
+    "changed": false,
+    "compatibleCommit": "a9fd5761295e14d42d03b13c984187fa05019adb",
+    "migrationRequired": false
+  },
+  "validation": {
+    "flutterAnalysis": "passed; no issues",
+    "flutterTests": {
+      "passed": 231,
+      "fixtureDependentSkipped": 4,
+      "newChartSettingsTests": 11
+    },
+    "androidRoleJourneys": "passed on emulator with isolated HTTP and PostgreSQL",
+    "androidRecovery": {
+      "result": "passed",
+      "checks": [
+        "actual force-stop",
+        "original account and outbox ID/payload preserved",
+        "exactly one accepted sale",
+        "stock 7, version 3, points 30",
+        "camera-denial manual fallback",
+        "verified downloaded H.264 playback offline"
+      ]
+    },
+    "testLogHashes": {
+      "chart-settings-analyze-final.log": {
+        "bytes": 828,
+        "sha256": "d900ce1f750bad0efea5a87a2813936a0f709bfdd55fa1f5242097b6cdd0b04f"
+      },
+      "chart-settings-tests-final.log": {
+        "bytes": 38882,
+        "sha256": "e1a0129b57719c60cad357204c93dc617acd050ae19c8bc880f6638d91c2404d"
+      },
+      "chart-settings-journeys.log": {
+        "bytes": 105882,
+        "sha256": "cfdc0d46299d8c6badaf7d36042cf6f06362e26873d5ffd137a42837f64281c8"
+      },
+      "chart-settings-restart.log": {
+        "bytes": 53417,
+        "sha256": "06a1c110f5a063f1d65cc8304ab891110d285a247c2f158157fd1a4dbb6055d4"
+      }
+    },
+    "manualVisualReview": [
+      "interactive-sales-chart.png",
+      "settings-network.png",
+      "settings-store.png"
+    ],
+    "physicalQualification": "This Samsung interaction check is not a full startup, memory, accessibility or frame-budget qualification."
+  },
+  "androidBuild": {
+    "sourceClean": true,
+    "manifestSha256": "4f3179d27d22601b50fc1d6947bde24ef03af6dcc41a160da93461be52707c85",
+    "apkSha256": "edacedc871718af6fea85cac2087b79411257088845b76fbf55a637dd5fd2c4d",
+    "aabSha256": "971dafca7ed88aeda41249dc4cdcba7f851e687b4959e1139bc9c8180dddf0ab",
+    "signatureVerification": "APK matches existing app certificate; AAB matches upload certificate",
+    "nativePolicyChecks": "passed: application ID, no Android backups, no cleartext/debugging, 16 KiB alignment, no embedded DWARF in packaged libraries",
+    "localArtifactDirectory": ".artifacts/releases/builds/20260923T152822Z-android-signed"
+  },
+  "samsung": {
+    "model": "SM-G975F",
+    "previousVersion": "1.1.1+5",
+    "installedVersion": "1.1.2+6",
+    "install": "adb install -r --no-incremental; Success",
+    "sameUidAndFirstInstallTime": true,
+    "launch": "Status ok; existing authenticated admin session opened the synchronized network dashboard",
+    "interactionChecks": [
+      "previous-day control: 20/09 to 19/09, exact values changed",
+      "touching plot selected 12/09, zero sales correctly shown",
+      "daily sales opened with network scope and 12/09 to 12/09 filter",
+      "Android Back preserved selected day and dashboard position",
+      "top gear opened Paramètres et gestion with store chooser and administration/account controls"
+    ],
+    "fatalOrUnhandledErrorsInAppProcess": 0,
+    "screenshot": "Production screenshot capture returned no image; release protection was not weakened. Visual review uses the maintained Flutter captures."
+  },
+  "ci": {
+    "runId": 35881790786,
+    "url": "https://github.com/haider0708/bio-balance-app/actions/runs/35881790786",
+    "snapshot": {
+      "conclusion": "",
+      "jobs": [
+        {
+          "conclusion": "success",
+          "name": "backend",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "ios",
+          "status": "completed"
+        },
+        {
+          "conclusion": "",
+          "name": "android",
+          "status": "in_progress"
+        },
+        {
+          "conclusion": "",
+          "name": "android-journeys",
+          "status": "in_progress"
+        }
+      ],
+      "status": "in_progress"
+    }
+  },
+  "limitations": [
+    "Remote CI jobs still running in this snapshot are pending, not passed.",
+    "Signed iOS, full physical qualification and pilot acceptance remain outside this UI update."
+  ]
+}

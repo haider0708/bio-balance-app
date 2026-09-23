@@ -32,8 +32,18 @@ Résultats locaux sur le code de cette mise à jour :
 | Caméra refusée et média hors ligne | Saisie manuelle disponible ; vidéo H.264 vérifiée puis lue hors ligne |
 | Revue visuelle | Graphique et paramètres réseau/magasin revus ; portraits, paysage et texte à 200 % couverts par les régressions |
 
-Journaux locaux : `.artifacts/chart-settings-analyze-final.log`, `.artifacts/chart-settings-tests-final.log`, `.artifacts/chart-settings-journeys.log`, `.artifacts/chart-settings-restart.log`. Les captures sont répertoriées dans [l’inventaire](screenshot-inventory-2026-09-23.md). Aucun test backend existant n’est revendiqué comme réexécuté pour cette modification exclusivement mobile. La qualification complète des performances physiques et iOS reste distincte de ces résultats.
+Journaux locaux : `.artifacts/chart-settings-analyze-final.log`, `.artifacts/chart-settings-tests-final.log`, `.artifacts/chart-settings-journeys.log`, `.artifacts/chart-settings-restart.log`. Les captures sont répertoriées dans [l’inventaire](screenshot-inventory-2026-09-23.md). Les suites backend n’ont pas été réexécutées localement pour cette modification exclusivement mobile ; les résultats de la CI sont reportés séparément. La qualification complète des performances physiques et iOS reste distincte de ces résultats.
 
-La compilation signée, l’installation Samsung et le statut de la nouvelle CI sont enregistrés après livraison.
+## Livraison
+
+Code poussé : `95ceaa6f4d31fe629e757c18e2fc511d556f4a55`. APK et AAB signés produits depuis ce commit propre, sans migration ni redéploiement backend. Signature d’application conservée pour l’APK ; signature d’upload distincte vérifiée pour l’AAB. Les contrôles du manifeste, de l’alignement natif 16 Kio et de l’absence de DWARF dans les bibliothèques distribuées ont réussi.
+
+La mise à jour 1.1.1+5 → **1.1.2+6** est installée sur le Samsung SM-G975F avec `install -r`, sans désinstallation ni effacement. UID et date de première installation conservés. L’application a ouvert le tableau de bord réseau synchronisé avec la session administrateur existante. Vérifications sur ce téléphone : sélection du jour par flèche et toucher du graphique, détail exact, ouverture de l’historique au jour choisi, retour Android conservant la sélection, accès au menu « Paramètres et gestion ». Aucun crash ou exception non gérée relevé dans ce processus. Ces essais ne constituent pas une qualification complète des performances physiques.
+
+APK SHA-256 : `edacedc871718af6fea85cac2087b79411257088845b76fbf55a637dd5fd2c4d`.
+
+AAB SHA-256 : `971dafca7ed88aeda41249dc4cdcba7f851e687b4959e1139bc9c8180dddf0ab`.
+
+[Preuves et empreintes](../tests/deployment/chart-settings-evidence-2026-09-23.json). [CI du code livré](https://github.com/haider0708/bio-balance-app/actions/runs/35881790786) : backend et compilation iOS non signée réussis au relevé ; jobs Android et parcours Android encore en cours, donc non comptés comme réussis.
 
 L’exécution CI précédente `35875356803` a terminé ses parcours de rôles avec succès, puis échoué avant le test de redémarrage : ce harnais cherchait encore l’ancien libellé du lot. Il utilise désormais la clé stable `sale.lot.OPENING`. Cet échec n’est pas présenté comme un test de reprise réussi.
