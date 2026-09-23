@@ -193,6 +193,19 @@ const Map<String, Map<String, dynamic>> _schemas = {
       "id": {"type": "string", "format": "uuid"},
       "name": {"type": "string"},
       "createdAt": {"type": "string", "format": "date-time"},
+      "imageId": {
+        "anyOf": [
+          {"type": "string", "format": "uuid"},
+          {"type": "null"},
+        ],
+      },
+      "phone": {
+        "anyOf": [
+          {"type": "string"},
+          {"type": "null"},
+        ],
+      },
+      "version": {"type": "integer"},
     },
     "required": ["id", "name", "createdAt"],
     "additionalProperties": false,
@@ -387,6 +400,23 @@ const Map<String, Map<String, dynamic>> _schemas = {
       "active": {"type": "boolean"},
       "version": {"type": "integer"},
       "updatedAt": {"type": "string", "format": "date-time"},
+      "category": {"type": "string"},
+      "range": {"type": "string"},
+      "packageSize": {"type": "string"},
+      "instructions": {"type": "string"},
+      "ingredients": {"type": "string"},
+      "precautions": {"type": "string"},
+      "referencePriceMillimes": {
+        "anyOf": [
+          {"type": "string", "pattern": "^-?[0-9]+\$"},
+          {"type": "null"},
+        ],
+      },
+      "priceStatus": {"type": "string"},
+      "sourceUrls": {
+        "type": "array",
+        "items": {"type": "string"},
+      },
     },
     "required": [
       "id",
@@ -414,6 +444,7 @@ const Map<String, Map<String, dynamic>> _schemas = {
       "pointsConfigured": {"type": "boolean"},
       "zeroPointsConfirmed": {"type": "boolean"},
       "version": {"type": "integer"},
+      "priceConfigured": {"type": "boolean"},
     },
     "required": [
       "id",
@@ -1611,6 +1642,338 @@ const Map<String, Map<String, dynamic>> _schemas = {
     ],
     "additionalProperties": false,
   },
+  "AttentionPage": {
+    "type": "object",
+    "properties": {
+      "items": {
+        "type": "array",
+        "items": {"\$ref": "#/components/schemas/AttentionPageItemsItem"},
+      },
+      "nextCursor": {
+        "anyOf": [
+          {"type": "string", "format": "uuid"},
+          {"type": "null"},
+        ],
+      },
+    },
+    "required": ["items", "nextCursor"],
+    "additionalProperties": false,
+  },
+  "ReportExport": {
+    "type": "object",
+    "properties": {
+      "id": {"type": "string", "format": "uuid"},
+      "status": {
+        "type": "string",
+        "enum": ["pending", "processing", "ready", "failed"],
+      },
+      "rows": {"type": "integer"},
+      "error": {
+        "anyOf": [
+          {"type": "string"},
+          {"type": "null"},
+        ],
+      },
+      "createdAt": {"type": "string", "format": "date-time"},
+      "expiresAt": {"type": "string", "format": "date-time"},
+    },
+    "required": ["id", "status", "rows", "error", "createdAt", "expiresAt"],
+    "additionalProperties": false,
+  },
+  "DashboardSale": {
+    "type": "object",
+    "properties": {
+      "id": {"type": "string", "format": "uuid"},
+      "organizationId": {"type": "string", "format": "uuid"},
+      "storeId": {"type": "string", "format": "uuid"},
+      "sellerId": {"type": "string", "format": "uuid"},
+      "day": {"type": "string"},
+      "occurredAt": {"type": "string", "format": "date-time"},
+      "version": {"type": "integer"},
+      "netMillimes": {"type": "string", "pattern": "^-?[0-9]+\$"},
+      "netUnits": {"type": "string", "pattern": "^-?[0-9]+\$"},
+      "storeName": {"type": "string"},
+      "sellerName": {"type": "string"},
+    },
+    "required": [
+      "id",
+      "organizationId",
+      "storeId",
+      "sellerId",
+      "day",
+      "occurredAt",
+      "version",
+      "netMillimes",
+      "netUnits",
+      "storeName",
+      "sellerName",
+    ],
+    "additionalProperties": false,
+  },
+  "DashboardSalePage": {
+    "type": "object",
+    "properties": {
+      "items": {
+        "type": "array",
+        "items": {"\$ref": "#/components/schemas/DashboardSale"},
+      },
+      "nextCursor": {
+        "anyOf": [
+          {"type": "string", "format": "uuid"},
+          {"type": "null"},
+        ],
+      },
+    },
+    "required": ["items", "nextCursor"],
+    "additionalProperties": false,
+  },
+  "Group": {
+    "type": "object",
+    "properties": {
+      "id": {"type": "string", "format": "uuid"},
+      "name": {"type": "string"},
+      "createdAt": {"type": "string", "format": "date-time"},
+      "imageId": {
+        "anyOf": [
+          {"type": "string", "format": "uuid"},
+          {"type": "null"},
+        ],
+      },
+      "phone": {
+        "anyOf": [
+          {"type": "string"},
+          {"type": "null"},
+        ],
+      },
+      "version": {"type": "integer"},
+    },
+    "required": ["id", "name", "createdAt", "imageId", "phone", "version"],
+    "additionalProperties": false,
+  },
+  "GroupAccess": {
+    "type": "object",
+    "properties": {
+      "id": {"type": "string", "format": "uuid"},
+      "name": {"type": "string"},
+      "createdAt": {"type": "string", "format": "date-time"},
+      "imageId": {
+        "anyOf": [
+          {"type": "string", "format": "uuid"},
+          {"type": "null"},
+        ],
+      },
+      "phone": {
+        "anyOf": [
+          {"type": "string"},
+          {"type": "null"},
+        ],
+      },
+      "version": {"type": "integer"},
+      "canManage": {"type": "boolean"},
+      "storeCount": {"type": "integer"},
+    },
+    "required": [
+      "id",
+      "name",
+      "createdAt",
+      "imageId",
+      "phone",
+      "version",
+      "canManage",
+      "storeCount",
+    ],
+    "additionalProperties": false,
+  },
+  "GroupPage": {
+    "type": "object",
+    "properties": {
+      "items": {
+        "type": "array",
+        "items": {"\$ref": "#/components/schemas/GroupAccess"},
+      },
+      "nextCursor": {
+        "anyOf": [
+          {"type": "string", "format": "uuid"},
+          {"type": "null"},
+        ],
+      },
+      "creationGrants": {
+        "type": "array",
+        "items": {"\$ref": "#/components/schemas/GroupPageCreationGrantsItem"},
+      },
+    },
+    "required": ["items", "nextCursor", "creationGrants"],
+    "additionalProperties": false,
+  },
+  "GroupTeam": {
+    "type": "object",
+    "properties": {
+      "members": {
+        "type": "array",
+        "items": {"\$ref": "#/components/schemas/GroupTeamMembersItem"},
+      },
+      "invitations": {
+        "type": "array",
+        "items": {"\$ref": "#/components/schemas/GroupTeamInvitationsItem"},
+      },
+    },
+    "required": ["members", "invitations"],
+    "additionalProperties": false,
+  },
+  "ProductPage": {
+    "type": "object",
+    "properties": {
+      "items": {
+        "type": "array",
+        "items": {"\$ref": "#/components/schemas/Product"},
+      },
+      "nextCursor": {
+        "anyOf": [
+          {"type": "string", "format": "uuid"},
+          {"type": "null"},
+        ],
+      },
+    },
+    "required": ["items", "nextCursor"],
+    "additionalProperties": false,
+  },
+  "Dashboard": {
+    "type": "object",
+    "properties": {
+      "scope": {
+        "type": "string",
+        "enum": ["network", "group", "store", "personal"],
+      },
+      "organizationId": {
+        "anyOf": [
+          {"type": "string", "format": "uuid"},
+          {"type": "null"},
+        ],
+      },
+      "storeId": {
+        "anyOf": [
+          {"type": "string", "format": "uuid"},
+          {"type": "null"},
+        ],
+      },
+      "from": {"type": "string"},
+      "to": {"type": "string"},
+      "generatedAt": {"type": "string", "format": "date-time"},
+      "netMillimes": {"type": "string", "pattern": "^-?[0-9]+\$"},
+      "netUnits": {"type": "string", "pattern": "^-?[0-9]+\$"},
+      "saleCount": {"type": "string", "pattern": "^-?[0-9]+\$"},
+      "groupCount": {"type": "integer"},
+      "storeCount": {"type": "integer"},
+      "series": {
+        "type": "array",
+        "items": {"\$ref": "#/components/schemas/DashboardSeriesItem"},
+      },
+      "comparisons": {
+        "type": "array",
+        "items": {"\$ref": "#/components/schemas/DashboardComparisonsItem"},
+      },
+      "products": {
+        "type": "array",
+        "items": {"\$ref": "#/components/schemas/DashboardProductsItem"},
+      },
+      "recentSales": {
+        "type": "array",
+        "items": {"\$ref": "#/components/schemas/DashboardRecentSalesItem"},
+      },
+      "ranking": {
+        "anyOf": [
+          {"\$ref": "#/components/schemas/DashboardRanking"},
+          {"type": "null"},
+        ],
+      },
+      "current": {"\$ref": "#/components/schemas/DashboardCurrent"},
+      "alerts": {
+        "type": "array",
+        "items": {"\$ref": "#/components/schemas/DashboardAlertsItem"},
+      },
+    },
+    "required": [
+      "scope",
+      "organizationId",
+      "storeId",
+      "from",
+      "to",
+      "generatedAt",
+      "netMillimes",
+      "netUnits",
+      "saleCount",
+      "groupCount",
+      "storeCount",
+      "series",
+      "comparisons",
+      "products",
+      "recentSales",
+      "ranking",
+      "current",
+      "alerts",
+    ],
+    "additionalProperties": false,
+  },
+  "ScopedOrder": {
+    "type": "object",
+    "properties": {
+      "id": {"type": "string", "format": "uuid"},
+      "organizationId": {"type": "string", "format": "uuid"},
+      "storeId": {"type": "string", "format": "uuid"},
+      "createdBy": {"type": "string", "format": "uuid"},
+      "lines": {
+        "type": "array",
+        "items": {"\$ref": "#/components/schemas/ScopedOrderLinesItem"},
+      },
+      "status": {"type": "string"},
+      "version": {"type": "integer"},
+      "createdAt": {"type": "string", "format": "date-time"},
+      "storeName": {"type": "string"},
+      "groupName": {"type": "string"},
+    },
+    "required": [
+      "id",
+      "organizationId",
+      "storeId",
+      "createdBy",
+      "lines",
+      "status",
+      "version",
+      "createdAt",
+      "storeName",
+      "groupName",
+    ],
+    "additionalProperties": false,
+  },
+  "OrderPage": {
+    "type": "object",
+    "properties": {
+      "items": {
+        "type": "array",
+        "items": {"\$ref": "#/components/schemas/ScopedOrder"},
+      },
+      "nextCursor": {
+        "anyOf": [
+          {"type": "string", "format": "uuid"},
+          {"type": "null"},
+        ],
+      },
+    },
+    "required": ["items", "nextCursor"],
+    "additionalProperties": false,
+  },
+  "ScopedOrderDetails": {
+    "type": "object",
+    "properties": {
+      "order": {"\$ref": "#/components/schemas/ScopedOrder"},
+      "deliveries": {
+        "type": "array",
+        "items": {"\$ref": "#/components/schemas/Delivery"},
+      },
+    },
+    "required": ["order", "deliveries"],
+    "additionalProperties": false,
+  },
   "Command": {
     "oneOf": [
       {"\$ref": "#/components/schemas/CommandSaleCreate"},
@@ -1693,6 +2056,108 @@ const Map<String, Map<String, dynamic>> _schemas = {
       {"\$ref": "#/components/schemas/Count"},
     ],
   },
+  "ExportCreateResponse": {"\$ref": "#/components/schemas/ReportExport"},
+  "ExportCreateRequest": {
+    "type": "object",
+    "properties": {
+      "id": {
+        "type": "string",
+        "format": "uuid",
+        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)\$",
+      },
+      "query": {"\$ref": "#/components/schemas/ExportCreateRequestQuery"},
+    },
+    "required": ["id", "query"],
+    "additionalProperties": false,
+  },
+  "ExportGetResponse": {"\$ref": "#/components/schemas/ReportExport"},
+  "ExportFileResponse": {"type": "string"},
+  "DashboardGetResponse": {"\$ref": "#/components/schemas/Dashboard"},
+  "DashboardOrdersResponse": {"\$ref": "#/components/schemas/OrderPage"},
+  "DashboardAttentionResponse": {"\$ref": "#/components/schemas/AttentionPage"},
+  "DashboardSalesResponse": {"\$ref": "#/components/schemas/DashboardSalePage"},
+  "DashboardOrderResponse": {
+    "\$ref": "#/components/schemas/ScopedOrderDetails",
+  },
+  "GroupListResponse": {"\$ref": "#/components/schemas/GroupPage"},
+  "GroupCreateResponse": {"\$ref": "#/components/schemas/Group"},
+  "GroupCreateRequest": {
+    "type": "object",
+    "properties": {
+      "grantId": {
+        "type": "string",
+        "format": "uuid",
+        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)\$",
+      },
+      "operationId": {
+        "type": "string",
+        "format": "uuid",
+        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)\$",
+      },
+      "name": {"type": "string", "minLength": 2, "maxLength": 120},
+      "phone": {"type": "string", "maxLength": 30},
+    },
+    "required": ["grantId", "operationId", "name"],
+    "additionalProperties": false,
+  },
+  "GroupUpdateResponse": {"\$ref": "#/components/schemas/Group"},
+  "GroupUpdateRequest": {
+    "type": "object",
+    "properties": {
+      "name": {"type": "string", "minLength": 2, "maxLength": 120},
+      "phone": {
+        "anyOf": [
+          {"type": "string", "maxLength": 30},
+          {"type": "null"},
+        ],
+      },
+      "imageId": {
+        "anyOf": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)\$",
+          },
+          {"type": "null"},
+        ],
+      },
+      "expectedVersion": {
+        "type": "integer",
+        "exclusiveMinimum": 0,
+        "maximum": 9007199254740991,
+      },
+    },
+    "required": ["name", "expectedVersion"],
+    "additionalProperties": false,
+  },
+  "GroupStoresResponse": {
+    "type": "array",
+    "items": {"\$ref": "#/components/schemas/StoreAccess"},
+  },
+  "GroupTeamResponse": {"\$ref": "#/components/schemas/GroupTeam"},
+  "GroupMemberResponse": {"\$ref": "#/components/schemas/Ok"},
+  "GroupMemberRequest": {
+    "type": "object",
+    "properties": {
+      "active": {"type": "boolean"},
+      "role": {
+        "type": "string",
+        "enum": ["responsible", "salesperson"],
+      },
+      "storeIds": {
+        "default": [],
+        "maxItems": 500,
+        "type": "array",
+        "items": {
+          "type": "string",
+          "format": "uuid",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)\$",
+        },
+      },
+    },
+    "required": ["active", "role"],
+    "additionalProperties": false,
+  },
   "AdminOverviewResponse": {"\$ref": "#/components/schemas/AdminOverview"},
   "HealthHealthResponse": {"\$ref": "#/components/schemas/Health"},
   "IdentityLoginResponse": {"\$ref": "#/components/schemas/LoginResponse"},
@@ -1719,6 +2184,19 @@ const Map<String, Map<String, dynamic>> _schemas = {
         "type": "string",
         "format": "email",
         "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}\$",
+      },
+      "kind": {
+        "type": "string",
+        "enum": ["new_group", "responsible", "salesperson"],
+      },
+      "storeIds": {
+        "maxItems": 500,
+        "type": "array",
+        "items": {
+          "type": "string",
+          "format": "uuid",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)\$",
+        },
       },
       "organizationId": {
         "type": "string",
@@ -1945,6 +2423,7 @@ const Map<String, Map<String, dynamic>> _schemas = {
     "required": ["title", "cost"],
     "additionalProperties": false,
   },
+  "CatalogListResponse": {"\$ref": "#/components/schemas/ProductPage"},
   "CatalogSaveResponse": {"\$ref": "#/components/schemas/Product"},
   "CatalogSaveRequest": {
     "type": "object",
@@ -1968,6 +2447,27 @@ const Map<String, Map<String, dynamic>> _schemas = {
       },
       "barcode": {"type": "string", "minLength": 3, "maxLength": 80},
       "description": {"default": "", "type": "string", "maxLength": 5000},
+      "category": {"type": "string", "maxLength": 100},
+      "range": {"type": "string", "maxLength": 100},
+      "packageSize": {"type": "string", "maxLength": 80},
+      "instructions": {"type": "string", "maxLength": 5000},
+      "ingredients": {"type": "string", "maxLength": 5000},
+      "precautions": {"type": "string", "maxLength": 5000},
+      "referencePriceMillimes": {
+        "anyOf": [
+          {"type": "string", "pattern": "^(0|[1-9]\\d{0,14})\$"},
+          {"type": "null"},
+        ],
+      },
+      "priceStatus": {
+        "type": "string",
+        "enum": ["missing", "verified", "sample"],
+      },
+      "sourceUrls": {
+        "maxItems": 12,
+        "type": "array",
+        "items": {"type": "string", "maxLength": 2000, "format": "uri"},
+      },
       "active": {"default": true, "type": "boolean"},
       "expectedVersion": {
         "type": "integer",
@@ -2110,7 +2610,7 @@ const Map<String, Map<String, dynamic>> _schemas = {
     "properties": {
       "purpose": {
         "type": "string",
-        "enum": ["training", "catalog", "store", "reward"],
+        "enum": ["training", "catalog", "store", "reward", "group"],
       },
       "organizationId": {
         "type": "string",
@@ -2436,6 +2936,222 @@ const Map<String, Map<String, dynamic>> _schemas = {
     "required": ["lots", "products", "config"],
     "additionalProperties": false,
   },
+  "AttentionPageItemsItem": {
+    "type": "object",
+    "properties": {
+      "id": {"type": "string", "format": "uuid"},
+      "organizationId": {"type": "string", "format": "uuid"},
+      "storeId": {"type": "string", "format": "uuid"},
+      "productId": {
+        "anyOf": [
+          {"type": "string", "format": "uuid"},
+          {"type": "null"},
+        ],
+      },
+      "kind": {
+        "type": "string",
+        "enum": ["low_stock", "expired", "deliveries", "rewards"],
+      },
+      "title": {"type": "string"},
+      "detail": {"type": "string"},
+      "storeName": {"type": "string"},
+    },
+    "required": [
+      "id",
+      "organizationId",
+      "storeId",
+      "productId",
+      "kind",
+      "title",
+      "detail",
+      "storeName",
+    ],
+    "additionalProperties": false,
+  },
+  "GroupPageCreationGrantsItem": {
+    "type": "object",
+    "properties": {
+      "id": {"type": "string", "format": "uuid"},
+    },
+    "required": ["id"],
+    "additionalProperties": false,
+  },
+  "GroupTeamMembersItem": {
+    "type": "object",
+    "properties": {
+      "id": {"type": "string", "format": "uuid"},
+      "name": {"type": "string"},
+      "email": {"type": "string"},
+      "role": {
+        "type": "string",
+        "enum": ["responsible", "salesperson"],
+      },
+      "active": {"type": "boolean"},
+      "storeIds": {
+        "type": "array",
+        "items": {"type": "string", "format": "uuid"},
+      },
+    },
+    "required": ["id", "name", "email", "role", "active", "storeIds"],
+    "additionalProperties": false,
+  },
+  "GroupTeamInvitationsItem": {
+    "type": "object",
+    "properties": {
+      "id": {"type": "string", "format": "uuid"},
+      "email": {"type": "string"},
+      "kind": {"type": "string"},
+      "storeIds": {
+        "type": "array",
+        "items": {"type": "string", "format": "uuid"},
+      },
+      "storeId": {
+        "anyOf": [
+          {"type": "string", "format": "uuid"},
+          {"type": "null"},
+        ],
+      },
+      "expiresAt": {"type": "string", "format": "date-time"},
+    },
+    "required": ["id", "email", "kind", "storeIds", "storeId", "expiresAt"],
+    "additionalProperties": false,
+  },
+  "DashboardSeriesItem": {
+    "type": "object",
+    "properties": {
+      "day": {"type": "string"},
+      "netMillimes": {"type": "string", "pattern": "^-?[0-9]+\$"},
+      "netUnits": {"type": "string", "pattern": "^-?[0-9]+\$"},
+      "saleCount": {"type": "string", "pattern": "^-?[0-9]+\$"},
+    },
+    "required": ["day", "netMillimes", "netUnits", "saleCount"],
+    "additionalProperties": false,
+  },
+  "DashboardComparisonsItem": {
+    "type": "object",
+    "properties": {
+      "id": {"type": "string", "format": "uuid"},
+      "name": {"type": "string"},
+      "netMillimes": {"type": "string", "pattern": "^-?[0-9]+\$"},
+      "netUnits": {"type": "string", "pattern": "^-?[0-9]+\$"},
+      "saleCount": {"type": "string", "pattern": "^-?[0-9]+\$"},
+    },
+    "required": ["id", "name", "netMillimes", "netUnits", "saleCount"],
+    "additionalProperties": false,
+  },
+  "DashboardProductsItem": {
+    "type": "object",
+    "properties": {
+      "id": {"type": "string", "format": "uuid"},
+      "name": {"type": "string"},
+      "imageId": {
+        "anyOf": [
+          {"type": "string", "format": "uuid"},
+          {"type": "null"},
+        ],
+      },
+      "netUnits": {"type": "string", "pattern": "^-?[0-9]+\$"},
+      "netMillimes": {"type": "string", "pattern": "^-?[0-9]+\$"},
+    },
+    "required": ["id", "name", "imageId", "netUnits", "netMillimes"],
+    "additionalProperties": false,
+  },
+  "DashboardRecentSalesItem": {
+    "type": "object",
+    "properties": {
+      "id": {"type": "string", "format": "uuid"},
+      "occurredAt": {"type": "string", "format": "date-time"},
+      "netMillimes": {"type": "string", "pattern": "^-?[0-9]+\$"},
+      "netUnits": {"type": "string", "pattern": "^-?[0-9]+\$"},
+    },
+    "required": ["id", "occurredAt", "netMillimes", "netUnits"],
+    "additionalProperties": false,
+  },
+  "DashboardRanking": {
+    "type": "object",
+    "properties": {
+      "month": {"type": "string"},
+      "rank": {
+        "anyOf": [
+          {"type": "string", "pattern": "^-?[0-9]+\$"},
+          {"type": "null"},
+        ],
+      },
+      "score": {"type": "string", "pattern": "^-?[0-9]+\$"},
+    },
+    "required": ["month", "rank", "score"],
+    "additionalProperties": false,
+  },
+  "DashboardCurrent": {
+    "type": "object",
+    "properties": {
+      "pendingOrders": {"type": "integer"},
+      "pendingDeliveries": {"type": "integer"},
+      "pendingClaims": {"type": "integer"},
+      "expiredLots": {"type": "integer"},
+      "expiringLots": {"type": "integer"},
+      "lowStock": {"type": "integer"},
+      "availablePoints": {
+        "anyOf": [
+          {"type": "string", "pattern": "^-?[0-9]+\$"},
+          {"type": "null"},
+        ],
+      },
+      "reservedPoints": {
+        "anyOf": [
+          {"type": "string", "pattern": "^-?[0-9]+\$"},
+          {"type": "null"},
+        ],
+      },
+    },
+    "required": [
+      "pendingOrders",
+      "pendingDeliveries",
+      "pendingClaims",
+      "expiredLots",
+      "expiringLots",
+      "lowStock",
+      "availablePoints",
+      "reservedPoints",
+    ],
+    "additionalProperties": false,
+  },
+  "DashboardAlertsItem": {
+    "type": "object",
+    "properties": {
+      "id": {"type": "string", "format": "uuid"},
+      "organizationId": {"type": "string", "format": "uuid"},
+      "storeId": {"type": "string", "format": "uuid"},
+      "productId": {
+        "anyOf": [
+          {"type": "string", "format": "uuid"},
+          {"type": "null"},
+        ],
+      },
+      "kind": {"type": "string"},
+      "message": {"type": "string"},
+      "storeName": {"type": "string"},
+    },
+    "required": [
+      "id",
+      "organizationId",
+      "storeId",
+      "productId",
+      "kind",
+      "message",
+      "storeName",
+    ],
+    "additionalProperties": false,
+  },
+  "ScopedOrderLinesItem": {
+    "type": "object",
+    "properties": {
+      "productId": {"type": "string", "format": "uuid"},
+      "quantity": {"type": "integer"},
+    },
+    "required": ["productId", "quantity"],
+    "additionalProperties": false,
+  },
   "CommandSaleCreate": {
     "type": "object",
     "properties": {
@@ -2698,6 +3414,12 @@ const Map<String, Map<String, dynamic>> _schemas = {
     "required": ["valid", "count", "rows"],
     "additionalProperties": false,
   },
+  "ExportCreateRequestQuery": {
+    "anyOf": [
+      {"\$ref": "#/components/schemas/ExportCreateRequestQueryHistory"},
+      {"\$ref": "#/components/schemas/ExportCreateRequestQuery2"},
+    ],
+  },
   "CatalogImportRequestRowsItem": {
     "type": "object",
     "properties": {
@@ -2705,6 +3427,27 @@ const Map<String, Map<String, dynamic>> _schemas = {
       "name": {"type": "string", "minLength": 2, "maxLength": 160},
       "barcode": {"type": "string", "minLength": 3, "maxLength": 80},
       "description": {"default": "", "type": "string", "maxLength": 5000},
+      "category": {"type": "string", "maxLength": 100},
+      "range": {"type": "string", "maxLength": 100},
+      "packageSize": {"type": "string", "maxLength": 80},
+      "instructions": {"type": "string", "maxLength": 5000},
+      "ingredients": {"type": "string", "maxLength": 5000},
+      "precautions": {"type": "string", "maxLength": 5000},
+      "referencePriceMillimes": {
+        "anyOf": [
+          {"type": "string", "pattern": "^(0|[1-9]\\d{0,14})\$"},
+          {"type": "null"},
+        ],
+      },
+      "priceStatus": {
+        "type": "string",
+        "enum": ["missing", "verified", "sample"],
+      },
+      "sourceUrls": {
+        "maxItems": 12,
+        "type": "array",
+        "items": {"type": "string", "maxLength": 2000, "format": "uri"},
+      },
       "active": {"default": true, "type": "boolean"},
     },
     "required": ["reference", "name"],
@@ -2905,10 +3648,88 @@ const Map<String, Map<String, dynamic>> _schemas = {
       "name": {"type": "string", "minLength": 2, "maxLength": 160},
       "barcode": {"type": "string", "minLength": 3, "maxLength": 80},
       "description": {"default": "", "type": "string", "maxLength": 5000},
+      "category": {"type": "string", "maxLength": 100},
+      "range": {"type": "string", "maxLength": 100},
+      "packageSize": {"type": "string", "maxLength": 80},
+      "instructions": {"type": "string", "maxLength": 5000},
+      "ingredients": {"type": "string", "maxLength": 5000},
+      "precautions": {"type": "string", "maxLength": 5000},
+      "referencePriceMillimes": {
+        "anyOf": [
+          {"type": "string", "pattern": "^(0|[1-9]\\d{0,14})\$"},
+          {"type": "null"},
+        ],
+      },
+      "priceStatus": {
+        "type": "string",
+        "enum": ["missing", "verified", "sample"],
+      },
+      "sourceUrls": {
+        "maxItems": 12,
+        "type": "array",
+        "items": {"type": "string", "maxLength": 2000, "format": "uri"},
+      },
       "active": {"default": true, "type": "boolean"},
     },
     "required": ["reference", "name"],
     "additionalProperties": false,
+  },
+  "ExportCreateRequestQueryHistory": {
+    "type": "object",
+    "properties": {
+      "kind": {"type": "string", "const": "history"},
+      "organizationId": {
+        "type": "string",
+        "format": "uuid",
+        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)\$",
+      },
+      "storeId": {
+        "type": "string",
+        "format": "uuid",
+        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)\$",
+      },
+      "resource": {
+        "type": "string",
+        "enum": ["movements", "points", "audit"],
+      },
+      "productId": {
+        "type": "string",
+        "format": "uuid",
+        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)\$",
+      },
+    },
+    "required": ["kind", "organizationId", "storeId", "resource"],
+    "additionalProperties": false,
+  },
+  "ExportCreateRequestQuery2": {
+    "type": "object",
+    "properties": {
+      "scope": {
+        "type": "string",
+        "enum": ["network", "group", "store", "personal"],
+      },
+      "organizationId": {
+        "type": "string",
+        "format": "uuid",
+        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)\$",
+      },
+      "storeId": {
+        "type": "string",
+        "format": "uuid",
+        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)\$",
+      },
+      "from": {
+        "type": "string",
+        "format": "date",
+        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))\$",
+      },
+      "to": {
+        "type": "string",
+        "format": "date",
+        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))\$",
+      },
+    },
+    "required": ["scope", "from", "to"],
   },
   "CommandSaleCreateLinesItemAllocationsItem": {
     "type": "object",

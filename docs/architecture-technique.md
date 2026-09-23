@@ -1,6 +1,6 @@
 # BioBalance — Architecture technique
 
-Référence : plan approuvé le 21 septembre 2026. Voir [spécification](specification-fonctionnelle.md), [contrat OpenAPI](../contracts/openapi/biobalance.json), [état de réalisation](implementation-status.md) et [exploitation](runbook.md).
+Référence : plans approuvés les 21 et 23 septembre 2026. Voir [spécification](specification-fonctionnelle.md), [contrat OpenAPI](../contracts/openapi/biobalance.json), [état de réalisation](implementation-status.md) et [exploitation](runbook.md).
 
 ## Structure
 
@@ -109,3 +109,18 @@ Voir [sécurité et signatures](security-hardening.md) : certificats Android pub
 ## Présentation mobile compacte
 
 `CompactRow`, `MetricStrip`, `BottomAction` et `WorkspaceNavigation` centralisent les lignes, indicateurs, validation de formulaire et adaptation de la navigation. `OptionField` expose une sélection contrôlée par le formulaire, recherchable et compatible avec la restauration de brouillons. Les listes de collections restent paresseuses ; les pages secondaires écoutent leur modèle pour afficher les changements synchronisés sans navigation supplémentaire. Ces composants n’accèdent pas à la base et ne déplacent pas les règles transactionnelles dans l’interface. Voir [la passe UX](mobile-ux-2026-09-22.md).
+
+
+## Groupes, reporting et images — 23 septembre 2026
+
+`Organization.id` reste l’identifiant interne du groupe. `GroupService` centralise les autorisations de création et l’équipe de groupe ; les invitations typées conservent les anciens contrats pour la transition. Les dernières appartenances actives sont protégées dans une transaction verrouillant le groupe. Les lectures de groupe emploient un instantané et ne prennent pas ce verrou d’écriture. Les nouvelles API n’acceptent jamais un rôle déclaré par le téléphone.
+
+`ScopeViewModel` conserve un contexte réseau/groupe/magasin indépendant de `WorkspaceViewModel`, qui gère le cache et la synchronisation opérationnelle. Les détails capturent leurs identifiants et ne sélectionnent pas silencieusement un autre magasin. Le chargement d’une commande depuis le réseau ne reconstruit pas la route. Sélections, tutoriels, brouillons et caches utilisent le stockage local existant sous une clé de compte/contexte ; aucune réinterprétation de l’outbox ni migration destructive SQLite.
+
+`SalesContribution`, `SalesDay` et `SalesProductDay` sont des projections PostgreSQL transactionnelles. Un trigger sur les changements de vente couvre aussi les anciens serveurs pendant le déploiement compatible. Le backfill parcourt les identifiants par lots de 1 000, verrouille les ventes concernées et applique uniquement les contributions manquantes ou de version différente. Sa réconciliation indépendante compare lignes/retours autoritaires, totaux journaliers et produits. Les dashboards lisent ces projections, sous RLS, sans télécharger les historiques de tous les magasins sur le téléphone.
+
+Les exports figent leur résultat complet au démarrage du traitement, puis écrivent par lots bornés. Cinq jobs en attente maximum, un export actif par compte, 2 millions de lignes/256 Mio maximum, expiration 24 heures. Les droits et la session sont vérifiés avant traitement, pendant les lots et au téléchargement. Le volume `exports` est distinct des médias, accessible en écriture au worker et en lecture aux API. Ces fichiers temporaires ne sont pas des sauvegardes métier.
+
+Les images traitées possèdent une miniature PNG 384 px, sa taille et SHA-256. Le cache du téléphone est lié au compte, borné à 64 Mio et trois transferts ; 48 instantanés de dashboard par compte sont conservés avec éviction limitée à ces résumés. Il ne supprime ni l’outbox ni les vidéos téléchargées. Les images de groupe passent par le même contrôle de propriétaire, traitement et autorisation que les autres médias.
+
+Les quotas généraux sur comptes authentifiés ont été retirés. Les limites identité/récupération, taille des corps et téléversements, concurrence des jobs, autorisation et protection Nginx/Cloudflare restent actives. Le worker conserve SMTP TLS ; le laboratoire utilise sa propre autorité de test, jamais une désactivation de vérification TLS.

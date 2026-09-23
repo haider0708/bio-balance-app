@@ -1,10 +1,6 @@
-import '../../../domain/models/csv.dart';
-
-import 'dart:convert';
-import 'dart:typed_data';
+import 'report_export_control.dart';
 
 import 'package:flutter/material.dart';
-import 'package:file_picker/file_picker.dart';
 
 import '../../../domain/models/models.dart';
 import '../../../domain/models/money.dart';
@@ -68,16 +64,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
     }
   }
 
-  Future<void> export() async {
-    final csv =
-        '\uFEFFDate;Utilisateur;Montant TND;Quantité;Points;Motif\n${items.map((r) => [dateLabel(r['occurredAt'] ?? r['createdAt']), people[r['actorId'] ?? r['sellerId'] ?? r['userId']] ?? '', r['totalMillimes'] == null ? '' : Money(integer(r['totalMillimes'])).formatted, r['quantity'], r['amount'], r['reason'] ?? r['action'] ?? r['kind']].map(csvCell).join(';')).join('\n')}';
-    await FilePicker.saveFile(
-      fileName: 'biobalance-${widget.resource}.csv',
-      mimeType: 'text/csv',
-      bytes: Uint8List.fromList(utf8.encode(csv)),
-    );
-  }
-
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(title: Text(widget.title)),
@@ -88,21 +74,19 @@ class _HistoryScreenState extends State<HistoryScreen> {
             padding: const EdgeInsets.all(16),
             child: Notice(error!, retry: load),
           ),
-        if (items.isNotEmpty && store.canManage)
+        if (items.isNotEmpty &&
+            (store.canManage || widget.resource == 'points'))
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: OutlinedButton.icon(
-              onPressed: () async {
-                try {
-                  await export();
-                } catch (e) {
-                  if (mounted) {
-                    setState(() => error = SessionViewModel.message(e));
-                  }
-                }
+            child: ReportExportControl(
+              workspace: widget.vm,
+              query: {
+                'kind': 'history',
+                'resource': widget.resource,
+                'organizationId': store.organizationId,
+                'storeId': store.id,
+                if (widget.productId != null) 'productId': widget.productId,
               },
-              icon: const Icon(Icons.download),
-              label: Text('Exporter les ${items.length} lignes affichées'),
             ),
           ),
         Expanded(

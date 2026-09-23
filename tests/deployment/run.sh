@@ -16,8 +16,8 @@ rollback_ref=${ROLLBACK_REF:-a8b4610}
 git rev-parse --verify "$rollback_ref^{commit}" >/dev/null
 rollback_source="$lab/rollback-$rollback_ref"
 if [[ ! -d "$rollback_source" ]]; then mkdir "$rollback_source"; git archive "$rollback_ref" | tar -x -C "$rollback_source"; fi
-docker build --target runtime -f infrastructure/production/Dockerfile -t "biobalance-api:rollback-$rollback_ref" "$rollback_source" > "$evidence/build-rollback.log" 2>&1
-docker build --target media -f infrastructure/production/Dockerfile -t "biobalance-media:rollback-$rollback_ref" "$rollback_source" > "$evidence/build-rollback-media.log" 2>&1
+docker build --target runtime -f "$rollback_source/infrastructure/production/Dockerfile" -t "biobalance-api:rollback-$rollback_ref" "$rollback_source" > "$evidence/build-rollback.log" 2>&1
+docker build --target media -f "$rollback_source/infrastructure/production/Dockerfile" -t "biobalance-media:rollback-$rollback_ref" "$rollback_source" > "$evidence/build-rollback-media.log" 2>&1
 "${compose[@]}" config --quiet
 "${compose[@]}" up -d --wait postgres mailpit > "$evidence/up.log" 2>&1
 "${compose[@]}" run --rm -T migrate > "$evidence/migrate.log" 2>&1
@@ -35,6 +35,8 @@ fi
 export NODE_EXTRA_CA_CERTS="$lab/certificates/fullchain.pem"
 if [[ -s "$lab/state.json" ]]; then node tests/deployment/probe.cjs verify > "$evidence/probe.log" 2>&1;
 else node tests/deployment/probe.cjs > "$evidence/probe.log" 2>&1; fi
+"${compose[@]}" run --rm -T migrate node dist/modules/reporting/backfill.js > "$evidence/reporting-backfill.log" 2>&1
+node tests/deployment/redesign.cjs > "$evidence/redesign.log" 2>&1
 node tests/deployment/inspect.cjs > "$evidence/isolation.log" 2>&1
 node tests/deployment/mail.cjs > "$evidence/mail.log" 2>&1
 python3 - <<'PY'

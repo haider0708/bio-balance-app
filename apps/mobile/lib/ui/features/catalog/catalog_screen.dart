@@ -1,4 +1,8 @@
 import 'catalog_import_screen.dart';
+import 'catalog_view_model.dart';
+import '../../../domain/models/money.dart';
+import 'product_information.dart';
+import '../media/image_input.dart';
 
 import 'dart:async';
 
@@ -19,13 +23,37 @@ class CatalogPage extends StatefulWidget {
 class _CatalogPageState extends State<CatalogPage> {
   WorkspaceViewModel get vm => widget.vm;
   String query = '';
+  final search = TextEditingController();
+  bool restored = false;
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!restored) {
+      query =
+          PageStorage.maybeOf(context)
+                  ?.readState(context, identifier: 'catalog-query')
+              as String? ??
+          '';
+      search.text = query;
+      restored = true;
+    }
+  }
+
+  late final catalog = CatalogViewModel(vm)..load();
+  @override
+  void dispose() {
+    search.dispose();
+    catalog.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) => ListenableBuilder(
-    listenable: vm,
+    listenable: catalog,
     builder: (context, _) => content(context),
   );
   Widget content(BuildContext context) {
-    final products = (vm.state.data?.list('products') ?? <Json>[])
+    final products = catalog.products
         .where(
           (p) => '${p['name']} ${p['reference']} ${p['barcode'] ?? ''}'
               .toLowerCase()
@@ -33,6 +61,7 @@ class _CatalogPageState extends State<CatalogPage> {
         )
         .toList();
     return Content.builder(
+      key: const PageStorageKey('catalog-list'),
       itemCount: products.length,
       itemBuilder: (context, index) {
         final p = products[index];
@@ -40,35 +69,68 @@ class _CatalogPageState extends State<CatalogPage> {
           title: p['name'],
           subtitle:
               '${p['reference']} · ${p['active'] == true ? 'Actif' : 'Archivé'}',
-          icon: Icons.spa_outlined,
-          trailing: const Icon(Icons.edit_outlined, size: 20, color: muted),
-          onTap: () => edit(context, p),
+          leading: SizedBox(
+            width: 48,
+            height: 60,
+            child: p['imageId'] == null
+                ? const Icon(AppIcons.photo, color: muted)
+                : ProtectedImage(vm: vm, id: p['imageId'], height: 60),
+          ),
+          trailing: const Icon(AppIcons.chevronRight, size: 20, color: muted),
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => Scaffold(
+                appBar: AppBar(
+                  title: const Text('Fiche produit'),
+                  actions: [
+                    if (vm.user.admin)
+                      IconButton(
+                        onPressed: () => edit(context, p),
+                        tooltip: 'Modifier',
+                        icon: const Icon(AppIcons.editOutlined),
+                      ),
+                  ],
+                ),
+                body: ProductInformation(vm: vm, product: p),
+              ),
+            ),
+          ),
         );
       },
       children: [
         SectionTitle(
           'Catalogue BioBalance',
-          action: FilledButton.icon(
-            onPressed: () => edit(context),
-            icon: const Icon(Icons.add),
-            label: const Text('Ajouter un produit'),
-          ),
+          action: !vm.user.admin
+              ? null
+              : FilledButton.icon(
+                  onPressed: () => edit(context),
+                  icon: const Icon(AppIcons.add),
+                  label: const Text('Ajouter un produit'),
+                ),
         ),
-        OutlinedButton.icon(
-          onPressed: () => Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => CatalogImportScreen(vm: vm)),
+        if (vm.user.admin)
+          OutlinedButton.icon(
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => CatalogImportScreen(vm: vm)),
+            ),
+            icon: const Icon(AppIcons.uploadFile),
+            label: const Text('Importer un CSV'),
           ),
-          icon: const Icon(Icons.upload_file),
-          label: const Text('Importer un CSV'),
-        ),
+        if (catalog.loading) const LinearProgressIndicator(),
+        if (catalog.error != null) Notice(catalog.error!, retry: catalog.load),
         const SizedBox(height: 16),
         TextField(
-          onChanged: (value) =>
-              setState(() => query = value.trim().toLowerCase()),
+          controller: search,
+          onChanged: (value) {
+            setState(() => query = value.trim().toLowerCase());
+            PageStorage.maybeOf(context)
+                ?.writeState(context, query, identifier: 'catalog-query');
+          },
           decoration: const InputDecoration(
             hintText: 'Rechercher un produit',
-            prefixIcon: Icon(Icons.search),
+            prefixIcon: Icon(AppIcons.search),
           ),
         ),
         const SizedBox(height: 8),
@@ -112,6 +174,51 @@ class _CatalogPageState extends State<CatalogPage> {
           multiline: true,
           required: false,
         ),
+        for (final f in {
+          'category': 'Catégorie',
+          'range': 'Gamme',
+          'packageSize': 'Contenance',
+          'instructions': 'Conseils d’utilisation',
+          'ingredients': 'Ingrédients',
+          'precautions': 'Précautions',
+        }.entries)
+          FieldSpec(
+            f.key,
+            f.value,
+            initial: p?[f.key] ?? '',
+            required: false,
+            multiline: [
+              'instructions',
+              'ingredients',
+              'precautions',
+            ].contains(f.key),
+          ),
+        FieldSpec(
+          'priceStatus',
+          'Statut du prix de référence',
+          initial: p?['priceStatus'] ?? 'missing',
+          options: const {
+            'missing': 'À compléter',
+            'verified': 'Vérifié',
+            'sample': 'Tarif de démonstration',
+          },
+        ),
+        FieldSpec(
+          'referencePriceMillimes',
+          'Prix de référence (TND)',
+          initial: p?['referencePriceMillimes'] == null
+              ? ''
+              : Money(integer(p!['referencePriceMillimes'])).input,
+          numeric: true,
+          required: false,
+        ),
+        FieldSpec(
+          'sourceUrls',
+          'Sources vérifiées (une URL par ligne)',
+          initial: (p?['sourceUrls'] as List? ?? []).join('\n'),
+          required: false,
+          multiline: true,
+        ),
         FieldSpec(
           'active',
           'Statut',
@@ -129,10 +236,28 @@ class _CatalogPageState extends State<CatalogPage> {
           if (v['barcode']!.isNotEmpty) 'barcode': v['barcode'],
           'description': v['description'],
           'active': v['active'] == 'yes',
+          for (final key in [
+            'category',
+            'range',
+            'packageSize',
+            'instructions',
+            'ingredients',
+            'precautions',
+            'priceStatus',
+          ])
+            key: v[key],
+          'referencePriceMillimes': v['referencePriceMillimes']!.isEmpty
+              ? null
+              : Money.parse(v['referencePriceMillimes']!).millimes.toString(),
+          'sourceUrls': v['sourceUrls']!
+              .split('\n')
+              .map((s) => s.trim())
+              .where((s) => s.isNotEmpty)
+              .toList(),
         });
       },
     )) {
-      await vm.synchronize();
+      await catalog.load();
     }
   }
 }

@@ -22,6 +22,7 @@ class FieldSpec {
   final bool required, numeric, multiline;
   final Map<String, String>? options;
   final String? imagePurpose;
+  final String? imageGroupId;
   const FieldSpec(
     this.key,
     this.label, {
@@ -31,6 +32,7 @@ class FieldSpec {
     this.multiline = false,
     this.options,
     this.imagePurpose,
+    this.imageGroupId,
   });
 }
 
@@ -159,7 +161,7 @@ class _EditorScreenState extends State<EditorScreen> {
         if (!draftReady && !restoringDraft)
           TextButton.icon(
             onPressed: restoreDraft,
-            icon: const Icon(Icons.refresh),
+            icon: const Icon(AppIcons.refresh),
             label: const Text('Réessayer de récupérer le brouillon'),
           ),
         Form(
@@ -172,10 +174,11 @@ class _EditorScreenState extends State<EditorScreen> {
                     child: f.imagePurpose != null && widget.workspace != null
                         ? ImageInput(
                             vm: widget.workspace!,
-                            store: f.imagePurpose == 'catalog'
+                            store: ['catalog', 'group'].contains(f.imagePurpose)
                                 ? null
                                 : draftStore,
                             purpose: f.imagePurpose!,
+                            groupId: f.imageGroupId,
                             label: f.label,
                             controller: controllers[f.key]!,
                             enabled: draftReady && !busy && !completed,

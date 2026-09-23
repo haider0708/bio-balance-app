@@ -45,7 +45,7 @@ class SalesPage extends StatelessWidget {
                 : sale['local'] == true
                 ? 'Enregistrée sur ce téléphone'
                 : 'Synchronisée',
-            icon: status != null ? Icons.sync : Icons.check_circle_outline,
+            icon: status != null ? AppIcons.sync : AppIcons.checkCircleOutline,
           ),
           onTap: () => Navigator.push(
             context,
@@ -67,7 +67,7 @@ class SalesPage extends StatelessWidget {
                       builder: (_) => SaleScreen(workspace: vm),
                     ),
                   ),
-                  icon: const Icon(Icons.add),
+                  icon: const Icon(AppIcons.add),
                   label: const Text('Nouvelle vente'),
                 )
               : null,
@@ -76,7 +76,7 @@ class SalesPage extends StatelessWidget {
           const EmptyState(
             title: 'Votre première vente vous attend',
             description: 'Enregistrez une vente pour suivre le stock et gagner des points.',
-            icon: Icons.receipt_long_outlined,
+            icon: AppIcons.receiptLongOutlined,
           ),
       ],
     );
@@ -197,12 +197,12 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
               children: [
                 OutlinedButton.icon(
                   onPressed: () => correct(sale),
-                  icon: const Icon(Icons.edit_outlined),
+                  icon: const Icon(AppIcons.editOutlined),
                   label: const Text('Corriger'),
                 ),
                 OutlinedButton.icon(
                   onPressed: () => recordReturn(sale),
-                  icon: const Icon(Icons.assignment_return_outlined),
+                  icon: const Icon(AppIcons.assignmentReturnOutlined),
                   label: const Text('Enregistrer un retour'),
                 ),
               ],
@@ -215,7 +215,7 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
                 .firstOrNull;
             return ListTile(
               contentPadding: EdgeInsets.zero,
-              leading: const Icon(Icons.history),
+              leading: const Icon(AppIcons.history),
               title: Text(r['reason']),
               subtitle: Text(
                 '${person?['name'] ?? r['editorId']} · ${dateLabel(r['createdAt'])}',

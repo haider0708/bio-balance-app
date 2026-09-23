@@ -12,10 +12,42 @@ export interface ProductInput {
   description: string;
   active: boolean;
   expectedVersion?: number;
+  category?: string;
+  range?: string;
+  packageSize?: string;
+  instructions?: string;
+  ingredients?: string;
+  precautions?: string;
+  referencePriceMillimes?: string | null;
+  priceStatus?: "missing" | "verified" | "sample";
+  sourceUrls?: string[];
 }
 @Injectable()
 export class CatalogService {
   constructor(private readonly db: Database) {}
+  private validatePrice(price: bigint | null, status: string) {
+    requireRule(
+      (price === null) === (status === "missing"),
+      "INVALID_REFERENCE_PRICE",
+      "Indiquez le prix de référence et son origine, ou choisissez Prix manquant.",
+    );
+  }
+  list(actor: Actor, after?: string) {
+    return this.db.authenticated(actor, async (tx, current) => {
+      const items = await tx.product.findMany({
+        where: {
+          ...(after ? { id: { gt: after } } : {}),
+          ...(!current.platformAdmin ? { active: true } : {}),
+        },
+        orderBy: { id: "asc" },
+        take: 101,
+      });
+      return {
+        items: items.slice(0, 100),
+        nextCursor: items.length > 100 ? items[99]!.id : null,
+      };
+    });
+  }
   async save(actor: Actor, input: ProductInput) {
     requireRule(
       actor.platformAdmin,
@@ -27,13 +59,33 @@ export class CatalogService {
       actor,
       async (tx, actor) => {
         await requireImage(tx, input.imageId, "catalog");
-        const { id, expectedVersion, ...data } = input;
+        const { id, expectedVersion, referencePriceMillimes, ...fields } =
+          input;
+        const data = {
+          ...fields,
+          ...(referencePriceMillimes !== undefined
+            ? {
+                referencePriceMillimes:
+                  referencePriceMillimes === null
+                    ? null
+                    : BigInt(referencePriceMillimes),
+              }
+            : {}),
+        };
         const old = id ? await tx.product.findUnique({ where: { id } }) : null;
         requireRule(
           !id || old?.version === expectedVersion,
           "VERSION_CONFLICT",
           "Le produit a changé.",
           409,
+        );
+        this.validatePrice(
+          referencePriceMillimes === undefined
+            ? (old?.referencePriceMillimes ?? null)
+            : referencePriceMillimes === null
+              ? null
+              : BigInt(referencePriceMillimes),
+          input.priceStatus ?? old?.priceStatus ?? "missing",
         );
         const product = id
           ? await tx.product.update({
@@ -89,10 +141,29 @@ export class CatalogService {
           "Des références ou codes-barres existent déjà. Modifiez ces produits individuellement.",
           409,
         );
+        for (const row of rows)
+          this.validatePrice(
+            row.referencePriceMillimes == null
+              ? null
+              : BigInt(row.referencePriceMillimes),
+            row.priceStatus ?? "missing",
+          );
         if (!commit) return { valid: true, count: rows.length, rows };
         for (const row of rows) await requireImage(tx, row.imageId, "catalog");
         const result = await tx.product.createMany({
-          data: rows.map(({ id, expectedVersion, ...row }) => row),
+          data: rows.map(
+            ({ id, expectedVersion, referencePriceMillimes, ...row }) => ({
+              ...row,
+              ...(referencePriceMillimes !== undefined
+                ? {
+                    referencePriceMillimes:
+                      referencePriceMillimes === null
+                        ? null
+                        : BigInt(referencePriceMillimes),
+                  }
+                : {}),
+            }),
+          ),
         });
         await tx.auditEntry.create({
           data: {

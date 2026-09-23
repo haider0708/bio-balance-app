@@ -1,6 +1,6 @@
 # BioBalance — Spécification fonctionnelle approuvée
 
-Référence : plan d’implémentation approuvé le 21 septembre 2026. L’état réel du logiciel et les validations se trouvent dans [implementation-status.md](implementation-status.md).
+Référence : plans d’implémentation du 21 septembre et de refonte du 23 septembre 2026. L’état réel du logiciel et les validations se trouvent dans [implementation-status.md](implementation-status.md).
 
 ## Périmètre
 
@@ -10,11 +10,11 @@ Les abonnements payants, le web admin, WhatsApp, les classements régionaux/nati
 
 ## Accès et mise en route
 
-- BioBalance invite les responsables ; ils invitent leurs collaborateurs. Connexion personnelle par email et mot de passe, récupération de compte, invitations expirables, sessions révocables et MFA administrateur.
+- Trois rôles : administrateur BioBalance, responsable de groupe, vendeur affecté aux magasins. Tout responsable possède la même autorité sur tous les magasins de son groupe ; aucun rôle propriétaire distinct. BioBalance invite les nouveaux responsables ; activation puis création de leur groupe via une autorisation à usage unique. Inviter ne crée plus de groupe. Les responsables invitent d’autres responsables dans le groupe existant ou des vendeurs dans les magasins explicitement choisis. Connexion personnelle par email et mot de passe, récupération de compte, invitations expirables, sessions révocables et MFA administrateur.
 - Les permissions proviennent des appartenances à une organisation et à un magasin. Un responsable peut également vendre. Un vendeur corrige uniquement ses ventes ; le responsable et l’administrateur corrigent les ventes des magasins autorisés.
-- Le guide reprend après interruption : magasin, équipe, stock initial, configuration des prix/seuils/points. Nom, adresse et ville sont requis ; téléphone et image sont facultatifs.
+- Le guide reprend après interruption : compte, groupe, premier magasin, équipe, stock initial, configuration des prix/seuils/points. Nom, adresse et ville sont requis ; téléphone et image sont facultatifs.
 - La progression du guide est dérivée des données enregistrées. « Je travaille seul » et « Pas de stock initial » sont des choix explicites ; les produits portés configurés à zéro point demandent confirmation.
-- Le magasin actif reste visible. Le sélecteur permet de chercher et changer de magasin. Les brouillons et opérations ne changent jamais de compte ni de magasin.
+- L’administrateur commence au réseau, le responsable au groupe, le vendeur à son magasin autorisé. Deux sélecteurs recherchables affichent le groupe et son magasin : changer de groupe revient à son résumé ; la liste des magasins est limitée au groupe sélectionné. Les brouillons et opérations ne changent jamais de compte ni de magasin.
 - Désactiver ou retirer un accès conserve les ventes, mouvements et identités historiques.
 
 ## Ventes, lots et exactitude
@@ -81,3 +81,14 @@ Un vendeur peut déclarer le numéro de lot et sa date de péremption pendant la
 ### Ergonomie mobile — précision du 22 septembre 2026
 
 L’interface utilise des lignes compactes et des indicateurs simples. Les options moins fréquentes sont regroupées dans Plus. Les petites largeurs regroupent Équipe/Catalogue dans ce menu ; les textes agrandis et les écrans bas utilisent une navigation verticale défilante. Les responsables disposent d’une page de recherche dédiée aux prix, points et seuils. Les sélecteurs sont recherchables et les formulaires partagés gardent leur validation visible au-dessus du clavier. Voir [les parcours et captures](mobile-ux-2026-09-22.md).
+
+
+## Refonte du 23 septembre : résumés et présentation
+
+Navigation : réseau (Accueil, Groupes, Commandes, Catalogue), groupe (Résumé, Magasins, Équipe, Commandes), magasin responsable (Accueil, Stock, Commandes, Plus), vendeur (Accueil, Ventes, Récompenses, Formation). Formation globale, invitations et compte restent dans le menu d’administration. Un changement de contexte sauvegarde les brouillons avant navigation ; son échec conserve l’éditeur. Les réponses obsolètes ne peuvent alimenter le nouveau compte/groupe/magasin.
+
+Les tableaux de bord affichent leur périmètre, période et fraîcheur. Les dates suivent Africa/Tunis : aujourd’hui, sept derniers jours, mois courant ou intervalle de 366 jours maximum. L’administration commence au mois, le vendeur à aujourd’hui. Les ventes nettes utilisent les lignes corrigées moins les unités retournées, imputées à la date et au vendeur de la vente initiale. Le nombre de ventes enregistrées inclut les ventes entièrement retournées. Stock, commandes/livraisons attendues, récompenses et points relèvent de la situation actuelle. Les opérations locales en attente ne sont pas incluses dans les totaux acceptés. Aucun bénéfice, encaissement ou classement inter-magasins n’est inventé.
+
+Les photos produit conservent l’emballage entier. Catégorie, gamme, format, description, conseils, ingrédients, précautions, sources et état de complétude appartiennent au catalogue global. Prix de référence manquant, zéro explicitement configuré et tarif de démonstration sont distincts. Une modification globale ne remplace pas les prix fixés par un magasin. Les informations non vérifiées restent absentes.
+
+Le thème central est blanc #FFFFFF, menthe #F1F8F4, émeraude #146C43, accent #6ABE4E et texte #17231C, police Inter locale, icônes Lucide. Navigation défilante si texte agrandi, cibles 48 dp, animations courtes désactivées selon les préférences d’accessibilité. Les captures et limites de qualification sont dans [le registre de refonte](redesign-2026-09-23.md).

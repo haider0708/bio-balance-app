@@ -429,3 +429,15 @@ it("delivers real multipart invitations, recovery and security notices to isolat
     smtp.close();
   }
 }, 20000);
+
+
+it("delivers a new-group grant before the organization exists", async () => {
+  const admin = await account(true), r = recorder();
+  const invitation = await identity.invite(admin, {
+    kind: "new_group", email: `${randomUUID()}@example.test`, permissions: [],
+  });
+  const job = await db.job.findUniqueOrThrow({where:{key:`invite:${invitation.id}`}});
+  expect(await r.service.deliver({...job,payload:job.payload as Record<string,string>},async()=>true)).toBe("accepted");
+  expect(r.sent[0]!.content.text).toContain("créer votre groupe");
+  expect((await db.accessToken.findUniqueOrThrow({where:{id:invitation.id}})).organizationId).toBeNull();
+});

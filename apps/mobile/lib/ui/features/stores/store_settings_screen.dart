@@ -28,7 +28,7 @@ class StoreSettingsPage extends StatelessWidget {
             action: FilledButton.icon(
               onPressed: () =>
                   edit(context, store, Map<String, dynamic>.from(saved)),
-              icon: const Icon(Icons.edit_outlined),
+              icon: const Icon(AppIcons.editOutlined),
               label: const Text('Modifier le magasin'),
             ),
           ),
@@ -37,14 +37,14 @@ class StoreSettingsPage extends StatelessWidget {
           CompactRow(
             title: 'Adresse',
             subtitle: '${saved['address']}\n${saved['city']}',
-            icon: Icons.location_on_outlined,
+            icon: AppIcons.locationOnOutlined,
           ),
           CompactRow(
             title: 'Téléphone',
             subtitle: '${saved['phone'] ?? ''}'.isEmpty
                 ? 'Non renseigné'
                 : saved['phone'],
-            icon: Icons.phone_outlined,
+            icon: AppIcons.phoneOutlined,
           ),
         ],
       );

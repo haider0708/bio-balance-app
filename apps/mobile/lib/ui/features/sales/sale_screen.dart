@@ -3,6 +3,8 @@ import '../../core/navigation.dart';
 import 'dart:convert';
 import 'dart:async';
 
+import '../catalog/product_information.dart';
+
 import 'package:flutter/material.dart';
 
 import '../scanning/scanner_screen.dart';
@@ -69,7 +71,7 @@ class _SaleEditorState extends State<_SaleEditor> {
       body: Content(
         maxWidth: 760,
         children: [
-          StatusChip(vm.store.name, icon: Icons.storefront_outlined),
+          StatusChip(vm.store.name, icon: AppIcons.storefrontOutlined),
           const SizedBox(height: 20),
           if (vm.recovery != null) ...[
             const Notice(
@@ -99,12 +101,12 @@ class _SaleEditorState extends State<_SaleEditor> {
             children: [
               FilledButton.icon(
                 onPressed: vm.canEdit ? () => scan(vm) : null,
-                icon: const Icon(Icons.qr_code_scanner),
+                icon: const Icon(AppIcons.qrCodeScanner),
                 label: const Text('Scanner un produit'),
               ),
               OutlinedButton.icon(
                 onPressed: vm.canEdit ? () => choose(vm) : null,
-                icon: const Icon(Icons.search),
+                icon: const Icon(AppIcons.search),
                 label: const Text('Rechercher'),
               ),
             ],
@@ -114,7 +116,7 @@ class _SaleEditorState extends State<_SaleEditor> {
             const EmptyState(
               title: 'Votre vente commence ici',
               description: 'Scannez un produit ou recherchez sa référence. Le brouillon est enregistré automatiquement.',
-              icon: Icons.shopping_bag_outlined,
+              icon: AppIcons.shoppingBagOutlined,
             ),
           ...vm.state.lines.map(
             (line) => CompactRow(
@@ -131,12 +133,12 @@ class _SaleEditorState extends State<_SaleEditor> {
                     onPressed: !vm.canEdit
                         ? null
                         : () => editLine(vm, line.productId, line),
-                    icon: const Icon(Icons.edit_outlined),
+                    icon: const Icon(AppIcons.editOutlined),
                     label: const Text('Modifier'),
                   ),
                   TextButton.icon(
                     onPressed: !vm.canEdit ? null : () => vm.remove(line.id),
-                    icon: const Icon(Icons.delete_outline),
+                    icon: const Icon(AppIcons.deleteOutline),
                     label: const Text('Retirer'),
                   ),
                 ],
@@ -199,7 +201,7 @@ class _SaleEditorState extends State<_SaleEditor> {
                       onPressed: !vm.canEdit || vm.state.lines.isEmpty
                           ? null
                           : () => save(vm),
-                      icon: const Icon(Icons.check),
+                      icon: const Icon(AppIcons.check),
                       label: Text(
                         vm.state.saving
                             ? 'Enregistrement…'
@@ -222,6 +224,7 @@ class _SaleEditorState extends State<_SaleEditor> {
       isScrollControlled: true,
       useSafeArea: true,
       builder: (_) => ProductPicker(
+        workspace: vm.workspace,
         products:
             vm.workspace.state.data?.products.where((p) => p.active).toList() ??
             [],
@@ -296,7 +299,8 @@ class _SaleEditorState extends State<_SaleEditor> {
 
 class ProductPicker extends StatefulWidget {
   final List<Product> products;
-  const ProductPicker({super.key, required this.products});
+  final WorkspaceViewModel? workspace;
+  const ProductPicker({super.key, required this.products, this.workspace});
   @override
   State<ProductPicker> createState() => _ProductPickerState();
 }
@@ -328,7 +332,7 @@ class _ProductPickerState extends State<ProductPicker> {
                 onChanged: (q) => setState(() => query = q),
                 decoration: const InputDecoration(
                   hintText: 'Rechercher un produit',
-                  prefixIcon: Icon(Icons.search),
+                  prefixIcon: Icon(AppIcons.search),
                 ),
               ),
             ),
@@ -343,8 +347,14 @@ class _ProductPickerState extends State<ProductPicker> {
               itemCount: products.length,
               itemBuilder: (_, i) => CompactRow(
                 title: products[i].name,
+                leading: widget.workspace == null
+                    ? null
+                    : ProductPhoto(
+                        vm: widget.workspace!,
+                        productId: products[i].id,
+                      ),
                 subtitle: products[i].reference,
-                trailing: const Icon(Icons.add),
+                trailing: const Icon(AppIcons.add),
                 onTap: () => Navigator.pop(context, products[i]),
               ),
             ),
@@ -386,16 +396,14 @@ class _LineEditorState extends State<LineEditor> {
   @override
   void initState() {
     super.initState();
+    final config = widget.workspace.state.data?.config(widget.productId);
+    final configured =
+        config?['priceConfigured'] == true ||
+        integer(config?['priceMillimes']) > 0;
     price = TextEditingController(
       text:
           widget.line?.price.input ??
-          Money(
-            integer(
-              widget.workspace.state.data?.config(
-                widget.productId,
-              )['priceMillimes'],
-            ),
-          ).input,
+          (configured ? Money(integer(config?['priceMillimes'])).input : ''),
     );
     lots = InventorySelection.forSale(
       widget.workspace.state.data?.lots.where(
@@ -581,7 +589,7 @@ class _LineEditorState extends State<LineEditor> {
           ),
         OutlinedButton.icon(
           onPressed: missingBatch,
-          icon: const Icon(Icons.add),
+          icon: const Icon(AppIcons.add),
           label: const Text('Lot manquant ? Le renseigner'),
         ),
         if (hasShortage)

@@ -11,7 +11,7 @@ import 'package:biobalance/domain/models/models.dart';
 import 'package:biobalance/ui/core/forms.dart';
 import 'package:biobalance/ui/features/authentication/session_view_model.dart';
 import 'package:biobalance/ui/features/workspace/workspace_navigator.dart';
-import 'package:biobalance/ui/features/workspace/workspace_screen.dart';
+import 'package:biobalance/ui/features/workspace/scope_screen.dart';
 import 'package:biobalance/ui/features/workspace/workspace_view_model.dart';
 import 'package:dio/dio.dart';
 import 'package:drift/native.dart';
@@ -234,7 +234,7 @@ void main() {
       await tester.pumpAndSettle();
       unawaited(
         openEditor(
-          tester.element(find.byType(WorkspaceScreen)),
+          tester.element(find.byType(ScopeScreen)),
           title: 'Réception de test',
           fields: [const FieldSpec('batch', 'Lot')],
           submit: (_) async {},

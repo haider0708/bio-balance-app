@@ -19,7 +19,8 @@ import '../workspace/operation_helpers.dart';
 
 class RewardsPage extends StatefulWidget {
   final WorkspaceViewModel vm;
-  const RewardsPage({super.key, required this.vm});
+  final String? claimId;
+  const RewardsPage({super.key, required this.vm, this.claimId});
   @override
   State<RewardsPage> createState() => _RewardsPageState();
 }
@@ -66,28 +67,34 @@ class _RewardsPageState extends State<RewardsPage> {
       );
     }
     final ranking = rankingModel.state.value?.scores ?? [];
-    final rewards = data.list('rewards'), claims = data.list('claims');
+    final rewards = widget.claimId == null ? data.list('rewards') : <Json>[],
+        claims = data
+            .list('claims')
+            .where((c) => widget.claimId == null || c['id'] == widget.claimId)
+            .toList();
     final manage = vm.state.store!.canManage || vm.user.admin;
     return Content.builder(
       itemCount: rewards.length + claims.length + ranking.length + 2,
       itemBuilder: (context, index) {
         if (index < rewards.length) {
           final reward = rewards[index];
+          final imageId =
+              reward['imageId'] ??
+              data.products
+                  .where((p) => p.id == reward['productId'])
+                  .firstOrNull
+                  ?.imageId;
           return CompactRow(
             title: reward['title'],
             value: '${reward['cost']} pts',
             subtitle: reward['active'] == false ? 'Archivée' : 'Disponible',
             tone: AppTone.reward,
-            icon: reward['imageId'] == null ? Icons.redeem_outlined : null,
-            leading: reward['imageId'] == null
+            icon: imageId == null ? AppIcons.redeemOutlined : null,
+            leading: imageId == null
                 ? null
                 : SizedBox(
                     width: 40,
-                    child: ProtectedImage(
-                      vm: vm,
-                      id: reward['imageId'],
-                      height: 40,
-                    ),
+                    child: ProtectedImage(vm: vm, id: imageId, height: 40),
                   ),
             onTap: () => rewardDetails(context, reward),
             footer: Wrap(
@@ -176,7 +183,7 @@ class _RewardsPageState extends State<RewardsPage> {
                     onPressed: rankingModel.state.loading
                         ? null
                         : rankingModel.refresh,
-                    icon: const Icon(Icons.refresh),
+                    icon: const Icon(AppIcons.refresh),
                   ),
                 ),
                 if (rankingModel.state.error != null)
@@ -203,7 +210,7 @@ class _RewardsPageState extends State<RewardsPage> {
           action: manage
               ? OutlinedButton.icon(
                   onPressed: () => configure(context),
-                  icon: const Icon(Icons.add),
+                  icon: const Icon(AppIcons.add),
                   label: const Text('Créer une récompense'),
                 )
               : null,
@@ -228,7 +235,7 @@ class _RewardsPageState extends State<RewardsPage> {
                 ),
               ),
             ),
-            icon: const Icon(Icons.history),
+            icon: const Icon(AppIcons.history),
             label: const Text('Historique des points'),
           ),
         ),
@@ -239,7 +246,7 @@ class _RewardsPageState extends State<RewardsPage> {
             title: 'Les récompenses arrivent bientôt',
             description:
                 'Le responsable peut créer les récompenses de ce magasin.',
-            icon: Icons.redeem_outlined,
+            icon: AppIcons.redeemOutlined,
           ),
       ],
     );

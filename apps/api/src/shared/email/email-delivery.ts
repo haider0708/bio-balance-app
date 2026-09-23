@@ -123,11 +123,13 @@ export class EmailDeliveryService {
       let organizationName: string | undefined, storeName: string | undefined;
       if (payload.template === "invite") {
         if (!(await invitationIsAuthorized(tx, token))) return null;
-        organizationName = (
-          await tx.organization.findUnique({
-            where: { id: token.organizationId! },
-          })
-        )?.name;
+        organizationName = token.organizationId
+          ? (
+              await tx.organization.findUnique({
+                where: { id: token.organizationId },
+              })
+            )?.name
+          : undefined;
         storeName = token.storeId
           ? (await tx.store.findUnique({ where: { id: token.storeId } }))?.name
           : undefined;
@@ -138,6 +140,8 @@ export class EmailDeliveryService {
         expiresAt: token.expiresAt,
         organizationName,
         storeName,
+        invitationKind: token.kind as
+          "new_group" | "responsible" | "salesperson" | null,
       });
     });
   }

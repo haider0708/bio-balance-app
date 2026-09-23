@@ -15,7 +15,6 @@ import { ZodError } from "zod";
 import { Actor } from "../../modules/operations/domain/contracts";
 import { IdentityService } from "../../modules/identity/identity.service";
 import { DomainError } from "../domain/errors";
-import { RequestBudget } from "./request-budget";
 export type AuthRequest = Request & {
   actor: Actor;
   bearer: string;
@@ -27,7 +26,6 @@ export class AuthGuard implements CanActivate {
   constructor(
     private readonly identity: IdentityService,
     private readonly reflector: Reflector,
-    private readonly budget: RequestBudget,
   ) {}
   async canActivate(context: ExecutionContext) {
     const request = context.switchToHttp().getRequest<AuthRequest>();
@@ -42,20 +40,8 @@ export class AuthGuard implements CanActivate {
     request.bearer =
       request.headers.authorization?.replace(/^Bearer /, "") ?? "";
     request.actor = await this.identity.authenticate(request.bearer);
-    const route =
-      typeof request.route?.path === "string"
-        ? request.route.path
-        : request.path;
-    // Logout invalidates the credential itself, and must remain available when
-    // an account has exhausted its operational request budget.
-    if (route.toLowerCase().replace(/\/$/, "") !== "/v1/identity/logout") {
-      await this.budget.consume(
-        request.actor.id,
-        request.method,
-        route,
-        request.body,
-      );
-    }
+    // Authenticated business requests have no per-account quota. Login/recovery
+    // limits and infrastructure resource protection remain independent.
     return true;
   }
 }

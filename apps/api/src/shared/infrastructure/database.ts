@@ -233,6 +233,35 @@ export class Database extends PrismaClient implements OnModuleDestroy {
   }
 
   /** Global endpoints use current identity in the same transaction as their work. */
+  group<T>(
+    actor: Actor,
+    organizationId: string,
+    work: (tx: Prisma.TransactionClient, current: Actor) => Promise<T>,
+    lock = true,
+  ): Promise<T> {
+    return this.authenticated(actor, async (tx, current) => {
+      // Serializes membership changes, including concurrent last-manager removals.
+      const groups = await tx.$queryRaw<{ id: string }[]>(
+        Prisma.sql`SELECT id FROM "Organization" WHERE id=${organizationId}::uuid ${lock ? Prisma.sql`FOR UPDATE` : Prisma.empty}`,
+      );
+      const membership = await tx.organizationMembership.findUnique({
+        where: {
+          organizationId_userId: { organizationId, userId: current.id },
+        },
+      });
+      requireRule(
+        groups.length === 1 && (current.platformAdmin || membership?.active),
+        "GROUP_ACCESS_REVOKED",
+        "Ce groupe n’est plus accessible.",
+        403,
+      );
+      await tx.$executeRaw`SELECT set_config('app.organization_id',${organizationId},true),set_config('app.group_read','true',true)`;
+      if (current.platformAdmin)
+        await tx.$executeRaw`SELECT set_config('app.admin_read','true',true)`;
+      return work(tx, current);
+    });
+  }
+
   authenticated<T>(
     actor: Actor,
     work: (tx: Prisma.TransactionClient, current: Actor) => Promise<T>,

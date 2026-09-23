@@ -34,7 +34,7 @@ class _CatalogImportScreenState extends State<CatalogImportScreen> {
         const SizedBox(height: 20),
         OutlinedButton.icon(
           onPressed: busy ? null : choose,
-          icon: const Icon(Icons.upload_file),
+          icon: const Icon(AppIcons.uploadFile),
           label: const Text('Choisir un fichier CSV'),
         ),
         if (error != null) ...[

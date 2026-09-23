@@ -1,10 +1,13 @@
+export 'app_icons.dart';
+import 'app_icons.dart';
+
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
 const brandGreen = Color(0xFF6ABE4E);
-const darkGreen = Color(0xFF286B34);
-const ink = Color(0xFF161C18);
+const darkGreen = Color(0xFF146C43);
+const ink = Color(0xFF17231C);
 const muted = Color(0xFF606164);
 ThemeData appTheme() => ThemeData(
   useMaterial3: true,
@@ -15,7 +18,7 @@ ThemeData appTheme() => ThemeData(
     primary: darkGreen,
     surface: Colors.white,
     onSurface: ink,
-    primaryContainer: const Color(0xFFEAF6E5),
+    primaryContainer: const Color(0xFFF1F8F4),
     onPrimaryContainer: darkGreen,
     error: const Color(0xFFAF342C),
   ),
@@ -25,7 +28,7 @@ ThemeData appTheme() => ThemeData(
     bodyMedium: TextStyle(fontSize: 16, color: ink, height: 1.4),
     bodySmall: TextStyle(fontSize: 14, color: muted, height: 1.4),
     titleLarge: TextStyle(
-      fontSize: 22,
+      fontSize: 24,
       fontWeight: FontWeight.w700,
       color: ink,
     ),
@@ -46,27 +49,27 @@ ThemeData appTheme() => ThemeData(
     fillColor: Colors.white,
     contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
     border: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(12),
       borderSide: const BorderSide(color: Color(0xFFDDE3D9)),
     ),
     enabledBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(12),
       borderSide: const BorderSide(color: Color(0xFFDDE3D9)),
     ),
   ),
   filledButtonTheme: FilledButtonThemeData(
     style: FilledButton.styleFrom(
-      backgroundColor: brandGreen,
-      foregroundColor: ink,
+      backgroundColor: darkGreen,
+      foregroundColor: Colors.white,
       minimumSize: const Size(48, 48),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
     ),
   ),
   outlinedButtonTheme: OutlinedButtonThemeData(
     style: OutlinedButton.styleFrom(
       minimumSize: const Size(48, 48),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
     ),
   ),
   iconButtonTheme: IconButtonThemeData(
@@ -175,7 +178,7 @@ class EmptyState extends StatelessWidget {
     super.key,
     required this.title,
     required this.description,
-    this.icon = Icons.inbox_outlined,
+    this.icon = AppIcons.inboxOutlined,
     this.action,
   });
   @override
@@ -210,7 +213,7 @@ class Notice extends StatelessWidget {
   const Notice(
     this.message, {
     super.key,
-    this.icon = Icons.info_outline,
+    this.icon = AppIcons.infoOutline,
     this.error = false,
     this.retry,
   });
@@ -220,7 +223,7 @@ class Notice extends StatelessWidget {
     padding: const EdgeInsets.all(12),
     decoration: BoxDecoration(
       color: error ? const Color(0xFFFBECE9) : const Color(0xFFEBF5E7),
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(12),
     ),
     child: Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -233,7 +236,7 @@ class Notice extends StatelessWidget {
         if (retry != null)
           IconButton(
             onPressed: retry,
-            icon: const Icon(Icons.refresh),
+            icon: const Icon(AppIcons.refresh),
             tooltip: 'Réessayer',
           ),
       ],
@@ -242,7 +245,7 @@ class Notice extends StatelessWidget {
 }
 
 enum AppTone {
-  success(Color(0xFF286B34), Color(0xFFEAF6E5)),
+  success(Color(0xFF146C43), Color(0xFFF1F8F4)),
   info(Color(0xFF185D91), Color(0xFFEAF4FD)),
   warning(Color(0xFF88500A), Color(0xFFFFF3DC)),
   danger(Color(0xFFAF342C), Color(0xFFFBECE9)),
@@ -259,7 +262,7 @@ class StatusChip extends StatelessWidget {
   const StatusChip(
     this.text, {
     super.key,
-    this.icon = Icons.check_circle_outline,
+    this.icon = AppIcons.checkCircleOutline,
     this.tone = AppTone.success,
   });
   @override
@@ -267,7 +270,7 @@ class StatusChip extends StatelessWidget {
     padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
     decoration: BoxDecoration(
       color: tone.background,
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(12),
     ),
     child: Wrap(
       crossAxisAlignment: WrapCrossAlignment.center,
@@ -373,7 +376,7 @@ class CompactRow extends StatelessWidget {
               style: const TextStyle(fontWeight: FontWeight.w600, color: ink),
             );
       return Material(
-        color: selected ? const Color(0xFFF2F7F0) : Colors.transparent,
+        color: selected ? const Color(0xFFF1F8F4) : Colors.transparent,
         child: InkWell(
           onTap: onTap,
           child: Container(
@@ -442,7 +445,7 @@ class CompactRow extends StatelessWidget {
                   trailing!,
                 ] else if (onTap != null) ...[
                   const SizedBox(width: 8),
-                  const Icon(Icons.chevron_right, size: 20, color: muted),
+                  const Icon(AppIcons.chevronRight, size: 20, color: muted),
                 ],
               ],
             ),

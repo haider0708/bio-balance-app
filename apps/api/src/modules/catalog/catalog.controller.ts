@@ -1,5 +1,6 @@
 import { CatalogRequests } from "../../shared/contracts/requests";
-import { Body, Controller, Post, Req } from "@nestjs/common";
+import { Body, Controller, Post, Req, Get, Query } from "@nestjs/common";
+import { z } from "zod";
 import { ApiTags, ApiBearerAuth } from "@nestjs/swagger";
 import { AuthRequest } from "../../shared/infrastructure/http";
 import { CatalogService } from "./catalog.service";
@@ -9,6 +10,9 @@ import { CatalogService } from "./catalog.service";
 @Controller("v1/catalog")
 export class CatalogController {
   constructor(private readonly service: CatalogService) {}
+  @Get("products") list(@Req() r: AuthRequest, @Query("after") after?: string) {
+    return this.service.list(r.actor, z.uuid().optional().parse(after));
+  }
   @Post("products") save(@Req() r: AuthRequest, @Body() b: unknown) {
     return this.service.save(r.actor, CatalogRequests.Save.parse(b));
   }

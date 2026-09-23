@@ -65,8 +65,8 @@ class _ScannerScreenState extends State<ScannerScreen>
                 ? vm.toggleTorch
                 : null,
             isSelected: state.torchState == TorchState.on,
-            icon: const Icon(Icons.flashlight_on_outlined),
-            selectedIcon: const Icon(Icons.flashlight_on),
+            icon: const Icon(AppIcons.flashlightOnOutlined),
+            selectedIcon: const Icon(AppIcons.flashlightOn),
             tooltip: 'Lampe torche',
           ),
         ),
@@ -119,7 +119,7 @@ class _ScannerScreenState extends State<ScannerScreen>
                       child: EmptyState(
                         title: 'Caméra indisponible',
                         description: 'Autorisez la caméra dans les réglages ou utilisez la recherche manuelle.',
-                        icon: Icons.no_photography_outlined,
+                        icon: AppIcons.noPhotographyOutlined,
                       ),
                     ),
                     onDetect: (capture) {

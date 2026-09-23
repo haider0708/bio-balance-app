@@ -5,6 +5,87 @@ Object? decodeResponse(
   String operationId,
   Object? value,
 ) => switch (operationId) {
+  "ExportCreate" => (() {
+    final decoded = ExportCreateResponseDto.fromJson(
+      Map<String, dynamic>.from(value as Map),
+    );
+    return decoded.toJson();
+  })(),
+  "ExportGet" => (() {
+    final decoded = ExportGetResponseDto.fromJson(
+      Map<String, dynamic>.from(value as Map),
+    );
+    return decoded.toJson();
+  })(),
+  "DashboardGet" => (() {
+    final decoded = DashboardGetResponseDto.fromJson(
+      Map<String, dynamic>.from(value as Map),
+    );
+    return decoded.toJson();
+  })(),
+  "DashboardOrders" => (() {
+    final decoded = DashboardOrdersResponseDto.fromJson(
+      Map<String, dynamic>.from(value as Map),
+    );
+    return decoded.toJson();
+  })(),
+  "DashboardAttention" => (() {
+    final decoded = DashboardAttentionResponseDto.fromJson(
+      Map<String, dynamic>.from(value as Map),
+    );
+    return decoded.toJson();
+  })(),
+  "DashboardSales" => (() {
+    final decoded = DashboardSalesResponseDto.fromJson(
+      Map<String, dynamic>.from(value as Map),
+    );
+    return decoded.toJson();
+  })(),
+  "DashboardOrder" => (() {
+    final decoded = DashboardOrderResponseDto.fromJson(
+      Map<String, dynamic>.from(value as Map),
+    );
+    return decoded.toJson();
+  })(),
+  "GroupList" => (() {
+    final decoded = GroupListResponseDto.fromJson(
+      Map<String, dynamic>.from(value as Map),
+    );
+    return decoded.toJson();
+  })(),
+  "GroupCreate" => (() {
+    final decoded = GroupCreateResponseDto.fromJson(
+      Map<String, dynamic>.from(value as Map),
+    );
+    return decoded.toJson();
+  })(),
+  "GroupUpdate" => (() {
+    final decoded = GroupUpdateResponseDto.fromJson(
+      Map<String, dynamic>.from(value as Map),
+    );
+    return decoded.toJson();
+  })(),
+  "GroupStores" => (() {
+    final decoded = List.unmodifiable(
+      (value as List).map(
+        (item) =>
+            StoreAccessDto.fromJson(Map<String, dynamic>.from(item as Map)),
+      ),
+    );
+    return decoded.map((item) => item.toJson()).toList();
+  })(),
+  "GroupTeam" => (() {
+    final decoded = GroupTeamResponseDto.fromJson(
+      Map<String, dynamic>.from(value as Map),
+    );
+    return decoded.toJson();
+  })(),
+  "GroupMember" => (() {
+    final decoded = GroupMemberResponseDto.fromJson(
+      Map<String, dynamic>.from(value as Map),
+    );
+    return decoded.toJson();
+  })(),
   "AdminOverview" => (() {
     final decoded = AdminOverviewResponseDto.fromJson(
       Map<String, dynamic>.from(value as Map),
@@ -155,6 +236,12 @@ Object? decodeResponse(
   })(),
   "WorkspaceReward" => (() {
     final decoded = WorkspaceRewardResponseDto.fromJson(
+      Map<String, dynamic>.from(value as Map),
+    );
+    return decoded.toJson();
+  })(),
+  "CatalogList" => (() {
+    final decoded = CatalogListResponseDto.fromJson(
       Map<String, dynamic>.from(value as Map),
     );
     return decoded.toJson();

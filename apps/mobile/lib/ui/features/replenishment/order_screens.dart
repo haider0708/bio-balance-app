@@ -1,3 +1,4 @@
+import '../catalog/product_information.dart';
 import '../inventory/inventory_screens.dart';
 import '../../core/navigation.dart';
 
@@ -49,7 +50,7 @@ class OrdersPage extends StatelessWidget {
                 ? 'Réception enregistrée · ${statusLabel(d['syncStatus'])}'
                 : '${objects(d['lines']).fold<int>(0, (sum, l) => sum + integer(l['quantity']))} unités annoncées',
             tone: AppTone.info,
-            icon: Icons.local_shipping_outlined,
+            icon: AppIcons.localShippingOutlined,
             onTap: d['syncStatus'] != null || !canReceive
                 ? null
                 : () => Navigator.push(
@@ -107,7 +108,7 @@ class OrdersPage extends StatelessWidget {
           action: manage
               ? FilledButton.icon(
                   onPressed: () => create(context),
-                  icon: const Icon(Icons.add),
+                  icon: const Icon(AppIcons.add),
                   label: const Text('Commander'),
                 )
               : null,
@@ -136,6 +137,7 @@ class OrdersPage extends StatelessWidget {
             for (final line in objects(order['lines']))
               CompactRow(
                 title: vm.productName(line['productId']),
+                leading: ProductPhoto(vm: vm, productId: line['productId']),
                 value: '${line['quantity']} u.',
               ),
           ],
@@ -321,7 +323,7 @@ class _OrderEditorState extends State<OrderEditor> {
     body: Content(
       maxWidth: 640,
       children: [
-        StatusChip(store.name, icon: Icons.storefront_outlined),
+        StatusChip(store.name, icon: AppIcons.storefrontOutlined),
         const SizedBox(height: 16),
         const Notice(
           'Brouillon conservé sur ce téléphone. Les quantités en attente comprennent les commandes à préparer et les livraisons en route. Une connexion est nécessaire pour envoyer.',
@@ -346,7 +348,7 @@ class _OrderEditorState extends State<OrderEditor> {
           ),
         OutlinedButton.icon(
           onPressed: !restored || loading || busy || uncertain ? null : add,
-          icon: const Icon(Icons.add),
+          icon: const Icon(AppIcons.add),
           label: const Text('Ajouter un produit'),
         ),
         const SizedBox(height: 24),
@@ -406,6 +408,7 @@ class _OrderEditorState extends State<OrderEditor> {
       isScrollControlled: true,
       useSafeArea: true,
       builder: (_) => ProductPicker(
+        workspace: widget.vm,
         products: data.products
             .where((p) => p.active && !quantities.containsKey(p.id))
             .toList(),

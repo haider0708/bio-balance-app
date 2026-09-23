@@ -521,6 +521,27 @@ const owner = new PrismaClient({
     await call("GET", "/v1/admin/overview", { as: adminToken });
     await call("GET", "/v1/reports/overview", { as: adminToken });
     await call("GET", `/v1/reports/stores/${store}/sales.csv?${scope}`);
+    await call("GET", "/v1/groups");
+    await call("GET", `/v1/groups/${org}/stores`);
+    await call("GET", `/v1/groups/${org}/team`);
+    await call("PATCH", `/v1/groups/${org}/team/${staffId}`, {body:{role:'salesperson',active:true,storeIds:[store]}});
+    await call("PATCH", `/v1/groups/${org}`, {body:{name:'Contract fixtures renamed',expectedVersion:1}});
+    const grant=await owner.groupCreationGrant.create({data:{id:randomUUID(),userId:managerId,createdBy:adminId}});
+    await call("POST", "/v1/groups", {body:{grantId:grant.id,operationId:randomUUID(),name:'Second partner group'}});
+    await call("GET", "/v1/catalog/products");
+    const query={scope:'group',organizationId:org,from:'2020-01-01',to:'2020-12-31'};
+    const params=new URLSearchParams(query).toString();
+    await call("GET", `/v1/dashboards?${params}`);
+    await call("GET", `/v1/dashboards/sales?${params}`);
+    await call("GET", `/v1/dashboards/attention?${params}&kind=deliveries`);
+    const orderPage=await call("GET", `/v1/dashboards/orders?${params}`);
+    await call("GET", `/v1/dashboards/groups/${org}/stores/${store}/orders/${orderPage.items[0].id}`);
+    const report=await call("POST", '/v1/report-exports', {body:{id:randomUUID(),query}});
+    const {ExportService}=require('../dist/modules/reporting/export.service');
+    await app.get(ExportService).process(report.id,randomUUID(),async()=>true);
+    await owner.job.update({where:{key:`export:${report.id}`},data:{status:"done"}});
+    await call("GET", `/v1/report-exports/${report.id}`);
+    await call("GET", `/v1/report-exports/${report.id}/file`);
     await call("POST", "/v1/identity/logout");
     const missing = routes
       .map((r) => r.spec.operationId)

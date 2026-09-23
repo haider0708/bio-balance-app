@@ -142,10 +142,10 @@ class _SyncScreenState extends State<SyncScreen> {
                         ? AppTone.success
                         : AppTone.warning,
                     icon: failed
-                        ? Icons.error_outline
+                        ? AppIcons.errorOutline
                         : resolved
-                        ? Icons.check_circle_outline
-                        : Icons.schedule,
+                        ? AppIcons.checkCircleOutline
+                        : AppIcons.schedule,
                   ),
                   Text(
                     row.resolution ??
@@ -157,7 +157,7 @@ class _SyncScreenState extends State<SyncScreen> {
                       onPressed: busy
                           ? null
                           : () => action(() => review(row, operations)),
-                      icon: const Icon(Icons.rule),
+                      icon: const Icon(AppIcons.rule),
                       label: const Text('Vérifier et résoudre'),
                     ),
                 ],
@@ -172,7 +172,7 @@ class _SyncScreenState extends State<SyncScreen> {
             if (error != null) Notice(error!, error: true),
             FilledButton.icon(
               onPressed: busy ? null : () => action(widget.vm.synchronize),
-              icon: const Icon(Icons.sync),
+              icon: const Icon(AppIcons.sync),
               label: const Text('Synchroniser maintenant'),
             ),
             SwitchListTile(
@@ -203,7 +203,7 @@ class _SyncScreenState extends State<SyncScreen> {
                     : 'Tout est synchronisé',
                 description:
                     'Aucune opération ${history ? 'enregistrée' : 'en attente'} sur ce magasin.',
-                icon: Icons.cloud_done_outlined,
+                icon: AppIcons.cloudDoneOutlined,
               ),
           ],
         );

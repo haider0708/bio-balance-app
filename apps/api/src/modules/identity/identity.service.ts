@@ -223,8 +223,17 @@ export class IdentityService {
       organizationName?: string;
       storeId?: string;
       permissions: string[];
+      kind?: "new_group" | "responsible" | "salesperson";
+      storeIds?: string[];
     },
   ) {
+    if (input.kind)
+      return this.inviteGroupAccess(
+        actor,
+        input as typeof input & {
+          kind: "new_group" | "responsible" | "salesperson";
+        },
+      );
     const organizationId = input.organizationId;
     if (input.storeId) {
       requireRule(organizationId, "VALIDATION", "Organisation requise.");
@@ -312,6 +321,96 @@ export class IdentityService {
     return this.db.authenticated(actor, (tx) => create(tx), true);
   }
 
+  private inviteGroupAccess(
+    actor: Actor,
+    input: {
+      email: string;
+      kind: "new_group" | "responsible" | "salesperson";
+      organizationId?: string;
+      storeIds?: string[];
+    },
+  ) {
+    requireRule(
+      input.kind === "new_group" || input.organizationId,
+      "VALIDATION",
+      "Groupe requis.",
+    );
+    const token = randomBytes(32).toString("base64url");
+    accountLink("invite", token);
+    const create = async (tx: Prisma.TransactionClient) => {
+      const storeIds = [...new Set(input.storeIds ?? [])];
+      if (input.kind === "new_group")
+        requireRule(
+          !input.organizationId && !storeIds.length,
+          "VALIDATION",
+          "Une invitation de groupe ne sélectionne pas de magasin.",
+        );
+      else {
+        requireRule(input.organizationId, "VALIDATION", "Groupe requis.");
+        requireRule(
+          input.kind !== "salesperson" || storeIds.length > 0,
+          "STORE_REQUIRED",
+          "Choisissez au moins un magasin.",
+        );
+        const count = await tx.store.count({
+          where: { organizationId: input.organizationId, id: { in: storeIds } },
+        });
+        requireRule(
+          count === storeIds.length,
+          "STORE_SCOPE",
+          "Magasin extérieur au groupe.",
+        );
+      }
+      const invitation = await tx.accessToken.create({
+        data: {
+          email: input.email,
+          tokenHash: tokenHash(token),
+          purpose: "invite",
+          kind: input.kind,
+          organizationId: input.organizationId,
+          storeIds,
+          permissions:
+            input.kind === "salesperson"
+              ? ["sell", "receive"]
+              : ["manage", "sell", "receive"],
+          createdBy: actor.id,
+          expiresAt: new Date(Date.now() + 48 * 3600_000),
+        },
+      });
+      await tx.job.create({
+        data: {
+          kind: "email",
+          key: `invite:${invitation.id}`,
+          payload: {
+            version: "1",
+            template: "invite",
+            to: input.email,
+            accessTokenId: invitation.id,
+            token,
+          } satisfies EmailPayload,
+        },
+      });
+      await tx.auditEntry.create({
+        data: {
+          actorId: actor.id,
+          organizationId: input.organizationId,
+          action: "identity.invite",
+          targetId: invitation.id,
+          details: { email: input.email, kind: input.kind, storeIds },
+        },
+      });
+      return {
+        id: invitation.id,
+        email: input.email,
+        status: "invited",
+        expiresAt: invitation.expiresAt,
+      };
+    };
+    return input.kind === "new_group"
+      ? this.db.authenticated(actor, create, true)
+      : this.db.group(actor, input.organizationId!, create);
+  }
+
   private async validToken(
     token: string,
     purpose: "invite" | "reset",
@@ -394,7 +493,29 @@ export class IdentityService {
         user = await tx.user.create({
           data: { email: invite.email, name, passwordHash: hash },
         });
-      if (invite.storeId) {
+      if (invite.kind === "new_group") {
+        await tx.groupCreationGrant.create({
+          data: {
+            id: invite.id,
+            userId: user.id,
+            createdBy: invite.createdBy!,
+          },
+        });
+      } else if (invite.kind === "salesperson") {
+        for (const storeId of invite.storeIds) {
+          await tx.$executeRaw`SELECT set_config('app.organization_id',${invite.organizationId!},true),set_config('app.store_id',${storeId},true),set_config('app.actor_id',${user.id},true)`;
+          await tx.membership.upsert({
+            where: { storeId_userId: { storeId, userId: user.id } },
+            create: {
+              organizationId: invite.organizationId!,
+              storeId,
+              userId: user.id,
+              permissions: ["sell", "receive"],
+            },
+            update: { active: true, permissions: ["sell", "receive"] },
+          });
+        }
+      } else if (invite.storeId) {
         const store = await tx.store.findUniqueOrThrow({
           where: { id: invite.storeId },
         });

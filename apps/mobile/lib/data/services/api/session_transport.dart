@@ -12,6 +12,7 @@ enum AccessCondition {
   expired,
   disabled,
   storeAccessRevoked,
+  groupAccessRevoked,
 }
 
 class SessionBinding {
@@ -29,7 +30,8 @@ class AccessEvent {
   final SessionBinding binding;
   final AccessCondition condition;
   final String? storeId;
-  const AccessEvent(this.binding, this.condition, {this.storeId});
+  final String? groupId;
+  const AccessEvent(this.binding, this.condition, {this.storeId, this.groupId});
 }
 
 /// All transport calls capture credentials and generation before starting I/O.
@@ -122,7 +124,8 @@ class SessionTransport {
       );
     }
     final store =
-        RegExp(r'/v1/stores/([^/]+)').firstMatch(path)?.group(1) ??
+        RegExp(r'/stores/([^/]+)').firstMatch(path)?.group(1) ??
+        query?['storeId'] as String? ??
         (body is Map &&
                 body['operations'] is List &&
                 (body['operations'] as List).length == 1
@@ -172,13 +175,22 @@ class SessionTransport {
         _accessBlocked = true;
       } else if (status == 403 && code == 'STORE_ACCESS_REVOKED') {
         condition = AccessCondition.storeAccessRevoked;
+      } else if (status == 403 && code == 'GROUP_ACCESS_REVOKED') {
+        condition = AccessCondition.groupAccessRevoked;
       } else if (error.response == null &&
           error.type != DioExceptionType.cancel) {
         condition = AccessCondition.offline;
       }
       if (condition != null) {
         if (condition != AccessCondition.offline) _accessEpoch++;
-        _events.add(AccessEvent(captured, condition, storeId: store));
+        final group =
+            RegExp(r'/groups/([^/]+)')
+                .firstMatch(error.requestOptions.path)
+                ?.group(1) ??
+            error.requestOptions.queryParameters['organizationId'] as String?;
+        _events.add(
+          AccessEvent(captured, condition, storeId: store, groupId: group),
+        );
       }
     }
   }

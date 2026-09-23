@@ -1,10 +1,10 @@
 # BioBalance
 
-Application Flutter en français pour les vendeurs, responsables de magasins et l’administration BioBalance. API NestJS, PostgreSQL et stockage local Drift ; architecture objet avec MVVM, injection par constructeur et règles métier séparées des interfaces.
+Application Flutter en français pour les vendeurs, responsables de groupes et l’administration BioBalance. API NestJS, PostgreSQL et stockage local Drift ; architecture objet avec MVVM, injection par constructeur et règles métier séparées des interfaces.
 
 **État : backend déployé sur https://api.galylio.com et APK Android v1.0.0 signé ; qualification physique, distribution Play/iOS et pilote en attente.** [Télécharger la release Android](https://github.com/haider0708/bio-balance-app/releases/tag/v1.0.0). Voir [l’état détaillé](docs/implementation-status.md), la [spécification](docs/specification-fonctionnelle.md), l’[architecture](docs/architecture-technique.md) et le [runbook](docs/runbook.md).
 
-Dernière revue : [corrections, nettoyage, interface et candidate Android 1.0.1+3 signée](docs/review-polish-2026-09-22.md). Cette candidate est vérifiée localement et en CI ; elle n’est pas encore publiée.
+Dernière refonte : [groupes, tableaux de bord et interface 1.1.0+4](docs/redesign-2026-09-23.md), avec [captures et revue visuelle](docs/screenshot-inventory-2026-09-23.md). La release publique v1.0.0 reste distincte de la nouvelle candidate.
 
 ## Organisation
 

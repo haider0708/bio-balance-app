@@ -89,7 +89,7 @@ class _OptionFieldState extends State<OptionField> {
               ),
             ),
             const SizedBox(width: 8),
-            const Icon(Icons.expand_more),
+            const Icon(AppIcons.expandMore),
           ],
         ),
       ),
@@ -139,7 +139,7 @@ class _ChoiceSheetState extends State<_ChoiceSheet> {
                         setState(() => query = value.trim().toLowerCase()),
                     decoration: const InputDecoration(
                       hintText: 'Rechercher',
-                      prefixIcon: Icon(Icons.search),
+                      prefixIcon: Icon(AppIcons.search),
                     ),
                   ),
                 ),
@@ -160,7 +160,7 @@ class _ChoiceSheetState extends State<_ChoiceSheet> {
                   selected: option.key == widget.selected,
                   trailing: option.key == widget.selected
                       ? const Icon(
-                          Icons.check,
+                          AppIcons.check,
                           color: darkGreen,
                           semanticLabel: 'Sélectionné',
                         )

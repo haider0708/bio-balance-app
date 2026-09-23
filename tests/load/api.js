@@ -158,6 +158,15 @@ export default function () {
   if (state.pages.length) {
     url = `${prefix}/snapshot-pages/${state.pages[0]}?${scope}`;
     endpoint = "snapshot-page";
+  } else if (mode < 20) {
+    const now = new Date();
+    const date = new Date(now.getTime() + 3600000).toISOString().slice(0, 10);
+    const first = date.slice(0, 8) + "01";
+    const manager = (Number(f.n) - 1) % 10 === 0;
+    const dashboardScope = manager ? (mode < 10 ? "group" : "store") : "personal";
+    url = `/v1/dashboards?scope=${dashboardScope}&${scope}&from=${first}&to=${date}` +
+      (dashboardScope === "group" ? "" : `&storeId=${f.storeId}`);
+    endpoint = `dashboard-${dashboardScope}`;
   } else if (mode < 50) {
     url =
       `${prefix}/snapshot?${scope}&protocol=3` +

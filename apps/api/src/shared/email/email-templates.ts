@@ -10,6 +10,7 @@ interface CredentialEmail {
   expiresAt: Date;
   organizationName?: string;
   storeName?: string;
+  invitationKind?: "new_group" | "responsible" | "salesperson" | null;
 }
 export type EmailTemplate =
   | ({ kind: "invite" } & CredentialEmail)
@@ -50,9 +51,13 @@ export function renderEmail(input: EmailTemplate): EmailContent {
       ? "Rejoindre votre équipe"
       : "Activer votre accès";
     paragraphs = [
-      input.storeName
-        ? `Vous êtes invité(e) à rejoindre l’équipe de ${input.storeName}.`
-        : `Vous êtes invité(e) à gérer les magasins de ${input.organizationName ?? "votre organisation"}.`,
+      input.invitationKind === "new_group"
+        ? "Vous êtes invité(e) à créer votre groupe et vos magasins dans BioBalance."
+        : input.storeName
+          ? `Vous êtes invité(e) à rejoindre l’équipe de ${input.storeName}.`
+          : input.invitationKind === "salesperson"
+            ? `Vous êtes invité(e) à rejoindre les magasins qui vous sont attribués dans ${input.organizationName ?? "votre groupe"}.`
+            : `Vous êtes invité(e) à gérer tous les magasins de ${input.organizationName ?? "votre groupe"}.`,
     ];
     instruction =
       "Dans l’application BioBalance, choisissez « Activer mon invitation » et saisissez ce code.";

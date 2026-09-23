@@ -18,8 +18,11 @@ process.env.DATABASE_URL =
   "postgresql://biobalance_app:local-app-only@localhost:54329/biobalance_test";
 if (!new URL(process.env.DATABASE_URL).pathname.endsWith("_test"))
   throw new Error("ISOLATED_TEST_DATABASE_REQUIRED");
-assertTestDatabases(process.env.DATABASE_URL, process.env.TEST_OWNER_DATABASE_URL ??
-  'postgresql://biobalance:local-development-only@localhost:54329/biobalance_test');
+assertTestDatabases(
+  process.env.DATABASE_URL,
+  process.env.TEST_OWNER_DATABASE_URL ??
+    "postgresql://biobalance:local-development-only@localhost:54329/biobalance_test",
+);
 const owner = new PrismaClient({
   adapter: new PrismaPg({
     connectionString:
@@ -173,6 +176,30 @@ it("processes a scoped image, verifies it, and refuses cross-store attachment an
   expect(ready.status).toBe("ready");
   expect(ready.sha256).toMatch(/^[a-f0-9]{64}$/);
   expect(ready.processedSize! > 0n).toBe(true);
+  const thumbnail = await service.media(manager, asset.id, "thumbnail");
+  const small = await readFile(thumbnail.path);
+  expect((await service.metadata(manager, asset.id, "thumbnail")).sha256).toBe(
+    createHash("sha256").update(small).digest("hex"),
+  );
+  const thumbSize = JSON.parse(
+    execFileSync("ffprobe", [
+      "-v",
+      "error",
+      "-show_entries",
+      "stream=width,height",
+      "-of",
+      "json",
+      thumbnail.path,
+    ]).toString(),
+  ).streams[0];
+  expect(thumbSize).toEqual({ width: 384, height: 192 });
+  expect(
+    (await owner.mediaAsset.findUniqueOrThrow({ where: { id: asset.id } }))
+      .storageBytes,
+  ).toBe(ready.processedSize! + BigInt(small.length));
+  await expect(
+    service.media(outsider, asset.id, "thumbnail"),
+  ).rejects.toThrow();
   await expect(
     stat(path.join(root, `${asset.id}.upload`)),
   ).rejects.toMatchObject({ code: "ENOENT" });
@@ -454,4 +481,57 @@ it("reserves image capacity atomically and expires abandoned transfers without d
     if (oldLimit === undefined) delete process.env.MEDIA_PENDING_LIMIT;
     else process.env.MEDIA_PENDING_LIMIT = oldLimit;
   }
+});
+
+it("isolates group images and exposes only the attached processed photo to assigned staff", async () => {
+  const { GroupService } = await import("../src/modules/tenancy/group.service");
+  const groups = new GroupService(db, workspace);
+  await owner.organizationMembership.create({
+    data: { organizationId: org, userId: manager.id },
+  });
+  const input = {
+    purpose: "group" as const,
+    organizationId: org,
+    sha256: createHash("sha256").update(image).digest("hex"),
+  };
+  await expect(
+    service.startUpload(
+      outsider,
+      "group.png",
+      "image/png",
+      image.length,
+      input,
+    ),
+  ).rejects.toThrow();
+  const asset = await service.startUpload(
+    manager,
+    "group.png",
+    "image/png",
+    image.length,
+    input,
+  );
+  await service.chunk(manager, asset.id, 0, image);
+  const profile = {
+    name: "Updated group",
+    imageId: asset.id,
+    expectedVersion: 1,
+  };
+  await expect(groups.update(manager, org, profile)).rejects.toThrow();
+  await new MediaProcessor(db, root).process(asset.id);
+  await expect(
+    service.metadata(seller, asset.id, "thumbnail"),
+  ).rejects.toThrow();
+  await groups.update(manager, org, profile);
+  expect(
+    BigInt((await service.metadata(seller, asset.id, "thumbnail")).size),
+  ).toBeGreaterThan(0n);
+  const different = await owner.organization.create({
+    data: { name: "Different group" },
+  });
+  await owner.organizationMembership.create({
+    data: { organizationId: different.id, userId: outsider.id },
+  });
+  await expect(
+    groups.update(outsider, different.id, { ...profile, expectedVersion: 1 }),
+  ).rejects.toThrow();
 });

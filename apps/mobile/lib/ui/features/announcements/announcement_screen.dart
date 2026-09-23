@@ -100,7 +100,7 @@ class _AnnouncementScreenState extends State<AnnouncementScreen> {
     body: Content(
       maxWidth: 640,
       children: [
-        StatusChip(store.name, icon: Icons.storefront_outlined),
+        StatusChip(store.name, icon: AppIcons.storefrontOutlined),
         const SizedBox(height: 16),
         const Notice(
           'Le brouillon est conservé. Une connexion est nécessaire pour envoyer à votre équipe.',
@@ -134,6 +134,7 @@ class _AnnouncementScreenState extends State<AnnouncementScreen> {
         ),
         const SizedBox(height: 16),
         DropdownButtonFormField<String>(
+          icon: const Icon(AppIcons.keyboardArrowDown),
           key: ValueKey(audience),
           initialValue: audience,
           isExpanded: true,

@@ -1,0 +1,1 @@
+`magic-touch.jpg` is the BioBalance Magic Touch packaging photograph already imported from https://biobalance.tn/88-large_default/customizable-mug.jpg on 22 September 2026. It is used only to verify framing and decoding of the authorized product photograph in UI tests. Test account/store data is synthetic.

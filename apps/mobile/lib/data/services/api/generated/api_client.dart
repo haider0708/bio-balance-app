@@ -27,6 +27,239 @@ class ApiClient extends SessionTransport {
   Future<Map<String, dynamic>> push(
     List<Map<String, dynamic>> operations,
   ) async => (await pushRaw(operations)).toJson();
+  Future<ExportCreateResponseDto> exportCreate({
+    required ExportCreateRequestDto body,
+  }) async {
+    final value = await request(
+      'POST',
+      '/v1/report-exports',
+      body: body.toJson(),
+      query: {},
+    );
+    return ExportCreateResponseDto.fromJson(
+      Map<String, dynamic>.from(value as Map),
+    );
+  }
+
+  Future<ExportGetResponseDto> exportGet({required String id}) async {
+    final value = await request(
+      'GET',
+      '/v1/report-exports/${Uri.encodeComponent(id)}',
+      query: {},
+    );
+    return ExportGetResponseDto.fromJson(
+      Map<String, dynamic>.from(value as Map),
+    );
+  }
+
+  Future<String> exportFile({required String id}) async {
+    final value = await request(
+      'GET',
+      '/v1/report-exports/${Uri.encodeComponent(id)}/file',
+      query: {},
+    );
+    return value as String;
+  }
+
+  Future<DashboardGetResponseDto> dashboardGet({
+    required String scope,
+    required String from,
+    required String to,
+    String? organizationId,
+    String? storeId,
+  }) async {
+    final value = await request(
+      'GET',
+      '/v1/dashboards',
+      query: {
+        "scope": scope,
+        "from": from,
+        "to": to,
+        "organizationId": ?organizationId,
+        "storeId": ?storeId,
+      },
+    );
+    return DashboardGetResponseDto.fromJson(
+      Map<String, dynamic>.from(value as Map),
+    );
+  }
+
+  Future<DashboardOrdersResponseDto> dashboardOrders({
+    String? after,
+    required String scope,
+    required String from,
+    required String to,
+    String? organizationId,
+    String? storeId,
+  }) async {
+    final value = await request(
+      'GET',
+      '/v1/dashboards/orders',
+      query: {
+        "after": ?after,
+        "scope": scope,
+        "from": from,
+        "to": to,
+        "organizationId": ?organizationId,
+        "storeId": ?storeId,
+      },
+    );
+    return DashboardOrdersResponseDto.fromJson(
+      Map<String, dynamic>.from(value as Map),
+    );
+  }
+
+  Future<DashboardAttentionResponseDto> dashboardAttention({
+    String? after,
+    required String scope,
+    required String from,
+    required String to,
+    String? organizationId,
+    String? storeId,
+    required String kind,
+  }) async {
+    final value = await request(
+      'GET',
+      '/v1/dashboards/attention',
+      query: {
+        "after": ?after,
+        "scope": scope,
+        "from": from,
+        "to": to,
+        "organizationId": ?organizationId,
+        "storeId": ?storeId,
+        "kind": kind,
+      },
+    );
+    return DashboardAttentionResponseDto.fromJson(
+      Map<String, dynamic>.from(value as Map),
+    );
+  }
+
+  Future<DashboardSalesResponseDto> dashboardSales({
+    String? after,
+    required String scope,
+    required String from,
+    required String to,
+    String? organizationId,
+    String? storeId,
+  }) async {
+    final value = await request(
+      'GET',
+      '/v1/dashboards/sales',
+      query: {
+        "after": ?after,
+        "scope": scope,
+        "from": from,
+        "to": to,
+        "organizationId": ?organizationId,
+        "storeId": ?storeId,
+      },
+    );
+    return DashboardSalesResponseDto.fromJson(
+      Map<String, dynamic>.from(value as Map),
+    );
+  }
+
+  Future<DashboardOrderResponseDto> dashboardOrder({
+    required String groupId,
+    required String storeId,
+    required String id,
+  }) async {
+    final value = await request(
+      'GET',
+      '/v1/dashboards/groups/${Uri.encodeComponent(groupId)}/stores/${Uri.encodeComponent(storeId)}/orders/${Uri.encodeComponent(id)}',
+      query: {},
+    );
+    return DashboardOrderResponseDto.fromJson(
+      Map<String, dynamic>.from(value as Map),
+    );
+  }
+
+  Future<GroupListResponseDto> groupList({
+    String? after,
+    String? search,
+  }) async {
+    final value = await request(
+      'GET',
+      '/v1/groups',
+      query: {"after": ?after, "search": ?search},
+    );
+    return GroupListResponseDto.fromJson(
+      Map<String, dynamic>.from(value as Map),
+    );
+  }
+
+  Future<GroupCreateResponseDto> groupCreate({
+    required GroupCreateRequestDto body,
+  }) async {
+    final value = await request(
+      'POST',
+      '/v1/groups',
+      body: body.toJson(),
+      query: {},
+    );
+    return GroupCreateResponseDto.fromJson(
+      Map<String, dynamic>.from(value as Map),
+    );
+  }
+
+  Future<GroupUpdateResponseDto> groupUpdate({
+    required String id,
+    required GroupUpdateRequestDto body,
+  }) async {
+    final value = await request(
+      'PATCH',
+      '/v1/groups/${Uri.encodeComponent(id)}',
+      body: body.toJson(),
+      query: {},
+    );
+    return GroupUpdateResponseDto.fromJson(
+      Map<String, dynamic>.from(value as Map),
+    );
+  }
+
+  Future<List<StoreAccessDto>> groupStores({required String id}) async {
+    final value = await request(
+      'GET',
+      '/v1/groups/${Uri.encodeComponent(id)}/stores',
+      query: {},
+    );
+    return List.unmodifiable(
+      (value as List).map(
+        (item) =>
+            StoreAccessDto.fromJson(Map<String, dynamic>.from(item as Map)),
+      ),
+    );
+  }
+
+  Future<GroupTeamResponseDto> groupTeam({required String id}) async {
+    final value = await request(
+      'GET',
+      '/v1/groups/${Uri.encodeComponent(id)}/team',
+      query: {},
+    );
+    return GroupTeamResponseDto.fromJson(
+      Map<String, dynamic>.from(value as Map),
+    );
+  }
+
+  Future<GroupMemberResponseDto> groupMember({
+    required String id,
+    required String userId,
+    required GroupMemberRequestDto body,
+  }) async {
+    final value = await request(
+      'PATCH',
+      '/v1/groups/${Uri.encodeComponent(id)}/team/${Uri.encodeComponent(userId)}',
+      body: body.toJson(),
+      query: {},
+    );
+    return GroupMemberResponseDto.fromJson(
+      Map<String, dynamic>.from(value as Map),
+    );
+  }
+
   Future<AdminOverviewResponseDto> adminOverview() async {
     final value = await request('GET', '/v1/admin/overview', query: {});
     return AdminOverviewResponseDto.fromJson(
@@ -374,6 +607,17 @@ class ApiClient extends SessionTransport {
     );
   }
 
+  Future<CatalogListResponseDto> catalogList({String? after}) async {
+    final value = await request(
+      'GET',
+      '/v1/catalog/products',
+      query: {"after": ?after},
+    );
+    return CatalogListResponseDto.fromJson(
+      Map<String, dynamic>.from(value as Map),
+    );
+  }
+
   Future<CatalogSaveResponseDto> catalogSave({
     required CatalogSaveRequestDto body,
   }) async {
@@ -599,11 +843,12 @@ class ApiClient extends SessionTransport {
 
   Future<TrainingMetadataResponseDto> trainingMetadata({
     required String id,
+    String? variant,
   }) async {
     final value = await request(
       'GET',
       '/v1/media/${Uri.encodeComponent(id)}/metadata',
-      query: {},
+      query: {"variant": ?variant},
     );
     return TrainingMetadataResponseDto.fromJson(
       Map<String, dynamic>.from(value as Map),
@@ -612,6 +857,7 @@ class ApiClient extends SessionTransport {
 
   Future<ResponseBody> trainingMedia({
     required String id,
+    String? variant,
     String? range,
     String? ifRange,
     CancelToken? cancelToken,

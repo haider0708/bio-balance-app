@@ -19,12 +19,12 @@ class AccountScreen extends StatelessWidget {
       children: [
         SectionTitle(vm.user.name, subtitle: vm.user.email),
         const CompactRow(
-          icon: Icons.language,
+          icon: AppIcons.language,
           title: 'Français · TND',
           subtitle: 'Dates au format jour/mois/année',
         ),
         CompactRow(
-          icon: Icons.notifications_outlined,
+          icon: AppIcons.notificationsOutlined,
           title: 'Notifications',
           subtitle: 'Alertes et messages de votre équipe',
           onTap: () => Navigator.push(
@@ -33,7 +33,7 @@ class AccountScreen extends StatelessWidget {
           ),
         ),
         CompactRow(
-          icon: Icons.sync,
+          icon: AppIcons.sync,
           title: 'Synchronisation',
           subtitle: 'Opérations en attente et état de connexion',
           onTap: () => Navigator.push(
@@ -73,7 +73,7 @@ class AccountScreen extends StatelessWidget {
               }
             }
           },
-          icon: const Icon(Icons.logout),
+          icon: const Icon(AppIcons.logout),
           label: const Text('Se déconnecter'),
         ),
       ],

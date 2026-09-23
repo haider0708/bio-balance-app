@@ -5,6 +5,19 @@ import 'repository_context.dart';
 class CatalogRepository {
   final RepositoryContext context;
   CatalogRepository(this.context);
+  Future<List<Json>> list() => context.run(() async {
+    final products = <Json>[];
+    String? after;
+    do {
+      final page = await context.api.catalogList(after: after);
+      products.addAll(page.items.map((p) => p.toJson()));
+      after = page.nextCursor;
+    } while (after != null);
+    products.sort(
+      (a, b) => a['name'].toString().compareTo(b['name'].toString()),
+    );
+    return List.unmodifiable(products);
+  });
   Future<Product> save(Json input) => context.run(
     () async => Product.fromJson(
       (await context.api.catalogSave(

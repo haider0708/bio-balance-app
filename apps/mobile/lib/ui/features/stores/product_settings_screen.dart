@@ -32,7 +32,7 @@ class _ProductSettingsPageState extends State<ProductSettingsPage> {
             title: product.name,
             subtitle:
                 '${Money(integer(config['priceMillimes'])).formatted} · Seuil ${config['threshold']} u.\n${config['pointsConfigured'] == true ? '${config['pointsPerUnit']} points / unité' : 'Points à configurer'}',
-            trailing: const Icon(Icons.edit_outlined, size: 20, color: muted),
+            trailing: const Icon(AppIcons.editOutlined, size: 20, color: muted),
             onTap: () => configureStoreProduct(context, widget.vm, product),
           );
         },
@@ -46,7 +46,7 @@ class _ProductSettingsPageState extends State<ProductSettingsPage> {
                 setState(() => query = value.trim().toLowerCase()),
             decoration: const InputDecoration(
               hintText: 'Rechercher un produit',
-              prefixIcon: Icon(Icons.search),
+              prefixIcon: Icon(AppIcons.search),
             ),
           ),
           const SizedBox(height: 8),

@@ -3,6 +3,7 @@ x-database: &database-env
   NODE_ENV: production
   DATABASE_URL: ${DATABASE_URL:?Set restricted application connection}
   MEDIA_ROOT: /var/lib/biobalance/media
+  REPORT_EXPORT_ROOT: /var/lib/biobalance/exports
 x-api-environment: &api-env
   <<: *database-env
   MFA_ENCRYPTION_KEY: ${MFA_ENCRYPTION_KEY:?Set a 32-byte MFA encryption key}
@@ -22,7 +23,7 @@ x-app: &app
   security_opt: [no-new-privileges:true]
   cap_drop: [ALL]
   tmpfs: [/tmp:size=128m]
-  volumes: [media:/var/lib/biobalance/media]
+  volumes: [media:/var/lib/biobalance/media, exports:/var/lib/biobalance/exports:ro]
   environment: *api-env
   stop_grace_period: 30s
   depends_on:
@@ -64,7 +65,7 @@ services:
     cpus: 1.5
   worker:
     <<: *app
-    volumes: []
+    volumes: [exports:/var/lib/biobalance/exports]
     command: [node,dist/worker.js]
     environment:
       <<: *database-env
@@ -129,3 +130,4 @@ networks:
 volumes:
   database:
   media:
+  exports:

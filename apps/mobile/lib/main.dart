@@ -98,7 +98,6 @@ class BioBalanceApp extends StatelessWidget {
               workspace.detachSessionGuard = session.registerExitGuard(
                 workspace.flushDrafts,
               );
-              workspace.initialize();
               return workspace;
             },
             child: const WorkspaceNavigator(),

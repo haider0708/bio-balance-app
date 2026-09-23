@@ -1,6 +1,7 @@
 import '../../../data/repositories/online_operations_repository.dart';
 import '../../../data/repositories/repository_context.dart';
 import '../../../data/repositories/catalog_repository.dart';
+import '../../../data/repositories/photo_repository.dart';
 import '../../../data/repositories/team_repository.dart';
 import '../../../data/repositories/reporting_repository.dart';
 import '../../../data/repositories/sales_repository.dart';
@@ -75,6 +76,7 @@ class WorkspaceViewModel extends ChangeNotifier {
     user,
   );
   late final catalog = CatalogRepository(repositoryContext);
+  late final photos = PhotoRepository(repositoryContext, repository, user.id);
   late final teams = TeamRepository(repositoryContext);
   late final reporting = ReportingRepository(repositoryContext);
   late final sales = SalesRepository(repositoryContext);
@@ -90,6 +92,7 @@ class WorkspaceViewModel extends ChangeNotifier {
   int _selection = 0;
   bool _closed = false, _foreground = true;
   final _revokedStores = <String>{};
+  bool _confirmedDirectory = false;
   final _draftGuards = <Future<void> Function()>{};
   late final StreamSubscription<AccessEvent> _accessEvents;
   final int _sessionGeneration;
@@ -121,6 +124,13 @@ class WorkspaceViewModel extends ChangeNotifier {
 
   Future<void> flushDrafts() =>
       Future.wait(_draftGuards.toList().map((save) => save()));
+  Future<void> closeProtectedRoutes() async {
+    await flushDrafts();
+    if (_closed) return;
+    accessRevision++;
+    _emit(state.copy());
+  }
+
   void requireAccess(Store store, [String? permission]) {
     if (_closed ||
         api.generation != _sessionGeneration ||
@@ -187,14 +197,14 @@ class WorkspaceViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> initialize() async {
+  Future<void> initialize({bool autoSelect = true}) async {
     _emit(state.copy(loading: true));
     try {
       final access = await repository.draft(user.id, '', 'access');
       _revokedStores.addAll(List<String>.from(access?['revokedStores'] ?? []));
       final cached = await repository.stores(user);
       _emit(state.copy(stores: cached));
-      if (cached.isNotEmpty) {
+      if (autoSelect && cached.isNotEmpty) {
         final saved = await repository.draft(user.id, '', 'selection');
         await select(
           cached.firstWhere(
@@ -205,6 +215,14 @@ class WorkspaceViewModel extends ChangeNotifier {
         );
       }
       final stores = await repository.stores(user, refresh: true);
+      repositoryContext.check();
+      if (!_confirmedDirectory && !state.accessBlocked) {
+        _revokedStores.removeWhere((id) => stores.any((s) => s.id == id));
+        await repository.saveDraft(user.id, '', 'access', {
+          'revokedStores': _revokedStores.toList(),
+        });
+        _confirmedDirectory = true;
+      }
       final previousStore = state.store;
       if (previousStore != null &&
           !stores.any((s) => s.id == previousStore.id)) {
@@ -218,7 +236,7 @@ class WorkspaceViewModel extends ChangeNotifier {
           clearData: stores.isEmpty,
         ),
       );
-      if (stores.isNotEmpty) {
+      if (autoSelect && stores.isNotEmpty) {
         await select(
           stores.firstWhere(
             (s) => s.id == state.store?.id,
@@ -286,6 +304,19 @@ class WorkspaceViewModel extends ChangeNotifier {
     }
   }
 
+  void releaseStore() {
+    _selection++;
+    _emit(
+      state.copy(
+        clearStore: true,
+        clearData: true,
+        loading: false,
+        syncing: false,
+        accessBlocked: api.accessBlocked,
+      ),
+    );
+  }
+
   Future<Json> openNotification(String id) async {
     final message = await inbox.get(id);
     final storeId = message['storeId'] as String?;
@@ -298,9 +329,9 @@ class WorkspaceViewModel extends ChangeNotifier {
           'Ce magasin n’est plus accessible.',
         );
       }
-      await flushDrafts();
-      await select(target);
-      requireAccess(target);
+      // Reading the inbox must not silently replace the operational workspace.
+      // Navigation is owned by the scope coordinator, not by a notification read.
+      message['storeName'] = target.name;
     }
     await inbox.read(id);
     return message;
@@ -456,6 +487,7 @@ class WorkspaceViewModel extends ChangeNotifier {
       state.data?.productsById[id]?.name ?? 'Produit';
   @override
   void dispose() {
+    photos.dispose();
     _closed = true;
     unawaited(_accessEvents.cancel());
     detachSessionGuard?.call();

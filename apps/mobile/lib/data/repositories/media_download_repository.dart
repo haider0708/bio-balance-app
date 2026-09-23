@@ -12,10 +12,16 @@ class MediaDownloadRepository {
   final ApiClient api;
   final OfflineRepository local;
   final Future<Directory> Function() directory;
+  final int maxBytes;
+  final bool thumbnail;
+  String key(String id) =>
+      thumbnail ? 'download:thumbnail:$id' : 'download:$id';
   MediaDownloadRepository(
     this.local,
     this.api, {
     Future<Directory> Function()? directory,
+    this.thumbnail = false,
+    this.maxBytes = 2 * 1024 * 1024 * 1024,
   }) : directory = directory ?? getApplicationSupportDirectory;
   Future<File> target(String account, String id) async {
     if (!RegExp(r'^[A-Za-z0-9_-]{1,80}$').hasMatch(account) ||
@@ -23,11 +29,13 @@ class MediaDownloadRepository {
       throw const AppFailure('INVALID_MEDIA', 'Identifiant du média invalide.');
     }
     final root = await directory();
-    return File('${root.path}/$account-$id.mp4');
+    return File(
+      '${root.path}/$account-$id${thumbnail ? '-thumbnail.png' : '.mp4'}',
+    );
   }
 
   Future<File?> cached(String account, String id) async {
-    final record = await local.draft(account, '', 'download:$id');
+    final record = await local.draft(account, '', key(id));
     if (record?['status'] != 'ready') return null;
     final file = await target(account, id);
     return await file.exists() &&
@@ -46,11 +54,14 @@ class MediaDownloadRepository {
     if (binding.accountId != account) {
       throw const AppFailure('ACCOUNT_CHANGED', 'Reconnectez-vous.');
     }
-    final metadata = (await api.trainingMetadata(id: id)).toJson();
+    final metadata = (await api.trainingMetadata(
+      id: id,
+      variant: thumbnail ? 'thumbnail' : 'original',
+    )).toJson();
     final size = integer(metadata['size']), checksum = '${metadata['sha256']}';
     if (metadata['id'] != id ||
         size <= 0 ||
-        size > 2 * 1024 * 1024 * 1024 ||
+        size > maxBytes ||
         !RegExp(r'^[a-f0-9]{64}$').hasMatch(checksum)) {
       throw const AppFailure(
         'INVALID_MEDIA',
@@ -59,7 +70,7 @@ class MediaDownloadRepository {
     }
     final file = await target(account, id),
         partial = File('${(await target(account, id)).path}.part');
-    final old = await local.draft(account, '', 'download:$id');
+    final old = await local.draft(account, '', key(id));
     var etag = old?['sha256'] == checksum && integer(old?['size']) == size
         ? _strongEtag(old?['etag'])
         : null;
@@ -69,7 +80,7 @@ class MediaDownloadRepository {
         await file.length() == size &&
         await fileChecksum(file.path) == checksum) {
       api.requireBinding(binding);
-      await local.saveDraft(account, '', 'download:$id', {
+      await local.saveDraft(account, '', key(id), {
         'status': 'ready',
         'size': size,
         'sha256': checksum,
@@ -85,7 +96,7 @@ class MediaDownloadRepository {
     await file.parent.create(recursive: true);
     await local.db.transaction(() async {
       api.requireBinding(binding);
-      await local.saveDraft(account, '', 'download:$id', {
+      await local.saveDraft(account, '', key(id), {
         'status': 'partial',
         'size': size,
         'sha256': checksum,
@@ -98,7 +109,7 @@ class MediaDownloadRepository {
       api.requireBinding(binding);
       final response = await api.transfer<ResponseBody>(
         'GET',
-        '/v1/media/$id',
+        '/v1/media/$id${thumbnail ? '?variant=thumbnail' : ''}',
         responseType: ResponseType.stream,
         cancelToken: cancel,
         headers: {
@@ -140,7 +151,7 @@ class MediaDownloadRepository {
         etag = _strongEtag(response.headers.value('etag'));
         await local.db.transaction(() async {
           api.requireBinding(binding);
-          await local.saveDraft(account, '', 'download:$id', {
+          await local.saveDraft(account, '', key(id), {
             'status': 'partial',
             'size': size,
             'sha256': checksum,
@@ -195,7 +206,7 @@ class MediaDownloadRepository {
     await partial.rename(file.path);
     await local.db.transaction(() async {
       api.requireBinding(binding);
-      await local.saveDraft(account, '', 'download:$id', {
+      await local.saveDraft(account, '', key(id), {
         'status': 'ready',
         'size': size,
         'sha256': checksum,

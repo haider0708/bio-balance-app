@@ -24,6 +24,7 @@ class MediaUploadRepository {
     required String mime,
     required String purpose,
     Store? store,
+    String? groupId,
     required CancelToken cancel,
     required void Function(double) progress,
   }) async {
@@ -70,7 +71,9 @@ class MediaUploadRepository {
     final checksum = await fileChecksum(file.path);
     api.requireBinding(binding);
     if (cancel.isCancelled) throw cancel.cancelError!;
-    final key = 'upload:$purpose:$name:$size:$checksum';
+    final key = groupId == null
+        ? 'upload:$purpose:$name:$size:$checksum'
+        : 'upload:$purpose:$groupId:$name:$size:$checksum';
     final cached = await local.draft(accountId, store?.id ?? '', key);
     api.requireBinding(binding);
     Json? asset;
@@ -93,7 +96,7 @@ class MediaUploadRepository {
           size: size,
           sha256: checksum,
           purpose: purpose,
-          organizationId: store?.organizationId,
+          organizationId: groupId ?? store?.organizationId,
           storeId: store?.id,
         ),
       )).toJson();

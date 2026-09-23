@@ -27,7 +27,7 @@ class WorkspaceNavigation extends StatelessWidget {
         return BottomAction(
           child: OutlinedButton.icon(
             key: const ValueKey('workspace.navigationMenu'),
-            icon: const Icon(Icons.menu),
+            icon: const Icon(AppIcons.menu),
             label: Text('Menu · ${labels[selected]}'),
             onPressed: () => openMenu(context),
           ),
@@ -54,7 +54,6 @@ class WorkspaceNavigation extends StatelessWidget {
               label: switch (labels[i]) {
                 'Vue d’ensemble' => 'Accueil',
                 'Mes ventes' => 'Ventes',
-                'Récompenses' => 'Cadeaux',
                 final label => label,
               },
               tooltip: labels[i],
@@ -81,7 +80,7 @@ class WorkspaceNavigation extends StatelessWidget {
                 icon: icons[i],
                 selected: selected == i,
                 trailing: selected == i
-                    ? const Icon(Icons.check, semanticLabel: 'Page actuelle')
+                    ? const Icon(AppIcons.check, semanticLabel: 'Page actuelle')
                     : null,
                 onTap: () => Navigator.pop(context, i),
               ),

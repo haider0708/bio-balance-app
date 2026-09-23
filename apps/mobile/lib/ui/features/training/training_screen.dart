@@ -1,4 +1,5 @@
 import '../../core/navigation.dart';
+import '../catalog/catalog_view_model.dart';
 
 import 'dart:async';
 
@@ -27,6 +28,17 @@ class TrainingPage extends StatefulWidget {
 }
 
 class _TrainingPageState extends State<TrainingPage> {
+  late final catalog = CatalogViewModel(widget.vm)..addListener(catalogChanged);
+  void catalogChanged() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    catalog.dispose();
+    super.dispose();
+  }
+
   List<Json> articles = [];
   bool loading = true, fetching = false;
   Map<String, String> searchText = {};
@@ -37,6 +49,7 @@ class _TrainingPageState extends State<TrainingPage> {
   void initState() {
     super.initState();
     load();
+    unawaited(catalog.load());
   }
 
   Future<void> load() async {
@@ -94,8 +107,8 @@ class _TrainingPageState extends State<TrainingPage> {
               '${article['type'] == 'video' ? 'Vidéo' : 'Article'}${widget.vm.user.admin ? ' · ${publicationLabel(article['status'])}' : ''}',
           tone: AppTone.reward,
           icon: article['type'] == 'video'
-              ? Icons.play_circle_outline
-              : Icons.menu_book_outlined,
+              ? AppIcons.playCircleOutline
+              : AppIcons.menuBookOutlined,
           onTap: () => Navigator.push(
             context,
             MaterialPageRoute(
@@ -105,7 +118,7 @@ class _TrainingPageState extends State<TrainingPage> {
           trailing: widget.vm.user.admin
               ? IconButton(
                   tooltip: 'Modifier / publier',
-                  icon: const Icon(Icons.edit_outlined),
+                  icon: const Icon(AppIcons.editOutlined),
                   onPressed: () => edit(article),
                 )
               : null,
@@ -118,7 +131,7 @@ class _TrainingPageState extends State<TrainingPage> {
           action: widget.vm.user.admin
               ? FilledButton.icon(
                   onPressed: () => edit(),
-                  icon: const Icon(Icons.add),
+                  icon: const Icon(AppIcons.add),
                   label: const Text('Créer un contenu'),
                 )
               : null,
@@ -127,18 +140,19 @@ class _TrainingPageState extends State<TrainingPage> {
           onChanged: (s) => setState(() => query = s),
           decoration: const InputDecoration(
             hintText: 'Rechercher une formation',
-            prefixIcon: Icon(Icons.search),
+            prefixIcon: Icon(AppIcons.search),
           ),
         ),
         const SizedBox(height: 12),
         DropdownButtonFormField<String>(
+          icon: const Icon(AppIcons.keyboardArrowDown),
           initialValue: productFilter ?? '',
           isExpanded: true,
           items: [
             const DropdownMenuItem(value: '', child: Text('Tous les produits')),
-            ...?widget.vm.state.data?.products.map(
-              (p) => DropdownMenuItem(value: p.id, child: Text(p.name)),
-            ),
+            ...catalog.products
+                .map(Product.fromJson)
+                .map((p) => DropdownMenuItem(value: p.id, child: Text(p.name))),
           ],
           onChanged: (id) =>
               setState(() => productFilter = id == '' ? null : id),
@@ -155,7 +169,7 @@ class _TrainingPageState extends State<TrainingPage> {
           const EmptyState(
             title: 'Aucune formation à afficher',
             description: 'Les articles et vidéos publiés par BioBalance apparaîtront ici.',
-            icon: Icons.school_outlined,
+            icon: AppIcons.schoolOutlined,
           ),
       ],
     );
@@ -181,12 +195,18 @@ class TrainingEditor extends StatefulWidget {
 }
 
 class _TrainingEditorState extends State<TrainingEditor> {
+  late final catalog = CatalogViewModel(widget.vm)..addListener(catalogChanged);
+  void catalogChanged() {
+    if (mounted) setState(() {});
+  }
+
   late final editor = TrainingEditorViewModel(widget.vm, widget.article);
   final title = TextEditingController(), body = TextEditingController();
   bool initialized = false;
   @override
   void initState() {
     super.initState();
+    unawaited(catalog.load());
     unawaited(restore());
   }
 
@@ -202,6 +222,7 @@ class _TrainingEditorState extends State<TrainingEditor> {
 
   @override
   void dispose() {
+    catalog.dispose();
     editor.dispose();
     title.dispose();
     body.dispose();
@@ -220,6 +241,8 @@ class _TrainingEditorState extends State<TrainingEditor> {
           maxWidth: 760,
           children: [
             if (state.error != null) Notice(state.error!, error: true),
+            if (catalog.error != null)
+              Notice(catalog.error!, retry: catalog.load),
             if (state.conflict)
               OutlinedButton(
                 onPressed: blocked ? null : compareVersion,
@@ -263,20 +286,33 @@ class _TrainingEditorState extends State<TrainingEditor> {
             ),
             const SizedBox(height: 16),
             OutlinedButton.icon(
-              onPressed: blocked ? null : associate,
-              icon: const Icon(Icons.link),
-              label: const Text('Associer des produits'),
+              onPressed: blocked || catalog.loading ? null : associate,
+              icon: const Icon(AppIcons.link),
+              label: Text(
+                catalog.loading
+                    ? 'Chargement des produits…'
+                    : 'Associer des produits',
+              ),
             ),
             Wrap(
               spacing: 8,
               children: editor.productIds
-                  .map((id) => Chip(label: Text(widget.vm.productName(id))))
+                  .map(
+                    (id) => Chip(
+                      label: Text(
+                        catalog.products
+                                .where((p) => p['id'] == id)
+                                .firstOrNull?['name'] ??
+                            'Produit associé',
+                      ),
+                    ),
+                  )
                   .toList(),
             ),
             if (state.value('type') == 'video') ...[
               OutlinedButton.icon(
                 onPressed: blocked ? null : upload,
-                icon: const Icon(Icons.upload_file),
+                icon: const Icon(AppIcons.uploadFile),
                 label: const Text('Choisir une vidéo'),
               ),
               if (state.value('filePath').isNotEmpty &&
@@ -315,6 +351,7 @@ class _TrainingEditorState extends State<TrainingEditor> {
             ],
             const SizedBox(height: 16),
             DropdownButtonFormField<String>(
+              icon: const Icon(AppIcons.keyboardArrowDown),
               key: ValueKey(state.value('status')),
               initialValue: state.value('status'),
               isExpanded: true,
@@ -343,7 +380,7 @@ class _TrainingEditorState extends State<TrainingEditor> {
                         ),
                       ),
                     ),
-              icon: const Icon(Icons.visibility_outlined),
+              icon: const Icon(AppIcons.visibilityOutlined),
               label: const Text('Aperçu du contenu'),
             ),
             FilledButton(
@@ -403,12 +440,17 @@ class _TrainingEditorState extends State<TrainingEditor> {
   }
 
   Future<void> associate() async {
+    if (catalog.loading) return;
+    if (catalog.error != null) {
+      await catalog.load();
+      if (!mounted || catalog.error != null) return;
+    }
     final chosen = await showModalBottomSheet<List<String>>(
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
       builder: (_) => ProductAssociationSheet(
-        products: widget.vm.state.data?.products ?? [],
+        products: catalog.products.map(Product.fromJson).toList(),
         selected: editor.productIds,
       ),
     );
@@ -645,7 +687,7 @@ class _TrainingReaderState extends State<TrainingReader>
                           ? controller.pause()
                           : controller.play(),
                       icon: Icon(
-                        value.isPlaying ? Icons.pause : Icons.play_arrow,
+                        value.isPlaying ? AppIcons.pause : AppIcons.playArrow,
                       ),
                       tooltip: value.isPlaying ? 'Pause' : 'Lire',
                     ),
@@ -658,7 +700,9 @@ class _TrainingReaderState extends State<TrainingReader>
               OutlinedButton.icon(
                 onPressed: downloading || offlineReady ? null : download,
                 icon: Icon(
-                  offlineReady ? Icons.download_done : Icons.download_outlined,
+                  offlineReady
+                      ? AppIcons.downloadDone
+                      : AppIcons.downloadOutlined,
                 ),
                 label: Text(
                   offlineReady

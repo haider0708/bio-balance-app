@@ -1,3 +1,4 @@
+import '../catalog/product_information.dart';
 import '../../core/navigation.dart';
 import 'stock_view_model.dart';
 
@@ -26,6 +27,28 @@ class StockPage extends StatefulWidget {
 
 class _StockPageState extends State<StockPage> {
   late StockViewModel stock;
+  final search = TextEditingController();
+  bool restored = false;
+  String get filterKey => 'stock-filter:${widget.vm.state.store?.id}';
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!restored) {
+      final saved = PageStorage.maybeOf(
+        context,
+      )?.readState(context, identifier: filterKey) as Map?;
+      stock.search(saved?['query'] as String? ?? '');
+      stock.selectFilter(saved?['filter'] as String? ?? 'all');
+      search.text = stock.query;
+      restored = true;
+    }
+  }
+
+  void remember() => PageStorage.maybeOf(context)?.writeState(context, {
+    'query': stock.query,
+    'filter': stock.filter,
+  }, identifier: filterKey);
+
   @override
   void initState() {
     super.initState();
@@ -45,6 +68,7 @@ class _StockPageState extends State<StockPage> {
   @override
   void dispose() {
     stock.dispose();
+    search.dispose();
     super.dispose();
   }
 
@@ -54,6 +78,7 @@ class _StockPageState extends State<StockPage> {
     builder: (context, _) {
       final vm = widget.vm, products = stock.rows;
       return Content.builder(
+        key: PageStorageKey('stock-list:${vm.state.store?.id}'),
         itemCount: products.length,
         itemBuilder: (context, index) => productCard(products[index]),
         children: [
@@ -65,15 +90,19 @@ class _StockPageState extends State<StockPage> {
                 context,
                 MaterialPageRoute(builder: (_) => ReceiptScreen(vm: vm)),
               ),
-              icon: const Icon(Icons.add),
+              icon: const Icon(AppIcons.add),
               label: const Text('Entrée de stock'),
             ),
           ),
           TextField(
-            onChanged: stock.search,
+            controller: search,
+            onChanged: (value) {
+              stock.search(value);
+              remember();
+            },
             decoration: const InputDecoration(
               hintText: 'Rechercher un produit',
-              prefixIcon: Icon(Icons.search),
+              prefixIcon: Icon(AppIcons.search),
             ),
           ),
           const SizedBox(height: 16),
@@ -91,7 +120,10 @@ class _StockPageState extends State<StockPage> {
                 ChoiceChip(
                   label: Text(e.value),
                   selected: stock.filter == e.key,
-                  onSelected: (_) => stock.selectFilter(e.key),
+                  onSelected: (_) {
+                    stock.selectFilter(e.key);
+                    remember();
+                  },
                 ),
             ],
           ),
@@ -120,7 +152,7 @@ class _StockPageState extends State<StockPage> {
         if (summary.expired) 'Lots périmés',
       ].join(' · '),
       value: '${summary.available} u.',
-      icon: summary.low ? Icons.inventory_2_outlined : Icons.spa_outlined,
+      leading: ProductPhoto(vm: widget.vm, productId: p.id),
       onTap: () => Navigator.push(
         context,
         MaterialPageRoute(
@@ -171,11 +203,11 @@ class ProductDetail extends StatelessWidget {
               children: [
                 StatusChip(
                   'Seuil : ${config['threshold']} unités',
-                  icon: Icons.notifications_outlined,
+                  icon: AppIcons.notificationsOutlined,
                 ),
                 StatusChip(
                   '${config['pointsPerUnit']} points / unité',
-                  icon: Icons.stars_outlined,
+                  icon: AppIcons.starsOutlined,
                 ),
               ],
             ),
@@ -188,7 +220,7 @@ class ProductDetail extends StatelessWidget {
             const SizedBox(height: 20),
             OutlinedButton.icon(
               onPressed: () => configure(context),
-              icon: const Icon(Icons.tune),
+              icon: const Icon(AppIcons.tune),
               label: const Text('Prix, seuil et points'),
             ),
             const SizedBox(height: 20),
@@ -196,7 +228,7 @@ class ProductDetail extends StatelessWidget {
               'Lots et péremptions',
               action: IconButton(
                 tooltip: 'Historique du stock',
-                icon: const Icon(Icons.history),
+                icon: const Icon(AppIcons.history),
                 onPressed: () => Navigator.push(
                   context,
                   MaterialPageRoute(
@@ -376,7 +408,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
     body: Content(
       maxWidth: 760,
       children: [
-        StatusChip(store.name, icon: Icons.storefront_outlined),
+        StatusChip(store.name, icon: AppIcons.storefrontOutlined),
         const SizedBox(height: 20),
         if (error != null) Notice(error!, error: true),
         if (loading) const LinearProgressIndicator(),
@@ -431,7 +463,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
         ],
         FilledButton.icon(
           onPressed: busy || !restored || missing ? null : add,
-          icon: const Icon(Icons.add),
+          icon: const Icon(AppIcons.add),
           label: const Text('Ajouter un produit et un lot'),
         ),
         const SizedBox(height: 20),
@@ -447,7 +479,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
                       setState(() => lines.removeAt(e.key));
                       changed();
                     },
-              icon: const Icon(Icons.close),
+              icon: const Icon(AppIcons.close),
               tooltip: 'Retirer',
             ),
           ),
@@ -473,6 +505,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
       isScrollControlled: true,
       useSafeArea: true,
       builder: (_) => ProductPicker(
+        workspace: widget.vm,
         products: widget.vm.state.data!.products
             .where(
               (p) =>

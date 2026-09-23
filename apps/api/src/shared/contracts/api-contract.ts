@@ -1,5 +1,8 @@
 import { z } from "zod";
+import { exportRequest } from "../../modules/reporting/export.controller";
 import { OpenAPIObject } from "@nestjs/swagger";
+import { GroupRequests } from "../../modules/tenancy/group.contracts";
+import { redesignSchemas, extendLegacySchemas } from "./redesign-schemas";
 import {
   IdentityRequests,
   WorkspaceRequests,
@@ -24,6 +27,10 @@ import {
 } from "./wire-schemas";
 
 const requests: Record<string, z.ZodType> = {
+  ExportController_create: exportRequest,
+  GroupController_create: GroupRequests.Create,
+  GroupController_update: GroupRequests.Update,
+  GroupController_member: GroupRequests.Member,
   IdentityController_login: IdentityRequests.Login,
   IdentityController_invite: IdentityRequests.Invite,
   IdentityController_activate: IdentityRequests.Activate,
@@ -46,6 +53,21 @@ const requests: Record<string, z.ZodType> = {
   OperationsController_status: syncBatchSchema,
 };
 const responses: Record<string, Schema> = {
+  ExportController_create: ref("ReportExport"),
+  ExportController_get: ref("ReportExport"),
+  ExportController_file: { type: "string" },
+  GroupController_list: ref("GroupPage"),
+  GroupController_create: ref("Group"),
+  GroupController_update: ref("Group"),
+  GroupController_stores: arr(ref("StoreAccess")),
+  GroupController_team: ref("GroupTeam"),
+  GroupController_member: ref("Ok"),
+  CatalogController_list: ref("ProductPage"),
+  DashboardController_get: ref("Dashboard"),
+  DashboardController_attention: ref("AttentionPage"),
+  DashboardController_orders: ref("OrderPage"),
+  DashboardController_order: ref("ScopedOrderDetails"),
+  DashboardController_sales: ref("DashboardSalePage"),
   HealthController_health: ref("Health"),
   IdentityController_login: ref("LoginResponse"),
   IdentityController_me: ref("User"),
@@ -118,6 +140,8 @@ function parameter(
 }
 export function applyContract(document: OpenAPIObject): OpenAPIObject {
   const schemas: Record<string, Schema> = structuredClone(wireSchemas);
+  extendLegacySchemas(schemas);
+  Object.assign(schemas, redesignSchemas);
   schemas.Command = z.toJSONSchema(commandSchema, { io: "input" });
   schemas.SyncOperation = z.toJSONSchema(operationSchema, { io: "input" });
   schemas.SyncBatch = z.toJSONSchema(syncBatchSchema, { io: "input" });
@@ -159,6 +183,38 @@ export function applyContract(document: OpenAPIObject): OpenAPIObject {
       schemas[schemaName] = responses[original];
       route.security = publicIds.has(original) ? [] : [{ bearer: [] }];
       const params: any[] = [];
+      if (
+        [
+          "GroupController_list",
+          "CatalogController_list",
+          "DashboardController_orders",
+          "DashboardController_sales",
+          "DashboardController_attention",
+        ].includes(original)
+      )
+        params.push(parameter("after", "query", uuid));
+      if (original === "GroupController_list")
+        params.push(parameter("search", "query", str));
+      if (
+        [
+          "DashboardController_get",
+          "DashboardController_orders",
+          "DashboardController_sales",
+          "DashboardController_attention",
+        ].includes(original)
+      )
+        params.push(
+          parameter(
+            "scope",
+            "query",
+            { type: "string", enum: ["network", "group", "store", "personal"] },
+            true,
+          ),
+          parameter("from", "query", { type: "string", format: "date" }, true),
+          parameter("to", "query", { type: "string", format: "date" }, true),
+          parameter("organizationId", "query", uuid),
+          parameter("storeId", "query", uuid),
+        );
       for (const name of path.matchAll(/\{([^}]+)\}/g)) {
         const resource = path.includes("/history/")
           ? ["sales", "points", "movements", "audit"]
@@ -222,6 +278,30 @@ export function applyContract(document: OpenAPIObject): OpenAPIObject {
         params.push(
           parameter("before", "query", { type: "string", format: "date-time" }),
         );
+      if (
+        ["TrainingController_metadata", "TrainingController_media"].includes(
+          original,
+        )
+      )
+        params.push(
+          parameter("variant", "query", {
+            type: "string",
+            enum: ["original", "thumbnail"],
+            default: "original",
+          }),
+        );
+      if (original === "DashboardController_attention")
+        params.push(
+          parameter(
+            "kind",
+            "query",
+            {
+              type: "string",
+              enum: ["low_stock", "expired", "deliveries", "rewards"],
+            },
+            true,
+          ),
+        );
       route.parameters = params;
       delete route.requestBody;
       if (requests[original]) {
@@ -257,7 +337,9 @@ export function applyContract(document: OpenAPIObject): OpenAPIObject {
       const contentType =
         original === "TrainingController_media"
           ? "application/octet-stream"
-          : original === "ReportingController_export"
+          : ["ReportingController_export", "ExportController_file"].includes(
+                original,
+              )
             ? "text/csv"
             : "application/json";
       const success = method === "post" ? "201" : "200";

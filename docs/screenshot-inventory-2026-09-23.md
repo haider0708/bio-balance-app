@@ -1,0 +1,49 @@
+# Inventaire visuel — 23 septembre 2026
+
+Captures produites depuis les widgets Flutter réels avec fixtures synthétiques et une photo produit archivée de biobalance.tn. Aucun compte client ni code d’accès n’est photographié. Les couleurs, polices, formulaires et composants sont ceux de l’application.
+
+- `group_navigation_test.dart` : réseau → Parahouse → Tunis → autre groupe, 360×800 et paysage 800×360, texte 100 % et 200 %, sauvegarde de brouillon refusant la navigation si disque plein.
+- `visual_audit_test.dart` : 26 écrans en portrait et paysage 200 %, décodage photo réel, défilement et absence d’erreur de disposition ; 52 tests.
+- `ui_test.dart` : rôles, erreurs hors connexion, sélecteurs recherchables et clavier, actions selon permissions.
+- `role_journeys_test.dart` : interactions réelles Flutter/API/PostgreSQL ; activation, onboarding, vente/correction/retour, commandes, réception, cadeaux, annonces, formation et révocation.
+
+## Captures
+
+| Écran | Capture |
+|---|---|
+| Réseau administrateur | [Réseau](screenshots/redesign-network.png) |
+| Groupe Parahouse | [Groupe](screenshots/redesign-group.png) |
+| Magasin Tunis | [Magasin](screenshots/redesign-store.png) |
+| Accueil vendeur | [Vendeur](screenshots/salesperson-home.png) |
+| account | [Ouvrir](screenshots/audit-account.png) |
+| activation | [Ouvrir](screenshots/audit-activation.png) |
+| announcement | [Ouvrir](screenshots/audit-announcement.png) |
+| article | [Ouvrir](screenshots/audit-article.png) |
+| catalog | [Ouvrir](screenshots/audit-catalog.png) |
+| help | [Ouvrir](screenshots/audit-help.png) |
+| login | [Ouvrir](screenshots/audit-login.png) |
+| notifications | [Ouvrir](screenshots/audit-notifications.png) |
+| onboarding | [Ouvrir](screenshots/audit-onboarding.png) |
+| order-editor | [Ouvrir](screenshots/audit-order-editor.png) |
+| orders | [Ouvrir](screenshots/audit-orders.png) |
+| product-settings | [Ouvrir](screenshots/audit-product-settings.png) |
+| product | [Ouvrir](screenshots/audit-product.png) |
+| receipt | [Ouvrir](screenshots/audit-receipt.png) |
+| recovery | [Ouvrir](screenshots/audit-recovery.png) |
+| reset | [Ouvrir](screenshots/audit-reset.png) |
+| rewards | [Ouvrir](screenshots/audit-rewards.png) |
+| sale | [Ouvrir](screenshots/audit-sale.png) |
+| sales-history | [Ouvrir](screenshots/audit-sales-history.png) |
+| stock-product | [Ouvrir](screenshots/audit-stock-product.png) |
+| stock | [Ouvrir](screenshots/audit-stock.png) |
+| store-settings | [Ouvrir](screenshots/audit-store-settings.png) |
+| sync | [Ouvrir](screenshots/audit-sync.png) |
+| team | [Ouvrir](screenshots/audit-team.png) |
+| training-editor | [Ouvrir](screenshots/audit-training-editor.png) |
+| training | [Ouvrir](screenshots/audit-training.png) |
+
+## Revue et portée
+
+Revue manuelle des planches de contacts : alignement des lignes, cadrage complet des emballages, contraste, libellés, unités TND/points, densité, priorité des actions et champs. Corrections réalisées : photo réelle dans les listes, glyphes cohérents, contraste, header défilant en paysage/texte agrandi, état du sélecteur et champs restaurés. Les captures des formulaires incluent des listes vides réalistes ; les erreurs et états d’accès sont également vérifiés par tests interactifs.
+
+Ces captures ne qualifient pas la caméra physique, la lecture VoiceOver/TalkBack, la fluidité sur Samsung ou iOS, ni toutes les combinaisons possibles de contenu. La caméra et la vidéo sont exercées sur émulateur ; la qualification des appareils physiques reste enregistrée séparément. La mise à jour Samsung attend une connexion ADB autorisée.

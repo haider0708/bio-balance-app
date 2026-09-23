@@ -1,4 +1,8 @@
-# État de l’implémentation — 22 septembre 2026
+# État de l’implémentation — 23 septembre 2026
+
+La refonte réseau/groupe/magasin et des tableaux de bord est implémentée. Le [registre du 23 septembre](redesign-2026-09-23.md) décrit le comportement, les migrations, les captures et les résultats courants ; il remplace les descriptions de navigation et exports ci-dessous. Le déploiement et la candidate Android 1.1.0+4 sont en cours de validation. Les entrées du 22 septembre restent l’historique de la précédente version.
+
+# Historique — 22 septembre 2026
 
 Les corrections de la dernière passe d’audit sont implémentées, vérifiées localement et en CI. Une candidate Android 1.0.1+3 est signée et sa mise à jour depuis 1.0.0+2 est vérifiée sur émulateur ; l’application n’est pas encore qualifiée sur appareils physiques et en pilote. Ce document distingue les fonctionnalités codées des vérifications réalisées.
 

@@ -10,7 +10,7 @@ export const videoOutputLimit = 2048n * MiB;
 export function mediaReservation(size: number, mime: string) {
   return (
     BigInt(size) +
-    (mime.startsWith("video/") ? videoOutputLimit : imageOutputLimit)
+    (mime.startsWith("video/") ? videoOutputLimit : imageOutputLimit + MiB)
   );
 }
 function setting(name: string, fallback: bigint) {
@@ -155,7 +155,9 @@ export async function cleanupMedia(
           cleanedAt: now,
           storageBytes:
             claimed.status === "ready"
-              ? (claimed.processedSize ?? claimed.storageBytes)
+              ? claimed.processedSize === null
+                ? claimed.storageBytes
+                : claimed.processedSize + (claimed.thumbnailSize ?? 0n)
               : 0n,
         },
       });

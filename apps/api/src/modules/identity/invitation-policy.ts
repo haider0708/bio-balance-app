@@ -8,11 +8,37 @@ export async function invitationIsAuthorized(
   const issuer = invitation.createdBy
     ? await tx.user.findUnique({ where: { id: invitation.createdBy } })
     : null;
-  if (!issuer || issuer.disabled || !invitation.organizationId) return false;
+  if (!issuer || issuer.disabled) return false;
+  if (invitation.kind === "new_group")
+    return issuer.platformAdmin && !invitation.organizationId;
+  if (!invitation.organizationId) return false;
   const organization = await tx.organization.findUnique({
     where: { id: invitation.organizationId },
   });
   if (!organization) return false;
+  if (invitation.kind === "responsible" || invitation.kind === "salesperson") {
+    if (
+      invitation.kind === "salesperson" &&
+      (!invitation.storeIds.length ||
+        (await tx.store.count({
+          where: {
+            id: { in: invitation.storeIds },
+            organizationId: invitation.organizationId,
+          },
+        })) !== invitation.storeIds.length)
+    )
+      return false;
+    if (issuer.platformAdmin) return true;
+    const groupMember = await tx.organizationMembership.findUnique({
+      where: {
+        organizationId_userId: {
+          organizationId: invitation.organizationId,
+          userId: issuer.id,
+        },
+      },
+    });
+    return groupMember?.active === true;
+  }
   if (!invitation.storeId) return issuer.platformAdmin;
   const store = await tx.store.findUnique({
     where: { id: invitation.storeId },

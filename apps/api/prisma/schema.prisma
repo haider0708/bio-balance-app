@@ -35,6 +35,40 @@ model AccessToken {
   expiresAt DateTime
   usedAt DateTime?
   createdBy String? @db.Uuid
+  kind String @default("legacy")
+  storeIds String[] @default([]) @db.Uuid
+}
+model ReportExport {
+  id String @id @db.Uuid
+  actorId String @db.Uuid
+  sessionId String? @db.Uuid
+  query Json
+  status String @default("pending")
+  rows Int @default(0)
+  generation String? @db.Uuid
+  error String?
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+  @@index([actorId,createdAt])
+  @@index([expiresAt])
+}
+
+model ReportExportRow {
+  exportId String @db.Uuid
+  saleId String @db.Uuid
+  cells Json
+  @@id([exportId,saleId])
+}
+
+model GroupCreationGrant {
+  id String @id @db.Uuid
+  userId String @db.Uuid
+  createdBy String @db.Uuid
+  organizationId String? @unique @db.Uuid
+  creationOperationId String? @unique @db.Uuid
+  creationPayloadHash String?
+  createdAt DateTime @default(now())
+  @@index([userId])
 }
 model RequestBudget {
   key String @id
@@ -53,6 +87,9 @@ model Organization {
   id String @id @default(uuid()) @db.Uuid
   name String
   createdAt DateTime @default(now())
+  imageId String? @db.Uuid
+  phone String?
+  version Int @default(1)
 }
 model OrganizationMembership {
   id String @id @default(uuid()) @db.Uuid
@@ -98,6 +135,15 @@ model Product {
   active Boolean @default(true)
   version Int @default(1)
   updatedAt DateTime @updatedAt
+  category String @default("")
+  range String @default("")
+  packageSize String @default("")
+  instructions String @default("")
+  ingredients String @default("")
+  precautions String @default("")
+  referencePriceMillimes BigInt?
+  priceStatus String @default("missing")
+  sourceUrls String[] @default([])
 }
 model StoreProduct {
   id String @id @default(uuid()) @db.Uuid
@@ -105,12 +151,51 @@ model StoreProduct {
   storeId String @db.Uuid
   productId String @db.Uuid
   priceMillimes BigInt @default(0)
+  priceConfigured Boolean @default(false)
   threshold Int @default(5)
   pointsPerUnit Int @default(0)
   pointsConfigured Boolean @default(false)
   zeroPointsConfirmed Boolean @default(false)
   version Int @default(1)
   @@unique([storeId,productId])
+}
+model SalesDay {
+  organizationId String @db.Uuid
+  storeId String @db.Uuid
+  sellerId String @db.Uuid
+  day DateTime @db.Date
+  saleCount Int @default(0)
+  netUnits BigInt @default(0)
+  netMillimes BigInt @default(0)
+  @@id([storeId,sellerId,day])
+  @@index([organizationId,day])
+  @@index([storeId,day])
+  @@index([day])
+}
+model SalesProductDay {
+  organizationId String @db.Uuid
+  storeId String @db.Uuid
+  sellerId String @db.Uuid
+  productId String @db.Uuid
+  day DateTime @db.Date
+  netUnits BigInt @default(0)
+  netMillimes BigInt @default(0)
+  @@id([storeId,sellerId,productId,day])
+  @@index([organizationId,day])
+  @@index([day])
+}
+model SalesContribution {
+  saleId String @id @db.Uuid
+  organizationId String @db.Uuid
+  storeId String @db.Uuid
+  sellerId String @db.Uuid
+  day DateTime @db.Date
+  version Int
+  netUnits BigInt
+  netMillimes BigInt
+  products Json
+  @@index([organizationId,day,saleId])
+  @@index([storeId,day,saleId])
 }
 model InventoryLot {
   id String @id @default(uuid()) @db.Uuid
@@ -369,6 +454,9 @@ model MediaAsset {
   purpose String @default("training")
   expectedSha256 String?
   processedSize BigInt?
+  thumbnailPath String?
+  thumbnailSize BigInt?
+  thumbnailSha256 String?
   id String @id @default(uuid()) @db.Uuid
   ownerId String @db.Uuid
   fileName String

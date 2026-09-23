@@ -3,10 +3,6 @@ import { afterAll, beforeAll, expect, it } from "vitest";
 import { createHash, randomUUID } from "node:crypto";
 import { gzipSync } from "node:zlib";
 import { Database } from "../src/shared/infrastructure/database";
-import {
-  RequestBudget,
-  requestCategory,
-} from "../src/shared/infrastructure/request-budget";
 import { cleanupAuthentication } from "../src/shared/jobs/maintenance";
 import { bootstrap } from "../src/main";
 import { tokenHash } from "../src/modules/identity/identity.service";
@@ -19,8 +15,6 @@ if (!new URL(process.env.DATABASE_URL).pathname.endsWith("_test"))
 assertTestDatabases(process.env.DATABASE_URL);
 const db = new Database();
 const second = new Database();
-const budget = new RequestBudget(db),
-  replica = new RequestBudget(second);
 const prefix = (id: string) => createHash("sha256").update(id).digest("hex");
 let app: Awaited<ReturnType<typeof bootstrap>>, origin: string;
 beforeAll(async () => {
@@ -34,78 +28,7 @@ afterAll(async () => {
   await second.$disconnect();
 });
 
-it("classifies expensive routes and counts sync work independently of batch size", async () => {
-  expect(requestCategory("GET", "/v1/reports/stores/id/sales.csv")).toBe(
-    "export",
-  );
-  expect(requestCategory("POST", "/v1/sync/push")).toBe("sync");
-  expect(requestCategory("GET", "/V1/REPORTS/stores/id/sales.csv")).toBe(
-    "export",
-  );
-  expect(requestCategory("GET", "/v1/stores/id/snapshot/")).toBe("export");
-  expect(requestCategory("PUT", "/v1/media/uploads/id")).toBe("media");
-  const id = randomUUID();
-  for (let i = 0; i < 6; i++)
-    await budget.consume(id, "POST", "/v1/sync/push", {
-      operations: Array(100).fill({}),
-    });
-  await expect(
-    replica.consume(id, "POST", "/v1/sync/status", { operations: [{}] }),
-  ).rejects.toMatchObject({ code: "RATE_LIMITED", status: 429 });
-  await expect(
-    budget.consume(id, "GET", "/v1/stores"),
-  ).resolves.toBeUndefined();
-});
-
-it("atomically limits concurrent replicas while preserving unrelated accounts", async () => {
-  const id = randomUUID();
-  const results = await Promise.allSettled(
-    Array.from({ length: 25 }, (_, i) =>
-      (i % 2 ? budget : replica).consume(id, "GET", "/v1/reports/overview"),
-    ),
-  );
-  expect(results.filter((r) => r.status === "fulfilled")).toHaveLength(12);
-  for (const result of results)
-    if (result.status === "rejected") {
-      expect(result.reason.code).toBe("RATE_LIMITED");
-      expect(result.reason.details.retryAfterSeconds).toBeGreaterThan(0);
-      expect(result.reason.details.retryAfterSeconds).toBeLessThanOrEqual(60);
-    }
-  await expect(
-    replica.consume(randomUUID(), "GET", "/v1/reports/overview"),
-  ).resolves.toBeUndefined();
-  const row = await db.requestBudget.findUniqueOrThrow({
-    where: { key: `${prefix(id)}:export` },
-  });
-  expect(row.count).toBe(25);
-  expect(row.key).not.toContain(id);
-});
-
-it("resets expired windows and never extends them with rejected requests", async () => {
-  const id = randomUUID(),
-    key = `${prefix(id)}:export`;
-  await budget.consume(id, "GET", "/v1/reports/overview");
-  const previous = await db.requestBudget.update({
-    where: { key },
-    data: { count: 12, windowStart: new Date(Date.now() - 20000) },
-  });
-  await expect(
-    budget.consume(id, "GET", "/v1/reports/overview"),
-  ).rejects.toMatchObject({ status: 429 });
-  expect(
-    (await db.requestBudget.findUniqueOrThrow({ where: { key } })).windowStart,
-  ).toEqual(previous.windowStart);
-  await db.requestBudget.update({
-    where: { key },
-    data: { windowStart: new Date(Date.now() - 61000) },
-  });
-  await budget.consume(id, "GET", "/v1/reports/overview");
-  expect(
-    (await db.requestBudget.findUniqueOrThrow({ where: { key } })).count,
-  ).toBe(1);
-});
-
-it("enforces HTTP budgets across sessions with French errors, retry hints and no-store", async () => {
+it("does not apply general authenticated quotas across sessions; preserves no-store and logout", async () => {
   const user = await db.user.create({
     data: {
       email: `${randomUUID()}@example.test`,
@@ -133,13 +56,9 @@ it("enforces HTTP budgets across sessions with French errors, retry hints and no
   const rejected = await fetch(`${origin}/v1/identity/me`, {
     headers: { authorization: `Bearer ${tokens[1]}` },
   });
-  expect(rejected.status).toBe(429);
-  expect(Number(rejected.headers.get("retry-after"))).toBeGreaterThan(0);
-  expect(await rejected.json()).toMatchObject({ code: "RATE_LIMITED" });
-  await db.requestBudget.update({
-    where: { key: `${prefix(user.id)}:all` },
-    data: { count: 1200 },
-  });
+  expect(rejected.status).toBe(200);
+  expect(rejected.headers.get("retry-after")).toBeNull();
+  await db.requestBudget.create({data:{key:`${prefix(user.id)}:all`,count:1200}});
   const logout = await fetch(`${origin}/v1/identity/logout`, {
     method: "POST",
     headers: { authorization: `Bearer ${tokens[0]}` },

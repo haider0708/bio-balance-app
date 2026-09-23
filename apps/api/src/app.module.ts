@@ -3,9 +3,14 @@ import { ReportingService } from "./modules/reporting/reporting.service";
 import { AdminService } from "./modules/reporting/admin.service";
 import { AdminController } from "./modules/reporting/admin.controller";
 import { Module, Controller, Get } from "@nestjs/common";
+import { ExportController } from "./modules/reporting/export.controller";
+import { ExportService } from "./modules/reporting/export.service";
+import { GroupService } from "./modules/tenancy/group.service";
+import { GroupController } from "./modules/tenancy/group.controller";
+import { DashboardController } from "./modules/reporting/dashboard.controller";
+import { DashboardService } from "./modules/reporting/dashboard.service";
 import { APP_GUARD, APP_FILTER } from "@nestjs/core";
 import { Database } from "./shared/infrastructure/database";
-import { RequestBudget } from "./shared/infrastructure/request-budget";
 import { AuthGuard, ErrorFilter, Public } from "./shared/infrastructure/http";
 import { IdentityService } from "./modules/identity/identity.service";
 import { IdentityController } from "./modules/identity/identity.controller";
@@ -31,6 +36,9 @@ class HealthController {
 }
 @Module({
   controllers: [
+    ExportController,
+    DashboardController,
+    GroupController,
     AdminController,
     HealthController,
     IdentityController,
@@ -42,10 +50,12 @@ class HealthController {
     ReportingController,
   ],
   providers: [
+    ExportService,
+    DashboardService,
+    GroupService,
     ReportingService,
     AdminService,
     Database,
-    RequestBudget,
     { provide: PasswordHasher, useFactory: () => new PasswordHasher() },
     IdentityService,
     WorkspaceService,

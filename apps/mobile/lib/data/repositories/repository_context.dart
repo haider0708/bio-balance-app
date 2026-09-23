@@ -7,11 +7,17 @@ class RepositoryContext {
   final ApiClient api;
   final SessionBinding binding;
   RepositoryContext(this.api) : binding = api.binding;
-  Future<T> run<T>(Future<T> Function() work) {
+  Future<T> run<T>(Future<T> Function() work) async {
+    check();
+    final result = await work();
+    check();
+    return result;
+  }
+
+  void check() {
     if (api.generation != binding.generation ||
         api.accountId != binding.accountId) {
       throw const AppFailure('ACCOUNT_CHANGED', 'La session a changé.');
     }
-    return work();
   }
 }

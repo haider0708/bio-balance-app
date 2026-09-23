@@ -1,7 +1,9 @@
+import '../../core/app_icons.dart';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import 'workspace_screen.dart';
+import 'scope_screen.dart';
 import 'workspace_view_model.dart';
 
 /// Replaces protected routes only after their drafts have been persisted.
@@ -16,9 +18,8 @@ class WorkspaceNavigator extends StatelessWidget {
           absorbing: vm.securingAccess,
           child: Navigator(
             key: ValueKey(vm.accessRevision),
-            onGenerateRoute: (_) => MaterialPageRoute<void>(
-              builder: (_) => const WorkspaceScreen(),
-            ),
+            onGenerateRoute: (_) =>
+                MaterialPageRoute<void>(builder: (_) => const ScopeScreen()),
           ),
         ),
         if (vm.securingAccess)
@@ -32,7 +33,7 @@ class WorkspaceNavigator extends StatelessWidget {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.lock_outline, size: 40),
+                        const Icon(AppIcons.lockOutline, size: 40),
                         const SizedBox(height: 16),
                         Text(
                           vm.state.error ?? 'Enregistrement des brouillons…',

@@ -64,11 +64,15 @@ class Store {
 
 class Product {
   final String id, name, reference, barcode, description;
+  final String? imageId;
+  final Json attributes;
   final bool active;
   late final String searchText = '$name $reference $barcode'.toLowerCase();
   bool matches(String normalizedQuery) => searchText.contains(normalizedQuery);
   Product.fromJson(Json v)
-    : id = v['id'],
+    : attributes = Map.unmodifiable(v),
+      imageId = v['imageId'],
+      id = v['id'],
       name = v['name'],
       reference = v['reference'],
       barcode = v['barcode'] ?? '',

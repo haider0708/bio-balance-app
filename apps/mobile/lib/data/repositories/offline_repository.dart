@@ -785,6 +785,23 @@ class OfflineRepository implements WorkspaceRepository {
         .write(values);
   }
 
+  /// Only disposable dashboard snapshots are evicted. Business drafts and the
+  /// outbox keep their original lifetime, identity and payloads.
+  Future<void> saveDashboard(String accountId, String key, Json value) {
+    if (!key.startsWith('dashboard:')) {
+      throw ArgumentError('Dashboard key required');
+    }
+    return db.transaction(() async {
+      await saveDraft(accountId, '', key, value);
+      await db.customStatement(
+        "DELETE FROM draft_rows WHERE account_id=? AND store_id='' AND key LIKE 'dashboard:%' "
+        "AND key NOT IN (SELECT key FROM draft_rows WHERE account_id=? AND store_id='' "
+        "AND key LIKE 'dashboard:%' ORDER BY json_extract(payload, '\$.generatedAt') DESC, key DESC LIMIT 48)",
+        [accountId, accountId],
+      );
+    });
+  }
+
   @override
   Future<void> saveDraft(
     String accountId,

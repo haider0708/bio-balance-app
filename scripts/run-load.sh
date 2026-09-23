@@ -7,7 +7,7 @@ export NODE_ENV=production
 # Synthetic MFA key shared by both load processes; never a deployment credential.
 export MFA_ENCRYPTION_KEY=$(node -e 'process.stdout.write(require("node:crypto").randomBytes(32).toString("base64"))')
 instances=${API_INSTANCES:-2}
-[[ "$instances" = 1 || "$instances" = 2 ]]
+[[ "$instances" = 1 || "$instances" = 2 || "$instances" = 4 ]]
 mkdir -p .artifacts/evidence/step10
 load_tmp=$(mktemp -d -t biobalance-load-XXXXXXXX)
 load_api_pids=()

@@ -4,7 +4,7 @@ import 'package:biobalance/main.dart';
 import 'package:biobalance/data/services/api/generated/api_client.dart';
 import 'package:biobalance/data/services/local_database/database.dart';
 import 'package:biobalance/ui/features/inventory/inventory_screens.dart';
-import 'package:biobalance/ui/features/workspace/workspace_screen.dart';
+import 'package:biobalance/ui/features/workspace/scope_screen.dart';
 import 'package:biobalance/ui/features/workspace/workspace_view_model.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
@@ -48,17 +48,24 @@ class Journey {
     while (!condition() && DateTime.now().isBefore(end)) {
       await t.pump(const Duration(milliseconds: 100));
     }
+    if (!condition()) {
+      debugPrint(
+        'VISIBLE TEXT AT FAILURE: ${t.widgetList<Text>(find.byType(Text)).map((w) => w.data).whereType<String>().join(" | ")}',
+      );
+    }
     expect(condition(), isTrue, reason: reason);
   }
 
   Future<void> seek(Finder f) async {
-    final scroll = find.byWidgetPredicate(
-      (w) =>
-          w is Scrollable &&
-          w.restorationId != 'editable' &&
-          (w.axisDirection == AxisDirection.down ||
-              w.axisDirection == AxisDirection.up),
-    );
+    final scroll = find
+        .byWidgetPredicate(
+          (w) =>
+              w is Scrollable &&
+              w.restorationId != 'editable' &&
+              (w.axisDirection == AxisDirection.down ||
+                  w.axisDirection == AxisDirection.up),
+        )
+        .hitTestable();
     // Returning from details retains the previous scroll offset. Locate controls
     // above that offset as well as controls further down the form.
     if (f.evaluate().isEmpty && scroll.evaluate().isNotEmpty) {
@@ -79,12 +86,22 @@ class Journey {
     await t.pumpAndSettle();
   }
 
+  bool enabled(Finder target) => find
+      .ancestor(
+        of: target,
+        matching: find.byWidgetPredicate((w) => w is ButtonStyleButton),
+      )
+      .evaluate()
+      .every((e) => (e.widget as ButtonStyleButton).onPressed != null);
+
   Future<void> tap(String text) async {
     final f = find.text(text);
     await seek(f);
     await until(
       () =>
-          f.evaluate().isNotEmpty && f.last.hitTestable().evaluate().isNotEmpty,
+          f.evaluate().isNotEmpty &&
+          f.last.hitTestable().evaluate().isNotEmpty &&
+          enabled(f.last),
       reason: 'tap target available: $text',
     );
     await t.tap(f.last);
@@ -95,7 +112,7 @@ class Journey {
     final f = key(id);
     await seek(f);
     await until(
-      () => f.hitTestable().evaluate().isNotEmpty,
+      () => f.hitTestable().evaluate().isNotEmpty && enabled(f),
       reason: 'tap target available: $id',
     );
     await t.tap(f);
@@ -150,15 +167,12 @@ class Journey {
 
   Future<void> ready() async {
     await until(
-      () => find
-          .byType(WorkspaceScreen, skipOffstage: false)
-          .evaluate()
-          .isNotEmpty,
+      () => find.byType(ScopeScreen, skipOffstage: false).evaluate().isNotEmpty,
       reason: 'workspace visible',
     );
     await until(
       () {
-        final c = t.element(find.byType(WorkspaceScreen, skipOffstage: false));
+        final c = t.element(find.byType(ScopeScreen, skipOffstage: false));
         final s = c.read<WorkspaceViewModel>().state;
         return !s.loading && !s.syncing;
       },
@@ -181,28 +195,29 @@ class Journey {
     }
     await tapKey('auth.login');
     await ready();
-    if (email == admin && (await state())['store'] != null) {
-      await tapKey('workspace.storeSelector');
+    if (email == manager && (await state())['store'] != null) {
+      await tapKey('scope.store');
       final sheet = find.byType(BottomSheet);
-      await t.enterText(
-        find.descendant(of: sheet, matching: find.byType(TextField)),
-        store,
-      );
-      await dismissKeyboard();
       final choice = find.descendant(of: sheet, matching: find.text(store));
       await seek(choice);
-      await t.tap(choice.last);
+      await t.tap(choice);
       await t.pumpAndSettle();
       await ready();
     }
   }
 
   Future<void> logout() async {
-    while (find.byTooltip('Compte et aide').evaluate().isEmpty) {
+    final menu = find.byWidgetPredicate(
+      (w) =>
+          w is IconButton &&
+          ['Compte et aide', 'Administration et compte'].contains(w.tooltip),
+    );
+    while (menu.evaluate().isEmpty) {
       await back();
     }
-    await t.tap(find.byTooltip('Compte et aide'));
+    await t.tap(menu);
     await t.pumpAndSettle();
+    await tap('Compte et sécurité');
     await tap('Se déconnecter');
     await tap('Confirmer');
     await until(
@@ -248,7 +263,6 @@ class Journey {
     }
     final label = switch (text) {
       'Mes ventes' => 'Ventes',
-      'Récompenses' => 'Cadeaux',
       'Vue d’ensemble' => 'Accueil',
       _ => text,
     };
@@ -338,15 +352,8 @@ void main() {
     );
     debugPrint('JOURNEY: administrator invitation');
     await j.login(admin);
-    // With a new database the administrator starts by granting partner access.
-    if (find.text('Accorder un accès responsable').evaluate().isNotEmpty) {
-      await j.tap('Accorder un accès responsable');
-    } else {
-      await j.nav('Magasins');
-      await j.tap('Inviter un responsable');
-    }
+    await j.tap('Inviter un responsable');
     await j.fill('field.email', manager);
-    await j.fill('field.organizationName', 'Partenaire parcours');
     await j.editorSave();
     await j.logout();
     debugPrint('JOURNEY: manager activation and store setup');
@@ -355,7 +362,10 @@ void main() {
       'Responsable parcours',
     );
     await j.login(manager);
-    await j.tap('Créer un magasin');
+    await j.tap('1 · Créer mon groupe');
+    await j.fill('field.name', 'Partenaire parcours');
+    await j.editorSave();
+    await j.tap('Ajouter');
     await j.fill('field.name', store);
     await j.fill('field.address', '10 avenue de test');
     await j.fill('field.city', 'Tunis');
@@ -374,8 +384,9 @@ void main() {
     await j.fill('field.reference', reference);
     await j.fill('field.name', product);
     await j.editorSave();
-    await j.nav('Plus');
-    await j.tap('Formation');
+    await tester.tap(find.byTooltip('Administration et compte'));
+    await tester.pumpAndSettle();
+    await j.tap('Formation et publications');
     await j.tap('Créer un contenu');
     await j.fillLabel('Titre', 'Conseils $reference');
     await j.fillLabel(
@@ -408,6 +419,10 @@ void main() {
     await j.nav('Équipe');
     await j.tap('Inviter');
     await j.fill('field.email', seller);
+    await j.dropdown(
+      'store:${(await state())['store']['id']}',
+      'Attribué au vendeur',
+    );
     await j.editorSave();
     await j.nav('Plus');
     await j.tap('Guide de configuration');
@@ -437,11 +452,22 @@ void main() {
     debugPrint('JOURNEY: admin dispatch');
     await j.login(admin);
     await j.nav('Commandes');
-    await j.tap('En préparation');
+    await j.tap(store);
+    // A network refresh must never remove the exact-order route.
+    await tester
+        .element(find.byType(ScopeScreen, skipOffstage: false))
+        .read<WorkspaceViewModel>()
+        .initialize(autoSelect: false);
+    await tester.pumpAndSettle();
+    expect(find.text('Mettre en préparation'), findsOneWidget);
+    await j.tap('Mettre en préparation');
     await j.ready();
-    await j.tap('Expédier une livraison');
+    await j.tap('Préparer une livraison');
     await j.tapKey('editor.save');
-    await j.until(() => find.text('Préparer une livraison').evaluate().isEmpty);
+    await j.until(
+      () => j.key('editor.save').evaluate().isEmpty,
+      reason: 'delivery editor closed',
+    );
     await j.ready();
     await j.logout();
     debugPrint(
@@ -449,7 +475,7 @@ void main() {
     );
     await j.activate('${(await state())['sellerCode']}', 'Vendeur parcours');
     await j.login(seller);
-    await j.tap('Recevoir');
+    await j.tap('Livraisons à réceptionner');
     final deliveryText = find.textContaining('Livraison ');
     await j.seek(deliveryText);
     await tester.tap(deliveryText.first);

@@ -13,6 +13,7 @@ import '../workspace/workspace_view_model.dart';
 class ImageInput extends StatefulWidget {
   final WorkspaceViewModel vm;
   final Store? store;
+  final String? groupId;
   final String purpose, label;
   final TextEditingController controller;
   final bool enabled;
@@ -21,6 +22,7 @@ class ImageInput extends StatefulWidget {
     super.key,
     required this.vm,
     required this.store,
+    this.groupId,
     required this.purpose,
     required this.label,
     required this.controller,
@@ -76,7 +78,7 @@ class _ImageInputState extends State<ImageInput> {
         children: [
           OutlinedButton.icon(
             onPressed: busy || !widget.enabled ? null : choose,
-            icon: const Icon(Icons.add_photo_alternate_outlined),
+            icon: const Icon(AppIcons.addPhotoAlternateOutlined),
             label: Text(
               widget.controller.text.isEmpty
                   ? 'Choisir une image'
@@ -123,6 +125,7 @@ class _ImageInputState extends State<ImageInput> {
             : 'image/jpeg',
         purpose: widget.purpose,
         store: widget.store,
+        groupId: widget.groupId,
         cancel: cancel,
         progress: (v) {
           if (mounted) setState(() => progress = v);
@@ -157,7 +160,7 @@ class _ImageInputState extends State<ImageInput> {
   }
 }
 
-class ProtectedImage extends StatelessWidget {
+class ProtectedImage extends StatefulWidget {
   final WorkspaceViewModel vm;
   final String id;
   final double height;
@@ -168,23 +171,65 @@ class ProtectedImage extends StatelessWidget {
     this.height = 120,
   });
   @override
-  Widget build(BuildContext context) => ClipRRect(
-    borderRadius: BorderRadius.circular(12),
-    child: Image.network(
-      vm.api.mediaUri(id, vm.api.binding).toString(),
-      headers: {'Authorization': vm.api.binding.authorization ?? ''},
-      height: height,
-      cacheHeight: (height * MediaQuery.devicePixelRatioOf(context))
-          .ceil()
-          .clamp(1, 1024),
-      fit: BoxFit.contain,
-      errorBuilder: (_, _, _) => const Icon(Icons.image_not_supported_outlined),
-      loadingBuilder: (_, child, event) => event == null
-          ? child
-          : SizedBox(
-              height: height,
-              child: const Center(child: CircularProgressIndicator()),
-            ),
+  State<ProtectedImage> createState() => _ProtectedImageState();
+}
+
+class _ProtectedImageState extends State<ProtectedImage> {
+  late Future<File> file = widget.vm.photos.get(
+    widget.id,
+    thumbnail: widget.height <= 160,
+  );
+  @override
+  void didUpdateWidget(covariant ProtectedImage old) {
+    super.didUpdateWidget(old);
+    if (old.id != widget.id ||
+        old.vm != widget.vm ||
+        (old.height <= 160) != (widget.height <= 160)) {
+      file = widget.vm.photos.get(widget.id, thumbnail: widget.height <= 160);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => SizedBox(
+    height: widget.height,
+    child: ClipRRect(
+      borderRadius: BorderRadius.circular(8),
+      child: FutureBuilder<File>(
+        future: file,
+        builder: (context, snapshot) {
+          if (snapshot.hasData) {
+            return Image.file(
+              snapshot.data!,
+              height: widget.height,
+              cacheHeight:
+                  (widget.height * MediaQuery.devicePixelRatioOf(context))
+                      .ceil()
+                      .clamp(1, 1024),
+              fit: BoxFit.contain,
+              errorBuilder: (_, _, _) => fallback(),
+            );
+          }
+          if (snapshot.hasError) return fallback();
+          return const ColoredBox(
+            color: Color(0xFFF1F8F4),
+            child: Center(child: Icon(AppIcons.photo, size: 20, color: muted)),
+          );
+        },
+      ),
+    ),
+  );
+  Widget fallback() => Semantics(
+    label: 'Photo indisponible',
+    child: InkWell(
+      onTap: () => setState(
+        () => file = widget.vm.photos.get(
+          widget.id,
+          thumbnail: widget.height <= 160,
+        ),
+      ),
+      child: const Center(
+        child: Icon(AppIcons.imageNotSupportedOutlined, color: muted, size: 20),
+      ),
     ),
   );
 }

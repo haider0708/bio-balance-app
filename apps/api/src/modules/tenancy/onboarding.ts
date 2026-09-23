@@ -55,12 +55,29 @@ export async function onboardingProgress(
   storeId: string,
 ) {
   const store = await tx.store.findUniqueOrThrow({ where: { id: storeId } });
-  const members = await tx.membership.count({
+  const direct = await tx.membership.findMany({
     where: { storeId, active: true },
+    select: { userId: true },
+  });
+  const responsible = await tx.organizationMembership.findMany({
+    where: { organizationId: store.organizationId, active: true },
+    select: { userId: true },
+  });
+  const members = await tx.user.count({
+    where: {
+      id: {
+        in: [...new Set([...direct, ...responsible].map((m) => m.userId))],
+      },
+      disabled: false,
+    },
   });
   const invitations = await tx.accessToken.count({
     where: {
-      storeId,
+      OR: [
+        { storeId },
+        { organizationId: store.organizationId, storeIds: { has: storeId } },
+        { organizationId: store.organizationId, kind: "responsible" },
+      ],
       purpose: "invite",
       usedAt: null,
       expiresAt: { gt: new Date() },

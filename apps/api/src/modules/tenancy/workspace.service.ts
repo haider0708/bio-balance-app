@@ -1,3 +1,4 @@
+import { monthlyRanking } from "../reporting/monthly-ranking";
 import { SnapshotPages } from "./infrastructure/snapshot-pages";
 import { decodeHistoryCursor } from "../../shared/domain/pagination";
 import { StoreReadQueries } from "./infrastructure/store-read-queries";
@@ -12,7 +13,6 @@ import { Database, json } from "../../shared/infrastructure/database";
 import { Actor, Scope } from "../operations/domain/contracts";
 import { Prisma } from "@prisma/client";
 import { requireRule } from "../../shared/domain/errors";
-import { localDate } from "../../shared/domain/money";
 import { PrismaLedger } from "../operations/infrastructure/prisma-ledger";
 @Injectable()
 export class WorkspaceService {
@@ -226,6 +226,7 @@ export class WorkspaceService {
           "Confirmez que ce produit ne rapporte aucun point.",
         );
         const data = {
+          priceConfigured: true,
           zeroPointsConfirmed:
             input.pointsPerUnit === 0 && input.zeroPointsConfirmed === true,
           priceMillimes: BigInt(input.priceMillimes),
@@ -882,17 +883,7 @@ export class WorkspaceService {
   }
   ranking(actor: Actor, org: string, store: string) {
     return this.db.scopedSnapshot(actor, org, store, async (tx, scope) => {
-      const month = localDate(new Date(), scope.timezone).slice(0, 7);
-      const scores = await tx.$queryRaw<
-        { userId: string; name: string; score: bigint; rank: bigint }[]
-      >`SELECT p."userId",u.name,SUM(p.amount)::bigint AS score,
-          DENSE_RANK() OVER(ORDER BY SUM(p.amount) DESC)::bigint AS rank
-        FROM "PointsEntry" p JOIN "User" u ON u.id=p."userId"
-        WHERE p."storeId"=${store}::uuid AND p.kind='earned'
-          AND p."createdAt">=(${month + "-01"}::timestamp AT TIME ZONE ${scope.timezone} AT TIME ZONE 'UTC')
-          AND p."createdAt"<((${month + "-01"}::timestamp + interval '1 month') AT TIME ZONE ${scope.timezone} AT TIME ZONE 'UTC')
-        GROUP BY p."userId",u.name ORDER BY score DESC,u.name LIMIT 200`;
-      return { month, scores };
+      return monthlyRanking(tx, store, scope.timezone);
     });
   }
 }

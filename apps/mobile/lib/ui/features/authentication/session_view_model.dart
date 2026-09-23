@@ -73,7 +73,8 @@ class SessionViewModel extends ChangeNotifier {
         AccessCondition.offline => SessionStatus.offline,
         AccessCondition.expired => SessionStatus.expired,
         AccessCondition.disabled => SessionStatus.disabled,
-        AccessCondition.storeAccessRevoked => SessionStatus.storeAccessRevoked,
+        AccessCondition.storeAccessRevoked ||
+        AccessCondition.groupAccessRevoked => SessionStatus.storeAccessRevoked,
       };
       // A response started before confirmed expiry cannot restore a session.
       if ([

@@ -1,3 +1,5 @@
+import { CatalogService } from "../src/modules/catalog/catalog.service";
+import { CatalogRequests } from "../src/shared/contracts/requests";
 import { assertTestDatabases } from "./test-database.cjs";
 import { beforeAll, afterAll, describe, it, expect } from "vitest";
 import { randomUUID } from "node:crypto";
@@ -25,11 +27,24 @@ import {
 import { TrainingService } from "../src/modules/training/training.service";
 import { NotificationsService } from "../src/modules/notifications/notifications.service";
 import { WorkspaceService } from "../src/modules/tenancy/workspace.service";
+import { GroupService } from "../src/modules/tenancy/group.service";
+import { DashboardService } from "../src/modules/reporting/dashboard.service";
+import {
+  backfillReporting,
+  reconcileReporting,
+} from "../src/modules/reporting/backfill";
+import { ExportService } from "../src/modules/reporting/export.service";
+import { readFile, mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import path from "node:path";
 process.env.DATABASE_URL =
   process.env.TEST_APP_DATABASE_URL ??
   "postgresql://biobalance_app:local-app-only@localhost:54329/biobalance_test";
-assertTestDatabases(process.env.DATABASE_URL, process.env.TEST_OWNER_DATABASE_URL ??
-  'postgresql://biobalance:local-development-only@localhost:54329/biobalance_test');
+assertTestDatabases(
+  process.env.DATABASE_URL,
+  process.env.TEST_OWNER_DATABASE_URL ??
+    "postgresql://biobalance:local-development-only@localhost:54329/biobalance_test",
+);
 const owner = new PrismaClient({
   adapter: new PrismaPg({
     connectionString:
@@ -128,6 +143,609 @@ beforeAll(async () => {
 afterAll(async () => {
   await db.$disconnect();
   await owner.$disconnect();
+});
+describe.sequential("group redesign and reporting projections", () => {
+  const groups = new GroupService(db, workspace),
+    dashboards = new DashboardService(db);
+  let groupId = "",
+    newStore = "",
+    newLot = "";
+  const reportedSale = randomUUID(),
+    reportedLine = randomUUID();
+  const envelope = (command: Command, expectedVersion?: number): Operation => ({
+    operationId: randomUUID(),
+    organizationId: groupId,
+    storeId: newStore,
+    payloadVersion: 1,
+    command,
+    expectedVersion,
+  });
+  it("invites a future responsible without creating a group; consumes one grant idempotently", async () => {
+    const identity = new IdentityService(db),
+      email = `future-${randomUUID()}@example.test`;
+    const count = await owner.organization.count();
+    const invite = await identity.invite(admin, {
+      email,
+      kind: "new_group",
+      permissions: ["manage", "sell", "receive"],
+    });
+    expect(await owner.organization.count()).toBe(count);
+    expect(
+      await owner.accessToken.findUnique({ where: { id: invite.id } }),
+    ).toMatchObject({ kind: "new_group", organizationId: null });
+    const grant = await owner.groupCreationGrant.create({
+      data: { id: randomUUID(), userId: actor.id, createdBy: admin.id },
+    });
+    const request = {
+      grantId: grant.id,
+      operationId: randomUUID(),
+      name: "Parahouse test",
+    };
+    const first = await groups.create(actor, request);
+    groupId = first.id;
+    expect((await groups.create(actor, request)).id).toBe(groupId);
+    await expect(
+      groups.create(actor, { ...request, name: "Different" }),
+    ).rejects.toMatchObject({ code: "GRANT_USED" });
+    expect(
+      (await groups.list(actor)).items.find((g) => g.id === groupId)?.canManage,
+    ).toBe(true);
+    await expect(groups.team(foreign, groupId)).rejects.toMatchObject({
+      code: "GROUP_ACCESS_REVOKED",
+    });
+    await expect(
+      groups.member(actor, groupId, actor.id, {
+        active: false,
+        role: "responsible",
+        storeIds: [],
+      }),
+    ).rejects.toMatchObject({ code: "LAST_RESPONSIBLE" });
+    await expect(
+      identity.invite(actor, {
+        email,
+        kind: "salesperson",
+        permissions: ["sell"],
+      }),
+    ).rejects.toMatchObject({ code: "VALIDATION" });
+    newStore = (
+      await workspace.createStore(actor, {
+        organizationId: groupId,
+        name: "Parahouse Tunis",
+        address: "Test",
+        city: "Tunis",
+      })
+    ).id;
+    expect(
+      (await workspace.stores(actor)).some(
+        (s) => s.id === newStore && s.permissions.includes("manage"),
+      ),
+    ).toBe(true);
+    const teamInvite = await identity.invite(actor, {
+      email: `team-${randomUUID()}@example.test`,
+      kind: "salesperson",
+      organizationId: groupId,
+      storeIds: [newStore],
+      permissions: ["sell", "receive"],
+    });
+    expect(teamInvite.id).toBeTruthy();
+    expect(
+      (await workspace.snapshot(actor, groupId, newStore)).onboarding.team,
+    ).toBe(true);
+
+    await owner.membership.create({
+      data: {
+        organizationId: groupId,
+        storeId: newStore,
+        userId: seller.id,
+        permissions: ["sell", "receive"],
+      },
+    });
+  });
+  it("serializes responsible removal and grants the same access to newly created stores", async () => {
+    const group = await owner.organization.create({
+      data: { name: "Concurrent responsible fixture" },
+    });
+    const co = await owner.user.create({
+      data: {
+        email: `co-${randomUUID()}@example.test`,
+        name: "Co responsible",
+        passwordHash: "disabled-test-login",
+      },
+    });
+    const coActor = {
+      id: co.id,
+      name: co.name,
+      email: co.email,
+      platformAdmin: false,
+    };
+    for (const userId of [actor.id, co.id])
+      await owner.organizationMembership.create({
+        data: { organizationId: group.id, userId },
+      });
+    const extra = await workspace.createStore(actor, {
+      organizationId: group.id,
+      name: "Second store",
+      address: "Test",
+      city: "Sousse",
+    });
+    expect(
+      (await workspace.stores(coActor)).find((s) => s.id === extra.id)
+        ?.permissions,
+    ).toContain("manage");
+    const changes = await Promise.allSettled([
+      groups.member(actor, group.id, co.id, {
+        active: false,
+        role: "responsible",
+        storeIds: [],
+      }),
+      groups.member(coActor, group.id, actor.id, {
+        active: false,
+        role: "responsible",
+        storeIds: [],
+      }),
+    ]);
+    expect(changes.filter((r) => r.status === "fulfilled")).toHaveLength(1);
+    expect(
+      await owner.organizationMembership.count({
+        where: { organizationId: group.id, active: true },
+      }),
+    ).toBe(1);
+    const remaining = await owner.organizationMembership.findFirstOrThrow({
+      where: { organizationId: group.id, active: true },
+    });
+    const acting = remaining.userId === actor.id ? actor : coActor;
+    await expect(
+      groups.member(acting, group.id, acting.id, {
+        active: false,
+        role: "responsible",
+        storeIds: [],
+      }),
+    ).rejects.toMatchObject({ code: "LAST_RESPONSIBLE" });
+  });
+  it("keeps net sales on their original Tunisian day after returns, corrections and repeated commands", async () => {
+    const receipt = envelope({
+      type: "stock.receive",
+      reason: "opening",
+      lines: [
+        {
+          productId: product,
+          batch: "REPORT",
+          expiry: "2027-12",
+          quantity: 10,
+        },
+      ],
+    });
+    expect((await service.submit(actor, receipt)).status).toBe("accepted");
+    newLot = (
+      await owner.inventoryLot.findFirstOrThrow({
+        where: { storeId: newStore, productId: product },
+      })
+    ).id;
+    const create = envelope({
+      type: "sale.create",
+      saleId: reportedSale,
+      occurredAt: "2026-08-31T22:59:00.000Z",
+      lines: [
+        {
+          id: reportedLine,
+          productId: product,
+          quantity: 3,
+          unitPriceMillimes: "10555",
+          allocations: [{ lotId: newLot, quantity: 3 }],
+        },
+      ],
+    });
+    expect((await service.submit(seller, create)).status).toBe("accepted");
+    expect((await service.submit(seller, create)).status).toBe("accepted");
+    const query = {
+      scope: "group" as const,
+      organizationId: groupId,
+      from: "2026-08-01",
+      to: "2026-08-31",
+    };
+    expect(await dashboards.get(actor, query)).toMatchObject({
+      netMillimes: 31665n,
+      netUnits: 3n,
+      saleCount: 1n,
+    });
+    const returned = envelope(
+      {
+        type: "sale.return",
+        saleId: reportedSale,
+        reason: "Retour septembre",
+        lines: [
+          { lineId: reportedLine, lotId: newLot, quantity: 1, sellable: true },
+        ],
+      },
+      1,
+    );
+    expect((await service.submit(seller, returned)).status).toBe("accepted");
+    await service.submit(seller, returned);
+    expect(await dashboards.get(actor, query)).toMatchObject({
+      netMillimes: 21110n,
+      netUnits: 2n,
+      saleCount: 1n,
+    });
+    expect(
+      await dashboards.get(actor, {
+        ...query,
+        from: "2026-09-01",
+        to: "2026-09-30",
+      }),
+    ).toMatchObject({ netMillimes: 0n, netUnits: 0n, saleCount: 0n });
+    const correction = envelope(
+      {
+        type: "sale.correct",
+        saleId: reportedSale,
+        occurredAt: "2026-08-31T22:59:00.000Z",
+        reason: "Prix corrigé",
+        lines: [
+          {
+            id: reportedLine,
+            productId: product,
+            quantity: 3,
+            unitPriceMillimes: "11000",
+            allocations: [{ lotId: newLot, quantity: 3 }],
+          },
+        ],
+      },
+      2,
+    );
+    expect((await service.submit(actor, correction)).status).toBe("accepted");
+    const result = await dashboards.get(actor, query);
+    expect(result).toMatchObject({
+      netMillimes: 22000n,
+      netUnits: 2n,
+      saleCount: 1n,
+    });
+    expect(result.comparisons.reduce((sum, s) => sum + s.netMillimes, 0n)).toBe(
+      result.netMillimes,
+    );
+    expect(
+      await dashboards.get(seller, {
+        ...query,
+        scope: "personal",
+        storeId: newStore,
+      }),
+    ).toMatchObject({ netMillimes: 22000n });
+    await expect(dashboards.get(seller, query)).rejects.toMatchObject({
+      code: "GROUP_ACCESS_REVOKED",
+    });
+    await expect(
+      dashboards.get(foreign, { ...query, scope: "store", storeId: newStore }),
+    ).rejects.toMatchObject({ code: "STORE_ACCESS_REVOKED" });
+    await expect(
+      dashboards.get(actor, {
+        ...query,
+        scope: "network",
+        organizationId: undefined,
+      }),
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+    const contribution = await owner.salesContribution.findUniqueOrThrow({
+      where: { saleId: reportedSale },
+    });
+    expect(contribution.version).toBe(3);
+    expect(contribution.day.toISOString().slice(0, 10)).toBe("2026-08-31");
+    await owner.$executeRaw`SELECT project_biobalance_sale(${reportedSale}::uuid)`;
+    expect((await dashboards.get(actor, query)).netMillimes).toBe(22000n);
+  });
+  it("backfills legacy rows in bounded pages, resumes, and reconciles with live revisions", async () => {
+    const ids = Array.from({ length: 1100 }, () => randomUUID());
+    await owner.$transaction(async (tx) => {
+      await tx.$executeRawUnsafe(
+        'ALTER TABLE "Sale" DISABLE TRIGGER "Sale_reporting"',
+      );
+      await tx.sale.createMany({
+        data: ids.map((id) => ({
+          id,
+          organizationId: groupId,
+          storeId: newStore,
+          sellerId: actor.id,
+          occurredAt: new Date("2025-01-02T10:00:00Z"),
+          totalMillimes: 5000n,
+          earnedPoints: 0n,
+          lines: [
+            {
+              id: randomUUID(),
+              productId: product,
+              quantity: 2,
+              unitPriceMillimes: "2500",
+              allocations: [],
+            },
+          ],
+        })),
+      });
+      await tx.$executeRawUnsafe(
+        'ALTER TABLE "Sale" ENABLE TRIGGER "Sale_reporting"',
+      );
+    });
+    const full: Pick<Database, "transaction"> = {
+      transaction: (work) => owner.$transaction(work, { timeout: 15000 }),
+    };
+    expect(await backfillReporting(full)).toBe(1100);
+    expect(await backfillReporting(full)).toBe(0);
+    expect(
+      await dashboards.get(actor, {
+        scope: "group",
+        organizationId: groupId,
+        from: "2025-01-01",
+        to: "2025-01-31",
+      }),
+    ).toMatchObject({
+      saleCount: 1100n,
+      netUnits: 2200n,
+      netMillimes: 5500000n,
+    });
+    await expect(reconcileReporting(owner)).resolves.toEqual({
+      saleMismatches: 0,
+      dayMismatches: 0,
+      productMismatches: 0,
+    });
+  });
+  it("independently detects altered reporting totals without modifying sale history", async () => {
+    await expect(reconcileReporting(owner)).resolves.toEqual({
+      saleMismatches: 0,
+      dayMismatches: 0,
+      productMismatches: 0,
+    });
+    await owner.salesDay.updateMany({
+      where: { storeId: newStore },
+      data: { netMillimes: { increment: 1 } },
+    });
+    try {
+      await expect(reconcileReporting(owner)).rejects.toThrow(
+        "REPORTING_RECONCILIATION_FAILED",
+      );
+    } finally {
+      await owner.salesDay.updateMany({
+        where: { storeId: newStore },
+        data: { netMillimes: { decrement: 1 } },
+      });
+    }
+    expect(
+      (await owner.sale.findUniqueOrThrow({ where: { id: reportedSale } }))
+        .version,
+    ).toBe(3);
+  });
+  it("returns scoped action lists and denies personal inventory supervision", async () => {
+    const q = {
+      scope: "group" as const,
+      organizationId: groupId,
+      from: "2026-08-01",
+      to: "2026-08-31",
+    };
+    await expect(
+      dashboards.attention(foreign, q, "low_stock"),
+    ).rejects.toMatchObject({ code: "GROUP_ACCESS_REVOKED" });
+    await expect(
+      dashboards.attention(
+        seller,
+        { ...q, scope: "personal", storeId: newStore },
+        "expired",
+      ),
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+    const rows = await dashboards.attention(actor, q, "low_stock");
+    expect(
+      rows.items.every(
+        (r) => r.organizationId === groupId && r.storeId === newStore,
+      ),
+    ).toBe(true);
+    await expect(groups.stores(foreign, groupId)).rejects.toMatchObject({
+      code: "GROUP_ACCESS_REVOKED",
+    });
+  });
+  it("reads an exact order with group/store identity and rejects a foreign scope", async () => {
+    const id = randomUUID();
+    await owner.replenishmentOrder.create({
+      data: {
+        id,
+        organizationId: groupId,
+        storeId: newStore,
+        createdBy: actor.id,
+        lines: [{ productId: product, quantity: 5 }],
+      },
+    });
+    expect(
+      (await dashboards.order(admin, groupId, newStore, id)).order,
+    ).toMatchObject({
+      id,
+      groupName: "Parahouse test",
+      storeName: "Parahouse Tunis",
+    });
+    await expect(
+      dashboards.order(foreign, groupId, newStore, id),
+    ).rejects.toMatchObject({ code: "STORE_ACCESS_REVOKED" });
+    await expect(dashboards.order(admin, org, store, id)).rejects.toMatchObject(
+      { code: "NOT_FOUND" },
+    );
+    await groups.member(actor, groupId, seller.id, {
+      role: "salesperson",
+      active: false,
+      storeIds: [],
+    });
+    await expect(
+      dashboards.order(seller, groupId, newStore, id),
+    ).rejects.toMatchObject({ code: "STORE_ACCESS_REVOKED" });
+  });
+  it("exports a complete filtered snapshot beyond one page and rechecks access before download", async () => {
+    const directory = await mkdtemp(path.join(tmpdir(), "biobalance-export-"));
+    const oldRoot = process.env.MEDIA_ROOT;
+    process.env.MEDIA_ROOT = directory;
+    try {
+      const reports = new ExportService(db, dashboards),
+        id = randomUUID();
+      const query = {
+        scope: "group" as const,
+        organizationId: groupId,
+        from: "2026-08-01",
+        to: "2026-08-31",
+      };
+      await owner.sale.createMany({
+        data: Array.from({ length: 105 }, () => ({
+          id: randomUUID(),
+          organizationId: groupId,
+          storeId: newStore,
+          sellerId: seller.id,
+          occurredAt: new Date("2026-08-20T10:00:00Z"),
+          totalMillimes: 1000n,
+          earnedPoints: 0n,
+          lines: [
+            {
+              id: randomUUID(),
+              productId: product,
+              quantity: 1,
+              unitPriceMillimes: "1000",
+              allocations: [],
+            },
+          ],
+        })),
+      });
+      const first = await dashboards.sales(actor, query);
+      expect(first.items).toHaveLength(100);
+      expect(
+        (await dashboards.sales(actor, query, first.nextCursor!)).items,
+      ).toHaveLength(6);
+      const initial = await reports.create(actor, id, query);
+      expect(
+        (
+          await reports.create(actor, id, {
+            to: query.to,
+            from: query.from,
+            organizationId: groupId,
+            scope: "group",
+          })
+        ).id,
+      ).toBe(initial.id);
+      await reports.process(id, randomUUID(), async () => true);
+      await owner.job.update({
+        where: { key: `export:${id}` },
+        data: { status: "done" },
+      });
+      expect(await reports.get(actor, id)).toMatchObject({
+        status: "ready",
+        rows: 106,
+      });
+      const file = await reports.download(actor, id),
+        csv = await readFile(file, "utf8");
+      expect(csv).toContain("22,000");
+      expect(csv).toContain(reportedSale);
+      expect(csv.trim().split("\n")).toHaveLength(107);
+      await expect(reports.download(foreign, id)).rejects.toMatchObject({
+        code: "NOT_FOUND",
+      });
+      await owner.organizationMembership.update({
+        where: {
+          organizationId_userId: { organizationId: groupId, userId: actor.id },
+        },
+        data: { active: false },
+      });
+      await expect(reports.download(actor, id)).rejects.toMatchObject({
+        code: "GROUP_ACCESS_REVOKED",
+      });
+      await owner.organizationMembership.update({
+        where: {
+          organizationId_userId: { organizationId: groupId, userId: actor.id },
+        },
+        data: { active: true },
+      });
+    } finally {
+      if (oldRoot === undefined) delete process.env.MEDIA_ROOT;
+      else process.env.MEDIA_ROOT = oldRoot;
+      await rm(directory, { recursive: true, force: true });
+    }
+  });
+});
+it("keeps missing reference prices distinct from zero and never overwrites store prices", async () => {
+  const catalog = new CatalogService(db),
+    ref = randomUUID();
+  const before = await owner.storeProduct.findUniqueOrThrow({
+    where: { storeId_productId: { storeId: store, productId: product } },
+  });
+  await expect(
+    catalog.save(admin, {
+      reference: ref,
+      name: "Reference price test",
+      description: "",
+      active: true,
+      priceStatus: "sample",
+    }),
+  ).rejects.toMatchObject({ code: "INVALID_REFERENCE_PRICE" });
+  const zero = await catalog.save(admin, {
+    reference: ref,
+    name: "Zero price test",
+    description: "",
+    active: true,
+    referencePriceMillimes: "0",
+    priceStatus: "verified",
+  });
+  expect(zero.referencePriceMillimes).toBe(0n);
+  await expect(
+    catalog.save(admin, {
+      id: zero.id,
+      expectedVersion: zero.version,
+      reference: ref,
+      name: zero.name,
+      description: "",
+      active: true,
+      priceStatus: "missing",
+    }),
+  ).rejects.toMatchObject({ code: "INVALID_REFERENCE_PRICE" });
+  const after = await owner.storeProduct.findUniqueOrThrow({
+    where: { storeId_productId: { storeId: store, productId: product } },
+  });
+  expect(after.priceMillimes).toBe(before.priceMillimes);
+  expect(
+    CatalogRequests.Save.safeParse({
+      reference: ref,
+      name: "Unsafe URL",
+      sourceUrls: ["javascript:alert(1)"],
+    }).success,
+  ).toBe(false);
+});
+it("exports complete append-only histories and rejects salesperson audit exports", async () => {
+  const directory = await mkdtemp(
+    path.join(tmpdir(), "biobalance-history-export-"),
+  );
+  const oldRoot = process.env.REPORT_EXPORT_ROOT;
+  process.env.REPORT_EXPORT_ROOT = directory;
+  const id = randomUUID(),
+    reports = new ExportService(db, new DashboardService(db));
+  try {
+    await owner.auditEntry.createMany({
+      data: Array.from({ length: 205 }, () => ({
+        organizationId: org,
+        storeId: store,
+        actorId: actor.id,
+        targetId: randomUUID(),
+        action: "=Formula-safe test",
+        details: {},
+      })),
+    });
+    const query = {
+      kind: "history" as const,
+      organizationId: org,
+      storeId: store,
+      resource: "audit" as const,
+    };
+    await expect(
+      reports.create(seller, randomUUID(), query),
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+    await reports.create(actor, id, query);
+    await reports.process(id, randomUUID(), async () => true);
+    await owner.job.update({
+      where: { key: `export:${id}` },
+      data: { status: "done" },
+    });
+    const result = await reports.get(actor, id);
+    const csv = await readFile(await reports.download(actor, id), "utf8");
+    expect(result.rows).toBeGreaterThanOrEqual(205);
+    expect(csv.trim().split("\n").length).toBe(result.rows + 1);
+    expect(csv).toContain("'=Formula-safe test");
+  } finally {
+    if (oldRoot === undefined) delete process.env.REPORT_EXPORT_ROOT;
+    else process.env.REPORT_EXPORT_ROOT = oldRoot;
+    await rm(directory, { recursive: true, force: true });
+  }
 });
 describe.sequential(
   "PostgreSQL transactions with a restricted application role",
@@ -1404,6 +2022,9 @@ describe.sequential(
             permissions: userId === actor.id ? ["manage"] : ["sell"],
           },
         });
+      const otherProduct = await owner.product.create({
+        data: { reference: randomUUID(), name: "Read pagination product" },
+      });
       const rows = Array.from({ length: 201 }, (_, i) => ({
         id: randomUUID(),
         organizationId: org,
@@ -1412,7 +2033,15 @@ describe.sequential(
         occurredAt: new Date("2026-09-21T10:00:00Z"),
         totalMillimes: 12345n,
         earnedPoints: 0n,
-        lines: [{ productId: i < 50 ? product : randomUUID(), quantity: 1 }],
+        lines: [
+          {
+            id: randomUUID(),
+            productId: i < 50 ? product : otherProduct.id,
+            quantity: 1,
+            unitPriceMillimes: "12345",
+            allocations: [],
+          },
+        ],
       }));
       await owner.sale.createMany({ data: rows });
       const found: string[] = [];

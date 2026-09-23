@@ -62,8 +62,8 @@ class _NotificationsScreenState extends State<NotificationsScreen>
             title: n['title'],
             subtitle: n['body'],
             icon: n['readAt'] == null
-                ? Icons.notifications_active_outlined
-                : Icons.notifications_none,
+                ? AppIcons.notificationsActiveOutlined
+                : AppIcons.notificationsNone,
             onTap: () async {
               try {
                 final message = await widget.vm.openNotification(n['id']);
@@ -74,7 +74,7 @@ class _NotificationsScreenState extends State<NotificationsScreen>
                     title: Text(message['title']),
                     content: SingleChildScrollView(
                       child: Text(
-                        '${widget.vm.state.store?.name ?? 'BioBalance'}\n\n${message['body']}',
+                        '${message['storeName'] ?? 'BioBalance'}\n\n${message['body']}',
                       ),
                     ),
                     actions: [
@@ -103,7 +103,7 @@ class _NotificationsScreenState extends State<NotificationsScreen>
               title: 'Aucune notification',
               description:
                   'Les informations utiles à votre activité apparaîtront ici.',
-              icon: Icons.notifications_none,
+              icon: AppIcons.notificationsNone,
             ),
         ],
       ),

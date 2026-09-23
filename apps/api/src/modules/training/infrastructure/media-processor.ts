@@ -1,6 +1,6 @@
 import { imageOutputLimit, videoOutputLimit } from "./media-storage";
 import { spawn } from "node:child_process";
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { createReadStream } from "node:fs";
 import { open, rename, stat, unlink } from "node:fs/promises";
 import path from "node:path";
@@ -63,6 +63,7 @@ export class MediaProcessor {
           },
         });
       }
+      await this.thumbnail(id);
       await this.removeAcceptedSource(id);
       return;
     }
@@ -214,7 +215,59 @@ export class MediaProcessor {
         throw new Error("MEDIA_UPLOAD_EXPIRED");
       }
     }
+    await this.thumbnail(id);
     await this.removeAcceptedSource(id);
+  }
+  async thumbnail(id: string) {
+    const media = await this.db.mediaAsset.findUniqueOrThrow({ where: { id } });
+    if (
+      media.status !== "ready" ||
+      !media.mime.startsWith("image/") ||
+      media.thumbnailPath
+    )
+      return;
+    const target = `${id}-thumbnail.png`;
+    const output = path.join(this.root, `processed-${randomUUID()}-${target}`);
+    await run(
+      "ffmpeg",
+      [
+        "-nostdin",
+        "-y",
+        "-max_alloc",
+        "67108864",
+        "-threads",
+        "1",
+        "-filter_threads",
+        "1",
+        "-protocol_whitelist",
+        "file,pipe",
+        "-i",
+        path.join(this.root, media.path),
+        "-map_metadata",
+        "-1",
+        "-frames:v",
+        "1",
+        "-vf",
+        "scale=384:384:force_original_aspect_ratio=decrease",
+        "-fs",
+        "1048576",
+        output,
+      ],
+      30000,
+    );
+    const size = BigInt((await stat(output)).size);
+    if (size >= 1048576n) throw new Error("THUMBNAIL_SIZE");
+    const sha256 = await digest(output);
+    await rename(output, path.join(this.root, target));
+    await this.db.mediaAsset.updateMany({
+      where: { id, thumbnailPath: null },
+      data: {
+        thumbnailPath: target,
+        thumbnailSize: size,
+        thumbnailSha256: sha256,
+        storageBytes: { increment: size },
+      },
+    });
   }
   private async removeAcceptedSource(id: string) {
     const media = await this.db.mediaAsset.findUniqueOrThrow({ where: { id } });
@@ -235,7 +288,10 @@ export class MediaProcessor {
       });
       await this.db.mediaAsset.update({
         where: { id },
-        data: { storageBytes: media.processedSize, cleanedAt: new Date() },
+        data: {
+          storageBytes: media.processedSize + (media.thumbnailSize ?? 0n),
+          cleanedAt: new Date(),
+        },
       });
     }
   }

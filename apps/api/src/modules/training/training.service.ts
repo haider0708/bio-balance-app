@@ -226,6 +226,45 @@ export class TrainingService {
       );
       return work(tx, media, manager);
     };
+    if (asset.purpose === "group" && asset.organizationId) {
+      if (write)
+        return this.db.group(actor, asset.organizationId, (tx, current) =>
+          execute(tx, true, current.platformAdmin),
+        );
+      return this.db.authenticated(actor, async (tx, current) => {
+        const responsible = await tx.organizationMembership.findUnique({
+          where: {
+            organizationId_userId: {
+              organizationId: asset.organizationId!,
+              userId: current.id,
+            },
+          },
+        });
+        const assigned = await tx.membership.count({
+          where: {
+            organizationId: asset.organizationId!,
+            userId: current.id,
+            active: true,
+          },
+        });
+        requireRule(
+          current.platformAdmin || responsible?.active || assigned > 0,
+          "FORBIDDEN",
+          "Image de groupe inaccessible.",
+          403,
+        );
+        if (!current.platformAdmin && !responsible?.active)
+          requireRule(
+            (await tx.organization.count({
+              where: { id: asset.organizationId!, imageId: id },
+            })) > 0,
+            "FORBIDDEN",
+            "Image de groupe inaccessible.",
+            403,
+          );
+        return execute(tx, true, current.platformAdmin);
+      });
+    }
     if (asset.storeId && asset.organizationId)
       return this.db.scoped(
         actor,
@@ -248,7 +287,7 @@ export class TrainingService {
     mime: string,
     size: number,
     context: {
-      purpose?: "training" | "catalog" | "store" | "reward";
+      purpose?: "training" | "catalog" | "store" | "reward" | "group";
       organizationId?: string;
       storeId?: string;
       sha256?: string;
@@ -257,8 +296,10 @@ export class TrainingService {
     const purpose = context.purpose ?? "training";
     const scoped = purpose === "store" || purpose === "reward";
     requireRule(
-      scoped === Boolean(context.organizationId && context.storeId) &&
-        (scoped || (!context.organizationId && !context.storeId)),
+      purpose === "group"
+        ? !!context.organizationId && !context.storeId
+        : scoped === Boolean(context.organizationId && context.storeId) &&
+            (scoped || (!context.organizationId && !context.storeId)),
       "MEDIA_SCOPE",
       "Emplacement du média invalide.",
     );
@@ -331,6 +372,8 @@ export class TrainingService {
       });
     };
     await mkdir(this.root, { recursive: true, mode: 0o750 });
+    if (purpose === "group")
+      return this.db.group(actor, context.organizationId!, create);
     if (scoped)
       return this.db.scoped(
         actor,
@@ -465,8 +508,12 @@ export class TrainingService {
       return { received, status };
     });
   }
-  async metadata(actor: Actor, id: string) {
-    const file = await this.media(actor, id);
+  async metadata(
+    actor: Actor,
+    id: string,
+    variant: "original" | "thumbnail" = "original",
+  ) {
+    const file = await this.media(actor, id, variant);
     if (!file.sha256 || file.size === null) {
       await this.db.job.upsert({
         where: { key: `media-integrity:${id}` },
@@ -491,7 +538,11 @@ export class TrainingService {
       sha256: file.sha256,
     };
   }
-  async media(actor: Actor, id: string) {
+  async media(
+    actor: Actor,
+    id: string,
+    variant: "original" | "thumbnail" = "original",
+  ) {
     return this.assetTransaction(
       actor,
       id,
@@ -531,6 +582,32 @@ export class TrainingService {
               403,
             );
           }
+        }
+        if (variant === "thumbnail") {
+          requireRule(
+            media.mime.startsWith("image/"),
+            "INVALID_MEDIA",
+            "Une miniature est disponible uniquement pour les images.",
+          );
+          if (!media.thumbnailPath) {
+            await tx.job.upsert({
+              where: { key: `media-integrity:${id}` },
+              create: {
+                kind: "media",
+                key: `media-integrity:${id}`,
+                payload: { mediaId: id },
+              },
+              update: {},
+            });
+            // Commit the recovery job; the caller returns a retryable response afterward.
+            return { path: "", mime: "image/png", sha256: null, size: null };
+          }
+          return {
+            path: path.join(this.root, media.thumbnailPath),
+            mime: "image/png",
+            sha256: media.thumbnailSha256,
+            size: media.thumbnailSize,
+          };
         }
         return {
           path: path.join(this.root, media.path),

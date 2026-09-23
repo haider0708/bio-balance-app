@@ -10,6 +10,8 @@ export namespace IdentityRequests {
   });
   export const Invite = z.object({
     email,
+    kind: z.enum(["new_group", "responsible", "salesperson"]).optional(),
+    storeIds: z.array(z.uuid()).max(500).optional(),
     organizationId: z.uuid().optional(),
     organizationName: z.string().min(2).max(120).optional(),
     storeId: z.uuid().optional(),
@@ -99,6 +101,22 @@ export namespace CatalogRequests {
       imageId: z.uuid().nullable().optional(),
       barcode: z.string().trim().min(3).max(80).optional(),
       description: z.string().max(5000).default(""),
+      category: z.string().trim().max(100).optional(),
+      range: z.string().trim().max(100).optional(),
+      packageSize: z.string().trim().max(80).optional(),
+      instructions: z.string().max(5000).optional(),
+      ingredients: z.string().max(5000).optional(),
+      precautions: z.string().max(5000).optional(),
+      referencePriceMillimes: z
+        .string()
+        .regex(/^(0|[1-9]\d{0,14})$/)
+        .nullable()
+        .optional(),
+      priceStatus: z.enum(["missing", "verified", "sample"]).optional(),
+      sourceUrls: z
+        .array(z.url({ protocol: /^https?$/ }).max(2000))
+        .max(12)
+        .optional(),
       active: z.boolean().default(true),
       expectedVersion: z.number().int().positive().optional(),
     })
@@ -147,7 +165,9 @@ export namespace TrainingRequests {
     .strict();
   export const Start = z
     .object({
-      purpose: z.enum(["training", "catalog", "store", "reward"]).optional(),
+      purpose: z
+        .enum(["training", "catalog", "store", "reward", "group"])
+        .optional(),
       organizationId: z.uuid().optional(),
       storeId: z.uuid().optional(),
       sha256: z

@@ -60,7 +60,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ],
                     decoration: const InputDecoration(
                       labelText: 'Adresse email',
-                      prefixIcon: Icon(Icons.mail_outline),
+                      prefixIcon: Icon(AppIcons.mailOutline),
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -72,13 +72,13 @@ class _LoginScreenState extends State<LoginScreen> {
                     onSubmitted: (_) => _login(vm),
                     decoration: InputDecoration(
                       labelText: 'Mot de passe',
-                      prefixIcon: const Icon(Icons.lock_outline),
+                      prefixIcon: const Icon(AppIcons.lockOutline),
                       suffixIcon: IconButton(
                         onPressed: () => setState(() => _visible = !_visible),
                         icon: Icon(
                           _visible
-                              ? Icons.visibility_off_outlined
-                              : Icons.visibility_outlined,
+                              ? AppIcons.visibilityOffOutlined
+                              : AppIcons.visibilityOutlined,
                         ),
                         tooltip: _visible
                             ? 'Masquer le mot de passe'
@@ -91,6 +91,7 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
             const SizedBox(height: 16),
             ExpansionTile(
+              trailing: const Icon(AppIcons.keyboardArrowDown),
               tilePadding: EdgeInsets.zero,
               title: const Text('Code administrateur (MFA)'),
               children: [
@@ -125,7 +126,7 @@ class _LoginScreenState extends State<LoginScreen> {
             const SizedBox(height: 12),
             OutlinedButton.icon(
               onPressed: () => _accountAction(context, 'activate'),
-              icon: const Icon(Icons.mark_email_read_outlined),
+              icon: const Icon(AppIcons.markEmailReadOutlined),
               label: const Text('Activer mon invitation'),
             ),
             const SizedBox(height: 24),
@@ -164,7 +165,7 @@ class _AccountActionScreenState extends State<AccountActionScreen> {
       _token = TextEditingController(),
       _name = TextEditingController(),
       _password = TextEditingController();
-  bool busy = false;
+  bool busy = false, passwordVisible = false;
   String? error, success;
   late String mode = widget.mode;
   @override
@@ -220,16 +221,29 @@ class _AccountActionScreenState extends State<AccountActionScreen> {
           TextField(
             key: const ValueKey('auth.password'),
             controller: _password,
-            obscureText: true,
+            obscureText: !passwordVisible,
             autofillHints: const [AutofillHints.newPassword],
-            decoration: const InputDecoration(
-              labelText: 'Mot de passe (12 caractères minimum)',
+            decoration: InputDecoration(
+              labelText: 'Mot de passe',
+              helperText: '12 caractères minimum',
+              suffixIcon: IconButton(
+                tooltip: passwordVisible
+                    ? 'Masquer le mot de passe'
+                    : 'Afficher le mot de passe',
+                onPressed: () =>
+                    setState(() => passwordVisible = !passwordVisible),
+                icon: Icon(
+                  passwordVisible
+                      ? AppIcons.visibilityOffOutlined
+                      : AppIcons.visibilityOutlined,
+                ),
+              ),
             ),
           ),
           const SizedBox(height: 12),
           if (mode == 'activate')
             const Text(
-              'Vous avez déjà un compte ? Utilisez son mot de passe actuel pour rejoindre le magasin.',
+              'Vous avez déjà un compte ? Utilisez son mot de passe actuel pour activer cet accès.',
               style: TextStyle(fontSize: 14),
             ),
         ],

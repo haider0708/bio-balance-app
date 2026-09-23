@@ -67,15 +67,31 @@ export class TrainingController {
   @Get("media/:id/metadata") metadata(
     @Req() r: AuthRequest,
     @Param("id") id: string,
+    @Query("variant") variant?: string,
   ) {
-    return this.service.metadata(r.actor, z.uuid().parse(id));
+    return this.service.metadata(
+      r.actor,
+      z.uuid().parse(id),
+      z.enum(["original", "thumbnail"]).default("original").parse(variant),
+    );
   }
   @Get("media/:id") async media(
     @Req() r: AuthRequest,
     @Param("id") id: string,
     @Res() response: Response,
+    @Query("variant") variant?: string,
   ) {
-    const file = await this.service.media(r.actor, z.uuid().parse(id));
+    const file = await this.service.media(
+      r.actor,
+      z.uuid().parse(id),
+      z.enum(["original", "thumbnail"]).default("original").parse(variant),
+    );
+    requireRule(
+      file.path,
+      "MEDIA_METADATA_PENDING",
+      "La miniature est en cours de préparation.",
+      503,
+    );
     response.setHeader("Cache-Control", "private, no-store");
     if (file.sha256) {
       response.setHeader("X-Content-SHA256", file.sha256);

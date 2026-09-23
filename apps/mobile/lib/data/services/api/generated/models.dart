@@ -230,11 +230,17 @@ final class OrganizationDto {
   final String id;
   final String name;
   final String createdAt;
+  final String? imageId;
+  final String? phone;
+  final int? version;
   OrganizationDto({
     Set<String> presentFields = const {},
     required this.id,
     required this.name,
     required this.createdAt,
+    this.imageId,
+    this.phone,
+    this.version,
   }) : _presentFields = Set.unmodifiable(presentFields);
   factory OrganizationDto.fromJson(Map<String, dynamic> json) {
     return OrganizationDto(
@@ -242,12 +248,20 @@ final class OrganizationDto {
       id: json["id"] as String,
       name: json["name"] as String,
       createdAt: json["createdAt"] as String,
+      imageId: json["imageId"] == null ? null : json["imageId"] as String,
+      phone: json["phone"] == null ? null : json["phone"] as String,
+      version: json["version"] == null ? null : wireInteger(json["version"]),
     );
   }
   Map<String, dynamic> toJson() => {
     "id": id,
     "name": name,
     "createdAt": createdAt,
+    if (imageId != null || _presentFields.contains("imageId"))
+      "imageId": imageId,
+    if (phone != null || _presentFields.contains("phone")) "phone": phone,
+    if (version != null || _presentFields.contains("version"))
+      "version": version,
   };
 }
 
@@ -535,6 +549,15 @@ final class ProductDto implements CollectionItemDto {
   final bool active;
   final int version;
   final String updatedAt;
+  final String? category;
+  final String? range;
+  final String? packageSize;
+  final String? instructions;
+  final String? ingredients;
+  final String? precautions;
+  final String? referencePriceMillimes;
+  final String? priceStatus;
+  final List<String>? sourceUrls;
   ProductDto({
     Set<String> presentFields = const {},
     required this.id,
@@ -546,7 +569,17 @@ final class ProductDto implements CollectionItemDto {
     required this.active,
     required this.version,
     required this.updatedAt,
-  }) : _presentFields = Set.unmodifiable(presentFields);
+    this.category,
+    this.range,
+    this.packageSize,
+    this.instructions,
+    this.ingredients,
+    this.precautions,
+    this.referencePriceMillimes,
+    this.priceStatus,
+    List<String>? sourceUrls,
+  }) : _presentFields = Set.unmodifiable(presentFields),
+       sourceUrls = sourceUrls == null ? null : List.unmodifiable(sourceUrls);
   factory ProductDto.fromJson(Map<String, dynamic> json) {
     return ProductDto(
       presentFields: json.keys.toSet(),
@@ -559,6 +592,31 @@ final class ProductDto implements CollectionItemDto {
       active: json["active"] as bool,
       version: wireInteger(json["version"]),
       updatedAt: json["updatedAt"] as String,
+      category: json["category"] == null ? null : json["category"] as String,
+      range: json["range"] == null ? null : json["range"] as String,
+      packageSize: json["packageSize"] == null
+          ? null
+          : json["packageSize"] as String,
+      instructions: json["instructions"] == null
+          ? null
+          : json["instructions"] as String,
+      ingredients: json["ingredients"] == null
+          ? null
+          : json["ingredients"] as String,
+      precautions: json["precautions"] == null
+          ? null
+          : json["precautions"] as String,
+      referencePriceMillimes: json["referencePriceMillimes"] == null
+          ? null
+          : json["referencePriceMillimes"] as String,
+      priceStatus: json["priceStatus"] == null
+          ? null
+          : json["priceStatus"] as String,
+      sourceUrls: json["sourceUrls"] == null
+          ? null
+          : List.unmodifiable(
+              (json["sourceUrls"] as List).map((item) => item as String),
+            ),
     );
   }
   @override
@@ -572,6 +630,24 @@ final class ProductDto implements CollectionItemDto {
     "active": active,
     "version": version,
     "updatedAt": updatedAt,
+    if (category != null || _presentFields.contains("category"))
+      "category": category,
+    if (range != null || _presentFields.contains("range")) "range": range,
+    if (packageSize != null || _presentFields.contains("packageSize"))
+      "packageSize": packageSize,
+    if (instructions != null || _presentFields.contains("instructions"))
+      "instructions": instructions,
+    if (ingredients != null || _presentFields.contains("ingredients"))
+      "ingredients": ingredients,
+    if (precautions != null || _presentFields.contains("precautions"))
+      "precautions": precautions,
+    if (referencePriceMillimes != null ||
+        _presentFields.contains("referencePriceMillimes"))
+      "referencePriceMillimes": referencePriceMillimes,
+    if (priceStatus != null || _presentFields.contains("priceStatus"))
+      "priceStatus": priceStatus,
+    if (sourceUrls != null || _presentFields.contains("sourceUrls"))
+      "sourceUrls": sourceUrls?.map((item) => item).toList(),
   };
 }
 
@@ -588,6 +664,7 @@ final class StoreProductDto implements CollectionItemDto {
   final bool pointsConfigured;
   final bool zeroPointsConfirmed;
   final int version;
+  final bool? priceConfigured;
   StoreProductDto({
     Set<String> presentFields = const {},
     required this.id,
@@ -600,6 +677,7 @@ final class StoreProductDto implements CollectionItemDto {
     required this.pointsConfigured,
     required this.zeroPointsConfirmed,
     required this.version,
+    this.priceConfigured,
   }) : _presentFields = Set.unmodifiable(presentFields);
   factory StoreProductDto.fromJson(Map<String, dynamic> json) {
     return StoreProductDto(
@@ -614,6 +692,9 @@ final class StoreProductDto implements CollectionItemDto {
       pointsConfigured: json["pointsConfigured"] as bool,
       zeroPointsConfirmed: json["zeroPointsConfirmed"] as bool,
       version: wireInteger(json["version"]),
+      priceConfigured: json["priceConfigured"] == null
+          ? null
+          : json["priceConfigured"] as bool,
     );
   }
   @override
@@ -628,6 +709,8 @@ final class StoreProductDto implements CollectionItemDto {
     "pointsConfigured": pointsConfigured,
     "zeroPointsConfirmed": zeroPointsConfirmed,
     "version": version,
+    if (priceConfigured != null || _presentFields.contains("priceConfigured"))
+      "priceConfigured": priceConfigured,
   };
 }
 
@@ -2946,6 +3029,616 @@ final class SnapshotDto {
   };
 }
 
+final class AttentionPageDto {
+  final Set<String> _presentFields;
+  Set<String> get presentFields => _presentFields;
+  final List<AttentionPageItemsItemDto> items;
+  final String? nextCursor;
+  AttentionPageDto({
+    Set<String> presentFields = const {},
+    required List<AttentionPageItemsItemDto> items,
+    required this.nextCursor,
+  }) : _presentFields = Set.unmodifiable(presentFields),
+       items = List.unmodifiable(items);
+  factory AttentionPageDto.fromJson(Map<String, dynamic> json) {
+    return AttentionPageDto(
+      presentFields: json.keys.toSet(),
+      items: List.unmodifiable(
+        (json["items"] as List).map(
+          (item) => AttentionPageItemsItemDto.fromJson(
+            Map<String, dynamic>.from(item as Map),
+          ),
+        ),
+      ),
+      nextCursor: json["nextCursor"] == null
+          ? null
+          : json["nextCursor"] as String,
+    );
+  }
+  Map<String, dynamic> toJson() => {
+    "items": items.map((item) => item.toJson()).toList(),
+    "nextCursor": nextCursor,
+  };
+}
+
+final class ReportExportDto {
+  final Set<String> _presentFields;
+  Set<String> get presentFields => _presentFields;
+  final String id;
+  final String status;
+  final int rows;
+  final String? error;
+  final String createdAt;
+  final String expiresAt;
+  ReportExportDto({
+    Set<String> presentFields = const {},
+    required this.id,
+    required this.status,
+    required this.rows,
+    required this.error,
+    required this.createdAt,
+    required this.expiresAt,
+  }) : _presentFields = Set.unmodifiable(presentFields);
+  factory ReportExportDto.fromJson(Map<String, dynamic> json) {
+    return ReportExportDto(
+      presentFields: json.keys.toSet(),
+      id: json["id"] as String,
+      status: json["status"] as String,
+      rows: wireInteger(json["rows"]),
+      error: json["error"] == null ? null : json["error"] as String,
+      createdAt: json["createdAt"] as String,
+      expiresAt: json["expiresAt"] as String,
+    );
+  }
+  Map<String, dynamic> toJson() => {
+    "id": id,
+    "status": status,
+    "rows": rows,
+    "error": error,
+    "createdAt": createdAt,
+    "expiresAt": expiresAt,
+  };
+}
+
+final class DashboardSaleDto {
+  final Set<String> _presentFields;
+  Set<String> get presentFields => _presentFields;
+  final String id;
+  final String organizationId;
+  final String storeId;
+  final String sellerId;
+  final String day;
+  final String occurredAt;
+  final int version;
+  final String netMillimes;
+  final String netUnits;
+  final String storeName;
+  final String sellerName;
+  DashboardSaleDto({
+    Set<String> presentFields = const {},
+    required this.id,
+    required this.organizationId,
+    required this.storeId,
+    required this.sellerId,
+    required this.day,
+    required this.occurredAt,
+    required this.version,
+    required this.netMillimes,
+    required this.netUnits,
+    required this.storeName,
+    required this.sellerName,
+  }) : _presentFields = Set.unmodifiable(presentFields);
+  factory DashboardSaleDto.fromJson(Map<String, dynamic> json) {
+    return DashboardSaleDto(
+      presentFields: json.keys.toSet(),
+      id: json["id"] as String,
+      organizationId: json["organizationId"] as String,
+      storeId: json["storeId"] as String,
+      sellerId: json["sellerId"] as String,
+      day: json["day"] as String,
+      occurredAt: json["occurredAt"] as String,
+      version: wireInteger(json["version"]),
+      netMillimes: json["netMillimes"] as String,
+      netUnits: json["netUnits"] as String,
+      storeName: json["storeName"] as String,
+      sellerName: json["sellerName"] as String,
+    );
+  }
+  Map<String, dynamic> toJson() => {
+    "id": id,
+    "organizationId": organizationId,
+    "storeId": storeId,
+    "sellerId": sellerId,
+    "day": day,
+    "occurredAt": occurredAt,
+    "version": version,
+    "netMillimes": netMillimes,
+    "netUnits": netUnits,
+    "storeName": storeName,
+    "sellerName": sellerName,
+  };
+}
+
+final class DashboardSalePageDto {
+  final Set<String> _presentFields;
+  Set<String> get presentFields => _presentFields;
+  final List<DashboardSaleDto> items;
+  final String? nextCursor;
+  DashboardSalePageDto({
+    Set<String> presentFields = const {},
+    required List<DashboardSaleDto> items,
+    required this.nextCursor,
+  }) : _presentFields = Set.unmodifiable(presentFields),
+       items = List.unmodifiable(items);
+  factory DashboardSalePageDto.fromJson(Map<String, dynamic> json) {
+    return DashboardSalePageDto(
+      presentFields: json.keys.toSet(),
+      items: List.unmodifiable(
+        (json["items"] as List).map(
+          (item) =>
+              DashboardSaleDto.fromJson(Map<String, dynamic>.from(item as Map)),
+        ),
+      ),
+      nextCursor: json["nextCursor"] == null
+          ? null
+          : json["nextCursor"] as String,
+    );
+  }
+  Map<String, dynamic> toJson() => {
+    "items": items.map((item) => item.toJson()).toList(),
+    "nextCursor": nextCursor,
+  };
+}
+
+final class GroupDto {
+  final Set<String> _presentFields;
+  Set<String> get presentFields => _presentFields;
+  final String id;
+  final String name;
+  final String createdAt;
+  final String? imageId;
+  final String? phone;
+  final int version;
+  GroupDto({
+    Set<String> presentFields = const {},
+    required this.id,
+    required this.name,
+    required this.createdAt,
+    required this.imageId,
+    required this.phone,
+    required this.version,
+  }) : _presentFields = Set.unmodifiable(presentFields);
+  factory GroupDto.fromJson(Map<String, dynamic> json) {
+    return GroupDto(
+      presentFields: json.keys.toSet(),
+      id: json["id"] as String,
+      name: json["name"] as String,
+      createdAt: json["createdAt"] as String,
+      imageId: json["imageId"] == null ? null : json["imageId"] as String,
+      phone: json["phone"] == null ? null : json["phone"] as String,
+      version: wireInteger(json["version"]),
+    );
+  }
+  Map<String, dynamic> toJson() => {
+    "id": id,
+    "name": name,
+    "createdAt": createdAt,
+    "imageId": imageId,
+    "phone": phone,
+    "version": version,
+  };
+}
+
+final class GroupAccessDto {
+  final Set<String> _presentFields;
+  Set<String> get presentFields => _presentFields;
+  final String id;
+  final String name;
+  final String createdAt;
+  final String? imageId;
+  final String? phone;
+  final int version;
+  final bool canManage;
+  final int storeCount;
+  GroupAccessDto({
+    Set<String> presentFields = const {},
+    required this.id,
+    required this.name,
+    required this.createdAt,
+    required this.imageId,
+    required this.phone,
+    required this.version,
+    required this.canManage,
+    required this.storeCount,
+  }) : _presentFields = Set.unmodifiable(presentFields);
+  factory GroupAccessDto.fromJson(Map<String, dynamic> json) {
+    return GroupAccessDto(
+      presentFields: json.keys.toSet(),
+      id: json["id"] as String,
+      name: json["name"] as String,
+      createdAt: json["createdAt"] as String,
+      imageId: json["imageId"] == null ? null : json["imageId"] as String,
+      phone: json["phone"] == null ? null : json["phone"] as String,
+      version: wireInteger(json["version"]),
+      canManage: json["canManage"] as bool,
+      storeCount: wireInteger(json["storeCount"]),
+    );
+  }
+  Map<String, dynamic> toJson() => {
+    "id": id,
+    "name": name,
+    "createdAt": createdAt,
+    "imageId": imageId,
+    "phone": phone,
+    "version": version,
+    "canManage": canManage,
+    "storeCount": storeCount,
+  };
+}
+
+final class GroupPageDto {
+  final Set<String> _presentFields;
+  Set<String> get presentFields => _presentFields;
+  final List<GroupAccessDto> items;
+  final String? nextCursor;
+  final List<GroupPageCreationGrantsItemDto> creationGrants;
+  GroupPageDto({
+    Set<String> presentFields = const {},
+    required List<GroupAccessDto> items,
+    required this.nextCursor,
+    required List<GroupPageCreationGrantsItemDto> creationGrants,
+  }) : _presentFields = Set.unmodifiable(presentFields),
+       items = List.unmodifiable(items),
+       creationGrants = List.unmodifiable(creationGrants);
+  factory GroupPageDto.fromJson(Map<String, dynamic> json) {
+    return GroupPageDto(
+      presentFields: json.keys.toSet(),
+      items: List.unmodifiable(
+        (json["items"] as List).map(
+          (item) =>
+              GroupAccessDto.fromJson(Map<String, dynamic>.from(item as Map)),
+        ),
+      ),
+      nextCursor: json["nextCursor"] == null
+          ? null
+          : json["nextCursor"] as String,
+      creationGrants: List.unmodifiable(
+        (json["creationGrants"] as List).map(
+          (item) => GroupPageCreationGrantsItemDto.fromJson(
+            Map<String, dynamic>.from(item as Map),
+          ),
+        ),
+      ),
+    );
+  }
+  Map<String, dynamic> toJson() => {
+    "items": items.map((item) => item.toJson()).toList(),
+    "nextCursor": nextCursor,
+    "creationGrants": creationGrants.map((item) => item.toJson()).toList(),
+  };
+}
+
+final class GroupTeamDto {
+  final Set<String> _presentFields;
+  Set<String> get presentFields => _presentFields;
+  final List<GroupTeamMembersItemDto> members;
+  final List<GroupTeamInvitationsItemDto> invitations;
+  GroupTeamDto({
+    Set<String> presentFields = const {},
+    required List<GroupTeamMembersItemDto> members,
+    required List<GroupTeamInvitationsItemDto> invitations,
+  }) : _presentFields = Set.unmodifiable(presentFields),
+       members = List.unmodifiable(members),
+       invitations = List.unmodifiable(invitations);
+  factory GroupTeamDto.fromJson(Map<String, dynamic> json) {
+    return GroupTeamDto(
+      presentFields: json.keys.toSet(),
+      members: List.unmodifiable(
+        (json["members"] as List).map(
+          (item) => GroupTeamMembersItemDto.fromJson(
+            Map<String, dynamic>.from(item as Map),
+          ),
+        ),
+      ),
+      invitations: List.unmodifiable(
+        (json["invitations"] as List).map(
+          (item) => GroupTeamInvitationsItemDto.fromJson(
+            Map<String, dynamic>.from(item as Map),
+          ),
+        ),
+      ),
+    );
+  }
+  Map<String, dynamic> toJson() => {
+    "members": members.map((item) => item.toJson()).toList(),
+    "invitations": invitations.map((item) => item.toJson()).toList(),
+  };
+}
+
+final class ProductPageDto {
+  final Set<String> _presentFields;
+  Set<String> get presentFields => _presentFields;
+  final List<ProductDto> items;
+  final String? nextCursor;
+  ProductPageDto({
+    Set<String> presentFields = const {},
+    required List<ProductDto> items,
+    required this.nextCursor,
+  }) : _presentFields = Set.unmodifiable(presentFields),
+       items = List.unmodifiable(items);
+  factory ProductPageDto.fromJson(Map<String, dynamic> json) {
+    return ProductPageDto(
+      presentFields: json.keys.toSet(),
+      items: List.unmodifiable(
+        (json["items"] as List).map(
+          (item) => ProductDto.fromJson(Map<String, dynamic>.from(item as Map)),
+        ),
+      ),
+      nextCursor: json["nextCursor"] == null
+          ? null
+          : json["nextCursor"] as String,
+    );
+  }
+  Map<String, dynamic> toJson() => {
+    "items": items.map((item) => item.toJson()).toList(),
+    "nextCursor": nextCursor,
+  };
+}
+
+final class DashboardDto {
+  final Set<String> _presentFields;
+  Set<String> get presentFields => _presentFields;
+  final String scope;
+  final String? organizationId;
+  final String? storeId;
+  final String from;
+  final String to;
+  final String generatedAt;
+  final String netMillimes;
+  final String netUnits;
+  final String saleCount;
+  final int groupCount;
+  final int storeCount;
+  final List<DashboardSeriesItemDto> series;
+  final List<DashboardComparisonsItemDto> comparisons;
+  final List<DashboardProductsItemDto> products;
+  final List<DashboardRecentSalesItemDto> recentSales;
+  final DashboardRankingDto? ranking;
+  final DashboardCurrentDto current;
+  final List<DashboardAlertsItemDto> alerts;
+  DashboardDto({
+    Set<String> presentFields = const {},
+    required this.scope,
+    required this.organizationId,
+    required this.storeId,
+    required this.from,
+    required this.to,
+    required this.generatedAt,
+    required this.netMillimes,
+    required this.netUnits,
+    required this.saleCount,
+    required this.groupCount,
+    required this.storeCount,
+    required List<DashboardSeriesItemDto> series,
+    required List<DashboardComparisonsItemDto> comparisons,
+    required List<DashboardProductsItemDto> products,
+    required List<DashboardRecentSalesItemDto> recentSales,
+    required this.ranking,
+    required this.current,
+    required List<DashboardAlertsItemDto> alerts,
+  }) : _presentFields = Set.unmodifiable(presentFields),
+       series = List.unmodifiable(series),
+       comparisons = List.unmodifiable(comparisons),
+       products = List.unmodifiable(products),
+       recentSales = List.unmodifiable(recentSales),
+       alerts = List.unmodifiable(alerts);
+  factory DashboardDto.fromJson(Map<String, dynamic> json) {
+    return DashboardDto(
+      presentFields: json.keys.toSet(),
+      scope: json["scope"] as String,
+      organizationId: json["organizationId"] == null
+          ? null
+          : json["organizationId"] as String,
+      storeId: json["storeId"] == null ? null : json["storeId"] as String,
+      from: json["from"] as String,
+      to: json["to"] as String,
+      generatedAt: json["generatedAt"] as String,
+      netMillimes: json["netMillimes"] as String,
+      netUnits: json["netUnits"] as String,
+      saleCount: json["saleCount"] as String,
+      groupCount: wireInteger(json["groupCount"]),
+      storeCount: wireInteger(json["storeCount"]),
+      series: List.unmodifiable(
+        (json["series"] as List).map(
+          (item) => DashboardSeriesItemDto.fromJson(
+            Map<String, dynamic>.from(item as Map),
+          ),
+        ),
+      ),
+      comparisons: List.unmodifiable(
+        (json["comparisons"] as List).map(
+          (item) => DashboardComparisonsItemDto.fromJson(
+            Map<String, dynamic>.from(item as Map),
+          ),
+        ),
+      ),
+      products: List.unmodifiable(
+        (json["products"] as List).map(
+          (item) => DashboardProductsItemDto.fromJson(
+            Map<String, dynamic>.from(item as Map),
+          ),
+        ),
+      ),
+      recentSales: List.unmodifiable(
+        (json["recentSales"] as List).map(
+          (item) => DashboardRecentSalesItemDto.fromJson(
+            Map<String, dynamic>.from(item as Map),
+          ),
+        ),
+      ),
+      ranking: json["ranking"] == null
+          ? null
+          : DashboardRankingDto.fromJson(
+              Map<String, dynamic>.from(json["ranking"] as Map),
+            ),
+      current: DashboardCurrentDto.fromJson(
+        Map<String, dynamic>.from(json["current"] as Map),
+      ),
+      alerts: List.unmodifiable(
+        (json["alerts"] as List).map(
+          (item) => DashboardAlertsItemDto.fromJson(
+            Map<String, dynamic>.from(item as Map),
+          ),
+        ),
+      ),
+    );
+  }
+  Map<String, dynamic> toJson() => {
+    "scope": scope,
+    "organizationId": organizationId,
+    "storeId": storeId,
+    "from": from,
+    "to": to,
+    "generatedAt": generatedAt,
+    "netMillimes": netMillimes,
+    "netUnits": netUnits,
+    "saleCount": saleCount,
+    "groupCount": groupCount,
+    "storeCount": storeCount,
+    "series": series.map((item) => item.toJson()).toList(),
+    "comparisons": comparisons.map((item) => item.toJson()).toList(),
+    "products": products.map((item) => item.toJson()).toList(),
+    "recentSales": recentSales.map((item) => item.toJson()).toList(),
+    "ranking": ranking?.toJson(),
+    "current": current.toJson(),
+    "alerts": alerts.map((item) => item.toJson()).toList(),
+  };
+}
+
+final class ScopedOrderDto {
+  final Set<String> _presentFields;
+  Set<String> get presentFields => _presentFields;
+  final String id;
+  final String organizationId;
+  final String storeId;
+  final String createdBy;
+  final List<ScopedOrderLinesItemDto> lines;
+  final String status;
+  final int version;
+  final String createdAt;
+  final String storeName;
+  final String groupName;
+  ScopedOrderDto({
+    Set<String> presentFields = const {},
+    required this.id,
+    required this.organizationId,
+    required this.storeId,
+    required this.createdBy,
+    required List<ScopedOrderLinesItemDto> lines,
+    required this.status,
+    required this.version,
+    required this.createdAt,
+    required this.storeName,
+    required this.groupName,
+  }) : _presentFields = Set.unmodifiable(presentFields),
+       lines = List.unmodifiable(lines);
+  factory ScopedOrderDto.fromJson(Map<String, dynamic> json) {
+    return ScopedOrderDto(
+      presentFields: json.keys.toSet(),
+      id: json["id"] as String,
+      organizationId: json["organizationId"] as String,
+      storeId: json["storeId"] as String,
+      createdBy: json["createdBy"] as String,
+      lines: List.unmodifiable(
+        (json["lines"] as List).map(
+          (item) => ScopedOrderLinesItemDto.fromJson(
+            Map<String, dynamic>.from(item as Map),
+          ),
+        ),
+      ),
+      status: json["status"] as String,
+      version: wireInteger(json["version"]),
+      createdAt: json["createdAt"] as String,
+      storeName: json["storeName"] as String,
+      groupName: json["groupName"] as String,
+    );
+  }
+  Map<String, dynamic> toJson() => {
+    "id": id,
+    "organizationId": organizationId,
+    "storeId": storeId,
+    "createdBy": createdBy,
+    "lines": lines.map((item) => item.toJson()).toList(),
+    "status": status,
+    "version": version,
+    "createdAt": createdAt,
+    "storeName": storeName,
+    "groupName": groupName,
+  };
+}
+
+final class OrderPageDto {
+  final Set<String> _presentFields;
+  Set<String> get presentFields => _presentFields;
+  final List<ScopedOrderDto> items;
+  final String? nextCursor;
+  OrderPageDto({
+    Set<String> presentFields = const {},
+    required List<ScopedOrderDto> items,
+    required this.nextCursor,
+  }) : _presentFields = Set.unmodifiable(presentFields),
+       items = List.unmodifiable(items);
+  factory OrderPageDto.fromJson(Map<String, dynamic> json) {
+    return OrderPageDto(
+      presentFields: json.keys.toSet(),
+      items: List.unmodifiable(
+        (json["items"] as List).map(
+          (item) =>
+              ScopedOrderDto.fromJson(Map<String, dynamic>.from(item as Map)),
+        ),
+      ),
+      nextCursor: json["nextCursor"] == null
+          ? null
+          : json["nextCursor"] as String,
+    );
+  }
+  Map<String, dynamic> toJson() => {
+    "items": items.map((item) => item.toJson()).toList(),
+    "nextCursor": nextCursor,
+  };
+}
+
+final class ScopedOrderDetailsDto {
+  final Set<String> _presentFields;
+  Set<String> get presentFields => _presentFields;
+  final ScopedOrderDto order;
+  final List<DeliveryDto> deliveries;
+  ScopedOrderDetailsDto({
+    Set<String> presentFields = const {},
+    required this.order,
+    required List<DeliveryDto> deliveries,
+  }) : _presentFields = Set.unmodifiable(presentFields),
+       deliveries = List.unmodifiable(deliveries);
+  factory ScopedOrderDetailsDto.fromJson(Map<String, dynamic> json) {
+    return ScopedOrderDetailsDto(
+      presentFields: json.keys.toSet(),
+      order: ScopedOrderDto.fromJson(
+        Map<String, dynamic>.from(json["order"] as Map),
+      ),
+      deliveries: List.unmodifiable(
+        (json["deliveries"] as List).map(
+          (item) =>
+              DeliveryDto.fromJson(Map<String, dynamic>.from(item as Map)),
+        ),
+      ),
+    );
+  }
+  Map<String, dynamic> toJson() => {
+    "order": order.toJson(),
+    "deliveries": deliveries.map((item) => item.toJson()).toList(),
+  };
+}
+
 sealed class CommandDto {
   const CommandDto();
   factory CommandDto.fromJson(Object? json) {
@@ -3083,6 +3776,140 @@ sealed class CatalogImportResultDto {
   Object? toJson();
 }
 
+typedef ExportCreateResponseDto = ReportExportDto;
+
+final class ExportCreateRequestDto {
+  final Set<String> _presentFields;
+  Set<String> get presentFields => _presentFields;
+  final String id;
+  final ExportCreateRequestQueryDto query;
+  ExportCreateRequestDto({
+    Set<String> presentFields = const {},
+    required this.id,
+    required this.query,
+  }) : _presentFields = Set.unmodifiable(presentFields);
+  factory ExportCreateRequestDto.fromJson(Map<String, dynamic> json) {
+    return ExportCreateRequestDto(
+      presentFields: json.keys.toSet(),
+      id: json["id"] as String,
+      query: ExportCreateRequestQueryDto.fromJson(json["query"]),
+    );
+  }
+  Map<String, dynamic> toJson() => {"id": id, "query": query.toJson()};
+}
+
+typedef ExportGetResponseDto = ReportExportDto;
+typedef ExportFileResponseDto = String;
+typedef DashboardGetResponseDto = DashboardDto;
+typedef DashboardOrdersResponseDto = OrderPageDto;
+typedef DashboardAttentionResponseDto = AttentionPageDto;
+typedef DashboardSalesResponseDto = DashboardSalePageDto;
+typedef DashboardOrderResponseDto = ScopedOrderDetailsDto;
+typedef GroupListResponseDto = GroupPageDto;
+typedef GroupCreateResponseDto = GroupDto;
+
+final class GroupCreateRequestDto {
+  final Set<String> _presentFields;
+  Set<String> get presentFields => _presentFields;
+  final String grantId;
+  final String operationId;
+  final String name;
+  final String? phone;
+  GroupCreateRequestDto({
+    Set<String> presentFields = const {},
+    required this.grantId,
+    required this.operationId,
+    required this.name,
+    this.phone,
+  }) : _presentFields = Set.unmodifiable(presentFields);
+  factory GroupCreateRequestDto.fromJson(Map<String, dynamic> json) {
+    return GroupCreateRequestDto(
+      presentFields: json.keys.toSet(),
+      grantId: json["grantId"] as String,
+      operationId: json["operationId"] as String,
+      name: json["name"] as String,
+      phone: json["phone"] == null ? null : json["phone"] as String,
+    );
+  }
+  Map<String, dynamic> toJson() => {
+    "grantId": grantId,
+    "operationId": operationId,
+    "name": name,
+    if (phone != null || _presentFields.contains("phone")) "phone": phone,
+  };
+}
+
+typedef GroupUpdateResponseDto = GroupDto;
+
+final class GroupUpdateRequestDto {
+  final Set<String> _presentFields;
+  Set<String> get presentFields => _presentFields;
+  final String name;
+  final String? phone;
+  final String? imageId;
+  final int expectedVersion;
+  GroupUpdateRequestDto({
+    Set<String> presentFields = const {},
+    required this.name,
+    this.phone,
+    this.imageId,
+    required this.expectedVersion,
+  }) : _presentFields = Set.unmodifiable(presentFields);
+  factory GroupUpdateRequestDto.fromJson(Map<String, dynamic> json) {
+    return GroupUpdateRequestDto(
+      presentFields: json.keys.toSet(),
+      name: json["name"] as String,
+      phone: json["phone"] == null ? null : json["phone"] as String,
+      imageId: json["imageId"] == null ? null : json["imageId"] as String,
+      expectedVersion: wireInteger(json["expectedVersion"]),
+    );
+  }
+  Map<String, dynamic> toJson() => {
+    "name": name,
+    if (phone != null || _presentFields.contains("phone")) "phone": phone,
+    if (imageId != null || _presentFields.contains("imageId"))
+      "imageId": imageId,
+    "expectedVersion": expectedVersion,
+  };
+}
+
+typedef GroupStoresResponseDto = List<StoreAccessDto>;
+typedef GroupTeamResponseDto = GroupTeamDto;
+typedef GroupMemberResponseDto = OkDto;
+
+final class GroupMemberRequestDto {
+  final Set<String> _presentFields;
+  Set<String> get presentFields => _presentFields;
+  final bool active;
+  final String role;
+  final List<String>? storeIds;
+  GroupMemberRequestDto({
+    Set<String> presentFields = const {},
+    required this.active,
+    required this.role,
+    List<String>? storeIds,
+  }) : _presentFields = Set.unmodifiable(presentFields),
+       storeIds = storeIds == null ? null : List.unmodifiable(storeIds);
+  factory GroupMemberRequestDto.fromJson(Map<String, dynamic> json) {
+    return GroupMemberRequestDto(
+      presentFields: json.keys.toSet(),
+      active: json["active"] as bool,
+      role: json["role"] as String,
+      storeIds: json["storeIds"] == null
+          ? null
+          : List.unmodifiable(
+              (json["storeIds"] as List).map((item) => item as String),
+            ),
+    );
+  }
+  Map<String, dynamic> toJson() => {
+    "active": active,
+    "role": role,
+    if (storeIds != null || _presentFields.contains("storeIds"))
+      "storeIds": storeIds?.map((item) => item).toList(),
+  };
+}
+
 typedef AdminOverviewResponseDto = AdminOverviewDto;
 typedef HealthHealthResponseDto = HealthDto;
 typedef IdentityLoginResponseDto = LoginResponseDto;
@@ -3122,6 +3949,8 @@ final class IdentityInviteRequestDto {
   final Set<String> _presentFields;
   Set<String> get presentFields => _presentFields;
   final String email;
+  final String? kind;
+  final List<String>? storeIds;
   final String? organizationId;
   final String? organizationName;
   final String? storeId;
@@ -3129,11 +3958,14 @@ final class IdentityInviteRequestDto {
   IdentityInviteRequestDto({
     Set<String> presentFields = const {},
     required this.email,
+    this.kind,
+    List<String>? storeIds,
     this.organizationId,
     this.organizationName,
     this.storeId,
     List<String>? permissions,
   }) : _presentFields = Set.unmodifiable(presentFields),
+       storeIds = storeIds == null ? null : List.unmodifiable(storeIds),
        permissions = permissions == null
            ? null
            : List.unmodifiable(permissions);
@@ -3141,6 +3973,12 @@ final class IdentityInviteRequestDto {
     return IdentityInviteRequestDto(
       presentFields: json.keys.toSet(),
       email: json["email"] as String,
+      kind: json["kind"] == null ? null : json["kind"] as String,
+      storeIds: json["storeIds"] == null
+          ? null
+          : List.unmodifiable(
+              (json["storeIds"] as List).map((item) => item as String),
+            ),
       organizationId: json["organizationId"] == null
           ? null
           : json["organizationId"] as String,
@@ -3157,6 +3995,9 @@ final class IdentityInviteRequestDto {
   }
   Map<String, dynamic> toJson() => {
     "email": email,
+    if (kind != null || _presentFields.contains("kind")) "kind": kind,
+    if (storeIds != null || _presentFields.contains("storeIds"))
+      "storeIds": storeIds?.map((item) => item).toList(),
     if (organizationId != null || _presentFields.contains("organizationId"))
       "organizationId": organizationId,
     if (organizationName != null || _presentFields.contains("organizationName"))
@@ -3503,6 +4344,7 @@ final class WorkspaceRewardRequestDto {
   };
 }
 
+typedef CatalogListResponseDto = ProductPageDto;
 typedef CatalogSaveResponseDto = ProductDto;
 
 final class CatalogSaveRequestDto {
@@ -3514,6 +4356,15 @@ final class CatalogSaveRequestDto {
   final String? imageId;
   final String? barcode;
   final String? description;
+  final String? category;
+  final String? range;
+  final String? packageSize;
+  final String? instructions;
+  final String? ingredients;
+  final String? precautions;
+  final String? referencePriceMillimes;
+  final String? priceStatus;
+  final List<String>? sourceUrls;
   final bool? active;
   final int? expectedVersion;
   CatalogSaveRequestDto({
@@ -3524,9 +4375,19 @@ final class CatalogSaveRequestDto {
     this.imageId,
     this.barcode,
     this.description,
+    this.category,
+    this.range,
+    this.packageSize,
+    this.instructions,
+    this.ingredients,
+    this.precautions,
+    this.referencePriceMillimes,
+    this.priceStatus,
+    List<String>? sourceUrls,
     this.active,
     this.expectedVersion,
-  }) : _presentFields = Set.unmodifiable(presentFields);
+  }) : _presentFields = Set.unmodifiable(presentFields),
+       sourceUrls = sourceUrls == null ? null : List.unmodifiable(sourceUrls);
   factory CatalogSaveRequestDto.fromJson(Map<String, dynamic> json) {
     return CatalogSaveRequestDto(
       presentFields: json.keys.toSet(),
@@ -3538,6 +4399,31 @@ final class CatalogSaveRequestDto {
       description: json["description"] == null
           ? null
           : json["description"] as String,
+      category: json["category"] == null ? null : json["category"] as String,
+      range: json["range"] == null ? null : json["range"] as String,
+      packageSize: json["packageSize"] == null
+          ? null
+          : json["packageSize"] as String,
+      instructions: json["instructions"] == null
+          ? null
+          : json["instructions"] as String,
+      ingredients: json["ingredients"] == null
+          ? null
+          : json["ingredients"] as String,
+      precautions: json["precautions"] == null
+          ? null
+          : json["precautions"] as String,
+      referencePriceMillimes: json["referencePriceMillimes"] == null
+          ? null
+          : json["referencePriceMillimes"] as String,
+      priceStatus: json["priceStatus"] == null
+          ? null
+          : json["priceStatus"] as String,
+      sourceUrls: json["sourceUrls"] == null
+          ? null
+          : List.unmodifiable(
+              (json["sourceUrls"] as List).map((item) => item as String),
+            ),
       active: json["active"] == null ? null : json["active"] as bool,
       expectedVersion: json["expectedVersion"] == null
           ? null
@@ -3554,6 +4440,24 @@ final class CatalogSaveRequestDto {
       "barcode": barcode,
     if (description != null || _presentFields.contains("description"))
       "description": description,
+    if (category != null || _presentFields.contains("category"))
+      "category": category,
+    if (range != null || _presentFields.contains("range")) "range": range,
+    if (packageSize != null || _presentFields.contains("packageSize"))
+      "packageSize": packageSize,
+    if (instructions != null || _presentFields.contains("instructions"))
+      "instructions": instructions,
+    if (ingredients != null || _presentFields.contains("ingredients"))
+      "ingredients": ingredients,
+    if (precautions != null || _presentFields.contains("precautions"))
+      "precautions": precautions,
+    if (referencePriceMillimes != null ||
+        _presentFields.contains("referencePriceMillimes"))
+      "referencePriceMillimes": referencePriceMillimes,
+    if (priceStatus != null || _presentFields.contains("priceStatus"))
+      "priceStatus": priceStatus,
+    if (sourceUrls != null || _presentFields.contains("sourceUrls"))
+      "sourceUrls": sourceUrls?.map((item) => item).toList(),
     if (active != null || _presentFields.contains("active")) "active": active,
     if (expectedVersion != null || _presentFields.contains("expectedVersion"))
       "expectedVersion": expectedVersion,
@@ -4429,6 +5333,430 @@ final class SnapshotPaginationDto {
   };
 }
 
+final class AttentionPageItemsItemDto {
+  final Set<String> _presentFields;
+  Set<String> get presentFields => _presentFields;
+  final String id;
+  final String organizationId;
+  final String storeId;
+  final String? productId;
+  final String kind;
+  final String title;
+  final String detail;
+  final String storeName;
+  AttentionPageItemsItemDto({
+    Set<String> presentFields = const {},
+    required this.id,
+    required this.organizationId,
+    required this.storeId,
+    required this.productId,
+    required this.kind,
+    required this.title,
+    required this.detail,
+    required this.storeName,
+  }) : _presentFields = Set.unmodifiable(presentFields);
+  factory AttentionPageItemsItemDto.fromJson(Map<String, dynamic> json) {
+    return AttentionPageItemsItemDto(
+      presentFields: json.keys.toSet(),
+      id: json["id"] as String,
+      organizationId: json["organizationId"] as String,
+      storeId: json["storeId"] as String,
+      productId: json["productId"] == null ? null : json["productId"] as String,
+      kind: json["kind"] as String,
+      title: json["title"] as String,
+      detail: json["detail"] as String,
+      storeName: json["storeName"] as String,
+    );
+  }
+  Map<String, dynamic> toJson() => {
+    "id": id,
+    "organizationId": organizationId,
+    "storeId": storeId,
+    "productId": productId,
+    "kind": kind,
+    "title": title,
+    "detail": detail,
+    "storeName": storeName,
+  };
+}
+
+final class GroupPageCreationGrantsItemDto {
+  final Set<String> _presentFields;
+  Set<String> get presentFields => _presentFields;
+  final String id;
+  GroupPageCreationGrantsItemDto({
+    Set<String> presentFields = const {},
+    required this.id,
+  }) : _presentFields = Set.unmodifiable(presentFields);
+  factory GroupPageCreationGrantsItemDto.fromJson(Map<String, dynamic> json) {
+    return GroupPageCreationGrantsItemDto(
+      presentFields: json.keys.toSet(),
+      id: json["id"] as String,
+    );
+  }
+  Map<String, dynamic> toJson() => {"id": id};
+}
+
+final class GroupTeamMembersItemDto {
+  final Set<String> _presentFields;
+  Set<String> get presentFields => _presentFields;
+  final String id;
+  final String name;
+  final String email;
+  final String role;
+  final bool active;
+  final List<String> storeIds;
+  GroupTeamMembersItemDto({
+    Set<String> presentFields = const {},
+    required this.id,
+    required this.name,
+    required this.email,
+    required this.role,
+    required this.active,
+    required List<String> storeIds,
+  }) : _presentFields = Set.unmodifiable(presentFields),
+       storeIds = List.unmodifiable(storeIds);
+  factory GroupTeamMembersItemDto.fromJson(Map<String, dynamic> json) {
+    return GroupTeamMembersItemDto(
+      presentFields: json.keys.toSet(),
+      id: json["id"] as String,
+      name: json["name"] as String,
+      email: json["email"] as String,
+      role: json["role"] as String,
+      active: json["active"] as bool,
+      storeIds: List.unmodifiable(
+        (json["storeIds"] as List).map((item) => item as String),
+      ),
+    );
+  }
+  Map<String, dynamic> toJson() => {
+    "id": id,
+    "name": name,
+    "email": email,
+    "role": role,
+    "active": active,
+    "storeIds": storeIds.map((item) => item).toList(),
+  };
+}
+
+final class GroupTeamInvitationsItemDto {
+  final Set<String> _presentFields;
+  Set<String> get presentFields => _presentFields;
+  final String id;
+  final String email;
+  final String kind;
+  final List<String> storeIds;
+  final String? storeId;
+  final String expiresAt;
+  GroupTeamInvitationsItemDto({
+    Set<String> presentFields = const {},
+    required this.id,
+    required this.email,
+    required this.kind,
+    required List<String> storeIds,
+    required this.storeId,
+    required this.expiresAt,
+  }) : _presentFields = Set.unmodifiable(presentFields),
+       storeIds = List.unmodifiable(storeIds);
+  factory GroupTeamInvitationsItemDto.fromJson(Map<String, dynamic> json) {
+    return GroupTeamInvitationsItemDto(
+      presentFields: json.keys.toSet(),
+      id: json["id"] as String,
+      email: json["email"] as String,
+      kind: json["kind"] as String,
+      storeIds: List.unmodifiable(
+        (json["storeIds"] as List).map((item) => item as String),
+      ),
+      storeId: json["storeId"] == null ? null : json["storeId"] as String,
+      expiresAt: json["expiresAt"] as String,
+    );
+  }
+  Map<String, dynamic> toJson() => {
+    "id": id,
+    "email": email,
+    "kind": kind,
+    "storeIds": storeIds.map((item) => item).toList(),
+    "storeId": storeId,
+    "expiresAt": expiresAt,
+  };
+}
+
+final class DashboardSeriesItemDto {
+  final Set<String> _presentFields;
+  Set<String> get presentFields => _presentFields;
+  final String day;
+  final String netMillimes;
+  final String netUnits;
+  final String saleCount;
+  DashboardSeriesItemDto({
+    Set<String> presentFields = const {},
+    required this.day,
+    required this.netMillimes,
+    required this.netUnits,
+    required this.saleCount,
+  }) : _presentFields = Set.unmodifiable(presentFields);
+  factory DashboardSeriesItemDto.fromJson(Map<String, dynamic> json) {
+    return DashboardSeriesItemDto(
+      presentFields: json.keys.toSet(),
+      day: json["day"] as String,
+      netMillimes: json["netMillimes"] as String,
+      netUnits: json["netUnits"] as String,
+      saleCount: json["saleCount"] as String,
+    );
+  }
+  Map<String, dynamic> toJson() => {
+    "day": day,
+    "netMillimes": netMillimes,
+    "netUnits": netUnits,
+    "saleCount": saleCount,
+  };
+}
+
+final class DashboardComparisonsItemDto {
+  final Set<String> _presentFields;
+  Set<String> get presentFields => _presentFields;
+  final String id;
+  final String name;
+  final String netMillimes;
+  final String netUnits;
+  final String saleCount;
+  DashboardComparisonsItemDto({
+    Set<String> presentFields = const {},
+    required this.id,
+    required this.name,
+    required this.netMillimes,
+    required this.netUnits,
+    required this.saleCount,
+  }) : _presentFields = Set.unmodifiable(presentFields);
+  factory DashboardComparisonsItemDto.fromJson(Map<String, dynamic> json) {
+    return DashboardComparisonsItemDto(
+      presentFields: json.keys.toSet(),
+      id: json["id"] as String,
+      name: json["name"] as String,
+      netMillimes: json["netMillimes"] as String,
+      netUnits: json["netUnits"] as String,
+      saleCount: json["saleCount"] as String,
+    );
+  }
+  Map<String, dynamic> toJson() => {
+    "id": id,
+    "name": name,
+    "netMillimes": netMillimes,
+    "netUnits": netUnits,
+    "saleCount": saleCount,
+  };
+}
+
+final class DashboardProductsItemDto {
+  final Set<String> _presentFields;
+  Set<String> get presentFields => _presentFields;
+  final String id;
+  final String name;
+  final String? imageId;
+  final String netUnits;
+  final String netMillimes;
+  DashboardProductsItemDto({
+    Set<String> presentFields = const {},
+    required this.id,
+    required this.name,
+    required this.imageId,
+    required this.netUnits,
+    required this.netMillimes,
+  }) : _presentFields = Set.unmodifiable(presentFields);
+  factory DashboardProductsItemDto.fromJson(Map<String, dynamic> json) {
+    return DashboardProductsItemDto(
+      presentFields: json.keys.toSet(),
+      id: json["id"] as String,
+      name: json["name"] as String,
+      imageId: json["imageId"] == null ? null : json["imageId"] as String,
+      netUnits: json["netUnits"] as String,
+      netMillimes: json["netMillimes"] as String,
+    );
+  }
+  Map<String, dynamic> toJson() => {
+    "id": id,
+    "name": name,
+    "imageId": imageId,
+    "netUnits": netUnits,
+    "netMillimes": netMillimes,
+  };
+}
+
+final class DashboardRecentSalesItemDto {
+  final Set<String> _presentFields;
+  Set<String> get presentFields => _presentFields;
+  final String id;
+  final String occurredAt;
+  final String netMillimes;
+  final String netUnits;
+  DashboardRecentSalesItemDto({
+    Set<String> presentFields = const {},
+    required this.id,
+    required this.occurredAt,
+    required this.netMillimes,
+    required this.netUnits,
+  }) : _presentFields = Set.unmodifiable(presentFields);
+  factory DashboardRecentSalesItemDto.fromJson(Map<String, dynamic> json) {
+    return DashboardRecentSalesItemDto(
+      presentFields: json.keys.toSet(),
+      id: json["id"] as String,
+      occurredAt: json["occurredAt"] as String,
+      netMillimes: json["netMillimes"] as String,
+      netUnits: json["netUnits"] as String,
+    );
+  }
+  Map<String, dynamic> toJson() => {
+    "id": id,
+    "occurredAt": occurredAt,
+    "netMillimes": netMillimes,
+    "netUnits": netUnits,
+  };
+}
+
+final class DashboardRankingDto {
+  final Set<String> _presentFields;
+  Set<String> get presentFields => _presentFields;
+  final String month;
+  final String? rank;
+  final String score;
+  DashboardRankingDto({
+    Set<String> presentFields = const {},
+    required this.month,
+    required this.rank,
+    required this.score,
+  }) : _presentFields = Set.unmodifiable(presentFields);
+  factory DashboardRankingDto.fromJson(Map<String, dynamic> json) {
+    return DashboardRankingDto(
+      presentFields: json.keys.toSet(),
+      month: json["month"] as String,
+      rank: json["rank"] == null ? null : json["rank"] as String,
+      score: json["score"] as String,
+    );
+  }
+  Map<String, dynamic> toJson() => {
+    "month": month,
+    "rank": rank,
+    "score": score,
+  };
+}
+
+final class DashboardCurrentDto {
+  final Set<String> _presentFields;
+  Set<String> get presentFields => _presentFields;
+  final int pendingOrders;
+  final int pendingDeliveries;
+  final int pendingClaims;
+  final int expiredLots;
+  final int expiringLots;
+  final int lowStock;
+  final String? availablePoints;
+  final String? reservedPoints;
+  DashboardCurrentDto({
+    Set<String> presentFields = const {},
+    required this.pendingOrders,
+    required this.pendingDeliveries,
+    required this.pendingClaims,
+    required this.expiredLots,
+    required this.expiringLots,
+    required this.lowStock,
+    required this.availablePoints,
+    required this.reservedPoints,
+  }) : _presentFields = Set.unmodifiable(presentFields);
+  factory DashboardCurrentDto.fromJson(Map<String, dynamic> json) {
+    return DashboardCurrentDto(
+      presentFields: json.keys.toSet(),
+      pendingOrders: wireInteger(json["pendingOrders"]),
+      pendingDeliveries: wireInteger(json["pendingDeliveries"]),
+      pendingClaims: wireInteger(json["pendingClaims"]),
+      expiredLots: wireInteger(json["expiredLots"]),
+      expiringLots: wireInteger(json["expiringLots"]),
+      lowStock: wireInteger(json["lowStock"]),
+      availablePoints: json["availablePoints"] == null
+          ? null
+          : json["availablePoints"] as String,
+      reservedPoints: json["reservedPoints"] == null
+          ? null
+          : json["reservedPoints"] as String,
+    );
+  }
+  Map<String, dynamic> toJson() => {
+    "pendingOrders": pendingOrders,
+    "pendingDeliveries": pendingDeliveries,
+    "pendingClaims": pendingClaims,
+    "expiredLots": expiredLots,
+    "expiringLots": expiringLots,
+    "lowStock": lowStock,
+    "availablePoints": availablePoints,
+    "reservedPoints": reservedPoints,
+  };
+}
+
+final class DashboardAlertsItemDto {
+  final Set<String> _presentFields;
+  Set<String> get presentFields => _presentFields;
+  final String id;
+  final String organizationId;
+  final String storeId;
+  final String? productId;
+  final String kind;
+  final String message;
+  final String storeName;
+  DashboardAlertsItemDto({
+    Set<String> presentFields = const {},
+    required this.id,
+    required this.organizationId,
+    required this.storeId,
+    required this.productId,
+    required this.kind,
+    required this.message,
+    required this.storeName,
+  }) : _presentFields = Set.unmodifiable(presentFields);
+  factory DashboardAlertsItemDto.fromJson(Map<String, dynamic> json) {
+    return DashboardAlertsItemDto(
+      presentFields: json.keys.toSet(),
+      id: json["id"] as String,
+      organizationId: json["organizationId"] as String,
+      storeId: json["storeId"] as String,
+      productId: json["productId"] == null ? null : json["productId"] as String,
+      kind: json["kind"] as String,
+      message: json["message"] as String,
+      storeName: json["storeName"] as String,
+    );
+  }
+  Map<String, dynamic> toJson() => {
+    "id": id,
+    "organizationId": organizationId,
+    "storeId": storeId,
+    "productId": productId,
+    "kind": kind,
+    "message": message,
+    "storeName": storeName,
+  };
+}
+
+final class ScopedOrderLinesItemDto {
+  final Set<String> _presentFields;
+  Set<String> get presentFields => _presentFields;
+  final String productId;
+  final int quantity;
+  ScopedOrderLinesItemDto({
+    Set<String> presentFields = const {},
+    required this.productId,
+    required this.quantity,
+  }) : _presentFields = Set.unmodifiable(presentFields);
+  factory ScopedOrderLinesItemDto.fromJson(Map<String, dynamic> json) {
+    return ScopedOrderLinesItemDto(
+      presentFields: json.keys.toSet(),
+      productId: json["productId"] as String,
+      quantity: wireInteger(json["quantity"]),
+    );
+  }
+  Map<String, dynamic> toJson() => {
+    "productId": productId,
+    "quantity": quantity,
+  };
+}
+
 final class CommandSaleCreateDto implements CommandDto {
   final Set<String> _presentFields;
   Set<String> get presentFields => _presentFields;
@@ -4928,6 +6256,24 @@ final class CatalogImportResultTrueDto implements CatalogImportResultDto {
   };
 }
 
+sealed class ExportCreateRequestQueryDto {
+  const ExportCreateRequestQueryDto();
+  factory ExportCreateRequestQueryDto.fromJson(Object? json) {
+    if (matchesWire(json, "ExportCreateRequestQueryHistory")) {
+      return ExportCreateRequestQueryHistoryDto.fromJson(
+        json as Map<String, dynamic>,
+      );
+    }
+    if (matchesWire(json, "ExportCreateRequestQuery2")) {
+      return ExportCreateRequestQuery2Dto.fromJson(
+        json as Map<String, dynamic>,
+      );
+    }
+    throw const FormatException('Invalid ExportCreateRequestQuery result');
+  }
+  Object? toJson();
+}
+
 final class CatalogImportRequestRowsItemDto {
   final Set<String> _presentFields;
   Set<String> get presentFields => _presentFields;
@@ -4935,6 +6281,15 @@ final class CatalogImportRequestRowsItemDto {
   final String name;
   final String? barcode;
   final String? description;
+  final String? category;
+  final String? range;
+  final String? packageSize;
+  final String? instructions;
+  final String? ingredients;
+  final String? precautions;
+  final String? referencePriceMillimes;
+  final String? priceStatus;
+  final List<String>? sourceUrls;
   final bool? active;
   CatalogImportRequestRowsItemDto({
     Set<String> presentFields = const {},
@@ -4942,8 +6297,18 @@ final class CatalogImportRequestRowsItemDto {
     required this.name,
     this.barcode,
     this.description,
+    this.category,
+    this.range,
+    this.packageSize,
+    this.instructions,
+    this.ingredients,
+    this.precautions,
+    this.referencePriceMillimes,
+    this.priceStatus,
+    List<String>? sourceUrls,
     this.active,
-  }) : _presentFields = Set.unmodifiable(presentFields);
+  }) : _presentFields = Set.unmodifiable(presentFields),
+       sourceUrls = sourceUrls == null ? null : List.unmodifiable(sourceUrls);
   factory CatalogImportRequestRowsItemDto.fromJson(Map<String, dynamic> json) {
     return CatalogImportRequestRowsItemDto(
       presentFields: json.keys.toSet(),
@@ -4953,6 +6318,31 @@ final class CatalogImportRequestRowsItemDto {
       description: json["description"] == null
           ? null
           : json["description"] as String,
+      category: json["category"] == null ? null : json["category"] as String,
+      range: json["range"] == null ? null : json["range"] as String,
+      packageSize: json["packageSize"] == null
+          ? null
+          : json["packageSize"] as String,
+      instructions: json["instructions"] == null
+          ? null
+          : json["instructions"] as String,
+      ingredients: json["ingredients"] == null
+          ? null
+          : json["ingredients"] as String,
+      precautions: json["precautions"] == null
+          ? null
+          : json["precautions"] as String,
+      referencePriceMillimes: json["referencePriceMillimes"] == null
+          ? null
+          : json["referencePriceMillimes"] as String,
+      priceStatus: json["priceStatus"] == null
+          ? null
+          : json["priceStatus"] as String,
+      sourceUrls: json["sourceUrls"] == null
+          ? null
+          : List.unmodifiable(
+              (json["sourceUrls"] as List).map((item) => item as String),
+            ),
       active: json["active"] == null ? null : json["active"] as bool,
     );
   }
@@ -4963,6 +6353,24 @@ final class CatalogImportRequestRowsItemDto {
       "barcode": barcode,
     if (description != null || _presentFields.contains("description"))
       "description": description,
+    if (category != null || _presentFields.contains("category"))
+      "category": category,
+    if (range != null || _presentFields.contains("range")) "range": range,
+    if (packageSize != null || _presentFields.contains("packageSize"))
+      "packageSize": packageSize,
+    if (instructions != null || _presentFields.contains("instructions"))
+      "instructions": instructions,
+    if (ingredients != null || _presentFields.contains("ingredients"))
+      "ingredients": ingredients,
+    if (precautions != null || _presentFields.contains("precautions"))
+      "precautions": precautions,
+    if (referencePriceMillimes != null ||
+        _presentFields.contains("referencePriceMillimes"))
+      "referencePriceMillimes": referencePriceMillimes,
+    if (priceStatus != null || _presentFields.contains("priceStatus"))
+      "priceStatus": priceStatus,
+    if (sourceUrls != null || _presentFields.contains("sourceUrls"))
+      "sourceUrls": sourceUrls?.map((item) => item).toList(),
     if (active != null || _presentFields.contains("active")) "active": active,
   };
 }
@@ -5267,6 +6675,15 @@ final class CatalogImportResultTrueRowsItemDto {
   final String name;
   final String? barcode;
   final String? description;
+  final String? category;
+  final String? range;
+  final String? packageSize;
+  final String? instructions;
+  final String? ingredients;
+  final String? precautions;
+  final String? referencePriceMillimes;
+  final String? priceStatus;
+  final List<String>? sourceUrls;
   final bool? active;
   CatalogImportResultTrueRowsItemDto({
     Set<String> presentFields = const {},
@@ -5274,8 +6691,18 @@ final class CatalogImportResultTrueRowsItemDto {
     required this.name,
     this.barcode,
     this.description,
+    this.category,
+    this.range,
+    this.packageSize,
+    this.instructions,
+    this.ingredients,
+    this.precautions,
+    this.referencePriceMillimes,
+    this.priceStatus,
+    List<String>? sourceUrls,
     this.active,
-  }) : _presentFields = Set.unmodifiable(presentFields);
+  }) : _presentFields = Set.unmodifiable(presentFields),
+       sourceUrls = sourceUrls == null ? null : List.unmodifiable(sourceUrls);
   factory CatalogImportResultTrueRowsItemDto.fromJson(
     Map<String, dynamic> json,
   ) {
@@ -5287,6 +6714,31 @@ final class CatalogImportResultTrueRowsItemDto {
       description: json["description"] == null
           ? null
           : json["description"] as String,
+      category: json["category"] == null ? null : json["category"] as String,
+      range: json["range"] == null ? null : json["range"] as String,
+      packageSize: json["packageSize"] == null
+          ? null
+          : json["packageSize"] as String,
+      instructions: json["instructions"] == null
+          ? null
+          : json["instructions"] as String,
+      ingredients: json["ingredients"] == null
+          ? null
+          : json["ingredients"] as String,
+      precautions: json["precautions"] == null
+          ? null
+          : json["precautions"] as String,
+      referencePriceMillimes: json["referencePriceMillimes"] == null
+          ? null
+          : json["referencePriceMillimes"] as String,
+      priceStatus: json["priceStatus"] == null
+          ? null
+          : json["priceStatus"] as String,
+      sourceUrls: json["sourceUrls"] == null
+          ? null
+          : List.unmodifiable(
+              (json["sourceUrls"] as List).map((item) => item as String),
+            ),
       active: json["active"] == null ? null : json["active"] as bool,
     );
   }
@@ -5297,7 +6749,109 @@ final class CatalogImportResultTrueRowsItemDto {
       "barcode": barcode,
     if (description != null || _presentFields.contains("description"))
       "description": description,
+    if (category != null || _presentFields.contains("category"))
+      "category": category,
+    if (range != null || _presentFields.contains("range")) "range": range,
+    if (packageSize != null || _presentFields.contains("packageSize"))
+      "packageSize": packageSize,
+    if (instructions != null || _presentFields.contains("instructions"))
+      "instructions": instructions,
+    if (ingredients != null || _presentFields.contains("ingredients"))
+      "ingredients": ingredients,
+    if (precautions != null || _presentFields.contains("precautions"))
+      "precautions": precautions,
+    if (referencePriceMillimes != null ||
+        _presentFields.contains("referencePriceMillimes"))
+      "referencePriceMillimes": referencePriceMillimes,
+    if (priceStatus != null || _presentFields.contains("priceStatus"))
+      "priceStatus": priceStatus,
+    if (sourceUrls != null || _presentFields.contains("sourceUrls"))
+      "sourceUrls": sourceUrls?.map((item) => item).toList(),
     if (active != null || _presentFields.contains("active")) "active": active,
+  };
+}
+
+final class ExportCreateRequestQueryHistoryDto
+    implements ExportCreateRequestQueryDto {
+  final Set<String> _presentFields;
+  Set<String> get presentFields => _presentFields;
+  String get kind => "history";
+  final String organizationId;
+  final String storeId;
+  final String resource;
+  final String? productId;
+  ExportCreateRequestQueryHistoryDto({
+    Set<String> presentFields = const {},
+    required this.organizationId,
+    required this.storeId,
+    required this.resource,
+    this.productId,
+  }) : _presentFields = Set.unmodifiable(presentFields);
+  factory ExportCreateRequestQueryHistoryDto.fromJson(
+    Map<String, dynamic> json,
+  ) {
+    if (json["kind"] != "history") {
+      throw const FormatException(
+        "Invalid ExportCreateRequestQueryHistory kind",
+      );
+    }
+    return ExportCreateRequestQueryHistoryDto(
+      presentFields: json.keys.toSet(),
+      organizationId: json["organizationId"] as String,
+      storeId: json["storeId"] as String,
+      resource: json["resource"] as String,
+      productId: json["productId"] == null ? null : json["productId"] as String,
+    );
+  }
+  @override
+  Map<String, dynamic> toJson() => {
+    "kind": "history",
+    "organizationId": organizationId,
+    "storeId": storeId,
+    "resource": resource,
+    if (productId != null || _presentFields.contains("productId"))
+      "productId": productId,
+  };
+}
+
+final class ExportCreateRequestQuery2Dto
+    implements ExportCreateRequestQueryDto {
+  final Set<String> _presentFields;
+  Set<String> get presentFields => _presentFields;
+  final String scope;
+  final String? organizationId;
+  final String? storeId;
+  final String from;
+  final String to;
+  ExportCreateRequestQuery2Dto({
+    Set<String> presentFields = const {},
+    required this.scope,
+    this.organizationId,
+    this.storeId,
+    required this.from,
+    required this.to,
+  }) : _presentFields = Set.unmodifiable(presentFields);
+  factory ExportCreateRequestQuery2Dto.fromJson(Map<String, dynamic> json) {
+    return ExportCreateRequestQuery2Dto(
+      presentFields: json.keys.toSet(),
+      scope: json["scope"] as String,
+      organizationId: json["organizationId"] == null
+          ? null
+          : json["organizationId"] as String,
+      storeId: json["storeId"] == null ? null : json["storeId"] as String,
+      from: json["from"] as String,
+      to: json["to"] as String,
+    );
+  }
+  @override
+  Map<String, dynamic> toJson() => {
+    "scope": scope,
+    if (organizationId != null || _presentFields.contains("organizationId"))
+      "organizationId": organizationId,
+    if (storeId != null || _presentFields.contains("storeId"))
+      "storeId": storeId,
+    "from": from,
+    "to": to,
   };
 }
 

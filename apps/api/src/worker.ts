@@ -4,6 +4,8 @@ import {
 } from "./shared/jobs/maintenance";
 import { cleanupMedia } from "./modules/training/infrastructure/media-storage";
 import path from "node:path";
+import { ExportService } from "./modules/reporting/export.service";
+import { DashboardService } from "./modules/reporting/dashboard.service";
 import "reflect-metadata";
 import { Database } from "./shared/infrastructure/database";
 import { EmailDeliveryService } from "./shared/email/email-delivery";
@@ -22,7 +24,16 @@ const mediaMode = process.env.WORKER_KIND === "media";
 const smtp = mediaMode ? undefined : new SmtpEmailTransport();
 const emails = smtp ? new EmailDeliveryService(db, smtp) : undefined;
 const execute: JobExecutor = async (job, stillOwned) => {
-  if (job.kind === "auth-cleanup") return cleanupAuthentication(db);
+  if (job.kind === "auth-cleanup") {
+    await cleanupAuthentication(db);
+    return new ExportService(db, new DashboardService(db)).cleanup();
+  }
+  if (job.kind === "report-export")
+    return new ExportService(db, new DashboardService(db)).process(
+      job.payload.exportId!,
+      job.leaseToken,
+      stillOwned,
+    );
   if (job.kind === "media-cleanup")
     return cleanupMedia(
       db,
@@ -76,7 +87,7 @@ async function main() {
     db,
     mediaMode
       ? ["media", "media-cleanup"]
-      : ["email", "push", "inventory-check", "auth-cleanup"],
+      : ["email", "push", "inventory-check", "auth-cleanup", "report-export"],
     execute,
   );
   let nextSchedule = 0;

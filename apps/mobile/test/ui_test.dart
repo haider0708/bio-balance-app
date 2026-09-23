@@ -8,12 +8,13 @@ import 'package:biobalance/data/services/local_database/database.dart';
 import 'package:biobalance/domain/models/models.dart';
 import 'package:biobalance/ui/core/design.dart';
 import 'package:biobalance/ui/core/forms.dart';
-import 'package:biobalance/ui/features/dashboard/home_screen.dart';
+import 'package:biobalance/ui/features/dashboard/attention_screen.dart';
+import 'package:biobalance/ui/features/workspace/scope_view_model.dart';
+import 'package:biobalance/domain/models/workspace_scope.dart';
 import 'package:biobalance/ui/features/catalog/catalog_screen.dart';
 import 'package:biobalance/ui/features/team/team_screen.dart';
-import 'package:biobalance/ui/features/replenishment/order_screens.dart';
 import 'package:biobalance/ui/features/stores/product_settings_screen.dart';
-import 'package:biobalance/ui/features/workspace/workspace_screen.dart';
+import 'package:biobalance/ui/features/workspace/scope_screen.dart';
 import 'package:biobalance/ui/features/workspace/workspace_view_model.dart';
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
@@ -25,9 +26,48 @@ import 'package:provider/provider.dart';
 
 class PreviewApi extends ApiClient {
   PreviewApi() : super(baseUrl: 'http://unused');
+  Json Function()? team;
   @override
-  Future<AdminOverviewResponseDto> adminOverview() async =>
-      AdminOverviewDto(storeCount: 24, staffCount: 138, orders: [], alerts: []);
+  Future<GroupTeamResponseDto> groupTeam({required String id}) async =>
+      GroupTeamResponseDto.fromJson(
+        team?.call() ?? {'members': [], 'invitations': []},
+      );
+  @override
+  Future<DashboardGetResponseDto> dashboardGet({
+    required String scope,
+    required String from,
+    required String to,
+    String? organizationId,
+    String? storeId,
+  }) async => DashboardGetResponseDto.fromJson({
+    'scope': scope,
+    'organizationId': organizationId,
+    'storeId': storeId,
+    'from': from,
+    'to': to,
+    'generatedAt': '2026-09-23T10:00:00Z',
+    'netMillimes': '498000',
+    'netUnits': '12',
+    'saleCount': '8',
+    'recentSales': [],
+    'ranking': null,
+    'groupCount': 1,
+    'storeCount': 1,
+    'series': [],
+    'comparisons': [],
+    'products': [],
+    'current': {
+      'pendingOrders': 0,
+      'pendingDeliveries': 0,
+      'pendingClaims': 0,
+      'expiredLots': 0,
+      'expiringLots': 0,
+      'lowStock': 1,
+      'availablePoints': scope == 'personal' ? '120' : null,
+      'reservedPoints': scope == 'personal' ? '20' : null,
+    },
+    'alerts': [],
+  });
 }
 
 class PreviewWorkspace extends WorkspaceViewModel {
@@ -53,6 +93,20 @@ class RoleFixture {
   );
   final String role;
   RoleFixture(this.role) {
+    addTearDown(close);
+    api.team = () => {
+      'members': [],
+      'invitations': [
+        for (final item in vm.state.data?.list('invitations') ?? <Json>[])
+          {
+            ...item,
+            'kind': 'salesperson',
+            'storeIds': ['store'],
+            'storeId': null,
+            'expiresAt': '2027-01-01T00:00:00Z',
+          },
+      ],
+    };
     final store = Store.fromJson({
       'id': 'store',
       'organizationId': 'org',
@@ -118,6 +172,24 @@ class RoleFixture {
       }),
     );
   }
+  Widget home({bool storeView = false}) {
+    final model = ScopeViewModel(vm);
+    const group = PartnerGroup(
+      id: 'org',
+      name: 'Partenaire Tunis',
+      canManage: true,
+      storeCount: 1,
+    );
+    model.groups = [group];
+    model.loading = false;
+    model.scope = storeView || role == 'salesperson'
+        ? WorkspaceScope.store(group, vm.state.store!)
+        : role == 'admin'
+        ? const WorkspaceScope.network()
+        : const WorkspaceScope.group(group);
+    return ScopeScreen(model: model);
+  }
+
   Widget app(Widget child, {double scale = 1, GlobalKey? capture}) =>
       ChangeNotifierProvider<WorkspaceViewModel>.value(
         value: vm,
@@ -138,7 +210,10 @@ class RoleFixture {
           home: child,
         ),
       );
+  bool closed = false;
   Future<void> close() async {
+    if (closed) return;
+    closed = true;
     vm.dispose();
     api.http.close();
     await db.close();
@@ -163,6 +238,9 @@ Future<void> destination(WidgetTester t, int index, String label) async {
       120,
       scrollable: find.byType(Scrollable).last,
     );
+    await t.pumpAndSettle();
+    await t.ensureVisible(item);
+    await t.pumpAndSettle();
     await t.tap(item);
   } else if (find.byType(NavigationRail).evaluate().isNotEmpty) {
     await t.tap(
@@ -199,9 +277,10 @@ void main() {
     await (FontLoader(
       'Inter',
     )..addFont(rootBundle.load('assets/fonts/Inter.ttf'))).load();
-    await (FontLoader(
-      'MaterialIcons',
-    )..addFont(rootBundle.load('fonts/MaterialIcons-Regular.otf'))).load();
+    await (FontLoader('packages/lucide_icons_flutter/Lucide')..addFont(
+          rootBundle.load('packages/lucide_icons_flutter/assets/lucide.ttf'),
+        ))
+        .load();
   });
   for (final role in ['manager', 'salesperson', 'admin']) {
     for (final size in [
@@ -215,7 +294,7 @@ void main() {
           final fixture = RoleFixture(role), boundary = GlobalKey();
           await t.pumpWidget(
             fixture.app(
-              RepaintBoundary(key: boundary, child: const WorkspaceScreen()),
+              RepaintBoundary(key: boundary, child: fixture.home()),
               scale: scale,
             ),
           );
@@ -229,16 +308,20 @@ void main() {
             t,
             1,
             role == 'admin'
-                ? 'Magasins'
+                ? 'Groupes'
                 : role == 'manager'
-                ? 'Stock'
-                : 'Mes ventes',
+                ? 'Magasins'
+                : 'Ventes',
           );
           expect(t.takeException(), isNull);
           await destination(
             t,
-            role == 'salesperson' ? 2 : 4,
-            role == 'salesperson' ? 'Récompenses' : 'Plus',
+            role == 'salesperson' ? 2 : 3,
+            role == 'salesperson'
+                ? 'Récompenses'
+                : role == 'admin'
+                ? 'Catalogue'
+                : 'Commandes',
           );
           expect(t.takeException(), isNull);
           await t.pumpWidget(const SizedBox());
@@ -259,7 +342,7 @@ void main() {
           pending: 3,
           error: 'Connexion indisponible. Vos données et brouillons sont conservés.',
         );
-        await t.pumpWidget(f.app(const WorkspaceScreen(), scale: 2));
+        await t.pumpWidget(f.app(f.home(storeView: true), scale: 2));
         await t.pumpAndSettle();
         expect(t.takeException(), isNull);
         expect(
@@ -277,11 +360,15 @@ void main() {
     (t) async {
       viewport(t, const Size(360, 800));
       final f = RoleFixture('manager'), capture = GlobalKey();
-      await t.pumpWidget(f.app(const WorkspaceScreen(), capture: capture));
+      await t.pumpWidget(f.app(f.home(storeView: true), capture: capture));
       await t.pumpAndSettle();
-      await destination(t, 4, 'Plus');
+      await destination(t, 3, 'Plus');
       final settings = find.text('Prix, points et seuils');
-      await t.scrollUntilVisible(settings, 150);
+      await t.scrollUntilVisible(
+        settings,
+        150,
+        scrollable: find.byType(Scrollable).last,
+      );
       await t.tap(settings);
       await t.pumpAndSettle();
       expect(find.byType(ProductSettingsPage), findsOneWidget);
@@ -360,14 +447,20 @@ void main() {
         stores: [store],
         data: f.vm.state.data,
       );
-      await t.pumpWidget(f.app(Scaffold(body: HomePage(vm: f.vm))));
+      await t.pumpWidget(f.app(f.home(storeView: true)));
       await t.pumpAndSettle();
       expect(find.text('Nouvelle vente'), findsNothing);
-      expect(find.text('Recevoir'), findsOneWidget);
+      final receive = find.text('Livraisons à réceptionner');
+      await t.scrollUntilVisible(
+        receive,
+        180,
+        scrollable: find.byType(Scrollable).last,
+      );
+      expect(receive, findsOneWidget);
       expect(find.text('Alertes de stock'), findsNothing);
-      await t.tap(find.text('Recevoir'));
+      await t.tap(receive);
       await t.pumpAndSettle();
-      expect(find.byType(OrdersPage), findsOneWidget);
+      expect(find.byType(AttentionScreen), findsOneWidget);
       expect(find.text('Commander'), findsNothing);
       await t.pumpWidget(const SizedBox());
       await f.close();
@@ -379,9 +472,9 @@ void main() {
   ) async {
     viewport(t, const Size(800, 360));
     final f = RoleFixture('manager');
-    await t.pumpWidget(f.app(const WorkspaceScreen(), scale: 2));
+    await t.pumpWidget(f.app(f.home(storeView: true), scale: 2));
     await t.pumpAndSettle();
-    await t.tap(find.byKey(const ValueKey('workspace.storeSelector')));
+    await t.tap(find.byKey(const ValueKey('scope.store')));
     await t.pumpAndSettle();
     t.view.viewInsets = const FakeViewPadding(bottom: 120);
     addTearDown(t.view.resetViewInsets);
@@ -391,16 +484,29 @@ void main() {
     await t.enterText(find.byType(TextField), 'Tunis');
     await t.pumpAndSettle();
     await t.scrollUntilVisible(
-      find.text('Partenaire Tunis'),
+      find.descendant(
+        of: find.byType(BottomSheet),
+        matching: find.text('BioBalance · Tunis'),
+      ),
       100,
-      scrollable: find.byType(Scrollable).last,
+      scrollable: find
+          .descendant(
+            of: find.byType(BottomSheet),
+            matching: find.byType(Scrollable),
+          )
+          .first,
     );
     await Scrollable.ensureVisible(
-      t.element(find.text('Partenaire Tunis')),
+      t.element(
+        find.descendant(
+          of: find.byType(BottomSheet),
+          matching: find.text('BioBalance · Tunis'),
+        ),
+      ),
       alignment: .5,
     );
     await t.pumpAndSettle();
-    expect(find.text('Partenaire Tunis').hitTestable(), findsOneWidget);
+    expect(find.text('BioBalance · Tunis').hitTestable(), findsWidgets);
     expect(t.takeException(), isNull);
     await t.pumpWidget(const SizedBox());
     await f.close();
