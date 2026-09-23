@@ -41,6 +41,11 @@ class AccountScreen extends StatelessWidget {
             MaterialPageRoute(builder: (_) => SyncScreen(vm: vm)),
           ),
         ),
+        TextButton(
+          onPressed: () =>
+              showLicensePage(context: context, applicationName: 'BioBalance'),
+          child: const Text('Licences des composants'),
+        ),
         const SizedBox(height: 16),
         const SectionTitle('Besoin d’aide ?'),
         const Text(

@@ -25,7 +25,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 
 class PreviewApi extends ApiClient {
-  PreviewApi() : super(baseUrl: 'http://unused');
+  PreviewApi() : super(baseUrl: 'http://unused') {
+    authenticate('preview', accountId: 'user');
+  }
   Json Function()? team;
   @override
   Future<GroupTeamResponseDto> groupTeam({required String id}) async =>

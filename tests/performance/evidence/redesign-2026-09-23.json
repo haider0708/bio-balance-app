@@ -1,0 +1,41 @@
+{
+  "date": "2026-09-23",
+  "applicationCommit": "6c95abb0e90f110cd86944416896145f948bf7f0",
+  "host": "Intel i5-1135G7, 4 physical cores / 8 threads, 16 GB; Linux development host",
+  "dataset": {
+    "stores": 500,
+    "staff": 5000,
+    "syntheticAdmin": 1,
+    "salesAfter": 2033627,
+    "lots": 300000
+  },
+  "scenario": "100 requests/s for 5 minutes; 200 requests/s for 30 seconds; 20 percent dashboards; 10 percent sales; persistent cursors",
+  "fourProcesses": {
+    "acceptedSales": 3610,
+    "httpRequests": 36000,
+    "failedRequests": 0,
+    "droppedIterations": 0,
+    "readSteadyP95Ms": 24.82,
+    "writeSteadyP95Ms": 74.19,
+    "readBurstP95Ms": 322.84,
+    "writeBurstP95Ms": 708.44,
+    "saleWithRetriesBurstP95Ms": 709.4,
+    "integrity": "stock, points, revisions and identities passed",
+    "acceptance": "burst latency failed"
+  },
+  "networkService": {
+    "kind": "network dashboard service; excludes HTTP/network; 5 warmup reads",
+    "samples": 50,
+    "p50Ms": 204.23365000000013,
+    "p95Ms": 220.4557530000002,
+    "maxMs": 250.1395360000006,
+    "stores": 500,
+    "groups": 125,
+    "netMillimes": "7785248300"
+  },
+  "limitations": [
+    "Local API processes and PostgreSQL, without VPS proxy or media/notification workers.",
+    "Four processes match the VPS topology, but this is not the VPS hardware.",
+    "Physical-device and sustained burst acceptance remain pending; thresholds were not relaxed."
+  ]
+}
