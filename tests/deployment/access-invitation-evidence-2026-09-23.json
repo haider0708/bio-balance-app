@@ -12,7 +12,8 @@
     "activated": true,
     "activeSessionObserved": true,
     "authorizedStoreCount": 1,
-    "inboxPlacementVerified": false
+    "inboxPlacementVerified": false,
+    "emailReceivedConfirmedByOwner": true
   },
   "validation": {
     "flutterAnalysis": "passed",
@@ -30,11 +31,106 @@
       "database": "isolated PostgreSQL",
       "initialHarnessIssue": "Product below keyboard; use product search before selection"
     },
-    "visualReview": "docs/screenshots/responsible-access-setup.png"
+    "visualReview": "docs/screenshots/responsible-access-setup.png",
+    "androidRestart": {
+      "passed": true,
+      "physicalDevice": false,
+      "checks": [
+        "real Android force-stop after SQLite commit",
+        "same account, operation ID and payload restored",
+        "one accepted sale, stock 7 version 3, points 30",
+        "camera denial and manual fallback",
+        "verified H.264 offline playback"
+      ]
+    },
+    "ci": {
+      "runId": 35911905152,
+      "url": "https://github.com/haider0708/bio-balance-app/actions/runs/35911905152",
+      "firstAttempt": {
+        "android": "passed",
+        "backend": "passed",
+        "iosCompile": "passed",
+        "roleJourney": "passed",
+        "restart": "failed: Flutter driver getIsolate service disappeared during reconnect"
+      },
+      "retry": "passed",
+      "finalConclusion": "success",
+      "finalJobs": {
+        "android": "passed",
+        "backend": "passed",
+        "iosCompile": "passed",
+        "androidJourneysAndRestart": "passed"
+      }
+    }
   },
-  "builds": [],
+  "builds": [
+    {
+      "variant": "admin",
+      "package": "tn.biobalance.app",
+      "sourceCommit": "9030d290805f48eeb4205cc213836ee50d92da7b",
+      "version": "1.1.6+10",
+      "artifactDirectory": ".artifacts/releases/builds/20260923T194950Z-android-signed",
+      "apkSha256": "4e81f4e2755047cf1ea760cc11fe8b5dde6d6d7132056a1621c1d2b1f147e924",
+      "aabSha256": "1af267fe7fc9d28f32aa4c6baa77601faada6c94f1a7c48498de88ea448fd11c",
+      "signaturesVerified": true,
+      "sourceAndArtifactChecksumsVerified": true
+    },
+    {
+      "variant": "responsable",
+      "package": "tn.biobalance.app.responsable",
+      "sourceCommit": "9030d290805f48eeb4205cc213836ee50d92da7b",
+      "version": "1.1.6+10",
+      "artifactDirectory": ".artifacts/releases/builds/20260923T195447Z-android-signed",
+      "apkSha256": "afef5825c5661e7ad3a9ab8c9440bab910782609f355395588ea909ff03bf28f",
+      "aabSha256": "3ac53efd9b4278a658bb7f4613fe5e95d2f9c2c0eba35e177dbd921c5f577b7d",
+      "signaturesVerified": true,
+      "sourceAndArtifactChecksumsVerified": true
+    },
+    {
+      "variant": "vendeur",
+      "package": "tn.biobalance.app.vendeur",
+      "sourceCommit": "9030d290805f48eeb4205cc213836ee50d92da7b",
+      "version": "1.1.6+10",
+      "artifactDirectory": ".artifacts/releases/builds/20260923T195940Z-android-signed",
+      "apkSha256": "4745dd30c64bee694a6b46be932c8ef8ddfa494a1604878ac30d3ee549224280",
+      "aabSha256": "120d3abca9098dcb9272d6b75fdbb3e897b7429a6d4ad2c96f53990f3531ae1f",
+      "signaturesVerified": true,
+      "sourceAndArtifactChecksumsVerified": true
+    }
+  ],
   "installation": {
-    "status": "pending wireless ADB connection",
-    "preserveData": true
-  }
+    "status": "installed",
+    "device": "Samsung SM-G975F",
+    "transport": "USB",
+    "preserveData": true,
+    "packages": [
+      {
+        "variant": "admin",
+        "package": "tn.biobalance.app",
+        "version": "1.1.6+10",
+        "uidPreserved": true,
+        "sha256": "4e81f4e2755047cf1ea760cc11fe8b5dde6d6d7132056a1621c1d2b1f147e924"
+      },
+      {
+        "variant": "responsable",
+        "package": "tn.biobalance.app.responsable",
+        "version": "1.1.6+10",
+        "uidPreserved": true,
+        "sha256": "afef5825c5661e7ad3a9ab8c9440bab910782609f355395588ea909ff03bf28f"
+      },
+      {
+        "variant": "vendeur",
+        "package": "tn.biobalance.app.vendeur",
+        "version": "1.1.6+10",
+        "uidPreserved": true,
+        "sha256": "4745dd30c64bee694a6b46be932c8ef8ddfa494a1604878ac30d3ee549224280"
+      }
+    ],
+    "observedScreens": [
+      "Vendeur: existing authenticated store, sales and points",
+      "Responsable: existing authenticated group summary"
+    ],
+    "ownerConfirmation": "Email received and working; all three accounts opened"
+  },
+  "sourceCommit": "9030d290805f48eeb4205cc213836ee50d92da7b"
 }
