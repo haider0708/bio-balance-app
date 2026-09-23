@@ -62,3 +62,12 @@ Ces captures ne qualifient pas la caméra physique, la lecture VoiceOver/TalkBac
 - `settings-store.png` : prix/points/seuils, équipe, guide, historiques et accès au groupe.
 
 Les tests couvrent aussi l’absence de commandes de gestion pour le vendeur et la navigation du réseau vers les réglages du magasin.
+
+
+## Graphique 1.1.3
+
+- [Période mensuelle et bulle sélectionnée](screenshots/interactive-sales-chart.png) : trois mesures, halo, référence moyenne et accès au jour.
+- [Période courte](screenshots/interactive-sales-chart-short.png) : jours sans ventes et sélection accessible.
+- [Vue agrandie en paysage](screenshots/interactive-sales-chart-expanded.png) : périmètre, période, commandes compactes et tracé complet.
+
+La capture mensuelle est désormais produite par `chart_exploration_test.dart`. Les assertions vérifient aussi la conservation du jour et du magasin dans les liens de ventes, l’affichage à 200 % et les animations réduites.

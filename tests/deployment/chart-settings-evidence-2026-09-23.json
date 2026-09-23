@@ -81,34 +81,34 @@
     "runId": 35881790786,
     "url": "https://github.com/haider0708/bio-balance-app/actions/runs/35881790786",
     "snapshot": {
-      "conclusion": "",
+      "status": "completed",
+      "conclusion": "success",
       "jobs": [
         {
-          "conclusion": "success",
           "name": "backend",
-          "status": "completed"
+          "status": "completed",
+          "conclusion": "success"
         },
         {
-          "conclusion": "success",
           "name": "ios",
-          "status": "completed"
+          "status": "completed",
+          "conclusion": "success"
         },
         {
-          "conclusion": "",
           "name": "android",
-          "status": "in_progress"
+          "status": "completed",
+          "conclusion": "success"
         },
         {
-          "conclusion": "",
           "name": "android-journeys",
-          "status": "in_progress"
+          "status": "completed",
+          "conclusion": "success"
         }
-      ],
-      "status": "in_progress"
-    }
+      ]
+    },
+    "verifiedAfterCompletionUtc": "2026-09-23T16:00:31.892765+00:00"
   },
   "limitations": [
-    "Remote CI jobs still running in this snapshot are pending, not passed.",
     "Signed iOS, full physical qualification and pilot acceptance remain outside this UI update."
   ]
 }

@@ -33,6 +33,9 @@ abstract final class AppIcons {
   static const editOutlined = LucideIcons.pencil;
   static const errorOutline = LucideIcons.circleAlert;
   static const expandMore = LucideIcons.chevronDown;
+  static const expand = LucideIcons.maximize2;
+  static const table = LucideIcons.table2;
+  static const trendingUp = LucideIcons.trendingUp;
   static const flashlightOn = LucideIcons.flashlight;
   static const flashlightOnOutlined = LucideIcons.flashlight;
   static const groupsOutlined = LucideIcons.users;

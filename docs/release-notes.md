@@ -1,3 +1,11 @@
+# BioBalance 1.1.3+7 — graphique enrichi
+
+Graphique avec bulle de valeur, repère du jour, choix montant/unités/ventes, moyenne quotidienne, meilleur jour et vue agrandie adaptée au paysage. L’ouverture des ventes garde le magasin et le jour d’origine, même si l’espace sous-jacent change.
+
+Les réglages restent accessibles. Aucune migration ni modification backend. [Détails et validation](chart-refinement-2026-09-23.md).
+
+---
+
 # BioBalance 1.1.2+6 — graphique et paramètres
 
 Graphique tactile avec points, axes, sélection du jour, détail TND/unités/ventes et accès à l’historique du jour. Les paramètres du magasin et du groupe sont accessibles depuis le bouton supérieur et « Plus », avec les mêmes droits et un contexte explicite.

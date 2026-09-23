@@ -172,10 +172,10 @@ void main() {
         await t.pumpAndSettle();
         expect(t.takeException(), isNull);
         if (size.width == 360 && scale == 1) {
-          await screenshot(t, capture, 'interactive-sales-chart');
+          await screenshot(t, capture, 'interactive-sales-chart-short');
         }
-        await t.ensureVisible(find.text('Voir toutes les données'));
-        await t.tap(find.text('Voir toutes les données'));
+        await t.ensureVisible(find.text('Toutes les données'));
+        await t.tap(find.text('Toutes les données'));
         await t.pumpAndSettle();
         expect(find.text('Données du graphique'), findsOneWidget);
         expect(t.takeException(), isNull);

@@ -1,28 +1,46 @@
-import 'dart:math' as math;
-
-import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 
 import '../../../domain/models/money.dart';
 import '../../../domain/models/sales_trend.dart';
 import '../../../domain/models/tunis_dates.dart';
 import '../../core/design.dart';
+import 'sales_trend_plot.dart';
+
+typedef _Selection = ({String? day, SalesTrendMetric metric});
 
 class SalesTrendChart extends StatefulWidget {
   final List<SalesTrendPoint> points;
   final ValueChanged<SalesTrendPoint> onOpenDay;
+  final String? scopeLabel;
+  final bool _expanded;
+  final _Selection? _initialSelection;
+  final ValueChanged<_Selection>? _onSelection;
   const SalesTrendChart({
     super.key,
     required this.points,
     required this.onOpenDay,
-  });
+    this.scopeLabel,
+  }) : _expanded = false,
+       _initialSelection = null,
+       _onSelection = null;
+
+  const SalesTrendChart._expanded(
+    this._initialSelection,
+    this._onSelection, {
+    required this.points,
+    required this.onOpenDay,
+    required this.scopeLabel,
+  }) : _expanded = true;
 
   @override
   State<SalesTrendChart> createState() => _SalesTrendChartState();
 }
 
 class _SalesTrendChartState extends State<SalesTrendChart> {
-  String? selectedDay;
+  late String? selectedDay = widget._initialSelection?.day;
+  late SalesTrendMetric metric =
+      widget._initialSelection?.metric ?? SalesTrendMetric.amount;
+  bool showTooltip = false, expanding = false;
 
   int get selectedIndex {
     final selected = widget.points.indexWhere((p) => p.day == selectedDay);
@@ -31,10 +49,85 @@ class _SalesTrendChartState extends State<SalesTrendChart> {
     return lastActive >= 0 ? lastActive : widget.points.length - 1;
   }
 
-  void select(int index) {
+  void select(int index, {bool fromPlot = false}) {
     if (index < 0 || index >= widget.points.length) return;
     final day = widget.points[index].day;
-    if (selectedDay != day) setState(() => selectedDay = day);
+    if (selectedDay == day && showTooltip == fromPlot) return;
+    setState(() {
+      selectedDay = day;
+      showTooltip = fromPlot;
+    });
+    widget._onSelection?.call((day: day, metric: metric));
+  }
+
+  void changeMetric(SalesTrendMetric next) {
+    if (metric == next) return;
+    setState(() {
+      metric = next;
+      showTooltip = false;
+    });
+    widget._onSelection?.call((
+      day: widget.points[selectedIndex].day,
+      metric: metric,
+    ));
+  }
+
+  Future<void> expand() async {
+    if (expanding) return;
+    setState(() => expanding = true);
+    _Selection selection = (
+      day: widget.points[selectedIndex].day,
+      metric: metric,
+    );
+    final points = widget.points;
+    try {
+      await Navigator.push<void>(
+        context,
+        MaterialPageRoute(
+          builder: (_) => Scaffold(
+            appBar: AppBar(title: const Text('Évolution des ventes')),
+            body: Content(
+              maxWidth: 1200,
+              children: [
+                Wrap(
+                  spacing: 24,
+                  runSpacing: 4,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    if (widget.scopeLabel != null)
+                      Text(
+                        widget.scopeLabel!,
+                        style: const TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                    Text(
+                      '${TunisDates.dateOnlyLabel(points.first.day)} – ${TunisDates.dateOnlyLabel(points.last.day)}',
+                      style: const TextStyle(fontSize: 14, color: muted),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                SalesTrendChart._expanded(
+                  selection,
+                  (value) => selection = value,
+                  points: points,
+                  scopeLabel: widget.scopeLabel,
+                  onOpenDay: widget.onOpenDay,
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          expanding = false;
+          selectedDay = selection.day;
+          metric = selection.metric;
+          showTooltip = false;
+        });
+      }
+    }
   }
 
   @override
@@ -42,310 +135,267 @@ class _SalesTrendChartState extends State<SalesTrendChart> {
     if (widget.points.isEmpty) return const SizedBox.shrink();
     final points = widget.points, selected = selectedIndex;
     final current = points[selected];
-    final textScale = MediaQuery.textScalerOf(context);
-    final values = [for (final p in points) p.netMillimes / 1000];
-    final peak = values.reduce(math.max);
-    final target = (peak > 0 ? peak : 1) / 4;
-    final magnitude = math.pow(10, (math.log(target) / math.ln10).floor());
-    final fraction = target / magnitude;
-    final step = math.max(
-      .001,
-      (fraction <= 1
-              ? 1
-              : fraction <= 2
-              ? 2
-              : fraction <= 5
-              ? 5
-              : 10) *
-          magnitude,
-    );
-    final top = ((peak / step).floor() + 1) * step;
-    final spots = [
-      for (var i = 0; i < points.length; i++) FlSpot(i.toDouble(), values[i]),
-    ];
+    var peak = 0;
+    for (var i = 1; i < points.length; i++) {
+      if (metric.rawValue(points[i]) > metric.rawValue(points[peak])) peak = i;
+    }
+    final hasActivity = points.any((p) => p.saleCount > 0);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const Text(
-          'Ventes nettes · TND',
-          style: TextStyle(fontSize: 14, color: muted),
+        _header(context, current, selected),
+        const SizedBox(height: 16),
+        ExcludeSemantics(
+          child: SalesTrendPlot(
+            points: points,
+            metric: metric,
+            selected: selected,
+            showTooltip: showTooltip,
+            expanded: widget._expanded,
+            onSelect: (index) => select(index, fromPlot: true),
+          ),
         ),
         const SizedBox(height: 12),
-        ExcludeSemantics(
-          child: LayoutBuilder(
-            builder: (context, bounds) {
-              final labelCount = (bounds.maxWidth / textScale.scale(85))
-                  .floor()
-                  .clamp(2, 5);
-              final interval = ((points.length - 1) / (labelCount - 1))
-                  .ceil()
-                  .clamp(1, 366)
-                  .toDouble();
-              return SizedBox(
-                key: const ValueKey('sales-trend-plot'),
-                height: textScale.scale(14) > 20 ? 260 : 220,
-                child: LineChart(
-                  LineChartData(
-                    minX: points.length == 1 ? -.5 : 0,
-                    maxX: points.length == 1
-                        ? .5
-                        : (points.length - 1).toDouble(),
-                    minY: 0,
-                    maxY: top.toDouble(),
-                    borderData: FlBorderData(show: false),
-                    gridData: FlGridData(
-                      drawVerticalLine: false,
-                      horizontalInterval: step.toDouble(),
-                      getDrawingHorizontalLine: (_) => const FlLine(
-                        color: Color(0xFFE5EDE8),
-                        strokeWidth: 1,
-                        dashArray: [4, 4],
-                      ),
-                    ),
-                    titlesData: FlTitlesData(
-                      topTitles: const AxisTitles(
-                        sideTitles: SideTitles(showTitles: false),
-                      ),
-                      rightTitles: const AxisTitles(
-                        sideTitles: SideTitles(showTitles: false),
-                      ),
-                      leftTitles: AxisTitles(
-                        sideTitles: SideTitles(
-                          showTitles: true,
-                          reservedSize: textScale.scale(48),
-                          interval: step.toDouble(),
-                          getTitlesWidget: (value, meta) => SideTitleWidget(
-                            meta: meta,
-                            space: 8,
-                            child: Text(
-                              _axisAmount(value),
-                              style: const TextStyle(
-                                fontSize: 12,
-                                color: muted,
-                              ),
-                            ),
+        Wrap(
+          spacing: 16,
+          runSpacing: 8,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ExcludeSemantics(
+                  child: Row(
+                    children: [
+                      for (var i = 0; i < 3; i++)
+                        const Padding(
+                          padding: EdgeInsets.only(right: 3),
+                          child: SizedBox(
+                            width: 4,
+                            height: 2,
+                            child: ColoredBox(color: Color(0xFF759786)),
                           ),
                         ),
-                      ),
-                      bottomTitles: AxisTitles(
-                        sideTitles: SideTitles(
-                          showTitles: true,
-                          reservedSize: textScale.scale(14) + 18,
-                          interval: interval,
-                          getTitlesWidget: (value, meta) {
-                            final index = value.round();
-                            if ((value - index).abs() > .01 ||
-                                index < 0 ||
-                                index >= points.length) {
-                              return const SizedBox.shrink();
-                            }
-                            final edge =
-                                index == 0 || index == points.length - 1;
-                            if (!edge &&
-                                (index < interval / 2 ||
-                                    points.length - 1 - index < interval / 2)) {
-                              return const SizedBox.shrink();
-                            }
-                            return SideTitleWidget(
-                              meta: meta,
-                              space: 10,
-                              fitInside: SideTitleFitInsideData(
-                                enabled: true,
-                                axisPosition: meta.axisPosition,
-                                parentAxisSize: meta.parentAxisSize,
-                                distanceFromEdge: 0,
-                              ),
-                              child: Text(
-                                TunisDates.dateOnlyLabel(points[index].day)
-                                    .substring(0, 5),
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  color: muted,
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                    ),
-                    extraLinesData: ExtraLinesData(
-                      verticalLines: [
-                        VerticalLine(
-                          x: selected.toDouble(),
-                          color: darkGreen.withValues(alpha: .35),
-                          strokeWidth: 1,
-                          dashArray: [4, 4],
-                        ),
-                      ],
-                    ),
-                    lineTouchData: LineTouchData(
-                      handleBuiltInTouches: false,
-                      distanceCalculator: (touch, spot) =>
-                          (touch.dx - spot.dx).abs(),
-                      touchSpotThreshold: double.infinity,
-                      touchCallback: (event, response) {
-                        if (!event.isInterestedForInteractions) return;
-                        final spot = response?.lineBarSpots?.firstOrNull;
-                        if (spot != null) select(spot.spotIndex);
-                      },
-                    ),
-                    lineBarsData: [
-                      LineChartBarData(
-                        spots: spots,
-                        isCurved: false,
-                        color: darkGreen,
-                        barWidth: 2.5,
-                        isStrokeCapRound: true,
-                        dotData: FlDotData(
-                          checkToShowDot: (spot, _) =>
-                              points.length <= 45 ||
-                              spot.x.toInt() == selected ||
-                              spot.x.toInt() % (points.length / 40).ceil() == 0,
-                          getDotPainter: (spot, _, _, index) =>
-                              FlDotCirclePainter(
-                                radius: index == selected ? 5 : 2.5,
-                                color: index == selected
-                                    ? darkGreen
-                                    : Colors.white,
-                                strokeColor: index == selected
-                                    ? Colors.white
-                                    : darkGreen,
-                                strokeWidth: index == selected ? 2.5 : 1.5,
-                              ),
-                        ),
-                        belowBarData: BarAreaData(
-                          show: true,
-                          gradient: LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            colors: [
-                              darkGreen.withValues(alpha: .12),
-                              const Color(0xFFF1F8F4).withValues(alpha: .25),
-                            ],
-                          ),
-                        ),
-                      ),
                     ],
                   ),
-                  duration: Duration.zero,
                 ),
-              );
-            },
-          ),
-        ),
-        const SizedBox(height: 10),
-        const Text(
-          'Touchez un point ou faites glisser pour explorer les jours.',
-          style: TextStyle(fontSize: 14, color: muted),
-        ),
-        const SizedBox(height: 12),
-        DecoratedBox(
-          decoration: BoxDecoration(
-            color: const Color(0xFFF1F8F4),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(14),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        TunisDates.dateOnlyLabel(current.day),
-                        key: const ValueKey('sales-trend-date'),
-                        style: const TextStyle(fontWeight: FontWeight.w600),
-                      ),
-                    ),
-                    IconButton(
-                      tooltip: 'Jour précédent',
-                      onPressed: selected > 0
-                          ? () => select(selected - 1)
-                          : null,
-                      icon: const Icon(AppIcons.chevronLeft),
-                    ),
-                    IconButton(
-                      tooltip: 'Jour suivant',
-                      onPressed: selected < points.length - 1
-                          ? () => select(selected + 1)
-                          : null,
-                      icon: const Icon(AppIcons.chevronRight),
-                    ),
-                  ],
-                ),
-                Semantics(
-                  liveRegion: true,
-                  excludeSemantics: true,
-                  label:
-                      '${TunisDates.dateOnlyLabel(current.day)}, ${Money(current.netMillimes).formatted}, ${current.netUnits} unités nettes, ${current.saleCount} ventes enregistrées',
+                const SizedBox(width: 5),
+                Flexible(
                   child: Text(
-                    Money(current.netMillimes).formatted,
-                    key: const ValueKey('sales-trend-value'),
-                    style: const TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-                Text(
-                  '${current.netUnits} unités nettes · ${current.saleCount} ventes enregistrées',
-                  style: const TextStyle(fontSize: 14, color: muted),
-                ),
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: TextButton.icon(
-                    key: const ValueKey('sales-trend-open-day'),
-                    onPressed: () => widget.onOpenDay(current),
-                    icon: const Icon(AppIcons.receiptLongOutlined, size: 18),
-                    label: const Text('Voir les ventes de ce jour'),
+                    'Moyenne/jour · ${metric.averageLabel(points)}',
+                    key: const ValueKey('sales-trend-average'),
+                    style: const TextStyle(fontSize: 14, color: muted),
                   ),
                 ),
               ],
             ),
-          ),
+            if (hasActivity)
+              TextButton.icon(
+                key: const ValueKey('sales-trend-peak'),
+                onPressed: () => select(peak, fromPlot: true),
+                icon: const Icon(AppIcons.trendingUp, size: 18),
+                label: const Text('Meilleur jour'),
+                style: TextButton.styleFrom(padding: EdgeInsets.zero),
+              ),
+          ],
         ),
-        Align(
-          alignment: Alignment.centerLeft,
-          child: TextButton(
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute<void>(
-                builder: (_) => Scaffold(
-                  appBar: AppBar(title: const Text('Données du graphique')),
-                  body: Content.builder(
-                    itemCount: points.length,
-                    itemBuilder: (_, index) {
-                      final point = points[index];
-                      return CompactRow(
-                        title: TunisDates.dateOnlyLabel(point.day),
-                        value: Money(point.netMillimes).formatted,
-                        subtitle:
-                            '${point.netUnits} unités nettes · ${point.saleCount} ventes enregistrées',
-                        onTap: () => widget.onOpenDay(point),
-                      );
-                    },
-                  ),
-                ),
+        if (!hasActivity)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 8),
+            child: Text(
+              'Aucune vente enregistrée sur cette période.',
+              style: TextStyle(fontSize: 14, color: muted),
+            ),
+          ),
+        const Divider(height: 20),
+        Text(
+          '${current.netUnits} unités nettes · ${current.saleCount} ventes enregistrées',
+          style: const TextStyle(fontSize: 14, color: muted),
+        ),
+        Wrap(
+          alignment: WrapAlignment.spaceBetween,
+          spacing: 12,
+          children: [
+            TextButton.icon(
+              key: const ValueKey('sales-trend-open-day'),
+              onPressed: () => widget.onOpenDay(current),
+              icon: const Icon(AppIcons.receiptLongOutlined, size: 18),
+              label: const Text('Ventes du jour'),
+              style: TextButton.styleFrom(padding: EdgeInsets.zero),
+            ),
+            TextButton.icon(
+              onPressed: showData,
+              icon: const Icon(AppIcons.table, size: 18),
+              label: const Text('Toutes les données'),
+              style: TextButton.styleFrom(
+                padding: EdgeInsets.zero,
+                foregroundColor: muted,
               ),
             ),
-            child: const Text('Voir toutes les données'),
-          ),
+          ],
         ),
       ],
     );
   }
-}
 
-String _axisAmount(double amount) {
-  final (scaled, suffix) = amount >= 1000000
-      ? (amount / 1000000, ' M')
-      : amount >= 1000
-      ? (amount / 1000, ' k')
-      : (amount, '');
-  final label = scaled
-      .toStringAsFixed(suffix.isEmpty ? 3 : 1)
-      .replaceFirst(RegExp(r'0+$'), '')
-      .replaceFirst(RegExp(r'\.$'), '');
-  return '${label.replaceAll('.', ',')}$suffix';
+  Widget _header(BuildContext context, SalesTrendPoint current, int selected) {
+    final animation = AnimationStyle(
+      duration: MediaQuery.disableAnimationsOf(context)
+          ? Duration.zero
+          : const Duration(milliseconds: 180),
+    );
+    final controls = Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: Wrap(
+            spacing: 6,
+            runSpacing: 4,
+            children: [
+              for (final option in SalesTrendMetric.values)
+                ChoiceChip(
+                  key: ValueKey('sales-trend-metric:${option.name}'),
+                  label: Text(option.label),
+                  selected: metric == option,
+                  onSelected: (_) => changeMetric(option),
+                  showCheckmark: false,
+                  selectedColor: darkGreen,
+                  backgroundColor: const Color(0xFFF1F8F4),
+                  side: BorderSide.none,
+                  labelStyle: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: metric == option ? Colors.white : muted,
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 8,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  chipAnimationStyle: ChipAnimationStyle(
+                    selectAnimation: animation,
+                    enableAnimation: animation,
+                  ),
+                ),
+            ],
+          ),
+        ),
+        if (!widget._expanded)
+          IconButton(
+            tooltip: 'Agrandir le graphique',
+            onPressed: expanding ? null : expand,
+            icon: const Icon(AppIcons.expand, size: 20),
+          ),
+      ],
+    );
+    final summary = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                TunisDates.dateOnlyLabel(current.day),
+                key: const ValueKey('sales-trend-date'),
+                style: const TextStyle(fontSize: 14, color: muted),
+              ),
+            ),
+            IconButton(
+              tooltip: 'Jour précédent',
+              onPressed: selected > 0 ? () => select(selected - 1) : null,
+              icon: const Icon(AppIcons.chevronLeft, size: 20),
+            ),
+            IconButton(
+              tooltip: 'Jour suivant',
+              onPressed: selected < widget.points.length - 1
+                  ? () => select(selected + 1)
+                  : null,
+              icon: const Icon(AppIcons.chevronRight, size: 20),
+            ),
+          ],
+        ),
+        Semantics(
+          liveRegion: true,
+          excludeSemantics: true,
+          label:
+              '${TunisDates.dateOnlyLabel(current.day)}, ${Money(current.netMillimes).formatted}, ${current.netUnits} unités nettes, ${current.saleCount} ventes enregistrées',
+          child: Text(
+            metric.display(current),
+            key: const ValueKey('sales-trend-value'),
+            style: const TextStyle(
+              fontSize: 28,
+              height: 1.25,
+              fontWeight: FontWeight.w700,
+              letterSpacing: -.6,
+              fontFeatures: [FontFeature.tabularFigures()],
+            ),
+          ),
+        ),
+        Text(
+          metric.description,
+          style: const TextStyle(fontSize: 14, color: muted),
+        ),
+      ],
+    );
+    return LayoutBuilder(
+      builder: (context, bounds) {
+        if (bounds.maxWidth >= 600) {
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    controls,
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Touchez ou glissez pour explorer.',
+                      style: TextStyle(fontSize: 14, color: muted),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 24),
+              Expanded(child: summary),
+            ],
+          );
+        }
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [controls, const SizedBox(height: 8), summary],
+        );
+      },
+    );
+  }
+
+  void showData() {
+    final points = widget.points;
+    Navigator.push(
+      context,
+      MaterialPageRoute<void>(
+        builder: (_) => Scaffold(
+          appBar: AppBar(title: const Text('Données du graphique')),
+          body: Content.builder(
+            itemCount: points.length,
+            itemBuilder: (_, index) {
+              final point = points[index];
+              return CompactRow(
+                title: TunisDates.dateOnlyLabel(point.day),
+                value: Money(point.netMillimes).formatted,
+                subtitle:
+                    '${point.netUnits} unités nettes · ${point.saleCount} ventes enregistrées',
+                onTap: () => widget.onOpenDay(point),
+              );
+            },
+            children: [
+              if (widget.scopeLabel != null) SectionTitle(widget.scopeLabel!),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }

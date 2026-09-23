@@ -44,6 +44,6 @@ APK SHA-256 : `edacedc871718af6fea85cac2087b79411257088845b76fbf55a637dd5fd2c4d`
 
 AAB SHA-256 : `971dafca7ed88aeda41249dc4cdcba7f851e687b4959e1139bc9c8180dddf0ab`.
 
-[Preuves et empreintes](../tests/deployment/chart-settings-evidence-2026-09-23.json). [CI du code livré](https://github.com/haider0708/bio-balance-app/actions/runs/35881790786) : backend et compilation iOS non signée réussis au relevé ; jobs Android et parcours Android encore en cours, donc non comptés comme réussis.
+[Preuves et empreintes](../tests/deployment/chart-settings-evidence-2026-09-23.json). [CI du code livré](https://github.com/haider0708/bio-balance-app/actions/runs/35881790786) : terminée avec succès pour les quatre jobs : backend, Android, parcours Android et compilation iOS non signée.
 
 L’exécution CI précédente `35875356803` a terminé ses parcours de rôles avec succès, puis échoué avant le test de redémarrage : ce harnais cherchait encore l’ancien libellé du lot. Il utilise désormais la clé stable `sale.lot.OPENING`. Cet échec n’est pas présenté comme un test de reprise réussi.

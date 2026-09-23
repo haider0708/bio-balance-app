@@ -198,8 +198,9 @@ class _ScopeScreenState extends State<ScopeScreen> with WidgetsBindingObserver {
           ],
         );
       } else if (scope.tab == 0) {
+        final report = dashboard();
         page = DashboardScreen(
-          vm: dashboard(),
+          vm: report,
           workspace: workspace,
           title: s.kind == ScopeKind.network
               ? 'Votre réseau'
@@ -213,7 +214,12 @@ class _ScopeScreenState extends State<ScopeScreen> with WidgetsBindingObserver {
               : s.kind == ScopeKind.group
               ? 'Résumé de tous les magasins'
               : '${s.group!.name} · ${store!.name}',
-          onOpen: openDashboard,
+          onOpen: (destination, period) => openDashboard(
+            destination,
+            period,
+            source: report,
+            sourceTitle: store?.name ?? s.group?.name ?? 'Tous les groupes',
+          ),
           onSale: store == null
               ? null
               : (id) => push(
@@ -435,10 +441,15 @@ class _ScopeScreenState extends State<ScopeScreen> with WidgetsBindingObserver {
     await scope.selectStore(store);
   }
 
-  void openDashboard(DashboardDestination destination, DashboardPeriod period) {
+  void openDashboard(
+    DashboardDestination destination,
+    DashboardPeriod period, {
+    DashboardViewModel? source,
+    String? sourceTitle,
+  }) {
     final store = scope.scope.store;
     if (destination == DashboardDestination.sales) {
-      final report = dashboard();
+      final report = source ?? dashboard();
       push(
         'Ventes',
         ScopedSalesScreen(
@@ -448,6 +459,7 @@ class _ScopeScreenState extends State<ScopeScreen> with WidgetsBindingObserver {
           groupId: report.groupId,
           storeId: report.storeId,
           title:
+              sourceTitle ??
               scope.scope.store?.name ??
               scope.scope.group?.name ??
               'Tous les groupes',

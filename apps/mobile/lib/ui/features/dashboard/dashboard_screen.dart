@@ -216,6 +216,7 @@ class DashboardScreen extends StatelessWidget {
                     data.list('series'),
                     vm.period,
                   ),
+                  scopeLabel: scopeLabel,
                   onOpenDay: (point) =>
                       onOpen(DashboardDestination.sales, point.period),
                 ),
