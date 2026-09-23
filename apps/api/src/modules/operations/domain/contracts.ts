@@ -92,6 +92,36 @@ export const commandSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("order.prepare"), orderId: id }).strict(),
   z
     .object({
+      type: z.literal("order.amend"),
+      orderId: id,
+      lines: z.array(orderLine).min(1).max(200),
+      reason: z.string().trim().min(3).max(500),
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal("order.cancel"),
+      orderId: id,
+      reason: z.string().trim().min(3).max(500),
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal("delivery.report"),
+      deliveryId: id,
+      reason: z.string().trim().min(3).max(500),
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal("delivery.resolve"),
+      deliveryId: id,
+      decision: z.enum(["tracing", "lost", "returned", "settled"]),
+      reason: z.string().trim().min(3).max(500),
+    })
+    .strict(),
+  z
+    .object({
       type: z.literal("delivery.dispatch"),
       orderId: id,
       deliveryId: id,
@@ -102,7 +132,13 @@ export const commandSchema = z.discriminatedUnion("type", [
     .object({
       type: z.literal("delivery.receive"),
       deliveryId: id,
-      lines: z.array(receiptLine).max(200),
+      lines: z
+        .array(
+          receiptLine.extend({
+            condition: z.enum(["sellable", "damaged", "refused"]).optional(),
+          }),
+        )
+        .max(200),
       note: z.string().max(500).default(""),
     })
     .strict(),
@@ -194,9 +230,22 @@ export interface OrderRecord {
   status: string;
   lines: { productId: string; quantity: number }[];
   version: number;
+  requestedLines?: { productId: string; quantity: number }[];
+  cancelledLines?: { productId: string; quantity: number }[];
 }
 export interface DeliveryRecord extends OrderRecord {
   orderId: string;
+}
+export interface DeliveryIssueRecord {
+  id: string;
+  deliveryId: string;
+  orderId: string;
+  status: string;
+  reason: string;
+  heldLines: { productId: string; quantity: number }[];
+  version: number;
+  resolution?: string | null;
+  resolutionNote?: string | null;
 }
 export interface CommandOutcome {
   id: string;

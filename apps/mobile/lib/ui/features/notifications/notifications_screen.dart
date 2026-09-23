@@ -1,20 +1,23 @@
 import 'package:flutter/material.dart';
 
 import 'notifications_view_model.dart';
+import '../dashboard/attention_screen.dart';
+import '../replenishment/scoped_order_screen.dart';
 import '../../core/design.dart';
 import '../authentication/session_view_model.dart';
 import '../workspace/workspace_view_model.dart';
 
 class NotificationsScreen extends StatefulWidget {
   final WorkspaceViewModel vm;
-  const NotificationsScreen({super.key, required this.vm});
+  final NotificationsViewModel? model;
+  const NotificationsScreen({super.key, required this.vm, this.model});
   @override
   State<NotificationsScreen> createState() => _NotificationsScreenState();
 }
 
 class _NotificationsScreenState extends State<NotificationsScreen>
     with WidgetsBindingObserver {
-  late final inbox = NotificationsViewModel(widget.vm.inbox);
+  late final inbox = widget.model ?? NotificationsViewModel(widget.vm.inbox);
   bool current = false;
   bool foreground =
       WidgetsBinding.instance.lifecycleState == null ||
@@ -31,20 +34,22 @@ class _NotificationsScreenState extends State<NotificationsScreen>
     super.didChangeDependencies();
     current = ModalRoute.isCurrentOf(context) ?? true;
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) inbox.setActive(current && foreground);
+      if (mounted && widget.model == null) {
+        inbox.setActive(current && foreground);
+      }
     });
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     foreground = state == AppLifecycleState.resumed;
-    inbox.setActive(current && foreground);
+    if (widget.model == null) inbox.setActive(current && foreground);
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    inbox.dispose();
+    if (widget.model == null) inbox.dispose();
     super.dispose();
   }
 
@@ -68,23 +73,69 @@ class _NotificationsScreenState extends State<NotificationsScreen>
               try {
                 final message = await widget.vm.openNotification(n['id']);
                 if (!context.mounted) return;
-                await showDialog<void>(
-                  context: context,
-                  builder: (context) => AlertDialog(
-                    title: Text(message['title']),
-                    content: SingleChildScrollView(
-                      child: Text(
-                        '${message['storeName'] ?? 'BioBalance'}\n\n${message['body']}',
+                final store = widget.vm.state.stores
+                    .where(
+                      (s) =>
+                          s.id == message['storeId'] &&
+                          s.organizationId == message['organizationId'],
+                    )
+                    .firstOrNull;
+                if (store != null &&
+                    message['targetType'] == 'order' &&
+                    message['targetId'] != null) {
+                  await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => ExactOrderScreen(
+                        parent: widget.vm,
+                        store: store,
+                        orderId: message['targetId'],
                       ),
                     ),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(context),
-                        child: const Text('Fermer'),
+                  );
+                } else if (store != null &&
+                    message['targetType'] == 'alert' &&
+                    message['targetId'] != null) {
+                  await openExactAlert(context, widget.vm, {
+                    ...message,
+                    'id': message['targetId'],
+                  });
+                } else if (store != null &&
+                    message['targetType'] == 'reward' &&
+                    message['targetId'] != null) {
+                  await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => AttentionDetail(
+                        parent: widget.vm,
+                        store: store,
+                        item: {
+                          ...message,
+                          'id': message['targetId'],
+                          'kind': 'rewards',
+                        },
                       ),
-                    ],
-                  ),
-                );
+                    ),
+                  );
+                } else {
+                  await showDialog<void>(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                      title: Text(message['title']),
+                      content: SingleChildScrollView(
+                        child: Text(
+                          '${message['storeName'] ?? 'BioBalance'}\n\n${message['body']}',
+                        ),
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(context),
+                          child: const Text('Fermer'),
+                        ),
+                      ],
+                    ),
+                  );
+                }
                 await inbox.load();
               } catch (e) {
                 if (mounted) {
@@ -95,6 +146,19 @@ class _NotificationsScreenState extends State<NotificationsScreen>
           );
         },
         children: [
+          if (inbox.cached)
+            const Notice(
+              'Notifications conservées sur ce téléphone. Actualisez pour vérifier leur état.',
+            ),
+          if (inbox.nextCursor != null)
+            TextButton(
+              onPressed: inbox.loading ? null : () => inbox.load(more: true),
+              child: const Text('Notifications plus anciennes'),
+            ),
+          TextButton(
+            onPressed: () => inbox.load(),
+            child: const Text('Actualiser'),
+          ),
           if ((openError ?? inbox.error) != null)
             Notice((openError ?? inbox.error)!, retry: inbox.load),
           if (inbox.loading) const Center(child: CircularProgressIndicator()),

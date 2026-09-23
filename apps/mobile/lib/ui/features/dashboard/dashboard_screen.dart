@@ -31,6 +31,7 @@ class DashboardScreen extends StatelessWidget {
   final String title, scopeLabel;
   final void Function(DashboardDestination, DashboardPeriod) onOpen;
   final void Function(String)? onComparison, onSale;
+  final void Function(Json)? onAlert;
   final Widget? primaryAction, setup;
   const DashboardScreen({
     super.key,
@@ -42,6 +43,7 @@ class DashboardScreen extends StatelessWidget {
     this.primaryAction,
     this.setup,
     this.onComparison,
+    this.onAlert,
     this.onSale,
   });
   @override
@@ -283,12 +285,13 @@ class DashboardScreen extends StatelessWidget {
                   DashboardDestination.expired,
                 ),
               ]),
-            CompactRow(
-              title: 'Livraisons à réceptionner',
-              value: '${data.current['pendingDeliveries']}',
-              icon: AppIcons.package,
-              onTap: () => onOpen(DashboardDestination.deliveries, vm.period),
-            ),
+            if (vm.scope != 'personal')
+              CompactRow(
+                title: 'Livraisons à réceptionner',
+                value: '${data.current['pendingDeliveries']}',
+                icon: AppIcons.package,
+                onTap: () => onOpen(DashboardDestination.deliveries, vm.period),
+              ),
             CompactRow(
               title: 'Demandes de récompense',
               value: '${data.current['pendingClaims']}',
@@ -305,9 +308,7 @@ class DashboardScreen extends StatelessWidget {
                   subtitle: alert['storeName'],
                   icon: AppIcons.infoOutline,
                   tone: AppTone.warning,
-                  onTap: onComparison == null
-                      ? () => onOpen(DashboardDestination.stock, vm.period)
-                      : () => onComparison!(alert['storeId']),
+                  onTap: onAlert == null ? null : () => onAlert!(alert),
                 ),
             ],
           ],

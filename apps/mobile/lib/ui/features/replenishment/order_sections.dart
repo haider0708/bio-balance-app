@@ -6,6 +6,8 @@ import '../../core/design.dart';
 import '../workspace/operation_helpers.dart';
 
 enum OrderSection {
+  all('Toutes'),
+  issues('Problèmes'),
   preparation('À préparer'),
   transit('À réceptionner'),
   complete('Terminées');
@@ -13,16 +15,25 @@ enum OrderSection {
   final String label;
   const OrderSection(this.label);
   bool contains(Json order) => switch (this) {
+    all => true,
+    issues => integer(order['openIssues']) > 0,
     preparation => [
       'requested',
       'preparing',
       'partial',
     ].contains(order['status']),
     transit => order['status'] == 'dispatched',
-    complete => ['received', 'cancelled'].contains(order['status']),
+    complete => [
+      'received',
+      'cancelled',
+      'closed_partial',
+    ].contains(order['status']),
   };
   String title(bool admin) => admin && this == transit ? 'Expédiées' : label;
   String description(bool admin) => switch (this) {
+    all =>
+      'Toutes les commandes de cet espace, avec leur magasin et leur suivi.',
+    issues => 'Livraisons signalées et écarts de réception à traiter.',
     preparation =>
       admin ? 'Demandes des magasins et compléments restant à expédier.' : 'BioBalance prépare vos produits. Ouvrez une commande pour suivre son avancement.',
     transit => 'Les produits sont en route. Le stock augmente seulement après réception.',

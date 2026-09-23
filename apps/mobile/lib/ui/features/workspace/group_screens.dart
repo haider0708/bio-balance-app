@@ -7,6 +7,7 @@ import '../../core/forms.dart';
 import '../media/image_input.dart';
 import '../stores/stores_screen.dart';
 import 'scope_view_model.dart';
+import 'lifecycle_screen.dart';
 import 'operation_helpers.dart';
 
 class GroupOverviewLinks extends StatelessWidget {
@@ -34,8 +35,9 @@ class GroupOverviewLinks extends StatelessWidget {
           'Vos magasins',
           subtitle: '${scope.stores.length} magasin(s) dans ce groupe',
           action: TextButton.icon(
-            onPressed: () =>
-                run(context, () => createScopedStore(context, scope)),
+            onPressed: group.status == 'active'
+                ? () => run(context, () => createScopedStore(context, scope))
+                : null,
             icon: const Icon(AppIcons.add),
             label: const Text('Ajouter'),
           ),
@@ -57,8 +59,26 @@ class GroupOverviewLinks extends StatelessWidget {
             onPressed: () => scope.setTab(1),
             child: const Text('Voir tous les magasins'),
           ),
+        if (scope.workspace.user.admin)
+          TextButton.icon(
+            onPressed: () => run(context, () async {
+              await manageLifecycle(
+                context,
+                scope.workspace,
+                groupId: group.id,
+                name: group.name,
+                version: group.version,
+                status: group.status,
+              );
+              await scope.refresh();
+            }),
+            icon: const Icon(AppIcons.settingsOutlined),
+            label: Text('Accès du groupe · ${statusLabel(group.status)}'),
+          ),
         TextButton.icon(
-          onPressed: () => editGroup(context, scope),
+          onPressed: group.status == 'archived'
+              ? null
+              : () => editGroup(context, scope),
           icon: const Icon(AppIcons.settingsOutlined),
           label: const Text('Informations du groupe'),
         ),
@@ -129,6 +149,7 @@ class GroupsPage extends StatefulWidget {
 
 class _GroupsPageState extends State<GroupsPage> {
   String query = '';
+  bool includeInactive = false;
   final search = TextEditingController();
   bool restored = false;
   @override
@@ -155,10 +176,18 @@ class _GroupsPageState extends State<GroupsPage> {
   Widget build(BuildContext context) {
     final vm = widget.vm;
     final groups = vm.groups
-        .where((g) => g.name.toLowerCase().contains(query))
+        .where(
+          (g) =>
+              g.name.toLowerCase().contains(query) &&
+              (includeInactive || g.status == 'active'),
+        )
         .toList();
     final stores = (widget.allStores ? vm.workspace.state.stores : vm.stores)
-        .where((s) => '${s.name} ${s.city}'.toLowerCase().contains(query))
+        .where(
+          (s) =>
+              '${s.name} ${s.city}'.toLowerCase().contains(query) &&
+              (includeInactive || s.status == 'active'),
+        )
         .toList();
     final count = widget.stores ? stores.length : groups.length;
     return Content.builder(
@@ -170,6 +199,9 @@ class _GroupsPageState extends State<GroupsPage> {
         final image = group?.imageId ?? store?.imageId;
         return CompactRow(
           title: group?.name ?? store!.name,
+          footer: (group?.status ?? store!.status) == 'active'
+              ? null
+              : StatusChip(statusLabel(group?.status ?? store!.status)),
           subtitle: group != null
               ? '${group.storeCount} magasin(s)'
               : widget.allStores
@@ -218,7 +250,10 @@ class _GroupsPageState extends State<GroupsPage> {
           subtitle: widget.stores
               ? 'Chaque magasin conserve son stock, ses ventes et ses récompenses.'
               : 'Choisissez un groupe pour consulter son activité.',
-          action: widget.stores && !widget.allStores
+          action:
+              widget.stores &&
+                  !widget.allStores &&
+                  vm.scope.group!.status == 'active'
               ? FilledButton.icon(
                   onPressed: () => createScopedStore(context, vm),
                   icon: const Icon(AppIcons.add),
@@ -226,6 +261,13 @@ class _GroupsPageState extends State<GroupsPage> {
                 )
               : null,
         ),
+        if (vm.workspace.user.admin)
+          SwitchListTile.adaptive(
+            contentPadding: EdgeInsets.zero,
+            title: const Text('Afficher les espaces suspendus et archivés'),
+            value: includeInactive,
+            onChanged: (value) => setState(() => includeInactive = value),
+          ),
         if (!widget.stores && vm.workspace.user.admin)
           OutlinedButton.icon(
             onPressed: () => inviteManager(context, vm.workspace),

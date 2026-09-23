@@ -1,3 +1,4 @@
+import { WorkspaceLifecycle, lifecycleRequest } from "./lifecycle";
 import { Injectable } from "@nestjs/common";
 import { createHash } from "node:crypto";
 import { z } from "zod";
@@ -13,6 +14,26 @@ export class GroupService {
     private readonly db: Database,
     private readonly workspace: WorkspaceService,
   ) {}
+  lifecycleImpact(actor: Actor, organizationId: string, storeId?: string) {
+    return new WorkspaceLifecycle(this.db).impact(
+      actor,
+      organizationId,
+      storeId,
+    );
+  }
+  lifecycle(
+    actor: Actor,
+    organizationId: string,
+    storeId: string | undefined,
+    input: z.infer<typeof lifecycleRequest>,
+  ) {
+    return new WorkspaceLifecycle(this.db).change(
+      actor,
+      organizationId,
+      storeId,
+      input,
+    );
+  }
   list(actor: Actor, after?: string, search?: string) {
     return this.db.authenticated(actor, async (tx, current) => {
       const memberships = await tx.organizationMembership.findMany({
@@ -27,6 +48,7 @@ export class GroupService {
       ];
       const rows = await tx.organization.findMany({
         where: {
+          ...(!current.platformAdmin ? { status: "active" } : {}),
           ...(!current.platformAdmin
             ? { id: { in: ids, ...(after ? { gt: after } : {}) } }
             : after
@@ -142,6 +164,12 @@ export class GroupService {
   ) {
     return this.db.group(actor, id, async (tx, current) => {
       const old = await tx.organization.findUniqueOrThrow({ where: { id } });
+      requireRule(
+        old.status !== "archived",
+        "WORKSPACE_ARCHIVED",
+        "Ce groupe est archivé. Son historique reste consultable.",
+        409,
+      );
       requireRule(
         old.version === input.expectedVersion,
         "VERSION_CONFLICT",
@@ -327,9 +355,9 @@ export class GroupService {
               organizationId: id,
               storeId: store.id,
               userId,
-              permissions: ["sell", "receive"],
+              permissions: ["sell"],
             },
-            update: { active: true, permissions: ["sell", "receive"] },
+            update: { active: true, permissions: ["sell"] },
           });
         else
           await tx.membership.updateMany({

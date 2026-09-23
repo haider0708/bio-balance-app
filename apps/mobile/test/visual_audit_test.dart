@@ -95,10 +95,19 @@ class AuditApi extends PreviewApi {
     ],
   });
   @override
+  Future<NotificationsInboxResponseDto> notificationsInbox({
+    String? cursor,
+  }) async => NotificationsInboxResponseDto.fromJson({
+    'items': (await notificationsList()).map((n) => n.toJson()).toList(),
+    'unreadCount': 1,
+    'nextCursor': null,
+    'accessKey': 'preview',
+  });
+  @override
   Future<List<NotificationDto>> notificationsList({String? before}) async => [
     NotificationDto.fromJson({
       'kind': 'announcement',
-      'audience': 'staff',
+      'audience': 'all',
       'id': 'notice',
       'organizationId': 'org',
       'storeId': 'store',

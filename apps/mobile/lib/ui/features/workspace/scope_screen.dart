@@ -15,6 +15,7 @@ import '../dashboard/attention_screen.dart';
 import '../dashboard/dashboard_view_model.dart';
 import '../inventory/inventory_screens.dart';
 import '../notifications/notifications_screen.dart';
+import '../notifications/notifications_view_model.dart';
 import '../replenishment/scoped_order_screen.dart';
 import '../replenishment/order_screens.dart';
 import '../rewards/rewards_screen.dart';
@@ -43,6 +44,9 @@ class ScopeScreen extends StatefulWidget {
 class _ScopeScreenState extends State<ScopeScreen> with WidgetsBindingObserver {
   late final workspace = context.read<WorkspaceViewModel>();
   late final scope = widget.model ?? (ScopeViewModel(workspace)..initialize());
+  late final inbox = NotificationsViewModel(workspace.inbox)
+    ..restore()
+    ..setActive(true);
   final dashboards = <String, DashboardViewModel>{};
   final periods = <String, DashboardPeriod>{};
   final buckets = <String, PageStorageBucket>{};
@@ -58,6 +62,7 @@ class _ScopeScreenState extends State<ScopeScreen> with WidgetsBindingObserver {
     for (final vm in dashboards.values) {
       vm.dispose();
     }
+    inbox.dispose();
     scope.dispose();
     super.dispose();
   }
@@ -65,6 +70,7 @@ class _ScopeScreenState extends State<ScopeScreen> with WidgetsBindingObserver {
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     workspace.setForeground(state == AppLifecycleState.resumed);
+    inbox.setActive(state == AppLifecycleState.resumed);
     if (state != AppLifecycleState.resumed) {
       unawaited(workspace.flushDrafts().catchError((Object _) {}));
     }
@@ -214,6 +220,8 @@ class _ScopeScreenState extends State<ScopeScreen> with WidgetsBindingObserver {
                   full: true,
                 ),
           onComparison: (id) => run(context, () => openComparison(id)),
+          onAlert: (alert) =>
+              run(context, () => openExactAlert(context, workspace, alert)),
           primaryAction: store != null && store.canSell
               ? FilledButton.icon(
                   onPressed: () => push(
@@ -295,11 +303,23 @@ class _ScopeScreenState extends State<ScopeScreen> with WidgetsBindingObserver {
               IconButton(
                 onPressed: () => push(
                   'Notifications',
-                  NotificationsScreen(vm: workspace),
+                  NotificationsScreen(vm: workspace, model: inbox),
                   full: true,
                 ),
                 tooltip: 'Notifications',
-                icon: const Icon(AppIcons.notificationsNone),
+                icon: ListenableBuilder(
+                  listenable: inbox,
+                  builder: (_, _) => Badge(
+                    isLabelVisible: inbox.unreadCount > 0,
+                    label: Text(
+                      inbox.unreadCount > 99 ? '99+' : '${inbox.unreadCount}',
+                    ),
+                    child: Semantics(
+                      label: '${inbox.unreadCount} notification(s) non lue(s)',
+                      child: const Icon(AppIcons.notificationsNone),
+                    ),
+                  ),
+                ),
               ),
               IconButton(
                 onPressed: menu,

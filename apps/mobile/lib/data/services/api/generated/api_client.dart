@@ -138,6 +138,21 @@ class ApiClient extends SessionTransport {
     );
   }
 
+  Future<DashboardAlertResponseDto> dashboardAlert({
+    required String groupId,
+    required String storeId,
+    required String id,
+  }) async {
+    final value = await request(
+      'GET',
+      '/v1/dashboards/groups/${Uri.encodeComponent(groupId)}/stores/${Uri.encodeComponent(storeId)}/alerts/${Uri.encodeComponent(id)}',
+      query: {},
+    );
+    return DashboardAlertResponseDto.fromJson(
+      Map<String, dynamic>.from(value as Map),
+    );
+  }
+
   Future<DashboardSalesResponseDto> dashboardSales({
     String? after,
     required String scope,
@@ -174,6 +189,36 @@ class ApiClient extends SessionTransport {
       query: {},
     );
     return DashboardOrderResponseDto.fromJson(
+      Map<String, dynamic>.from(value as Map),
+    );
+  }
+
+  Future<GroupImpactResponseDto> groupImpact({
+    String? storeId,
+    required String id,
+  }) async {
+    final value = await request(
+      'GET',
+      '/v1/groups/${Uri.encodeComponent(id)}/lifecycle',
+      query: {"storeId": ?storeId},
+    );
+    return GroupImpactResponseDto.fromJson(
+      Map<String, dynamic>.from(value as Map),
+    );
+  }
+
+  Future<GroupLifecycleResponseDto> groupLifecycle({
+    String? storeId,
+    required String id,
+    required GroupLifecycleRequestDto body,
+  }) async {
+    final value = await request(
+      'POST',
+      '/v1/groups/${Uri.encodeComponent(id)}/lifecycle',
+      body: body.toJson(),
+      query: {"storeId": ?storeId},
+    );
+    return GroupLifecycleResponseDto.fromJson(
       Map<String, dynamic>.from(value as Map),
     );
   }
@@ -685,6 +730,19 @@ class ApiClient extends SessionTransport {
         (item) =>
             NotificationDto.fromJson(Map<String, dynamic>.from(item as Map)),
       ),
+    );
+  }
+
+  Future<NotificationsInboxResponseDto> notificationsInbox({
+    String? cursor,
+  }) async {
+    final value = await request(
+      'GET',
+      '/v1/notification-inbox',
+      query: {"cursor": ?cursor},
+    );
+    return NotificationsInboxResponseDto.fromJson(
+      Map<String, dynamic>.from(value as Map),
     );
   }
 

@@ -1,6 +1,6 @@
 # BioBalance — operational refinement plan
 
-Status: proposed implementation plan following manual use of the three Android apps on 23 September 2026. The installed candidate is 1.1.6+10. This document does not mean that the new controls below are already implemented. Preserve the user's new groups, stores, sales, points, accounts and pending operations.
+Status: implementation and validation in progress after explicit approval. The release candidate is 1.1.7+11; the installed apps remain 1.1.6+10 until verification and installation. The user confirmed: implement first, then reset business data including groups/stores, keeping all four accounts, credentials/MFA and the 51-product catalog. No production reset has yet occurred.
 
 ## 1. Confirmed roles and scope
 

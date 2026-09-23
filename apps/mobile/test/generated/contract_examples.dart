@@ -35,6 +35,12 @@ Object? decodeResponse(
     );
     return decoded.toJson();
   })(),
+  "DashboardAlert" => (() {
+    final decoded = DashboardAlertResponseDto.fromJson(
+      Map<String, dynamic>.from(value as Map),
+    );
+    return decoded.toJson();
+  })(),
   "DashboardSales" => (() {
     final decoded = DashboardSalesResponseDto.fromJson(
       Map<String, dynamic>.from(value as Map),
@@ -43,6 +49,18 @@ Object? decodeResponse(
   })(),
   "DashboardOrder" => (() {
     final decoded = DashboardOrderResponseDto.fromJson(
+      Map<String, dynamic>.from(value as Map),
+    );
+    return decoded.toJson();
+  })(),
+  "GroupImpact" => (() {
+    final decoded = GroupImpactResponseDto.fromJson(
+      Map<String, dynamic>.from(value as Map),
+    );
+    return decoded.toJson();
+  })(),
+  "GroupLifecycle" => (() {
+    final decoded = GroupLifecycleResponseDto.fromJson(
       Map<String, dynamic>.from(value as Map),
     );
     return decoded.toJson();
@@ -276,6 +294,12 @@ Object? decodeResponse(
       ),
     );
     return decoded.map((item) => item.toJson()).toList();
+  })(),
+  "NotificationsInbox" => (() {
+    final decoded = NotificationsInboxResponseDto.fromJson(
+      Map<String, dynamic>.from(value as Map),
+    );
+    return decoded.toJson();
   })(),
   "NotificationsGet" => (() {
     final decoded = NotificationsGetResponseDto.fromJson(

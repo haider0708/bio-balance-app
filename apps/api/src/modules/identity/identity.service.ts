@@ -424,7 +424,7 @@ export class IdentityService {
           storeIds,
           permissions:
             input.kind === "salesperson"
-              ? ["sell", "receive"]
+              ? ["sell"]
               : ["manage", "sell", "receive"],
           createdBy: actor.id,
           expiresAt: new Date(Date.now() + 48 * 3600_000),
@@ -524,7 +524,7 @@ export class IdentityService {
         "Cette invitation n’est plus autorisée. Demandez une nouvelle invitation.",
       );
       const used = await tx.accessToken.updateMany({
-        where: { id: invite.id, usedAt: null },
+        where: { id: invite.id, usedAt: null, expiresAt: { gt: new Date() } },
         data: { usedAt: new Date() },
       });
       requireRule(
@@ -563,9 +563,9 @@ export class IdentityService {
               organizationId: invite.organizationId!,
               storeId,
               userId: user.id,
-              permissions: ["sell", "receive"],
+              permissions: ["sell"],
             },
-            update: { active: true, permissions: ["sell", "receive"] },
+            update: { active: true, permissions: ["sell"] },
           });
         }
       } else if (invite.storeId) {
@@ -583,9 +583,16 @@ export class IdentityService {
             organizationId: store.organizationId,
             storeId: store.id,
             userId: user.id,
-            permissions: invite.permissions,
+            permissions: invite.permissions.filter(
+              (p) => p !== "receive" || invite.permissions.includes("manage"),
+            ),
           },
-          update: { active: true, permissions: invite.permissions },
+          update: {
+            active: true,
+            permissions: invite.permissions.filter(
+              (p) => p !== "receive" || invite.permissions.includes("manage"),
+            ),
+          },
         });
       } else
         await tx.organizationMembership.upsert({
@@ -681,7 +688,7 @@ export class IdentityService {
         "Code invalide ou expiré.",
       );
       const used = await tx.accessToken.updateMany({
-        where: { id: reset.id, usedAt: null },
+        where: { id: reset.id, usedAt: null, expiresAt: { gt: new Date() } },
         data: { usedAt: new Date() },
       });
       requireRule(used.count === 1, "RESET_EXPIRED", "Code déjà utilisé.");

@@ -1,3 +1,4 @@
+import { lifecycleRequest } from "./lifecycle";
 import {
   Body,
   Controller,
@@ -18,6 +19,30 @@ import { GroupService } from "./group.service";
 @Controller("v1/groups")
 export class GroupController {
   constructor(private readonly service: GroupService) {}
+  @Get(":id/lifecycle") impact(
+    @Req() r: AuthRequest,
+    @Param("id") id: string,
+    @Query("storeId") storeId?: string,
+  ) {
+    return this.service.lifecycleImpact(
+      r.actor,
+      z.uuid().parse(id),
+      z.uuid().optional().parse(storeId),
+    );
+  }
+  @Post(":id/lifecycle") lifecycle(
+    @Req() r: AuthRequest,
+    @Param("id") id: string,
+    @Query("storeId") storeId: string | undefined,
+    @Body() b: unknown,
+  ) {
+    return this.service.lifecycle(
+      r.actor,
+      z.uuid().parse(id),
+      z.uuid().optional().parse(storeId),
+      lifecycleRequest.parse(b),
+    );
+  }
   @Get() list(@Req() r: AuthRequest, @Query() raw: unknown) {
     const q = groupListQuery.parse(raw);
     return this.service.list(r.actor, q.after, q.search);

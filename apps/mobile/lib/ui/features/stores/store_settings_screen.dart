@@ -6,6 +6,8 @@ import '../../core/design.dart';
 import '../../core/forms.dart';
 import '../media/image_input.dart';
 import '../workspace/workspace_view_model.dart';
+import '../workspace/lifecycle_screen.dart';
+import '../workspace/operation_helpers.dart';
 
 class StoreSettingsPage extends StatelessWidget {
   final WorkspaceViewModel vm;
@@ -26,12 +28,32 @@ class StoreSettingsPage extends StatelessWidget {
             store.name,
             subtitle: 'Coordonnées et image',
             action: FilledButton.icon(
-              onPressed: () =>
-                  edit(context, store, Map<String, dynamic>.from(saved)),
+              onPressed: saved['status'] == 'archived'
+                  ? null
+                  : () =>
+                        edit(context, store, Map<String, dynamic>.from(saved)),
               icon: const Icon(AppIcons.editOutlined),
               label: const Text('Modifier le magasin'),
             ),
           ),
+          if (vm.user.admin)
+            OutlinedButton(
+              onPressed: () => run(context, () async {
+                await manageLifecycle(
+                  context,
+                  vm,
+                  groupId: store.organizationId,
+                  storeId: store.id,
+                  name: store.name,
+                  version: integer(saved['version']),
+                  status: saved['status'] ?? 'active',
+                );
+                await vm.initialize();
+              }),
+              child: Text(
+                'Accès au magasin · ${statusLabel(saved['status'] ?? 'active')}',
+              ),
+            ),
           if (saved['imageId'] != null)
             ProtectedImage(vm: vm, id: saved['imageId'], height: 160),
           CompactRow(

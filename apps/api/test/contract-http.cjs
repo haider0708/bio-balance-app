@@ -542,6 +542,12 @@ const owner = new PrismaClient({
     await owner.job.update({where:{key:`export:${report.id}`},data:{status:"done"}});
     await call("GET", `/v1/report-exports/${report.id}`);
     await call("GET", `/v1/report-exports/${report.id}/file`);
+    await call("GET", "/v1/notification-inbox");
+    const exactAlert=await owner.alert.findFirstOrThrow({where:{organizationId:org,storeId:store}});
+    await call("GET", `/v1/dashboards/groups/${org}/stores/${store}/alerts/${exactAlert.id}`);
+    await call("GET", `/v1/groups/${org}/lifecycle`,{as:adminToken});
+    await call("POST", `/v1/groups/${org}/lifecycle`,{as:adminToken,body:{operationId:randomUUID(),expectedVersion:2,status:'suspended',reason:'Contract lifecycle check'}});
+    await call("POST", `/v1/groups/${org}/lifecycle`,{as:adminToken,body:{operationId:randomUUID(),expectedVersion:3,status:'active',reason:'Contract lifecycle restored'}});
     await call("POST", "/v1/identity/logout");
     const missing = routes
       .map((r) => r.spec.operationId)

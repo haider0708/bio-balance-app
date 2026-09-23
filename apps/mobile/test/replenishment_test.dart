@@ -175,8 +175,8 @@ void main() {
       await tester.ensureVisible(find.text('Aucune unité reçue'));
       await tester.tap(find.text('Aucune unité reçue'));
       await tester.pumpAndSettle();
-      await tester.ensureVisible(find.text('Confirmer la réception'));
-      await tester.tap(find.text('Confirmer la réception'));
+      await tester.ensureVisible(find.text('Signaler non reçue'));
+      await tester.tap(find.text('Signaler non reçue'));
       await tester.pumpAndSettle();
       expect(vm.submitted, isNull);
       expect(
@@ -185,8 +185,8 @@ void main() {
       );
       await tester.ensureVisible(find.byType(TextField));
       await tester.enterText(find.byType(TextField), 'Colis non arrivé');
-      await tester.ensureVisible(find.text('Confirmer la réception'));
-      await tester.tap(find.text('Confirmer la réception'));
+      await tester.ensureVisible(find.text('Signaler non reçue'));
+      await tester.tap(find.text('Signaler non reçue'));
       await tester.pumpAndSettle();
       expect(vm.submitted, isNull);
       await tester.tap(find.text('Annuler'));
@@ -198,9 +198,9 @@ void main() {
         'receipt:delivery',
       );
       expect(draft!['note'], 'Colis non arrivé');
-      await tester.tap(find.text('Confirmer la réception'));
+      await tester.tap(find.text('Signaler non reçue'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Confirmer zéro unité'));
+      await tester.tap(find.text('Signaler non reçue').last);
       await tester.pumpAndSettle();
       expect(vm.submitted, {
         'type': 'delivery.receive',

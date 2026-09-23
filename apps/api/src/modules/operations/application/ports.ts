@@ -9,6 +9,7 @@ import {
   OrderRecord,
   DeliveryRecord,
   OperationResult,
+  DeliveryIssueRecord,
 } from "../domain/contracts";
 import { FulfillmentLine } from "../domain/order-fulfillment";
 export interface Ledger {
@@ -41,6 +42,7 @@ export interface Ledger {
     sourceId: string,
     operationId: string,
     reason: string,
+    bucket?: "sellable" | "damaged",
   ): Promise<Lot>;
   move(
     lotId: string,
@@ -75,6 +77,9 @@ export interface Ledger {
   delivery(id: string): Promise<DeliveryRecord>;
   fulfillment(order: OrderRecord): Promise<FulfillmentLine[]>;
   saveDelivery(delivery: DeliveryRecord): Promise<void>;
+  issue(deliveryId: string): Promise<DeliveryIssueRecord | null>;
+  saveIssue(issue: DeliveryIssueRecord): Promise<void>;
+  hasIssues(orderId: string): Promise<boolean>;
   receipt(
     deliveryId: string,
     lines: unknown,
@@ -82,7 +87,12 @@ export interface Ledger {
     operationId: string,
   ): Promise<void>;
   alerts(productIds: string[]): Promise<void>;
-  notify(key: string, title: string, body: string): Promise<void>;
+  notify(
+    key: string,
+    title: string,
+    body: string,
+    target?: { type: string; id: string },
+  ): Promise<void>;
 }
 export abstract class UnitOfWork {
   abstract run<T>(

@@ -22,7 +22,10 @@ export class DashboardController {
       r.actor,
       dashboardQuery.parse(q),
       z.uuid().optional().parse(after),
-      z.enum(["preparation", "transit", "complete"]).optional().parse(phase),
+      z
+        .enum(["all", "preparation", "transit", "issues", "complete"])
+        .optional()
+        .parse(phase),
     );
   }
   @Get("attention") attention(
@@ -36,6 +39,19 @@ export class DashboardController {
       dashboardQuery.parse(q),
       z.enum(["low_stock", "expired", "deliveries", "rewards"]).parse(kind),
       z.uuid().optional().parse(after),
+    );
+  }
+  @Get("groups/:groupId/stores/:storeId/alerts/:id") alert(
+    @Req() r: AuthRequest,
+    @Param("groupId") groupId: string,
+    @Param("storeId") storeId: string,
+    @Param("id") id: string,
+  ) {
+    return this.service.alert(
+      r.actor,
+      z.uuid().parse(groupId),
+      z.uuid().parse(storeId),
+      z.uuid().parse(id),
     );
   }
   @Get("sales") sales(

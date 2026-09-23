@@ -193,6 +193,25 @@ const Map<String, Map<String, dynamic>> _schemas = {
       "id": {"type": "string", "format": "uuid"},
       "name": {"type": "string"},
       "createdAt": {"type": "string", "format": "date-time"},
+      "status": {"type": "string"},
+      "statusReason": {
+        "anyOf": [
+          {"type": "string"},
+          {"type": "null"},
+        ],
+      },
+      "statusChangedAt": {
+        "anyOf": [
+          {"type": "string", "format": "date-time"},
+          {"type": "null"},
+        ],
+      },
+      "statusChangedBy": {
+        "anyOf": [
+          {"type": "string", "format": "uuid"},
+          {"type": "null"},
+        ],
+      },
       "imageId": {
         "anyOf": [
           {"type": "string", "format": "uuid"},
@@ -236,6 +255,25 @@ const Map<String, Map<String, dynamic>> _schemas = {
       "noOpeningStock": {"type": "boolean"},
       "version": {"type": "integer"},
       "createdAt": {"type": "string", "format": "date-time"},
+      "status": {"type": "string"},
+      "statusReason": {
+        "anyOf": [
+          {"type": "string"},
+          {"type": "null"},
+        ],
+      },
+      "statusChangedAt": {
+        "anyOf": [
+          {"type": "string", "format": "date-time"},
+          {"type": "null"},
+        ],
+      },
+      "statusChangedBy": {
+        "anyOf": [
+          {"type": "string", "format": "uuid"},
+          {"type": "null"},
+        ],
+      },
     },
     "required": [
       "id",
@@ -287,6 +325,25 @@ const Map<String, Map<String, dynamic>> _schemas = {
           "type": "string",
           "enum": ["sell", "receive", "manage"],
         },
+      },
+      "status": {"type": "string"},
+      "statusReason": {
+        "anyOf": [
+          {"type": "string"},
+          {"type": "null"},
+        ],
+      },
+      "statusChangedAt": {
+        "anyOf": [
+          {"type": "string", "format": "date-time"},
+          {"type": "null"},
+        ],
+      },
+      "statusChangedBy": {
+        "anyOf": [
+          {"type": "string", "format": "uuid"},
+          {"type": "null"},
+        ],
       },
     },
     "required": [
@@ -810,6 +867,7 @@ const Map<String, Map<String, dynamic>> _schemas = {
   "FulfillmentLine": {
     "type": "object",
     "properties": {
+      "cancelled": {"type": "integer"},
       "productId": {"type": "string", "format": "uuid"},
       "ordered": {"type": "integer"},
       "received": {"type": "integer"},
@@ -846,6 +904,15 @@ const Map<String, Map<String, dynamic>> _schemas = {
         "items": {"\$ref": "#/components/schemas/FulfillmentLine"},
       },
       "storeName": {"type": "string"},
+      "openIssues": {"type": "integer"},
+      "requestedLines": {
+        "type": "array",
+        "items": {"\$ref": "#/components/schemas/OrderLine"},
+      },
+      "cancelledLines": {
+        "type": "array",
+        "items": {"\$ref": "#/components/schemas/OrderLine"},
+      },
     },
     "required": [
       "id",
@@ -923,6 +990,10 @@ const Map<String, Map<String, dynamic>> _schemas = {
       "batch": {"type": "string"},
       "expiry": {"type": "string"},
       "quantity": {"type": "integer"},
+      "condition": {
+        "type": "string",
+        "enum": ["sellable", "damaged", "refused"],
+      },
     },
     "required": ["productId", "batch", "expiry", "quantity"],
     "additionalProperties": false,
@@ -933,6 +1004,9 @@ const Map<String, Map<String, dynamic>> _schemas = {
       "productId": {"type": "string", "format": "uuid"},
       "expected": {"type": "integer"},
       "actual": {"type": "integer"},
+      "damaged": {"type": "integer"},
+      "refused": {"type": "integer"},
+      "surplus": {"type": "integer"},
     },
     "required": ["productId", "expected", "actual"],
     "additionalProperties": false,
@@ -1100,9 +1174,40 @@ const Map<String, Map<String, dynamic>> _schemas = {
     ],
     "additionalProperties": false,
   },
+  "NotificationInbox": {
+    "type": "object",
+    "properties": {
+      "items": {
+        "type": "array",
+        "items": {"\$ref": "#/components/schemas/Notification"},
+      },
+      "unreadCount": {"type": "integer"},
+      "accessKey": {"type": "string"},
+      "nextCursor": {
+        "anyOf": [
+          {"type": "string"},
+          {"type": "null"},
+        ],
+      },
+    },
+    "required": ["items", "unreadCount", "accessKey", "nextCursor"],
+    "additionalProperties": false,
+  },
   "Notification": {
     "type": "object",
     "properties": {
+      "targetType": {
+        "anyOf": [
+          {"type": "string"},
+          {"type": "null"},
+        ],
+      },
+      "targetId": {
+        "anyOf": [
+          {"type": "string", "format": "uuid"},
+          {"type": "null"},
+        ],
+      },
       "kind": {
         "enum": ["operational", "announcement"],
         "type": "string",
@@ -1642,6 +1747,55 @@ const Map<String, Map<String, dynamic>> _schemas = {
     ],
     "additionalProperties": false,
   },
+  "AlertDetails": {
+    "type": "object",
+    "properties": {
+      "id": {"type": "string", "format": "uuid"},
+      "organizationId": {"type": "string", "format": "uuid"},
+      "storeId": {"type": "string", "format": "uuid"},
+      "productId": {
+        "anyOf": [
+          {"type": "string", "format": "uuid"},
+          {"type": "null"},
+        ],
+      },
+      "kind": {"type": "string"},
+      "key": {"type": "string"},
+      "message": {"type": "string"},
+      "active": {"type": "boolean"},
+      "createdAt": {"type": "string", "format": "date-time"},
+      "resolvedAt": {
+        "anyOf": [
+          {"type": "string", "format": "date-time"},
+          {"type": "null"},
+        ],
+      },
+      "storeName": {"type": "string"},
+      "groupName": {"type": "string"},
+      "orderId": {
+        "anyOf": [
+          {"type": "string", "format": "uuid"},
+          {"type": "null"},
+        ],
+      },
+    },
+    "required": [
+      "id",
+      "organizationId",
+      "storeId",
+      "productId",
+      "kind",
+      "key",
+      "message",
+      "active",
+      "createdAt",
+      "resolvedAt",
+      "storeName",
+      "groupName",
+      "orderId",
+    ],
+    "additionalProperties": false,
+  },
   "AttentionPage": {
     "type": "object",
     "properties": {
@@ -1746,6 +1900,25 @@ const Map<String, Map<String, dynamic>> _schemas = {
         ],
       },
       "version": {"type": "integer"},
+      "status": {"type": "string"},
+      "statusReason": {
+        "anyOf": [
+          {"type": "string"},
+          {"type": "null"},
+        ],
+      },
+      "statusChangedAt": {
+        "anyOf": [
+          {"type": "string", "format": "date-time"},
+          {"type": "null"},
+        ],
+      },
+      "statusChangedBy": {
+        "anyOf": [
+          {"type": "string", "format": "uuid"},
+          {"type": "null"},
+        ],
+      },
     },
     "required": ["id", "name", "createdAt", "imageId", "phone", "version"],
     "additionalProperties": false,
@@ -1769,6 +1942,25 @@ const Map<String, Map<String, dynamic>> _schemas = {
         ],
       },
       "version": {"type": "integer"},
+      "status": {"type": "string"},
+      "statusReason": {
+        "anyOf": [
+          {"type": "string"},
+          {"type": "null"},
+        ],
+      },
+      "statusChangedAt": {
+        "anyOf": [
+          {"type": "string", "format": "date-time"},
+          {"type": "null"},
+        ],
+      },
+      "statusChangedBy": {
+        "anyOf": [
+          {"type": "string", "format": "uuid"},
+          {"type": "null"},
+        ],
+      },
       "canManage": {"type": "boolean"},
       "storeCount": {"type": "integer"},
     },
@@ -1914,9 +2106,82 @@ const Map<String, Map<String, dynamic>> _schemas = {
     ],
     "additionalProperties": false,
   },
+  "DeliveryIssue": {
+    "type": "object",
+    "properties": {
+      "id": {"type": "string", "format": "uuid"},
+      "organizationId": {"type": "string", "format": "uuid"},
+      "storeId": {"type": "string", "format": "uuid"},
+      "deliveryId": {"type": "string", "format": "uuid"},
+      "orderId": {"type": "string", "format": "uuid"},
+      "status": {"type": "string"},
+      "reason": {"type": "string"},
+      "heldLines": {
+        "type": "array",
+        "items": {"\$ref": "#/components/schemas/DeliveryIssueHeldLinesItem"},
+      },
+      "resolution": {
+        "anyOf": [
+          {"type": "string"},
+          {"type": "null"},
+        ],
+      },
+      "resolutionNote": {
+        "anyOf": [
+          {"type": "string"},
+          {"type": "null"},
+        ],
+      },
+      "reportedBy": {"type": "string", "format": "uuid"},
+      "resolvedBy": {
+        "anyOf": [
+          {"type": "string", "format": "uuid"},
+          {"type": "null"},
+        ],
+      },
+      "createdAt": {"type": "string", "format": "date-time"},
+      "resolvedAt": {
+        "anyOf": [
+          {"type": "string", "format": "date-time"},
+          {"type": "null"},
+        ],
+      },
+      "version": {"type": "integer"},
+    },
+    "required": [
+      "id",
+      "organizationId",
+      "storeId",
+      "deliveryId",
+      "orderId",
+      "status",
+      "reason",
+      "heldLines",
+      "resolution",
+      "resolutionNote",
+      "reportedBy",
+      "resolvedBy",
+      "createdAt",
+      "resolvedAt",
+      "version",
+    ],
+    "additionalProperties": false,
+  },
   "ScopedOrder": {
     "type": "object",
     "properties": {
+      "requestedLines": {
+        "type": "array",
+        "items": {
+          "\$ref": "#/components/schemas/ScopedOrderRequestedLinesItem",
+        },
+      },
+      "cancelledLines": {
+        "type": "array",
+        "items": {
+          "\$ref": "#/components/schemas/ScopedOrderCancelledLinesItem",
+        },
+      },
       "id": {"type": "string", "format": "uuid"},
       "organizationId": {"type": "string", "format": "uuid"},
       "storeId": {"type": "string", "format": "uuid"},
@@ -1966,6 +2231,16 @@ const Map<String, Map<String, dynamic>> _schemas = {
     "type": "object",
     "properties": {
       "order": {"\$ref": "#/components/schemas/ScopedOrder"},
+      "issues": {
+        "type": "array",
+        "items": {"\$ref": "#/components/schemas/DeliveryIssue"},
+      },
+      "history": {
+        "type": "array",
+        "items": {
+          "\$ref": "#/components/schemas/ScopedOrderDetailsHistoryItem",
+        },
+      },
       "deliveries": {
         "type": "array",
         "items": {"\$ref": "#/components/schemas/Delivery"},
@@ -1992,6 +2267,10 @@ const Map<String, Map<String, dynamic>> _schemas = {
       {"\$ref": "#/components/schemas/CommandStockDamage"},
       {"\$ref": "#/components/schemas/CommandOrderCreate"},
       {"\$ref": "#/components/schemas/CommandOrderPrepare"},
+      {"\$ref": "#/components/schemas/CommandOrderAmend"},
+      {"\$ref": "#/components/schemas/CommandOrderCancel"},
+      {"\$ref": "#/components/schemas/CommandDeliveryReport"},
+      {"\$ref": "#/components/schemas/CommandDeliveryResolve"},
       {"\$ref": "#/components/schemas/CommandDeliveryDispatch"},
       {"\$ref": "#/components/schemas/CommandDeliveryReceive"},
       {"\$ref": "#/components/schemas/CommandRewardRequest"},
@@ -2083,9 +2362,45 @@ const Map<String, Map<String, dynamic>> _schemas = {
   "DashboardGetResponse": {"\$ref": "#/components/schemas/Dashboard"},
   "DashboardOrdersResponse": {"\$ref": "#/components/schemas/OrderPage"},
   "DashboardAttentionResponse": {"\$ref": "#/components/schemas/AttentionPage"},
+  "DashboardAlertResponse": {"\$ref": "#/components/schemas/AlertDetails"},
   "DashboardSalesResponse": {"\$ref": "#/components/schemas/DashboardSalePage"},
   "DashboardOrderResponse": {
     "\$ref": "#/components/schemas/ScopedOrderDetails",
+  },
+  "GroupImpactResponse": {
+    "type": "object",
+    "properties": {
+      "orders": {"type": "integer"},
+      "deliveries": {"type": "integer"},
+      "rewards": {"type": "integer"},
+      "issues": {"type": "integer"},
+      "stockLots": {"type": "integer"},
+    },
+    "required": ["orders", "deliveries", "rewards", "issues", "stockLots"],
+    "additionalProperties": false,
+  },
+  "GroupLifecycleResponse": {"\$ref": "#/components/schemas/Ok"},
+  "GroupLifecycleRequest": {
+    "type": "object",
+    "properties": {
+      "operationId": {
+        "type": "string",
+        "format": "uuid",
+        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)\$",
+      },
+      "expectedVersion": {
+        "type": "integer",
+        "exclusiveMinimum": 0,
+        "maximum": 9007199254740991,
+      },
+      "status": {
+        "type": "string",
+        "enum": ["active", "suspended", "archived"],
+      },
+      "reason": {"type": "string", "minLength": 3, "maxLength": 500},
+    },
+    "required": ["operationId", "expectedVersion", "status", "reason"],
+    "additionalProperties": false,
   },
   "GroupListResponse": {"\$ref": "#/components/schemas/GroupPage"},
   "GroupCreateResponse": {"\$ref": "#/components/schemas/Group"},
@@ -2514,6 +2829,9 @@ const Map<String, Map<String, dynamic>> _schemas = {
   "NotificationsListResponse": {
     "type": "array",
     "items": {"\$ref": "#/components/schemas/Notification"},
+  },
+  "NotificationsInboxResponse": {
+    "\$ref": "#/components/schemas/NotificationInbox",
   },
   "NotificationsGetResponse": {"\$ref": "#/components/schemas/Notification"},
   "NotificationsReadResponse": {"\$ref": "#/components/schemas/Count"},
@@ -3155,6 +3473,33 @@ const Map<String, Map<String, dynamic>> _schemas = {
     ],
     "additionalProperties": false,
   },
+  "DeliveryIssueHeldLinesItem": {
+    "type": "object",
+    "properties": {
+      "productId": {"type": "string", "format": "uuid"},
+      "quantity": {"type": "integer"},
+    },
+    "required": ["productId", "quantity"],
+    "additionalProperties": false,
+  },
+  "ScopedOrderRequestedLinesItem": {
+    "type": "object",
+    "properties": {
+      "productId": {"type": "string", "format": "uuid"},
+      "quantity": {"type": "integer"},
+    },
+    "required": ["productId", "quantity"],
+    "additionalProperties": false,
+  },
+  "ScopedOrderCancelledLinesItem": {
+    "type": "object",
+    "properties": {
+      "productId": {"type": "string", "format": "uuid"},
+      "quantity": {"type": "integer"},
+    },
+    "required": ["productId", "quantity"],
+    "additionalProperties": false,
+  },
   "ScopedOrderLinesItem": {
     "type": "object",
     "properties": {
@@ -3162,6 +3507,18 @@ const Map<String, Map<String, dynamic>> _schemas = {
       "quantity": {"type": "integer"},
     },
     "required": ["productId", "quantity"],
+    "additionalProperties": false,
+  },
+  "ScopedOrderDetailsHistoryItem": {
+    "type": "object",
+    "properties": {
+      "id": {"type": "string", "format": "uuid"},
+      "action": {"type": "string"},
+      "actorId": {"type": "string", "format": "uuid"},
+      "createdAt": {"type": "string", "format": "date-time"},
+      "details": {"\$ref": "#/components/schemas/JsonValue"},
+    },
+    "required": ["id", "action", "actorId", "createdAt", "details"],
     "additionalProperties": false,
   },
   "CommandSaleCreate": {
@@ -3327,6 +3684,72 @@ const Map<String, Map<String, dynamic>> _schemas = {
       },
     },
     "required": ["type", "orderId"],
+    "additionalProperties": false,
+  },
+  "CommandOrderAmend": {
+    "type": "object",
+    "properties": {
+      "type": {"type": "string", "const": "order.amend"},
+      "orderId": {
+        "type": "string",
+        "format": "uuid",
+        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)\$",
+      },
+      "lines": {
+        "minItems": 1,
+        "maxItems": 200,
+        "type": "array",
+        "items": {"\$ref": "#/components/schemas/CommandOrderAmendLinesItem"},
+      },
+      "reason": {"type": "string", "minLength": 3, "maxLength": 500},
+    },
+    "required": ["type", "orderId", "lines", "reason"],
+    "additionalProperties": false,
+  },
+  "CommandOrderCancel": {
+    "type": "object",
+    "properties": {
+      "type": {"type": "string", "const": "order.cancel"},
+      "orderId": {
+        "type": "string",
+        "format": "uuid",
+        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)\$",
+      },
+      "reason": {"type": "string", "minLength": 3, "maxLength": 500},
+    },
+    "required": ["type", "orderId", "reason"],
+    "additionalProperties": false,
+  },
+  "CommandDeliveryReport": {
+    "type": "object",
+    "properties": {
+      "type": {"type": "string", "const": "delivery.report"},
+      "deliveryId": {
+        "type": "string",
+        "format": "uuid",
+        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)\$",
+      },
+      "reason": {"type": "string", "minLength": 3, "maxLength": 500},
+    },
+    "required": ["type", "deliveryId", "reason"],
+    "additionalProperties": false,
+  },
+  "CommandDeliveryResolve": {
+    "type": "object",
+    "properties": {
+      "type": {"type": "string", "const": "delivery.resolve"},
+      "deliveryId": {
+        "type": "string",
+        "format": "uuid",
+        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)\$",
+      },
+      "decision": {
+        "type": "string",
+        "enum": ["tracing", "lost", "returned", "settled"],
+      },
+      "reason": {"type": "string", "minLength": 3, "maxLength": 500},
+    },
+    "required": ["type", "deliveryId", "decision", "reason"],
     "additionalProperties": false,
   },
   "CommandDeliveryDispatch": {
@@ -3624,6 +4047,19 @@ const Map<String, Map<String, dynamic>> _schemas = {
     "required": ["productId", "quantity"],
     "additionalProperties": false,
   },
+  "CommandOrderAmendLinesItem": {
+    "type": "object",
+    "properties": {
+      "productId": {
+        "type": "string",
+        "format": "uuid",
+        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)\$",
+      },
+      "quantity": {"type": "integer", "minimum": 1, "maximum": 1000000},
+    },
+    "required": ["productId", "quantity"],
+    "additionalProperties": false,
+  },
   "CommandDeliveryDispatchLinesItem": {
     "type": "object",
     "properties": {
@@ -3648,6 +4084,10 @@ const Map<String, Map<String, dynamic>> _schemas = {
       "batch": {"type": "string", "minLength": 1, "maxLength": 100},
       "expiry": {"type": "string", "maxLength": 10},
       "quantity": {"type": "integer", "minimum": 1, "maximum": 1000000},
+      "condition": {
+        "type": "string",
+        "enum": ["sellable", "damaged", "refused"],
+      },
     },
     "required": ["productId", "batch", "expiry", "quantity"],
     "additionalProperties": false,

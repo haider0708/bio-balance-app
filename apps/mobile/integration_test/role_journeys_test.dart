@@ -450,7 +450,7 @@ void main() {
     expect(find.text('Mettre en préparation'), findsOneWidget);
     await j.tap('Mettre en préparation');
     await j.ready();
-    await j.tap('Préparer une livraison');
+    await j.tap('Expédier une livraison');
     await j.tapKey('editor.save');
     await j.until(
       () => j.key('editor.save').evaluate().isEmpty,
@@ -458,11 +458,8 @@ void main() {
     );
     await j.ready();
     await j.logout();
-    debugPrint(
-      'JOURNEY: seller activation, delivery, sale, correction and return',
-    );
-    await j.activate('${(await state())['sellerCode']}', 'Vendeur parcours');
-    await j.login(seller);
+    debugPrint('JOURNEY: responsible person confirms physical reception');
+    await j.login(manager);
     await j.tap('Livraisons à réceptionner');
     final deliveryText = find.textContaining('Livraison ');
     await j.seek(deliveryText);
@@ -470,6 +467,11 @@ void main() {
     await tester.pumpAndSettle();
     await j.receipt('DELIVERY', '5');
     await j.back();
+    await j.logout();
+    debugPrint('JOURNEY: seller activation, sale, correction and return');
+    await j.activate('${(await state())['sellerCode']}', 'Vendeur parcours');
+    await j.login(seller);
+    expect(find.text('Livraisons à réceptionner'), findsNothing);
     await j.tap('Nouvelle vente');
     await j.tap('Rechercher');
     await j.chooseSaleProduct(product);

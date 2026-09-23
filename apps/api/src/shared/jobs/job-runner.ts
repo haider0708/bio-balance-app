@@ -130,7 +130,10 @@ export async function scheduleInventoryChecks(db: Database, now = new Date()) {
   let after: string | undefined;
   do {
     const stores = await db.store.findMany({
-      where: after ? { id: { gt: after } } : {},
+      where: {
+        status: { not: "archived" },
+        ...(after ? { id: { gt: after } } : {}),
+      },
       select: { id: true, organizationId: true },
       orderBy: { id: "asc" },
       take: 500,

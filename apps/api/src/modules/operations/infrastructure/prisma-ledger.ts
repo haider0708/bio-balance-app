@@ -1,3 +1,4 @@
+import { DeliveryIssueRecord } from "../domain/contracts";
 import { orderFulfillment } from "./order-fulfillment-query";
 import { createHash, randomUUID } from "node:crypto";
 import { Prisma } from "@prisma/client";
@@ -86,6 +87,24 @@ export class PrismaLedger implements Ledger {
     entityId: string,
     details: unknown,
   ) {
+    const targetType = entity.split(".")[0];
+    if (["order", "delivery", "reward", "sale"].includes(targetType!)) {
+      const targetId =
+        targetType === "delivery"
+          ? (
+              await this.tx.delivery.findUniqueOrThrow({
+                where: { id: entityId },
+              })
+            ).orderId
+          : entityId;
+      await this.tx.notification.updateMany({
+        where: { ...this.context, eventKey: id },
+        data: {
+          targetType: targetType === "delivery" ? "order" : targetType,
+          targetId,
+        },
+      });
+    }
     await this.tx.auditEntry.create({
       data: {
         ...this.context,
@@ -232,6 +251,7 @@ export class PrismaLedger implements Ledger {
     sourceId: string,
     operationId: string,
     reason: string,
+    bucket: "sellable" | "damaged" = "sellable",
   ) {
     await this.rate(productId);
     const date = new Date(`${expiry}T00:00:00Z`);
@@ -253,7 +273,7 @@ export class PrismaLedger implements Ledger {
       },
       update: {},
     });
-    await this.move(lot.id, quantity, sourceId, operationId, reason);
+    await this.move(lot.id, quantity, sourceId, operationId, reason, bucket);
     return this.lot(lot.id);
   }
   async move(
@@ -420,10 +440,20 @@ export class PrismaLedger implements Ledger {
       where: { ...this.context, id },
     });
     requireRule(item, "NOT_FOUND", "Commande introuvable.", 404);
-    return { ...item, lines: item.lines as OrderRecord["lines"] };
+    return {
+      ...item,
+      lines: item.lines as OrderRecord["lines"],
+      requestedLines: item.requestedLines as OrderRecord["lines"],
+      cancelledLines: item.cancelledLines as OrderRecord["lines"],
+    };
   }
   async saveOrder(value: OrderRecord) {
-    const data = { ...value, lines: json(value.lines) };
+    const data = {
+      ...value,
+      lines: json(value.lines),
+      requestedLines: json(value.requestedLines ?? value.lines),
+      cancelledLines: json(value.cancelledLines ?? []),
+    };
     if (value.version === 1)
       await this.tx.replenishmentOrder.create({
         data: { ...data, ...this.context, createdBy: this.scope.actor.id },
@@ -457,8 +487,70 @@ export class PrismaLedger implements Ledger {
     else
       await this.tx.delivery.update({
         where: { id: value.id },
-        data: { ...data, receivedAt: new Date() },
+        data: {
+          ...data,
+          ...(value.status === "received" &&
+          !(
+            await this.tx.delivery.findUniqueOrThrow({
+              where: { id: value.id },
+            })
+          ).receivedAt
+            ? { receivedAt: new Date() }
+            : {}),
+        },
       });
+  }
+  async issue(deliveryId: string): Promise<DeliveryIssueRecord | null> {
+    const row = await this.tx.deliveryIssue.findFirst({
+      where: { ...this.context, deliveryId },
+    });
+    return row
+      ? { ...row, heldLines: row.heldLines as DeliveryIssueRecord["heldLines"] }
+      : null;
+  }
+  async hasIssues(orderId: string) {
+    return (
+      (await this.tx.deliveryIssue.count({
+        where: { ...this.context, orderId, status: { not: "resolved" } },
+      })) > 0
+    );
+  }
+  async saveIssue(issue: DeliveryIssueRecord) {
+    const data = { ...issue, heldLines: json(issue.heldLines) };
+    if (issue.version === 1)
+      await this.tx.deliveryIssue.create({
+        data: { ...data, ...this.context, reportedBy: this.scope.actor.id },
+      });
+    else
+      await this.tx.deliveryIssue.update({
+        where: { id: issue.id },
+        data: {
+          ...data,
+          ...(issue.status === "resolved"
+            ? { resolvedBy: this.scope.actor.id, resolvedAt: new Date() }
+            : {}),
+        },
+      });
+    await this.tx.alert.upsert({
+      where: {
+        storeId_key: {
+          storeId: this.scope.storeId,
+          key: `delivery:${issue.deliveryId}`,
+        },
+      },
+      create: {
+        ...this.context,
+        kind: "delivery_issue",
+        key: `delivery:${issue.deliveryId}`,
+        message: issue.reason,
+        active: issue.status !== "resolved",
+      },
+      update: {
+        message: issue.reason,
+        active: issue.status !== "resolved",
+        resolvedAt: issue.status === "resolved" ? new Date() : null,
+      },
+    });
   }
   async receipt(
     deliveryId: string,
@@ -571,6 +663,7 @@ export class PrismaLedger implements Ledger {
             `${alert.id}:${alert.createdAt.toISOString()}`,
             message,
             "Consultez le stock du magasin.",
+            { type: "alert", id: alert.id },
           );
         }
         if (!active && old?.active)
@@ -581,7 +674,12 @@ export class PrismaLedger implements Ledger {
       }
     }
   }
-  async notify(key: string, title: string, body: string) {
+  async notify(
+    key: string,
+    title: string,
+    body: string,
+    target?: { type: string; id: string },
+  ) {
     const members = await this.tx.membership.findMany({
       where: {
         ...this.context,
@@ -608,7 +706,15 @@ export class PrismaLedger implements Ledger {
     for (const { id: userId } of enabled) {
       await this.tx.notification.upsert({
         where: { userId_eventKey: { userId, eventKey: key } },
-        create: { ...this.context, userId, eventKey: key, title, body },
+        create: {
+          ...this.context,
+          userId,
+          eventKey: key,
+          title,
+          body,
+          targetType: target?.type,
+          targetId: target?.id,
+        },
         update: {},
       });
     }

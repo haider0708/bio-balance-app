@@ -9,7 +9,6 @@ import 'package:biobalance/domain/models/models.dart';
 import 'package:biobalance/domain/synchronization/sync_summary.dart';
 import 'package:biobalance/ui/core/design.dart';
 import 'package:biobalance/ui/core/forms.dart';
-import 'package:biobalance/ui/features/dashboard/attention_screen.dart';
 import 'package:biobalance/ui/features/workspace/scope_view_model.dart';
 import 'package:biobalance/domain/models/workspace_scope.dart';
 import 'package:biobalance/ui/features/catalog/catalog_screen.dart';
@@ -29,6 +28,15 @@ class PreviewApi extends ApiClient {
   PreviewApi() : super(baseUrl: 'http://unused') {
     authenticate('preview', accountId: 'user');
   }
+  @override
+  Future<NotificationsInboxResponseDto> notificationsInbox({
+    String? cursor,
+  }) async => NotificationsInboxResponseDto.fromJson({
+    'items': [],
+    'unreadCount': 0,
+    'nextCursor': null,
+    'accessKey': 'preview',
+  });
   Json Function()? team;
   @override
   Future<GroupTeamResponseDto> groupTeam({required String id}) async =>
@@ -446,7 +454,7 @@ void main() {
   );
 
   testWidgets(
-    'receive-only staff see reception without sale or order actions',
+    'legacy receive-only staff cannot access reception or management',
     (t) async {
       final f = RoleFixture('salesperson');
       final store = Store.fromJson({
@@ -461,17 +469,8 @@ void main() {
       await t.pumpWidget(f.app(f.home(storeView: true)));
       await t.pumpAndSettle();
       expect(find.text('Nouvelle vente'), findsNothing);
-      final receive = find.text('Livraisons à réceptionner');
-      await t.scrollUntilVisible(
-        receive,
-        180,
-        scrollable: find.byType(Scrollable).last,
-      );
-      expect(receive, findsOneWidget);
+      expect(find.text('Livraisons à réceptionner'), findsNothing);
       expect(find.text('Alertes de stock'), findsNothing);
-      await t.tap(receive);
-      await t.pumpAndSettle();
-      expect(find.byType(AttentionScreen), findsOneWidget);
       expect(find.text('Commander'), findsNothing);
       await t.pumpWidget(const SizedBox());
       await f.close();

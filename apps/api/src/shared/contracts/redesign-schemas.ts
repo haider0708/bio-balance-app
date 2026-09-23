@@ -19,8 +19,27 @@ const group = {
   imageId: nullable(uuid),
   phone: nullable(str),
   version: integer,
+  status: str,
+  statusReason: nullable(str),
+  statusChangedAt: nullable(timestamp),
+  statusChangedBy: nullable(uuid),
 };
 export const redesignSchemas: Record<string, Schema> = {
+  AlertDetails: obj({
+    id: uuid,
+    organizationId: uuid,
+    storeId: uuid,
+    productId: nullable(uuid),
+    kind: str,
+    key: str,
+    message: str,
+    active: bool,
+    createdAt: timestamp,
+    resolvedAt: nullable(timestamp),
+    storeName: str,
+    groupName: str,
+    orderId: nullable(uuid),
+  }),
   AttentionPage: obj({
     items: arr(
       obj({
@@ -151,7 +170,26 @@ export const redesignSchemas: Record<string, Schema> = {
       }),
     ),
   }),
+  DeliveryIssue: obj({
+    id: uuid,
+    organizationId: uuid,
+    storeId: uuid,
+    deliveryId: uuid,
+    orderId: uuid,
+    status: str,
+    reason: str,
+    heldLines: arr(obj({ productId: uuid, quantity: integer })),
+    resolution: nullable(str),
+    resolutionNote: nullable(str),
+    reportedBy: uuid,
+    resolvedBy: nullable(uuid),
+    createdAt: timestamp,
+    resolvedAt: nullable(timestamp),
+    version: integer,
+  }),
   ScopedOrder: obj({
+    requestedLines: arr(obj({ productId: uuid, quantity: integer })),
+    cancelledLines: arr(obj({ productId: uuid, quantity: integer })),
     id: uuid,
     organizationId: uuid,
     storeId: uuid,
@@ -170,6 +208,16 @@ export const redesignSchemas: Record<string, Schema> = {
   ScopedOrderDetails: obj(
     {
       order: ref("ScopedOrder"),
+      issues: arr(ref("DeliveryIssue")),
+      history: arr(
+        obj({
+          id: uuid,
+          action: str,
+          actorId: uuid,
+          createdAt: timestamp,
+          details: ref("JsonValue"),
+        }),
+      ),
       deliveries: arr(ref("Delivery")),
       receipts: arr(ref("DeliveryReceipt")),
       fulfillment: arr(ref("FulfillmentLine")),
@@ -178,6 +226,18 @@ export const redesignSchemas: Record<string, Schema> = {
   ),
 };
 export function extendLegacySchemas(schemas: Record<string, Schema>) {
+  Object.assign(schemas.Order!.properties, {
+    openIssues: integer,
+    requestedLines: arr(ref("OrderLine")),
+    cancelledLines: arr(ref("OrderLine")),
+  });
+  for (const name of ["Organization", "Store", "StoreAccess"])
+    Object.assign(schemas[name]!.properties, {
+      status: str,
+      statusReason: nullable(str),
+      statusChangedAt: nullable(timestamp),
+      statusChangedBy: nullable(uuid),
+    });
   Object.assign(schemas.Organization!.properties, {
     imageId: nullable(uuid),
     phone: nullable(str),

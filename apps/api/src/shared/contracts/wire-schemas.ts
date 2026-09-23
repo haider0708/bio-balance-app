@@ -224,6 +224,7 @@ export const wireSchemas: Record<string, Schema> = {
   }),
   OrderLine: obj({ productId: uuid, quantity: integer }),
   FulfillmentLine: obj({
+    cancelled: integer,
     productId: uuid,
     ordered: integer,
     received: integer,
@@ -267,17 +268,27 @@ export const wireSchemas: Record<string, Schema> = {
     dispatchedAt: timestamp,
     receivedAt: nullable(timestamp),
   }),
-  ReceiptLine: obj({
-    productId: uuid,
-    batch: str,
-    expiry: str,
-    quantity: integer,
-  }),
-  DeliveryDifference: obj({
-    productId: uuid,
-    expected: integer,
-    actual: integer,
-  }),
+  ReceiptLine: obj(
+    {
+      productId: uuid,
+      batch: str,
+      expiry: str,
+      quantity: integer,
+      condition: { type: "string", enum: ["sellable", "damaged", "refused"] },
+    },
+    ["productId", "batch", "expiry", "quantity"],
+  ),
+  DeliveryDifference: obj(
+    {
+      productId: uuid,
+      expected: integer,
+      actual: integer,
+      damaged: integer,
+      refused: integer,
+      surplus: integer,
+    },
+    ["productId", "expected", "actual"],
+  ),
   DeliveryDifferences: obj({
     lines: arr(ref("DeliveryDifference")),
     note: str,
@@ -338,7 +349,15 @@ export const wireSchemas: Record<string, Schema> = {
     details: ref("JsonValue"),
     createdAt: timestamp,
   }),
+  NotificationInbox: obj({
+    items: arr(ref("Notification")),
+    unreadCount: integer,
+    accessKey: str,
+    nextCursor: nullable(str),
+  }),
   Notification: obj({
+    targetType: nullable(str),
+    targetId: nullable(uuid),
     kind: { enum: ["operational", "announcement"], type: "string" },
     audience: { enum: ["managers", "all", "salespeople"], type: "string" },
     id: uuid,

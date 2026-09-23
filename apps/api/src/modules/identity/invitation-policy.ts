@@ -15,7 +15,7 @@ export async function invitationIsAuthorized(
   const organization = await tx.organization.findUnique({
     where: { id: invitation.organizationId },
   });
-  if (!organization) return false;
+  if (!organization || organization.status !== "active") return false;
   if (invitation.kind === "responsible" || invitation.kind === "salesperson") {
     if (
       invitation.kind === "salesperson" &&
@@ -24,6 +24,7 @@ export async function invitationIsAuthorized(
           where: {
             id: { in: invitation.storeIds },
             organizationId: invitation.organizationId,
+            status: "active",
           },
         })) !== invitation.storeIds.length)
     )
@@ -43,7 +44,11 @@ export async function invitationIsAuthorized(
   const store = await tx.store.findUnique({
     where: { id: invitation.storeId },
   });
-  if (!store || store.organizationId !== invitation.organizationId)
+  if (
+    !store ||
+    store.status !== "active" ||
+    store.organizationId !== invitation.organizationId
+  )
     return false;
   if (issuer.platformAdmin) return true;
   const owner = await tx.organizationMembership.findUnique({

@@ -1090,6 +1090,7 @@ describe.sequential(
         {
           productId: product,
           ordered: 10,
+          cancelled: 0,
           received: 0,
           inTransit: 10,
           remainingToDispatch: 0,
@@ -1108,7 +1109,7 @@ describe.sequential(
         1,
       );
       const outcomes = await Promise.all([
-        service.submit(seller, receipt),
+        service.submit(actor, receipt),
         service.submit(actor, { ...receipt, operationId: randomUUID() }),
       ]);
       expect(outcomes.filter((r) => r.status === "accepted")).toHaveLength(1);
@@ -1127,18 +1128,37 @@ describe.sequential(
         (await workspace.fulfillment(admin, org, store, orderId)).lines[0],
       ).toMatchObject({
         received: 8,
-        inTransit: 0,
-        remainingToDispatch: 2,
+        inTransit: 2,
+        remainingToDispatch: 0,
         remainingToReceive: 2,
       });
       const snapshot = await workspace.snapshot(actor, org, store);
       expect(
         snapshot.orders.find((o) => o.id === orderId)?.fulfillment?.[0]
           .remainingToDispatch,
-      ).toBe(2);
+      ).toBe(0);
       await expect(
         workspace.fulfillment(foreign, org, store, orderId),
       ).rejects.toThrow();
+      expect(
+        (
+          await service.submit(
+            admin,
+            op(
+              {
+                type: "delivery.resolve",
+                deliveryId,
+                decision: "settled",
+                reason: "Remplacement des unités manquantes autorisé",
+              },
+              2,
+            ),
+          )
+        ).status,
+      ).toBe("accepted");
+      const updated = await owner.replenishmentOrder.findUniqueOrThrow({
+        where: { id: orderId },
+      });
       const followup = randomUUID();
       expect(
         (
@@ -1151,7 +1171,7 @@ describe.sequential(
                 deliveryId: followup,
                 lines: [{ productId: product, quantity: 2 }],
               },
-              order.version,
+              updated.version,
             ),
           )
         ).status,
@@ -1159,7 +1179,7 @@ describe.sequential(
       expect(
         (
           await service.submit(
-            seller,
+            actor,
             op(
               {
                 type: "delivery.receive",
@@ -1191,7 +1211,7 @@ describe.sequential(
           .sellable,
       ).toBe(before + 10);
     });
-    it("records a wholly missing delivery once without stock and permits a full replacement", async () => {
+    it("records non-reception without consuming the receipt and requires resolution before replacement", async () => {
       const orderId = randomUUID(),
         deliveryId = randomUUID();
       await service.submit(
@@ -1215,7 +1235,7 @@ describe.sequential(
         ),
       );
       const invalid = await service.submit(
-        seller,
+        actor,
         op({ type: "delivery.receive", deliveryId, lines: [], note: "   " }, 1),
       );
       expect(invalid.code).toBe("MISSING_DELIVERY_REASON");
@@ -1231,24 +1251,40 @@ describe.sequential(
         },
         1,
       );
-      const result = await service.submit(seller, missing);
+      const result = await service.submit(actor, missing);
       expect(result.status).toBe("accepted");
-      expect(await service.submit(seller, missing)).toEqual(result);
+      expect(await service.submit(actor, missing)).toEqual(result);
       expect(await owner.deliveryReceipt.count({ where: { deliveryId } })).toBe(
-        1,
+        0,
       );
       expect(
         await owner.stockMovement.count({
           where: { operationId: missing.operationId },
         }),
       ).toBe(0);
-      const receipt = await owner.deliveryReceipt.findUniqueOrThrow({
-        where: { deliveryId },
-      });
-      expect(receipt.differences).toEqual({
-        lines: [{ productId: product, expected: 6, actual: 0 }],
-        note: "Colis jamais arrivé",
-      });
+      expect(
+        (await owner.deliveryIssue.findUniqueOrThrow({ where: { deliveryId } }))
+          .reason,
+      ).toBe("Colis jamais arrivé");
+      expect(
+        (await workspace.fulfillment(actor, org, store, orderId)).lines[0],
+      ).toMatchObject({ inTransit: 6, remainingToDispatch: 0 });
+      expect(
+        (
+          await service.submit(
+            admin,
+            op(
+              {
+                type: "delivery.resolve",
+                deliveryId,
+                decision: "lost",
+                reason: "Transporteur confirme la perte",
+              },
+              2,
+            ),
+          )
+        ).status,
+      ).toBe("accepted");
       const remaining = await workspace.fulfillment(actor, org, store, orderId);
       expect(remaining.lines[0]).toMatchObject({
         received: 0,

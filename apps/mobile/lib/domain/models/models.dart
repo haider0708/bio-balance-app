@@ -35,10 +35,13 @@ class UserAccount {
 class Store {
   final String id, organizationId, organizationName, name, city;
   final List<String> permissions;
-  final int onboardingStep;
+  final int onboardingStep, version;
+  final String status;
   final String? imageId;
   Store.fromJson(Json v)
-    : id = v['id'],
+    : version = integer(v['version'] ?? 1),
+      status = v['status'] ?? 'active',
+      id = v['id'],
       organizationId = v['organizationId'],
       organizationName = v['organizationName'] ?? '',
       name = v['name'],
@@ -58,6 +61,8 @@ class Store {
     'city': city,
     'permissions': permissions,
     'onboardingStep': onboardingStep,
+    'status': status,
+    'version': version,
     'imageId': imageId,
   };
 }

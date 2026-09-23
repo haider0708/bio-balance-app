@@ -509,6 +509,37 @@ void main() {
     expect(lots.single['damaged'], 2);
     expect(lots.single['version'], 6);
   });
+  test('delivery condition projection agrees with sellable and damaged server buckets', () {
+    final projection = StockProjection.forCommand(store.id, {
+      'type': 'delivery.receive',
+      'deliveryId': 'delivery',
+      'lines': [
+        {'productId': 'p', 'batch': 'B', 'expiry': '2028-12', 'quantity': 6},
+        {
+          'productId': 'p',
+          'batch': 'B',
+          'expiry': '2028-12',
+          'quantity': 2,
+          'condition': 'damaged',
+        },
+        {
+          'productId': 'p',
+          'batch': 'B',
+          'expiry': '2028-12',
+          'quantity': 2,
+          'condition': 'refused',
+        },
+      ],
+    }, null);
+    final lots = <Json>[];
+    for (final effect in projection.movements) {
+      StockProjection.apply(lots, effect.toJson());
+    }
+    expect(projection.movements.length, 2);
+    expect(lots.single['sellable'], 6);
+    expect(lots.single['damaged'], 2);
+    expect(lots.single['version'], 3);
+  });
   test('SQLite version 1 migration preserves a populated outbox', () async {
     final db = AppDatabase(
       NativeDatabase.memory(

@@ -1,4 +1,5 @@
 import 'package:uuid/uuid.dart';
+import 'package:collection/collection.dart';
 
 import '../../domain/models/models.dart';
 import '../services/api/generated/models.dart';
@@ -15,6 +16,7 @@ class OnlineOperationsRepository {
   final _inflight = <String, Future<void>>{};
   Future<void> submit(Store store, Json command, {int? expectedVersion}) {
     final target =
+        command['deliveryId'] ??
         command['rewardId'] ??
         command['claimId'] ??
         (command['type'] == 'order.create' ? 'new' : command['orderId']) ??
@@ -46,6 +48,10 @@ class OnlineOperationsRepository {
           'expectedVersion': ?expectedVersion,
           'command': command,
         };
+    final changed = !const DeepCollectionEquality().equals(
+      operation['command'],
+      command,
+    );
     await local.saveDraft(user.id, store.id, key, {'operation': operation});
     final result = (await context.run(() => context.api.pushRaw([operation])))
         .results
@@ -92,5 +98,11 @@ class OnlineOperationsRepository {
       throw AppFailure(failure.code, failure.message);
     }
     await local.saveDraft(user.id, store.id, key, {});
+    if (changed) {
+      throw const AppFailure(
+        'PREVIOUS_COMMAND_CONFIRMED',
+        'La première demande a été confirmée. Vos nouvelles modifications ne sont pas envoyées. Actualisez le suivi avant de les soumettre.',
+      );
+    }
   }
 }

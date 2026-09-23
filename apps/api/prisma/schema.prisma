@@ -84,6 +84,10 @@ model LoginAttempt {
   @@index([windowStart])
 }
 model Organization {
+  status String @default("active")
+  statusReason String?
+  statusChangedAt DateTime?
+  statusChangedBy String? @db.Uuid
   id String @id @default(uuid()) @db.Uuid
   name String
   createdAt DateTime @default(now())
@@ -99,6 +103,10 @@ model OrganizationMembership {
   @@unique([organizationId,userId])
 }
 model Store {
+  status String @default("active")
+  statusReason String?
+  statusChangedAt DateTime?
+  statusChangedBy String? @db.Uuid
   id String @id @default(uuid()) @db.Uuid
   organizationId String @db.Uuid
   name String
@@ -310,6 +318,8 @@ model RewardClaim {
   @@index([storeId,status,createdAt])
 }
 model ReplenishmentOrder {
+  requestedLines Json @default("[]")
+  cancelledLines Json @default("[]")
   id String @id @db.Uuid
   organizationId String @db.Uuid
   storeId String @db.Uuid
@@ -410,6 +420,8 @@ model Announcement {
   createdAt DateTime @default(now())
 }
 model Notification {
+  targetType String?
+  targetId String? @db.Uuid
   kind String @default("operational")
   audience String @default("managers")
   id String @id @default(uuid()) @db.Uuid
@@ -524,4 +536,23 @@ model UploadChunk {
   length Int
   sha256 String
   @@id([mediaId, offset])
+}
+
+model DeliveryIssue {
+  id String @id @default(uuid()) @db.Uuid
+  organizationId String @db.Uuid
+  storeId String @db.Uuid
+  deliveryId String @unique @db.Uuid
+  orderId String @db.Uuid
+  status String @default("open")
+  reason String
+  heldLines Json @default("[]")
+  resolution String?
+  resolutionNote String?
+  reportedBy String @db.Uuid
+  resolvedBy String? @db.Uuid
+  createdAt DateTime @default(now())
+  resolvedAt DateTime?
+  version Int @default(1)
+  @@index([storeId,status])
 }

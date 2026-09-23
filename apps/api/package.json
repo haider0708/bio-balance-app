@@ -8,7 +8,7 @@
     "start": "node dist/main.js",
     "worker": "npm run build && node --env-file=.env dist/worker.js",
     "test": "vitest run test/domain.test.ts test/database-retry.test.ts test/test-database.test.ts",
-    "test:integration": "vitest run test/integration.test.ts test/query-regressions.test.ts --maxWorkers=1",
+    "test:integration": "vitest run test/integration.test.ts test/query-regressions.test.ts test/operational-refinements.test.ts --maxWorkers=1",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate deploy",
     "db:seed": "tsx prisma/seed.ts",

@@ -61,6 +61,19 @@ const execute: JobExecutor = async (job, stillOwned) => {
     return;
   }
   if (job.kind === "inventory-check") {
+    const store = await db.store.findUnique({
+      where: { id: job.payload.storeId! },
+    });
+    if (
+      !store ||
+      store.status === "archived" ||
+      (
+        await db.organization.findUnique({
+          where: { id: store.organizationId },
+        })
+      )?.status === "archived"
+    )
+      return;
     const admin = await db.user.findFirst({
       where: { platformAdmin: true, disabled: false },
     });

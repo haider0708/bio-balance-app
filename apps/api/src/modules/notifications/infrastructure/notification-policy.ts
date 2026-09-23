@@ -11,7 +11,11 @@ export class NotificationPolicy {
     const store = await this.db.store.findFirst({
       where: { id: n.storeId, organizationId: n.organizationId },
     });
-    if (!store) return false;
+    if (!store || store.status !== "active") return false;
+    const group = await this.db.organization.findUnique({
+      where: { id: n.organizationId },
+    });
+    if (group?.status !== "active") return false;
     const member = await this.db.membership.findUnique({
       where: { storeId_userId: { storeId: n.storeId, userId: n.userId } },
     });

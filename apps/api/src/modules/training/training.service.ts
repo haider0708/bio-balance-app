@@ -248,7 +248,13 @@ export class TrainingService {
           },
         });
         requireRule(
-          current.platformAdmin || responsible?.active || assigned > 0,
+          current.platformAdmin ||
+            ((responsible?.active || assigned > 0) &&
+              (
+                await tx.organization.findUnique({
+                  where: { id: asset.organizationId! },
+                })
+              )?.status === "active"),
           "FORBIDDEN",
           "Image de groupe inaccessible.",
           403,
@@ -266,16 +272,16 @@ export class TrainingService {
       });
     }
     if (asset.storeId && asset.organizationId)
-      return this.db.scoped(
-        actor,
-        asset.organizationId,
-        asset.storeId,
-        (tx, scope) =>
-          execute(
-            tx,
-            scope.permissions.includes("manage"),
-            scope.actor.platformAdmin,
-          ),
+      return (
+        write
+          ? this.db.scoped.bind(this.db)
+          : this.db.scopedSnapshot.bind(this.db)
+      )(actor, asset.organizationId, asset.storeId, (tx, scope) =>
+        execute(
+          tx,
+          scope.permissions.includes("manage"),
+          scope.actor.platformAdmin,
+        ),
       );
     return this.db.authenticated(actor, (tx, user) =>
       execute(tx, user.platformAdmin, user.platformAdmin),

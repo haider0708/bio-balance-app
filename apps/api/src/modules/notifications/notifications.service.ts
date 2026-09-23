@@ -11,40 +11,90 @@ export class NotificationsService {
     private readonly db: Database,
     private readonly workspace: WorkspaceService,
   ) {}
-  async list(actor: Actor, after?: string) {
-    return this.db.authenticated(actor, async (tx, current) => {
-      const stores = await this.workspace.storesInTransaction(tx, current);
-      const managed = stores
-        .filter((s) => s.permissions.includes("manage"))
-        .map((s) => s.id);
-      const selling = stores
-        .filter((s) => s.permissions.includes("sell"))
-        .map((s) => s.id);
-      return tx.notification.findMany({
+  private async audience(
+    tx: import("@prisma/client").Prisma.TransactionClient,
+    current: Actor,
+  ) {
+    const stores = await this.workspace.storesInTransaction(tx, current);
+    const managed = stores
+      .filter((s) => s.permissions.includes("manage"))
+      .map((s) => s.id);
+    const selling = stores
+      .filter((s) => s.permissions.includes("sell"))
+      .map((s) => s.id);
+    return {
+      userId: current.id,
+      ...(current.platformAdmin
+        ? {}
+        : {
+            OR: [
+              { kind: "operational", storeId: { in: managed } },
+              {
+                kind: "announcement",
+                audience: "all",
+                storeId: { in: stores.map((s) => s.id) },
+              },
+              {
+                kind: "announcement",
+                audience: "salespeople",
+                storeId: { in: selling },
+              },
+            ],
+          }),
+    };
+  }
+  async list(actor: Actor, before?: string) {
+    return this.db.authenticated(actor, async (tx, current) =>
+      tx.notification.findMany({
         where: {
-          userId: actor.id,
-          ...(current.platformAdmin
-            ? {}
-            : {
-                OR: [
-                  { kind: "operational", storeId: { in: managed } },
-                  {
-                    kind: "announcement",
-                    audience: "all",
-                    storeId: { in: stores.map((s) => s.id) },
-                  },
-                  {
-                    kind: "announcement",
-                    audience: "salespeople",
-                    storeId: { in: selling },
-                  },
-                ],
-              }),
-          ...(after ? { createdAt: { lt: new Date(after) } } : {}),
+          ...(await this.audience(tx, current)),
+          ...(before ? { createdAt: { lt: new Date(before) } } : {}),
         },
         orderBy: [{ createdAt: "desc" }, { id: "desc" }],
         take: 100,
+      }),
+    );
+  }
+  async inbox(actor: Actor, cursor?: { date: string; id: string }) {
+    return this.db.authenticated(actor, async (tx, current) => {
+      const audience = await this.audience(tx, current);
+      const rows = await tx.notification.findMany({
+        where: {
+          ...audience,
+          ...(cursor
+            ? {
+                AND: [
+                  {
+                    OR: [
+                      { createdAt: { lt: new Date(cursor.date) } },
+                      {
+                        createdAt: new Date(cursor.date),
+                        id: { lt: cursor.id },
+                      },
+                    ],
+                  },
+                ],
+              }
+            : {}),
+        },
+        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+        take: 51,
       });
+      const unreadCount = await tx.notification.count({
+        where: { ...audience, readAt: null },
+      });
+      const items = rows.slice(0, 50);
+      return {
+        items,
+        unreadCount,
+        accessKey: createHash("sha256")
+          .update(JSON.stringify(audience))
+          .digest("hex"),
+        nextCursor:
+          rows.length > 50
+            ? `${items.at(-1)!.createdAt.toISOString()}|${items.at(-1)!.id}`
+            : null,
+      };
     });
   }
   get(actor: Actor, id: string) {
@@ -72,7 +122,7 @@ export class NotificationsService {
     return this.db.authenticated(actor, async (tx) => {
       await this.authorizedNotification(tx, actor, id);
       return tx.notification.updateMany({
-        where: { id, userId: actor.id },
+        where: { id, userId: actor.id, readAt: null },
         data: { readAt: new Date() },
       });
     });

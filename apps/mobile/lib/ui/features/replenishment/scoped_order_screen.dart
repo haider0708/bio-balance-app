@@ -14,6 +14,8 @@ import '../workspace/operation_helpers.dart';
 import '../media/image_input.dart';
 import 'order_screens.dart';
 import 'order_sections.dart';
+import 'order_actions.dart';
+import '../../core/forms.dart';
 import '../inventory/inventory_screens.dart';
 import '../../../domain/models/tunis_dates.dart';
 
@@ -25,7 +27,17 @@ class ScopedOrdersViewModel extends ChangeNotifier {
   String? after, error;
   bool loading = false, closed = false;
   OrderSection section = OrderSection.preparation;
+  Store? filterStore;
   int revision = 0;
+  void filter(Store? store) {
+    filterStore = store;
+    revision++;
+    loading = false;
+    items = [];
+    after = null;
+    unawaited(load());
+  }
+
   void select(OrderSection value) {
     if (value == section) return;
     section = value;
@@ -49,10 +61,10 @@ class ScopedOrdersViewModel extends ChangeNotifier {
     notifyListeners();
     try {
       final page = await repository.orders(
-        scope,
+        filterStore == null ? scope : 'store',
         DashboardPeriod.month(),
-        organizationId: groupId,
-        storeId: storeId,
+        organizationId: filterStore?.organizationId ?? groupId,
+        storeId: filterStore?.id ?? storeId,
         after: more ? after : null,
         phase: section.name,
       );
@@ -145,6 +157,34 @@ class _ScopedOrdersPageState extends State<ScopedOrdersPage> {
               icon: const Icon(AppIcons.refresh),
             ),
           ),
+          if (widget.scope.scope.store == null)
+            DropdownButtonFormField<String>(
+              initialValue: vm.filterStore?.id ?? '',
+              isExpanded: true,
+              decoration: const InputDecoration(
+                labelText: 'Filtrer par magasin',
+              ),
+              items: [
+                const DropdownMenuItem(
+                  value: '',
+                  child: Text('Tous les magasins de cet espace'),
+                ),
+                for (final store in workspace.state.stores.where(
+                  (s) => vm.groupId == null || s.organizationId == vm.groupId,
+                ))
+                  DropdownMenuItem(
+                    value: store.id,
+                    child: Text(
+                      '${store.organizationName} · ${store.name}',
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+              ],
+              onChanged: (id) => vm.filter(
+                workspace.state.stores.where((s) => s.id == id).firstOrNull,
+              ),
+            ),
+          const SizedBox(height: 16),
           OrderSections(
             selected: vm.section,
             admin: workspace.user.admin,
@@ -360,6 +400,23 @@ class _ExactOrderScreenState extends State<ExactOrderScreen> {
                   spacing: 8,
                   runSpacing: 8,
                   children: [
+                    OutlinedButton(
+                      onPressed: busy || vm.state.offline
+                          ? null
+                          : () => action(
+                              () => editOrder(Map<String, dynamic>.from(order)),
+                            ),
+                      child: const Text('Modifier les quantités'),
+                    ),
+                    OutlinedButton(
+                      onPressed: busy || vm.state.offline
+                          ? null
+                          : () => action(
+                              () =>
+                                  cancelOrder(Map<String, dynamic>.from(order)),
+                            ),
+                      child: const Text('Annuler le reliquat'),
+                    ),
                     if (['requested', 'partial'].contains(order['status']))
                       OutlinedButton(
                         onPressed: busy || vm.state.offline
@@ -386,7 +443,7 @@ class _ExactOrderScreenState extends State<ExactOrderScreen> {
                                 Map<String, dynamic>.from(order),
                               ),
                             ),
-                      child: const Text('Préparer une livraison'),
+                      child: const Text('Expédier une livraison'),
                     ),
                   ],
                 ),
@@ -403,9 +460,7 @@ class _ExactOrderScreenState extends State<ExactOrderScreen> {
                   onTap:
                       delivery['status'] == 'dispatched' &&
                           !busy &&
-                          (widget.store.permissions.contains('receive') ||
-                              widget.store.canManage ||
-                              vm.user.admin)
+                          (widget.store.canManage || vm.user.admin)
                       ? () =>
                             Navigator.push(
                               context,
@@ -418,6 +473,73 @@ class _ExactOrderScreenState extends State<ExactOrderScreen> {
                             })
                       : null,
                 ),
+              for (final delivery in objects(data?['deliveries'])) ...[
+                if (delivery['status'] == 'dispatched' &&
+                    !objects(data?['issues'])
+                        .any((i) => i['deliveryId'] == delivery['id']))
+                  OutlinedButton(
+                    onPressed: busy || vm.state.offline
+                        ? null
+                        : () => action(() => reportDelivery(delivery)),
+                    child: Text(
+                      'Signaler non reçue · ${delivery['id'].toString().substring(0, 8).toUpperCase()}',
+                    ),
+                  ),
+              ],
+              if (objects(data?['issues']).isNotEmpty)
+                const SectionTitle('Incidents et suivi'),
+              for (final issue in objects(data?['issues']))
+                CompactRow(
+                  title: issue['reason'],
+                  subtitle:
+                      '${statusLabel(issue['status'])} · ${TunisDates.timestampLabel(issue['createdAt'])}${issue['resolutionNote'] == null ? '' : '\n${issue['resolutionNote']}'}',
+                  icon: AppIcons.infoOutline,
+                  tone: issue['status'] == 'resolved'
+                      ? AppTone.success
+                      : AppTone.warning,
+                  footer: vm.user.admin && issue['status'] != 'resolved'
+                      ? Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            for (final decision
+                                in (objects(data?['deliveries']).firstWhere(
+                                          (d) => d['id'] == issue['deliveryId'],
+                                        )['status'] ==
+                                        'received'
+                                    ? ['settled']
+                                    : ['tracing', 'lost', 'returned']))
+                              OutlinedButton(
+                                onPressed: busy || vm.state.offline
+                                    ? null
+                                    : () => action(
+                                        () => resolveIssue(issue, decision),
+                                      ),
+                                child: Text(
+                                  {
+                                    'tracing': 'Lancer une recherche',
+                                    'lost': 'Déclarer perdue',
+                                    'returned': 'Déclarer retournée',
+                                    'settled': 'Régler les écarts',
+                                  }[decision]!,
+                                ),
+                              ),
+                          ],
+                        )
+                      : null,
+                ),
+              if (objects(data?['history']).isNotEmpty)
+                ExpansionTile(
+                  title: const Text('Historique de la commande'),
+                  children: [
+                    for (final event in objects(data?['history']))
+                      CompactRow(
+                        title: historyLabel(event['action']),
+                        subtitle:
+                            '${TunisDates.timestampLabel(event['createdAt'])}${event['details']?['reason'] == null ? '' : ' · ${event['details']['reason']}'}',
+                      ),
+                  ],
+                ),
               if (objects(data?['deliveries']).isEmpty)
                 const Text('Aucune livraison expédiée pour cette commande.'),
             ],
@@ -427,12 +549,79 @@ class _ExactOrderScreenState extends State<ExactOrderScreen> {
     );
   }
 
+  Future<void> editOrder(Json order) async {
+    await openEditor(
+      context,
+      title: 'Modifier les quantités prévues',
+      fields: [
+        for (final line in objects(order['lines']))
+          FieldSpec(
+            line['productId'],
+            vm.productName(line['productId']),
+            initial: '${line['quantity']}',
+            numeric: true,
+          ),
+        FieldSpec('reason', 'Motif de la modification'),
+      ],
+      submit: (values) => OrderActions(vm).amend(order, values),
+    );
+  }
+
+  Future<void> cancelOrder(Json order) async {
+    await openEditor(
+      context,
+      title: 'Annuler le reliquat non expédié',
+      fields: [
+        FieldSpec(
+          'reason',
+          'Motif — les livraisons engagées restent à traiter',
+        ),
+      ],
+      submit: (v) => OrderActions(vm).cancel(order, v['reason']!),
+    );
+  }
+
+  Future<void> reportDelivery(Json delivery) async {
+    await openEditor(
+      context,
+      title: 'Signaler une livraison non reçue',
+      fields: [FieldSpec('reason', 'Précisez le problème constaté')],
+      submit: (v) => OrderActions(vm).report(delivery, v['reason']!),
+    );
+  }
+
+  Future<void> resolveIssue(Json issue, String decision) async {
+    final delivery = objects(data?['deliveries'])
+        .firstWhere((d) => d['id'] == issue['deliveryId']);
+    await openEditor(
+      context,
+      title: decision == 'settled'
+          ? 'Régler les écarts de réception'
+          : 'Suivi de la livraison',
+      fields: [FieldSpec('reason', 'Décision et explication')],
+      submit: (v) => OrderActions(vm).resolve(delivery, decision, v['reason']!),
+    );
+  }
+
+  String historyLabel(String action) =>
+      {
+        'order.create': 'Commande demandée',
+        'order.amend': 'Quantités modifiées',
+        'order.cancel': 'Reliquat annulé',
+        'order.prepare': 'Mise en préparation',
+        'delivery.dispatch': 'Livraison expédiée',
+        'delivery.receive': 'Réception enregistrée',
+        'delivery.report': 'Livraison signalée',
+        'delivery.resolve': 'Incident traité',
+      }[action] ??
+      action;
+
   String? fulfillmentLabel(String productId) {
     final line = objects(data?['fulfillment'])
         .where((l) => l['productId'] == productId)
         .firstOrNull;
     if (line == null) return null;
-    return '${line['received']} reçues · ${line['inTransit']} en route\n${line['remainingToDispatch']} restant à expédier';
+    return '${line['received']} reçues · ${line['inTransit']} engagées\n${line['remainingToDispatch']} restant à expédier · ${line['cancelled'] ?? 0} annulées';
   }
 
   Widget? receiptSummary(Json delivery) {
@@ -444,11 +633,18 @@ class _ExactOrderScreenState extends State<ExactOrderScreen> {
           ? const StatusChip('Ouvrir pour réceptionner', tone: AppTone.info)
           : null;
     }
-    final units = objects(receipt['lines'])
+    final lines = objects(receipt['lines']);
+    int units(String condition) => lines
+        .where((line) => (line['condition'] ?? 'sellable') == condition)
         .fold<int>(0, (sum, line) => sum + integer(line['quantity']));
+    final details = [
+      '${units('sellable')} unités vendables',
+      if (units('damaged') > 0) '${units('damaged')} non vendables',
+      if (units('refused') > 0) '${units('refused')} refusées',
+    ].join(' · ');
     final note = receipt['differences']?['note']?.toString() ?? '';
     return Text(
-      '$units unités reçues · ${TunisDates.timestampLabel(receipt['createdAt'])}${note.isEmpty ? '' : '\n$note'}',
+      '$details · ${TunisDates.timestampLabel(receipt['createdAt'])}${note.isEmpty ? '' : '\n$note'}',
       style: const TextStyle(fontSize: 14, color: muted),
     );
   }

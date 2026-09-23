@@ -28,6 +28,18 @@ export class NotificationsController {
       z.iso.datetime().optional().parse(before),
     );
   }
+  @Get("notification-inbox") inbox(
+    @Req() r: AuthRequest,
+    @Query("cursor") raw?: string,
+  ) {
+    const parts = raw?.split("|");
+    const cursor = parts
+      ? z
+          .object({ date: z.iso.datetime(), id: z.uuid() })
+          .parse({ date: parts.length === 2 ? parts[0] : null, id: parts[1] })
+      : undefined;
+    return this.service.inbox(r.actor, cursor);
+  }
   @Get("notifications/:id") get(
     @Req() r: AuthRequest,
     @Param("id") id: string,

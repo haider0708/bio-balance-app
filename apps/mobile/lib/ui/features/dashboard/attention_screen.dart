@@ -8,6 +8,8 @@ import '../../../domain/models/models.dart';
 import '../../core/design.dart';
 import '../authentication/session_view_model.dart';
 import '../inventory/inventory_screens.dart';
+import '../replenishment/scoped_order_screen.dart';
+import '../../../domain/models/tunis_dates.dart';
 import '../rewards/rewards_screen.dart';
 import '../workspace/operation_helpers.dart';
 import '../workspace/workspace_view_model.dart';
@@ -146,7 +148,7 @@ class _AttentionScreenState extends State<AttentionScreen> {
       await Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (_) => _AttentionDetail(
+          builder: (_) => AttentionDetail(
             parent: widget.workspace,
             store: store,
             item: item,
@@ -160,20 +162,21 @@ class _AttentionScreenState extends State<AttentionScreen> {
   }
 }
 
-class _AttentionDetail extends StatefulWidget {
+class AttentionDetail extends StatefulWidget {
   final WorkspaceViewModel parent;
   final Store store;
   final Json item;
-  const _AttentionDetail({
+  const AttentionDetail({
+    super.key,
     required this.parent,
     required this.store,
     required this.item,
   });
   @override
-  State<_AttentionDetail> createState() => _AttentionDetailState();
+  State<AttentionDetail> createState() => AttentionDetailState();
 }
 
-class _AttentionDetailState extends State<_AttentionDetail> {
+class AttentionDetailState extends State<AttentionDetail> {
   late final vm = WorkspaceViewModel(
     widget.parent.user,
     widget.parent.repository,
@@ -264,6 +267,96 @@ class _AttentionDetailState extends State<_AttentionDetail> {
             )
           : ProductDetail(vm: vm, product: product);
     }
+    if (widget.item['message'] != null) {
+      page = Scaffold(
+        appBar: AppBar(title: const Text('Alerte du magasin')),
+        body: Content(
+          children: [
+            SectionTitle(
+              widget.item['message'],
+              subtitle:
+                  '${widget.store.organizationName} · ${widget.store.name}',
+            ),
+            StatusChip(
+              widget.item['active'] == false ? 'Résolue' : 'À traiter',
+              tone: widget.item['active'] == false
+                  ? AppTone.info
+                  : AppTone.warning,
+            ),
+            if (widget.item['createdAt'] != null)
+              Text(
+                'Signalée le ${TunisDates.timestampLabel(widget.item['createdAt'])}',
+              ),
+            const SizedBox(height: 16),
+            const Text(
+              'Consultez les lots et les mouvements du produit. L’alerte se résout lorsque sa cause est corrigée.',
+            ),
+            const SizedBox(height: 16),
+            if (data != null && !vm.state.accessBlocked)
+              FilledButton(
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => ChangeNotifierProvider.value(
+                      value: vm,
+                      child:
+                          data.products.any(
+                            (p) => p.id == widget.item['productId'],
+                          )
+                          ? ProductDetail(
+                              vm: vm,
+                              product: data.products.firstWhere(
+                                (p) => p.id == widget.item['productId'],
+                              ),
+                            )
+                          : StockPage(vm: vm),
+                    ),
+                  ),
+                ),
+                child: const Text('Voir le produit et traiter le stock'),
+              ),
+            if (error != null || vm.state.error != null)
+              Notice(error ?? vm.state.error!, retry: load),
+            if (vm.state.loading) const LinearProgressIndicator(),
+          ],
+        ),
+      );
+    }
     return ChangeNotifierProvider.value(value: vm, child: page);
   }
+}
+
+Future<void> openExactAlert(
+  BuildContext context,
+  WorkspaceViewModel workspace,
+  Json item,
+) async {
+  final store = workspace.state.stores
+      .where(
+        (s) =>
+            s.id == item['storeId'] &&
+            s.organizationId == item['organizationId'],
+      )
+      .firstOrNull;
+  if (store == null) {
+    throw const AppFailure('STORE_ACCESS_REVOKED', 'Magasin inaccessible.');
+  }
+  final data = await DashboardRepository(
+    workspace.repositoryContext,
+    workspace.repository,
+    workspace.user.id,
+  ).alert(store, item['id']);
+  if (!context.mounted) return;
+  await Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (_) => data['orderId'] != null
+          ? ExactOrderScreen(
+              parent: workspace,
+              store: store,
+              orderId: data['orderId'],
+            )
+          : AttentionDetail(parent: workspace, store: store, item: data),
+    ),
+  );
 }

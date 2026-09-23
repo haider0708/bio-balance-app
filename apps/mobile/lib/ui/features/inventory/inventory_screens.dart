@@ -17,6 +17,7 @@ import '../sales/sale_screen.dart';
 import '../media/image_input.dart';
 import '../authentication/session_view_model.dart';
 import '../workspace/workspace_view_model.dart';
+import '../workspace/operation_helpers.dart';
 
 class StockPage extends StatefulWidget {
   final WorkspaceViewModel vm;
@@ -397,107 +398,103 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(
-      title: Text(
-        widget.delivery == null
-            ? 'Entrée de stock'
-            : 'Réceptionner la livraison',
+  Widget build(BuildContext context) => FormPage(
+    title: widget.delivery == null
+        ? 'Entrée de stock'
+        : 'Réceptionner la livraison',
+    maxWidth: 760,
+    action: FilledButton(
+      onPressed: busy || !restored || (lines.isEmpty && !missing) ? null : save,
+      child: Text(
+        busy
+            ? 'Enregistrement…'
+            : missing
+            ? 'Signaler non reçue'
+            : 'Confirmer la réception',
       ),
     ),
-    body: Content(
-      maxWidth: 760,
-      children: [
-        StatusChip(store.name, icon: AppIcons.storefrontOutlined),
+    children: [
+      StatusChip(store.name, icon: AppIcons.storefrontOutlined),
+      const SizedBox(height: 20),
+      if (error != null) Notice(error!, error: true),
+      if (loading) const LinearProgressIndicator(),
+      if (!loading && !restored)
+        TextButton(
+          onPressed: () {
+            setState(() {
+              loading = true;
+              error = null;
+            });
+            unawaited(restore());
+          },
+          child: const Text('Recharger le brouillon'),
+        ),
+      if (widget.delivery != null) ...[
+        const Notice(
+          'Saisissez les quantités réellement reçues. Les écarts seront conservés et cette livraison ne pourra être confirmée qu’une seule fois.',
+        ),
+        const SizedBox(height: 16),
+        ...objects(widget.delivery!['lines']).map(
+          (l) => Text(
+            '${widget.vm.productName(l['productId'])} · ${l['quantity']} unités attendues',
+          ),
+        ),
+        const SizedBox(height: 16),
+        CheckboxListTile(
+          value: missing,
+          contentPadding: EdgeInsets.zero,
+          title: const Text('Aucune unité reçue'),
+          subtitle: const Text('Signaler une livraison entièrement manquante.'),
+          onChanged: busy || !restored || lines.isNotEmpty
+              ? null
+              : (value) {
+                  setState(() => missing = value ?? false);
+                  changed();
+                },
+        ),
+        TextField(
+          controller: note,
+          enabled: !busy && restored,
+          maxLength: 500,
+          maxLines: 3,
+          decoration: InputDecoration(
+            labelText: missing
+                ? 'Explication obligatoire'
+                : 'Écart ou remarque (facultatif)',
+          ),
+        ),
         const SizedBox(height: 20),
-        if (error != null) Notice(error!, error: true),
-        if (loading) const LinearProgressIndicator(),
-        if (!loading && !restored)
-          TextButton(
-            onPressed: () {
-              setState(() {
-                loading = true;
-                error = null;
-              });
-              unawaited(restore());
-            },
-            child: const Text('Recharger le brouillon'),
-          ),
-        if (widget.delivery != null) ...[
-          const Notice(
-            'Saisissez les quantités réellement reçues. Les écarts seront conservés et cette livraison ne pourra être confirmée qu’une seule fois.',
-          ),
-          const SizedBox(height: 16),
-          ...objects(widget.delivery!['lines']).map(
-            (l) => Text(
-              '${widget.vm.productName(l['productId'])} · ${l['quantity']} unités attendues',
-            ),
-          ),
-          const SizedBox(height: 16),
-          CheckboxListTile(
-            value: missing,
-            contentPadding: EdgeInsets.zero,
-            title: const Text('Aucune unité reçue'),
-            subtitle: const Text(
-              'Signaler une livraison entièrement manquante.',
-            ),
-            onChanged: busy || !restored || lines.isNotEmpty
+      ],
+      FilledButton.icon(
+        onPressed: busy || !restored || missing ? null : add,
+        icon: const Icon(AppIcons.add),
+        label: const Text('Ajouter un produit et un lot'),
+      ),
+      const SizedBox(height: 20),
+      ...lines.asMap().entries.map(
+        (e) => CompactRow(
+          title: widget.vm.productName(e.value['productId']),
+          subtitle:
+              '${e.value['quantity']} unités · ${receiptCondition(e.value)} · Lot ${e.value['batch']}\nPéremption : ${TunisDates.dateOnlyLabel(e.value['expiry'])}',
+          trailing: IconButton(
+            onPressed: busy || !restored
                 ? null
-                : (value) {
-                    setState(() => missing = value ?? false);
+                : () {
+                    setState(() => lines.removeAt(e.key));
                     changed();
                   },
-          ),
-          TextField(
-            controller: note,
-            enabled: !busy && restored,
-            maxLength: 500,
-            maxLines: 3,
-            decoration: InputDecoration(
-              labelText: missing
-                  ? 'Explication obligatoire'
-                  : 'Écart ou remarque (facultatif)',
-            ),
-          ),
-          const SizedBox(height: 20),
-        ],
-        FilledButton.icon(
-          onPressed: busy || !restored || missing ? null : add,
-          icon: const Icon(AppIcons.add),
-          label: const Text('Ajouter un produit et un lot'),
-        ),
-        const SizedBox(height: 20),
-        ...lines.asMap().entries.map(
-          (e) => CompactRow(
-            title: widget.vm.productName(e.value['productId']),
-            subtitle:
-                '${e.value['quantity']} unités · Lot ${e.value['batch']}\nPéremption : ${TunisDates.dateOnlyLabel(e.value['expiry'])}',
-            trailing: IconButton(
-              onPressed: busy || !restored
-                  ? null
-                  : () {
-                      setState(() => lines.removeAt(e.key));
-                      changed();
-                    },
-              icon: const Icon(AppIcons.close),
-              tooltip: 'Retirer',
-            ),
+            icon: const Icon(AppIcons.close),
+            tooltip: 'Retirer',
           ),
         ),
-        if (lines.isEmpty && !missing)
-          const EmptyState(
-            title: 'Ajoutez les unités reçues',
-            description: 'Un produit peut être réparti sur plusieurs lots et plusieurs dates de péremption.',
-          ),
-        const SizedBox(height: 24),
-        FilledButton(
-          onPressed: busy || !restored || (lines.isEmpty && !missing)
-              ? null
-              : save,
-          child: Text(busy ? 'Enregistrement…' : 'Confirmer la réception'),
+      ),
+      if (lines.isEmpty && !missing)
+        const EmptyState(
+          title: 'Ajoutez les unités reçues',
+          description: 'Un produit peut être réparti sur plusieurs lots et plusieurs dates de péremption.',
         ),
-      ],
-    ),
+      const SizedBox(height: 24),
+    ],
   );
   Future<void> add() async {
     final product = await showModalBottomSheet<Product>(
@@ -520,10 +517,26 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
     await openEditor(
       context,
       title: product.name,
-      fields: const [
-        FieldSpec('quantity', 'Unités reçues', initial: '1', numeric: true),
-        FieldSpec('batch', 'Numéro de lot'),
-        FieldSpec('expiry', 'Péremption : JJ/MM/AAAA ou MM/AAAA'),
+      fields: [
+        const FieldSpec(
+          'quantity',
+          'Unités constatées',
+          initial: '1',
+          numeric: true,
+        ),
+        const FieldSpec('batch', 'Numéro de lot'),
+        const FieldSpec('expiry', 'Péremption : JJ/MM/AAAA ou MM/AAAA'),
+        if (widget.delivery != null)
+          const FieldSpec(
+            'condition',
+            'État des unités',
+            initial: 'sellable',
+            options: {
+              'sellable': 'Acceptées — stock vendable',
+              'damaged': 'Abîmées — stock non vendable',
+              'refused': 'Refusées — laissées au transporteur',
+            },
+          ),
       ],
       submit: (v) async {
         final expiry = TunisDates.expiry(v['expiry']!);
@@ -533,6 +546,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
             'quantity': whole(v['quantity']!),
             'batch': v['batch'],
             'expiry': expiry,
+            if (widget.delivery != null) 'condition': v['condition'],
           }),
         );
         await persist();
@@ -545,8 +559,32 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
     setState(() => busy = true);
     try {
       final vm = widget.vm;
-      vm.requireAccess(store, widget.delivery == null ? 'manage' : 'receive');
+      vm.requireAccess(store, 'manage');
       await persist();
+      if (widget.delivery != null && lines.isNotEmpty) {
+        final expected = {
+          for (final l in objects(widget.delivery!['lines']))
+            l['productId']: integer(l['quantity']),
+        };
+        final quantities = <String, int>{};
+        for (final l in lines) {
+          quantities[l['productId']] =
+              (quantities[l['productId']] ?? 0) + integer(l['quantity']);
+        }
+        if ((lines.any(
+                  (l) =>
+                      l['condition'] == 'damaged' ||
+                      l['condition'] == 'refused',
+                ) ||
+                quantities.entries.any(
+                  (e) => e.value > (expected[e.key] ?? 0),
+                )) &&
+            note.text.trim().length < 3) {
+          throw const FormatException(
+            'Expliquez les unités abîmées, refusées ou supplémentaires.',
+          );
+        }
+      }
       if (lines.isEmpty) {
         if (widget.delivery == null || !missing || note.text.trim().isEmpty) {
           throw const FormatException(
@@ -557,8 +595,8 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
             !await confirmAction(
               context,
               'Confirmer : aucune unité reçue',
-              'Cette réception sera conservée avec votre explication. Le stock ne sera pas augmenté. BioBalance pourra préparer une nouvelle livraison.',
-              label: 'Confirmer zéro unité',
+              'Votre signalement sera transmis à BioBalance. Le stock reste inchangé et cette livraison pourra encore être réceptionnée après vérification.',
+              label: 'Signaler non reçue',
             )) {
           return;
         }

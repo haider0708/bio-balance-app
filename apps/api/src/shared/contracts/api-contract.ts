@@ -1,3 +1,4 @@
+import { lifecycleRequest } from "../../modules/tenancy/lifecycle";
 import { z } from "zod";
 import { exportRequest } from "../../modules/reporting/export.controller";
 import { OpenAPIObject } from "@nestjs/swagger";
@@ -27,6 +28,7 @@ import {
 } from "./wire-schemas";
 
 const requests: Record<string, z.ZodType> = {
+  GroupController_lifecycle: lifecycleRequest,
   ExportController_create: exportRequest,
   GroupController_create: GroupRequests.Create,
   GroupController_update: GroupRequests.Update,
@@ -53,6 +55,14 @@ const requests: Record<string, z.ZodType> = {
   OperationsController_status: syncBatchSchema,
 };
 const responses: Record<string, Schema> = {
+  GroupController_lifecycle: ref("Ok"),
+  GroupController_impact: obj({
+    orders: integer,
+    deliveries: integer,
+    rewards: integer,
+    issues: integer,
+    stockLots: integer,
+  }),
   ExportController_create: ref("ReportExport"),
   ExportController_get: ref("ReportExport"),
   ExportController_file: { type: "string" },
@@ -65,6 +75,7 @@ const responses: Record<string, Schema> = {
   CatalogController_list: ref("ProductPage"),
   DashboardController_get: ref("Dashboard"),
   DashboardController_attention: ref("AttentionPage"),
+  DashboardController_alert: ref("AlertDetails"),
   DashboardController_orders: ref("OrderPage"),
   DashboardController_order: ref("ScopedOrderDetails"),
   DashboardController_sales: ref("DashboardSalePage"),
@@ -96,6 +107,7 @@ const responses: Record<string, Schema> = {
   CatalogController_import: ref("CatalogImportResult"),
   NotificationsController_get: ref("Notification"),
   NotificationsController_list: arr(ref("Notification")),
+  NotificationsController_inbox: ref("NotificationInbox"),
   NotificationsController_read: ref("Count"),
   NotificationsController_removeDevice: ref("Count"),
   NotificationsController_device: ref("Device"),
@@ -142,6 +154,22 @@ export function applyContract(document: OpenAPIObject): OpenAPIObject {
   const schemas: Record<string, Schema> = structuredClone(wireSchemas);
   extendLegacySchemas(schemas);
   Object.assign(schemas, redesignSchemas);
+  for (const [name, fields] of Object.entries({
+    Group: ["status", "statusReason", "statusChangedAt", "statusChangedBy"],
+    GroupAccess: [
+      "status",
+      "statusReason",
+      "statusChangedAt",
+      "statusChangedBy",
+    ],
+    Notification: ["targetType", "targetId"],
+    FulfillmentLine: ["cancelled"],
+    ScopedOrder: ["requestedLines", "cancelledLines"],
+  })) {
+    schemas[name]!.required = schemas[name]!.required.filter(
+      (key: string) => !fields.includes(key),
+    );
+  }
   schemas.Command = z.toJSONSchema(commandSchema, { io: "input" });
   schemas.SyncOperation = z.toJSONSchema(operationSchema, { io: "input" });
   schemas.SyncBatch = z.toJSONSchema(syncBatchSchema, { io: "input" });
@@ -193,13 +221,21 @@ export function applyContract(document: OpenAPIObject): OpenAPIObject {
         ].includes(original)
       )
         params.push(parameter("after", "query", uuid));
+      if (
+        ["GroupController_lifecycle", "GroupController_impact"].includes(
+          original,
+        )
+      )
+        params.push(parameter("storeId", "query", uuid));
+      if (original === "NotificationsController_inbox")
+        params.push(parameter("cursor", "query", str));
       if (original === "GroupController_list")
         params.push(parameter("search", "query", str));
       if (original === "DashboardController_orders")
         params.push(
           parameter("phase", "query", {
             type: "string",
-            enum: ["preparation", "transit", "complete"],
+            enum: ["all", "preparation", "transit", "issues", "complete"],
           }),
         );
       if (

@@ -320,6 +320,7 @@ it("pages each order phase independently and returns actual reception history in
     {
       productId,
       ordered: 10,
+      cancelled: 0,
       received: 4,
       inTransit: 3,
       remainingToDispatch: 3,

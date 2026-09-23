@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../domain/models/models.dart';
+
 import '../authentication/session_view_model.dart';
 
 String statusLabel(dynamic status) =>
@@ -17,6 +19,15 @@ String statusLabel(dynamic status) =>
       'fulfilled': 'Remise confirmée',
       'rejected': 'Refusée',
       'cancelled': 'Annulée',
+      'closed_partial': 'Terminée · reliquat annulé',
+      'lost': 'Perdue',
+      'returned': 'Retournée',
+      'open': 'À traiter',
+      'in_progress': 'Recherche en cours',
+      'resolved': 'Résolu',
+      'suspended': 'Suspendu',
+      'archived': 'Archivé',
+      'active': 'Actif',
     }[status] ??
     '$status';
 Future<void> run(BuildContext context, Future<void> Function() action) async {
@@ -29,3 +40,9 @@ Future<void> run(BuildContext context, Future<void> Function() action) async {
     }
   }
 }
+
+String receiptCondition(Json line) => switch (line['condition']) {
+  'damaged' => 'non vendables',
+  'refused' => 'refusées',
+  _ => 'vendables',
+};

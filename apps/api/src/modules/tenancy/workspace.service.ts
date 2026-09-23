@@ -49,7 +49,10 @@ export class WorkspaceService {
         where: { userId: actor.id, active: true },
       });
       return tx.organization.findMany({
-        where: { id: { in: memberships.map((m) => m.organizationId) } },
+        where: {
+          id: { in: memberships.map((m) => m.organizationId) },
+          status: "active",
+        },
         orderBy: { name: "asc" },
         take: 500,
       });
@@ -82,16 +85,33 @@ export class WorkspaceService {
     const organizations = await tx.organization.findMany({
       where: { id: { in: [...new Set(stores.map((s) => s.organizationId))] } },
     });
-    return stores.map((s) => ({
-      ...s,
-      organizationName: organizations.find((o) => o.id === s.organizationId)
-        ?.name,
-      permissions:
-        actor.platformAdmin ||
-        owners.some((o) => o.organizationId === s.organizationId)
-          ? ["manage", "sell", "receive"]
-          : members.find((m) => m.storeId === s.id)!.permissions,
-    }));
+    return stores
+      .filter(
+        (s) =>
+          actor.platformAdmin ||
+          (s.status === "active" &&
+            organizations.some(
+              (o) => o.id === s.organizationId && o.status === "active",
+            )),
+      )
+      .map((s) => ({
+        ...s,
+        organizationName: organizations.find((o) => o.id === s.organizationId)
+          ?.name,
+        permissions:
+          actor.platformAdmin ||
+          owners.some((o) => o.organizationId === s.organizationId)
+            ? ["manage", "sell", "receive"]
+            : members
+                .find((m) => m.storeId === s.id)!
+                .permissions.filter(
+                  (p) =>
+                    p !== "receive" ||
+                    members
+                      .find((m) => m.storeId === s.id)!
+                      .permissions.includes("manage"),
+                ),
+      }));
   }
   async createStore(
     actor: Actor,
@@ -103,7 +123,7 @@ export class WorkspaceService {
       phone?: string;
     },
   ) {
-    return this.db.authenticated(actor, async (tx, actor) => {
+    return this.db.group(actor, input.organizationId, async (tx, actor) => {
       const owner = await tx.organizationMembership.findUnique({
         where: {
           organizationId_userId: {
@@ -117,6 +137,16 @@ export class WorkspaceService {
         "FORBIDDEN",
         "Vous ne pouvez pas créer un magasin dans cette organisation.",
         403,
+      );
+      requireRule(
+        (
+          await tx.organization.findUniqueOrThrow({
+            where: { id: input.organizationId },
+          })
+        ).status === "active",
+        "WORKSPACE_INACTIVE",
+        "Réactivez le groupe avant d’ajouter un magasin.",
+        409,
       );
       const store = await tx.store.create({ data: input });
       await tx.membership.create({
@@ -263,9 +293,21 @@ export class WorkspaceService {
           "SELF_ACCESS_CHANGE",
           "Un autre responsable doit modifier votre propre accès.",
         );
+        const target = await tx.user.findUnique({ where: { id: userId } });
+        requireRule(
+          target && !target.platformAdmin,
+          "FORBIDDEN",
+          "Le compte administrateur ne se modifie pas depuis une équipe.",
+          403,
+        );
         return tx.membership.update({
           where: { storeId_userId: { storeId: store, userId } },
-          data: input,
+          data: {
+            ...input,
+            permissions: input.permissions.filter(
+              (p) => p !== "receive" || input.permissions.includes("manage"),
+            ),
+          },
         });
       },
     );
@@ -515,8 +557,19 @@ export class WorkspaceService {
       });
       const { points, rewards, claims, orders, deliveries } = collections;
       const cursor = currentCursor;
+      const deliveryIssues = manage
+        ? await tx.deliveryIssue.groupBy({
+            by: ["orderId"],
+            where: {
+              organizationId: org,
+              storeId: store,
+              status: { not: "resolved" },
+            },
+            _count: true,
+          })
+        : [];
       const fulfillment = await orderFulfillment(tx, org, store, orders);
-      const supply = await outstandingSupply(tx, org, store);
+      const supply = manage ? await outstandingSupply(tx, org, store) : [];
       const onboarding = manage ? await onboardingProgress(tx, store) : null;
       const users = memberships.length
         ? await tx.user.findMany({
@@ -664,6 +717,8 @@ export class WorkspaceService {
         orders: orders.map((order) => ({
           ...order,
           fulfillment: fulfillment.get(order.id),
+          openIssues:
+            deliveryIssues.find((i) => i.orderId === order.id)?._count ?? 0,
         })),
         outstandingSupply: supply,
         deliveries,

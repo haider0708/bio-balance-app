@@ -53,11 +53,14 @@ class StockProjection {
     }
     if (type == 'stock.receive' || type == 'delivery.receive') {
       for (final line in objects(command['lines'])) {
+        if (line['condition'] == 'refused') continue;
+        final damaged = line['condition'] == 'damaged';
         final lotId = lotIdentity(store, line);
         movements.add(
           LotMovement(
             lotId,
-            sellableDelta: integer(line['quantity']),
+            sellableDelta: damaged ? 0 : integer(line['quantity']),
+            damagedDelta: damaged ? integer(line['quantity']) : 0,
             declaration: {
               'productId': line['productId'],
               'batch': line['batch'],

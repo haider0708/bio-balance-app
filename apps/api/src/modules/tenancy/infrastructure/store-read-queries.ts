@@ -93,10 +93,10 @@ export class StoreReadQueries {
       ${boundary} ORDER BY id LIMIT 200`;
     if (resource === "orders")
       return Prisma.sql`SELECT * FROM "ReplenishmentOrder"
-      WHERE "storeId"=${store}::uuid AND (status<>'received' OR id IN (SELECT id FROM "ReplenishmentOrder"
+      WHERE ${manage} AND "storeId"=${store}::uuid AND (status NOT IN ('received','cancelled','closed_partial') OR id IN (SELECT id FROM "ReplenishmentOrder"
         WHERE "storeId"=${store}::uuid ORDER BY "createdAt" DESC,id DESC LIMIT 100))
       ${boundary} ORDER BY id LIMIT 200`;
-    return Prisma.sql`SELECT * FROM "Delivery" WHERE "storeId"=${store}::uuid AND status='dispatched'
+    return Prisma.sql`SELECT * FROM "Delivery" WHERE ${manage} AND "storeId"=${store}::uuid AND status='dispatched'
       ${boundary} ORDER BY id LIMIT 200`;
   }
 

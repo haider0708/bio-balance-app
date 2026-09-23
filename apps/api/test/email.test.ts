@@ -574,7 +574,7 @@ it("delivers a group manager's seller invitation and activates only its latest c
     kind: "salesperson" as const,
     organizationId: group.id,
     storeIds: [store.id],
-    permissions: ["sell", "receive"],
+    permissions: ["sell"],
   };
   const first = await identity.invite(manager, input);
   const oldJob = await db.job.findUniqueOrThrow({
@@ -623,7 +623,7 @@ it("delivers a group manager's seller invitation and activates only its latest c
   expect(memberships[0]).toMatchObject({
     storeId: store.id,
     active: true,
-    permissions: ["sell", "receive"],
+    permissions: ["sell"],
   });
   expect(
     await db.organizationMembership.count({
@@ -633,4 +633,85 @@ it("delivers a group manager's seller invitation and activates only its latest c
   await expect(
     identity.activate(code, "Vendeur", "seller-password", randomUUID()),
   ).rejects.toMatchObject({ code: "INVITATION_EXPIRED" });
+});
+
+it("invitation expiration rejects activation without creating an account or consuming the token", async () => {
+  const f = await invitation();
+  await db.accessToken.update({
+    where: { id: f.tokenId },
+    data: { expiresAt: new Date(Date.now() - 1) },
+  });
+  await expect(
+    identity.activate(
+      f.job.payload.token!,
+      "Test",
+      "strong-test-password",
+      randomUUID(),
+    ),
+  ).rejects.toMatchObject({ code: "INVITATION_EXPIRED" });
+  expect(await db.user.count({ where: { email: f.recipient } })).toBe(0);
+  expect(
+    (await db.accessToken.findUniqueOrThrow({ where: { id: f.tokenId } }))
+      .usedAt,
+  ).toBeNull();
+});
+it("simultaneous invitation activation consumes the code once and creates one membership", async () => {
+  const f = await invitation();
+  const results = await Promise.allSettled([
+    identity.activate(
+      f.job.payload.token!,
+      "Test",
+      "strong-test-password",
+      randomUUID(),
+    ),
+    identity.activate(
+      f.job.payload.token!,
+      "Test",
+      "strong-test-password",
+      randomUUID(),
+    ),
+  ]);
+  expect(results.filter((r) => r.status === "fulfilled")).toHaveLength(1);
+  const user = await db.user.findUniqueOrThrow({
+    where: { email: f.recipient },
+  });
+  expect(
+    await db.organizationMembership.count({
+      where: { organizationId: f.org.id, userId: user.id },
+    }),
+  ).toBe(1);
+});
+it("recovery deadline and simultaneous use preserve one authoritative password change", async () => {
+  const user = await account();
+  await identity.forgot(user.email, randomUUID());
+  const token = await db.accessToken.findFirstOrThrow({
+    where: { email: user.email, purpose: "reset" },
+  });
+  const job = await db.job.findUniqueOrThrow({
+    where: { key: `reset:${token.id}` },
+  });
+  const payload = EmailPayload.parse(job.payload);
+  if (payload.template !== "reset") throw Error("RESET_EXPECTED");
+  await db.accessToken.update({
+    where: { id: token.id },
+    data: { expiresAt: new Date(Date.now() - 1) },
+  });
+  await expect(
+    identity.reset(payload.token, "new", randomUUID()),
+  ).rejects.toMatchObject({ code: "RESET_EXPIRED" });
+  expect(
+    (await db.user.findUniqueOrThrow({ where: { id: user.id } })).passwordHash,
+  ).toBe("test:original");
+  await db.accessToken.update({
+    where: { id: token.id },
+    data: { expiresAt: new Date(Date.now() + 60000) },
+  });
+  const results = await Promise.allSettled([
+    identity.reset(payload.token, "first", randomUUID()),
+    identity.reset(payload.token, "second", randomUUID()),
+  ]);
+  expect(results.filter((r) => r.status === "fulfilled")).toHaveLength(1);
+  expect(
+    await db.job.count({ where: { key: `password-changed:${token.id}` } }),
+  ).toBe(1);
 });

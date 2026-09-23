@@ -1,4 +1,5 @@
-import { createHash } from "node:crypto";
+import { Order } from "../domain/order";
+import { createHash, randomUUID } from "node:crypto";
 import { DomainError, requireRule } from "../../../shared/domain/errors";
 import { expiryDate, localDate } from "../../../shared/domain/money";
 import {
@@ -323,6 +324,8 @@ export class OperationsService {
       await ledger.saveOrder({
         id: cmd.orderId,
         lines: cmd.lines,
+        requestedLines: cmd.lines,
+        cancelledLines: [],
         status: "requested",
         version: 1,
       });
@@ -333,6 +336,131 @@ export class OperationsService {
       );
       return { id: cmd.orderId, version: 1 };
     }
+    if (cmd.type === "order.amend" || cmd.type === "order.cancel") {
+      requireRule(
+        actor.platformAdmin,
+        "FORBIDDEN",
+        "Action réservée à BioBalance.",
+        403,
+      );
+      const order = await ledger.order(cmd.orderId);
+      this.version(order.version, op.expectedVersion);
+      const fulfillment = await ledger.fulfillment(order);
+      if (cmd.type === "order.amend") {
+        for (const line of cmd.lines) await ledger.rate(line.productId);
+        Order.amend(order, cmd.lines, fulfillment);
+      } else Order.cancel(order, fulfillment);
+      await ledger.saveOrder(order);
+      order.status = Order.status(
+        await ledger.fulfillment(order),
+        await ledger.hasIssues(order.id),
+      );
+      await ledger.saveOrder(order);
+      await ledger.notify(
+        op.operationId,
+        cmd.type === "order.amend" ? "Commande modifiée" : "Reliquat annulé",
+        cmd.reason,
+      );
+      return { id: order.id, version: order.version, status: order.status };
+    }
+    if (
+      cmd.type === "delivery.report" ||
+      (cmd.type === "delivery.receive" && cmd.lines.length === 0)
+    ) {
+      this.allow(ledger, "manage");
+      const delivery = await ledger.delivery(cmd.deliveryId);
+      this.version(delivery.version, op.expectedVersion);
+      requireRule(
+        delivery.status === "dispatched",
+        "DELIVERY_CLOSED",
+        "Cette livraison n’est plus en transit.",
+        409,
+      );
+      const reason =
+        cmd.type === "delivery.report" ? cmd.reason : cmd.note.trim();
+      requireRule(
+        reason.length >= 3,
+        "MISSING_DELIVERY_REASON",
+        "Indiquez pourquoi la livraison n’a pas été reçue.",
+      );
+      const prior = await ledger.issue(delivery.id);
+      requireRule(
+        !prior,
+        "ISSUE_EXISTS",
+        "Un incident existe déjà pour cette livraison. Consultez son suivi.",
+        409,
+      );
+      await ledger.saveIssue({
+        id: randomUUID(),
+        deliveryId: delivery.id,
+        orderId: delivery.orderId,
+        status: "open",
+        reason,
+        heldLines: [],
+        version: 1,
+      });
+      delivery.version++;
+      await ledger.saveDelivery(delivery);
+      await ledger.notify(op.operationId, "Livraison non reçue", reason);
+      return { id: delivery.id, version: delivery.version, status: "reported" };
+    }
+    if (cmd.type === "delivery.resolve") {
+      requireRule(
+        actor.platformAdmin,
+        "FORBIDDEN",
+        "Action réservée à BioBalance.",
+        403,
+      );
+      const delivery = await ledger.delivery(cmd.deliveryId);
+      this.version(delivery.version, op.expectedVersion);
+      const issue = await ledger.issue(delivery.id);
+      requireRule(
+        issue && issue.status !== "resolved",
+        "ISSUE_CLOSED",
+        "Aucun incident ouvert pour cette livraison.",
+        409,
+      );
+      if (cmd.decision === "tracing") issue.status = "in_progress";
+      else {
+        requireRule(
+          cmd.decision !== "settled" || delivery.status === "received",
+          "RECEIPT_REQUIRED",
+          "Une livraison en transit doit être reçue, déclarée perdue ou retournée.",
+          409,
+        );
+        requireRule(
+          !["lost", "returned"].includes(cmd.decision) ||
+            delivery.status === "dispatched",
+          "DELIVERY_RECEIVED",
+          "La réception physique existe déjà. Réglez les écarts sans effacer cette réception.",
+          409,
+        );
+        if (cmd.decision === "lost" || cmd.decision === "returned")
+          delivery.status = cmd.decision;
+        issue.status = "resolved";
+        issue.heldLines = [];
+      }
+      issue.resolution = cmd.decision;
+      issue.resolutionNote = cmd.reason;
+      issue.version++;
+      await ledger.saveIssue(issue);
+      delivery.version++;
+      await ledger.saveDelivery(delivery);
+      const order = await ledger.order(delivery.orderId);
+      order.status = Order.status(
+        await ledger.fulfillment(order),
+        await ledger.hasIssues(order.id),
+      );
+      order.version++;
+      await ledger.saveOrder(order);
+      await ledger.notify(op.operationId, "Suivi de livraison", cmd.reason);
+      return {
+        id: delivery.id,
+        version: delivery.version,
+        orderVersion: order.version,
+        status: delivery.status,
+      };
+    }
     if (cmd.type === "order.prepare" || cmd.type === "delivery.dispatch") {
       requireRule(
         actor.platformAdmin,
@@ -342,12 +470,7 @@ export class OperationsService {
       );
       const order = await ledger.order(cmd.orderId);
       this.version(order.version, op.expectedVersion);
-      requireRule(
-        order.status !== "received",
-        "ORDER_COMPLETE",
-        "Cette commande est déjà réceptionnée.",
-        409,
-      );
+      Order.editable(order);
       if (cmd.type === "order.prepare") order.status = "preparing";
       else {
         const fulfillment = await ledger.fulfillment(order);
@@ -389,7 +512,7 @@ export class OperationsService {
       };
     }
     if (cmd.type === "delivery.receive") {
-      this.allow(ledger, "receive");
+      this.allow(ledger, "manage");
       const delivery = await ledger.delivery(cmd.deliveryId);
       this.version(delivery.version, op.expectedVersion);
       requireRule(
@@ -404,22 +527,46 @@ export class OperationsService {
         "Expliquez pourquoi aucune unité n’a été reçue.",
       );
       const actual = new Map<string, number>();
+      const damaged = new Map<string, number>();
+      const refused = new Map<string, number>();
       for (const line of cmd.lines) {
         requireRule(
           delivery.lines.some((l) => l.productId === line.productId),
           "UNEXPECTED_PRODUCT",
           "Produit absent de cette livraison.",
         );
-        actual.set(
+        const bucket =
+          line.condition === "damaged"
+            ? damaged
+            : line.condition === "refused"
+              ? refused
+              : actual;
+        bucket.set(
           line.productId,
-          (actual.get(line.productId) ?? 0) + line.quantity,
+          (bucket.get(line.productId) ?? 0) + line.quantity,
         );
       }
       const differences = delivery.lines.map((l) => ({
         productId: l.productId,
         expected: l.quantity,
         actual: actual.get(l.productId) ?? 0,
+        damaged: damaged.get(l.productId) ?? 0,
+        refused: refused.get(l.productId) ?? 0,
+        surplus: Math.max(
+          0,
+          (actual.get(l.productId) ?? 0) +
+            (damaged.get(l.productId) ?? 0) +
+            (refused.get(l.productId) ?? 0) -
+            l.quantity,
+        ),
       }));
+      requireRule(
+        !differences.some(
+          (l) => l.damaged > 0 || l.refused > 0 || l.surplus > 0,
+        ) || cmd.note.trim().length >= 3,
+        "DELIVERY_DIFFERENCE_REASON",
+        "Expliquez les unités abîmées, refusées ou supplémentaires.",
+      );
       await ledger.receipt(
         delivery.id,
         cmd.lines,
@@ -427,6 +574,7 @@ export class OperationsService {
         op.operationId,
       );
       for (const line of cmd.lines) {
+        if (line.condition === "refused") continue;
         await ledger.receive(
           line.productId,
           line.batch,
@@ -435,19 +583,53 @@ export class OperationsService {
           delivery.id,
           op.operationId,
           "delivery.receive",
+          line.condition === "damaged" ? "damaged" : "sellable",
         );
         affected.add(line.productId);
       }
       delivery.status = "received";
       delivery.version++;
       await ledger.saveDelivery(delivery);
+      const priorIssue = await ledger.issue(delivery.id);
+      const hasDifferences = differences.some(
+        (l) =>
+          l.expected !== l.actual ||
+          l.damaged > 0 ||
+          l.refused > 0 ||
+          l.surplus > 0,
+      );
+      if (hasDifferences) {
+        await ledger.saveIssue({
+          id: priorIssue?.id ?? randomUUID(),
+          deliveryId: delivery.id,
+          orderId: delivery.orderId,
+          status: "open",
+          reason:
+            cmd.note.trim() || "Écart entre les quantités expédiées et reçues.",
+          heldLines: differences
+            .filter((l) => l.expected > l.actual)
+            .map((l) => ({
+              productId: l.productId,
+              quantity: l.expected - l.actual,
+            })),
+          version: (priorIssue?.version ?? 0) + 1,
+        });
+      } else if (priorIssue && priorIssue.status !== "resolved") {
+        await ledger.saveIssue({
+          ...priorIssue,
+          status: "resolved",
+          heldLines: [],
+          resolution: "received",
+          resolutionNote: "Réception complète confirmée.",
+          version: priorIssue.version + 1,
+        });
+      }
       const order = await ledger.order(delivery.orderId);
       const fulfillment = await ledger.fulfillment(order);
-      order.status = fulfillment.every(
-        (l) => l.remainingToReceive === 0 && l.inTransit === 0,
-      )
-        ? "received"
-        : "partial";
+      order.status = Order.status(
+        fulfillment,
+        await ledger.hasIssues(order.id),
+      );
       order.version++;
       await ledger.saveOrder(order);
       await ledger.alerts([...affected]);

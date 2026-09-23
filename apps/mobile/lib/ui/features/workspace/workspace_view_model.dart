@@ -91,7 +91,11 @@ class WorkspaceViewModel extends ChangeNotifier {
   late final reporting = ReportingRepository(repositoryContext);
   late final sales = SalesRepository(repositoryContext);
   late final rewards = RewardsRepository(repositoryContext);
-  late final inbox = NotificationsRepository(repositoryContext);
+  late final inbox = NotificationsRepository(
+    repositoryContext,
+    local: repository,
+    accountId: user.id,
+  );
   late final StoreSettingsRepository stores;
 
   final UserAccount user;
@@ -558,10 +562,7 @@ class WorkspaceViewModel extends ChangeNotifier {
     String? draftKey,
   }) async {
     final store = targetStore ?? state.store!;
-    requireAccess(
-      store,
-      command['type'] == 'delivery.receive' ? 'receive' : 'manage',
-    );
+    requireAccess(store, 'manage');
     await repository.enqueue(
       user,
       store,

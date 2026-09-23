@@ -86,6 +86,24 @@ class DashboardRepository {
       phase: phase,
     )).toJson(),
   );
+  Future<Json> alert(Store store, String id) => context.run(() async {
+    final key = 'alert:$id';
+    try {
+      final value = (await context.api.dashboardAlert(
+        groupId: store.organizationId,
+        storeId: store.id,
+        id: id,
+      )).toJson();
+      context.check();
+      await local.saveDraft(accountId, store.id, key, value);
+      return value;
+    } on DioException catch (e) {
+      if (e.response != null) rethrow;
+      final saved = await local.draft(accountId, store.id, key);
+      if (saved == null) rethrow;
+      return {...saved, 'cached': true};
+    }
+  });
   Future<Json> order(Store store, String id) => context.run(
     () async => (await context.api.dashboardOrder(
       groupId: store.organizationId,

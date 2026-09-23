@@ -91,6 +91,8 @@ export class Database extends PrismaClient implements OnModuleDestroy {
       const [access] = await tx.$queryRaw<
         {
           storeId: string | null;
+          storeStatus: string | null;
+          groupStatus: string | null;
           userId: string | null;
           timezone: string | null;
           disabled: boolean | null;
@@ -100,7 +102,7 @@ export class Database extends PrismaClient implements OnModuleDestroy {
           permissions: string[];
           sessionValid: boolean;
         }[]
-      >`SELECT s.id AS "storeId",s.timezone,u.id AS "userId",u.disabled,u."platformAdmin",
+      >`SELECT s.id AS "storeId",s.status AS "storeStatus",g.status AS "groupStatus",s.timezone,u.id AS "userId",u.disabled,u."platformAdmin",
               COALESCE(m.active,false) AS "memberActive",COALESCE(o.active,false) AS "ownerActive",
               COALESCE(m.permissions,'{}'::text[]) AS permissions,
               (${actor.sessionId ?? null}::uuid IS NULL OR EXISTS(
@@ -109,6 +111,7 @@ export class Database extends PrismaClient implements OnModuleDestroy {
                 AND ss."expiresAt">(CURRENT_TIMESTAMP AT TIME ZONE 'UTC'))) AS "sessionValid"
               FROM (SELECT 1) anchor
               LEFT JOIN "Store" s ON s.id=${storeId}::uuid AND s."organizationId"=${organizationId}::uuid
+              LEFT JOIN "Organization" g ON g.id=s."organizationId"
               LEFT JOIN "User" u ON u.id=${actor.id}::uuid
               LEFT JOIN "Membership" m ON m."storeId"=s.id AND m."userId"=u.id
               LEFT JOIN "OrganizationMembership" o ON o."organizationId"=s."organizationId" AND o."userId"=u.id`;
@@ -142,10 +145,27 @@ export class Database extends PrismaClient implements OnModuleDestroy {
         "Magasin inaccessible.",
         403,
       );
+      requireRule(
+        access.platformAdmin ||
+          (access.storeStatus === "active" && access.groupStatus === "active"),
+        "STORE_ACCESS_REVOKED",
+        "Ce magasin ou son groupe est suspendu ou archivé. Vos opérations locales sont conservées.",
+        403,
+      );
+      requireRule(
+        isolationLevel !== "Serializable" ||
+          (access.storeStatus !== "archived" &&
+            access.groupStatus !== "archived"),
+        "WORKSPACE_ARCHIVED",
+        "Cet espace est archivé. Son historique reste consultable, mais aucune nouvelle opération n’est autorisée.",
+        409,
+      );
       const permissions =
         access.platformAdmin || access.ownerActive
           ? ["manage", "sell", "receive"]
-          : access.permissions;
+          : access.permissions.filter(
+              (p) => p !== "receive" || access.permissions.includes("manage"),
+            );
       await tx.$executeRaw`SELECT set_config('app.organization_id',${organizationId},true), set_config('app.store_id',${storeId},true), set_config('app.actor_id',${actor.id},true)`;
       const scope: Scope = {
         actor: { ...actor, platformAdmin: access.platformAdmin! },
@@ -241,8 +261,8 @@ export class Database extends PrismaClient implements OnModuleDestroy {
   ): Promise<T> {
     return this.authenticated(actor, async (tx, current) => {
       // Serializes membership changes, including concurrent last-manager removals.
-      const groups = await tx.$queryRaw<{ id: string }[]>(
-        Prisma.sql`SELECT id FROM "Organization" WHERE id=${organizationId}::uuid ${lock ? Prisma.sql`FOR UPDATE` : Prisma.empty}`,
+      const groups = await tx.$queryRaw<{ id: string; status: string }[]>(
+        Prisma.sql`SELECT id,status FROM "Organization" WHERE id=${organizationId}::uuid ${lock ? Prisma.sql`FOR UPDATE` : Prisma.empty}`,
       );
       const membership = await tx.organizationMembership.findUnique({
         where: {
@@ -250,7 +270,9 @@ export class Database extends PrismaClient implements OnModuleDestroy {
         },
       });
       requireRule(
-        groups.length === 1 && (current.platformAdmin || membership?.active),
+        groups.length === 1 &&
+          (current.platformAdmin ||
+            (membership?.active && groups[0]!.status === "active")),
         "GROUP_ACCESS_REVOKED",
         "Ce groupe n’est plus accessible.",
         403,

@@ -157,11 +157,11 @@ export class DashboardService {
       };
       const stores = await tx.store.findMany({
         where: storeWhere,
-        select: { id: true, name: true, organizationId: true },
+        select: { id: true, name: true, organizationId: true, status: true },
       });
       const organizations = await tx.organization.findMany({
         where: q.organizationId ? { id: q.organizationId } : {},
-        select: { id: true, name: true },
+        select: { id: true, name: true, status: true },
       });
       const products = await tx.product.findMany({
         where: { id: { in: top.map((p) => p.id) } },
@@ -184,11 +184,16 @@ export class DashboardService {
       const orders = personal
         ? 0
         : await tx.replenishmentOrder.count({
-            where: { ...operational, status: { not: "received" } },
+            where: {
+              ...operational,
+              status: { notIn: ["received", "cancelled", "closed_partial"] },
+            },
           });
-      const deliveries = await tx.delivery.count({
-        where: { ...operational, status: "dispatched" },
-      });
+      const deliveries = personal
+        ? 0
+        : await tx.delivery.count({
+            where: { ...operational, status: "dispatched" },
+          });
       const claims = await tx.rewardClaim.count({
         where: {
           ...operational,
@@ -255,8 +260,14 @@ export class DashboardService {
         to: q.to,
         generatedAt: new Date().toISOString(),
         ...totals[0]!,
-        groupCount: organizations.length,
-        storeCount: stores.length,
+        groupCount: organizations.filter((g) => g.status === "active").length,
+        storeCount: stores.filter(
+          (s) =>
+            s.status === "active" &&
+            organizations.some(
+              (g) => g.id === s.organizationId && g.status === "active",
+            ),
+        ).length,
         series: series.map((s) => ({
           ...s,
           day: s.day.toISOString().slice(0, 10),
@@ -410,7 +421,7 @@ export class DashboardService {
     actor: Actor,
     q: DashboardQuery,
     after?: string,
-    phase?: "preparation" | "transit" | "complete",
+    phase?: "all" | "preparation" | "transit" | "issues" | "complete",
   ) {
     return this.scope(actor, q, async (tx) => {
       requireRule(
@@ -419,23 +430,65 @@ export class DashboardService {
         "Accès réservé au responsable.",
         403,
       );
+      const selectedOrders =
+        phase === "transit"
+          ? (
+              await tx.delivery.groupBy({
+                by: ["orderId"],
+                where: {
+                  ...(q.organizationId
+                    ? { organizationId: q.organizationId }
+                    : {}),
+                  ...(q.storeId ? { storeId: q.storeId } : {}),
+                  status: "dispatched",
+                  ...(after ? { orderId: { gt: after } } : {}),
+                },
+                orderBy: { orderId: "asc" },
+                take: 51,
+              })
+            ).map((d) => d.orderId)
+          : phase === "issues"
+            ? (
+                await tx.deliveryIssue.groupBy({
+                  by: ["orderId"],
+                  where: {
+                    ...(q.organizationId
+                      ? { organizationId: q.organizationId }
+                      : {}),
+                    ...(q.storeId ? { storeId: q.storeId } : {}),
+                    status: { not: "resolved" },
+                    ...(after ? { orderId: { gt: after } } : {}),
+                  },
+                  orderBy: { orderId: "asc" },
+                  take: 51,
+                })
+              ).map((i) => i.orderId)
+            : undefined;
       const items = await tx.replenishmentOrder.findMany({
         where: {
-          ...(phase
+          ...(phase &&
+          phase !== "all" &&
+          phase !== "issues" &&
+          phase !== "transit"
             ? {
                 status: {
                   in:
                     phase === "preparation"
                       ? ["requested", "preparing", "partial"]
-                      : phase === "transit"
-                        ? ["dispatched"]
-                        : ["received", "cancelled"],
+                      : ["received", "cancelled", "closed_partial"],
                 },
               }
             : {}),
           ...(q.organizationId ? { organizationId: q.organizationId } : {}),
           ...(q.storeId ? { storeId: q.storeId } : {}),
-          ...(after ? { id: { gt: after } } : {}),
+          ...(after || selectedOrders
+            ? {
+                id: {
+                  ...(after ? { gt: after } : {}),
+                  ...(selectedOrders ? { in: selectedOrders } : {}),
+                },
+              }
+            : {}),
         },
         orderBy: { id: "asc" },
         take: 51,
@@ -458,6 +511,47 @@ export class DashboardService {
       };
     });
   }
+  alert(actor: Actor, organizationId: string, storeId: string, id: string) {
+    return this.db.scopedSnapshot(
+      actor,
+      organizationId,
+      storeId,
+      async (tx, scope) => {
+        requireRule(
+          scope.permissions.includes("manage"),
+          "FORBIDDEN",
+          "Accès réservé au responsable.",
+          403,
+        );
+        const alert = await tx.alert.findFirst({
+          where: { id, organizationId, storeId },
+        });
+        requireRule(alert, "NOT_FOUND", "Alerte introuvable.", 404);
+        const store = await tx.store.findUniqueOrThrow({
+          where: { id: storeId },
+        });
+        const group = await tx.organization.findUniqueOrThrow({
+          where: { id: organizationId },
+        });
+        const issue =
+          alert.kind === "delivery_issue"
+            ? await tx.deliveryIssue.findFirst({
+                where: {
+                  organizationId,
+                  storeId,
+                  deliveryId: alert.key.slice("delivery:".length),
+                },
+              })
+            : null;
+        return {
+          ...alert,
+          storeName: store.name,
+          groupName: group.name,
+          orderId: issue?.orderId ?? null,
+        };
+      },
+    );
+  }
   order(actor: Actor, organizationId: string, storeId: string, id: string) {
     return this.db.scopedSnapshot(
       actor,
@@ -465,8 +559,7 @@ export class DashboardService {
       storeId,
       async (tx, scope) => {
         requireRule(
-          scope.permissions.includes("manage") ||
-            scope.permissions.includes("receive"),
+          scope.permissions.includes("manage"),
           "FORBIDDEN",
           "Commande inaccessible.",
           403,
@@ -502,6 +595,29 @@ export class DashboardService {
           deliveries,
           receipts,
           fulfillment,
+          issues: await tx.deliveryIssue.findMany({
+            where: { organizationId, storeId, orderId: id },
+            orderBy: { createdAt: "asc" },
+          }),
+          history: await tx.auditEntry.findMany({
+            where: {
+              organizationId,
+              storeId,
+              OR: [
+                { targetId: id },
+                { targetId: { in: deliveries.map((d) => d.id) } },
+              ],
+            },
+            select: {
+              id: true,
+              action: true,
+              actorId: true,
+              createdAt: true,
+              details: true,
+            },
+            orderBy: { createdAt: "asc" },
+            take: 200,
+          }),
         };
       },
     );

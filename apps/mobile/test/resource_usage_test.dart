@@ -23,13 +23,20 @@ class ControlledInbox extends NotificationsRepository {
   Object? failure;
   Completer<List<Json>>? pending;
   @override
-  Future<List<Json>> list({String? before}) async {
+  Future<Json> page({String? cursor}) async {
     calls++;
     if (failure != null) throw failure!;
-    return pending?.future ??
-        [
-          {'id': 'one', 'title': 'Stock', 'readAt': null},
-        ];
+    final items =
+        await (pending?.future ??
+            Future.value([
+              {'id': 'one', 'title': 'Stock', 'readAt': null},
+            ]));
+    return {
+      'items': items,
+      'unreadCount': items.where((i) => i['readAt'] == null).length,
+      'nextCursor': null,
+      'accessKey': 'test',
+    };
   }
 }
 

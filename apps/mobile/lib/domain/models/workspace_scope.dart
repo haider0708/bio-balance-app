@@ -3,13 +3,14 @@ import 'models.dart';
 enum ScopeKind { network, group, store }
 
 class PartnerGroup {
-  final String id, name;
+  final String id, name, status;
   final String? imageId, phone;
   final int version, storeCount;
   final bool canManage;
   const PartnerGroup({
     required this.id,
     required this.name,
+    this.status = 'active',
     this.imageId,
     this.phone,
     this.version = 1,
@@ -19,6 +20,7 @@ class PartnerGroup {
   factory PartnerGroup.fromJson(Json v) => PartnerGroup(
     id: v['id'],
     name: v['name'],
+    status: v['status'] ?? 'active',
     imageId: v['imageId'],
     phone: v['phone'],
     version: integer(v['version'] ?? 1),
@@ -28,6 +30,7 @@ class PartnerGroup {
   Json toJson() => {
     'id': id,
     'name': name,
+    'status': status,
     'imageId': imageId,
     'phone': phone,
     'version': version,

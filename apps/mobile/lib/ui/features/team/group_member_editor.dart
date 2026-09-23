@@ -363,7 +363,7 @@ class _GroupMemberEditorState extends State<GroupMemberEditor> {
           'storeIds': ids,
           'permissions': role == 'responsible'
               ? ['manage', 'sell', 'receive']
-              : ['sell', 'receive'],
+              : ['sell'],
         });
       }
       completed = true;

@@ -58,6 +58,18 @@ class GroupRepository {
       body: GroupUpdateRequestDto.fromJson(v),
     );
   });
+  Future<Json> lifecycleImpact(String id, {String? storeId}) => context.run(
+    () async =>
+        (await context.api.groupImpact(id: id, storeId: storeId)).toJson(),
+  );
+  Future<void> lifecycle(String id, Json body, {String? storeId}) =>
+      context.run(() async {
+        await context.api.groupLifecycle(
+          id: id,
+          storeId: storeId,
+          body: GroupLifecycleRequestDto.fromJson(body),
+        );
+      });
   Future<Json> team(String id) =>
       context.run(() async => (await context.api.groupTeam(id: id)).toJson());
   Future<void> member(String id, String userId, Json v) =>
