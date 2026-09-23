@@ -1,3 +1,11 @@
+# BioBalance 1.1.4+8 — synchronisation entre magasins
+
+Les opérations de tous les magasins du compte sont visibles et synchronisées depuis chaque espace. Les états distinguent envoi, reprise programmée, conflit et confirmation. Les tentatives gardent les mêmes identifiants et les opérations ne sont jamais effacées pour masquer un compteur.
+
+Les paramètres conservent leurs réglages et retirent les raccourcis de sélection de groupe/magasin redondants. Aucun changement backend ni migration. [Détails et vérification](sync-recovery-2026-09-23.md).
+
+---
+
 # BioBalance 1.1.3+7 — graphique enrichi
 
 Graphique avec bulle de valeur, repère du jour, choix montant/unités/ventes, moyenne quotidienne, meilleur jour et vue agrandie adaptée au paysage. L’ouverture des ventes garde le magasin et le jour d’origine, même si l’espace sous-jacent change.

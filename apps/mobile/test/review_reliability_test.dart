@@ -33,9 +33,8 @@ class DraftStore extends fixtures.MemoryDraftRepository {
   int writes = 0;
   List<OutboxRow> operationsToShow = [];
   @override
-  Future<List<OutboxRow>> operations(
-    String accountId,
-    String storeId, {
+  Future<List<OutboxRow>> accountOperations(
+    String accountId, {
     bool includeResolved = false,
   }) async => operationsToShow;
   @override

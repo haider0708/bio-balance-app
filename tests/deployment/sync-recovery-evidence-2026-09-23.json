@@ -1,0 +1,39 @@
+{
+  "date": "2026-09-23",
+  "version": "1.1.4+8",
+  "backendChanged": false,
+  "databaseMigration": false,
+  "validation": {
+    "flutterAnalyze": "passed",
+    "flutterTests": {
+      "passed": 252,
+      "fixtureDependentSkipped": 4
+    },
+    "newSyncRegressions": 13,
+    "realApiDatabaseRecovery": "passed",
+    "androidForceStopRecovery": "passed",
+    "cameraDeniedManualFallback": "passed",
+    "offlineH264Playback": "passed"
+  },
+  "logs": {
+    "sync-analyze.log": {
+      "path": ".artifacts/sync-analyze.log",
+      "sha256": "2b152ebd47a27f66fee7c350c3a33b35efe1a0c467b8c0c13db95d79492f3497"
+    },
+    "sync-full-tests.log": {
+      "path": ".artifacts/sync-full-tests.log",
+      "sha256": "50c01b417fa910a59876866e86c98c525df8608b03be7cbdf0ddb4a5c8a6d5b6"
+    },
+    "sync-real-api.log": {
+      "path": ".artifacts/sync-real-api.log",
+      "sha256": "2465806cbbb9abfcafd8b86ccbe2dd2a201806c56ef1cfd945bcccf09a10c188"
+    },
+    "sync-native-restart.log": {
+      "path": ".artifacts/sync-native-restart.log",
+      "sha256": "e9562002fa557e565d70e3ffc7621ab0ba04508b3c867d1b6f6eeb5b06f81449"
+    }
+  },
+  "androidBuild": null,
+  "samsungVerification": "pending",
+  "ci": "pending"
+}

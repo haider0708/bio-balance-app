@@ -58,7 +58,7 @@ Ces captures ne qualifient pas la caméra physique, la lecture VoiceOver/TalkBac
 ## Ajustement 1.1.2 — graphique et paramètres
 
 - `interactive-sales-chart.png` : points tactiles, axes, date et valeurs exactes du jour, lien vers ses ventes. Vérifié également en paysage et à 200 % de texte.
-- `settings-network.png` : accès commun aux paramètres et à l’administration, sélection explicite d’un magasin.
+- `settings-network.png` : accès commun aux paramètres et à l’administration. La capture 1.1.4 remplace celle-ci et retire la sélection redondante.
 - `settings-store.png` : prix/points/seuils, équipe, guide, historiques et accès au groupe.
 
 Les tests couvrent aussi l’absence de commandes de gestion pour le vendeur et la navigation du réseau vers les réglages du magasin.
@@ -71,3 +71,12 @@ Les tests couvrent aussi l’absence de commandes de gestion pour le vendeur et 
 - [Vue agrandie en paysage](screenshots/interactive-sales-chart-expanded.png) : périmètre, période, commandes compactes et tracé complet.
 
 La capture mensuelle est désormais produite par `chart_exploration_test.dart`. Les assertions vérifient aussi la conservation du jour et du magasin dans les liens de ventes, l’affichage à 200 % et les animations réduites.
+
+## Synchronisation 1.1.4
+
+- [Opération à vérifier dans un autre magasin](screenshots/sync-account-recovery.png) : compte/téléphone, magasin explicite, état et résolution ; texte à 100 % et 200 % testé.
+- [File vide](screenshots/audit-sync.png) : aucune opération restante dans l’ensemble du compte sur cet appareil.
+- [Paramètres réseau](screenshots/settings-network.png) : informations et administration sans second sélecteur de groupe/magasin.
+- [Paramètres magasin](screenshots/settings-store.png) : réglages et permissions conservés.
+
+La file réelle du Samsung a été observée via sa hiérarchie d’accessibilité. La protection de capture du build signé reste active.

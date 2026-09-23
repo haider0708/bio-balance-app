@@ -36,12 +36,15 @@ class _SyncScreenState extends State<SyncScreen> {
   String? error, storeId;
   Object? lastData;
   DateTime? syncedAt;
-  int pending = -1;
+  int pending = -1, revision = -1;
+  bool syncing = false;
+  String? syncError;
   late Future<List<OutboxRow>> rows;
 
   @override
   void initState() {
     super.initState();
+    widget.vm.observeSynchronization();
     reload();
     widget.vm.addListener(workspaceChanged);
   }
@@ -52,13 +55,13 @@ class _SyncScreenState extends State<SyncScreen> {
     lastData = state.data;
     syncedAt = state.syncedAt;
     pending = state.pending;
-    rows = storeId == null
-        ? Future.value(<OutboxRow>[])
-        : widget.vm.repository.operations(
-            widget.vm.user.id,
-            storeId!,
-            includeResolved: history,
-          );
+    revision = widget.vm.syncRevision;
+    syncing = state.syncing;
+    syncError = state.syncError;
+    rows = widget.vm.repository.accountOperations(
+      widget.vm.user.id,
+      includeResolved: history,
+    );
   }
 
   void workspaceChanged() {
@@ -67,7 +70,10 @@ class _SyncScreenState extends State<SyncScreen> {
         (state.store?.id != storeId ||
             state.data != lastData ||
             state.syncedAt != syncedAt ||
-            state.pending != pending)) {
+            state.pending != pending ||
+            widget.vm.syncRevision != revision ||
+            state.syncing != syncing ||
+            state.syncError != syncError)) {
       setState(reload);
     }
   }
@@ -118,9 +124,13 @@ class _SyncScreenState extends State<SyncScreen> {
             );
             final failed = ['conflict', 'rejected'].contains(row.status);
             final resolved = row.status == 'resolved';
+            final store = widget.vm.state.stores
+                .where((s) => s.id == row.storeId)
+                .firstOrNull;
             return CompactRow(
               title: operationLabel(command['type']),
-              subtitle: dateLabel(row.createdAt.toIso8601String()),
+              subtitle:
+                  '${store == null ? 'Magasin inaccessible · ${row.storeId}' : '${store.organizationName} · ${store.name}'}\n${dateLabel(row.createdAt.toIso8601String())}',
               footer: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -152,7 +162,21 @@ class _SyncScreenState extends State<SyncScreen> {
                         row.error ??
                         'Conservée sur ce téléphone.',
                   ),
-                  if (failed)
+                  if (!resolved && store == null)
+                    const Text(
+                      'Votre accès à ce magasin doit être rétabli avant de poursuivre. La saisie reste conservée.',
+                    ),
+                  if (row.nextAttemptAt != null && row.status == 'retryable')
+                    Text(
+                      row.nextAttemptAt!.isAfter(DateTime.now())
+                          ? 'Nouvelle tentative à ${dateLabel(row.nextAttemptAt!.toIso8601String())}, si l’application est ouverte et connectée.'
+                          : 'La prochaine synchronisation réessaiera cette saisie.',
+                    ),
+                  if (row.status == 'blocked')
+                    const Text(
+                      'Vérifiez d’abord la saisie précédente de ce magasin. Les autres magasins continuent à se synchroniser.',
+                    ),
+                  if (failed && store != null)
                     TextButton.icon(
                       onPressed: busy
                           ? null
@@ -165,15 +189,32 @@ class _SyncScreenState extends State<SyncScreen> {
             );
           },
           children: [
-            const Notice(
-              'Chaque opération conserve son compte et son magasin d’origine. Une erreur n’efface pas les informations enregistrées.',
+            const SectionTitle(
+              'Sur ce téléphone',
+              subtitle: 'Tous les magasins de votre compte',
+            ),
+            const Text(
+              'Vos saisies sont envoyées automatiquement quand l’application est ouverte et connectée, même si vous changez de magasin. Une erreur ne les efface pas.',
             ),
             const SizedBox(height: 20),
             if (error != null) Notice(error!, error: true),
+            if (widget.vm.state.syncError != null)
+              Notice(widget.vm.state.syncError!, error: true),
+            if (widget.vm.api.accessBlocked)
+              const Notice(
+                'Reconnectez-vous avec ce compte pour reprendre la synchronisation. Vos saisies restent conservées.',
+              ),
             FilledButton.icon(
-              onPressed: busy ? null : () => action(widget.vm.synchronize),
+              onPressed:
+                  busy || widget.vm.state.syncing || widget.vm.api.accessBlocked
+                  ? null
+                  : () => action(widget.vm.synchronize),
               icon: const Icon(AppIcons.sync),
-              label: const Text('Synchroniser maintenant'),
+              label: Text(
+                busy || widget.vm.state.syncing
+                    ? 'Synchronisation en cours…'
+                    : 'Synchroniser maintenant',
+              ),
             ),
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
@@ -184,11 +225,7 @@ class _SyncScreenState extends State<SyncScreen> {
               }),
               title: const Text('Afficher les résolutions précédentes'),
             ),
-            if (storeId == null)
-              const Notice(
-                'Sélectionnez un magasin pour consulter ses opérations.',
-              )
-            else if (snapshot.hasError)
+            if (snapshot.hasError)
               Notice(
                 'Impossible de lire les opérations de ce téléphone.',
                 error: true,
@@ -202,7 +239,7 @@ class _SyncScreenState extends State<SyncScreen> {
                     ? 'Aucune opération enregistrée'
                     : 'Tout est synchronisé',
                 description:
-                    'Aucune opération ${history ? 'enregistrée' : 'en attente'} sur ce magasin.',
+                    'Aucune opération ${history ? 'enregistrée' : 'en attente'} pour votre compte sur ce téléphone.',
                 icon: AppIcons.cloudDoneOutlined,
               ),
           ],
@@ -212,11 +249,22 @@ class _SyncScreenState extends State<SyncScreen> {
   );
 
   Future<void> review(OutboxRow row, List<OutboxRow> rows) async {
-    final vm = widget.vm, store = widget.vm.state.store!;
+    final vm = widget.vm;
+    final store = vm.state.stores.where((s) => s.id == row.storeId).firstOrNull;
+    if (store == null) {
+      throw const AppFailure(
+        'STORE_ACCESS_REVOKED',
+        'Votre accès à ce magasin doit être rétabli.',
+      );
+    }
+    vm.requireAccess(store);
     final command = Map<String, dynamic>.from(
       jsonDecode(row.payload)['command'],
     );
-    final related = vm.repository.dependentOperations(rows, row.operationId);
+    final related = vm.repository.dependentOperations(
+      rows.where((r) => r.storeId == row.storeId).toList(),
+      row.operationId,
+    );
     await vm.repository.refresh(vm.user, store);
     Json? serverSale;
     if (command['saleId'] != null) {
@@ -229,6 +277,7 @@ class _SyncScreenState extends State<SyncScreen> {
     }
     if (!mounted) return;
     final editable =
+        vm.state.store?.id == store.id &&
         ['sale.create', 'sale.correct'].contains(command['type']) &&
         related.every(
           (r) => [
@@ -246,6 +295,12 @@ class _SyncScreenState extends State<SyncScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(row.error ?? 'Cette saisie n’a pas été acceptée.'),
+              Text('${store.organizationName} · ${store.name}'),
+              if (vm.state.store?.id != store.id &&
+                  ['sale.create', 'sale.correct'].contains(command['type']))
+                Text(
+                  'Pour reprendre la vente, ouvrez ${store.name} depuis son groupe puis revenez à cette saisie.',
+                ),
               const SizedBox(height: 12),
               if (serverSale != null)
                 Text(
@@ -303,6 +358,12 @@ class _SyncScreenState extends State<SyncScreen> {
       await vm.reloadLocal();
       await vm.synchronize();
     } else {
+      if (vm.state.store?.id != store.id) {
+        throw const AppFailure(
+          'STORE_CHANGED',
+          'Le magasin a changé. Ouvrez le magasin de cette saisie avant de reprendre la vente.',
+        );
+      }
       final latest = Map<String, dynamic>.from(
         jsonDecode(related.last.payload)['command'],
       );

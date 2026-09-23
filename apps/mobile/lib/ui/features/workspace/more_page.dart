@@ -20,7 +20,6 @@ import 'scope_view_model.dart';
 import 'group_screens.dart';
 import 'operation_helpers.dart';
 import 'workspace_help.dart';
-import '../../../domain/models/workspace_scope.dart';
 
 class MorePage extends StatelessWidget {
   final WorkspaceViewModel vm;
@@ -168,26 +167,7 @@ class MorePage extends StatelessWidget {
         if (store == null && scope != null && scope!.groups.isNotEmpty) ...[
           const SectionTitle('Configuration des magasins'),
           const Text(
-            'Les coordonnées, prix, points, seuils, récompenses, annonces et historiques sont propres à chaque magasin.',
-          ),
-          const SizedBox(height: 12),
-          OutlinedButton.icon(
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute<void>(
-                builder: (_) => Scaffold(
-                  appBar: AppBar(title: const Text('Choisir un magasin')),
-                  body: GroupsPage(
-                    vm: scope!,
-                    stores: true,
-                    allStores: scope!.scope.kind == ScopeKind.network,
-                    closeOnSelection: true,
-                  ),
-                ),
-              ),
-            ),
-            icon: const Icon(AppIcons.storefrontOutlined),
-            label: const Text('Choisir un magasin'),
+            'Ouvrez un magasin depuis votre groupe pour retrouver ses coordonnées, prix, points, seuils et autres réglages. Le groupe se choisit en haut de l’écran principal.',
           ),
         ],
         if (groupManage && scope != null) ...[
@@ -204,12 +184,6 @@ class MorePage extends StatelessWidget {
             'Équipe du groupe et invitations',
             AppIcons.groupsOutlined,
             GroupTeamPage(workspace: vm, group: group),
-          ),
-          link(
-            context,
-            'Magasins du groupe',
-            AppIcons.storefrontOutlined,
-            GroupsPage(vm: scope!, stores: true, closeOnSelection: true),
           ),
         ],
         if (vm.user.admin) ...[
@@ -228,13 +202,6 @@ class MorePage extends StatelessWidget {
             icon: AppIcons.personAddAlt,
             onTap: () => inviteManager(context, vm),
           ),
-          if (scope != null)
-            link(
-              context,
-              'Groupes partenaires',
-              AppIcons.groupsOutlined,
-              GroupsPage(vm: scope!, closeOnSelection: true),
-            ),
         ],
         const SizedBox(height: 20),
         const SectionTitle('Compte et aide'),

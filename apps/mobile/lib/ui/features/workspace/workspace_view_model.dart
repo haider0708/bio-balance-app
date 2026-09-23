@@ -19,6 +19,7 @@ import 'package:uuid/uuid.dart';
 import '../../../data/repositories/offline_repository.dart';
 import '../../../data/services/api/generated/api_client.dart';
 import '../../../domain/models/models.dart';
+import '../../../domain/synchronization/sync_summary.dart';
 import '../authentication/session_view_model.dart';
 
 class WorkspaceState {
@@ -29,6 +30,8 @@ class WorkspaceState {
   final String? error;
   final int pending;
   final DateTime? syncedAt;
+  final SyncSummary syncSummary;
+  final String? syncError;
   const WorkspaceState({
     this.stores = const [],
     this.store,
@@ -40,6 +43,8 @@ class WorkspaceState {
     this.error,
     this.pending = 0,
     this.syncedAt,
+    this.syncSummary = const SyncSummary(),
+    this.syncError,
   });
   WorkspaceState copy({
     List<Store>? stores,
@@ -52,6 +57,9 @@ class WorkspaceState {
     String? error,
     int? pending,
     DateTime? syncedAt,
+    SyncSummary? syncSummary,
+    String? syncError,
+    bool clearSyncError = false,
     bool clearData = false,
     bool clearStore = false,
   }) => WorkspaceState(
@@ -64,7 +72,9 @@ class WorkspaceState {
     accessBlocked: accessBlocked ?? this.accessBlocked,
     error: error,
     pending: pending ?? this.pending,
-    syncedAt: syncedAt ?? this.syncedAt,
+    syncedAt: clearStore || clearData ? null : syncedAt ?? this.syncedAt,
+    syncSummary: syncSummary ?? this.syncSummary,
+    syncError: clearSyncError ? null : syncError ?? this.syncError,
   );
 }
 
@@ -89,6 +99,9 @@ class WorkspaceViewModel extends ChangeNotifier {
   final ApiClient api;
   WorkspaceState state = const WorkspaceState(loading: true);
   Timer? _timer;
+  Future<void>? _synchronization;
+  int syncRevision = 0, _syncStoreOffset = 0;
+  StreamSubscription<SyncSummary>? _outboxChanges;
   int _selection = 0;
   bool _closed = false, _foreground = true;
   final _revokedStores = <String>{};
@@ -117,6 +130,39 @@ class WorkspaceViewModel extends ChangeNotifier {
       }
     });
   }
+
+  /// Begin observing durable work when the workspace is used, not during
+  /// construction. Screens and foreground recovery share one subscription.
+  void observeSynchronization() {
+    if (_closed || _outboxChanges != null) return;
+    _outboxChanges = repository
+        .watchSyncSummary(user.id)
+        .listen(
+          (summary) {
+            if (_closed ||
+                api.generation != _sessionGeneration ||
+                api.accountId != user.id) {
+              return;
+            }
+            syncRevision++;
+            _emit(
+              state.copy(
+                pending: summary.total,
+                syncSummary: summary,
+                error: state.error,
+              ),
+            );
+          },
+          onError: (Object error) {
+            _emit(
+              state.copy(
+                syncError: 'Impossible de lire les opérations enregistrées. Libérez de l’espace puis réessayez.',
+              ),
+            );
+          },
+        );
+  }
+
   VoidCallback registerDraft(Future<void> Function() save) {
     _draftGuards.add(save);
     return () => _draftGuards.remove(save);
@@ -198,6 +244,7 @@ class WorkspaceViewModel extends ChangeNotifier {
   }
 
   Future<void> initialize({bool autoSelect = true}) async {
+    observeSynchronization();
     _emit(state.copy(loading: true));
     try {
       final access = await repository.draft(user.id, '', 'access');
@@ -257,6 +304,7 @@ class WorkspaceViewModel extends ChangeNotifier {
       );
     }
     _scheduleSync();
+    unawaited(synchronize(silent: true));
   }
 
   void setForeground(bool value) {
@@ -271,8 +319,22 @@ class WorkspaceViewModel extends ChangeNotifier {
 
   void _scheduleSync() {
     _timer?.cancel();
-    if (_closed || !_foreground) return;
-    _timer = Timer(const Duration(seconds: 30), () async {
+    if (_closed || !_foreground || api.accessBlocked) return;
+    var delay = const Duration(seconds: 30);
+    final retryAt = state.syncSummary.nextAttemptAt;
+    if (state.syncSummary.waiting > 0 &&
+        !state.offline &&
+        state.syncError == null) {
+      delay = const Duration(seconds: 2);
+    } else if (retryAt != null) {
+      delay = Duration(
+        milliseconds: retryAt
+            .difference(repository.now())
+            .inMilliseconds
+            .clamp(1000, 30000),
+      );
+    }
+    _timer = Timer(delay, () async {
       if (_closed || !_foreground) return;
       await synchronize(silent: true);
       _scheduleSync();
@@ -297,7 +359,13 @@ class WorkspaceViewModel extends ChangeNotifier {
       final pending = await repository.pendingCount(user.id);
       if (selection != _selection) return;
       _emit(state.copy(data: data, loading: false, pending: pending));
-      if (refresh) await synchronize();
+      if (refresh) {
+        // A pass already running belongs to its captured stores. Once it
+        // finishes, load the newly selected workspace without waiting 30 s.
+        final inFlight = _synchronization;
+        if (inFlight != null) await inFlight;
+        if (selection == _selection) await synchronize();
+      }
     } catch (e) {
       if (selection != _selection) return;
       _emit(state.copy(loading: false, error: SessionViewModel.message(e)));
@@ -311,7 +379,6 @@ class WorkspaceViewModel extends ChangeNotifier {
         clearStore: true,
         clearData: true,
         loading: false,
-        syncing: false,
         accessBlocked: api.accessBlocked,
       ),
     );
@@ -367,52 +434,109 @@ class WorkspaceViewModel extends ChangeNotifier {
     );
   }
 
-  Future<void> synchronize({bool silent = false}) async {
-    final store = state.store;
+  Future<void> synchronize({bool silent = false}) {
+    observeSynchronization();
+    final existing = _synchronization;
+    if (existing != null) return existing;
     if (_closed ||
         !_foreground ||
-        store == null ||
-        state.syncing ||
+        api.generation != _sessionGeneration ||
+        api.accountId != user.id ||
         api.accessBlocked) {
-      return;
+      return Future.value();
     }
-    _emit(state.copy(syncing: true));
+    late final Future<void> work;
+    work = _synchronizeAccount(silent: silent).whenComplete(() {
+      if (identical(_synchronization, work)) _synchronization = null;
+      _scheduleSync();
+    });
+    _synchronization = work;
+    return work;
+  }
+
+  Future<void> _synchronizeAccount({required bool silent}) async {
+    _emit(state.copy(syncing: true, clearSyncError: true));
     try {
-      await repository.synchronize(user, store);
-      if (store.id == state.store?.id) {
-        _revokedStores.remove(store.id);
-        await repository.saveDraft(user.id, '', 'access', {
-          'revokedStores': _revokedStores.toList(),
-        });
-        _emit(state.copy(accessBlocked: false));
-        await reloadLocal();
+      repositoryContext.check();
+      final queued = await repository.accountOperations(user.id);
+      repositoryContext.check();
+      final pendingStores = queued.map((r) => r.storeId).toSet().toList();
+      var directory = state.stores;
+      if (pendingStores.any((id) => !directory.any((s) => s.id == id))) {
+        directory = await repository.stores(user, refresh: true);
+        repositoryContext.check();
+        _emit(state.copy(stores: directory));
+      }
+      final targets = <String, Store>{};
+      final active = state.store;
+      if (active != null) targets[active.id] = active;
+      // Bound each pass, rotating pending stores so an unavailable or busy
+      // workspace cannot starve another store. No navigation state is changed.
+      for (var i = 0; i < pendingStores.length && targets.length < 8; i++) {
+        final id = pendingStores[(i + _syncStoreOffset) % pendingStores.length];
+        final target = directory.where((s) => s.id == id).firstOrNull;
+        if (target != null) targets[id] = target;
+      }
+      if (pendingStores.isNotEmpty) {
+        _syncStoreOffset = (_syncStoreOffset + 7) % pendingStores.length;
+      }
+      if (pendingStores.any((id) => !directory.any((s) => s.id == id))) {
         _emit(
           state.copy(
-            syncing: false,
-            offline: false,
-            accessBlocked: false,
-            syncedAt: DateTime.now(),
+            syncError: 'Une saisie appartient à un magasin inaccessible. Elle reste conservée : consultez la synchronisation.',
           ),
         );
       }
+      for (final store in targets.values) {
+        if (_closed || !_foreground || api.accessBlocked) break;
+        repositoryContext.check();
+        try {
+          await repository.synchronize(user, store);
+          repositoryContext.check();
+          _emit(state.copy(offline: false));
+          _revokedStores.remove(store.id);
+          await repository.saveDraft(user.id, '', 'access', {
+            'revokedStores': _revokedStores.toList(),
+          });
+          if (store.id == state.store?.id) {
+            final selection = _selection;
+            _emit(state.copy(accessBlocked: false));
+            await reloadLocal();
+            if (selection == _selection) {
+              _emit(state.copy(offline: false, syncedAt: repository.now()));
+            }
+          }
+        } catch (e) {
+          repositoryContext.check();
+          if (_accessFailure(e)) await denyAccess(store.id);
+          _emit(
+            state.copy(
+              offline: _networkFailure(e),
+              syncError: '${store.name} : ${SessionViewModel.message(e)}',
+              error: silent ? state.error : SessionViewModel.message(e),
+            ),
+          );
+          if (api.accessBlocked || _networkFailure(e)) break;
+        }
+      }
     } catch (e) {
-      if (_accessFailure(e)) await denyAccess(store.id);
-      if (store.id == state.store?.id) {
+      if (!_closed &&
+          api.generation == _sessionGeneration &&
+          api.accountId == user.id) {
         _emit(
           state.copy(
-            syncing: false,
             offline: _networkFailure(e),
-            accessBlocked:
-                state.accessBlocked || _accessFailure(e) || api.accessBlocked,
-
-            error: silent && !_accessFailure(e)
-                ? null
-                : SessionViewModel.message(e),
+            syncError: SessionViewModel.message(e),
           ),
         );
       }
     } finally {
-      if (state.syncing) _emit(state.copy(syncing: false));
+      syncRevision++;
+      if (!_closed &&
+          api.generation == _sessionGeneration &&
+          api.accountId == user.id) {
+        _emit(state.copy(syncing: false, error: state.error));
+      }
     }
   }
 
@@ -490,6 +614,7 @@ class WorkspaceViewModel extends ChangeNotifier {
     photos.dispose();
     _closed = true;
     unawaited(_accessEvents.cancel());
+    unawaited(_outboxChanges?.cancel());
     detachSessionGuard?.call();
     _draftGuards.clear();
     _timer?.cancel();

@@ -6,6 +6,7 @@ import 'package:biobalance/data/services/api/generated/api_client.dart';
 import 'package:biobalance/data/services/api/generated/models.dart';
 import 'package:biobalance/data/services/local_database/database.dart';
 import 'package:biobalance/domain/models/models.dart';
+import 'package:biobalance/domain/synchronization/sync_summary.dart';
 import 'package:biobalance/ui/core/design.dart';
 import 'package:biobalance/ui/core/forms.dart';
 import 'package:biobalance/ui/features/dashboard/attention_screen.dart';
@@ -80,6 +81,14 @@ class PreviewWorkspace extends WorkspaceViewModel {
   }
 }
 
+/// Visual fixtures are static; live SQLite changes have their own recovery
+/// tests. Do not start a background queue watcher for every screenshot.
+class PreviewRepository extends OfflineRepository {
+  PreviewRepository(super.db, super.api);
+  @override
+  Stream<SyncSummary> watchSyncSummary(String account) => const Stream.empty();
+}
+
 class RoleFixture {
   final db = AppDatabase(NativeDatabase.memory());
   final api = PreviewApi();
@@ -90,7 +99,7 @@ class RoleFixture {
       email: 'demo@example.test',
       admin: role == 'admin',
     ),
-    OfflineRepository(db, api),
+    PreviewRepository(db, api),
     api,
   );
   final String role;

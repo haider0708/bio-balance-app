@@ -338,8 +338,9 @@ class _ScopeScreenState extends State<ScopeScreen> with WidgetsBindingObserver {
                         retry: () => run(context, scope.refresh),
                       ),
                     ),
-                  if (store != null &&
-                      (workspace.state.pending > 0 || workspace.state.offline))
+                  if (workspace.state.pending > 0 ||
+                      workspace.state.offline ||
+                      workspace.state.syncError != null)
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       child: TextButton.icon(
@@ -355,7 +356,13 @@ class _ScopeScreenState extends State<ScopeScreen> with WidgetsBindingObserver {
                           size: 18,
                         ),
                         label: Text(
-                          '${workspace.state.offline ? 'Hors connexion' : 'Synchronisation'} · ${workspace.state.pending} en attente',
+                          workspace.state.offline
+                              ? (workspace.state.pending == 0
+                                    ? 'Hors connexion'
+                                    : 'Hors connexion · ${workspace.state.pending} à synchroniser')
+                              : workspace.state.syncError != null
+                              ? 'Synchronisation à vérifier · ce téléphone'
+                              : '${workspace.state.syncSummary.label} · ce téléphone',
                         ),
                       ),
                     ),

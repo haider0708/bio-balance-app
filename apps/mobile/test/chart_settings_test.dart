@@ -210,7 +210,7 @@ void main() {
   );
 
   testWidgets(
-    'top settings selects a store and exposes the same configuration controls',
+    'settings keep configuration without duplicating group or store navigation',
     (t) async {
       t.view.physicalSize = const Size(360, 850);
       t.view.devicePixelRatio = 1;
@@ -225,11 +225,14 @@ void main() {
       await t.pumpAndSettle();
       expect(find.text('Paramètres et gestion'), findsOneWidget);
       await screenshot(t, capture, 'settings-network');
-      await seek(t, 'Choisir un magasin');
-      await t.tap(find.text('Choisir un magasin'));
+      expect(find.text('Choisir un magasin'), findsNothing);
+      expect(find.text('Groupes partenaires'), findsNothing);
+      await t.tap(find.byType(BackButton));
       await t.pumpAndSettle();
-      await seek(t, 'Magasin Tunis');
-      await t.tap(find.text('Magasin Tunis'));
+      await f.scope.selectGroup(f.scope.groups.first);
+      await f.scope.selectStore(f.workspace.state.stores.first);
+      await t.pumpAndSettle();
+      await t.tap(find.byTooltip('Paramètres et gestion'));
       await t.pumpAndSettle();
       expect(f.scope.scope.store?.id, 's1');
       expect(find.byType(MorePage), findsOneWidget);

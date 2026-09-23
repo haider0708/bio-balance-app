@@ -6,6 +6,7 @@ import 'package:dio/dio.dart';
 import '../../domain/models/models.dart';
 import '../../domain/synchronization/stock_projection.dart';
 import '../../domain/synchronization/retry_policy.dart';
+import '../../domain/synchronization/sync_summary.dart';
 import '../../domain/repositories/workspace_repository.dart';
 import '../services/api/generated/api_client.dart';
 import '../services/api/session_transport.dart';
@@ -14,7 +15,8 @@ import '../services/local_database/database.dart';
 class OfflineRepository implements WorkspaceRepository {
   final AppDatabase db;
   final ApiClient api;
-  bool _syncing = false;
+  final _synchronizations = <String, Future<void>>{};
+  final _refreshes = <String, Future<void>>{};
   final DateTime Function() now;
   final RetryPolicy retryPolicy;
   OfflineRepository(
@@ -161,8 +163,89 @@ class OfflineRepository implements WorkspaceRepository {
             )
             ..orderBy([(t) => OrderingTerm.asc(t.sequence)]))
           .get();
+
+  Future<List<OutboxRow>> accountOperations(
+    String account, {
+    bool includeResolved = false,
+  }) =>
+      (db.select(db.outboxRows)
+            ..where(
+              (t) =>
+                  t.accountId.equals(account) &
+                  (includeResolved
+                      ? const Constant(true)
+                      : t.status.equals('resolved').not()),
+            )
+            ..orderBy([(t) => OrderingTerm.asc(t.sequence)]))
+          .get();
+
+  Stream<SyncSummary> watchSyncSummary(String account) => db
+      .customSelect(
+        "SELECT status, COUNT(*) AS n, MIN(next_attempt_at) AS next_retry "
+        "FROM outbox_rows WHERE account_id = ? AND status <> 'resolved' GROUP BY status",
+        variables: [Variable(account)],
+        readsFrom: {db.outboxRows},
+      )
+      .watch()
+      .map((rows) {
+        final counts = {
+          for (final row in rows)
+            row.read<String>('status'): row.read<int>('n'),
+        };
+        final retries =
+            rows
+                .map((row) => row.readNullable<int>('next_retry'))
+                .whereType<int>()
+                .toList()
+              ..sort();
+        return SyncSummary(
+          waiting: counts['pending'] ?? 0,
+          retrying: counts['retryable'] ?? 0,
+          blocked: counts['blocked'] ?? 0,
+          confirming: counts['accepted'] ?? 0,
+          attention: counts.entries
+              .where(
+                (e) => !const {
+                  'pending',
+                  'retryable',
+                  'blocked',
+                  'accepted',
+                }.contains(e.key),
+              )
+              .fold(0, (total, e) => total + e.value),
+          nextAttemptAt: retries.isEmpty
+              ? null
+              : DateTime.fromMillisecondsSinceEpoch(retries.first * 1000),
+        );
+      });
+
   @override
-  Future<void> refresh(UserAccount user, Store store) async {
+  Future<void> refresh(UserAccount user, Store store) {
+    final key = '${api.generation}:${user.id}:${store.id}';
+    final binding = api.binding;
+    final previous = _refreshes[key];
+    late final Future<void> work;
+    work =
+        (() async {
+          // Serialize snapshot installation, including callers outside the sync
+          // loop. An older response must not overwrite a newer cached snapshot.
+          if (previous != null) {
+            try {
+              await previous;
+            } catch (_) {
+              /* This caller retries independently. */
+            }
+          }
+          api.requireBinding(binding);
+          await _refreshWithRecovery(user, store);
+        })().whenComplete(() {
+          if (identical(_refreshes[key], work)) _refreshes.remove(key);
+        });
+    _refreshes[key] = work;
+    return work;
+  }
+
+  Future<void> _refreshWithRecovery(UserAccount user, Store store) async {
     // Expiration retries start from a new snapshot; pending work stays intact.
     for (var attempt = 0; attempt < 3; attempt++) {
       try {
@@ -601,179 +684,206 @@ class OfflineRepository implements WorkspaceRepository {
   }
 
   @override
-  Future<void> synchronize(UserAccount user, Store store) async {
-    if (_syncing) return;
-    _syncing = true;
+  Future<void> synchronize(UserAccount user, Store store) {
+    final key = '${api.generation}:${user.id}:${store.id}';
+    final existing = _synchronizations[key];
+    if (existing != null) return existing;
+    late final Future<void> work;
+    work = _synchronize(user, store).whenComplete(() {
+      if (identical(_synchronizations[key], work)) {
+        _synchronizations.remove(key);
+      }
+    });
+    _synchronizations[key] = work;
+    return work;
+  }
+
+  Future<void> _synchronize(UserAccount user, Store store) async {
     final binding = api.binding;
-    try {
-      _sameAccount(user);
-      if (api.accessBlocked) {
+    _sameAccount(user);
+    if (api.accessBlocked) {
+      throw const AppFailure(
+        'SESSION_EXPIRED',
+        'Reconnectez-vous. Les opérations sont conservées.',
+      );
+    }
+    final access = await draft(user.id, '', 'access');
+    final revoked = List<String>.from(access?['revokedStores'] ?? []);
+    if (revoked.contains(store.id)) {
+      // Recheck access using a read before replaying any pending mutation.
+      final current = await stores(user, refresh: true);
+      api.requireBinding(binding);
+      if (!current.any(
+        (s) => s.id == store.id && s.organizationId == store.organizationId,
+      )) {
         throw const AppFailure(
-          'SESSION_EXPIRED',
-          'Reconnectez-vous. Les opérations sont conservées.',
+          'STORE_ACCESS_REVOKED',
+          'Ce magasin n’est plus accessible. Les opérations sont conservées.',
         );
       }
-      final access = await draft(user.id, '', 'access');
-      final revoked = List<String>.from(access?['revokedStores'] ?? []);
-      if (revoked.contains(store.id)) {
-        // Recheck access using a read before replaying any pending mutation.
-        final current = await stores(user, refresh: true);
+      revoked.remove(store.id);
+      await saveDraft(user.id, '', 'access', {'revokedStores': revoked});
+    }
+    await _upgradeDependencyMetadata(user, store);
+    final queued = await operations(user.id, store.id, includeResolved: true);
+    final statuses = {for (final row in queued) row.operationId: row.status};
+    var submitted = 0;
+    for (final operation in queued) {
+      if (submitted >= 50) break;
+      if (!['pending', 'blocked', 'retryable'].contains(operation.status)) {
+        continue;
+      }
+      final dependencies = List<String>.from(
+        jsonDecode(operation.dependencies),
+      );
+      final blockers = dependencies.where(
+        (id) => statuses.containsKey(id) && statuses[id] != 'accepted',
+      );
+      if (blockers.isNotEmpty) {
+        statuses[operation.operationId] = 'blocked';
+        await _update(
+          operation,
+          const OutboxRowsCompanion(
+            status: Value('blocked'),
+            error: Value(
+              'Une opération précédente doit être synchronisée ou corrigée.',
+            ),
+          ),
+        );
+        continue;
+      }
+      if (operation.nextAttemptAt != null &&
+          operation.nextAttemptAt!.isAfter(now())) {
+        continue;
+      }
+      api.requireBinding(binding);
+      _sameAccount(user);
+      submitted++;
+      final attempts = operation.attempts + 1;
+      // Commit uncertainty before network I/O; a killed process must retry the same bytes.
+      await _update(
+        operation,
+        OutboxRowsCompanion(
+          attempts: Value(attempts),
+          mayHaveBeenSent: const Value(true),
+        ),
+      );
+      try {
         api.requireBinding(binding);
-        if (!current.any(
-          (s) => s.id == store.id && s.organizationId == store.organizationId,
-        )) {
-          throw const AppFailure(
-            'STORE_ACCESS_REVOKED',
-            'Ce magasin n’est plus accessible. Les opérations sont conservées.',
-          );
-        }
-        revoked.remove(store.id);
-        await saveDraft(user.id, '', 'access', {'revokedStores': revoked});
-      }
-      await _upgradeDependencyMetadata(user, store);
-      final queued = await operations(user.id, store.id, includeResolved: true);
-      final statuses = {for (final row in queued) row.operationId: row.status};
-      var submitted = 0;
-      for (final operation in queued) {
-        if (submitted >= 50) break;
-        if (!['pending', 'blocked', 'retryable'].contains(operation.status)) {
-          continue;
-        }
-        final dependencies = List<String>.from(
-          jsonDecode(operation.dependencies),
-        );
-        final blockers = dependencies.where(
-          (id) => statuses.containsKey(id) && statuses[id] != 'accepted',
-        );
-        if (blockers.isNotEmpty) {
-          statuses[operation.operationId] = 'blocked';
+        final result = await api.push([
+          Map<String, dynamic>.from(jsonDecode(operation.payload)),
+        ]);
+        _sameAccount(user);
+        final results = objects(result['results']);
+        if (results.length != 1 ||
+            results.single['operationId'] != operation.operationId ||
+            !const {
+              'accepted',
+              'conflict',
+              'rejected',
+              'blocked',
+              'retryable',
+            }.contains(results.single['status'])) {
           await _update(
             operation,
-            const OutboxRowsCompanion(
-              status: Value('blocked'),
-              error: Value(
-                'Une opération précédente doit être synchronisée ou corrigée.',
+            OutboxRowsCompanion(
+              status: const Value('retryable'),
+              error: const Value(
+                'Confirmation du serveur illisible. La saisie sera vérifiée avant toute nouvelle tentative.',
+              ),
+              nextAttemptAt: Value(
+                now().add(retryPolicy.delay(attempts, now())),
               ),
             ),
           );
-          continue;
+          throw const AppFailure(
+            'INVALID_ACK',
+            'Réponse de synchronisation invalide.',
+          );
         }
-        if (operation.nextAttemptAt != null &&
-            operation.nextAttemptAt!.isAfter(now())) {
-          continue;
-        }
+        final accepted = results.single;
         api.requireBinding(binding);
-        _sameAccount(user);
-        submitted++;
-        final attempts = operation.attempts + 1;
-        // Commit uncertainty before network I/O; a killed process must retry the same bytes.
+        final status = accepted['status'] as String;
+        if ([
+          'STORE_ACCESS_REVOKED',
+          'ACCESS_DISABLED',
+          'SESSION_EXPIRED',
+        ].contains(accepted['code'])) {
+          api.confirmAccessLoss(
+            accepted['code'] == 'SESSION_EXPIRED'
+                ? AccessCondition.expired
+                : accepted['code'] == 'ACCESS_DISABLED'
+                ? AccessCondition.disabled
+                : AccessCondition.storeAccessRevoked,
+            storeId: store.id,
+          );
+          throw DioException(
+            requestOptions: RequestOptions(),
+            response: Response(
+              requestOptions: RequestOptions(),
+              statusCode: accepted['code'] == 'SESSION_EXPIRED' ? 401 : 403,
+              data: accepted,
+            ),
+          );
+        }
+        statuses[operation.operationId] = status;
         await _update(
           operation,
           OutboxRowsCompanion(
-            attempts: Value(attempts),
-            mayHaveBeenSent: const Value(true),
+            status: Value(status),
+            error: Value(accepted['message']),
+            acknowledgment: Value(
+              status == 'accepted' ? jsonEncode(accepted) : null,
+            ),
+            nextAttemptAt: Value(
+              status == 'retryable'
+                  ? now().add(
+                      retryPolicy.delay(
+                        attempts,
+                        now(),
+                        retryAfter: accepted['retryAfterMs'] == null
+                            ? null
+                            : '${(integer(accepted['retryAfterMs']) / 1000).ceil()}',
+                      ),
+                    )
+                  : null,
+            ),
           ),
         );
-        try {
-          api.requireBinding(binding);
-          final result = await api.push([
-            Map<String, dynamic>.from(jsonDecode(operation.payload)),
-          ]);
-          _sameAccount(user);
-          final accepted = objects(result['results']).single;
-          if (accepted['operationId'] != operation.operationId) {
-            throw const AppFailure(
-              'INVALID_ACK',
-              'Réponse de synchronisation invalide.',
-            );
-          }
-          api.requireBinding(binding);
-          final status = accepted['status'] as String;
-          if ([
-            'STORE_ACCESS_REVOKED',
-            'ACCESS_DISABLED',
-            'SESSION_EXPIRED',
-          ].contains(accepted['code'])) {
-            api.confirmAccessLoss(
-              accepted['code'] == 'SESSION_EXPIRED'
-                  ? AccessCondition.expired
-                  : accepted['code'] == 'ACCESS_DISABLED'
-                  ? AccessCondition.disabled
-                  : AccessCondition.storeAccessRevoked,
-              storeId: store.id,
-            );
-            throw DioException(
-              requestOptions: RequestOptions(),
-              response: Response(
-                requestOptions: RequestOptions(),
-                statusCode: accepted['code'] == 'SESSION_EXPIRED' ? 401 : 403,
-                data: accepted,
-              ),
-            );
-          }
-          statuses[operation.operationId] = status;
-          await _update(
-            operation,
-            OutboxRowsCompanion(
-              status: Value(status),
-              error: Value(accepted['message']),
-              acknowledgment: Value(
-                status == 'accepted' ? jsonEncode(accepted) : null,
-              ),
-              nextAttemptAt: Value(
-                status == 'retryable'
-                    ? now().add(
-                        retryPolicy.delay(
-                          attempts,
-                          now(),
-                          retryAfter: accepted['retryAfterMs'] == null
-                              ? null
-                              : '${(integer(accepted['retryAfterMs']) / 1000).ceil()}',
-                        ),
-                      )
-                    : null,
-              ),
+      } on DioException catch (e) {
+        _sameAccount(user);
+        final code = e.response?.statusCode;
+        if (code == 401 || code == 403) rethrow;
+        final retryable =
+            code == null || code == 408 || code == 429 || code >= 500;
+        await _update(
+          operation,
+          OutboxRowsCompanion(
+            status: Value(retryable ? 'retryable' : 'rejected'),
+            error: Value(
+              retryable
+                  ? 'Connexion interrompue. Nouvelle tentative programmée.'
+                  : 'Opération refusée. Vérifiez les informations saisies.',
             ),
-          );
-        } on DioException catch (e) {
-          _sameAccount(user);
-          final code = e.response?.statusCode;
-          if (code == 401 || code == 403) rethrow;
-          final retryable =
-              code == null || code == 408 || code == 429 || code >= 500;
-          await _update(
-            operation,
-            OutboxRowsCompanion(
-              status: Value(retryable ? 'retryable' : 'rejected'),
-              error: Value(
-                retryable
-                    ? 'Connexion interrompue. Nouvelle tentative programmée.'
-                    : 'Opération refusée. Vérifiez les informations saisies.',
-              ),
-              nextAttemptAt: Value(
-                retryable
-                    ? now().add(
-                        retryPolicy.delay(
-                          attempts,
-                          now(),
-                          retryAfter: e.response?.headers.value('retry-after'),
-                        ),
-                      )
-                    : null,
-              ),
+            nextAttemptAt: Value(
+              retryable
+                  ? now().add(
+                      retryPolicy.delay(
+                        attempts,
+                        now(),
+                        retryAfter: e.response?.headers.value('retry-after'),
+                      ),
+                    )
+                  : null,
             ),
-          );
-          statuses[operation.operationId] = retryable
-              ? 'retryable'
-              : 'rejected';
-          if (retryable) rethrow;
-        }
+          ),
+        );
+        statuses[operation.operationId] = retryable ? 'retryable' : 'rejected';
+        if (retryable) rethrow;
       }
-      api.requireBinding(binding);
-      await refresh(user, store);
-    } finally {
-      _syncing = false;
     }
+    api.requireBinding(binding);
+    await refresh(user, store);
   }
 
   Future<void> _update(OutboxRow operation, OutboxRowsCompanion values) async {

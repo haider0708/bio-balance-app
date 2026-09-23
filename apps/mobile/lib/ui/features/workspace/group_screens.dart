@@ -116,13 +116,12 @@ Future<void> editGroup(BuildContext context, ScopeViewModel scope) async {
 
 class GroupsPage extends StatefulWidget {
   final ScopeViewModel vm;
-  final bool stores, allStores, closeOnSelection;
+  final bool stores, allStores;
   const GroupsPage({
     super.key,
     required this.vm,
     this.stores = false,
     this.allStores = false,
-    this.closeOnSelection = false,
   });
   @override
   State<GroupsPage> createState() => _GroupsPageState();
@@ -194,9 +193,6 @@ class _GroupsPageState extends State<GroupsPage> {
           onTap: () => run(context, () async {
             if (group != null) {
               await vm.selectGroup(group);
-              if (widget.closeOnSelection && context.mounted) {
-                Navigator.pop(context);
-              }
               return;
             }
             if (widget.allStores) {
@@ -208,9 +204,6 @@ class _GroupsPageState extends State<GroupsPage> {
               if (navigator.mounted) navigator.pop();
             } else {
               await vm.selectStore(store);
-              if (widget.closeOnSelection && context.mounted) {
-                Navigator.pop(context);
-              }
             }
           }),
         );

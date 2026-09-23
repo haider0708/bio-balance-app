@@ -6,7 +6,6 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:biobalance/data/repositories/photo_repository.dart';
-import 'package:biobalance/data/repositories/offline_repository.dart';
 import 'package:biobalance/data/services/api/generated/models.dart';
 import 'package:biobalance/domain/models/models.dart';
 import 'package:biobalance/ui/features/authentication/login_screen.dart';
@@ -213,7 +212,7 @@ class VisualFixture extends RoleFixture {
       email: 'test@example.test',
       admin: true,
     ),
-    OfflineRepository(db, api),
+    PreviewRepository(db, api),
     api,
   );
 }

@@ -207,6 +207,7 @@ void main() {
     (tester) async {
       FlutterSecureStorage.setMockInitialValues({});
       final db = AppDatabase(NativeDatabase.memory());
+      addTearDown(db.close);
       final api = ApiClient(baseUrl: 'http://test')
         ..authenticate('token', accountId: 'a');
       final repository = MemoryDraftRepository(db, api);
@@ -263,7 +264,9 @@ void main() {
       await tester.pumpWidget(const SizedBox());
       vm.dispose();
       session.dispose();
-      await db.close();
+      await tester.pump(
+        const Duration(milliseconds: 1),
+      ); // Drain Drift's deferred stream cancellation.
     },
   );
   test('confirmed expiry prevents another protected request', () async {
