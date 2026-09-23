@@ -1,6 +1,8 @@
 # État de l’implémentation — 23 septembre 2026
 
-Les [corrections après essai Samsung](phone-feedback-2026-09-23.md) sont déployées : backend `a9fd576`, APK Android 1.1.1+5 signé et installé sur le Samsung sans effacement des données. Code de récupération à huit caractères, formulaires, retour Android, sélecteur de groupe unique, commandes, photos et invitations ont leurs régressions vérifiées. Résultats : 105 tests backend, 220 tests Flutter, contrats HTTP et parcours Android locaux réussis. Les preuves de déploiement, restauration, conservation des données et installation sont liées au registre ; la CI distante distingue ses jobs terminés et encore en cours.
+Les [améliorations du graphique et des paramètres](chart-settings-2026-09-23.md) sont implémentées pour Android 1.1.2+6 : points interactifs, détail exact par jour, ouverture des ventes et accès unifié aux réglages magasin/groupe/administration. Validation locale : analyse sans diagnostic, 231 tests Flutter réussis, parcours des trois rôles et reprise après arrêt forcé sur Android réussis. La signature et l’installation de cette candidate sont en cours ; aucun changement backend ni migration n’est nécessaire.
+
+Les [corrections après essai Samsung](phone-feedback-2026-09-23.md) précédentes restent déployées : backend `a9fd576`, APK Android 1.1.1+5 installé sans effacement des données. Leurs 105 tests backend, contrats HTTP et preuves de déploiement/restauration restent historiques. La CI `35875356803` a réussi backend, Android et iOS non signé ; son test de reprise a échoué sur un ancien libellé de lot. Ce sélecteur est corrigé et le scénario a réussi localement dans la présente mise à jour.
 
 Le [registre de refonte](redesign-2026-09-23.md) conserve le détail des migrations, tableaux de bord et essais de charge. Les seuils du pic de charge, la qualification physique complète et le pilote restent ouverts. Les entrées du 22 septembre ci-dessous sont historiques.
 

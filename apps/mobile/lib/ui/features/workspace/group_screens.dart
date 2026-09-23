@@ -69,6 +69,7 @@ class GroupOverviewLinks extends StatelessWidget {
 
 Future<void> editGroup(BuildContext context, ScopeViewModel scope) async {
   final group = scope.scope.group!;
+  final previousStore = scope.scope.store;
   if (await openEditor(
     context,
     title: 'Informations du groupe',
@@ -99,18 +100,29 @@ Future<void> editGroup(BuildContext context, ScopeViewModel scope) async {
   )) {
     await scope.refresh();
     final current = scope.groups.where((g) => g.id == group.id).firstOrNull;
-    if (current != null) await scope.selectGroup(current);
+    if (current != null) {
+      final store = scope
+          .storesFor(current.id)
+          .where((s) => s.id == previousStore?.id)
+          .firstOrNull;
+      if (store != null) {
+        await scope.selectAssignedStore(current, store);
+      } else {
+        await scope.selectGroup(current);
+      }
+    }
   }
 }
 
 class GroupsPage extends StatefulWidget {
   final ScopeViewModel vm;
-  final bool stores, allStores;
+  final bool stores, allStores, closeOnSelection;
   const GroupsPage({
     super.key,
     required this.vm,
     this.stores = false,
     this.allStores = false,
+    this.closeOnSelection = false,
   });
   @override
   State<GroupsPage> createState() => _GroupsPageState();
@@ -182,6 +194,9 @@ class _GroupsPageState extends State<GroupsPage> {
           onTap: () => run(context, () async {
             if (group != null) {
               await vm.selectGroup(group);
+              if (widget.closeOnSelection && context.mounted) {
+                Navigator.pop(context);
+              }
               return;
             }
             if (widget.allStores) {
@@ -193,6 +208,9 @@ class _GroupsPageState extends State<GroupsPage> {
               if (navigator.mounted) navigator.pop();
             } else {
               await vm.selectStore(store);
+              if (widget.closeOnSelection && context.mounted) {
+                Navigator.pop(context);
+              }
             }
           }),
         );

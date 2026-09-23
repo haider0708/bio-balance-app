@@ -110,8 +110,9 @@
     "url": "https://github.com/haider0708/bio-balance-app/actions/runs/35875356803",
     "backend": "success",
     "iosUnsigned": "success",
-    "android": "pending",
-    "androidJourneys": "pending"
+    "android": "success",
+    "androidJourneys": "failure",
+    "note": "Role journeys passed. The following restart harness looked for an obsolete lot label; corrected and revalidated in 1.1.2."
   },
   "limits": [
     "Physical Samsung installation/launch is not a complete manual visual or accessibility acceptance test.",

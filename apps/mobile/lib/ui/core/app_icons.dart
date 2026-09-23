@@ -22,6 +22,7 @@ abstract final class AppIcons {
   static const checkCircleOutline = LucideIcons.circleCheck;
   static const checklistOutlined = LucideIcons.listChecks;
   static const chevronRight = LucideIcons.chevronRight;
+  static const chevronLeft = LucideIcons.chevronLeft;
   static const close = LucideIcons.x;
   static const cloudDoneOutlined = LucideIcons.cloudCheck;
   static const cloudOff = LucideIcons.cloudOff;

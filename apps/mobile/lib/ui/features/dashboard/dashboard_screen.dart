@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:fl_chart/fl_chart.dart';
 
 import '../../../domain/models/dashboard.dart';
 import '../../../domain/models/models.dart';
 import '../../../domain/models/money.dart';
 import '../../../domain/models/tunis_dates.dart';
+import '../../../domain/models/sales_trend.dart';
 import '../../core/design.dart';
 import '../workspace/workspace_view_model.dart';
 import '../media/image_input.dart';
 import 'dashboard_view_model.dart';
+import 'sales_trend_chart.dart';
 import '../workspace/workspace_help.dart';
 
 enum DashboardDestination {
@@ -207,7 +208,17 @@ class DashboardScreen extends StatelessWidget {
                   icon: AppIcons.receiptLongOutlined,
                 )
               else
-                _Trend(data.list('series'), vm.period),
+                SalesTrendChart(
+                  key: ValueKey(
+                    'trend:${vm.scope}:${vm.groupId}:${vm.storeId}:${vm.period.key}',
+                  ),
+                  points: SalesTrendPoint.forPeriod(
+                    data.list('series'),
+                    vm.period,
+                  ),
+                  onOpenDay: (point) =>
+                      onOpen(DashboardDestination.sales, point.period),
+                ),
             ],
             if (vm.scope == 'network' &&
                 data.list('comparisons').length > 1) ...[
@@ -402,76 +413,6 @@ class DashboardScreen extends StatelessWidget {
         TunisDates.civil(range.end),
         'Période personnalisée',
       ),
-    );
-  }
-}
-
-class _Trend extends StatelessWidget {
-  final List<Json> series;
-  final DashboardPeriod period;
-  const _Trend(this.series, this.period);
-  @override
-  Widget build(BuildContext context) {
-    final byDay = {
-      for (final s in series) s['day']: integer(s['netMillimes']) / 1000,
-    };
-    final start = DateTime.parse(period.from),
-        days = DateTime.parse(period.to)
-            .difference(DateTime.parse(period.from))
-            .inDays;
-    final points = [
-      for (var i = 0; i <= days; i++)
-        FlSpot(
-          i.toDouble(),
-          byDay[TunisDates.civil(start.add(Duration(days: i)))] ?? 0,
-        ),
-    ];
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        ExcludeSemantics(
-          child: SizedBox(
-            height: 150,
-            child: LineChart(
-              LineChartData(
-                minX: 0,
-                maxX: days == 0 ? 1 : days.toDouble(),
-                minY: 0,
-                titlesData: const FlTitlesData(show: false),
-                borderData: FlBorderData(show: false),
-                gridData: const FlGridData(show: false),
-                lineTouchData: const LineTouchData(enabled: false),
-                lineBarsData: [
-                  LineChartBarData(
-                    spots: points,
-                    isCurved: false,
-                    color: darkGreen,
-                    barWidth: 2,
-                    dotData: FlDotData(show: points.length == 1),
-                    belowBarData: BarAreaData(
-                      show: true,
-                      color: const Color(0xFFF1F8F4),
-                    ),
-                  ),
-                ],
-              ),
-              duration: Duration.zero,
-            ),
-          ),
-        ),
-        ExpansionTile(
-          key: PageStorageKey('trend-values:${period.key}'),
-          tilePadding: EdgeInsets.zero,
-          title: const Text('Voir les valeurs', style: TextStyle(fontSize: 14)),
-          children: [
-            for (final s in series)
-              CompactRow(
-                title: TunisDates.dateOnlyLabel(s['day']),
-                value: Money(integer(s['netMillimes'])).formatted,
-              ),
-          ],
-        ),
-      ],
     );
   }
 }

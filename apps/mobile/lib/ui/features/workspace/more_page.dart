@@ -16,10 +16,22 @@ import '../../../domain/models/dashboard.dart';
 import '../synchronization/sync_screen.dart';
 import '../settings/account_screen.dart';
 import 'workspace_view_model.dart';
+import 'scope_view_model.dart';
+import 'group_screens.dart';
+import 'operation_helpers.dart';
+import 'workspace_help.dart';
+import '../../../domain/models/workspace_scope.dart';
 
 class MorePage extends StatelessWidget {
   final WorkspaceViewModel vm;
-  const MorePage({super.key, required this.vm});
+  final ScopeViewModel? scope;
+  final bool showTitle;
+  const MorePage({
+    super.key,
+    required this.vm,
+    this.scope,
+    this.showTitle = true,
+  });
   Widget link(
     BuildContext context,
     String title,
@@ -37,39 +49,62 @@ class MorePage extends StatelessWidget {
         builder: (_) => fullScreen
             ? page
             : Scaffold(
-                appBar: AppBar(title: Text(vm.state.store?.name ?? title)),
+                appBar: AppBar(title: Text(title)),
                 body: page,
               ),
       ),
     ),
   );
   @override
-  Widget build(BuildContext context) {
-    final manage = vm.user.admin || vm.state.store?.canManage == true;
+  Widget build(BuildContext context) => ListenableBuilder(
+    listenable: Listenable.merge([vm, ?scope]),
+    builder: (context, _) => contents(context),
+  );
+
+  Widget contents(BuildContext context) {
+    final store = vm.state.store;
+    final group = scope?.scope.group;
+    final manage = store != null && (vm.user.admin || store.canManage);
+    final groupManage = group != null && (vm.user.admin || group.canManage);
     return Content(
       children: [
-        const SectionTitle('Plus'),
-        const SectionTitle('Activité'),
-        if (vm.user.admin)
-          link(context, 'Catalogue', AppIcons.spaOutlined, CatalogPage(vm: vm)),
-        link(
-          context,
-          'Ventes & corrections',
-          AppIcons.receiptLongOutlined,
-          SalesPage(vm: vm),
-        ),
-        link(
-          context,
-          'Récompenses & classement',
-          AppIcons.redeemOutlined,
-          RewardsPage(vm: vm),
-        ),
-        link(
-          context,
-          'Formation',
-          AppIcons.schoolOutlined,
-          TrainingPage(vm: vm),
-        ),
+        if (showTitle)
+          SectionTitle(
+            'Paramètres et gestion',
+            subtitle: store != null
+                ? '${store.organizationName} · ${store.name}'
+                : group?.name ?? 'BioBalance · tous les groupes',
+          ),
+        if (!showTitle)
+          Text(
+            store != null
+                ? '${store.organizationName} · ${store.name}'
+                : group?.name ?? 'BioBalance · tous les groupes',
+            style: const TextStyle(fontWeight: FontWeight.w600),
+          ),
+        const SizedBox(height: 12),
+        if (store != null) ...[
+          const SectionTitle('Activité du magasin'),
+          link(
+            context,
+            'Ventes & corrections',
+            AppIcons.receiptLongOutlined,
+            SalesPage(vm: vm),
+          ),
+          link(
+            context,
+            'Récompenses & classement',
+            AppIcons.redeemOutlined,
+            RewardsPage(vm: vm),
+          ),
+          if (!vm.user.admin)
+            link(
+              context,
+              'Formation',
+              AppIcons.schoolOutlined,
+              TrainingPage(vm: vm),
+            ),
+        ],
         if (manage) ...[
           link(
             context,
@@ -130,8 +165,86 @@ class MorePage extends StatelessWidget {
             fullScreen: true,
           ),
         ],
+        if (store == null && scope != null && scope!.groups.isNotEmpty) ...[
+          const SectionTitle('Configuration des magasins'),
+          const Text(
+            'Les coordonnées, prix, points, seuils, récompenses, annonces et historiques sont propres à chaque magasin.',
+          ),
+          const SizedBox(height: 12),
+          OutlinedButton.icon(
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute<void>(
+                builder: (_) => Scaffold(
+                  appBar: AppBar(title: const Text('Choisir un magasin')),
+                  body: GroupsPage(
+                    vm: scope!,
+                    stores: true,
+                    allStores: scope!.scope.kind == ScopeKind.network,
+                    closeOnSelection: true,
+                  ),
+                ),
+              ),
+            ),
+            icon: const Icon(AppIcons.storefrontOutlined),
+            label: const Text('Choisir un magasin'),
+          ),
+        ],
+        if (groupManage && scope != null) ...[
+          const SizedBox(height: 20),
+          SectionTitle('Gestion du groupe', subtitle: group.name),
+          CompactRow(
+            title: 'Informations du groupe',
+            subtitle: 'Nom, téléphone et image',
+            icon: AppIcons.settingsOutlined,
+            onTap: () => run(context, () => editGroup(context, scope!)),
+          ),
+          link(
+            context,
+            'Équipe du groupe et invitations',
+            AppIcons.groupsOutlined,
+            GroupTeamPage(workspace: vm, group: group),
+          ),
+          link(
+            context,
+            'Magasins du groupe',
+            AppIcons.storefrontOutlined,
+            GroupsPage(vm: scope!, stores: true, closeOnSelection: true),
+          ),
+        ],
+        if (vm.user.admin) ...[
+          const SizedBox(height: 20),
+          const SectionTitle('Administration BioBalance'),
+          link(context, 'Catalogue', AppIcons.spaOutlined, CatalogPage(vm: vm)),
+          link(
+            context,
+            'Formation et publications',
+            AppIcons.schoolOutlined,
+            TrainingPage(vm: vm),
+          ),
+          CompactRow(
+            title: 'Inviter un responsable',
+            subtitle: 'Accès pour créer un nouveau groupe',
+            icon: AppIcons.personAddAlt,
+            onTap: () => inviteManager(context, vm),
+          ),
+          if (scope != null)
+            link(
+              context,
+              'Groupes partenaires',
+              AppIcons.groupsOutlined,
+              GroupsPage(vm: scope!, closeOnSelection: true),
+            ),
+        ],
         const SizedBox(height: 20),
         const SectionTitle('Compte et aide'),
+        link(
+          context,
+          'Aide et premiers pas',
+          AppIcons.help,
+          const WorkspaceHelp(),
+          fullScreen: true,
+        ),
         link(
           context,
           'Synchronisation',
@@ -141,7 +254,7 @@ class MorePage extends StatelessWidget {
         ),
         link(
           context,
-          'Compte, aide et synchronisation',
+          'Mon compte et notifications',
           AppIcons.settingsOutlined,
           AccountScreen(vm: vm),
           fullScreen: true,

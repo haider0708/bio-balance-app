@@ -204,16 +204,14 @@ class Journey {
 
   Future<void> logout() async {
     final menu = find.byWidgetPredicate(
-      (w) =>
-          w is IconButton &&
-          ['Compte et aide', 'Administration et compte'].contains(w.tooltip),
+      (w) => w is IconButton && w.tooltip == 'Paramètres et gestion',
     );
     while (menu.evaluate().isEmpty) {
       await back();
     }
     await t.tap(menu);
     await t.pumpAndSettle();
-    await tap('Compte et sécurité');
+    await tap('Mon compte et notifications');
     await tap('Se déconnecter');
     await tap('Confirmer');
     await until(
@@ -376,7 +374,7 @@ void main() {
     await j.fill('field.reference', reference);
     await j.fill('field.name', product);
     await j.editorSave();
-    await tester.tap(find.byTooltip('Administration et compte'));
+    await tester.tap(find.byTooltip('Paramètres et gestion'));
     await tester.pumpAndSettle();
     await j.tap('Formation et publications');
     await j.tap('Créer un contenu');

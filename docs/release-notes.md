@@ -1,3 +1,11 @@
+# BioBalance 1.1.2+6 — graphique et paramètres
+
+Graphique tactile avec points, axes, sélection du jour, détail TND/unités/ventes et accès à l’historique du jour. Les paramètres du magasin et du groupe sont accessibles depuis le bouton supérieur et « Plus », avec les mêmes droits et un contexte explicite.
+
+Aucun changement d’API ni de base. Le code de version Android passe à 6 ; la signature et les données installées sont conservées. [Détails et validation](chart-settings-2026-09-23.md).
+
+---
+
 # BioBalance 1.1.1+5 — retour utilisateur Samsung
 
 Codes de récupération courts, retour automatique à la connexion, navigation groupe en haut à gauche et retour Android corrigés. Les formulaires gardent leurs actions au-dessus du clavier, les ventes indiquent magasin et vendeur, et le cache de photos se résout correctement.

@@ -54,3 +54,11 @@ Ces captures ne qualifient pas la caméra physique, la lecture VoiceOver/TalkBac
 ## Retour Samsung — candidate 1.1.1+5
 
 28 écrans sont revus en portrait et paysage à 200 %, complétés par les parcours clavier/retour Android et les sélecteurs. La page de récupération présente huit cases, les formulaires utilisent un seul défilement de page, le groupe est en haut à gauche et les commandes sont classées par étape. Les fixtures ventes et commandes incluent maintenant des lignes renseignées, pour contrôler vendeur/magasin et les intitulés. Les photos en fixture vérifient le cadrage ; les tests du vrai cache vérifient séparément leur résolution, téléchargement et reprise.
+
+## Ajustement 1.1.2 — graphique et paramètres
+
+- `interactive-sales-chart.png` : points tactiles, axes, date et valeurs exactes du jour, lien vers ses ventes. Vérifié également en paysage et à 200 % de texte.
+- `settings-network.png` : accès commun aux paramètres et à l’administration, sélection explicite d’un magasin.
+- `settings-store.png` : prix/points/seuils, équipe, guide, historiques et accès au groupe.
+
+Les tests couvrent aussi l’absence de commandes de gestion pour le vendeur et la navigation du réseau vers les réglages du magasin.

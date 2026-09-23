@@ -21,7 +21,6 @@ import '../rewards/rewards_screen.dart';
 import '../sales/sale_screen.dart';
 import '../sales/sales_history_screen.dart';
 import '../reporting/scoped_sales_screen.dart';
-import '../settings/account_screen.dart';
 import '../stores/stores_screen.dart';
 import '../synchronization/sync_screen.dart';
 import '../training/training_screen.dart';
@@ -30,7 +29,6 @@ import '../team/team_screen.dart';
 import 'operation_helpers.dart';
 import 'scope_header.dart';
 import 'scope_view_model.dart';
-import 'workspace_help.dart';
 import 'more_page.dart';
 import 'workspace_view_model.dart';
 
@@ -272,7 +270,7 @@ class _ScopeScreenState extends State<ScopeScreen> with WidgetsBindingObserver {
           (ScopeKind.group, _, 3) => ScopedOrdersPage(scope: scope),
           (ScopeKind.store, false, 1) => StockPage(vm: workspace),
           (ScopeKind.store, false, 2) => OrdersPage(vm: workspace),
-          (ScopeKind.store, false, 3) => MorePage(vm: workspace),
+          (ScopeKind.store, false, 3) => MorePage(vm: workspace, scope: scope),
           (ScopeKind.store, true, 1) => SalesPage(vm: workspace),
           (ScopeKind.store, true, 2) => RewardsPage(vm: workspace),
           _ => TrainingPage(vm: workspace),
@@ -313,10 +311,8 @@ class _ScopeScreenState extends State<ScopeScreen> with WidgetsBindingObserver {
               ),
               IconButton(
                 onPressed: menu,
-                tooltip: workspace.user.admin
-                    ? 'Administration et compte'
-                    : 'Compte et aide',
-                icon: const Icon(AppIcons.menu),
+                tooltip: 'Paramètres et gestion',
+                icon: const Icon(AppIcons.settingsOutlined),
               ),
             ],
           ),
@@ -419,66 +415,9 @@ class _ScopeScreenState extends State<ScopeScreen> with WidgetsBindingObserver {
                 ),
         ),
       );
-  Future<void> menu() => showModalBottomSheet<void>(
-    context: context,
-    useSafeArea: true,
-    isScrollControlled: true,
-    builder: (sheet) => Content(
-      children: [
-        const SectionTitle('Votre espace'),
-        if (workspace.user.admin) ...[
-          CompactRow(
-            title: 'Inviter un responsable',
-            icon: AppIcons.personAddAlt,
-            onTap: () {
-              Navigator.pop(sheet);
-              inviteManager(context, workspace);
-            },
-          ),
-          CompactRow(
-            title: 'Formation et publications',
-            icon: AppIcons.schoolOutlined,
-            onTap: () {
-              Navigator.pop(sheet);
-              push('Formation', TrainingPage(vm: workspace));
-            },
-          ),
-        ],
-        if (scope.scope.group != null && !workspace.user.admin)
-          CompactRow(
-            title: 'Guide de démarrage',
-            icon: AppIcons.help,
-            onTap: () {
-              Navigator.pop(sheet);
-              scope.setTab(0);
-            },
-          ),
-        CompactRow(
-          title: 'Aide et premiers pas',
-          icon: AppIcons.help,
-          onTap: () {
-            Navigator.pop(sheet);
-            push('Aide', const WorkspaceHelp(), full: true);
-          },
-        ),
-        CompactRow(
-          title: 'Compte et sécurité',
-          icon: AppIcons.accountCircleOutlined,
-          onTap: () {
-            Navigator.pop(sheet);
-            push('Compte', AccountScreen(vm: workspace), full: true);
-          },
-        ),
-        CompactRow(
-          title: 'Synchronisation',
-          icon: AppIcons.sync,
-          onTap: () {
-            Navigator.pop(sheet);
-            push('Synchronisation', SyncScreen(vm: workspace), full: true);
-          },
-        ),
-      ],
-    ),
+  Future<void> menu() => push(
+    'Paramètres et gestion',
+    MorePage(vm: workspace, scope: scope, showTitle: false),
   );
   Future<void> openComparison(String id) async {
     final group = scope.groups.where((g) => g.id == id).firstOrNull;

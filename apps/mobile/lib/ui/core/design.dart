@@ -23,6 +23,9 @@ ThemeData appTheme() => ThemeData(
     error: const Color(0xFFAF342C),
   ),
   scaffoldBackgroundColor: Colors.white,
+  actionIconTheme: ActionIconThemeData(
+    backButtonIconBuilder: (_) => const Icon(AppIcons.arrowBack),
+  ),
   textTheme: const TextTheme(
     bodyLarge: TextStyle(fontSize: 16, color: ink, height: 1.45),
     bodyMedium: TextStyle(fontSize: 16, color: ink, height: 1.4),
