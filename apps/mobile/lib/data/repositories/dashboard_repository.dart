@@ -74,6 +74,7 @@ class DashboardRepository {
     String? organizationId,
     String? storeId,
     String? after,
+    String? phase,
   }) => context.run(
     () async => (await context.api.dashboardOrders(
       scope: scope,
@@ -82,6 +83,7 @@ class DashboardRepository {
       organizationId: organizationId,
       storeId: storeId,
       after: after,
+      phase: phase,
     )).toJson(),
   );
   Future<Json> order(Store store, String id) => context.run(

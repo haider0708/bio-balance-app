@@ -14,7 +14,7 @@ Les abonnements payants, le web admin, WhatsApp, les classements régionaux/nati
 - Les permissions proviennent des appartenances à une organisation et à un magasin. Un responsable peut également vendre. Un vendeur corrige uniquement ses ventes ; le responsable et l’administrateur corrigent les ventes des magasins autorisés.
 - Le guide reprend après interruption : compte, groupe, premier magasin, équipe, stock initial, configuration des prix/seuils/points. Nom, adresse et ville sont requis ; téléphone et image sont facultatifs.
 - La progression du guide est dérivée des données enregistrées. « Je travaille seul » et « Pas de stock initial » sont des choix explicites ; les produits portés configurés à zéro point demandent confirmation.
-- L’administrateur commence au réseau, le responsable au groupe, le vendeur à son magasin autorisé. Deux sélecteurs recherchables affichent le groupe et son magasin : changer de groupe revient à son résumé ; la liste des magasins est limitée au groupe sélectionné. Les brouillons et opérations ne changent jamais de compte ni de magasin.
+- L’administrateur commence au réseau, le responsable au groupe, le vendeur à son magasin autorisé. Un seul sélecteur recherchable de groupe apparaît en haut à gauche : changer de groupe revient à son résumé. Un magasin s’ouvre depuis la liste du groupe ; il n’y a pas de second menu déroulant. Les vendeurs affectés à plusieurs magasins choisissent parmi leurs seuls magasins autorisés. Le bouton Retour suit les pages, onglets et périmètres précédents. Les brouillons et opérations ne changent jamais de compte ni de magasin.
 - Désactiver ou retirer un accès conserve les ventes, mouvements et identités historiques.
 
 ## Ventes, lots et exactitude
@@ -92,3 +92,10 @@ Les tableaux de bord affichent leur périmètre, période et fraîcheur. Les dat
 Les photos produit conservent l’emballage entier. Catégorie, gamme, format, description, conseils, ingrédients, précautions, sources et état de complétude appartiennent au catalogue global. Prix de référence manquant, zéro explicitement configuré et tarif de démonstration sont distincts. Une modification globale ne remplace pas les prix fixés par un magasin. Les informations non vérifiées restent absentes.
 
 Le thème central est blanc #FFFFFF, menthe #F1F8F4, émeraude #146C43, accent #6ABE4E et texte #17231C, police Inter locale, icônes Lucide. Navigation défilante si texte agrandi, cibles 48 dp, animations courtes désactivées selon les préférences d’accessibilité. Les captures et limites de qualification sont dans [le registre de refonte](redesign-2026-09-23.md).
+
+
+## Retour Samsung — 1.1.1
+
+Les codes de récupération contiennent huit lettres/chiffres majuscules, présentés en cases avec collage complet. Une nouvelle demande remplace le précédent code ; le succès renvoie directement à la connexion. Les invitations sont uniques par personne/groupe : le renvoi remplace l’ancien code et la modification d’un membre existant passe par sa fiche d’accès.
+
+Les commandes sont regroupées en « À préparer », « Expédiées / à réceptionner » et « Terminées ». Leur détail indique le groupe, le magasin, les quantités demandées/reçues/en route/restantes et les réceptions. La liste des ventes nomme magasin et vendeur. Les formulaires utilisent un défilement de page unique et des actions accessibles avec le clavier ouvert.

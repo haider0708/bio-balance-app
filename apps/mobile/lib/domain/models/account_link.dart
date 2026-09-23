@@ -14,7 +14,9 @@ class AccountLink {
     final tokens = uri.queryParametersAll['token'];
     if (tokens == null ||
         tokens.length != 1 ||
-        !RegExp(r'^[A-Za-z0-9_-]{32,200}$').hasMatch(tokens.single)) {
+        !(RegExp(r'^[A-Za-z0-9_-]{32,200}$').hasMatch(tokens.single) ||
+            action == 'recover' &&
+                RegExp(r'^[A-Z0-9]{8}$').hasMatch(tokens.single))) {
       return null;
     }
     return AccountLink(

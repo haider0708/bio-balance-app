@@ -4,7 +4,7 @@ import '../../../domain/models/models.dart';
 import '../../../domain/models/workspace_scope.dart';
 import '../../../data/repositories/group_repository.dart';
 import '../../core/design.dart';
-import '../../core/forms.dart';
+import 'group_member_editor.dart';
 import '../authentication/session_view_model.dart';
 import '../workspace/workspace_view_model.dart';
 
@@ -137,6 +137,7 @@ class _GroupTeamPageState extends State<GroupTeamPage> {
                 : 'Vendeur',
             footer: const StatusChip('Invitation envoyée'),
             icon: AppIcons.mailOutline,
+            onTap: () => edit(null, item),
           ),
         if (vm.data != null && objects(vm.data?['members']).isEmpty)
           const EmptyState(
@@ -146,87 +147,18 @@ class _GroupTeamPageState extends State<GroupTeamPage> {
       ],
     ),
   );
-  Future<void> edit([Json? member]) async {
-    final stores = widget.workspace.state.stores
-        .where((s) => s.organizationId == widget.group.id)
-        .toList();
-    if (await openEditor(
+  Future<void> edit([Json? member, Json? invitation]) async {
+    final saved = await Navigator.push<bool>(
       context,
-      title: member == null ? 'Inviter dans le groupe' : 'Modifier l’accès',
-      description:
-          '${widget.group.name}\nResponsable : accès à tous les magasins, y compris ceux créés plus tard.\nVendeur : accès aux magasins sélectionnés ci-dessous.',
-      draftKey: 'group-member:${widget.group.id}:${member?['id'] ?? 'new'}',
-      fields: [
-        if (member == null) const FieldSpec('email', 'Adresse email'),
-        FieldSpec(
-          'role',
-          'Rôle',
-          initial: member?['role'] ?? 'salesperson',
-          options: const {
-            'salesperson': 'Vendeur — magasins sélectionnés',
-            'responsible': 'Responsable — tout le groupe',
-          },
+      MaterialPageRoute(
+        builder: (_) => GroupMemberEditor(
+          workspace: widget.workspace,
+          group: widget.group,
+          member: member,
+          invitation: invitation,
         ),
-        for (final s in stores)
-          FieldSpec(
-            'store:${s.id}',
-            s.name,
-            initial: (member?['storeIds'] as List? ?? []).contains(s.id)
-                ? 'yes'
-                : 'no',
-            options: const {
-              'no': 'Non attribué au vendeur',
-              'yes': 'Attribué au vendeur',
-            },
-          ),
-        if (member != null)
-          FieldSpec(
-            'active',
-            'Accès au groupe',
-            initial: member['active'] == true ? 'yes' : 'no',
-            options: const {
-              'yes': 'Actif',
-              'no': 'Désactivé — historique conservé',
-            },
-          ),
-      ],
-      submitLabel: member == null
-          ? 'Envoyer l’invitation'
-          : 'Enregistrer l’accès',
-      submit: (values) async {
-        final ids = values['role'] == 'responsible'
-            ? <String>[]
-            : stores
-                  .where((s) => values['store:${s.id}'] == 'yes')
-                  .map((s) => s.id)
-                  .toList();
-        if (values['role'] == 'salesperson' &&
-            ids.isEmpty &&
-            values['active'] != 'no') {
-          throw const FormatException(
-            'Sélectionnez au moins un magasin pour le vendeur.',
-          );
-        }
-        if (member == null) {
-          await widget.workspace.teams.invite({
-            'email': values['email'],
-            'kind': values['role'],
-            'organizationId': widget.group.id,
-            'storeIds': ids,
-            'permissions': values['role'] == 'responsible'
-                ? ['manage', 'sell', 'receive']
-                : ['sell', 'receive'],
-          });
-        } else {
-          await vm.repository.member(widget.group.id, member['id'], {
-            'role': values['role'],
-            'active': values['active'] == 'yes',
-            'storeIds': ids,
-          });
-        }
-      },
-    )) {
-      await vm.load();
-    }
+      ),
+    );
+    if (saved == true && mounted) await vm.load();
   }
 }

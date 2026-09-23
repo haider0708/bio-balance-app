@@ -71,7 +71,12 @@ void main() {
     );
     await tester.tap(find.text('Ouvrir'));
     await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('Lot manquant ? Le renseigner'));
+    await tester.scrollUntilVisible(
+      find.text('Lot manquant ? Le renseigner'),
+      160,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Lot manquant ? Le renseigner'));
     await tester.pumpAndSettle();
     await tester.enterText(

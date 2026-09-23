@@ -235,137 +235,15 @@ class _TrainingEditorState extends State<TrainingEditor> {
     builder: (context, _) {
       final state = editor.state;
       final blocked = state.busy || !initialized;
-      return Scaffold(
-        appBar: AppBar(title: const Text('Éditer une formation')),
-        body: Content(
-          maxWidth: 760,
+      return FormPage(
+        title: widget.article == null
+            ? 'Créer une formation'
+            : 'Éditer une formation',
+        maxWidth: 760,
+        action: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            if (state.error != null) Notice(state.error!, error: true),
-            if (catalog.error != null)
-              Notice(catalog.error!, retry: catalog.load),
-            if (state.conflict)
-              OutlinedButton(
-                onPressed: blocked ? null : compareVersion,
-                child: const Text('Comparer avec la version actuelle'),
-              ),
-            if (state.loading) const LinearProgressIndicator(),
-            if (!initialized && !state.loading)
-              TextButton(
-                onPressed: restore,
-                child: const Text('Réessayer de récupérer le brouillon'),
-              ),
-            TextField(
-              controller: title,
-              enabled: initialized && !state.busy,
-              maxLength: 200,
-              decoration: const InputDecoration(labelText: 'Titre'),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: body,
-              enabled: initialized && !state.busy,
-              minLines: 6,
-              maxLines: 15,
-              decoration: const InputDecoration(
-                labelText: 'Article ou description',
-              ),
-            ),
-            const SizedBox(height: 20),
-            Wrap(
-              spacing: 8,
-              children: [
-                for (final type in ['article', 'video'])
-                  ChoiceChip(
-                    label: Text(type == 'article' ? 'Article' : 'Vidéo'),
-                    selected: state.value('type') == type,
-                    onSelected: blocked
-                        ? null
-                        : (_) => editor.change({'type': type}),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            OutlinedButton.icon(
-              onPressed: blocked || catalog.loading ? null : associate,
-              icon: const Icon(AppIcons.link),
-              label: Text(
-                catalog.loading
-                    ? 'Chargement des produits…'
-                    : 'Associer des produits',
-              ),
-            ),
-            Wrap(
-              spacing: 8,
-              children: editor.productIds
-                  .map(
-                    (id) => Chip(
-                      label: Text(
-                        catalog.products
-                                .where((p) => p['id'] == id)
-                                .firstOrNull?['name'] ??
-                            'Produit associé',
-                      ),
-                    ),
-                  )
-                  .toList(),
-            ),
-            if (state.value('type') == 'video') ...[
-              OutlinedButton.icon(
-                onPressed: blocked ? null : upload,
-                icon: const Icon(AppIcons.uploadFile),
-                label: const Text('Choisir une vidéo'),
-              ),
-              if (state.value('filePath').isNotEmpty &&
-                  state.value('mediaStatus') != 'ready')
-                TextButton(
-                  onPressed: blocked
-                      ? null
-                      : () => editor.upload(
-                          state.value('filePath'),
-                          state.value('fileName'),
-                        ),
-                  child: const Text('Reprendre le transfert'),
-                ),
-              if (state.progress != null) ...[
-                LinearProgressIndicator(value: state.progress),
-                Text('${(state.progress! * 100).round()} % téléversé'),
-              ],
-              if (state.value('mediaId').isNotEmpty) ...[
-                Text(mediaStatusLabel(state.value('mediaStatus'))),
-                TextButton(
-                  onPressed: blocked ? null : editor.checkMedia,
-                  child: const Text('Vérifier le traitement'),
-                ),
-                TextButton(
-                  onPressed: blocked
-                      ? null
-                      : () => editor.change({
-                          'mediaId': '',
-                          'mediaStatus': '',
-                          'filePath': '',
-                          'fileName': '',
-                        }),
-                  child: const Text('Retirer la vidéo'),
-                ),
-              ],
-            ],
-            const SizedBox(height: 16),
-            DropdownButtonFormField<String>(
-              icon: const Icon(AppIcons.keyboardArrowDown),
-              key: ValueKey(state.value('status')),
-              initialValue: state.value('status'),
-              isExpanded: true,
-              items: const [
-                DropdownMenuItem(value: 'draft', child: Text('Brouillon')),
-                DropdownMenuItem(value: 'published', child: Text('Publié')),
-                DropdownMenuItem(value: 'archived', child: Text('Archivé')),
-              ],
-              onChanged: blocked
-                  ? null
-                  : (value) => editor.change({'status': value!}),
-              decoration: const InputDecoration(labelText: 'Visibilité'),
-            ),
-            const SizedBox(height: 20),
             OutlinedButton.icon(
               onPressed: !initialized
                   ? null
@@ -383,6 +261,7 @@ class _TrainingEditorState extends State<TrainingEditor> {
               icon: const Icon(AppIcons.visibilityOutlined),
               label: const Text('Aperçu du contenu'),
             ),
+            const SizedBox(height: 8),
             FilledButton(
               onPressed: blocked || state.conflict
                   ? null
@@ -395,6 +274,135 @@ class _TrainingEditorState extends State<TrainingEditor> {
             ),
           ],
         ),
+        children: [
+          if (state.error != null) Notice(state.error!, error: true),
+          if (catalog.error != null)
+            Notice(catalog.error!, retry: catalog.load),
+          if (state.conflict)
+            OutlinedButton(
+              onPressed: blocked ? null : compareVersion,
+              child: const Text('Comparer avec la version actuelle'),
+            ),
+          if (state.loading) const LinearProgressIndicator(),
+          if (!initialized && !state.loading)
+            TextButton(
+              onPressed: restore,
+              child: const Text('Réessayer de récupérer le brouillon'),
+            ),
+          TextField(
+            controller: title,
+            enabled: initialized && !state.busy,
+            maxLength: 200,
+            decoration: const InputDecoration(labelText: 'Titre'),
+          ),
+          const SizedBox(height: 16),
+          TextField(
+            controller: body,
+            enabled: initialized && !state.busy,
+            minLines: 6,
+            maxLines: null,
+            keyboardType: TextInputType.multiline,
+            decoration: const InputDecoration(
+              labelText: 'Article ou description',
+              alignLabelWithHint: true,
+            ),
+          ),
+          const SizedBox(height: 20),
+          Wrap(
+            spacing: 8,
+            children: [
+              for (final type in ['article', 'video'])
+                ChoiceChip(
+                  label: Text(type == 'article' ? 'Article' : 'Vidéo'),
+                  selected: state.value('type') == type,
+                  onSelected: blocked
+                      ? null
+                      : (_) => editor.change({'type': type}),
+                ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          OutlinedButton.icon(
+            onPressed: blocked || catalog.loading ? null : associate,
+            icon: const Icon(AppIcons.link),
+            label: Text(
+              catalog.loading
+                  ? 'Chargement des produits…'
+                  : 'Associer des produits',
+            ),
+          ),
+          Wrap(
+            spacing: 8,
+            children: editor.productIds
+                .map(
+                  (id) => Chip(
+                    label: Text(
+                      catalog.products
+                              .where((p) => p['id'] == id)
+                              .firstOrNull?['name'] ??
+                          'Produit associé',
+                    ),
+                  ),
+                )
+                .toList(),
+          ),
+          if (state.value('type') == 'video') ...[
+            OutlinedButton.icon(
+              onPressed: blocked ? null : upload,
+              icon: const Icon(AppIcons.uploadFile),
+              label: const Text('Choisir une vidéo'),
+            ),
+            if (state.value('filePath').isNotEmpty &&
+                state.value('mediaStatus') != 'ready')
+              TextButton(
+                onPressed: blocked
+                    ? null
+                    : () => editor.upload(
+                        state.value('filePath'),
+                        state.value('fileName'),
+                      ),
+                child: const Text('Reprendre le transfert'),
+              ),
+            if (state.progress != null) ...[
+              LinearProgressIndicator(value: state.progress),
+              Text('${(state.progress! * 100).round()} % téléversé'),
+            ],
+            if (state.value('mediaId').isNotEmpty) ...[
+              Text(mediaStatusLabel(state.value('mediaStatus'))),
+              TextButton(
+                onPressed: blocked ? null : editor.checkMedia,
+                child: const Text('Vérifier le traitement'),
+              ),
+              TextButton(
+                onPressed: blocked
+                    ? null
+                    : () => editor.change({
+                        'mediaId': '',
+                        'mediaStatus': '',
+                        'filePath': '',
+                        'fileName': '',
+                      }),
+                child: const Text('Retirer la vidéo'),
+              ),
+            ],
+          ],
+          const SizedBox(height: 16),
+          DropdownButtonFormField<String>(
+            icon: const Icon(AppIcons.keyboardArrowDown),
+            key: ValueKey(state.value('status')),
+            initialValue: state.value('status'),
+            isExpanded: true,
+            items: const [
+              DropdownMenuItem(value: 'draft', child: Text('Brouillon')),
+              DropdownMenuItem(value: 'published', child: Text('Publié')),
+              DropdownMenuItem(value: 'archived', child: Text('Archivé')),
+            ],
+            onChanged: blocked
+                ? null
+                : (value) => editor.change({'status': value!}),
+            decoration: const InputDecoration(labelText: 'Visibilité'),
+          ),
+        ],
       );
     },
   );

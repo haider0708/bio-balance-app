@@ -2,9 +2,7 @@ import { assertTestDatabases } from "./test-database.cjs";
 import { afterAll, expect, it } from "vitest";
 import { randomBytes, randomUUID } from "node:crypto";
 import { Database } from "../src/shared/infrastructure/database";
-import {
-  IdentityService,
-} from "../src/modules/identity/identity.service";
+import { IdentityService } from "../src/modules/identity/identity.service";
 import { PasswordHasher } from "../src/modules/identity/password-hasher";
 import { accountTokenMessage } from "../src/modules/identity/account-links";
 import {
@@ -430,14 +428,126 @@ it("delivers real multipart invitations, recovery and security notices to isolat
   }
 }, 20000);
 
-
 it("delivers a new-group grant before the organization exists", async () => {
-  const admin = await account(true), r = recorder();
+  const admin = await account(true),
+    r = recorder();
   const invitation = await identity.invite(admin, {
-    kind: "new_group", email: `${randomUUID()}@example.test`, permissions: [],
+    kind: "new_group",
+    email: `${randomUUID()}@example.test`,
+    permissions: [],
   });
-  const job = await db.job.findUniqueOrThrow({where:{key:`invite:${invitation.id}`}});
-  expect(await r.service.deliver({...job,payload:job.payload as Record<string,string>},async()=>true)).toBe("accepted");
+  const job = await db.job.findUniqueOrThrow({
+    where: { key: `invite:${invitation.id}` },
+  });
+  expect(
+    await r.service.deliver(
+      { ...job, payload: job.payload as Record<string, string> },
+      async () => true,
+    ),
+  ).toBe("accepted");
   expect(r.sent[0]!.content.text).toContain("créer votre groupe");
-  expect((await db.accessToken.findUniqueOrThrow({where:{id:invitation.id}})).organizationId).toBeNull();
+  expect(
+    (await db.accessToken.findUniqueOrThrow({ where: { id: invitation.id } }))
+      .organizationId,
+  ).toBeNull();
+});
+
+it("issues eight uppercase recovery characters, accepts grouped paste, and supersedes the previous code", async () => {
+  const user = await account(),
+    r = recorder();
+  await identity.forgot(user.email, randomUUID());
+  const old = await db.accessToken.findFirstOrThrow({
+    where: { email: user.email, purpose: "reset", usedAt: null },
+  });
+  const oldJob = await db.job.findUniqueOrThrow({
+    where: { key: `reset:${old.id}` },
+  });
+  await identity.forgot(user.email, randomUUID());
+  const current = await db.accessToken.findFirstOrThrow({
+    where: { email: user.email, purpose: "reset", usedAt: null },
+  });
+  const job = await db.job.findUniqueOrThrow({
+    where: { key: `reset:${current.id}` },
+  });
+  const payload = EmailPayload.parse(job.payload);
+  if (payload.template !== "reset") throw Error("RESET_EXPECTED");
+  expect(payload.token).toMatch(/^[A-Z0-9]{8}$/);
+  expect(current.expiresAt.getTime() - Date.now()).toBeLessThanOrEqual(1800000);
+  expect(current.tokenHash).not.toContain(payload.token);
+  expect(
+    await r.service.deliver(
+      { ...oldJob, payload: oldJob.payload as Record<string, string> },
+      async () => true,
+    ),
+  ).toBe("suppressed");
+  expect(await r.service.deliver({ ...job, payload }, async () => true)).toBe(
+    "accepted",
+  );
+  const grouped = payload.token.slice(0, 4) + "-" + payload.token.slice(4);
+  expect(r.sent[0]!.content.text).toContain(grouped);
+  await identity.reset(grouped.toLowerCase(), "replacement", randomUUID());
+  await expect(
+    identity.reset(payload.token, "again", randomUUID()),
+  ).rejects.toMatchObject({ code: "RESET_EXPIRED" });
+});
+
+it("keeps one active group invitation per email, including simultaneous sends, and retains the old records", async () => {
+  const admin = await account(true);
+  const group = await db.organization.create({
+    data: { name: "Invitation regression" },
+  });
+  const email = `${randomUUID()}@example.test`;
+  const input = {
+    email,
+    organizationId: group.id,
+    kind: "responsible" as const,
+    storeIds: [],
+    permissions: [],
+  };
+  const result = await Promise.all([
+    identity.invite(admin, input),
+    identity.invite(admin, input),
+  ]);
+  const rows = await db.accessToken.findMany({
+    where: { email, purpose: "invite", organizationId: group.id },
+  });
+  expect(rows).toHaveLength(2);
+  const active = rows.filter((r) => !r.usedAt);
+  expect(active).toHaveLength(1);
+  const old = result.find((r) => r.id !== active[0]!.id)!;
+  const oldJob = await db.job.findUniqueOrThrow({
+    where: { key: `invite:${old.id}` },
+  });
+  const r = recorder();
+  expect(
+    await r.service.deliver(
+      { ...oldJob, payload: oldJob.payload as Record<string, string> },
+      async () => true,
+    ),
+  ).toBe("suppressed");
+  const latest = await db.job.findUniqueOrThrow({
+    where: { key: `invite:${active[0]!.id}` },
+  });
+  await identity.activate(
+    (latest.payload as Record<string, string>).token!,
+    "Invité",
+    "password",
+    randomUUID(),
+  );
+  await expect(identity.invite(admin, input)).rejects.toMatchObject({
+    code: "MEMBER_ALREADY_EXISTS",
+  });
+});
+
+it("serializes simultaneous recovery replacements without keeping two usable codes", async () => {
+  const user = await account();
+  await Promise.all([
+    identity.forgot(user.email, randomUUID()),
+    identity.forgot(user.email, randomUUID()),
+  ]);
+  const rows = await db.accessToken.findMany({
+    where: { email: user.email, purpose: "reset" },
+  });
+  expect(rows).toHaveLength(2);
+  expect(rows.filter((row) => !row.usedAt)).toHaveLength(1);
 });

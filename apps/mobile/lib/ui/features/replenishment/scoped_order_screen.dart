@@ -13,6 +13,7 @@ import '../workspace/workspace_view_model.dart';
 import '../workspace/operation_helpers.dart';
 import '../media/image_input.dart';
 import 'order_screens.dart';
+import 'order_sections.dart';
 import '../inventory/inventory_screens.dart';
 import '../../../domain/models/tunis_dates.dart';
 
@@ -23,6 +24,18 @@ class ScopedOrdersViewModel extends ChangeNotifier {
   List<Json> items = [];
   String? after, error;
   bool loading = false, closed = false;
+  OrderSection section = OrderSection.preparation;
+  int revision = 0;
+  void select(OrderSection value) {
+    if (value == section) return;
+    section = value;
+    revision++;
+    loading = false;
+    items = [];
+    after = null;
+    unawaited(load());
+  }
+
   ScopedOrdersViewModel(
     this.repository,
     this.scope,
@@ -31,6 +44,7 @@ class ScopedOrdersViewModel extends ChangeNotifier {
   );
   Future<void> load({bool more = false}) async {
     if (loading) return;
+    final captured = ++revision;
     loading = true;
     notifyListeners();
     try {
@@ -40,16 +54,19 @@ class ScopedOrdersViewModel extends ChangeNotifier {
         organizationId: groupId,
         storeId: storeId,
         after: more ? after : null,
+        phase: section.name,
       );
-      if (closed) return;
+      if (closed || captured != revision) return;
       items = [if (more) ...items, ...objects(page['items'])];
       after = page['nextCursor'];
       error = null;
     } catch (e) {
-      if (!closed) error = SessionViewModel.message(e);
+      if (!closed && captured == revision) error = SessionViewModel.message(e);
     } finally {
-      loading = false;
-      if (!closed) notifyListeners();
+      if (!closed && captured == revision) {
+        loading = false;
+        notifyListeners();
+      }
     }
   }
 
@@ -79,16 +96,18 @@ class _ScopedOrdersPageState extends State<ScopedOrdersPage> {
     widget.scope.scope.group?.id,
     widget.scope.scope.store?.id,
   )..load();
-  bool opening = false, activeOnly = true, restored = false;
+  bool opening = false, restored = false;
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     if (!restored) {
-      activeOnly =
-          PageStorage.maybeOf(context)
-                  ?.readState(context, identifier: 'orders-active')
-              as bool? ??
-          true;
+      final name = PageStorage.maybeOf(
+        context,
+      )?.readState(context, identifier: 'orders-section') as String?;
+      final selected = OrderSection.values
+          .where((s) => s.name == name)
+          .firstOrNull;
+      if (selected != null) vm.select(selected);
       restored = true;
     }
   }
@@ -103,20 +122,16 @@ class _ScopedOrdersPageState extends State<ScopedOrdersPage> {
   Widget build(BuildContext context) => ListenableBuilder(
     listenable: vm,
     builder: (context, _) {
-      final items = vm.items
-          .where((o) => !activeOnly || o['status'] != 'received')
-          .toList();
+      final items = vm.items;
       return Content.builder(
         key: PageStorageKey('orders:${widget.scope.scope.key}'),
         itemCount: items.length,
         itemBuilder: (_, i) {
           final o = items[i];
-          return CompactRow(
-            title: o['storeName'],
-            subtitle:
-                '${o['groupName']} · ${TunisDates.timestampLabel(o['createdAt'])}',
-            footer: StatusChip(statusLabel(o['status'])),
-            icon: AppIcons.localShippingOutlined,
+          return OrderRow(
+            order: o,
+            storeName: o['storeName'],
+            groupName: o['groupName'],
             onTap: opening ? null : () => open(o),
           );
         },
@@ -130,15 +145,15 @@ class _ScopedOrdersPageState extends State<ScopedOrdersPage> {
               icon: const Icon(AppIcons.refresh),
             ),
           ),
-          SwitchListTile(
-            contentPadding: EdgeInsets.zero,
-            title: const Text('Commandes en cours'),
-            value: activeOnly,
-            onChanged: (v) => setState(() {
-              activeOnly = v;
-              PageStorage.maybeOf(context)
-                  ?.writeState(context, v, identifier: 'orders-active');
-            }),
+          OrderSections(
+            selected: vm.section,
+            admin: workspace.user.admin,
+            onChanged: (value) {
+              PageStorage.maybeOf(
+                context,
+              )?.writeState(context, value.name, identifier: 'orders-section');
+              vm.select(value);
+            },
           ),
           if (vm.loading) const LinearProgressIndicator(),
           if (vm.error != null) Notice(vm.error!, retry: () => vm.load()),
@@ -253,6 +268,28 @@ class _ExactOrderScreenState extends State<ExactOrderScreen> {
     setState(() => loading = true);
     try {
       await vm.select(widget.store);
+      final cached = vm.state.data
+          ?.list('orders')
+          .where((o) => o['id'] == widget.orderId)
+          .firstOrNull;
+      if (mounted && cached != null) {
+        setState(
+          () => data = {
+            'order': {
+              ...cached,
+              'groupName': widget.store.organizationName,
+              'storeName': widget.store.name,
+            },
+            'deliveries':
+                vm.state.data
+                    ?.list('deliveries')
+                    .where((d) => d['orderId'] == widget.orderId)
+                    .toList() ??
+                [],
+            'fulfillment': cached['fulfillment'] ?? [],
+          },
+        );
+      }
       final result = await repository.order(widget.store, widget.orderId);
       if (mounted) {
         setState(() {
@@ -295,34 +332,53 @@ class _ExactOrderScreenState extends State<ExactOrderScreen> {
             if (error != null) Notice(error!, retry: load),
             if (order != null) ...[
               StatusChip(statusLabel(order['status'])),
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
+              Text(
+                'Demandée le ${TunisDates.timestampLabel(order['createdAt'])}',
+                style: const TextStyle(fontSize: 14, color: muted),
+              ),
+              const SizedBox(height: 24),
+              const SectionTitle('Produits commandés'),
               for (final line in objects(order['lines']))
                 CompactRow(
                   title: vm.productName(line['productId']),
                   value: '${line['quantity']} unités',
+                  subtitle: fulfillmentLabel(line['productId']),
                   leading: SizedBox(
                     width: 48,
                     child: _image(line['productId']),
                   ),
                 ),
-              if (vm.user.admin && order['status'] != 'received')
+              if (vm.user.admin &&
+                  [
+                    'requested',
+                    'preparing',
+                    'partial',
+                    'dispatched',
+                  ].contains(order['status']))
                 Wrap(
                   spacing: 8,
                   runSpacing: 8,
                   children: [
-                    OutlinedButton(
-                      onPressed: busy
-                          ? null
-                          : () => action(
-                              () => vm.online({
-                                'type': 'order.prepare',
-                                'orderId': widget.orderId,
-                              }, expectedVersion: integer(order['version'])),
-                            ),
-                      child: const Text('Mettre en préparation'),
-                    ),
+                    if (['requested', 'partial'].contains(order['status']))
+                      OutlinedButton(
+                        onPressed: busy || vm.state.offline
+                            ? null
+                            : () => action(
+                                () => vm.online({
+                                  'type': 'order.prepare',
+                                  'orderId': widget.orderId,
+                                }, expectedVersion: integer(order['version'])),
+                              ),
+                        child: const Text('Mettre en préparation'),
+                      ),
                     FilledButton(
-                      onPressed: busy
+                      onPressed:
+                          busy ||
+                              vm.state.offline ||
+                              !objects(data?['fulfillment']).any(
+                                (l) => integer(l['remainingToDispatch']) > 0,
+                              )
                           ? null
                           : () => action(
                               () => OrdersPage(vm: vm).dispatch(
@@ -340,9 +396,16 @@ class _ExactOrderScreenState extends State<ExactOrderScreen> {
                 CompactRow(
                   title:
                       'Livraison ${delivery['id'].toString().substring(0, 8).toUpperCase()}',
-                  subtitle: statusLabel(delivery['status']),
+                  subtitle:
+                      '${statusLabel(delivery['status'])} · ${TunisDates.timestampLabel(delivery['dispatchedAt'])}\n${objects(delivery['lines']).fold<int>(0, (s, l) => s + integer(l['quantity']))} unités expédiées',
+                  footer: receiptSummary(delivery),
                   icon: AppIcons.localShippingOutlined,
-                  onTap: delivery['status'] == 'dispatched'
+                  onTap:
+                      delivery['status'] == 'dispatched' &&
+                          !busy &&
+                          (widget.store.permissions.contains('receive') ||
+                              widget.store.canManage ||
+                              vm.user.admin)
                       ? () =>
                             Navigator.push(
                               context,
@@ -361,6 +424,32 @@ class _ExactOrderScreenState extends State<ExactOrderScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  String? fulfillmentLabel(String productId) {
+    final line = objects(data?['fulfillment'])
+        .where((l) => l['productId'] == productId)
+        .firstOrNull;
+    if (line == null) return null;
+    return '${line['received']} reçues · ${line['inTransit']} en route\n${line['remainingToDispatch']} restant à expédier';
+  }
+
+  Widget? receiptSummary(Json delivery) {
+    final receipt = objects(data?['receipts'])
+        .where((r) => r['deliveryId'] == delivery['id'])
+        .firstOrNull;
+    if (receipt == null) {
+      return delivery['status'] == 'dispatched'
+          ? const StatusChip('Ouvrir pour réceptionner', tone: AppTone.info)
+          : null;
+    }
+    final units = objects(receipt['lines'])
+        .fold<int>(0, (sum, line) => sum + integer(line['quantity']));
+    final note = receipt['differences']?['note']?.toString() ?? '';
+    return Text(
+      '$units unités reçues · ${TunisDates.timestampLabel(receipt['createdAt'])}${note.isEmpty ? '' : '\n$note'}',
+      style: const TextStyle(fontSize: 14, color: muted),
     );
   }
 

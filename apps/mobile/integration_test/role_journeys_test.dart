@@ -4,6 +4,7 @@ import 'package:biobalance/main.dart';
 import 'package:biobalance/data/services/api/generated/api_client.dart';
 import 'package:biobalance/data/services/local_database/database.dart';
 import 'package:biobalance/ui/features/inventory/inventory_screens.dart';
+import 'package:biobalance/ui/features/replenishment/order_screens.dart';
 import 'package:biobalance/ui/features/workspace/scope_screen.dart';
 import 'package:biobalance/ui/features/workspace/workspace_view_model.dart';
 import 'package:dio/dio.dart';
@@ -196,12 +197,7 @@ class Journey {
     await tapKey('auth.login');
     await ready();
     if (email == manager && (await state())['store'] != null) {
-      await tapKey('scope.store');
-      final sheet = find.byType(BottomSheet);
-      final choice = find.descendant(of: sheet, matching: find.text(store));
-      await seek(choice);
-      await t.tap(choice);
-      await t.pumpAndSettle();
+      await tap(store);
       await ready();
     }
   }
@@ -233,13 +229,9 @@ class Journey {
     await fill('auth.password', password);
     await tap('Confirmer');
     await until(
-      () => find
-          .text('Votre compte est prêt. Vous pouvez vous connecter.')
-          .evaluate()
-          .isNotEmpty,
-      reason: 'invitation activation',
+      () => key('auth.login').evaluate().isNotEmpty,
+      reason: 'activation returns directly to login',
     );
-    await back();
   }
 
   Future<void> nav(String text) async {
@@ -401,7 +393,7 @@ void main() {
     await j.tap('Aperçu du contenu');
     await j.back();
     await j.tap('Enregistrer le contenu');
-    await j.until(() => find.text('Éditer une formation').evaluate().isEmpty);
+    await j.until(() => find.text('Créer une formation').evaluate().isEmpty);
     await j.back();
     await j.logout();
     debugPrint('JOURNEY: manager stock, pricing, team, reward and order');
@@ -419,10 +411,7 @@ void main() {
     await j.nav('Équipe');
     await j.tap('Inviter');
     await j.fill('field.email', seller);
-    await j.dropdown(
-      'store:${(await state())['store']['id']}',
-      'Attribué au vendeur',
-    );
+    await j.tap(store);
     await j.editorSave();
     await j.nav('Plus');
     await j.tap('Guide de configuration');
@@ -438,13 +427,13 @@ void main() {
     await j.editorSave();
     await j.back();
     await j.nav('Commandes');
-    await j.tap('Commander');
+    await j.tap('Nouvelle commande');
     await j.tap('Ajouter un produit');
     await j.tap(product);
     await j.fillLabel('Unités à commander', '5');
     await j.tap('Envoyer la commande');
     await j.until(
-      () => find.text('Commander des produits').evaluate().isEmpty,
+      () => find.byType(OrderEditor).evaluate().isEmpty,
       reason: 'order editor closed',
     );
     await j.ready();
@@ -485,8 +474,8 @@ void main() {
     await j.tap('Nouvelle vente');
     await j.tap('Rechercher');
     await j.chooseSaleProduct(product);
-    await j.fillLabel('Lot DELIVERY · 31/12/2030', '0');
-    await j.fillLabel('Lot OPENING · 31/12/2030', '3');
+    await j.fill('sale.lot.DELIVERY', '0');
+    await j.fill('sale.lot.OPENING', '3');
     await j.tap('Ajouter à la vente');
     await j.tap('Enregistrer la vente');
     await j.ready();
@@ -498,10 +487,10 @@ void main() {
     await j.tap('149,700 TND');
     await j.tap('Corriger');
     await j.tap('Modifier');
-    await j.fillLabel('Lot OPENING · 31/12/2030', '4');
-    await j.tap('Ajouter à la vente');
+    await j.fill('sale.lot.OPENING', '4');
+    await j.tap('Enregistrer les modifications');
     await j.fillLabel('Motif de la correction', 'Quantité réelle');
-    await j.tap('Enregistrer la vente');
+    await j.tap('Enregistrer la correction');
     await j.verifyState(
       (s) => (s['sales'] as List).first['version'] == 2,
       'correction committed',

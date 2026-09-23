@@ -30,7 +30,9 @@ class PhotoRepository {
     final key = '$id:$thumbnail';
     return _pending.putIfAbsent(
       key,
-      () => _load(id, thumbnail).whenComplete(() => _pending.remove(key)),
+      () => _load(id, thumbnail).whenComplete(() {
+        _pending.remove(key);
+      }),
     );
   }
 

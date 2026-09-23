@@ -272,15 +272,17 @@ class StatusChip extends StatelessWidget {
       color: tone.background,
       borderRadius: BorderRadius.circular(12),
     ),
-    child: Wrap(
-      crossAxisAlignment: WrapCrossAlignment.center,
-      spacing: 6,
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
       children: [
         Icon(icon, size: 18, color: tone.foreground),
-        Text(
-          text,
-          style: Theme.of(context).textTheme.bodySmall
-              ?.copyWith(color: tone.foreground),
+        const SizedBox(width: 6),
+        Flexible(
+          child: Text(
+            text,
+            style: Theme.of(context).textTheme.bodySmall
+                ?.copyWith(color: tone.foreground),
+          ),
         ),
       ],
     ),
@@ -546,6 +548,58 @@ class BottomAction extends StatelessWidget {
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 640),
           child: SizedBox(width: double.infinity, child: child),
+        ),
+      ),
+    ),
+  );
+}
+
+/// One page scrolls; the action follows the keyboard within the resized body.
+/// Form fields grow with their content instead of creating nested viewports.
+class FormPage extends StatelessWidget {
+  final String title;
+  final List<Widget> children;
+  final Widget? action;
+  final double maxWidth;
+  const FormPage({
+    super.key,
+    required this.title,
+    required this.children,
+    this.action,
+    this.maxWidth = 640,
+  });
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(title: Text(title)),
+    body: SafeArea(
+      top: false,
+      child: Column(
+        children: [
+          Expanded(
+            child: FormContent(maxWidth: maxWidth, children: children),
+          ),
+          if (action != null) BottomAction(child: action!),
+        ],
+      ),
+    ),
+  );
+}
+
+class FormContent extends StatelessWidget {
+  final double maxWidth;
+  final List<Widget> children;
+  const FormContent({super.key, this.maxWidth = 640, required this.children});
+  @override
+  Widget build(BuildContext context) => Align(
+    alignment: Alignment.topCenter,
+    child: ConstrainedBox(
+      constraints: BoxConstraints(maxWidth: maxWidth),
+      child: SingleChildScrollView(
+        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: children,
         ),
       ),
     ),

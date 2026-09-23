@@ -124,3 +124,10 @@ Les exports figent leur résultat complet au démarrage du traitement, puis écr
 Les images traitées possèdent une miniature PNG 384 px, sa taille et SHA-256. Le cache du téléphone est lié au compte, borné à 64 Mio et trois transferts ; 48 instantanés de dashboard par compte sont conservés avec éviction limitée à ces résumés. Il ne supprime ni l’outbox ni les vidéos téléchargées. Les images de groupe passent par le même contrôle de propriétaire, traitement et autorisation que les autres médias.
 
 Les quotas généraux sur comptes authentifiés ont été retirés. Les limites identité/récupération, taille des corps et téléversements, concurrence des jobs, autorisation et protection Nginx/Cloudflare restent actives. Le worker conserve SMTP TLS ; le laboratoire utilise sa propre autorité de test, jamais une désactivation de vérification TLS.
+
+
+### Correctifs de navigation et saisie — 1.1.1
+
+`NavigatorPopHandler` relaie le retour Android au navigateur protégé ; `ScopeViewModel` conserve un historique borné des contextes/onglets sans modifier le contexte des commandes en attente. `FormPage` / `FormContent` séparent le défilement du contenu et l’action au-dessus du clavier. Les formulaires de groupe reprennent les anciennes clés de brouillon et copient durablement un ancien brouillon lié au magasin avant de nettoyer cette copie.
+
+Les invitations et remplacements de récupération sont sérialisés par compte/groupe dans PostgreSQL. Le filtre d’étape des commandes s’applique avant la pagination ; les résultats incluent les réceptions et la projection existante de fulfillment. `PhotoRepository` libère son registre de requêtes sans retourner la Future en cours depuis `whenComplete`.

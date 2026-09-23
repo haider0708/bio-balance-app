@@ -195,6 +195,13 @@ export function applyContract(document: OpenAPIObject): OpenAPIObject {
         params.push(parameter("after", "query", uuid));
       if (original === "GroupController_list")
         params.push(parameter("search", "query", str));
+      if (original === "DashboardController_orders")
+        params.push(
+          parameter("phase", "query", {
+            type: "string",
+            enum: ["preparation", "transit", "complete"],
+          }),
+        );
       if (
         [
           "DashboardController_get",

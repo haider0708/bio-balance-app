@@ -1,5 +1,7 @@
 import '../catalog/product_information.dart';
-import '../inventory/inventory_screens.dart';
+import '../workspace/operation_helpers.dart';
+import 'order_sections.dart';
+import 'scoped_order_screen.dart';
 import '../../core/navigation.dart';
 
 import 'dart:async';
@@ -20,137 +22,11 @@ import '../../core/forms.dart';
 import '../authentication/session_view_model.dart';
 import '../workspace/workspace_view_model.dart';
 
-import '../workspace/operation_helpers.dart';
-
 class OrdersPage extends StatelessWidget {
   final WorkspaceViewModel vm;
   const OrdersPage({super.key, required this.vm});
   @override
-  Widget build(BuildContext context) => ListenableBuilder(
-    listenable: vm,
-    builder: (context, _) => content(context),
-  );
-
-  Widget content(BuildContext context) {
-    final orders = vm.state.data?.list('orders') ?? [],
-        deliveries = vm.state.data?.list('deliveries') ?? [];
-    final manage = vm.user.admin || vm.state.store?.canManage == true;
-    final canReceive =
-        manage || vm.state.store?.permissions.contains('receive') == true;
-    return Content.builder(
-      itemCount: deliveries.length + orders.length + 1,
-      itemBuilder: (context, index) {
-        if (index < deliveries.length) {
-          final d = deliveries[index];
-          final id = d['id'].toString();
-          return CompactRow(
-            title:
-                'Livraison ${id.substring(0, id.length < 8 ? id.length : 8).toUpperCase()}',
-            subtitle: d['syncStatus'] != null
-                ? 'Réception enregistrée · ${statusLabel(d['syncStatus'])}'
-                : '${objects(d['lines']).fold<int>(0, (sum, l) => sum + integer(l['quantity']))} unités annoncées',
-            tone: AppTone.info,
-            icon: AppIcons.localShippingOutlined,
-            onTap: d['syncStatus'] != null || !canReceive
-                ? null
-                : () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => ReceiptScreen(vm: vm, delivery: d),
-                    ),
-                  ),
-          );
-        }
-        if (index == deliveries.length) {
-          return const Padding(
-            padding: EdgeInsets.only(top: 20),
-            child: SectionTitle('Historique des commandes'),
-          );
-        }
-        final order = orders[index - deliveries.length - 1],
-            id = orders[index - deliveries.length - 1]['id'].toString();
-        return CompactRow(
-          title:
-              'Commande ${id.substring(0, id.length < 8 ? id.length : 8).toUpperCase()}',
-          subtitle:
-              '${statusLabel(order['status'])} · ${objects(order['lines']).length} produit(s)',
-          onTap: () => showOrder(context, order),
-          footer: vm.user.admin && order['status'] != 'received'
-              ? Wrap(
-                  spacing: 8,
-                  children: [
-                    TextButton(
-                      onPressed: () => run(
-                        context,
-                        () => vm.online({
-                          'type': 'order.prepare',
-                          'orderId': order['id'],
-                        }, expectedVersion: integer(order['version'])),
-                      ),
-                      child: const Text('En préparation'),
-                    ),
-                    FilledButton.tonal(
-                      onPressed: () =>
-                          run(context, () => dispatch(context, order)),
-                      child: const Text('Expédier une livraison'),
-                    ),
-                  ],
-                )
-              : null,
-        );
-      },
-      children: [
-        SectionTitle(
-          manage ? 'Commandes & livraisons' : 'Livraisons',
-          subtitle: manage
-              ? 'Approvisionnement du magasin'
-              : 'Confirmez les quantités reçues',
-          action: manage
-              ? FilledButton.icon(
-                  onPressed: () => create(context),
-                  icon: const Icon(AppIcons.add),
-                  label: const Text('Commander'),
-                )
-              : null,
-        ),
-        if (deliveries.isNotEmpty) const SectionTitle('À réceptionner'),
-        if (orders.isEmpty && deliveries.isEmpty)
-          const EmptyState(
-            title: 'Aucune commande pour le moment',
-            description: 'Les commandes et livraisons apparaîtront ici.',
-          ),
-      ],
-    );
-  }
-
-  Future<void> showOrder(BuildContext context, Json order) => showDialog<void>(
-    context: context,
-    builder: (context) => AlertDialog(
-      title: const Text('Détail de la commande'),
-      content: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(statusLabel(order['status'])),
-            const SizedBox(height: 12),
-            for (final line in objects(order['lines']))
-              CompactRow(
-                title: vm.productName(line['productId']),
-                leading: ProductPhoto(vm: vm, productId: line['productId']),
-                value: '${line['quantity']} u.',
-              ),
-          ],
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Fermer'),
-        ),
-      ],
-    ),
-  );
+  Widget build(BuildContext context) => _StoreOrdersList(vm: vm);
 
   Future<void> create(BuildContext context) async {
     await Navigator.push(
@@ -222,6 +98,105 @@ class OrdersPage extends StatelessWidget {
       submitLabel: 'Confirmer l’expédition',
     );
   }
+}
+
+class _StoreOrdersList extends StatefulWidget {
+  final WorkspaceViewModel vm;
+  const _StoreOrdersList({required this.vm});
+  @override
+  State<_StoreOrdersList> createState() => _StoreOrdersListState();
+}
+
+class _StoreOrdersListState extends State<_StoreOrdersList> {
+  OrderSection section = OrderSection.preparation;
+  bool restored = false, opening = false;
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!restored) {
+      final saved = PageStorage.maybeOf(
+        context,
+      )?.readState(context, identifier: 'store-orders-section') as String?;
+      section =
+          OrderSection.values.where((v) => v.name == saved).firstOrNull ??
+          section;
+      restored = true;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => ListenableBuilder(
+    listenable: widget.vm,
+    builder: (context, _) {
+      final vm = widget.vm, store = vm.state.store;
+      if (store == null) {
+        return const Content(children: [Notice('Choisissez un magasin.')]);
+      }
+      final orders = (vm.state.data?.list('orders') ?? [])
+          .where(section.contains)
+          .toList();
+      return Content.builder(
+        itemCount: orders.length,
+        itemBuilder: (_, i) => OrderRow(
+          order: orders[i],
+          storeName: store.name,
+          groupName: store.organizationName,
+          onTap: opening
+              ? null
+              : () async {
+                  setState(() => opening = true);
+                  try {
+                    await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => ExactOrderScreen(
+                          parent: vm,
+                          store: store,
+                          orderId: orders[i]['id'],
+                        ),
+                      ),
+                    );
+                    if (context.mounted) await run(context, vm.reloadLocal);
+                  } finally {
+                    if (mounted) setState(() => opening = false);
+                  }
+                },
+        ),
+        children: [
+          SectionTitle(
+            vm.user.admin ? 'Commandes du magasin' : 'Mes commandes',
+            subtitle: store.name,
+          ),
+          if (store.canManage || vm.user.admin) ...[
+            FilledButton.icon(
+              onPressed: () => OrdersPage(vm: vm).create(context),
+              icon: const Icon(AppIcons.add),
+              label: const Text('Nouvelle commande'),
+            ),
+            const SizedBox(height: 20),
+          ],
+          OrderSections(
+            selected: section,
+            admin: vm.user.admin,
+            onChanged: (value) {
+              setState(() => section = value);
+              PageStorage.maybeOf(context)?.writeState(
+                context,
+                value.name,
+                identifier: 'store-orders-section',
+              );
+            },
+          ),
+          if (orders.isEmpty)
+            EmptyState(
+              title:
+                  'Aucune commande ${section == OrderSection.complete ? 'terminée' : 'dans cette rubrique'}',
+              description: section.description(vm.user.admin),
+            ),
+        ],
+      );
+    },
+  );
 }
 
 class OrderEditor extends StatefulWidget {
@@ -318,50 +293,48 @@ class _OrderEditorState extends State<OrderEditor> {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('Commander des produits')),
-    body: Content(
-      maxWidth: 640,
-      children: [
-        StatusChip(store.name, icon: AppIcons.storefrontOutlined),
-        const SizedBox(height: 16),
-        const Notice(
-          'Brouillon conservé sur ce téléphone. Les quantités en attente comprennent les commandes à préparer et les livraisons en route. Une connexion est nécessaire pour envoyer.',
-        ),
-        if (uncertain)
-          const Notice(
-            'Une transmission reste à vérifier. Réessayez cette commande avec ses quantités enregistrées.',
-          ),
-        const SizedBox(height: 16),
-        if (error != null) Notice(error!, error: true),
-        if (loading) const LinearProgressIndicator(),
-        if (!loading && !restored)
-          TextButton(
-            onPressed: restore,
-            child: const Text('Réessayer de récupérer le brouillon'),
-          ),
-        for (final entry in quantities.entries) product(entry),
-        if (quantities.isEmpty && !loading)
-          const EmptyState(
-            title: 'Choisissez vos produits',
-            description: 'Saisissez les quantités nécessaires pour ce magasin.',
-          ),
-        OutlinedButton.icon(
-          onPressed: !restored || loading || busy || uncertain ? null : add,
-          icon: const Icon(AppIcons.add),
-          label: const Text('Ajouter un produit'),
-        ),
-        const SizedBox(height: 24),
-        FilledButton(
-          onPressed: !restored || loading || busy ? null : save,
-          child: Text(busy ? 'Transmission…' : 'Envoyer la commande'),
-        ),
-      ],
+  Widget build(BuildContext context) => FormPage(
+    title: 'Nouvelle commande',
+    maxWidth: 640,
+    action: FilledButton(
+      onPressed: !restored || loading || busy ? null : save,
+      child: Text(busy ? 'Transmission…' : 'Envoyer la commande'),
     ),
+    children: [
+      StatusChip(store.name, icon: AppIcons.storefrontOutlined),
+      const SizedBox(height: 16),
+      const Notice(
+        'Brouillon conservé sur ce téléphone. Les quantités en attente comprennent les commandes à préparer et les livraisons en route. Une connexion est nécessaire pour envoyer.',
+      ),
+      if (uncertain)
+        const Notice(
+          'Une transmission reste à vérifier. Réessayez cette commande avec ses quantités enregistrées.',
+        ),
+      const SizedBox(height: 16),
+      if (error != null) Notice(error!, error: true),
+      if (loading) const LinearProgressIndicator(),
+      if (!loading && !restored)
+        TextButton(
+          onPressed: restore,
+          child: const Text('Réessayer de récupérer le brouillon'),
+        ),
+      for (final entry in quantities.entries) product(entry),
+      if (quantities.isEmpty && !loading)
+        const EmptyState(
+          title: 'Choisissez vos produits',
+          description: 'Saisissez les quantités nécessaires pour ce magasin.',
+        ),
+      OutlinedButton.icon(
+        onPressed: !restored || loading || busy || uncertain ? null : add,
+        icon: const Icon(AppIcons.add),
+        label: const Text('Ajouter un produit'),
+      ),
+    ],
   );
   Widget product(MapEntry<String, TextEditingController> entry) {
     final stock = StockSummary.forProduct(data, entry.key);
     return CompactRow(
+      leading: ProductPhoto(vm: widget.vm, productId: entry.key),
       title:
           data.products.where((p) => p.id == entry.key).firstOrNull?.name ??
           'Produit',

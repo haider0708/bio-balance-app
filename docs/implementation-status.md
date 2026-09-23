@@ -455,3 +455,8 @@ La configuration uniforme passe la qualification complète : **35 999 requêtes*
 - **29,26 Go libres**, occupation 82,4 %, environ **4,49 Mio de backups**, plafond 4 Gio et réserve 10 Gio. Moniteur local sain. Exécution cron réelle `35776577391` avec incident disque observée ; contrôles externes **`35788371179` / `35788470485`** sains après nettoyage, second email de rétablissement accepté par SMTP. Renouvellement ACME dédié et hook Apache vérifiés précédemment. Aucun upgrade global, reboot ou réparation MySQL des autres sites dans cette clôture.
 
 [Relevé de préparation](vps-readiness-2026-09-22.md) et [preuve structurée](../tests/deployment/catalog-operations-evidence-2026-09-22.json). Données métier réelles, téléphones physiques, signature Apple/Play, copie indépendante des clés et pilote humain restent les validations ouvertes. La mesure réussie ne qualifie pas une reconnexion massive ; les anciens échecs correspondants sont conservés. Sauvegardes hors VPS, haute disponibilité et notifications OS app fermée restent reportées. Les messages précédents sont reçus dans Spam malgré SPF/DKIM/DMARC PASS ; leur placement Gmail n’est pas déclaré résolu.
+
+
+## 23 septembre — retour utilisateur sur Samsung, 1.1.1+5
+
+[Suivi de correction](phone-feedback-2026-09-23.md) : récupération courte et retour connexion, un sélecteur de groupe, retour Android, formulaires, cache photos, commandes par étape, magasin/vendeur dans les ventes, invitations uniques et affectation multiple des vendeurs. Données installées et contrats antérieurs conservés ; résultats de livraison dans ce suivi.

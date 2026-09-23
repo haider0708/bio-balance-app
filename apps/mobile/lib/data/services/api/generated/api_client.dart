@@ -86,6 +86,7 @@ class ApiClient extends SessionTransport {
 
   Future<DashboardOrdersResponseDto> dashboardOrders({
     String? after,
+    String? phase,
     required String scope,
     required String from,
     required String to,
@@ -97,6 +98,7 @@ class ApiClient extends SessionTransport {
       '/v1/dashboards/orders',
       query: {
         "after": ?after,
+        "phase": ?phase,
         "scope": scope,
         "from": from,
         "to": to,

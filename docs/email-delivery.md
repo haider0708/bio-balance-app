@@ -6,7 +6,7 @@ Les emails concernent uniquement l’accès et la sécurité du compte, conform�
 |---|---|---|
 | Invitation responsable | Accès accordé par l’administrateur | Adresse invitée ; organisation, procédure d’activation et code valable 48 heures |
 | Invitation équipe | Invitation autorisée dans un magasin | Adresse invitée ; nom du magasin, procédure et code valable 48 heures ; compte existant conservé |
-| Récupération | « Mot de passe oublié ? » pour un compte actif | Adresse du compte ; code utilisable une fois pendant 30 minutes |
+| Récupération | « Mot de passe oublié ? » pour un compte actif | Adresse du compte ; huit lettres/chiffres majuscules, utilisables une fois pendant 30 minutes |
 | Mot de passe modifié | Réinitialisation réussie | Adresse du compte ; date du changement, fermeture des sessions et procédure si le changement est inattendu ; aucun secret |
 | Test opérateur | Commande explicite de diagnostic | Adresse explicitement autorisée ; référence de test ; aucun compte créé ou modifié |
 
@@ -14,7 +14,7 @@ Les emails concernent uniquement l’accès et la sécurité du compte, conform�
 
 Modèles centralisés dans `apps/api/src/shared/email/email-templates.ts` : français, fond blanc, signature BioBalance discrète, texte sombre et colonne de 480 px adaptée aux téléphones. Titres courts, texte courant de 16 px, détails de 14 px, code sur fond blanc avec bordure fine et expiration immédiatement dessous. Aucune barre décorative ni pied de page répété. Les confirmations et tests se limitent à leur information utile ; les instructions d’accès et de sécurité restent explicites. Chaque envoi contient HTML et texte brut. Les noms d’organisation/magasin sont échappés. Aucune image distante, police téléchargée, publicité, pièce jointe ou pixel de suivi. Les dates sont explicites en heure de Tunis, format `JJ/MM/AAAA` et 24 heures ; un message retardé ne promet pas une nouvelle durée de validité.
 
-Le code se copie sans caractères ajoutés. Un seul bouton apparaît si `ACTIVATION_URL` / `RECOVERY_URL` désigne une route HTTPS configurée ; le lien long n’est pas répété dans le HTML. Le code et la procédure manuelle restent disponibles en alternative. Sans association de liens vérifiée, cette procédure est complète. La configuration doit être identique pour les API et le worker.
+Le code de récupération est présenté en deux groupes de quatre caractères, par exemple `ABCD-2345`. L’app accepte le collage avec ou sans séparateur et affiche huit cases, avec un seul champ natif pour le clavier, le collage et l’accessibilité. Les anciens jetons longs restent utilisables jusqu’à leur expiration. Une nouvelle demande invalide le précédent code, y compris lorsque les demandes sont simultanées. Un seul bouton apparaît si `ACTIVATION_URL` / `RECOVERY_URL` désigne une route HTTPS configurée ; le lien long n’est pas répété dans le HTML. Le code et la procédure manuelle restent disponibles en alternative. Sans association de liens vérifiée, cette procédure est complète. La configuration doit être identique pour les API et le worker.
 
 Aperçu reproductible sans données réelles : `npm run build`, puis `node scripts/preview-emails.cjs`. Le dossier `.artifacts/email-previews/` contient cinq exemples HTML/texte et un sélecteur avec une largeur de téléphone de 320 px. Les codes d’exemple ne donnent aucun accès.
 

@@ -29,6 +29,9 @@ import 'package:biobalance/ui/features/settings/account_screen.dart';
 import 'package:biobalance/ui/features/synchronization/sync_screen.dart';
 import 'package:biobalance/ui/features/workspace/workspace_help.dart';
 
+import 'package:biobalance/domain/models/workspace_scope.dart';
+import 'package:biobalance/ui/features/team/group_member_editor.dart';
+
 import 'ui_test.dart';
 
 final productPhoto = File('test/fixtures/magic-touch.jpg').absolute;
@@ -150,6 +153,43 @@ class VisualFixture extends RoleFixture {
         'version': 1,
       },
     ];
+    raw['sales'] = [
+      {
+        'id': 'sale',
+        'organizationId': 'org',
+        'storeId': 'store',
+        'sellerId': 'user',
+        'sellerName': 'Amira Ben Salem',
+        'version': 2,
+        'totalMillimes': '99800',
+        'earnedPoints': '20',
+        'occurredAt': '2026-09-23T10:00:00Z',
+        'createdAt': '2026-09-23T10:01:00Z',
+        'lines': [
+          {
+            'productId': 'p',
+            'quantity': 2,
+            'unitPriceMillimes': 49900,
+            'allocations': [],
+          },
+        ],
+      },
+    ];
+    raw['orders'] = [
+      {
+        'id': 'eab25118-0000-4000-8000-000000000001',
+        'organizationId': 'org',
+        'storeId': 'store',
+        'groupName': 'Parahouse',
+        'storeName': 'BioBalance · Tunis',
+        'status': 'partial',
+        'version': 3,
+        'createdAt': '2026-09-21T10:00:00Z',
+        'lines': [
+          {'productId': 'p', 'quantity': 12},
+        ],
+      },
+    ];
     raw['onboarding'] = {
       'complete': false,
       'completedCount': 2,
@@ -197,6 +237,11 @@ void main() {
         ProductDetail(vm: f.vm, product: Product.fromJson(photoProduct)),
     'sales-history': (f) => SalesPage(vm: f.vm),
     'sale': (f) => SaleScreen(workspace: f.vm),
+    'sale-line': (f) => LineEditor(workspace: f.vm, productId: 'p'),
+    'group-invitation': (f) => GroupMemberEditor(
+      workspace: f.vm,
+      group: const PartnerGroup(id: 'org', name: 'Parahouse', canManage: true),
+    ),
     'receipt': (f) => ReceiptScreen(vm: f.vm),
     'orders': (f) => OrdersPage(vm: f.vm),
     'order-editor': (f) => OrderEditor(vm: f.vm, initialProductId: 'p'),

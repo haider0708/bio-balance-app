@@ -3613,12 +3613,20 @@ final class ScopedOrderDetailsDto {
   Set<String> get presentFields => _presentFields;
   final ScopedOrderDto order;
   final List<DeliveryDto> deliveries;
+  final List<DeliveryReceiptDto>? receipts;
+  final List<FulfillmentLineDto>? fulfillment;
   ScopedOrderDetailsDto({
     Set<String> presentFields = const {},
     required this.order,
     required List<DeliveryDto> deliveries,
+    List<DeliveryReceiptDto>? receipts,
+    List<FulfillmentLineDto>? fulfillment,
   }) : _presentFields = Set.unmodifiable(presentFields),
-       deliveries = List.unmodifiable(deliveries);
+       deliveries = List.unmodifiable(deliveries),
+       receipts = receipts == null ? null : List.unmodifiable(receipts),
+       fulfillment = fulfillment == null
+           ? null
+           : List.unmodifiable(fulfillment);
   factory ScopedOrderDetailsDto.fromJson(Map<String, dynamic> json) {
     return ScopedOrderDetailsDto(
       presentFields: json.keys.toSet(),
@@ -3631,11 +3639,33 @@ final class ScopedOrderDetailsDto {
               DeliveryDto.fromJson(Map<String, dynamic>.from(item as Map)),
         ),
       ),
+      receipts: json["receipts"] == null
+          ? null
+          : List.unmodifiable(
+              (json["receipts"] as List).map(
+                (item) => DeliveryReceiptDto.fromJson(
+                  Map<String, dynamic>.from(item as Map),
+                ),
+              ),
+            ),
+      fulfillment: json["fulfillment"] == null
+          ? null
+          : List.unmodifiable(
+              (json["fulfillment"] as List).map(
+                (item) => FulfillmentLineDto.fromJson(
+                  Map<String, dynamic>.from(item as Map),
+                ),
+              ),
+            ),
     );
   }
   Map<String, dynamic> toJson() => {
     "order": order.toJson(),
     "deliveries": deliveries.map((item) => item.toJson()).toList(),
+    if (receipts != null || _presentFields.contains("receipts"))
+      "receipts": receipts?.map((item) => item.toJson()).toList(),
+    if (fulfillment != null || _presentFields.contains("fulfillment"))
+      "fulfillment": fulfillment?.map((item) => item.toJson()).toList(),
   };
 }
 

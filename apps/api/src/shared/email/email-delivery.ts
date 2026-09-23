@@ -13,7 +13,13 @@ const credential = {
 };
 export const EmailPayload = z.discriminatedUnion("template", [
   z.object({ ...credential, template: z.literal("invite") }).strict(),
-  z.object({ ...credential, template: z.literal("reset") }).strict(),
+  z
+    .object({
+      ...credential,
+      token: z.string().regex(/^(?:[A-Z0-9]{8}|[A-Za-z0-9_-]{43})$/),
+      template: z.literal("reset"),
+    })
+    .strict(),
   z
     .object({
       version: z.literal("1"),

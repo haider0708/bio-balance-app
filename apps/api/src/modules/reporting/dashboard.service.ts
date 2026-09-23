@@ -6,6 +6,7 @@ import { Database } from "../../shared/infrastructure/database";
 import { requireRule } from "../../shared/domain/errors";
 import { Actor } from "../operations/domain/contracts";
 import { DashboardQuery } from "./dashboard.contracts";
+import { orderFulfillment } from "../operations/infrastructure/order-fulfillment-query";
 type Sum = { netMillimes: bigint; netUnits: bigint; saleCount: bigint };
 const summed = (value: Sum): Sum => ({
   netMillimes: value.netMillimes,
@@ -405,7 +406,12 @@ export class DashboardService {
       };
     });
   }
-  orders(actor: Actor, q: DashboardQuery, after?: string) {
+  orders(
+    actor: Actor,
+    q: DashboardQuery,
+    after?: string,
+    phase?: "preparation" | "transit" | "complete",
+  ) {
     return this.scope(actor, q, async (tx) => {
       requireRule(
         q.scope !== "personal",
@@ -415,6 +421,18 @@ export class DashboardService {
       );
       const items = await tx.replenishmentOrder.findMany({
         where: {
+          ...(phase
+            ? {
+                status: {
+                  in:
+                    phase === "preparation"
+                      ? ["requested", "preparing", "partial"]
+                      : phase === "transit"
+                        ? ["dispatched"]
+                        : ["received", "cancelled"],
+                },
+              }
+            : {}),
           ...(q.organizationId ? { organizationId: q.organizationId } : {}),
           ...(q.storeId ? { storeId: q.storeId } : {}),
           ...(after ? { id: { gt: after } } : {}),
@@ -467,9 +485,23 @@ export class DashboardService {
           where: { orderId: id, storeId },
           orderBy: { id: "asc" },
         });
+        const receipts = await tx.deliveryReceipt.findMany({
+          where: {
+            storeId,
+            organizationId,
+            deliveryId: { in: deliveries.map((d) => d.id) },
+          },
+          orderBy: { createdAt: "asc" },
+        });
+        const fulfillment =
+          (await orderFulfillment(tx, organizationId, storeId, [order])).get(
+            id,
+          ) ?? [];
         return {
           order: { ...order, storeName: store.name, groupName: group.name },
           deliveries,
+          receipts,
+          fulfillment,
         };
       },
     );

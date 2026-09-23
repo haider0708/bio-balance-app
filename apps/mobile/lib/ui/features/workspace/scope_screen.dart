@@ -206,7 +206,7 @@ class _ScopeScreenState extends State<ScopeScreen> with WidgetsBindingObserver {
           title: s.kind == ScopeKind.network
               ? 'Votre réseau'
               : s.kind == ScopeKind.group
-              ? s.group!.name
+              ? 'Résumé du groupe'
               : seller
               ? 'Bonjour ${workspace.user.name.split(' ').first}'
               : store!.name,
@@ -280,28 +280,27 @@ class _ScopeScreenState extends State<ScopeScreen> with WidgetsBindingObserver {
       }
       final wide = MediaQuery.sizeOf(context).width >= 840;
       return PopScope(
-        canPop:
-            s.kind == ScopeKind.network ||
-            !workspace.user.admin && s.kind == ScopeKind.group ||
-            seller,
+        canPop: !scope.canGoBack,
         onPopInvokedWithResult: (didPop, _) {
-          if (!didPop) {
-            run(
-              context,
-              () => s.kind == ScopeKind.store
-                  ? scope.selectStore(null)
-                  : scope.selectGroup(null),
-            );
-          }
+          if (!didPop) run(context, scope.back);
         },
         child: Scaffold(
           appBar: AppBar(
-            title: Image.asset(
-              'assets/brand/biobalance-logo.jpg',
-              height: 28,
-              semanticLabel: 'BioBalance',
-              fit: BoxFit.contain,
-            ),
+            toolbarHeight: MediaQuery.textScalerOf(context).scale(17) > 24
+                ? 88
+                : 64,
+            automaticallyImplyLeading: false,
+            leading: scope.canGoBack
+                ? IconButton(
+                    tooltip: 'Retour',
+                    icon: const Icon(AppIcons.arrowBack),
+                    onPressed: scope.switching
+                        ? null
+                        : () => run(context, scope.back),
+                  )
+                : null,
+            titleSpacing: scope.canGoBack ? 0 : 16,
+            title: ScopeHeader(vm: scope),
             actions: [
               IconButton(
                 onPressed: () => push(
@@ -326,49 +325,38 @@ class _ScopeScreenState extends State<ScopeScreen> with WidgetsBindingObserver {
             child: LayoutBuilder(
               builder: (context, bounds) => Column(
                 children: [
-                  ConstrainedBox(
-                    constraints: BoxConstraints(
-                      maxHeight: bounds.maxHeight * .5,
-                    ),
-                    child: SingleChildScrollView(
-                      child: Column(
-                        children: [
-                          if (!scope.loading) ScopeHeader(vm: scope),
-                          if (scope.error != null)
-                            Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                              ),
-                              child: Notice(
-                                scope.error!,
-                                retry: () => run(context, scope.refresh),
-                              ),
-                            ),
-                          if (store != null &&
-                              (workspace.state.pending > 0 ||
-                                  workspace.state.offline))
-                            Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                              ),
-                              child: CompactRow(
-                                title: workspace.state.offline
-                                    ? 'Hors connexion'
-                                    : 'Synchronisation',
-                                subtitle:
-                                    '${workspace.state.pending} opération(s) locale(s) en attente · hors des totaux acceptés',
-                                icon: AppIcons.cloudOff,
-                                onTap: () => push(
-                                  'Synchronisation',
-                                  SyncScreen(vm: workspace),
-                                  full: true,
-                                ),
-                              ),
-                            ),
-                        ],
+                  if (scope.error != null)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
+                      child: Notice(
+                        scope.error!,
+                        retry: () => run(context, scope.refresh),
                       ),
                     ),
-                  ),
+                  if (store != null &&
+                      (workspace.state.pending > 0 || workspace.state.offline))
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: TextButton.icon(
+                        onPressed: () => push(
+                          'Synchronisation',
+                          SyncScreen(vm: workspace),
+                          full: true,
+                        ),
+                        icon: Icon(
+                          workspace.state.offline
+                              ? AppIcons.cloudOff
+                              : AppIcons.sync,
+                          size: 18,
+                        ),
+                        label: Text(
+                          '${workspace.state.offline ? 'Hors connexion' : 'Synchronisation'} · ${workspace.state.pending} en attente',
+                        ),
+                      ),
+                    ),
                   Expanded(
                     child: Row(
                       children: [
@@ -393,7 +381,10 @@ class _ScopeScreenState extends State<ScopeScreen> with WidgetsBindingObserver {
                             ),
                             child: KeyedSubtree(
                               key: ValueKey('${s.key}:${scope.tab}'),
-                              child: page,
+                              child: PageEntrance(
+                                key: ValueKey('entrance:${s.key}:${scope.tab}'),
+                                child: page,
+                              ),
                             ),
                           ),
                         ),

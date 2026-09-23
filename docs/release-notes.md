@@ -1,3 +1,13 @@
+# BioBalance 1.1.1+5 — retour utilisateur Samsung
+
+Codes de récupération courts, retour automatique à la connexion, navigation groupe en haut à gauche et retour Android corrigés. Les formulaires gardent leurs actions au-dessus du clavier, les ventes indiquent magasin et vendeur, et le cache de photos se résout correctement.
+
+Les commandes se répartissent en préparation, expédition/réception et terminées, avec détail des quantités et des livraisons. Les invitations sont uniques par personne/groupe ; les responsables ont un accès de groupe et les vendeurs une sélection explicite de magasins.
+
+Pas de migration de données. Les signatures Android existantes sont conservées, avec code de version 5. [Corrections, compatibilité et preuves](phone-feedback-2026-09-23.md).
+
+---
+
 # BioBalance 1.1.0+4 — candidate de refonte
 
 Navigation administrateur réseau → groupe → magasin, sélecteurs indépendants, tableaux de bord par rôle et période, invitations et guide de création de groupe. Les responsables gèrent tous les magasins de leur groupe ; les vendeurs restent affectés aux magasins autorisés.

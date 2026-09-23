@@ -4,6 +4,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 /// The single icon vocabulary used by all BioBalance screens.
 @staticIconProvider
 abstract final class AppIcons {
+  static const arrowBack = LucideIcons.arrowLeft;
   static const calendar = LucideIcons.calendarDays;
   static const photo = LucideIcons.image;
   static const package = LucideIcons.package;

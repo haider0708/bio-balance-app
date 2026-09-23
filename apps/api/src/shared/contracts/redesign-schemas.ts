@@ -167,10 +167,15 @@ export const redesignSchemas: Record<string, Schema> = {
     items: arr(ref("ScopedOrder")),
     nextCursor: nullable(uuid),
   }),
-  ScopedOrderDetails: obj({
-    order: ref("ScopedOrder"),
-    deliveries: arr(ref("Delivery")),
-  }),
+  ScopedOrderDetails: obj(
+    {
+      order: ref("ScopedOrder"),
+      deliveries: arr(ref("Delivery")),
+      receipts: arr(ref("DeliveryReceipt")),
+      fulfillment: arr(ref("FulfillmentLine")),
+    },
+    ["order", "deliveries"],
+  ),
 };
 export function extendLegacySchemas(schemas: Record<string, Schema>) {
   Object.assign(schemas.Organization!.properties, {

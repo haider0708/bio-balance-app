@@ -335,10 +335,16 @@ void main() {
         if (size.width == 360 && scale == 1) {
           await screenshot(t, capture, 'redesign-group');
         }
-        await t.tap(find.byKey(const ValueKey('scope.store')));
-        await t.pumpAndSettle();
+        expect(find.byKey(const ValueKey('scope.store')), findsNothing);
         expect(find.text('Magasin Bizerte'), findsNothing);
-        await selectFromSheet(t, 'Magasin Tunis');
+        await t.scrollUntilVisible(
+          find.text('Magasin Tunis'),
+          180,
+          scrollable: find.byType(Scrollable).first,
+        );
+        await t.ensureVisible(find.text('Magasin Tunis'));
+        await t.pumpAndSettle();
+        await t.tap(find.text('Magasin Tunis'));
         await t.pumpAndSettle();
         expect(f.workspace.state.store?.id, 's1');
         expect(t.takeException(), isNull);

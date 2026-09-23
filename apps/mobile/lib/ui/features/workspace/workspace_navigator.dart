@@ -1,5 +1,7 @@
 import '../../core/app_icons.dart';
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -7,19 +9,35 @@ import 'scope_screen.dart';
 import 'workspace_view_model.dart';
 
 /// Replaces protected routes only after their drafts have been persisted.
-class WorkspaceNavigator extends StatelessWidget {
+class WorkspaceNavigator extends StatefulWidget {
   const WorkspaceNavigator({super.key});
+  @override
+  State<WorkspaceNavigator> createState() => _WorkspaceNavigatorState();
+}
+
+class _WorkspaceNavigatorState extends State<WorkspaceNavigator> {
+  var navigator = GlobalKey<NavigatorState>();
+  int? revision;
   @override
   Widget build(BuildContext context) {
     final vm = context.watch<WorkspaceViewModel>();
+    if (revision != vm.accessRevision) {
+      revision = vm.accessRevision;
+      navigator = GlobalKey<NavigatorState>();
+    }
     return Stack(
       children: [
         AbsorbPointer(
           absorbing: vm.securingAccess,
-          child: Navigator(
-            key: ValueKey(vm.accessRevision),
-            onGenerateRoute: (_) =>
-                MaterialPageRoute<void>(builder: (_) => const ScopeScreen()),
+          child: NavigatorPopHandler<Object?>(
+            onPopWithResult: (_) {
+              unawaited(navigator.currentState!.maybePop());
+            },
+            child: Navigator(
+              key: navigator,
+              onGenerateRoute: (_) =>
+                  MaterialPageRoute<void>(builder: (_) => const ScopeScreen()),
+            ),
           ),
         ),
         if (vm.securingAccess)

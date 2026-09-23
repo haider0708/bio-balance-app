@@ -122,6 +122,21 @@ class DashboardScreen extends StatelessWidget {
               style: const TextStyle(fontSize: 14, color: muted),
             ),
             const SizedBox(height: 12),
+            if (vm.scope == 'network') ...[
+              _metrics([
+                (
+                  'Groupes',
+                  '${data.raw['groupCount']}',
+                  DashboardDestination.groups,
+                ),
+                (
+                  'Magasins',
+                  '${data.raw['storeCount']}',
+                  DashboardDestination.stores,
+                ),
+              ]),
+              const SizedBox(height: 12),
+            ],
             _metrics([
               (
                 'Ventes nettes',
@@ -129,11 +144,12 @@ class DashboardScreen extends StatelessWidget {
                 DashboardDestination.sales,
               ),
               ('Unités nettes', '${data.netUnits}', DashboardDestination.sales),
-              (
-                'Ventes enregistrées',
-                '${data.saleCount}',
-                DashboardDestination.sales,
-              ),
+              if (vm.scope != 'group')
+                (
+                  'Ventes enregistrées',
+                  '${data.saleCount}',
+                  DashboardDestination.sales,
+                ),
             ]),
             if (setup != null) ...[const SizedBox(height: 16), setup!],
             if (vm.scope == 'personal') ...[
@@ -178,20 +194,23 @@ class DashboardScreen extends StatelessWidget {
                 workspace: workspace,
                 storeId: vm.storeId!,
               ),
-            const SizedBox(height: 20),
-            const SectionTitle(
-              'Évolution des ventes',
-              subtitle: 'Retours déduits de la période de vente initiale',
-            ),
-            if (data.list('series').isEmpty)
-              const CompactRow(
-                title: 'Aucune vente sur cette période',
-                subtitle: 'Les ventes synchronisées apparaîtront ici.',
-                icon: AppIcons.receiptLongOutlined,
-              )
-            else
-              _Trend(data.list('series'), vm.period),
-            if (data.list('comparisons').length > 1) ...[
+            if (vm.scope != 'group') ...[
+              const SizedBox(height: 20),
+              const SectionTitle(
+                'Évolution des ventes',
+                subtitle: 'Retours déduits de la période de vente initiale',
+              ),
+              if (data.list('series').isEmpty)
+                const CompactRow(
+                  title: 'Aucune vente sur cette période',
+                  subtitle: 'Les ventes synchronisées apparaîtront ici.',
+                  icon: AppIcons.receiptLongOutlined,
+                )
+              else
+                _Trend(data.list('series'), vm.period),
+            ],
+            if (vm.scope == 'network' &&
+                data.list('comparisons').length > 1) ...[
               const SizedBox(height: 20),
               SectionTitle(
                 vm.scope == 'network'
@@ -208,7 +227,7 @@ class DashboardScreen extends StatelessWidget {
                       : () => onComparison!(item['id']),
                 ),
             ],
-            if (data.list('products').isNotEmpty) ...[
+            if (vm.scope != 'group' && data.list('products').isNotEmpty) ...[
               const SizedBox(height: 20),
               const SectionTitle('Produits les plus vendus'),
               for (final item in data.list('products'))
@@ -234,19 +253,6 @@ class DashboardScreen extends StatelessWidget {
               'Situation actuelle',
               subtitle: 'Indépendante de la période sélectionnée',
             ),
-            if (vm.scope == 'network')
-              _metrics([
-                (
-                  'Groupes',
-                  '${data.raw['groupCount']}',
-                  DashboardDestination.groups,
-                ),
-                (
-                  'Magasins',
-                  '${data.raw['storeCount']}',
-                  DashboardDestination.stores,
-                ),
-              ]),
             if (vm.scope != 'personal')
               _metrics([
                 (
@@ -297,60 +303,79 @@ class DashboardScreen extends StatelessWidget {
       );
     },
   );
-  Widget _metrics(
-    List<(String, String, DashboardDestination)> items,
-  ) => LayoutBuilder(
-    builder: (context, c) {
-      final columns =
-          MediaQuery.textScalerOf(context).scale(16) > 23 || c.maxWidth < 280
-          ? 1
-          : c.maxWidth < 650
-          ? 2
-          : 3;
-      final width = (c.maxWidth - (columns - 1) * 8) / columns;
-      return Wrap(
-        spacing: 8,
-        runSpacing: 8,
-        children: [
-          for (final item in items)
-            SizedBox(
-              width: items.length.isOdd && item == items.first
-                  ? c.maxWidth
-                  : width,
-              child: Material(
-                color: const Color(0xFFF1F8F4),
-                borderRadius: BorderRadius.circular(12),
-                child: InkWell(
-                  onTap: () => onOpen(item.$3, vm.period),
-                  borderRadius: BorderRadius.circular(12),
-                  child: Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          item.$1,
-                          style: const TextStyle(fontSize: 14, color: muted),
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          item.$2,
-                          style: const TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.w700,
-                            color: ink,
-                          ),
-                        ),
-                      ],
+  Widget _metrics(List<(String, String, DashboardDestination)> items) =>
+      LayoutBuilder(
+        builder: (context, c) {
+          final columns =
+              MediaQuery.textScalerOf(context).scale(16) > 23 ||
+                  c.maxWidth < 280
+              ? 1
+              : c.maxWidth < 650
+              ? 2
+              : 3;
+          Widget tile((String, String, DashboardDestination) item) => Material(
+            color: const Color(0xFFF1F8F4),
+            borderRadius: BorderRadius.circular(12),
+            child: InkWell(
+              onTap: () => onOpen(item.$3, vm.period),
+              borderRadius: BorderRadius.circular(12),
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      item.$1,
+                      style: const TextStyle(fontSize: 14, color: muted),
                     ),
-                  ),
+                    const SizedBox(height: 6),
+                    Text(
+                      item.$2,
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w700,
+                        color: ink,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
-        ],
+          );
+          final rows = <Widget>[];
+          var offset = 0;
+          if (items.length.isOdd && columns > 1) {
+            rows.add(tile(items.first));
+            offset = 1;
+          }
+          while (offset < items.length) {
+            final end = (offset + columns).clamp(0, items.length);
+            rows.add(
+              IntrinsicHeight(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    for (var i = offset; i < end; i++) ...[
+                      if (i > offset) const SizedBox(width: 8),
+                      Expanded(child: tile(items[i])),
+                    ],
+                  ],
+                ),
+              ),
+            );
+            offset = end;
+          }
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              for (var i = 0; i < rows.length; i++) ...[
+                if (i > 0) const SizedBox(height: 8),
+                rows[i],
+              ],
+            ],
+          );
+        },
       );
-    },
-  );
   Future<void> chooseDates(BuildContext context) async {
     final range = await showDateRangePicker(
       context: context,

@@ -776,6 +776,19 @@
             }
           },
           {
+            "name": "phase",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "preparation",
+                "transit",
+                "complete"
+              ]
+            }
+          },
+          {
             "name": "scope",
             "in": "query",
             "required": true,
@@ -15796,6 +15809,18 @@
             "items": {
               "$ref": "#/components/schemas/Delivery"
             }
+          },
+          "receipts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DeliveryReceipt"
+            }
+          },
+          "fulfillment": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FulfillmentLine"
+            }
           }
         },
         "required": [
@@ -17051,8 +17076,7 @@
         "properties": {
           "token": {
             "type": "string",
-            "minLength": 32,
-            "maxLength": 256
+            "pattern": "^(?:[A-Za-z0-9]{4}[- ]?[A-Za-z0-9]{4}|[A-Za-z0-9_-]{32,256})$"
           },
           "password": {
             "type": "string",

@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import 'session_view_model.dart';
 import '../../core/design.dart';
+import '../../core/recovery_code_field.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -28,7 +29,7 @@ class _LoginScreenState extends State<LoginScreen> {
     final vm = context.watch<SessionViewModel>();
     return Scaffold(
       body: SafeArea(
-        child: Content(
+        child: FormContent(
           maxWidth: 480,
           children: [
             const SizedBox(height: 24),
@@ -183,96 +184,122 @@ class _AccountActionScreenState extends State<AccountActionScreen> {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(
-      title: Text(
-        mode == 'activate' ? 'Activer mon accès' : 'Récupérer mon compte',
+  Widget build(BuildContext context) => FormPage(
+    title: mode == 'activate' ? 'Activer mon accès' : 'Récupérer mon compte',
+    maxWidth: 480,
+    action: FilledButton(
+      onPressed: busy ? null : submit,
+      child: Text(
+        busy
+            ? 'Veuillez patienter…'
+            : mode == 'forgot'
+            ? 'Recevoir un code'
+            : 'Confirmer',
       ),
     ),
-    body: Content(
-      maxWidth: 480,
-      children: [
-        const SizedBox(height: 20),
-        if (error != null) Notice(error!, error: true),
-        if (success != null) Notice(success!),
-        const SizedBox(height: 16),
-        if (mode == 'forgot')
-          TextField(
-            key: const ValueKey('auth.email'),
-            controller: _email,
-            keyboardType: TextInputType.emailAddress,
-            decoration: const InputDecoration(labelText: 'Adresse email'),
-          ),
-        if (mode != 'forgot') ...[
+    children: [
+      Text(
+        mode == 'forgot'
+            ? 'Recevez un code pour choisir un nouveau mot de passe.'
+            : mode == 'reset'
+            ? 'Saisissez le code reçu et choisissez votre nouveau mot de passe.'
+            : 'Votre invitation vous donne accès à votre équipe.',
+        style: Theme.of(context).textTheme.bodySmall,
+      ),
+      const SizedBox(height: 20),
+      if (error != null) Notice(error!, error: true),
+      if (success != null) Notice(success!),
+      const SizedBox(height: 16),
+      if (mode == 'forgot')
+        TextField(
+          key: const ValueKey('auth.email'),
+          controller: _email,
+          keyboardType: TextInputType.emailAddress,
+          decoration: const InputDecoration(labelText: 'Adresse email'),
+        ),
+      if (mode != 'forgot') ...[
+        if (mode == 'reset')
+          RecoveryCodeField(controller: _token, enabled: !busy)
+        else
           TextField(
             key: const ValueKey('auth.token'),
             controller: _token,
             decoration: const InputDecoration(labelText: 'Code reçu par email'),
           ),
-          const SizedBox(height: 16),
-          if (mode == 'activate') ...[
-            TextField(
-              key: const ValueKey('auth.name'),
-              controller: _name,
-              decoration: const InputDecoration(labelText: 'Votre nom'),
-            ),
-            const SizedBox(height: 16),
-          ],
+        const SizedBox(height: 16),
+        if (mode == 'activate') ...[
           TextField(
-            key: const ValueKey('auth.password'),
-            controller: _password,
-            obscureText: !passwordVisible,
-            autofillHints: const [AutofillHints.newPassword],
-            decoration: InputDecoration(
-              labelText: 'Mot de passe',
-              helperText: '12 caractères minimum',
-              suffixIcon: IconButton(
-                tooltip: passwordVisible
-                    ? 'Masquer le mot de passe'
-                    : 'Afficher le mot de passe',
-                onPressed: () =>
-                    setState(() => passwordVisible = !passwordVisible),
-                icon: Icon(
-                  passwordVisible
-                      ? AppIcons.visibilityOffOutlined
-                      : AppIcons.visibilityOutlined,
-                ),
+            key: const ValueKey('auth.name'),
+            controller: _name,
+            decoration: const InputDecoration(labelText: 'Votre nom'),
+          ),
+          const SizedBox(height: 16),
+        ],
+        TextField(
+          key: const ValueKey('auth.password'),
+          controller: _password,
+          obscureText: !passwordVisible,
+          autofillHints: const [AutofillHints.newPassword],
+          decoration: InputDecoration(
+            labelText: 'Mot de passe',
+            helperText: '12 caractères minimum',
+            suffixIcon: IconButton(
+              tooltip: passwordVisible
+                  ? 'Masquer le mot de passe'
+                  : 'Afficher le mot de passe',
+              onPressed: () =>
+                  setState(() => passwordVisible = !passwordVisible),
+              icon: Icon(
+                passwordVisible
+                    ? AppIcons.visibilityOffOutlined
+                    : AppIcons.visibilityOutlined,
               ),
             ),
           ),
-          const SizedBox(height: 12),
-          if (mode == 'activate')
-            const Text(
-              'Vous avez déjà un compte ? Utilisez son mot de passe actuel pour activer cet accès.',
-              style: TextStyle(fontSize: 14),
-            ),
-        ],
-        const SizedBox(height: 24),
-        FilledButton(
-          onPressed: busy ? null : submit,
-          child: Text(
-            busy
-                ? 'Veuillez patienter…'
-                : mode == 'forgot'
-                ? 'Recevoir un code'
-                : 'Confirmer',
-          ),
         ),
-        if (mode == 'forgot')
-          TextButton(
-            onPressed: () => setState(() => mode = 'reset'),
-            child: const Text('J’ai déjà reçu un code'),
+        const SizedBox(height: 12),
+        if (mode == 'activate')
+          const Text(
+            'Vous avez déjà un compte ? Utilisez son mot de passe actuel pour activer cet accès.',
+            style: TextStyle(fontSize: 14),
           ),
       ],
-    ),
+      if (mode == 'forgot')
+        TextButton(
+          onPressed: () => setState(() => mode = 'reset'),
+          child: const Text('J’ai déjà reçu un code'),
+        ),
+      if (mode == 'reset')
+        TextButton(
+          onPressed: busy
+              ? null
+              : () => setState(() {
+                  mode = 'forgot';
+                  error = null;
+                  success = null;
+                }),
+          child: const Text('Recevoir un nouveau code'),
+        ),
+    ],
   );
   Future<void> submit() async {
+    if (busy) return;
     setState(() {
       busy = true;
       error = null;
       success = null;
     });
     try {
+      if (mode != 'forgot' && _password.text.length < 12) {
+        throw const FormatException(
+          'Choisissez un mot de passe de 12 caractères minimum.',
+        );
+      }
+      if (mode == 'reset' &&
+          !RegExp(r'^(?:[A-Za-z0-9]{8}|[A-Za-z0-9_-]{32,256})$')
+              .hasMatch(_token.text.trim())) {
+        throw const FormatException('Saisissez les 8 caractères du code reçu.');
+      }
       final identity = context.read<SessionViewModel>().identity;
       if (mode == 'activate') {
         await identity.activate(
@@ -286,11 +313,25 @@ class _AccountActionScreenState extends State<AccountActionScreen> {
         await identity.reset(_token.text.trim(), _password.text);
       }
       if (mounted) {
-        setState(
-          () => success = mode == 'forgot'
-              ? 'Si un compte existe, un email de récupération a été envoyé.'
-              : 'Votre compte est prêt. Vous pouvez vous connecter.',
-        );
+        if (mode == 'forgot') {
+          setState(() {
+            mode = 'reset';
+            success = 'Si un compte existe, son code a été envoyé. Saisissez-le ci-dessous avec votre nouveau mot de passe.';
+          });
+        } else {
+          FocusScope.of(context).unfocus();
+          final messenger = ScaffoldMessenger.of(context);
+          Navigator.of(context).popUntil((route) => route.isFirst);
+          messenger.showSnackBar(
+            SnackBar(
+              content: Text(
+                mode == 'reset'
+                    ? 'Mot de passe modifié. Connectez-vous avec votre nouveau mot de passe.'
+                    : 'Votre accès est activé. Vous pouvez vous connecter.',
+              ),
+            ),
+          );
+        }
       }
     } catch (e) {
       if (mounted) setState(() => error = SessionViewModel.message(e));

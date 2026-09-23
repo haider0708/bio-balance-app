@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/design.dart';
+import '../../../domain/models/models.dart';
 import 'scope_view_model.dart';
 import 'operation_helpers.dart';
 
@@ -12,81 +13,61 @@ class ScopeHeader extends StatelessWidget {
     final canBrowse =
         vm.workspace.user.admin ||
         vm.groups.any((g) => g.canManage) ||
-        vm.groups.length > 1;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          _control(
-            context,
-            'Groupe',
-            vm.scope.group?.name ?? 'Tous les groupes',
-            AppIcons.groupsOutlined,
-            canBrowse ? () => groups(context) : null,
-            'scope.group',
-          ),
-          if (vm.scope.group != null)
-            _control(
-              context,
-              'Magasin',
-              vm.scope.store?.name ?? 'Tous les magasins',
-              AppIcons.storefrontOutlined,
-              () => stores(context),
-              'scope.store',
-            ),
-          if (vm.switching) const LinearProgressIndicator(minHeight: 2),
-        ],
-      ),
-    );
-  }
-
-  Widget _control(
-    BuildContext context,
-    String label,
-    String value,
-    IconData icon,
-    VoidCallback? onTap,
-    String key,
-  ) => Semantics(
-    label: label,
-    child: Material(
-      color: const Color(0xFFF1F8F4),
-      borderRadius: BorderRadius.circular(12),
+        vm.groups.length > 1 ||
+        vm.stores.length > 1;
+    return Semantics(
+      label: 'Groupe sélectionné',
       child: InkWell(
-        key: ValueKey(key),
-        onTap: vm.switching ? null : onTap,
-        borderRadius: BorderRadius.circular(12),
+        key: const ValueKey('scope.group'),
+        borderRadius: BorderRadius.circular(10),
+        onTap: canBrowse && !vm.switching ? () => groups(context) : null,
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 13),
+          padding: const EdgeInsets.symmetric(vertical: 8),
           child: Row(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(icon, size: 20, color: darkGreen),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text.rich(
-                  TextSpan(
-                    children: [
-                      TextSpan(
-                        text: '$label · ',
-                        style: const TextStyle(color: muted, fontSize: 14),
+              Flexible(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'BIOBALANCE',
+                      style: TextStyle(
+                        fontSize: 10,
+                        letterSpacing: 1.2,
+                        fontWeight: FontWeight.w700,
+                        color: darkGreen,
                       ),
-                      TextSpan(
-                        text: value,
-                        style: const TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                    Text(
+                      vm.scope.group?.name ?? 'Tous les groupes',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w600,
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
-              if (onTap != null)
-                const Icon(AppIcons.keyboardArrowDown, size: 18),
+              if (canBrowse)
+                const Padding(
+                  padding: EdgeInsets.only(left: 6),
+                  child: Icon(
+                    AppIcons.keyboardArrowDown,
+                    size: 18,
+                    color: darkGreen,
+                  ),
+                ),
             ],
           ),
         ),
       ),
-    ),
-  );
+    );
+  }
+
   Future<void> groups(BuildContext context) async {
     final options = [
       if (vm.workspace.user.admin)
@@ -101,38 +82,40 @@ class ScopeHeader extends StatelessWidget {
       selected: vm.scope.group?.id ?? '',
     );
     if (id != null && context.mounted) {
-      await run(
-        context,
-        () => vm.selectGroup(
-          id.isEmpty ? null : vm.groups.firstWhere((g) => g.id == id),
-        ),
-      );
-    }
-  }
-
-  Future<void> stores(BuildContext context) async {
-    final options = [
-      if (vm.scope.group!.canManage || vm.workspace.user.admin)
-        (
-          id: '',
-          title: 'Tous les magasins',
-          subtitle: 'Résumé de ${vm.scope.group!.name}',
-        ),
-      for (final s in vm.stores) (id: s.id, title: s.name, subtitle: s.city),
-    ];
-    final id = await pickScope(
-      context,
-      title: vm.scope.group!.name,
-      options: options,
-      selected: vm.scope.store?.id ?? '',
-    );
-    if (id != null && context.mounted) {
-      await run(
-        context,
-        () => vm.selectStore(
-          id.isEmpty ? null : vm.stores.firstWhere((s) => s.id == id),
-        ),
-      );
+      final group = id.isEmpty ? null : vm.groups.firstWhere((g) => g.id == id);
+      if (group != null && !vm.workspace.user.admin && !group.canManage) {
+        final stores = vm.storesFor(group.id);
+        if (stores.length > 1) {
+          final store = await Navigator.of(context).push<Store>(
+            MaterialPageRoute(
+              builder: (page) => Scaffold(
+                appBar: AppBar(title: Text(group.name)),
+                body: Content(
+                  children: [
+                    const SectionTitle(
+                      'Vos magasins',
+                      subtitle:
+                          'Choisissez le magasin dans lequel vous travaillez.',
+                    ),
+                    for (final entry in stores)
+                      CompactRow(
+                        title: entry.name,
+                        subtitle: entry.city,
+                        icon: AppIcons.storefrontOutlined,
+                        onTap: () => Navigator.of(page).pop(entry),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          );
+          if (store != null && context.mounted) {
+            await run(context, () => vm.selectAssignedStore(group, store));
+          }
+          return;
+        }
+      }
+      await run(context, () => vm.selectGroup(group));
     }
   }
 }

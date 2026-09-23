@@ -141,122 +141,113 @@ class _EditorScreenState extends State<EditorScreen> {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: Text(widget.title)),
-    body: Content(
-      maxWidth: 640,
-      children: [
-        if (widget.description != null) ...[
-          Text(
-            widget.description!,
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
-          const SizedBox(height: 16),
-        ],
-        if (error != null) ...[
-          Notice(error!, error: true),
-          const SizedBox(height: 16),
-        ],
-        if (restoringDraft) const LinearProgressIndicator(),
-        if (!draftReady && !restoringDraft)
-          TextButton.icon(
-            onPressed: restoreDraft,
-            icon: const Icon(AppIcons.refresh),
-            label: const Text('Réessayer de récupérer le brouillon'),
-          ),
-        Form(
-          key: key,
-          child: Column(
-            children: widget.fields
-                .map(
-                  (f) => Padding(
-                    padding: const EdgeInsets.only(bottom: 16),
-                    child: f.imagePurpose != null && widget.workspace != null
-                        ? ImageInput(
-                            vm: widget.workspace!,
-                            store: ['catalog', 'group'].contains(f.imagePurpose)
-                                ? null
-                                : draftStore,
-                            purpose: f.imagePurpose!,
-                            groupId: f.imageGroupId,
-                            label: f.label,
-                            controller: controllers[f.key]!,
-                            enabled: draftReady && !busy && !completed,
-                            onBusyChanged: (value) {
-                              if (mounted) {
-                                setState(() => mediaBusy = value);
-                              }
-                            },
-                          )
-                        : f.options == null
-                        ? TextFormField(
-                            key: ValueKey('field.${f.key}'),
-                            controller: controllers[f.key],
-                            enabled:
-                                draftReady && !busy && !mediaBusy && !completed,
-                            textInputAction: f.multiline
-                                ? TextInputAction.newline
-                                : widget.fields.last.key == f.key
-                                ? TextInputAction.done
-                                : TextInputAction.next,
-                            onFieldSubmitted: (_) {
-                              if (widget.fields.last.key == f.key) {
-                                save();
-                              }
-                            },
-                            keyboardType: f.numeric
-                                ? const TextInputType.numberWithOptions(
-                                    decimal: true,
-                                  )
-                                : f.multiline
-                                ? TextInputType.multiline
-                                : f.key.toLowerCase().contains('email')
-                                ? TextInputType.emailAddress
-                                : f.key.toLowerCase().contains('phone')
-                                ? TextInputType.phone
-                                : TextInputType.text,
-                            minLines: f.multiline ? 4 : 1,
-                            maxLines: f.multiline ? 12 : 1,
-                            decoration: InputDecoration(labelText: f.label),
-                            validator: (value) =>
-                                f.required && (value?.trim().isEmpty ?? true)
-                                ? 'Ce champ est requis.'
-                                : null,
-                          )
-                        : OptionField(
-                            key: ValueKey('field.${f.key}'),
-                            label: f.label,
-                            options: f.options!,
-                            controller: controllers[f.key]!,
-                            required: f.required,
-                            enabled:
-                                draftReady && !busy && !mediaBusy && !completed,
-                          ),
-                  ),
-                )
-                .toList(),
-          ),
-        ),
-      ],
-    ),
-    bottomNavigationBar: Padding(
-      padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
-      child: BottomAction(
-        child: FilledButton(
-          key: const ValueKey('editor.save'),
-          onPressed: !draftReady || busy || mediaBusy || completed
-              ? null
-              : save,
-          child: Text(
-            completed
-                ? 'Enregistré'
-                : busy
-                ? 'Enregistrement…'
-                : widget.submitLabel,
-          ),
-        ),
+  Widget build(BuildContext context) => FormPage(
+    title: widget.title,
+    maxWidth: 640,
+    action: FilledButton(
+      key: const ValueKey('editor.save'),
+      onPressed: !draftReady || busy || mediaBusy || completed ? null : save,
+      child: Text(
+        completed
+            ? 'Enregistré'
+            : busy
+            ? 'Enregistrement…'
+            : widget.submitLabel,
       ),
     ),
+    children: [
+      if (widget.description != null) ...[
+        Text(widget.description!, style: Theme.of(context).textTheme.bodySmall),
+        const SizedBox(height: 16),
+      ],
+      if (error != null) ...[
+        Notice(error!, error: true),
+        const SizedBox(height: 16),
+      ],
+      if (restoringDraft) const LinearProgressIndicator(),
+      if (!draftReady && !restoringDraft)
+        TextButton.icon(
+          onPressed: restoreDraft,
+          icon: const Icon(AppIcons.refresh),
+          label: const Text('Réessayer de récupérer le brouillon'),
+        ),
+      Form(
+        key: key,
+        child: Column(
+          children: widget.fields
+              .map(
+                (f) => Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: f.imagePurpose != null && widget.workspace != null
+                      ? ImageInput(
+                          vm: widget.workspace!,
+                          store: ['catalog', 'group'].contains(f.imagePurpose)
+                              ? null
+                              : draftStore,
+                          purpose: f.imagePurpose!,
+                          groupId: f.imageGroupId,
+                          label: f.label,
+                          controller: controllers[f.key]!,
+                          enabled: draftReady && !busy && !completed,
+                          onBusyChanged: (value) {
+                            if (mounted) {
+                              setState(() => mediaBusy = value);
+                            }
+                          },
+                        )
+                      : f.options == null
+                      ? TextFormField(
+                          key: ValueKey('field.${f.key}'),
+                          controller: controllers[f.key],
+                          enabled:
+                              draftReady && !busy && !mediaBusy && !completed,
+                          textInputAction: f.multiline
+                              ? TextInputAction.newline
+                              : widget.fields.last.key == f.key
+                              ? TextInputAction.done
+                              : TextInputAction.next,
+                          onFieldSubmitted: (_) {
+                            if (widget.fields.last.key == f.key) {
+                              save();
+                            }
+                          },
+                          keyboardType: f.numeric
+                              ? const TextInputType.numberWithOptions(
+                                  decimal: true,
+                                )
+                              : f.multiline
+                              ? TextInputType.multiline
+                              : f.key.toLowerCase().contains('email')
+                              ? TextInputType.emailAddress
+                              : f.key.toLowerCase().contains('phone')
+                              ? TextInputType.phone
+                              : TextInputType.text,
+                          minLines: f.multiline ? 4 : 1,
+                          maxLines: f.multiline ? null : 1,
+                          decoration: InputDecoration(
+                            labelText: f.label,
+                            alignLabelWithHint: f.multiline,
+                          ),
+                          validator: (value) =>
+                              f.required && (value?.trim().isEmpty ?? true)
+                              ? 'Ce champ est requis.'
+                              : null,
+                        )
+                      : OptionField(
+                          key: ValueKey('field.${f.key}'),
+                          label: f.label,
+                          options: f.options!,
+                          controller: controllers[f.key]!,
+                          required: f.required,
+                          enabled:
+                              draftReady && !busy && !mediaBusy && !completed,
+                        ),
+                ),
+              )
+              .toList(),
+        ),
+      ),
+    ],
   );
   Future<void> save() async {
     if (!draftReady || busy || mediaBusy || completed) return;

@@ -27,7 +27,10 @@ export namespace IdentityRequests {
   });
   export const Forgot = z.object({ email });
   export const Reset = z.object({
-    token: z.string().min(32).max(256),
+    token: z
+      .string()
+      .trim()
+      .regex(/^(?:[A-Za-z0-9]{4}[- ]?[A-Za-z0-9]{4}|[A-Za-z0-9_-]{32,256})$/),
     password,
   });
 }

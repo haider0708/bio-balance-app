@@ -4,6 +4,7 @@ import { randomUUID } from "node:crypto";
 import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { Database } from "../src/shared/infrastructure/database";
+import { DashboardService } from "../src/modules/reporting/dashboard.service";
 import { WorkspaceService } from "../src/modules/tenancy/workspace.service";
 
 process.env.DATABASE_URL =
@@ -11,8 +12,11 @@ process.env.DATABASE_URL =
   "postgresql://biobalance_app:local-app-only@localhost:54329/biobalance_test";
 if (!new URL(process.env.DATABASE_URL).pathname.endsWith("_test"))
   throw Error("ISOLATED_TEST_DATABASE_REQUIRED");
-assertTestDatabases(process.env.DATABASE_URL, process.env.TEST_OWNER_DATABASE_URL ??
-  'postgresql://biobalance:local-development-only@localhost:54329/biobalance_test');
+assertTestDatabases(
+  process.env.DATABASE_URL,
+  process.env.TEST_OWNER_DATABASE_URL ??
+    "postgresql://biobalance:local-development-only@localhost:54329/biobalance_test",
+);
 const owner = new PrismaClient({
   adapter: new PrismaPg({
     connectionString:
@@ -226,3 +230,103 @@ describe.sequential(
     );
   },
 );
+
+it("pages each order phase independently and returns actual reception history in the exact store", async () => {
+  const f = await fixture(),
+    other = await fixture();
+  const service = new DashboardService(db),
+    productId = randomUUID();
+  const base = {
+    organizationId: f.org.id,
+    storeId: f.store.id,
+    createdBy: f.actor.id,
+    lines: [{ productId, quantity: 10 }],
+  };
+  await owner.replenishmentOrder.createMany({
+    data: Array.from({ length: 55 }, () => ({
+      ...base,
+      id: randomUUID(),
+      status: "requested",
+    })),
+  });
+  const completed = await owner.replenishmentOrder.create({
+    data: { ...base, id: randomUUID(), status: "received" },
+  });
+  const partial = await owner.replenishmentOrder.create({
+    data: { ...base, id: randomUUID(), status: "partial" },
+  });
+  const parcel = await owner.delivery.create({
+    data: {
+      id: randomUUID(),
+      organizationId: f.org.id,
+      storeId: f.store.id,
+      orderId: partial.id,
+      lines: [{ productId, quantity: 6 }],
+      status: "received",
+    },
+  });
+  const receipt = await owner.deliveryReceipt.create({
+    data: {
+      organizationId: f.org.id,
+      storeId: f.store.id,
+      deliveryId: parcel.id,
+      actorId: f.actor.id,
+      operationId: randomUUID(),
+      lines: [{ productId, quantity: 4 }],
+      differences: { note: "Deux unités manquantes" },
+    },
+  });
+  await owner.delivery.create({
+    data: {
+      id: randomUUID(),
+      organizationId: f.org.id,
+      storeId: f.store.id,
+      orderId: partial.id,
+      lines: [{ productId, quantity: 3 }],
+      status: "dispatched",
+    },
+  });
+  const query = {
+    scope: "store" as const,
+    organizationId: f.org.id,
+    storeId: f.store.id,
+    from: "2026-09-01",
+    to: "2026-09-30",
+  };
+  const first = await service.orders(f.actor, query, undefined, "preparation");
+  expect(first.items).toHaveLength(50);
+  expect(first.nextCursor).toBeTruthy();
+  const second = await service.orders(
+    f.actor,
+    query,
+    first.nextCursor!,
+    "preparation",
+  );
+  expect(second.items).toHaveLength(6);
+  expect(second.nextCursor).toBeNull();
+  expect(new Set([...first.items, ...second.items].map((o) => o.id)).size).toBe(
+    56,
+  );
+  const done = await service.orders(f.actor, query, undefined, "complete");
+  expect(done.items.map((o) => o.id)).toEqual([completed.id]);
+  const detail = await service.order(f.actor, f.org.id, f.store.id, partial.id);
+  expect(detail.order).toMatchObject({
+    id: partial.id,
+    groupName: f.org.name,
+    storeName: f.store.name,
+  });
+  expect(detail.receipts.map((r) => r.id)).toEqual([receipt.id]);
+  expect(detail.fulfillment).toEqual([
+    {
+      productId,
+      ordered: 10,
+      received: 4,
+      inTransit: 3,
+      remainingToDispatch: 3,
+      remainingToReceive: 6,
+    },
+  ]);
+  await expect(
+    service.order(other.actor, f.org.id, f.store.id, partial.id),
+  ).rejects.toMatchObject({ code: "STORE_ACCESS_REVOKED" });
+});

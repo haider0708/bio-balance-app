@@ -469,14 +469,14 @@ void main() {
     },
   );
 
-  testWidgets('store selector remains searchable with keyboard and 200% text', (
+  testWidgets('group selector remains searchable with keyboard and 200% text', (
     t,
   ) async {
     viewport(t, const Size(800, 360));
     final f = RoleFixture('manager');
     await t.pumpWidget(f.app(f.home(storeView: true), scale: 2));
     await t.pumpAndSettle();
-    await t.tap(find.byKey(const ValueKey('scope.store')));
+    await t.tap(find.byKey(const ValueKey('scope.group')));
     await t.pumpAndSettle();
     t.view.viewInsets = const FakeViewPadding(bottom: 120);
     addTearDown(t.view.resetViewInsets);
@@ -488,7 +488,7 @@ void main() {
     await t.scrollUntilVisible(
       find.descendant(
         of: find.byType(BottomSheet),
-        matching: find.text('BioBalance · Tunis'),
+        matching: find.text('Partenaire Tunis'),
       ),
       100,
       scrollable: find
@@ -502,13 +502,13 @@ void main() {
       t.element(
         find.descendant(
           of: find.byType(BottomSheet),
-          matching: find.text('BioBalance · Tunis'),
+          matching: find.text('Partenaire Tunis'),
         ),
       ),
       alignment: .5,
     );
     await t.pumpAndSettle();
-    expect(find.text('BioBalance · Tunis').hitTestable(), findsWidgets);
+    expect(find.text('Partenaire Tunis').hitTestable(), findsWidgets);
     expect(t.takeException(), isNull);
     await t.pumpWidget(const SizedBox());
     await f.close();

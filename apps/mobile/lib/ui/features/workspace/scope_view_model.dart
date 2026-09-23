@@ -24,6 +24,32 @@ class ScopeViewModel extends ChangeNotifier {
   bool loading = true, switching = false, closed = false;
   String? error;
   final Map<String, int> tabs = {};
+  final _history = <({WorkspaceScope scope, int tab})>[];
+  bool get canGoBack => _history.isNotEmpty || tab != 0;
+  Future<void> back() async {
+    if (switching) return;
+    while (_history.isNotEmpty) {
+      final previous = _history.last;
+      final group = previous.scope.group;
+      if (group != null &&
+          (!groups.any((g) => g.id == group.id) ||
+              previous.scope.store != null &&
+                  !_available(previous.scope.store!))) {
+        _history.removeLast();
+        continue;
+      }
+      await _switch(previous.scope, remember: false, restoredTab: previous.tab);
+      _history.removeLast();
+      if (!closed) notifyListeners();
+      return;
+    }
+    if (tab != 0) {
+      await workspace.flushDrafts();
+      tabs[scope.key] = 0;
+      if (!closed) notifyListeners();
+    }
+  }
+
   final Set<String> revokedGroups = {};
   Future<void>? _refreshing;
   bool _confirmedDirectory = false;
@@ -68,11 +94,21 @@ class ScopeViewModel extends ChangeNotifier {
     }
   }
 
-  List<Store> get stores => workspace.state.stores
-      .where((s) => s.organizationId == scope.group?.id && _available(s))
+  List<Store> storesFor(String? groupId) => workspace.state.stores
+      .where((s) => s.organizationId == groupId && _available(s))
       .toList();
+  List<Store> get stores => storesFor(scope.group?.id);
+  Future<void> selectAssignedStore(PartnerGroup group, Store store) async {
+    if (!storesFor(group.id).any((s) => s.id == store.id)) {
+      throw const AppFailure('STORE_ACCESS_REVOKED', 'Magasin inaccessible.');
+    }
+    await _switch(WorkspaceScope.store(group, store));
+  }
+
   int get tab => tabs[scope.key] ?? 0;
   void setTab(int value) {
+    if (switching || value == tab) return;
+    _remember();
     tabs[scope.key] = value;
     notifyListeners();
   }
@@ -240,7 +276,16 @@ class ScopeViewModel extends ChangeNotifier {
     );
   }
 
-  Future<void> _switch(WorkspaceScope next) async {
+  void _remember() {
+    _history.add((scope: scope, tab: tab));
+    if (_history.length > 50) _history.removeAt(0);
+  }
+
+  Future<void> _switch(
+    WorkspaceScope next, {
+    bool remember = true,
+    int? restoredTab,
+  }) async {
     if (switching || closed) return;
     switching = true;
     notifyListeners();
@@ -264,7 +309,9 @@ class ScopeViewModel extends ChangeNotifier {
         workspace.releaseStore();
       }
       if (closed) return;
+      if (remember && next.key != scope.key) _remember();
       scope = next;
+      if (restoredTab != null) tabs[next.key] = restoredTab;
       error = null;
     } catch (e) {
       error = SessionViewModel.message(e);

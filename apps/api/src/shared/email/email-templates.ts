@@ -1,4 +1,5 @@
 import { accountLink } from "../../modules/identity/account-links";
+import { displayRecoveryCode } from "../../modules/identity/recovery-code";
 
 export interface EmailContent {
   subject: string;
@@ -79,7 +80,7 @@ export function renderEmail(input: EmailTemplate): EmailContent {
     ];
     instruction =
       "Dans BioBalance, ouvrez « Mot de passe oublié ? », puis « J’ai déjà reçu un code » et saisissez ce code.";
-    code = input.token;
+    code = displayRecoveryCode(input.token);
     codeLabel = "Code de récupération";
     expiry = `Valable jusqu’au ${dateLabel(input.expiresAt)}. Usage unique.`;
     link = accountLink("reset", input.token);
@@ -127,7 +128,7 @@ export function renderEmail(input: EmailTemplate): EmailContent {
 ${paragraphs.map((p) => `<p style="margin:0 0 16px;font-size:16px;line-height:1.6">${escape(p)}</p>`).join("\n")}
 ${link ? `<p style="margin:24px 0"><a href="${escape(link)}" style="display:inline-block;background:#286b34;color:#ffffff;padding:12px 18px;border-radius:4px;text-decoration:none;font-size:16px;line-height:1.5;font-weight:600">${escape(action!)}</a></p>` : ""}
 ${instruction ? `<p style="margin:0 0 20px;font-size:16px;line-height:1.6">${escape(instruction)}</p>` : ""}
-${code ? `<p style="margin:0 0 8px;font-size:14px;line-height:1.5;color:#5d665f">${escape(codeLabel!)}</p><p style="margin:0 0 8px;padding:12px;border:1px solid #e1e6e2;border-radius:4px;word-break:break-all;overflow-wrap:anywhere;font-family:Consolas,monospace;font-size:16px;line-height:1.6">${escape(code)}</p>` : ""}
+${code ? `<p style="margin:0 0 8px;font-size:14px;line-height:1.5;color:#5d665f">${escape(codeLabel!)}</p><p style="margin:0 0 8px;padding:12px;border:1px solid #e1e6e2;border-radius:4px;word-break:break-all;overflow-wrap:anywhere;font-family:Consolas,monospace;font-size:${input.kind === "reset" && /^[A-Z0-9]{8}$/.test(input.token) ? "24px;letter-spacing:3px;font-weight:600" : "16px"};line-height:1.6">${escape(code)}</p>` : ""}
 ${expiry ? `<p style="margin:0 0 20px;font-size:14px;line-height:1.5;color:#5d665f">${escape(expiry)}</p>` : ""}
 ${details.map((p) => `<p style="margin:0 0 12px;font-size:14px;line-height:1.6;color:#5d665f;overflow-wrap:anywhere">${escape(p)}</p>`).join("\n")}
 ${note ? `<p style="margin:24px 0 0;font-size:14px;line-height:1.6;color:#5d665f">${escape(note)}</p>` : ""}

@@ -16,11 +16,13 @@ export class DashboardController {
     @Req() r: AuthRequest,
     @Query() q: unknown,
     @Query("after") after?: string,
+    @Query("phase") phase?: string,
   ) {
     return this.service.orders(
       r.actor,
       dashboardQuery.parse(q),
       z.uuid().optional().parse(after),
+      z.enum(["preparation", "transit", "complete"]).optional().parse(phase),
     );
   }
   @Get("attention") attention(

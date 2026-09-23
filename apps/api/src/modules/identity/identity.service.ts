@@ -4,6 +4,7 @@ import type { EmailPayload } from "../../shared/email/email-delivery";
 import { Prisma } from "@prisma/client";
 import { TOTP, Secret } from "otpauth";
 import { Injectable } from "@nestjs/common";
+import { recoveryCode, normalizeRecoveryCode } from "./recovery-code";
 import {
   createHash,
   randomBytes,
@@ -261,6 +262,18 @@ export class IdentityService {
             data: { name: input.organizationName ?? input.email },
           })
         ).id;
+      // Older clients still use this route; they share the same replacement
+      // lock so they cannot leave a second usable invitation in the group.
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`invite:${targetOrganization}:${input.email}`}, 0))`;
+      await tx.accessToken.updateMany({
+        where: {
+          email: input.email,
+          purpose: "invite",
+          usedAt: null,
+          organizationId: targetOrganization,
+        },
+        data: { usedAt: new Date() },
+      });
       const invitation = await tx.accessToken.create({
         data: {
           email: input.email,
@@ -338,6 +351,37 @@ export class IdentityService {
     const token = randomBytes(32).toString("base64url");
     accountLink("invite", token);
     const create = async (tx: Prisma.TransactionClient) => {
+      // Serializes simultaneous invitations for the same person and group.
+      // Replaced capabilities remain in history, but can no longer activate.
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`invite:${input.organizationId ?? "new-group"}:${input.email}`}, 0))`;
+      if (input.organizationId) {
+        const member = await tx.user.findUnique({
+          where: { email: input.email },
+          select: { id: true },
+        });
+        if (member) {
+          const [responsible, seller] = await Promise.all([
+            tx.organizationMembership.findFirst({
+              where: {
+                organizationId: input.organizationId,
+                userId: member.id,
+              },
+            }),
+            tx.membership.findFirst({
+              where: {
+                organizationId: input.organizationId,
+                userId: member.id,
+              },
+            }),
+          ]);
+          requireRule(
+            !responsible && !seller,
+            "MEMBER_ALREADY_EXISTS",
+            "Cette personne appartient déjà au groupe. Modifiez son accès depuis l’équipe.",
+            409,
+          );
+        }
+      }
       const storeIds = [...new Set(input.storeIds ?? [])];
       if (input.kind === "new_group")
         requireRule(
@@ -361,6 +405,15 @@ export class IdentityService {
           "Magasin extérieur au groupe.",
         );
       }
+      await tx.accessToken.updateMany({
+        where: {
+          email: input.email,
+          purpose: "invite",
+          usedAt: null,
+          organizationId: input.organizationId ?? null,
+        },
+        data: { usedAt: new Date() },
+      });
       const invitation = await tx.accessToken.create({
         data: {
           email: input.email,
@@ -553,38 +606,58 @@ export class IdentityService {
     await this.throttle(`reset-address:${tokenHash(email)}`, 3);
     const user = await this.db.user.findUnique({ where: { email } });
     if (user && !user.disabled) {
-      const token = randomBytes(32).toString("base64url");
-      accountLink("reset", token);
-      await this.db.$transaction(async (tx) => {
-        const reset = await tx.accessToken.create({
-          data: {
-            email,
-            purpose: "reset",
-            tokenHash: tokenHash(token),
-            permissions: [],
-            expiresAt: new Date(Date.now() + 1800_000),
-          },
-        });
-        await tx.job.create({
-          data: {
-            kind: "email",
-            key: `reset:${reset.id}`,
-            payload: {
-              version: "1",
-              template: "reset",
-              to: email,
-              accessTokenId: reset.id,
-              token,
-            } satisfies EmailPayload,
-          },
-        });
-      });
+      // Serialize replacement requests per account. A rare short-code collision
+      // rolls back and generates a fresh code without invalidating the old one.
+      for (let attempt = 0; ; attempt++) {
+        try {
+          const token = recoveryCode();
+          accountLink("reset", token);
+          await this.db.$transaction(async (tx) => {
+            await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`password-reset:${email}`},0))`;
+            await tx.accessToken.updateMany({
+              where: { email, purpose: "reset", usedAt: null },
+              data: { usedAt: new Date() },
+            });
+            const reset = await tx.accessToken.create({
+              data: {
+                email,
+                purpose: "reset",
+                tokenHash: tokenHash(token),
+                permissions: [],
+                expiresAt: new Date(Date.now() + 1800_000),
+              },
+            });
+            await tx.job.create({
+              data: {
+                kind: "email",
+                key: `reset:${reset.id}`,
+                payload: {
+                  version: "1",
+                  template: "reset",
+                  to: email,
+                  accessTokenId: reset.id,
+                  token,
+                } satisfies EmailPayload,
+              },
+            });
+          });
+          break;
+        } catch (error) {
+          if (
+            !(error instanceof Prisma.PrismaClientKnownRequestError) ||
+            error.code !== "P2002" ||
+            attempt >= 2
+          )
+            throw error;
+        }
+      }
     }
     return {
       message: "Si un compte existe, un email de récupération a été envoyé.",
     };
   }
   async reset(token: string, password: string, ip = "internal") {
+    token = normalizeRecoveryCode(token);
     await this.validToken(token, "reset", ip);
     const passwordHash = await this.passwords.hash(password);
     return this.db.transaction(async (tx) => {

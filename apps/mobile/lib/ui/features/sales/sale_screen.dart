@@ -62,159 +62,137 @@ class _SaleEditorState extends State<_SaleEditor> {
   @override
   Widget build(BuildContext context) {
     final vm = context.watch<SaleViewModel>();
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          vm.original == null ? 'Nouvelle vente' : 'Corriger la vente',
-        ),
-      ),
-      body: Content(
-        maxWidth: 760,
+    return FormPage(
+      title: vm.original == null ? 'Nouvelle vente' : 'Corriger la vente',
+      maxWidth: 760,
+      action: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          StatusChip(vm.store.name, icon: AppIcons.storefrontOutlined),
-          const SizedBox(height: 20),
-          if (vm.recovery != null) ...[
-            const Notice(
-              'Vérifiez les lignes proposées avec la vente réelle. La version synchronisée sert de référence ; les anciennes saisies restent dans l’historique de résolution.',
-            ),
-            const SizedBox(height: 16),
-          ],
-          if (vm.state.error != null) ...[
-            Notice(vm.state.error!, error: true),
-            const SizedBox(height: 16),
-          ],
-          if (vm.state.restoring)
-            const LinearProgressIndicator(
-              semanticsLabel: 'Chargement du brouillon',
-            ),
-          if (!vm.state.restoring &&
-              !vm.canEdit &&
-              !vm.state.saving &&
-              vm.state.error != null)
-            TextButton(
-              onPressed: vm.restore,
-              child: const Text('Recharger le brouillon'),
-            ),
           Wrap(
-            spacing: 12,
-            runSpacing: 12,
+            spacing: 24,
+            runSpacing: 8,
+            alignment: WrapAlignment.spaceBetween,
             children: [
-              FilledButton.icon(
-                onPressed: vm.canEdit ? () => scan(vm) : null,
-                icon: const Icon(AppIcons.qrCodeScanner),
-                label: const Text('Scanner un produit'),
+              Text(
+                Money(vm.total).formatted,
+                style: Theme.of(context).textTheme.titleLarge,
               ),
-              OutlinedButton.icon(
-                onPressed: vm.canEdit ? () => choose(vm) : null,
-                icon: const Icon(AppIcons.search),
-                label: const Text('Rechercher'),
+              Text(
+                '≈ ${vm.estimatedPoints} points',
+                style: const TextStyle(color: darkGreen),
               ),
             ],
           ),
-          const SizedBox(height: 24),
-          if (vm.canEdit && vm.state.lines.isEmpty)
-            const EmptyState(
-              title: 'Votre vente commence ici',
-              description: 'Scannez un produit ou recherchez sa référence. Le brouillon est enregistré automatiquement.',
-              icon: AppIcons.shoppingBagOutlined,
-            ),
-          ...vm.state.lines.map(
-            (line) => CompactRow(
-              title: vm.workspace.productName(line.productId),
-              subtitle:
-                  '${line.quantity} unité${line.quantity > 1 ? 's' : ''} × ${line.price.formatted}\n${line.allocations.map((a) {
-                    final lot = vm.workspace.state.data?.lots.where((l) => l.id == a['lotId']).firstOrNull;
-                    return 'Lot ${lot?.batch ?? '—'} · ${a['quantity']} u.';
-                  }).join(' / ')}',
-              footer: Wrap(
-                spacing: 8,
-                children: [
-                  TextButton.icon(
-                    onPressed: !vm.canEdit
-                        ? null
-                        : () => editLine(vm, line.productId, line),
-                    icon: const Icon(AppIcons.editOutlined),
-                    label: const Text('Modifier'),
-                  ),
-                  TextButton.icon(
-                    onPressed: !vm.canEdit ? null : () => vm.remove(line.id),
-                    icon: const Icon(AppIcons.deleteOutline),
-                    label: const Text('Retirer'),
-                  ),
-                ],
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton.icon(
+              onPressed: !vm.canEdit || vm.state.lines.isEmpty
+                  ? null
+                  : () => save(vm),
+              icon: const Icon(AppIcons.check),
+              label: Text(
+                vm.state.saving
+                    ? 'Enregistrement…'
+                    : vm.original == null
+                    ? 'Enregistrer la vente'
+                    : 'Enregistrer la correction',
               ),
             ),
-          ),
-          if (vm.original != null) ...[
-            const SizedBox(height: 16),
-            TextField(
-              controller: reason,
-              enabled: vm.canEdit,
-              decoration: const InputDecoration(
-                labelText: 'Motif de la correction',
-              ),
-            ),
-          ],
-          const SizedBox(height: 16),
-          const Notice(
-            'Le prix et le lot doivent correspondre aux produits réellement vendus. Les points seront confirmés à la synchronisation.',
           ),
         ],
       ),
-      bottomNavigationBar: Padding(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.viewInsetsOf(context).bottom,
-        ),
-        child: SafeArea(
-          top: false,
-          child: Container(
-            width: double.infinity,
-            padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              border: Border(top: BorderSide(color: Color(0xFFE5E9E1))),
+      children: [
+        StatusChip(vm.store.name, icon: AppIcons.storefrontOutlined),
+        const SizedBox(height: 20),
+        if (vm.recovery != null) ...[
+          const Notice(
+            'Vérifiez les lignes proposées avec la vente réelle. La version synchronisée sert de référence ; les anciennes saisies restent dans l’historique de résolution.',
+          ),
+          const SizedBox(height: 16),
+        ],
+        if (vm.state.error != null) ...[
+          Notice(vm.state.error!, error: true),
+          const SizedBox(height: 16),
+        ],
+        if (vm.state.restoring)
+          const LinearProgressIndicator(
+            semanticsLabel: 'Chargement du brouillon',
+          ),
+        if (!vm.state.restoring &&
+            !vm.canEdit &&
+            !vm.state.saving &&
+            vm.state.error != null)
+          TextButton(
+            onPressed: vm.restore,
+            child: const Text('Recharger le brouillon'),
+          ),
+        Wrap(
+          spacing: 12,
+          runSpacing: 12,
+          children: [
+            FilledButton.icon(
+              onPressed: vm.canEdit ? () => scan(vm) : null,
+              icon: const Icon(AppIcons.qrCodeScanner),
+              label: const Text('Scanner un produit'),
             ),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 760),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Wrap(
-                    spacing: 24,
-                    runSpacing: 8,
-                    alignment: WrapAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        Money(vm.total).formatted,
-                        style: Theme.of(context).textTheme.titleLarge,
-                      ),
-                      Text(
-                        '≈ ${vm.estimatedPoints} points',
-                        style: const TextStyle(color: darkGreen),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  SizedBox(
-                    width: double.infinity,
-                    child: FilledButton.icon(
-                      onPressed: !vm.canEdit || vm.state.lines.isEmpty
-                          ? null
-                          : () => save(vm),
-                      icon: const Icon(AppIcons.check),
-                      label: Text(
-                        vm.state.saving
-                            ? 'Enregistrement…'
-                            : 'Enregistrer la vente',
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+            OutlinedButton.icon(
+              onPressed: vm.canEdit ? () => choose(vm) : null,
+              icon: const Icon(AppIcons.search),
+              label: const Text('Rechercher'),
+            ),
+          ],
+        ),
+        const SizedBox(height: 24),
+        if (vm.canEdit && vm.state.lines.isEmpty)
+          const EmptyState(
+            title: 'Votre vente commence ici',
+            description: 'Scannez un produit ou recherchez sa référence. Le brouillon est enregistré automatiquement.',
+            icon: AppIcons.shoppingBagOutlined,
+          ),
+        ...vm.state.lines.map(
+          (line) => CompactRow(
+            title: vm.workspace.productName(line.productId),
+            leading: ProductPhoto(vm: vm.workspace, productId: line.productId),
+            subtitle:
+                '${line.quantity} unité${line.quantity > 1 ? 's' : ''} × ${line.price.formatted}\n${line.allocations.map((a) {
+                  final lot = vm.workspace.state.data?.lots.where((l) => l.id == a['lotId']).firstOrNull;
+                  return 'Lot ${lot?.batch ?? '—'} · ${a['quantity']} u.';
+                }).join(' / ')}',
+            footer: Wrap(
+              spacing: 8,
+              children: [
+                TextButton.icon(
+                  onPressed: !vm.canEdit
+                      ? null
+                      : () => editLine(vm, line.productId, line),
+                  icon: const Icon(AppIcons.editOutlined),
+                  label: const Text('Modifier'),
+                ),
+                TextButton.icon(
+                  onPressed: !vm.canEdit ? null : () => vm.remove(line.id),
+                  icon: const Icon(AppIcons.deleteOutline),
+                  label: const Text('Retirer'),
+                ),
+              ],
             ),
           ),
         ),
-      ),
+        if (vm.original != null) ...[
+          const SizedBox(height: 16),
+          TextField(
+            controller: reason,
+            enabled: vm.canEdit,
+            decoration: const InputDecoration(
+              labelText: 'Motif de la correction',
+            ),
+          ),
+        ],
+        const SizedBox(height: 16),
+        const Notice(
+          'Le prix et le lot doivent correspondre aux produits réellement vendus. Les points seront confirmés à la synchronisation.',
+        ),
+      ],
     );
   }
 
@@ -559,66 +537,91 @@ class _LineEditorState extends State<LineEditor> {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('Quantité, prix et lots')),
-    body: Content(
-      maxWidth: 640,
-      children: [
-        SectionTitle(widget.workspace.productName(widget.productId)),
-        if (error != null) ...[
-          Notice(error!, error: true),
-          const SizedBox(height: 16),
-        ],
-        TextField(
-          controller: price,
-          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          decoration: const InputDecoration(
-            labelText: 'Prix unitaire réel (TND)',
-            helperText: 'Exemple : 49,900',
-          ),
-        ),
-        const SizedBox(height: 24),
-        const SectionTitle(
-          'Unités par lot',
-          subtitle: 'Le lot valide le plus proche de sa péremption est proposé. Vérifiez le lot réellement remis.',
-        ),
-        if (lots.isEmpty)
-          const EmptyState(
-            title: 'Aucun lot disponible',
-            description: 'Renseignez le numéro du lot et sa péremption pour enregistrer la vente réelle.',
-          ),
-        OutlinedButton.icon(
-          onPressed: missingBatch,
-          icon: const Icon(AppIcons.add),
-          label: const Text('Lot manquant ? Le renseigner'),
-        ),
-        if (hasShortage)
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 12),
-            child: Notice(
-              'Le stock enregistré est insuffisant. La vente sera conservée et un écart sera signalé au responsable.',
-            ),
-          ),
-        ...lots.map(
-          (l) => Padding(
-            padding: const EdgeInsets.only(bottom: 16),
-            child: TextField(
-              controller: allocations[l.id],
-              keyboardType: TextInputType.number,
-              decoration: InputDecoration(
-                labelText: 'Lot ${l.batch} · ${dateLabel(l.expiry)}',
-                helperText: 'Stock enregistré : ${l.sellable} unité(s)',
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(height: 16),
-        FilledButton(
-          onPressed: lots.isEmpty ? null : submit,
-          child: const Text('Ajouter à la vente'),
-        ),
-      ],
+  Widget build(BuildContext context) => FormPage(
+    title: widget.line == null ? 'Ajouter un produit' : 'Modifier le produit',
+    maxWidth: 640,
+    action: FilledButton(
+      onPressed: lots.isEmpty ? null : submit,
+      child: Text(
+        widget.line == null
+            ? 'Ajouter à la vente'
+            : 'Enregistrer les modifications',
+      ),
     ),
+    children: [
+      CompactRow(
+        title: widget.workspace.productName(widget.productId),
+        leading: ProductPhoto(
+          vm: widget.workspace,
+          productId: widget.productId,
+          size: 64,
+        ),
+      ),
+      const SizedBox(height: 20),
+      if (error != null) ...[
+        Notice(error!, error: true),
+        const SizedBox(height: 16),
+      ],
+      TextField(
+        controller: price,
+        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+        decoration: const InputDecoration(
+          labelText: 'Prix unitaire réel (TND)',
+          helperText: 'Exemple : 49,900',
+        ),
+      ),
+      const SizedBox(height: 24),
+      const SectionTitle(
+        'Unités par lot',
+        subtitle: 'Le lot valide le plus proche de sa péremption est proposé. Vérifiez le lot réellement remis.',
+      ),
+      if (lots.isEmpty)
+        const EmptyState(
+          title: 'Aucun lot disponible',
+          description: 'Renseignez le numéro du lot et sa péremption pour enregistrer la vente réelle.',
+        ),
+      OutlinedButton.icon(
+        onPressed: missingBatch,
+        icon: const Icon(AppIcons.add),
+        label: const Text('Lot manquant ? Le renseigner'),
+      ),
+      const SizedBox(height: 16),
+      if (hasShortage)
+        const Padding(
+          padding: EdgeInsets.symmetric(vertical: 12),
+          child: Notice(
+            'Le stock enregistré est insuffisant. La vente sera conservée et un écart sera signalé au responsable.',
+          ),
+        ),
+      ...lots.map(
+        (l) => Padding(
+          padding: const EdgeInsets.only(bottom: 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Lot ${l.batch}',
+                style: const TextStyle(fontWeight: FontWeight.w600),
+              ),
+              Text(
+                'Péremption : ${dateLabel(l.expiry)} · Stock : ${l.sellable} unité(s)',
+                style: const TextStyle(fontSize: 14, color: muted),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                key: ValueKey('sale.lot.${l.batch}'),
+                controller: allocations[l.id],
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  labelText: 'Quantité vendue',
+                  suffixText: 'unités',
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    ],
   );
   void submit() {
     try {

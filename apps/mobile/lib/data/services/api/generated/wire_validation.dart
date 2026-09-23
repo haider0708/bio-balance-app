@@ -1970,6 +1970,14 @@ const Map<String, Map<String, dynamic>> _schemas = {
         "type": "array",
         "items": {"\$ref": "#/components/schemas/Delivery"},
       },
+      "receipts": {
+        "type": "array",
+        "items": {"\$ref": "#/components/schemas/DeliveryReceipt"},
+      },
+      "fulfillment": {
+        "type": "array",
+        "items": {"\$ref": "#/components/schemas/FulfillmentLine"},
+      },
     },
     "required": ["order", "deliveries"],
     "additionalProperties": false,
@@ -2247,7 +2255,11 @@ const Map<String, Map<String, dynamic>> _schemas = {
   "IdentityResetRequest": {
     "type": "object",
     "properties": {
-      "token": {"type": "string", "minLength": 32, "maxLength": 256},
+      "token": {
+        "type": "string",
+        "pattern":
+            "^(?:[A-Za-z0-9]{4}[- ]?[A-Za-z0-9]{4}|[A-Za-z0-9_-]{32,256})\$",
+      },
       "password": {"type": "string", "minLength": 12, "maxLength": 128},
     },
     "required": ["token", "password"],

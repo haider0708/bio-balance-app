@@ -32,6 +32,8 @@ Captures produites depuis les widgets Flutter réels avec fixtures synthétiques
 | recovery | [Ouvrir](screenshots/audit-recovery.png) |
 | reset | [Ouvrir](screenshots/audit-reset.png) |
 | rewards | [Ouvrir](screenshots/audit-rewards.png) |
+| sale-line | [Ouvrir](screenshots/audit-sale-line.png) |
+| group-invitation | [Ouvrir](screenshots/audit-group-invitation.png) |
 | sale | [Ouvrir](screenshots/audit-sale.png) |
 | sales-history | [Ouvrir](screenshots/audit-sales-history.png) |
 | stock-product | [Ouvrir](screenshots/audit-stock-product.png) |
@@ -47,3 +49,8 @@ Captures produites depuis les widgets Flutter réels avec fixtures synthétiques
 Revue manuelle des planches de contacts : alignement des lignes, cadrage complet des emballages, contraste, libellés, unités TND/points, densité, priorité des actions et champs. Corrections réalisées : photo réelle dans les listes, glyphes cohérents, contraste, header défilant en paysage/texte agrandi, état du sélecteur et champs restaurés. Les captures des formulaires incluent des listes vides réalistes ; les erreurs et états d’accès sont également vérifiés par tests interactifs.
 
 Ces captures ne qualifient pas la caméra physique, la lecture VoiceOver/TalkBack, la fluidité sur Samsung ou iOS, ni toutes les combinaisons possibles de contenu. La caméra et la vidéo sont exercées sur émulateur ; la qualification des appareils physiques reste enregistrée séparément. La mise à jour Samsung attend une connexion ADB autorisée.
+
+
+## Retour Samsung — candidate 1.1.1+5
+
+28 écrans sont revus en portrait et paysage à 200 %, complétés par les parcours clavier/retour Android et les sélecteurs. La page de récupération présente huit cases, les formulaires utilisent un seul défilement de page, le groupe est en haut à gauche et les commandes sont classées par étape. Les fixtures ventes et commandes incluent maintenant des lignes renseignées, pour contrôler vendeur/magasin et les intitulés. Les photos en fixture vérifient le cadrage ; les tests du vrai cache vérifient séparément leur résolution, téléchargement et reprise.

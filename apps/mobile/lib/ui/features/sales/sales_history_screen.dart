@@ -33,10 +33,23 @@ class SalesPage extends StatelessWidget {
       itemBuilder: (context, index) {
         final sale = sales[index];
         final status = sale['syncStatus'];
+        final seller =
+            sale['sellerName'] ??
+            (sale['sellerId'] == vm.user.id
+                ? vm.user.name
+                : vm.state.data!
+                      .list('team')
+                      .where(
+                        (p) =>
+                            p['id'] == sale['sellerId'] ||
+                            p['userId'] == sale['sellerId'],
+                      )
+                      .firstOrNull?['name']) ??
+            'Vendeur — détails dans la vente';
         return CompactRow(
           title: Money(integer(sale['totalMillimes'])).formatted,
           subtitle:
-              '${dateLabel(sale['occurredAt'])} · ${objects(sale['lines']).length} produit(s)',
+              '${vm.state.store!.name} · $seller\n${dateLabel(sale['occurredAt'])} · ${objects(sale['lines']).length} produit(s)',
           footer: StatusChip(
             ['conflict', 'rejected', 'blocked'].contains(status)
                 ? 'À vérifier'
@@ -175,6 +188,7 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
             subtitle:
                 '${dateLabel(sale['occurredAt'])} · Révision ${sale['version']}',
           ),
+          Text('Magasin : ${store.name}'),
           Text(
             'Vendeur : ${seller?['name'] ?? (sale['sellerId'] == widget.vm.user.id ? widget.vm.user.name : sale['sellerId'])}',
           ),
