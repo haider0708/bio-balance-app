@@ -290,6 +290,60 @@ class _GroupMemberEditorState extends State<GroupMemberEditor> {
           'Choisissez au moins un magasin pour ce vendeur.',
         );
       }
+      if (widget.member == null) {
+        final confirmed = await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: Text(
+              widget.invitation == null
+                  ? 'Vérifier l’invitation'
+                  : 'Renvoyer l’invitation',
+            ),
+            content: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text('L’email sera envoyé à :'),
+                  const SizedBox(height: 8),
+                  SelectableText(
+                    address,
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 20),
+                  Text(widget.group.name),
+                  const SizedBox(height: 8),
+                  Text(
+                    role == 'responsible'
+                        ? 'Responsable · tous les magasins du groupe'
+                        : 'Vendeur · ${stores.where((s) => ids.contains(s.id)).map((s) => s.name).join(', ')}',
+                  ),
+                  const SizedBox(height: 20),
+                  const Text(
+                    'Vérifiez l’adresse. Le destinataire devra activer le code du dernier email reçu, puis se connecter.',
+                  ),
+                  if (widget.invitation != null) ...[
+                    const SizedBox(height: 12),
+                    const Text('Les anciens codes seront désactivés.'),
+                  ],
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Revenir'),
+              ),
+              FilledButton(
+                key: const ValueKey('invitation.confirm'),
+                onPressed: () => Navigator.pop(context, true),
+                child: const Text('Envoyer l’email'),
+              ),
+            ],
+          ),
+        );
+        if (confirmed != true || !mounted) return;
+      }
       await draft.beginSubmission();
       if (widget.member != null) {
         await GroupRepository(
@@ -327,7 +381,18 @@ class _GroupMemberEditorState extends State<GroupMemberEditor> {
           );
         }
       }
-      if (mounted) completeRoute(context, true);
+      if (mounted) {
+        if (widget.member == null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Invitation enregistrée pour $address. Vérifiez aussi les courriers indésirables et utilisez le dernier code reçu.',
+              ),
+            ),
+          );
+        }
+        completeRoute(context, true);
+      }
     } catch (e) {
       draft.submissionFailed();
       if (mounted) setState(() => error = SessionViewModel.message(e));

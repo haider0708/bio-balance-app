@@ -29,6 +29,7 @@ import '../team/team_screen.dart';
 import 'operation_helpers.dart';
 import 'scope_header.dart';
 import 'scope_view_model.dart';
+import 'access_setup_page.dart';
 import 'more_page.dart';
 import 'workspace_view_model.dart';
 
@@ -101,6 +102,7 @@ class _ScopeScreenState extends State<ScopeScreen> with WidgetsBindingObserver {
     listenable: Listenable.merge([scope, workspace]),
     builder: (context, _) {
       final s = scope.scope, store = s.store;
+      final needsSetup = !workspace.user.admin && scope.groups.isEmpty;
       final seller = store != null && !workspace.user.admin && !store.canManage;
       final labels = s.kind == ScopeKind.network
           ? ['Accueil', 'Groupes', 'Commandes', 'Catalogue']
@@ -153,29 +155,13 @@ class _ScopeScreenState extends State<ScopeScreen> with WidgetsBindingObserver {
             ),
           ],
         );
-      } else if (!workspace.user.admin && scope.groups.isEmpty) {
-        page = Content(
-          children: [
-            const SectionTitle('Bienvenue chez BioBalance'),
-            const Text(
-              'Votre compte est prêt. Créons votre groupe, puis votre premier magasin.',
-            ),
-            const SizedBox(height: 24),
-            if (scope.grants.isNotEmpty)
-              FilledButton(
-                onPressed: () =>
-                    run(context, () => createGroup(context, scope)),
-                child: const Text('1 · Créer mon groupe'),
-              )
-            else
-              const Notice(
-                'Aucun espace disponible. Votre responsable peut vous inviter dans son groupe.',
-              ),
-            OutlinedButton(
-              onPressed: () => run(context, scope.refresh),
-              child: const Text('Vérifier mes accès'),
-            ),
-          ],
+      } else if (needsSetup) {
+        page = AccessSetupPage(
+          email: workspace.user.email,
+          canCreateGroup: scope.grants.isNotEmpty,
+          refreshing: scope.refreshing,
+          onCreateGroup: () => run(context, () => createGroup(context, scope)),
+          onRefresh: () => run(context, scope.refresh),
         );
       } else if (scope.switching) {
         page = const Center(child: CircularProgressIndicator());
@@ -369,7 +355,7 @@ class _ScopeScreenState extends State<ScopeScreen> with WidgetsBindingObserver {
                   Expanded(
                     child: Row(
                       children: [
-                        if (wide)
+                        if (wide && !needsSetup)
                           NavigationRail(
                             extended: true,
                             selectedIndex: scope.tab,
@@ -404,7 +390,7 @@ class _ScopeScreenState extends State<ScopeScreen> with WidgetsBindingObserver {
               ),
             ),
           ),
-          bottomNavigationBar: wide
+          bottomNavigationBar: wide || needsSetup
               ? null
               : WorkspaceNavigation(
                   labels: labels,

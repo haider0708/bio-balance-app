@@ -551,3 +551,86 @@ it("serializes simultaneous recovery replacements without keeping two usable cod
   expect(rows).toHaveLength(2);
   expect(rows.filter((row) => !row.usedAt)).toHaveLength(1);
 });
+
+it("delivers a group manager's seller invitation and activates only its latest code with store-scoped access", async () => {
+  const manager = await account();
+  const group = await db.organization.create({
+    data: { name: "Seller invitation regression" },
+  });
+  const store = await db.store.create({
+    data: {
+      organizationId: group.id,
+      name: "Tunis",
+      address: "Test",
+      city: "Tunis",
+    },
+  });
+  await db.organizationMembership.create({
+    data: { organizationId: group.id, userId: manager.id },
+  });
+  const recipient = `${randomUUID()}+vendeur@example.test`;
+  const input = {
+    email: recipient,
+    kind: "salesperson" as const,
+    organizationId: group.id,
+    storeIds: [store.id],
+    permissions: ["sell", "receive"],
+  };
+  const first = await identity.invite(manager, input);
+  const oldJob = await db.job.findUniqueOrThrow({
+    where: { key: `invite:${first.id}` },
+  });
+  const latest = await identity.invite(manager, input);
+  const job = await db.job.findUniqueOrThrow({
+    where: { key: `invite:${latest.id}` },
+  });
+  const r = recorder();
+  expect(
+    await r.service.deliver(
+      { ...oldJob, payload: oldJob.payload as Record<string, string> },
+      async () => true,
+    ),
+  ).toBe("suppressed");
+  expect(
+    await r.service.deliver(
+      { ...job, payload: job.payload as Record<string, string> },
+      async () => true,
+    ),
+  ).toBe("accepted");
+  expect(r.sent).toHaveLength(1);
+  expect(r.sent[0]!.to).toBe(recipient);
+  await expect(
+    identity.activate(
+      (oldJob.payload as Record<string, string>).token!,
+      "Vendeur",
+      "seller-password",
+      randomUUID(),
+    ),
+  ).rejects.toMatchObject({ code: "INVITATION_EXPIRED" });
+  const code = (job.payload as Record<string, string>).token!;
+  await identity.activate(code, "Vendeur", "seller-password", randomUUID());
+  const session = await identity.login(
+    recipient,
+    "seller-password",
+    undefined,
+    randomUUID(),
+  );
+  expect(session.user.platformAdmin).toBe(false);
+  const memberships = await db.membership.findMany({
+    where: { userId: session.user.id },
+  });
+  expect(memberships).toHaveLength(1);
+  expect(memberships[0]).toMatchObject({
+    storeId: store.id,
+    active: true,
+    permissions: ["sell", "receive"],
+  });
+  expect(
+    await db.organizationMembership.count({
+      where: { userId: session.user.id },
+    }),
+  ).toBe(0);
+  await expect(
+    identity.activate(code, "Vendeur", "seller-password", randomUUID()),
+  ).rejects.toMatchObject({ code: "INVITATION_EXPIRED" });
+});

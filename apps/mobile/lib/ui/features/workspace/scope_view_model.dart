@@ -21,7 +21,7 @@ class ScopeViewModel extends ChangeNotifier {
   WorkspaceScope scope = const WorkspaceScope.network();
   List<PartnerGroup> groups = const [];
   List<String> grants = const [];
-  bool loading = true, switching = false, closed = false;
+  bool loading = true, switching = false, refreshing = false, closed = false;
   String? error;
   final Map<String, int> tabs = {};
   final _history = <({WorkspaceScope scope, int tab})>[];
@@ -131,38 +131,7 @@ class ScopeViewModel extends ChangeNotifier {
           .toList();
       grants = cached.grants;
       await refresh();
-      if (!workspace.user.admin) {
-        final managed = groups.where((g) => g.canManage).toList();
-        if (managed.isNotEmpty) {
-          final saved = await workspace.repository.draft(
-            workspace.user.id,
-            '',
-            'navigation',
-          );
-          scope = WorkspaceScope.group(
-            managed.where((g) => g.id == saved?['groupId']).firstOrNull ??
-                managed.first,
-          );
-        } else if (workspace.state.stores.any(_available)) {
-          final saved = await workspace.repository.draft(
-            workspace.user.id,
-            '',
-            'selection',
-          );
-          final store =
-              workspace.state.stores
-                  .where((s) => _available(s) && s.id == saved?['storeId'])
-                  .firstOrNull ??
-              workspace.state.stores.firstWhere(_available);
-          final group = groups
-              .where((g) => g.id == store.organizationId)
-              .firstOrNull;
-          if (group != null) {
-            scope = WorkspaceScope.store(group, store);
-            await workspace.select(store);
-          }
-        }
-      }
+      await _openFirstWorkspace();
     } catch (e) {
       error = SessionViewModel.message(e);
     } finally {
@@ -171,8 +140,54 @@ class ScopeViewModel extends ChangeNotifier {
     }
   }
 
-  Future<void> refresh() =>
-      _refreshing ??= _refresh().whenComplete(() => _refreshing = null);
+  Future<void> _openFirstWorkspace() async {
+    // A newly granted workspace must open after refresh, while an existing
+    // workspace and its navigation history remain undisturbed.
+    if (closed || workspace.user.admin || scope.kind != ScopeKind.network) {
+      return;
+    }
+    final epoch = _accessEpoch;
+    final managed = groups.where((g) => g.canManage).toList();
+    final saved = await workspace.repository.draft(
+      workspace.user.id,
+      '',
+      managed.isNotEmpty ? 'navigation' : 'selection',
+    );
+    if (closed || epoch != _accessEpoch || scope.kind != ScopeKind.network) {
+      return;
+    }
+    workspace.repositoryContext.check();
+    if (managed.isNotEmpty) {
+      final group =
+          managed.where((g) => g.id == saved?['groupId']).firstOrNull ??
+          managed.first;
+      await _switch(WorkspaceScope.group(group), remember: false);
+      return;
+    }
+    final assigned = workspace.state.stores.where(_available).toList();
+    if (assigned.isEmpty) return;
+    final store =
+        assigned.where((s) => s.id == saved?['storeId']).firstOrNull ??
+        assigned.first;
+    final group = groups.where((g) => g.id == store.organizationId).firstOrNull;
+    if (group != null) {
+      await _switch(WorkspaceScope.store(group, store), remember: false);
+    }
+  }
+
+  Future<void> refresh() {
+    if (closed) return Future.value();
+    if (_refreshing != null) return _refreshing!;
+    refreshing = true;
+    final pending = _refresh().whenComplete(() {
+      _refreshing = null;
+      refreshing = false;
+      if (!closed) notifyListeners();
+    });
+    _refreshing = pending;
+    notifyListeners();
+    return pending;
+  }
 
   Future<void> _refresh() async {
     final epoch = _accessEpoch;
@@ -209,6 +224,7 @@ class ScopeViewModel extends ChangeNotifier {
               : WorkspaceScope.store(updated, scope.store!);
         }
       }
+      await _openFirstWorkspace();
       error = null;
     } catch (e) {
       error = SessionViewModel.message(e);

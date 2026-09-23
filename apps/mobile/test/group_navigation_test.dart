@@ -23,8 +23,10 @@ import 'ui_test.dart' show screenshot;
 
 class ScopeApi extends ApiClient {
   bool offlineGroups = false;
+  Future<GroupListResponseDto>? groupResponse;
   @override
   Future<GroupListResponseDto> groupList({String? after, String? search}) {
+    if (groupResponse != null) return groupResponse!;
     if (offlineGroups) {
       throw DioException(
         requestOptions: RequestOptions(path: '/v1/groups'),

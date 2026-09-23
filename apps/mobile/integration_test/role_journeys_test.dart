@@ -273,8 +273,9 @@ class Journey {
     await t.pumpAndSettle();
   }
 
-  Future<void> editorSave() async {
+  Future<void> editorSave({bool invitation = false}) async {
     await tapKey('editor.save');
+    if (invitation) await tapKey('invitation.confirm');
     await until(
       () => key('editor.save').evaluate().isEmpty,
       reason: 'editor saved',
@@ -285,7 +286,7 @@ class Journey {
 
   Future<void> receipt(String batch, String quantity) async {
     await tap('Ajouter un produit et un lot');
-    await tap(product);
+    await chooseSaleProduct(product);
     await fill('field.quantity', quantity);
     await fill('field.batch', batch);
     await fill('field.expiry', '12/2030');
@@ -352,7 +353,7 @@ void main() {
       'Responsable parcours',
     );
     await j.login(manager);
-    await j.tap('1 · Créer mon groupe');
+    await j.tap('Créer mon groupe');
     await j.fill('field.name', 'Partenaire parcours');
     await j.editorSave();
     await j.tap('Ajouter');
@@ -410,7 +411,7 @@ void main() {
     await j.tap('Inviter');
     await j.fill('field.email', seller);
     await j.tap(store);
-    await j.editorSave();
+    await j.editorSave(invitation: true);
     await j.nav('Plus');
     await j.tap('Guide de configuration');
     await j.until(
@@ -427,7 +428,7 @@ void main() {
     await j.nav('Commandes');
     await j.tap('Nouvelle commande');
     await j.tap('Ajouter un produit');
-    await j.tap(product);
+    await j.chooseSaleProduct(product);
     await j.fillLabel('Unités à commander', '5');
     await j.tap('Envoyer la commande');
     await j.until(

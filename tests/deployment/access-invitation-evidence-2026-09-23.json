@@ -1,0 +1,40 @@
+{
+  "schema": 1,
+  "date": "2026-09-23",
+  "version": "1.1.6+10",
+  "scope": "Responsible setup, access refresh and seller invitation clarity",
+  "databaseReset": false,
+  "backendRuntimeChanges": false,
+  "migrations": false,
+  "liveSellerCheck": {
+    "recipientConfirmedByOwner": true,
+    "smtpAccepted": true,
+    "activated": true,
+    "activeSessionObserved": true,
+    "authorizedStoreCount": 1,
+    "inboxPlacementVerified": false
+  },
+  "validation": {
+    "flutterAnalysis": "passed",
+    "flutterTests": {
+      "passed": 261,
+      "skipped": 4
+    },
+    "emailTests": {
+      "passed": 16,
+      "database": "isolated PostgreSQL"
+    },
+    "androidRoleJourney": {
+      "passed": true,
+      "physicalDevice": false,
+      "database": "isolated PostgreSQL",
+      "initialHarnessIssue": "Product below keyboard; use product search before selection"
+    },
+    "visualReview": "docs/screenshots/responsible-access-setup.png"
+  },
+  "builds": [],
+  "installation": {
+    "status": "pending wireless ADB connection",
+    "preserveData": true
+  }
+}

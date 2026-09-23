@@ -80,3 +80,9 @@ La capture mensuelle est désormais produite par `chart_exploration_test.dart`. 
 - [Paramètres magasin](screenshots/settings-store.png) : réglages et permissions conservés.
 
 La file réelle du Samsung a été observée via sa hiérarchie d’accessibilité. La protection de capture du build signé reste active.
+
+## Accès et invitations 1.1.6
+
+- [Premier accès du responsable](screenshots/responsible-access-setup.png) : compte déjà activé, création du groupe prioritaire, puis actualisation des accès dans une section distincte. Le réseau et ses onglets ne sont pas présentés à un compte sans groupe.
+- `access_setup_test.dart` vérifie les deux actions indépendantes, le vendeur sans magasin, la confirmation d’invitation et les formats 360×640 / 640×360 à 100 % / 200 %. L’actualisation ouvre le groupe ou le magasin nouvellement autorisé, sans remplacer un espace déjà ouvert.
+- La capture utilise une adresse fictive. L’installation Samsung de cette candidate est suivie séparément de la revue des widgets.

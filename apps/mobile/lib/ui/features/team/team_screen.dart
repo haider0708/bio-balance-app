@@ -135,7 +135,7 @@ class _GroupTeamPageState extends State<GroupTeamPage> {
             subtitle: item['kind'] == 'responsible'
                 ? 'Responsable du groupe'
                 : 'Vendeur',
-            footer: const StatusChip('Invitation envoyée'),
+            footer: const StatusChip('En attente d’activation'),
             icon: AppIcons.mailOutline,
             onTap: () => edit(null, item),
           ),

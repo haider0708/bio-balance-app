@@ -41,7 +41,10 @@ class ScopeHeader extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      vm.scope.group?.name ?? 'Tous les groupes',
+                      vm.scope.group?.name ??
+                          (vm.workspace.user.admin
+                              ? 'Tous les groupes'
+                              : 'Mon espace'),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(

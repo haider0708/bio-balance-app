@@ -33,6 +33,14 @@ Exécuter ces commandes séquentiellement. Le script vérifie chaque package, si
 
 Aucun groupe, stock, lot, vente ou compte d’équipe n’est précréé. Les références produit sans code-barres et les tarifs de démonstration restent identifiés dans le catalogue.
 
+## Création du groupe et actualisation des accès
+
+Une fois l’invitation activée, le compte existe déjà. **Créer mon groupe** prépare l’activité du premier responsable ; **Actualiser mes accès** recherche les groupes/magasins qu’un responsable vient d’attribuer. Cette seconde action ne crée pas de compte et n’envoie pas d’email. Les deux actions sont présentées dans des sections distinctes. Le vendeur sans magasin voit une explication adaptée, sans création de groupe ni navigation d’administrateur.
+
+Avant d’envoyer ou de renvoyer une invitation d’équipe, vérifier l’adresse exacte, le rôle et les magasins dans la confirmation. Le destinataire utilise **Activer mon invitation**, avec le code du dernier email, puis se connecte avec le mot de passe qu’il a choisi. Un renvoi remplace les anciens codes ; il ne faut pas renvoyer après activation pour tenter de se connecter. Les invitations encore inutilisées portent le statut **En attente d’activation**.
+
+Si l’email manque, vérifier les courriers indésirables et l’adresse complète. Un message accepté par le serveur SMTP n’est pas une preuve de placement dans la boîte de réception. Un compte déjà activé utilise la connexion ou la récupération de mot de passe.
+
 ## Réinitialisation de données de test
 
 `scripts/reset-business-keep-catalog.sql` est une procédure de maintenance destructive, hors API. Elle exige une sauvegarde vérifiée, un administrateur existant, le nombre attendu de produits et une confirmation explicite. Répéter d’abord sur une restauration isolée ; arrêter seulement les API/workers BioBalance pendant le reset réel.
