@@ -339,9 +339,9 @@ export class IdentityService {
         });
         requireRule(
           group?.status === "active",
-          "GROUP_ACCESS_REVOKED",
+          "WORKSPACE_INACTIVE",
           "Ce groupe n’est pas actif. Réactivez-le avant d’inviter une personne.",
-          403,
+          409,
         );
       }
       const storeIds = [...new Set(input.storeIds ?? [])];

@@ -353,7 +353,7 @@ it("does not issue unusable invitations into a suspended group or store", async 
       email: `${randomUUID()}@example.test`,
       permissions: [],
     }),
-  ).rejects.toMatchObject({ code: "GROUP_ACCESS_REVOKED" });
+  ).rejects.toMatchObject({ code: "WORKSPACE_INACTIVE" });
   const closedStore = (
     await owner.store.create({
       data: {
