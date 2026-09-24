@@ -86,3 +86,10 @@ La file réelle du Samsung a été observée via sa hiérarchie d’accessibilit
 - [Premier accès du responsable](screenshots/responsible-access-setup.png) : compte déjà activé, création du groupe prioritaire, puis actualisation des accès dans une section distincte. Le réseau et ses onglets ne sont pas présentés à un compte sans groupe.
 - `access_setup_test.dart` vérifie les deux actions indépendantes, le vendeur sans magasin, la confirmation d’invitation et les formats 360×640 / 640×360 à 100 % / 200 %. L’actualisation ouvre le groupe ou le magasin nouvellement autorisé, sans remplacer un espace déjà ouvert.
 - La capture utilise une adresse fictive. L’installation Samsung de cette candidate est suivie séparément de la revue des widgets.
+
+## Parcours opérationnels 1.1.7
+
+- [Suspension et archivage](screenshots/refinement-lifecycle.png) : périmètre, impact, motif et confirmation explicite ; actions maintenues au-dessus du clavier.
+- [Réception et état physique](screenshots/refinement-receipt.png) : unités vendables, abîmées ou refusées, lots/péremption et explication des différences.
+- Les notifications affichent leur groupe et magasin ; les commandes séparent préparation, transit, problèmes et clôture. Les alertes ouvrent leur problème exact.
+- Les captures sont issues de fixtures Flutter. Admin et Responsable ont également été ouverts sur le Samsung après installation 1.1.7, sans effacer leurs comptes. Cela ne constitue pas une mesure de performance ni une qualification physique iOS.

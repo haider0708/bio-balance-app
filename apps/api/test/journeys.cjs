@@ -100,9 +100,9 @@ const owner = new PrismaClient({
         orderBy: { createdAt: "desc" },
       });
       return (
-        job?.payload.token ?? job?.payload.text?.match(
-          / : ([\w-]{43})\./,
-        )?.[1] ?? null
+        job?.payload.token ??
+        job?.payload.text?.match(/ : ([\w-]{43})\./)?.[1] ??
+        null
       );
     };
     const product = await owner.product.findUnique({
@@ -138,6 +138,11 @@ const owner = new PrismaClient({
         : [],
       deliveries: store
         ? await owner.delivery.findMany({ where: { storeId: store.id } })
+        : [],
+      orders: store
+        ? await owner.replenishmentOrder.findMany({
+            where: { storeId: store.id },
+          })
         : [],
       revisions: store
         ? await owner.saleRevision.count({ where: { storeId: store.id } })

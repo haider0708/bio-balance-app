@@ -314,7 +314,8 @@ class Journey {
     String reason,
   ) async {
     var success = false;
-    for (var i = 0; i < 50; i++) {
+    final deadline = DateTime.now().add(const Duration(seconds: 45));
+    while (DateTime.now().isBefore(deadline)) {
       if (check(await state())) {
         success = true;
         break;
@@ -407,6 +408,12 @@ void main() {
     await j.back();
     await j.tap('Entrée de stock');
     await j.receipt('OPENING', '20');
+    await j.verifyState(
+      (s) => (s['lots'] as List).any(
+        (lot) => lot['batch'] == 'OPENING' && lot['sellable'] == 20,
+      ),
+      'opening stock accepted by the server',
+    );
     await j.nav('Équipe');
     await j.tap('Inviter');
     await j.fill('field.email', seller);
@@ -436,6 +443,10 @@ void main() {
       reason: 'order editor closed',
     );
     await j.ready();
+    await j.verifyState(
+      (s) => (s['orders'] as List).length == 1,
+      'order accepted before the administrator prepares it',
+    );
     await j.logout();
     debugPrint('JOURNEY: admin dispatch');
     await j.login(admin);
@@ -466,6 +477,17 @@ void main() {
     await tester.tap(deliveryText.first);
     await tester.pumpAndSettle();
     await j.receipt('DELIVERY', '5');
+    // Closing the editor confirms a durable local receipt, not server acceptance.
+    // Keep its account signed in until synchronization commits the stock that
+    // the next account must see. An idle UI can fall between two sync passes.
+    await j.verifyState(
+      (s) =>
+          (s['deliveries'] as List).single['status'] == 'received' &&
+          (s['lots'] as List).any(
+            (lot) => lot['batch'] == 'DELIVERY' && lot['sellable'] == 5,
+          ),
+      'physical reception accepted before the salesperson uses its stock',
+    );
     await j.back();
     await j.logout();
     debugPrint('JOURNEY: seller activation, sale, correction and return');

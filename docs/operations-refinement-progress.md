@@ -1,6 +1,6 @@
 # Operational refinements — implementation record
 
-Candidate: **1.1.7+11**. Implementation is complete locally; deployment, signed installation and the live reset remain pending until the checks below finish. This record is updated with execution evidence before handover.
+Candidate: **1.1.7+11**. The backend and migrations are deployed; all three signed Android installations are updated. The live reset remains pending final journey checks and reconnection of the Samsung. This record is updated with execution evidence before handover.
 
 ## Approved reset and preservation
 
@@ -48,3 +48,10 @@ Full Flutter rerun after presentation review: **267 passed**, analyzer clean. Th
 The native Android restart harness passed: force-stop/relaunch preserves the account, original outbox ID and payload; one accepted sale yields stock 7/version 3 and 30 points. A downloaded, integrity-verified H.264 training video plays offline on Android. Generated contract drift check passed. These are emulator results; they do not claim reference-device performance measurements.
 
 Implementation commit `505795b` contains the backend and migrations. Backend images were built from that commit; subsequent changes are mobile presentation and evidence only. CI run `35919781530` passed backend and iOS checks while Android checks continued. Final CI outcome, deployment and phone/reset results are recorded in the handover evidence.
+
+## Deployment and installation checkpoint
+
+- Backend image `biobalance-api:505795b` and media image `biobalance-media:505795b` run on the existing VPS. All eight BioBalance services are healthy; 23 migrations applied. The application database role remains non-superuser with no RLS bypass, and DeliveryIssue uses forced row-level security. HTTPS health returns 200; unauthenticated protected endpoints return 401.
+- Signed APK/AAB sets for Admin, Responsable and Vendeur were built from clean source `471a2cc` with version **1.1.7+11**. All three were installed over the Samsung copies; package UIDs and app data were retained. Admin and Responsable workspace launches passed before the phone disconnected. Vendeur launch and the final cache reset await reconnection.
+- CI run `35920326511` passed backend, Android analysis/build and unsigned iOS compilation. The Android role journey exposed an account-switch timing assumption: a locally saved receipt was not necessarily synchronized before logging out. The test now asserts authoritative opening stock, order acceptance and physical reception before dependent cross-account work. The business effects and permissions assertions remain unchanged; the amended journey is being rerun.
+- No live business data has been cleared at this checkpoint. [Manual retest instructions](manual-retest-1.1.7.md) describe the intended clean setup after the authorized reset.
