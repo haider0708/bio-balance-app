@@ -1,6 +1,6 @@
 # BioBalance 1.1.7 — reprise des tests manuels
 
-**État du 24 septembre :** le serveur est remis à zéro et les trois copies sont installées en 1.1.7. Le Samsung doit être reconnecté pour effacer uniquement leurs anciens caches et vérifier les écrans de connexion avant de reprendre ce parcours.
+**État du 24 septembre :** le serveur est remis à zéro, les trois copies 1.1.7 ont leurs anciens caches effacés et leurs écrans de connexion ont été vérifiés sur le Samsung. Responsable est ouvert ; vous pouvez commencer ce parcours.
 
 Les mots de passe existants restent valables. L’authentification MFA administrateur reste dans votre application d’authentification. Les trois copies BioBalance ont des sessions séparées et utilisent le même backend.
 

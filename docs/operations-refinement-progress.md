@@ -1,6 +1,6 @@
 # Operational refinements — implementation record
 
-Version **1.1.7+11** is deployed and installed in all three Samsung copies. All four CI jobs passed. The live server reset is complete: accounts, credentials, MFA and catalog were preserved. **Phone-cache clearing and the post-reset physical login check remain pending because the Samsung disconnected.** Do not report those two checks as passed.
+Version **1.1.7+11** is deployed and installed in all three Samsung copies. All four CI jobs passed. The live server reset is complete: accounts, credentials, MFA and catalog were preserved. **All three phone caches are now cleared and all three fresh login screens have been verified on the Samsung.** Responsable was left open for manual testing.
 
 ## Approved reset and preservation
 
@@ -37,9 +37,11 @@ Legacy v1/v2 queued envelopes and accepted results remain readable. An old zero-
 - Android role journeys: **2 passed**, with actual database effects for all three roles, manager-only reception, seller corrections/returns, reward handover, announcements and access removal while editing.
 - Manual screenshot review: orders, notifications, store access settings, order editor and stock entry are readable at phone width; layout tests include landscape/200% text. Lifecycle and mixed-condition receipt captures were also reviewed; form actions now remain above the keyboard.
 
-## Remaining physical checks
+## Phone reset completed
 
-Reconnect the authorized Samsung `R58MA0MRF8D` and clear only `tn.biobalance.app`, `tn.biobalance.app.responsable` and `tn.biobalance.app.vendeur`. Do not repeat the server reset. Verify fresh login screens and leave the responsible account ready to restart onboarding. Authenticator and other applications must remain untouched. Physical iOS, public store publishing, off-server backup and HA remain outside this update.
+The authorized Samsung `R58MA0MRF8D` reconnected through wireless debugging. Only `tn.biobalance.app`, `tn.biobalance.app.responsable` and `tn.biobalance.app.vendeur` were cleared. All three 1.1.7 installations then showed fresh login screens without generic errors. Responsable was left open. Authenticator and other application data were untouched; the server reset was not repeated.
+
+Physical iOS, public store publishing, off-server backup and HA remain outside this update.
 
 ## Final local checks
 
@@ -74,7 +76,7 @@ Implementation commit `505795b` contains the backend and migrations. Backend ima
 - API/workers restarted and Nginx reloaded. Public HTTPS probes with curl returned `/health` **200**, `/v1/groups` **401** and `/v1/notification-inbox` **401** without authentication. An initial Python-default-agent probe was rejected by Cloudflare with code 1010; no edge policy was weakened.
 - Backup and monitoring timers are active. Temporary databases/media from both restore exercises were removed by their exact recorded names; verified backup sets remain subject to existing bounded retention. Backup storage was **12 MB** after the exercise.
 
-### Samsung installation and outstanding cache clearing
+### Samsung installation and completed cache clearing
 
 All three signed APKs were installed over the existing applications with package UIDs/data preserved, before resetting the server:
 
@@ -84,6 +86,6 @@ All three signed APKs were installed over the existing applications with package
 | Responsable | 1.1.7+11 | `1d8e2f5a0f9006a11f3410574e295205b1a3a4f8acf2dad16d96c07efa58b017` |
 | Vendeur | 1.1.7+11 | `bc805976366956cfdd72d581bb1dd86fdf276b79ad6b05d2d578c0322b6d7137` |
 
-Admin and Responsable workspace launches were observed on the Samsung before disconnection. Vendeur installation/version checks passed, but its physical launch and all three post-reset cache/login checks remain pending. No phone data or Authenticator state has been cleared in this update yet. The retained old server sessions can no longer submit operations.
+Admin and Responsable workspace launches were observed before the server reset. After the Samsung reconnected, all three BioBalance copies were cleared and their fresh login screens were observed. All remained on 1.1.7+11. Authenticator and other apps were untouched. Evidence: `.artifacts/operational-refinements/phone-reset.json` and `phone-after-reset.json`. The server reset was not repeated; accounts, credentials, MFA and products remain preserved.
 
 [Manual retest guide](manual-retest-1.1.7.md). The existing responsible account can create a new group; the existing seller must receive a new store assignment/invitation and use the same password when activating it. No sample stock or sales are recreated automatically.
