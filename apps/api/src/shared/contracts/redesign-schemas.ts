@@ -205,10 +205,18 @@ export const redesignSchemas: Record<string, Schema> = {
     items: arr(ref("ScopedOrder")),
     nextCursor: nullable(uuid),
   }),
+  OrderProblem: obj({
+    id: uuid,
+    message: str,
+    active: { type: "boolean" },
+    createdAt: timestamp,
+    resolvedAt: nullable(timestamp),
+  }),
   ScopedOrderDetails: obj(
     {
       order: ref("ScopedOrder"),
       issues: arr(ref("DeliveryIssue")),
+      problem: nullable(ref("OrderProblem")),
       history: arr(
         obj({
           id: uuid,

@@ -1,4 +1,4 @@
-import { Prisma } from "@prisma/client";
+import { Prisma, ReplenishmentOrder } from "@prisma/client";
 import { OrderFulfillment, FulfillmentLine } from "../domain/order-fulfillment";
 
 /** Uses actual receipts once received; a dispatched parcel still reserves supply. */
@@ -107,5 +107,46 @@ export async function outstandingSupply(
   return rows.map((row) => ({
     productId: row.productId,
     quantity: Number(row.quantity),
+  }));
+}
+
+/** Every snapshot page carries the same fulfillment and unresolved-problem data. */
+export async function orderSummaries(
+  tx: Prisma.TransactionClient,
+  organizationId: string,
+  storeId: string,
+  orders: ReplenishmentOrder[],
+) {
+  if (!orders.length) return [];
+  const ids = orders.map((order) => order.id);
+  const [fulfillment, issues, problems] = await Promise.all([
+    orderFulfillment(tx, organizationId, storeId, orders),
+    tx.deliveryIssue.groupBy({
+      by: ["orderId"],
+      where: {
+        organizationId,
+        storeId,
+        orderId: { in: ids },
+        status: { not: "resolved" },
+      },
+      _count: true,
+    }),
+    tx.alert.findMany({
+      where: {
+        organizationId,
+        storeId,
+        kind: "order_problem",
+        active: true,
+        key: { in: ids.map((id) => `order:${id}`) },
+      },
+      select: { key: true },
+    }),
+  ]);
+  const counts = new Map(issues.map((issue) => [issue.orderId, issue._count]));
+  const active = new Set(problems.map((problem) => problem.key.slice(6)));
+  return orders.map((order) => ({
+    ...order,
+    fulfillment: fulfillment.get(order.id),
+    openIssues: (counts.get(order.id) ?? 0) + (active.has(order.id) ? 1 : 0),
   }));
 }

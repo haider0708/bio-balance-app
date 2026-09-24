@@ -107,42 +107,36 @@ class _InvitationsScreenState extends State<InvitationsScreen> {
             );
           }
           final item = model.items[index];
-          return CompactRow(
-            title: item.email,
-            subtitle:
-                '${item.roleLabel}\n${item.status == 'accepted' ? 'Activée le ${TunisDates.timestampLabel(item.acceptedAt ?? item.expiresAt)}' : 'Validité : ${TunisDates.timestampLabel(item.expiresAt)}'}',
-            icon: AppIcons.mailOutline,
-            footer: StatusChip(
-              item.statusLabel,
-              tone: switch (item.status) {
-                'accepted' => AppTone.success,
-                'pending' => AppTone.info,
-                'expired' => AppTone.warning,
-                'revoked' => AppTone.danger,
-                _ => AppTone.info,
-              },
-              icon: item.status == 'accepted'
-                  ? AppIcons.checkCircleOutline
-                  : item.status == 'pending'
-                  ? AppIcons.mailOutline
-                  : AppIcons.infoOutline,
-            ),
+          return InvitationRow(
+            item: item,
             onTap: model.busy || model.loading ? null : () => inspect(item),
           );
         },
         children: [
-          SectionTitle(
-            widget.group?.name ?? 'Invitations de responsables',
-            subtitle: widget.group == null
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Expanded(
+                child: Text(
+                  widget.group?.name ?? 'Responsables invités',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+              ),
+              const SizedBox(width: 8),
+              TextButton.icon(
+                onPressed: model.busy || model.loading ? null : invite,
+                icon: const Icon(AppIcons.personAddAlt),
+                label: const Text('Inviter'),
+              ),
+            ],
+          ),
+          Text(
+            widget.group == null
                 ? 'Accès pour créer un groupe partenaire.'
-                : 'Suivez les accès accordés dans ce groupe.',
+                : 'Invitations et accès de votre équipe.',
+            style: Theme.of(context).textTheme.bodySmall,
           ),
-          FilledButton.icon(
-            onPressed: model.busy || model.loading ? null : invite,
-            icon: const Icon(AppIcons.personAddAlt),
-            label: const Text('Nouvelle invitation'),
-          ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
           SwitchListTile.adaptive(
             contentPadding: EdgeInsets.zero,
             title: const Text('Afficher les invitations retirées'),
@@ -263,4 +257,71 @@ class _InvitationsScreenState extends State<InvitationsScreen> {
       );
     }
   }
+}
+
+class InvitationRow extends StatelessWidget {
+  final Invitation item;
+  final VoidCallback? onTap;
+  const InvitationRow({super.key, required this.item, this.onTap});
+  @override
+  Widget build(BuildContext context) => Column(
+    children: [
+      InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Padding(
+                padding: EdgeInsets.only(top: 3),
+                child: Icon(AppIcons.mailOutline, size: 22, color: darkGreen),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      item.email,
+                      style: const TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      item.roleLabel,
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                    const SizedBox(height: 6),
+                    Wrap(
+                      spacing: 10,
+                      runSpacing: 6,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        StatusChip(
+                          item.statusLabel,
+                          tone: switch (item.status) {
+                            'accepted' => AppTone.success,
+                            'expired' => AppTone.warning,
+                            'revoked' => AppTone.danger,
+                            _ => AppTone.info,
+                          },
+                        ),
+                        Text(
+                          '${item.status == 'accepted' ? 'Activée' : 'Validité'} : ${TunisDates.timestampLabel(item.acceptedAt ?? item.expiresAt).split(' ').first}',
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              const Icon(AppIcons.chevronRight, size: 20, color: muted),
+            ],
+          ),
+        ),
+      ),
+      const Divider(height: 1),
+    ],
+  );
 }

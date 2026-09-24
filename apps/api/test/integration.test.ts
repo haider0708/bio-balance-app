@@ -210,7 +210,7 @@ describe.sequential("group redesign and reporting projections", () => {
         role: "responsible",
         storeIds: [],
       }),
-    ).rejects.toMatchObject({ code: "LAST_RESPONSIBLE" });
+    ).rejects.toMatchObject({ code: "SELF_ACCESS_CHANGE" });
     await expect(
       identity.invite(actor, {
         email,
@@ -311,7 +311,7 @@ describe.sequential("group redesign and reporting projections", () => {
         role: "responsible",
         storeIds: [],
       }),
-    ).rejects.toMatchObject({ code: "LAST_RESPONSIBLE" });
+    ).rejects.toMatchObject({ code: "SELF_ACCESS_CHANGE" });
   });
   it("keeps net sales on their original Tunisian day after returns, corrections and repeated commands", async () => {
     const receipt = envelope({

@@ -4041,11 +4041,49 @@ final class OrderPageDto {
   };
 }
 
+final class OrderProblemDto {
+  final Set<String> _presentFields;
+  Set<String> get presentFields => _presentFields;
+  final String id;
+  final String message;
+  final bool active;
+  final String createdAt;
+  final String? resolvedAt;
+  OrderProblemDto({
+    Set<String> presentFields = const {},
+    required this.id,
+    required this.message,
+    required this.active,
+    required this.createdAt,
+    required this.resolvedAt,
+  }) : _presentFields = Set.unmodifiable(presentFields);
+  factory OrderProblemDto.fromJson(Map<String, dynamic> json) {
+    return OrderProblemDto(
+      presentFields: json.keys.toSet(),
+      id: json["id"] as String,
+      message: json["message"] as String,
+      active: json["active"] as bool,
+      createdAt: json["createdAt"] as String,
+      resolvedAt: json["resolvedAt"] == null
+          ? null
+          : json["resolvedAt"] as String,
+    );
+  }
+  Map<String, dynamic> toJson() => {
+    "id": id,
+    "message": message,
+    "active": active,
+    "createdAt": createdAt,
+    "resolvedAt": resolvedAt,
+  };
+}
+
 final class ScopedOrderDetailsDto {
   final Set<String> _presentFields;
   Set<String> get presentFields => _presentFields;
   final ScopedOrderDto order;
   final List<DeliveryIssueDto>? issues;
+  final OrderProblemDto? problem;
   final List<ScopedOrderDetailsHistoryItemDto>? history;
   final List<DeliveryDto> deliveries;
   final List<DeliveryReceiptDto>? receipts;
@@ -4054,6 +4092,7 @@ final class ScopedOrderDetailsDto {
     Set<String> presentFields = const {},
     required this.order,
     List<DeliveryIssueDto>? issues,
+    this.problem,
     List<ScopedOrderDetailsHistoryItemDto>? history,
     required List<DeliveryDto> deliveries,
     List<DeliveryReceiptDto>? receipts,
@@ -4080,6 +4119,11 @@ final class ScopedOrderDetailsDto {
                   Map<String, dynamic>.from(item as Map),
                 ),
               ),
+            ),
+      problem: json["problem"] == null
+          ? null
+          : OrderProblemDto.fromJson(
+              Map<String, dynamic>.from(json["problem"] as Map),
             ),
       history: json["history"] == null
           ? null
@@ -4120,6 +4164,8 @@ final class ScopedOrderDetailsDto {
     "order": order.toJson(),
     if (issues != null || _presentFields.contains("issues"))
       "issues": issues?.map((item) => item.toJson()).toList(),
+    if (problem != null || _presentFields.contains("problem"))
+      "problem": problem?.toJson(),
     if (history != null || _presentFields.contains("history"))
       "history": history?.map((item) => item.toJson()).toList(),
     "deliveries": deliveries.map((item) => item.toJson()).toList(),
@@ -4256,6 +4302,12 @@ sealed class CommandDto {
     }
     if (matchesWire(json, "CommandOrderCancel")) {
       return CommandOrderCancelDto.fromJson(json as Map<String, dynamic>);
+    }
+    if (matchesWire(json, "CommandOrderReport")) {
+      return CommandOrderReportDto.fromJson(json as Map<String, dynamic>);
+    }
+    if (matchesWire(json, "CommandOrderResolve")) {
+      return CommandOrderResolveDto.fromJson(json as Map<String, dynamic>);
     }
     if (matchesWire(json, "CommandDeliveryReport")) {
       return CommandDeliveryReportDto.fromJson(json as Map<String, dynamic>);
@@ -6973,6 +7025,64 @@ final class CommandOrderCancelDto implements CommandDto {
   @override
   Map<String, dynamic> toJson() => {
     "type": "order.cancel",
+    "orderId": orderId,
+    "reason": reason,
+  };
+}
+
+final class CommandOrderReportDto implements CommandDto {
+  final Set<String> _presentFields;
+  Set<String> get presentFields => _presentFields;
+  String get type => "order.report";
+  final String orderId;
+  final String reason;
+  CommandOrderReportDto({
+    Set<String> presentFields = const {},
+    required this.orderId,
+    required this.reason,
+  }) : _presentFields = Set.unmodifiable(presentFields);
+  factory CommandOrderReportDto.fromJson(Map<String, dynamic> json) {
+    if (json["type"] != "order.report") {
+      throw const FormatException("Invalid CommandOrderReport type");
+    }
+    return CommandOrderReportDto(
+      presentFields: json.keys.toSet(),
+      orderId: json["orderId"] as String,
+      reason: json["reason"] as String,
+    );
+  }
+  @override
+  Map<String, dynamic> toJson() => {
+    "type": "order.report",
+    "orderId": orderId,
+    "reason": reason,
+  };
+}
+
+final class CommandOrderResolveDto implements CommandDto {
+  final Set<String> _presentFields;
+  Set<String> get presentFields => _presentFields;
+  String get type => "order.resolve";
+  final String orderId;
+  final String reason;
+  CommandOrderResolveDto({
+    Set<String> presentFields = const {},
+    required this.orderId,
+    required this.reason,
+  }) : _presentFields = Set.unmodifiable(presentFields);
+  factory CommandOrderResolveDto.fromJson(Map<String, dynamic> json) {
+    if (json["type"] != "order.resolve") {
+      throw const FormatException("Invalid CommandOrderResolve type");
+    }
+    return CommandOrderResolveDto(
+      presentFields: json.keys.toSet(),
+      orderId: json["orderId"] as String,
+      reason: json["reason"] as String,
+    );
+  }
+  @override
+  Map<String, dynamic> toJson() => {
+    "type": "order.resolve",
     "orderId": orderId,
     "reason": reason,
   };

@@ -284,9 +284,17 @@ class Journey {
     await ready();
   }
 
-  Future<void> receipt(String batch, String quantity) async {
-    await tap('Ajouter un produit et un lot');
-    await chooseSaleProduct(product);
+  Future<void> receipt(
+    String batch,
+    String quantity, {
+    bool shipment = false,
+  }) async {
+    if (shipment) {
+      await tap('Saisir le lot reçu');
+    } else {
+      await tap('Ajouter un produit et un lot');
+      await chooseSaleProduct(product);
+    }
     await fill('field.quantity', quantity);
     await fill('field.batch', batch);
     await fill('field.expiry', '12/2030');
@@ -476,7 +484,7 @@ void main() {
     await j.seek(deliveryText);
     await tester.tap(deliveryText.first);
     await tester.pumpAndSettle();
-    await j.receipt('DELIVERY', '5');
+    await j.receipt('DELIVERY', '5', shipment: true);
     // Closing the editor confirms a durable local receipt, not server acceptance.
     // Keep its account signed in until synchronization commits the stock that
     // the next account must see. An idle UI can fall between two sync passes.

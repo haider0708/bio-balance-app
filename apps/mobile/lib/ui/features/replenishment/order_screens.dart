@@ -133,7 +133,15 @@ class _StoreOrdersListState extends State<_StoreOrdersList> {
         return const Content(children: [Notice('Choisissez un magasin.')]);
       }
       final orders = (vm.state.data?.list('orders') ?? [])
-          .where(section.contains)
+          .where(
+            (order) => section == OrderSection.transit
+                ? (vm.state.data?.list('deliveries') ?? []).any(
+                    (delivery) =>
+                        delivery['orderId'] == order['id'] &&
+                        delivery['status'] == 'dispatched',
+                  )
+                : section.contains(order),
+          )
           .toList();
       return Content.builder(
         itemCount: orders.length,
@@ -202,7 +210,13 @@ class _StoreOrdersListState extends State<_StoreOrdersList> {
 class OrderEditor extends StatefulWidget {
   final WorkspaceViewModel vm;
   final String? initialProductId;
-  const OrderEditor({super.key, required this.vm, this.initialProductId});
+  final Widget? storeSelector;
+  const OrderEditor({
+    super.key,
+    required this.vm,
+    this.initialProductId,
+    this.storeSelector,
+  });
   @override
   State<OrderEditor> createState() => _OrderEditorState();
 }
@@ -301,10 +315,17 @@ class _OrderEditorState extends State<OrderEditor> {
       child: Text(busy ? 'Transmission…' : 'Envoyer la commande'),
     ),
     children: [
-      StatusChip(store.name, icon: AppIcons.storefrontOutlined),
+      widget.storeSelector ??
+          StatusChip(store.name, icon: AppIcons.storefrontOutlined),
       const SizedBox(height: 16),
-      const Notice(
-        'Brouillon conservé sur ce téléphone. Les quantités en attente comprennent les commandes à préparer et les livraisons en route. Une connexion est nécessaire pour envoyer.',
+      const Text(
+        'Demandez les quantités nécessaires à BioBalance. Le stock sera ajouté uniquement à la réception.',
+        style: TextStyle(fontSize: 14, color: muted),
+      ),
+      const SizedBox(height: 8),
+      const Text(
+        'Brouillon sauvegardé · connexion nécessaire pour envoyer',
+        style: TextStyle(fontSize: 14, color: muted),
       ),
       if (uncertain)
         const Notice(

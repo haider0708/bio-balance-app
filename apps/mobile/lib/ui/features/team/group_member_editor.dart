@@ -34,6 +34,9 @@ class _GroupMemberEditorState extends State<GroupMemberEditor> {
   final selected = <String>{};
   bool active = true, ready = false, busy = false, completed = false;
   String? error;
+  bool get editingSelf =>
+      !widget.workspace.user.admin &&
+      widget.member?['id'] == widget.workspace.user.id;
   List<Store> get stores => widget.workspace.state.stores
       .where((s) => s.organizationId == widget.group.id)
       .toList();
@@ -134,154 +137,170 @@ class _GroupMemberEditorState extends State<GroupMemberEditor> {
   }
 
   @override
-  Widget build(BuildContext context) => FormPage(
-    title: widget.member != null
-        ? 'Modifier l’accès'
-        : widget.invitation != null
-        ? 'Renvoyer l’invitation'
-        : 'Inviter dans le groupe',
-    action: FilledButton.icon(
-      key: const ValueKey('editor.save'),
-      onPressed: !ready || busy || completed ? null : save,
-      icon: Icon(widget.member == null ? AppIcons.mailOutline : AppIcons.check),
-      label: Text(
-        completed
-            ? 'Enregistré'
-            : busy
-            ? 'Enregistrement…'
-            : widget.member != null
-            ? 'Enregistrer l’accès'
-            : widget.invitation != null
-            ? 'Renvoyer avec cet accès'
-            : 'Envoyer l’invitation',
-      ),
-    ),
-    children: [
-      SectionTitle(
-        widget.group.name,
-        subtitle: 'Un compte personnel. Un rôle clair. Un magasin par vendeur.',
-      ),
-      if (error != null) ...[
-        Notice(error!, error: true),
-        const SizedBox(height: 16),
-      ],
-      if (!ready) const LinearProgressIndicator(),
-      if (!ready && error != null)
-        TextButton(onPressed: restore, child: const Text('Réessayer')),
-      TextField(
-        key: const ValueKey('field.email'),
-        controller: email,
-        enabled:
-            ready &&
-            !busy &&
-            widget.member == null &&
-            widget.invitation == null,
-        keyboardType: TextInputType.emailAddress,
-        autofillHints: const [AutofillHints.email],
-        decoration: const InputDecoration(labelText: 'Adresse email'),
-      ),
-      const SizedBox(height: 24),
-      const SectionTitle('Quel rôle lui donner ?'),
-      Wrap(
-        spacing: 8,
-        runSpacing: 8,
-        children: [
-          for (final entry in const {
-            'salesperson': 'Vendeur',
-            'responsible': 'Responsable',
-          }.entries)
-            ChoiceChip(
-              label: Text(entry.value),
-              selected: role == entry.key,
-              onSelected: !ready || busy
-                  ? null
-                  : (_) {
-                      setState(() => role = entry.key);
-                      persist();
-                    },
+  Widget build(BuildContext context) => editingSelf
+      ? const FormPage(
+          title: 'Votre accès',
+          children: [
+            Notice(
+              'Votre propre rôle et votre accès se gèrent avec un autre responsable ou BioBalance.',
             ),
-        ],
-      ),
-      const SizedBox(height: 16),
-      if (role == 'responsible')
-        const Notice(
-          'Accès à tous les magasins de ce groupe, actuels et futurs : équipe, stock, ventes, commandes et récompenses.',
+          ],
         )
-      else ...[
-        const Text(
-          'Enregistre et corrige ses ventes. Consulte ses points, ses récompenses et ses formations.',
-        ),
-        const SizedBox(height: 20),
-        SectionTitle(
-          'Magasin attribué',
-          subtitle: 'Un vendeur travaille dans un seul magasin.',
-        ),
-        if (stores.length > 5)
-          TextField(
-            onChanged: (v) => setState(() => query = v.trim().toLowerCase()),
-            decoration: const InputDecoration(
-              hintText: 'Rechercher un magasin',
-              prefixIcon: Icon(AppIcons.search),
+      : FormPage(
+          title: widget.member != null
+              ? 'Modifier l’accès'
+              : widget.invitation != null
+              ? 'Renvoyer l’invitation'
+              : 'Inviter dans le groupe',
+          action: FilledButton.icon(
+            key: const ValueKey('editor.save'),
+            onPressed: !ready || busy || completed ? null : save,
+            icon: Icon(
+              widget.member == null ? AppIcons.mailOutline : AppIcons.check,
+            ),
+            label: Text(
+              completed
+                  ? 'Enregistré'
+                  : busy
+                  ? 'Enregistrement…'
+                  : widget.member != null
+                  ? 'Enregistrer l’accès'
+                  : widget.invitation != null
+                  ? 'Renvoyer avec cet accès'
+                  : 'Envoyer l’invitation',
             ),
           ),
-        if (selected.length > 1)
-          const Notice(
-            'Ce brouillon contient plusieurs magasins. Choisissez le seul magasin à attribuer.',
-            error: true,
-          ),
-        RadioGroup<String>(
-          groupValue: selected.length == 1 ? selected.single : null,
-          onChanged: (value) {
-            if (!ready || busy || value == null) return;
-            setState(() {
-              selected
-                ..clear()
-                ..add(value);
-            });
-            persist();
-          },
-          child: Column(
-            children: [
-              for (final store in stores.where(
-                (s) => '${s.name} ${s.city}'.toLowerCase().contains(query),
-              ))
-                RadioListTile<String>(
-                  contentPadding: EdgeInsets.zero,
-                  controlAffinity: ListTileControlAffinity.leading,
-                  title: Text(store.name),
-                  subtitle: Text(store.city),
-                  value: store.id,
-                  enabled: ready && !busy,
-                ),
+          children: [
+            SectionTitle(
+              widget.group.name,
+              subtitle:
+                  'Un compte personnel. Un rôle clair. Un magasin par vendeur.',
+            ),
+            if (error != null) ...[
+              Notice(error!, error: true),
+              const SizedBox(height: 16),
             ],
-          ),
-        ),
-        if (stores.isEmpty)
-          const Notice('Créez un magasin avant d’inviter un vendeur.'),
-      ],
-      if (widget.member != null) ...[
-        const SizedBox(height: 24),
-        SwitchListTile(
-          contentPadding: EdgeInsets.zero,
-          title: const Text('Accès actif'),
-          subtitle: const Text('La désactivation conserve tout l’historique.'),
-          value: active,
-          onChanged: !ready || busy
-              ? null
-              : (v) {
-                  setState(() => active = v);
+            if (!ready) const LinearProgressIndicator(),
+            if (!ready && error != null)
+              TextButton(onPressed: restore, child: const Text('Réessayer')),
+            TextField(
+              key: const ValueKey('field.email'),
+              controller: email,
+              enabled:
+                  ready &&
+                  !busy &&
+                  widget.member == null &&
+                  widget.invitation == null,
+              keyboardType: TextInputType.emailAddress,
+              autofillHints: const [AutofillHints.email],
+              decoration: const InputDecoration(labelText: 'Adresse email'),
+            ),
+            const SizedBox(height: 24),
+            const SectionTitle('Quel rôle lui donner ?'),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final entry in const {
+                  'salesperson': 'Vendeur',
+                  'responsible': 'Responsable',
+                }.entries)
+                  ChoiceChip(
+                    label: Text(entry.value),
+                    selected: role == entry.key,
+                    onSelected: !ready || busy
+                        ? null
+                        : (_) {
+                            setState(() => role = entry.key);
+                            persist();
+                          },
+                  ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            if (role == 'responsible')
+              const Notice(
+                'Accès à tous les magasins de ce groupe, actuels et futurs : équipe, stock, ventes, commandes et récompenses.',
+              )
+            else ...[
+              const Text(
+                'Enregistre et corrige ses ventes. Consulte ses points, ses récompenses et ses formations.',
+              ),
+              const SizedBox(height: 20),
+              SectionTitle(
+                'Magasin attribué',
+                subtitle: 'Un vendeur travaille dans un seul magasin.',
+              ),
+              if (stores.length > 5)
+                TextField(
+                  onChanged: (v) =>
+                      setState(() => query = v.trim().toLowerCase()),
+                  decoration: const InputDecoration(
+                    hintText: 'Rechercher un magasin',
+                    prefixIcon: Icon(AppIcons.search),
+                  ),
+                ),
+              if (selected.length > 1)
+                const Notice(
+                  'Ce brouillon contient plusieurs magasins. Choisissez le seul magasin à attribuer.',
+                  error: true,
+                ),
+              RadioGroup<String>(
+                groupValue: selected.length == 1 ? selected.single : null,
+                onChanged: (value) {
+                  if (!ready || busy || value == null) return;
+                  setState(() {
+                    selected
+                      ..clear()
+                      ..add(value);
+                  });
                   persist();
                 },
-        ),
-      ],
-      if (widget.invitation != null) ...[
-        const SizedBox(height: 20),
-        const Notice(
-          'Un nouveau code sera envoyé. L’ancien code sera désactivé ; une seule invitation restera active.',
-        ),
-      ],
-    ],
-  );
+                child: Column(
+                  children: [
+                    for (final store in stores.where(
+                      (s) =>
+                          '${s.name} ${s.city}'.toLowerCase().contains(query),
+                    ))
+                      RadioListTile<String>(
+                        contentPadding: EdgeInsets.zero,
+                        controlAffinity: ListTileControlAffinity.leading,
+                        title: Text(store.name),
+                        subtitle: Text(store.city),
+                        value: store.id,
+                        enabled: ready && !busy,
+                      ),
+                  ],
+                ),
+              ),
+              if (stores.isEmpty)
+                const Notice('Créez un magasin avant d’inviter un vendeur.'),
+            ],
+            if (widget.member != null) ...[
+              const SizedBox(height: 24),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Accès actif'),
+                subtitle: const Text(
+                  'La désactivation conserve tout l’historique.',
+                ),
+                value: active,
+                onChanged: !ready || busy
+                    ? null
+                    : (v) {
+                        setState(() => active = v);
+                        persist();
+                      },
+              ),
+            ],
+            if (widget.invitation != null) ...[
+              const SizedBox(height: 20),
+              const Notice(
+                'Un nouveau code sera envoyé. L’ancien code sera désactivé ; une seule invitation restera active.',
+              ),
+            ],
+          ],
+        );
   Future<void> save() async {
     if (busy || !ready || completed) return;
     setState(() {
@@ -289,6 +308,15 @@ class _GroupMemberEditorState extends State<GroupMemberEditor> {
       error = null;
     });
     try {
+      if (!widget.workspace.user.admin &&
+          (widget.member?['id'] == widget.workspace.user.id ||
+              email.text.trim().toLowerCase() ==
+                  widget.workspace.user.email.toLowerCase())) {
+        throw const AppFailure(
+          'SELF_ACCESS_CHANGE',
+          'Votre propre accès se gère avec un autre responsable ou BioBalance.',
+        );
+      }
       final address = email.text.trim().toLowerCase();
       if (!RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(address)) {
         throw const FormatException('Saisissez une adresse email valide.');

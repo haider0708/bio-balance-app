@@ -500,6 +500,39 @@ export class PrismaLedger implements Ledger {
         },
       });
   }
+  async orderProblemActive(orderId: string) {
+    return !!(await this.tx.alert.findFirst({
+      where: {
+        ...this.context,
+        key: `order:${orderId}`,
+        kind: "order_problem",
+        active: true,
+      },
+    }));
+  }
+  async setOrderProblem(orderId: string, reason: string, active: boolean) {
+    // Alert is the current problem projection; operation audit retains every report and resolution.
+    await this.tx.alert.upsert({
+      where: {
+        storeId_key: { storeId: this.scope.storeId, key: `order:${orderId}` },
+      },
+      create: {
+        ...this.context,
+        key: `order:${orderId}`,
+        kind: "order_problem",
+        message: reason,
+        active,
+      },
+      update: active
+        ? {
+            message: reason,
+            active: true,
+            resolvedAt: null,
+            createdAt: new Date(),
+          }
+        : { active: false, resolvedAt: new Date() },
+    });
+  }
   async issue(deliveryId: string): Promise<DeliveryIssueRecord | null> {
     const row = await this.tx.deliveryIssue.findFirst({
       where: { ...this.context, deliveryId },

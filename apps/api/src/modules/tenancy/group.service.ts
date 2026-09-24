@@ -286,6 +286,12 @@ export class GroupService {
     return this.db.group(actor, id, async (tx, current) => {
       const target = await tx.user.findUnique({ where: { id: userId } });
       requireRule(
+        current.platformAdmin || current.id !== userId,
+        "SELF_ACCESS_CHANGE",
+        "Vous ne pouvez pas modifier votre propre rôle ou votre propre accès. Adressez-vous à un autre responsable ou à BioBalance.",
+        403,
+      );
+      requireRule(
         target && !target.platformAdmin,
         "FORBIDDEN",
         "Compte non modifiable dans ce groupe.",

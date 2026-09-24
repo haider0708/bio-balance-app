@@ -74,6 +74,12 @@ export interface Ledger {
   saveClaim(claim: ClaimRecord): Promise<void>;
   order(id: string): Promise<OrderRecord>;
   saveOrder(order: OrderRecord): Promise<void>;
+  orderProblemActive(orderId: string): Promise<boolean>;
+  setOrderProblem(
+    orderId: string,
+    reason: string,
+    active: boolean,
+  ): Promise<void>;
   delivery(id: string): Promise<DeliveryRecord>;
   fulfillment(order: OrderRecord): Promise<FulfillmentLine[]>;
   saveDelivery(delivery: DeliveryRecord): Promise<void>;

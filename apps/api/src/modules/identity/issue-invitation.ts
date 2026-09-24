@@ -3,6 +3,7 @@ import { Prisma } from "@prisma/client";
 import { Actor } from "../operations/domain/contracts";
 import { accountLink } from "./account-links";
 import { EmailPayload } from "../../shared/email/email-delivery";
+import { requireRule } from "../../shared/domain/errors";
 
 export type InvitationGrant = {
   email: string;
@@ -21,6 +22,13 @@ export async function issueInvitation(
   actor: Actor,
   grant: InvitationGrant,
 ) {
+  requireRule(
+    actor.platformAdmin ||
+      grant.email.toLowerCase() !== actor.email.toLowerCase(),
+    "SELF_ACCESS_CHANGE",
+    "Votre propre accès ne peut pas être modifié par une invitation. Adressez-vous à un autre responsable ou à BioBalance.",
+    403,
+  );
   await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${invitationLock(grant.email, grant.organizationId)}, 0))`;
   const token = randomBytes(32).toString("base64url");
   accountLink("invite", token);

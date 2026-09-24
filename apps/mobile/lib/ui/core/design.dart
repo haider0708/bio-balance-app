@@ -1,4 +1,5 @@
 export 'app_icons.dart';
+export 'filter_bar.dart';
 import 'app_icons.dart';
 
 import 'dart:math' as math;

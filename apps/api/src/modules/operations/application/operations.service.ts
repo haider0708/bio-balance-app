@@ -336,9 +336,45 @@ export class OperationsService {
       );
       return { id: cmd.orderId, version: 1 };
     }
-    if (cmd.type === "order.amend" || cmd.type === "order.cancel") {
+    if (cmd.type === "order.report" || cmd.type === "order.resolve") {
+      this.allow(ledger, "manage");
       requireRule(
-        actor.platformAdmin,
+        cmd.type === "order.report" || actor.platformAdmin,
+        "FORBIDDEN",
+        "Action réservée à BioBalance.",
+        403,
+      );
+      const order = await ledger.order(cmd.orderId);
+      this.version(order.version, op.expectedVersion);
+      const active = await ledger.orderProblemActive(order.id);
+      requireRule(
+        cmd.type === "order.report" ? !active : active,
+        active ? "ISSUE_EXISTS" : "ISSUE_CLOSED",
+        active
+          ? "Un signalement est déjà ouvert. Consultez son suivi."
+          : "Aucun signalement ouvert pour cette commande.",
+        409,
+      );
+      await ledger.setOrderProblem(
+        order.id,
+        cmd.reason,
+        cmd.type === "order.report",
+      );
+      order.version++;
+      await ledger.saveOrder(order);
+      await ledger.notify(
+        op.operationId,
+        cmd.type === "order.report"
+          ? "Problème sur une commande"
+          : "Signalement traité",
+        cmd.reason,
+      );
+      return { id: order.id, version: order.version, status: order.status };
+    }
+    if (cmd.type === "order.amend" || cmd.type === "order.cancel") {
+      this.allow(ledger, "manage");
+      requireRule(
+        cmd.type === "order.cancel" || actor.platformAdmin,
         "FORBIDDEN",
         "Action réservée à BioBalance.",
         403,
@@ -349,16 +385,22 @@ export class OperationsService {
       if (cmd.type === "order.amend") {
         for (const line of cmd.lines) await ledger.rate(line.productId);
         Order.amend(order, cmd.lines, fulfillment);
-      } else Order.cancel(order, fulfillment);
+      } else if (actor.platformAdmin) Order.cancel(order, fulfillment);
+      else Order.cancelRequest(order, fulfillment);
       await ledger.saveOrder(order);
       order.status = Order.status(
         await ledger.fulfillment(order),
         await ledger.hasIssues(order.id),
+        order.status,
       );
       await ledger.saveOrder(order);
       await ledger.notify(
         op.operationId,
-        cmd.type === "order.amend" ? "Commande modifiée" : "Reliquat annulé",
+        cmd.type === "order.amend"
+          ? "Commande modifiée"
+          : order.status === "cancelled"
+            ? "Commande annulée"
+            : "Reliquat annulé",
         cmd.reason,
       );
       return { id: order.id, version: order.version, status: order.status };
@@ -471,8 +513,14 @@ export class OperationsService {
       const order = await ledger.order(cmd.orderId);
       this.version(order.version, op.expectedVersion);
       Order.editable(order);
-      if (cmd.type === "order.prepare") order.status = "preparing";
-      else {
+      if (cmd.type === "order.prepare") {
+        Order.prepare(order, await ledger.fulfillment(order));
+        await ledger.notify(
+          op.operationId,
+          "Commande en préparation",
+          "BioBalance prépare les produits demandés. La demande ne peut plus être annulée depuis le magasin.",
+        );
+      } else {
         const fulfillment = await ledger.fulfillment(order);
         requireRule(
           new Set(cmd.lines.map((l) => l.productId)).size === cmd.lines.length,
@@ -496,7 +544,10 @@ export class OperationsService {
           status: "dispatched",
           version: 1,
         });
-        order.status = "dispatched";
+        order.status = Order.status(
+          await ledger.fulfillment(order),
+          await ledger.hasIssues(order.id),
+        );
         await ledger.notify(
           op.operationId,
           "Livraison expédiée",

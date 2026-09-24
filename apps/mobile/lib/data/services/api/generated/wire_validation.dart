@@ -2227,6 +2227,23 @@ const Map<String, Map<String, dynamic>> _schemas = {
     "required": ["items", "nextCursor"],
     "additionalProperties": false,
   },
+  "OrderProblem": {
+    "type": "object",
+    "properties": {
+      "id": {"type": "string", "format": "uuid"},
+      "message": {"type": "string"},
+      "active": {"type": "boolean"},
+      "createdAt": {"type": "string", "format": "date-time"},
+      "resolvedAt": {
+        "anyOf": [
+          {"type": "string", "format": "date-time"},
+          {"type": "null"},
+        ],
+      },
+    },
+    "required": ["id", "message", "active", "createdAt", "resolvedAt"],
+    "additionalProperties": false,
+  },
   "ScopedOrderDetails": {
     "type": "object",
     "properties": {
@@ -2234,6 +2251,12 @@ const Map<String, Map<String, dynamic>> _schemas = {
       "issues": {
         "type": "array",
         "items": {"\$ref": "#/components/schemas/DeliveryIssue"},
+      },
+      "problem": {
+        "anyOf": [
+          {"\$ref": "#/components/schemas/OrderProblem"},
+          {"type": "null"},
+        ],
       },
       "history": {
         "type": "array",
@@ -2343,6 +2366,8 @@ const Map<String, Map<String, dynamic>> _schemas = {
       {"\$ref": "#/components/schemas/CommandOrderPrepare"},
       {"\$ref": "#/components/schemas/CommandOrderAmend"},
       {"\$ref": "#/components/schemas/CommandOrderCancel"},
+      {"\$ref": "#/components/schemas/CommandOrderReport"},
+      {"\$ref": "#/components/schemas/CommandOrderResolve"},
       {"\$ref": "#/components/schemas/CommandDeliveryReport"},
       {"\$ref": "#/components/schemas/CommandDeliveryResolve"},
       {"\$ref": "#/components/schemas/CommandDeliveryDispatch"},
@@ -3817,6 +3842,34 @@ const Map<String, Map<String, dynamic>> _schemas = {
     "type": "object",
     "properties": {
       "type": {"type": "string", "const": "order.cancel"},
+      "orderId": {
+        "type": "string",
+        "format": "uuid",
+        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)\$",
+      },
+      "reason": {"type": "string", "minLength": 3, "maxLength": 500},
+    },
+    "required": ["type", "orderId", "reason"],
+    "additionalProperties": false,
+  },
+  "CommandOrderReport": {
+    "type": "object",
+    "properties": {
+      "type": {"type": "string", "const": "order.report"},
+      "orderId": {
+        "type": "string",
+        "format": "uuid",
+        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)\$",
+      },
+      "reason": {"type": "string", "minLength": 3, "maxLength": 500},
+    },
+    "required": ["type", "orderId", "reason"],
+    "additionalProperties": false,
+  },
+  "CommandOrderResolve": {
+    "type": "object",
+    "properties": {
+      "type": {"type": "string", "const": "order.resolve"},
       "orderId": {
         "type": "string",
         "format": "uuid",

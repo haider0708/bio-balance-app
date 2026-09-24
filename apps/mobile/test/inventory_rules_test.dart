@@ -31,22 +31,39 @@ void main() {
       );
     },
   );
-  test(
-    'FEFO prioritizes available valid lots and keeps zero stock selectable',
-    () {
-      final lots = [
-        lot('empty', '2026-09-22', 0),
-        lot('available', '2026-10-01', 4),
-        lot('expired', '2026-09-20', 5),
-        lot('later', '2026-11-01', 8),
-      ].map(InventoryLot.fromJson);
-      expect(InventorySelection.forSale(lots, '2026-09-21').map((l) => l.id), [
-        'available',
-        'later',
-        'empty',
-      ]);
-    },
-  );
+  test('FEFO hides depleted lots from new sales but preserves existing allocations', () {
+    final lots = [
+      lot('empty', '2026-09-22', 0),
+      lot('available', '2026-10-01', 4),
+      lot('expired', '2026-09-20', 5),
+      lot('later', '2026-11-01', 8),
+    ].map(InventoryLot.fromJson);
+    expect(InventorySelection.forSale(lots, '2026-09-21').map((l) => l.id), [
+      'available',
+      'later',
+    ]);
+    expect(
+      InventorySelection.forSale(
+        lots,
+        '2026-09-21',
+        retainedLotIds: {'empty'},
+      ).map((l) => l.id),
+      ['available', 'later', 'empty'],
+    );
+    final stock = [
+      ...lots,
+      InventoryLot.fromJson(lot('discrepancy', '2026-12-31', -2)),
+      InventoryLot.fromJson({...lot('damaged', '2026-12-31', 0), 'damaged': 2}),
+    ];
+    expect(
+      InventorySelection.inStock(stock).map((l) => l.id),
+      containsAll(['discrepancy', 'damaged']),
+    );
+    expect(
+      InventorySelection.inStock(stock).map((l) => l.id),
+      isNot(contains('empty')),
+    );
+  });
   test(
     'approaching expiry includes day 30 and excludes day 31 and empty lots',
     () {

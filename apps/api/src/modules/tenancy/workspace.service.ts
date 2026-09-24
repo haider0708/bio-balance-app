@@ -4,6 +4,7 @@ import { decodeHistoryCursor } from "../../shared/domain/pagination";
 import { StoreReadQueries } from "./infrastructure/store-read-queries";
 import {
   orderFulfillment,
+  orderSummaries,
   outstandingSupply,
 } from "../operations/infrastructure/order-fulfillment-query";
 import { onboardingProgress } from "./onboarding";
@@ -557,18 +558,7 @@ export class WorkspaceService {
       });
       const { points, rewards, claims, orders, deliveries } = collections;
       const cursor = currentCursor;
-      const deliveryIssues = manage
-        ? await tx.deliveryIssue.groupBy({
-            by: ["orderId"],
-            where: {
-              organizationId: org,
-              storeId: store,
-              status: { not: "resolved" },
-            },
-            _count: true,
-          })
-        : [];
-      const fulfillment = await orderFulfillment(tx, org, store, orders);
+      const summarizedOrders = await orderSummaries(tx, org, store, orders);
       const supply = manage ? await outstandingSupply(tx, org, store) : [];
       const onboarding = manage ? await onboardingProgress(tx, store) : null;
       const users = memberships.length
@@ -675,16 +665,12 @@ export class WorkspaceService {
             async (after) => {
               const items = await queries.operationalPage(resource, after);
               if (resource !== "orders") return items;
-              const fulfillment = await orderFulfillment(
+              return orderSummaries(
                 tx,
                 org,
                 store,
                 items as import("@prisma/client").ReplenishmentOrder[],
               );
-              return items.map((item) => ({
-                ...item,
-                fulfillment: fulfillment.get(item.id),
-              }));
             },
           );
         }
@@ -714,12 +700,7 @@ export class WorkspaceService {
         points: points ?? { balance: 0n, reserved: 0n },
         rewards,
         claims,
-        orders: orders.map((order) => ({
-          ...order,
-          fulfillment: fulfillment.get(order.id),
-          openIssues:
-            deliveryIssues.find((i) => i.orderId === order.id)?._count ?? 0,
-        })),
+        orders: summarizedOrders,
         outstandingSupply: supply,
         deliveries,
         team: memberships.map((m) => ({

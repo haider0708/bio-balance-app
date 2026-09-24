@@ -345,7 +345,11 @@ class WorkspaceViewModel extends ChangeNotifier {
     });
   }
 
-  Future<void> select(Store store, {bool refresh = true}) async {
+  Future<void> select(
+    Store store, {
+    bool refresh = true,
+    bool rememberSelection = true,
+  }) async {
     final selection = ++_selection;
     _emit(
       state.copy(
@@ -356,9 +360,11 @@ class WorkspaceViewModel extends ChangeNotifier {
       ),
     );
     try {
-      await repository.saveDraft(user.id, '', 'selection', {
-        'storeId': store.id,
-      });
+      if (rememberSelection) {
+        await repository.saveDraft(user.id, '', 'selection', {
+          'storeId': store.id,
+        });
+      }
       final data = await repository.load(user, store);
       final pending = await repository.pendingCount(user.id);
       if (selection != _selection) return;

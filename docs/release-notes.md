@@ -1,3 +1,11 @@
+# BioBalance 1.1.9+13 — commandes, réception et équipe
+
+Commande depuis le groupe avec choix du magasin, annulation responsable avant préparation, étapes administrateur explicites, réception par produit/lot et signalements suivis. Stock augmenté uniquement à la réception physique. Filtres stock sur une ligne, lots épuisés masqués des choix opérationnels, invitations compactes et propre accès du responsable protégé.
+
+Données, comptes, brouillons et historiques conservés. Aucun changement de schéma. [Détails et preuves](orders-reception-2026-09-24.md).
+
+---
+
 # BioBalance 1.1.4+8 — synchronisation entre magasins
 
 Les opérations de tous les magasins du compte sont visibles et synchronisées depuis chaque espace. Les états distinguent envoi, reprise programmée, conflit et confirmation. Les tentatives gardent les mêmes identifiants et les opérations ne sont jamais effacées pour masquer un compteur.

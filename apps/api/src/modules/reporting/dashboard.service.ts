@@ -430,7 +430,7 @@ export class DashboardService {
         "Accès réservé au responsable.",
         403,
       );
-      const selectedOrders =
+      let selectedOrders =
         phase === "transit"
           ? (
               await tx.delivery.groupBy({
@@ -464,6 +464,28 @@ export class DashboardService {
                 })
               ).map((i) => i.orderId)
             : undefined;
+      if (phase === "issues") {
+        const problems = await tx.alert.findMany({
+          where: {
+            ...(q.organizationId ? { organizationId: q.organizationId } : {}),
+            ...(q.storeId ? { storeId: q.storeId } : {}),
+            kind: "order_problem",
+            active: true,
+            ...(after ? { key: { gt: `order:${after}` } } : {}),
+          },
+          select: { key: true },
+          orderBy: { key: "asc" },
+          take: 51,
+        });
+        selectedOrders = [
+          ...new Set([
+            ...(selectedOrders ?? []),
+            ...problems.map((p) => p.key.slice(6)),
+          ]),
+        ]
+          .sort()
+          .slice(0, 51);
+      }
       const items = await tx.replenishmentOrder.findMany({
         where: {
           ...(phase &&
@@ -547,7 +569,9 @@ export class DashboardService {
           ...alert,
           storeName: store.name,
           groupName: group.name,
-          orderId: issue?.orderId ?? null,
+          orderId:
+            issue?.orderId ??
+            (alert.kind === "order_problem" ? alert.key.slice(6) : null),
         };
       },
     );
@@ -595,6 +619,21 @@ export class DashboardService {
           deliveries,
           receipts,
           fulfillment,
+          problem: await tx.alert.findFirst({
+            where: {
+              organizationId,
+              storeId,
+              kind: "order_problem",
+              key: `order:${id}`,
+            },
+            select: {
+              id: true,
+              message: true,
+              active: true,
+              createdAt: true,
+              resolvedAt: true,
+            },
+          }),
           issues: await tx.deliveryIssue.findMany({
             where: { organizationId, storeId, orderId: id },
             orderBy: { createdAt: "asc" },

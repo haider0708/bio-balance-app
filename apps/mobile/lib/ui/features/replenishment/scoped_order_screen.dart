@@ -11,10 +11,12 @@ import '../authentication/session_view_model.dart';
 import '../workspace/scope_view_model.dart';
 import '../workspace/workspace_view_model.dart';
 import '../workspace/operation_helpers.dart';
-import '../media/image_input.dart';
+import '../catalog/product_information.dart';
+import '../../../domain/models/order_workflow.dart';
 import 'order_screens.dart';
 import 'order_sections.dart';
 import 'order_actions.dart';
+import 'order_creation_screen.dart';
 import '../../core/forms.dart';
 import '../inventory/inventory_screens.dart';
 import '../../../domain/models/tunis_dates.dart';
@@ -157,6 +159,12 @@ class _ScopedOrdersPageState extends State<ScopedOrdersPage> {
               icon: const Icon(AppIcons.refresh),
             ),
           ),
+          FilledButton.icon(
+            onPressed: opening ? null : create,
+            icon: const Icon(AppIcons.add),
+            label: const Text('Nouvelle commande'),
+          ),
+          const SizedBox(height: 16),
           if (widget.scope.scope.store == null)
             DropdownButtonFormField<String>(
               initialValue: vm.filterStore?.id ?? '',
@@ -211,6 +219,26 @@ class _ScopedOrdersPageState extends State<ScopedOrdersPage> {
       );
     },
   );
+  Future<void> create() async {
+    if (opening) return;
+    setState(() => opening = true);
+    try {
+      await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => OrderCreationScreen(
+            parent: workspace,
+            groupId: vm.groupId,
+            initialStore: vm.filterStore,
+          ),
+        ),
+      );
+      if (mounted) await vm.load();
+    } finally {
+      if (mounted) setState(() => opening = false);
+    }
+  }
+
   Future<void> open(Json order) async {
     if (opening) return;
     setState(() => opening = true);
@@ -307,7 +335,7 @@ class _ExactOrderScreenState extends State<ExactOrderScreen> {
     if (loading) return;
     setState(() => loading = true);
     try {
-      await vm.select(widget.store);
+      await vm.select(widget.store, rememberSelection: false);
       final cached = vm.state.data
           ?.list('orders')
           .where((o) => o['id'] == widget.orderId)
@@ -356,7 +384,17 @@ class _ExactOrderScreenState extends State<ExactOrderScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final order = data?['order'];
+    final order = data?['order'] as Json?;
+    final workflow = order == null
+        ? null
+        : OrderWorkflow(
+            order,
+            objects(data?['fulfillment']),
+            admin: vm.user.admin,
+            manager: widget.store.canManage,
+          );
+    final disabled = busy || loading || vm.state.offline;
+    final problem = data?['problem'] as Json?;
     return ChangeNotifierProvider.value(
       value: vm,
       child: Scaffold(
@@ -366,171 +404,146 @@ class _ExactOrderScreenState extends State<ExactOrderScreen> {
             SectionTitle(
               widget.store.name,
               subtitle:
-                  '${order?['groupName'] ?? widget.store.organizationName} · ${widget.orderId.substring(0, 8).toUpperCase()}',
+                  '${widget.store.organizationName} · ${widget.orderId.substring(0, 8).toUpperCase()}',
             ),
             if (loading) const LinearProgressIndicator(),
             if (error != null) Notice(error!, retry: load),
-            if (order != null) ...[
-              StatusChip(statusLabel(order['status'])),
-              const SizedBox(height: 12),
-              Text(
-                'Demandée le ${TunisDates.timestampLabel(order['createdAt'])}',
-                style: const TextStyle(fontSize: 14, color: muted),
-              ),
-              const SizedBox(height: 24),
-              const SectionTitle('Produits commandés'),
-              for (final line in objects(order['lines']))
-                CompactRow(
-                  title: vm.productName(line['productId']),
-                  value: '${line['quantity']} unités',
-                  subtitle: fulfillmentLabel(line['productId']),
-                  leading: SizedBox(
-                    width: 48,
-                    child: _image(line['productId']),
+            if (order != null && workflow != null) ...[
+              Wrap(
+                spacing: 12,
+                runSpacing: 8,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  StatusChip(
+                    statusLabel(order['status']),
+                    icon: order['status'] == 'received'
+                        ? AppIcons.checkCircleOutline
+                        : AppIcons.package,
+                    tone: order['status'] == 'received'
+                        ? AppTone.success
+                        : AppTone.info,
                   ),
+                  Text(
+                    TunisDates.timestampLabel(order['createdAt']),
+                    style: const TextStyle(fontSize: 14, color: muted),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Text(workflow.nextStep),
+              const SizedBox(height: 16),
+              if (workflow.canPrepare)
+                FilledButton.icon(
+                  onPressed: disabled
+                      ? null
+                      : () => action(
+                          () => vm.online({
+                            'type': 'order.prepare',
+                            'orderId': widget.orderId,
+                          }, expectedVersion: integer(order['version'])),
+                        ),
+                  icon: const Icon(AppIcons.package),
+                  label: const Text('Mettre en préparation'),
                 ),
-              if (vm.user.admin &&
-                  [
-                    'requested',
-                    'preparing',
-                    'partial',
-                    'dispatched',
-                  ].contains(order['status']))
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    OutlinedButton(
-                      onPressed: busy || vm.state.offline
+              if (workflow.canDispatch)
+                FilledButton.icon(
+                  onPressed: disabled
+                      ? null
+                      : () => action(
+                          () => OrdersPage(vm: vm).dispatch(context, order),
+                        ),
+                  icon: const Icon(AppIcons.localShippingOutlined),
+                  label: const Text('Expédier une livraison'),
+                ),
+              Wrap(
+                spacing: 8,
+                runSpacing: 4,
+                children: [
+                  if (workflow.canAmend)
+                    TextButton(
+                      onPressed: disabled
                           ? null
-                          : () => action(
-                              () => editOrder(Map<String, dynamic>.from(order)),
-                            ),
+                          : () => action(() => editOrder(order)),
                       child: const Text('Modifier les quantités'),
                     ),
-                    OutlinedButton(
-                      onPressed: busy || vm.state.offline
+                  if (workflow.canCancel)
+                    TextButton(
+                      onPressed: disabled
                           ? null
-                          : () => action(
-                              () =>
-                                  cancelOrder(Map<String, dynamic>.from(order)),
-                            ),
-                      child: const Text('Annuler le reliquat'),
-                    ),
-                    if (['requested', 'partial'].contains(order['status']))
-                      OutlinedButton(
-                        onPressed: busy || vm.state.offline
-                            ? null
-                            : () => action(
-                                () => vm.online({
-                                  'type': 'order.prepare',
-                                  'orderId': widget.orderId,
-                                }, expectedVersion: integer(order['version'])),
-                              ),
-                        child: const Text('Mettre en préparation'),
+                          : () => action(() => cancelOrder(order)),
+                      child: Text(
+                        order['status'] == 'requested'
+                            ? 'Annuler la commande'
+                            : 'Annuler le reliquat',
                       ),
-                    FilledButton(
-                      onPressed:
-                          busy ||
-                              vm.state.offline ||
-                              !objects(data?['fulfillment']).any(
-                                (l) => integer(l['remainingToDispatch']) > 0,
-                              )
+                    ),
+                  if (problem?['active'] != true)
+                    TextButton.icon(
+                      onPressed: disabled
                           ? null
-                          : () => action(
-                              () => OrdersPage(vm: vm).dispatch(
-                                context,
-                                Map<String, dynamic>.from(order),
-                              ),
-                            ),
-                      child: const Text('Expédier une livraison'),
+                          : () => action(() => orderProblem(order)),
+                      icon: const Icon(AppIcons.infoOutline, size: 18),
+                      label: const Text('Signaler un problème'),
                     ),
-                  ],
-                ),
-              const SizedBox(height: 24),
-              const SectionTitle('Livraisons'),
-              for (final delivery in objects(data?['deliveries']))
+                ],
+              ),
+              if (problem != null) ...[
+                const SizedBox(height: 12),
                 CompactRow(
-                  title:
-                      'Livraison ${delivery['id'].toString().substring(0, 8).toUpperCase()}',
-                  subtitle:
-                      '${statusLabel(delivery['status'])} · ${TunisDates.timestampLabel(delivery['dispatchedAt'])}\n${objects(delivery['lines']).fold<int>(0, (s, l) => s + integer(l['quantity']))} unités expédiées',
-                  footer: receiptSummary(delivery),
-                  icon: AppIcons.localShippingOutlined,
-                  onTap:
-                      delivery['status'] == 'dispatched' &&
-                          !busy &&
-                          (widget.store.canManage || vm.user.admin)
-                      ? () =>
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) =>
-                                    ReceiptScreen(vm: vm, delivery: delivery),
-                              ),
-                            ).then((_) {
-                              if (mounted) load();
-                            })
-                      : null,
-                ),
-              for (final delivery in objects(data?['deliveries'])) ...[
-                if (delivery['status'] == 'dispatched' &&
-                    !objects(data?['issues'])
-                        .any((i) => i['deliveryId'] == delivery['id']))
-                  OutlinedButton(
-                    onPressed: busy || vm.state.offline
-                        ? null
-                        : () => action(() => reportDelivery(delivery)),
-                    child: Text(
-                      'Signaler non reçue · ${delivery['id'].toString().substring(0, 8).toUpperCase()}',
-                    ),
-                  ),
-              ],
-              if (objects(data?['issues']).isNotEmpty)
-                const SectionTitle('Incidents et suivi'),
-              for (final issue in objects(data?['issues']))
-                CompactRow(
-                  title: issue['reason'],
-                  subtitle:
-                      '${statusLabel(issue['status'])} · ${TunisDates.timestampLabel(issue['createdAt'])}${objects(issue['heldLines']).map((l) => '\n${vm.productName(l['productId'])} : ${l['quantity']} unités à régler').join()}${issue['resolutionNote'] == null ? '' : '\n${issue['resolutionNote']}'}',
+                  title: problem['active'] == true
+                      ? 'Signalement à traiter'
+                      : 'Signalement traité',
+                  subtitle: problem['message'],
                   icon: AppIcons.infoOutline,
-                  tone: issue['status'] == 'resolved'
-                      ? AppTone.success
-                      : AppTone.warning,
-                  footer: vm.user.admin && issue['status'] != 'resolved'
-                      ? Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: [
-                            for (final decision
-                                in (objects(data?['deliveries']).firstWhere(
-                                          (d) => d['id'] == issue['deliveryId'],
-                                        )['status'] ==
-                                        'received'
-                                    ? ['settled']
-                                    : ['tracing', 'lost', 'returned']))
-                              OutlinedButton(
-                                onPressed: busy || vm.state.offline
-                                    ? null
-                                    : () => action(
-                                        () => resolveIssue(issue, decision),
-                                      ),
-                                child: Text(
-                                  {
-                                    'tracing': 'Lancer une recherche',
-                                    'lost': 'Déclarer perdue',
-                                    'returned': 'Déclarer retournée',
-                                    'settled': 'Régler les écarts',
-                                  }[decision]!,
+                  tone: problem['active'] == true
+                      ? AppTone.warning
+                      : AppTone.success,
+                  footer: problem['active'] == true && vm.user.admin
+                      ? TextButton(
+                          onPressed: disabled
+                              ? null
+                              : () => action(
+                                  () => orderProblem(order, resolve: true),
                                 ),
-                              ),
-                          ],
+                          child: const Text('Répondre et résoudre'),
                         )
                       : null,
                 ),
+              ],
+              const SizedBox(height: 20),
+              Text('Produits', style: Theme.of(context).textTheme.titleMedium),
+              for (final line in objects(order['lines']))
+                CompactRow(
+                  title: vm.productName(line['productId']),
+                  value: '${line['quantity']} u.',
+                  subtitle: fulfillmentLabel(line['productId']),
+                  leading: ProductPhoto(vm: vm, productId: line['productId']),
+                ),
+              const SizedBox(height: 20),
+              Text(
+                'Livraisons et réception',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              if (objects(data?['deliveries']).isEmpty)
+                const Text(
+                  'Aucune expédition pour le moment.',
+                  style: TextStyle(color: muted),
+                ),
+              for (final delivery in objects(data?['deliveries']))
+                deliveryRow(delivery, disabled),
+              if (objects(data?['issues']).isNotEmpty) ...[
+                const SizedBox(height: 20),
+                Text(
+                  'Écarts et incidents de livraison',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                for (final issue in objects(data?['issues']))
+                  issueRow(issue, disabled),
+              ],
               if (objects(data?['history']).isNotEmpty)
                 ExpansionTile(
-                  title: const Text('Historique de la commande'),
+                  tilePadding: EdgeInsets.zero,
+                  title: const Text('Historique'),
                   children: [
                     for (final event in objects(data?['history']))
                       CompactRow(
@@ -540,12 +553,125 @@ class _ExactOrderScreenState extends State<ExactOrderScreen> {
                       ),
                   ],
                 ),
-              if (objects(data?['deliveries']).isEmpty)
-                const Text('Aucune livraison expédiée pour cette commande.'),
             ],
           ],
         ),
       ),
+    );
+  }
+
+  Widget deliveryRow(Json delivery, bool disabled) {
+    final canReceive =
+        delivery['status'] == 'dispatched' &&
+        (widget.store.canManage || vm.user.admin);
+    final hasIssue = objects(data?['issues'])
+        .any((issue) => issue['deliveryId'] == delivery['id']);
+    return CompactRow(
+      title:
+          'Livraison ${delivery['id'].toString().substring(0, 8).toUpperCase()}',
+      subtitle:
+          '${statusLabel(delivery['status'])} · ${TunisDates.timestampLabel(delivery['dispatchedAt'])}\n${objects(delivery['lines']).fold<int>(0, (sum, line) => sum + integer(line['quantity']))} unités expédiées',
+      icon: AppIcons.localShippingOutlined,
+      footer: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ?receiptSummary(delivery),
+          if (canReceive) ...[
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 4,
+              children: [
+                FilledButton.tonal(
+                  onPressed: busy || loading
+                      ? null
+                      : () async {
+                          await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) =>
+                                  ReceiptScreen(vm: vm, delivery: delivery),
+                            ),
+                          );
+                          if (mounted) await load();
+                        },
+                  child: const Text('Confirmer la réception'),
+                ),
+                if (!hasIssue)
+                  TextButton(
+                    onPressed: disabled
+                        ? null
+                        : () => action(() => reportDelivery(delivery)),
+                    child: const Text('Non reçue'),
+                  ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget issueRow(Json issue, bool disabled) => CompactRow(
+    title: issue['reason'],
+    subtitle:
+        '${statusLabel(issue['status'])} · ${TunisDates.timestampLabel(issue['createdAt'])}${objects(issue['heldLines']).map((line) => '\n${vm.productName(line['productId'])} : ${line['quantity']} unités à régler').join()}${issue['resolutionNote'] == null ? '' : '\n${issue['resolutionNote']}'}',
+    icon: AppIcons.infoOutline,
+    tone: issue['status'] == 'resolved' ? AppTone.success : AppTone.warning,
+    footer: vm.user.admin && issue['status'] != 'resolved'
+        ? TextButton(
+            onPressed: disabled ? null : () => action(() => manageIssue(issue)),
+            child: const Text('Traiter cet incident'),
+          )
+        : null,
+  );
+
+  Future<void> orderProblem(Json order, {bool resolve = false}) => openEditor(
+    context,
+    title: resolve ? 'Résoudre le signalement' : 'Signaler un problème',
+    fields: [
+      FieldSpec(
+        'reason',
+        resolve
+            ? 'Votre réponse et la solution apportée'
+            : 'Expliquez le problème ou le changement souhaité',
+      ),
+    ],
+    submit: (values) =>
+        OrderActions(vm).problem(order, values['reason']!, resolve: resolve),
+  ).then((_) {});
+
+  Future<void> manageIssue(Json issue) async {
+    final delivery = objects(data?['deliveries'])
+        .where((d) => d['id'] == issue['deliveryId'])
+        .firstOrNull;
+    if (delivery == null) {
+      throw const AppFailure(
+        'NOT_FOUND',
+        'Actualisez la commande pour retrouver la livraison.',
+      );
+    }
+    await openEditor(
+      context,
+      title: 'Traiter l’incident',
+      fields: [
+        FieldSpec(
+          'decision',
+          'Suite à donner',
+          initial: delivery['status'] == 'received' ? 'settled' : 'tracing',
+          options: delivery['status'] == 'received'
+              ? const {'settled': 'Écarts vérifiés et réglés'}
+              : const {
+                  'tracing': 'Recherche en cours',
+                  'lost': 'Livraison perdue — libérer le remplacement',
+                  'returned': 'Livraison retournée — libérer le remplacement',
+                },
+        ),
+        const FieldSpec('reason', 'Décision et explication'),
+      ],
+      submit: (values) =>
+          OrderActions(vm)
+              .resolve(delivery, values['decision']!, values['reason']!),
     );
   }
 
@@ -570,11 +696,15 @@ class _ExactOrderScreenState extends State<ExactOrderScreen> {
   Future<void> cancelOrder(Json order) async {
     await openEditor(
       context,
-      title: 'Annuler le reliquat non expédié',
+      title: order['status'] == 'requested'
+          ? 'Annuler la commande'
+          : 'Annuler le reliquat non expédié',
       fields: [
         FieldSpec(
           'reason',
-          'Motif — les livraisons engagées restent à traiter',
+          order['status'] == 'requested'
+              ? 'Motif de l’annulation'
+              : 'Motif — les livraisons engagées restent à traiter',
         ),
       ],
       submit: (v) => OrderActions(vm).cancel(order, v['reason']!),
@@ -590,22 +720,11 @@ class _ExactOrderScreenState extends State<ExactOrderScreen> {
     );
   }
 
-  Future<void> resolveIssue(Json issue, String decision) async {
-    final delivery = objects(data?['deliveries'])
-        .firstWhere((d) => d['id'] == issue['deliveryId']);
-    await openEditor(
-      context,
-      title: decision == 'settled'
-          ? 'Régler les écarts de réception'
-          : 'Suivi de la livraison',
-      fields: [FieldSpec('reason', 'Décision et explication')],
-      submit: (v) => OrderActions(vm).resolve(delivery, decision, v['reason']!),
-    );
-  }
-
   String historyLabel(String action) =>
       {
         'order.create': 'Commande demandée',
+        'order.report': 'Problème signalé',
+        'order.resolve': 'Signalement résolu',
         'order.amend': 'Quantités modifiées',
         'order.cancel': 'Reliquat annulé',
         'order.prepare': 'Mise en préparation',
@@ -621,7 +740,17 @@ class _ExactOrderScreenState extends State<ExactOrderScreen> {
         .where((l) => l['productId'] == productId)
         .firstOrNull;
     if (line == null) return null;
-    return '${line['received']} reçues · ${line['inTransit']} engagées\n${line['remainingToDispatch']} restant à expédier · ${line['cancelled'] ?? 0} annulées';
+    final requested = objects(data?['order']?['requestedLines'])
+        .where((value) => value['productId'] == productId)
+        .firstOrNull;
+    final current = objects(data?['order']?['lines'])
+        .where((value) => value['productId'] == productId)
+        .firstOrNull;
+    final initial =
+        requested != null && requested['quantity'] != current?['quantity']
+        ? '${requested['quantity']} demandées initialement\n'
+        : '';
+    return '$initial${line['received']} reçues · ${line['inTransit']} engagées\n${line['remainingToDispatch']} restant à expédier · ${line['cancelled'] ?? 0} annulées';
   }
 
   Widget? receiptSummary(Json delivery) {
@@ -629,9 +758,7 @@ class _ExactOrderScreenState extends State<ExactOrderScreen> {
         .where((r) => r['deliveryId'] == delivery['id'])
         .firstOrNull;
     if (receipt == null) {
-      return delivery['status'] == 'dispatched'
-          ? const StatusChip('Ouvrir pour réceptionner', tone: AppTone.info)
-          : null;
+      return null;
     }
     final lines = objects(receipt['lines']);
     int units(String condition) => lines
@@ -663,15 +790,5 @@ class _ExactOrderScreenState extends State<ExactOrderScreen> {
       '$details · ${TunisDates.timestampLabel(receipt['createdAt'])}${differences.isEmpty ? '' : '\n$differences'}${note.isEmpty ? '' : '\n$note'}',
       style: const TextStyle(fontSize: 14, color: muted),
     );
-  }
-
-  Widget _image(String product) {
-    final p = vm.state.data
-        ?.list('products')
-        .where((p) => p['id'] == product)
-        .firstOrNull;
-    return p?['imageId'] == null
-        ? const Icon(AppIcons.photo, color: muted)
-        : ProtectedImage(vm: vm, id: p!['imageId'], height: 56);
   }
 }

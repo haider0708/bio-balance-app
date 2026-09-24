@@ -389,6 +389,11 @@ class _LineEditorState extends State<LineEditor> {
           ) ??
           [],
       saleDate,
+      retainedLotIds: {
+        for (final allocation in widget.line?.allocations ?? <Json>[])
+          if (integer(allocation['quantity']) > 0)
+            allocation['lotId'] as String,
+      },
     );
     declarations.addAll(widget.line?.batchDeclarations ?? []);
     for (final declaration in declarations) {
@@ -441,6 +446,17 @@ class _LineEditorState extends State<LineEditor> {
       final values = await draft.restore();
       if (!mounted || values == null) return;
       restoringDraft = true;
+      // Pending quantities stay editable even if synchronization depleted a lot
+      // after this draft was created. Never silently discard that entered work.
+      for (final lot in widget.workspace.state.data?.lots ?? <InventoryLot>[]) {
+        if (lot.productId == widget.productId &&
+            (int.tryParse(values[lot.id] ?? '') ?? 0) > 0 &&
+            !lots.any((existing) => existing.id == lot.id)) {
+          lots.add(lot);
+          allocations[lot.id] = TextEditingController(text: '0')
+            ..addListener(persistDraft);
+        }
+      }
       for (final raw in objects(jsonDecode(values['declarations'] ?? '[]'))) {
         final declaration = BatchDeclaration.fromJson(raw);
         if (!declarations.any((d) => d.lotId == declaration.lotId)) {
@@ -462,6 +478,8 @@ class _LineEditorState extends State<LineEditor> {
       if (mounted) {
         setState(() => error = 'Impossible de restaurer le brouillon.');
       }
+    } finally {
+      restoringDraft = false;
     }
   }
 
@@ -573,7 +591,7 @@ class _LineEditorState extends State<LineEditor> {
       const SizedBox(height: 24),
       const SectionTitle(
         'Unités par lot',
-        subtitle: 'Le lot valide le plus proche de sa péremption est proposé. Vérifiez le lot réellement remis.',
+        subtitle: 'Seuls les lots disponibles sont proposés, par date de péremption. Les lots déjà saisis restent visibles pour une correction.',
       ),
       if (lots.isEmpty)
         const EmptyState(
@@ -631,6 +649,12 @@ class _LineEditorState extends State<LineEditor> {
         if (q == null || q < 0 || q > 1000000) {
           throw const FormatException(
             'Saisissez des quantités entières valides.',
+          );
+        }
+        if (q > 0 &&
+            lots.firstWhere((lot) => lot.id == entry.key).expiredOn(saleDate)) {
+          throw const FormatException(
+            'Un lot sélectionné était périmé à la date de vente. Vérifiez le lot réellement vendu.',
           );
         }
         if (q > 0) selected.add({'lotId': entry.key, 'quantity': q});

@@ -4,9 +4,16 @@ import 'tunis_dates.dart';
 class InventorySelection {
   static List<InventoryLot> forSale(
     Iterable<InventoryLot> lots,
-    String saleDate,
-  ) {
-    final valid = lots.where((l) => !l.expiredOn(saleDate)).toList();
+    String saleDate, {
+    Set<String> retainedLotIds = const {},
+  }) {
+    final valid = lots
+        .where(
+          (l) =>
+              retainedLotIds.contains(l.id) ||
+              (l.sellable > 0 && !l.expiredOn(saleDate)),
+        )
+        .toList();
     valid.sort((a, b) {
       final available = (a.sellable > 0 ? 0 : 1).compareTo(
         b.sellable > 0 ? 0 : 1,
@@ -17,6 +24,10 @@ class InventorySelection {
     });
     return valid;
   }
+
+  static List<InventoryLot> inStock(Iterable<InventoryLot> lots) =>
+      lots.where((lot) => lot.sellable != 0 || lot.damaged > 0).toList()
+        ..sort((a, b) => a.expiry.compareTo(b.expiry));
 }
 
 class StockSummary {

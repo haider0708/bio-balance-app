@@ -34,6 +34,12 @@ class OrderActions {
     }, expectedVersion: integer(order['version']));
   }
 
+  Future<void> problem(Json order, String reason, {bool resolve = false}) =>
+      workspace.online({
+        'type': resolve ? 'order.resolve' : 'order.report',
+        'orderId': order['id'],
+        'reason': reason,
+      }, expectedVersion: integer(order['version']));
   Future<void> cancel(Json order, String reason) => workspace.online({
     'type': 'order.cancel',
     'orderId': order['id'],

@@ -120,7 +120,11 @@ class ScopeWorkspace extends WorkspaceViewModel {
   @override
   Future<void> initialize({bool autoSelect = true}) async {}
   @override
-  Future<void> select(Store store, {bool refresh = true}) async {
+  Future<void> select(
+    Store store, {
+    bool refresh = true,
+    bool rememberSelection = true,
+  }) async {
     state = state.copy(
       store: store,
       loading: false,

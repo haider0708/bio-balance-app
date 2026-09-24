@@ -54,11 +54,46 @@ export class Order {
       .filter((l) => l.quantity > 0);
     order.version++;
   }
-  static status(fulfillment: FulfillmentLine[], hasIssues: boolean) {
+  static cancelRequest(order: OrderRecord, fulfillment: FulfillmentLine[]) {
+    requireRule(
+      order.status === "requested" &&
+        fulfillment.every(
+          (line) => line.received === 0 && line.inTransit === 0,
+        ),
+      "ORDER_CANCELLATION_CLOSED",
+      "BioBalance a commencé la préparation. Contactez BioBalance pour modifier cette commande.",
+      409,
+    );
+    this.cancel(order, fulfillment);
+  }
+  static prepare(order: OrderRecord, fulfillment: FulfillmentLine[]) {
+    this.editable(order);
+    requireRule(
+      ["requested", "partial"].includes(order.status) &&
+        fulfillment.some((line) => line.remainingToDispatch > 0) &&
+        fulfillment.every((line) => line.inTransit === 0),
+      "ORDER_PREPARATION_UNAVAILABLE",
+      "La préparation n’est plus disponible à cette étape. Actualisez le suivi de la commande.",
+      409,
+    );
+    order.status = "preparing";
+  }
+  static status(
+    fulfillment: FulfillmentLine[],
+    hasIssues: boolean,
+    previousStatus?: string,
+  ) {
     if (fulfillment.some((l) => l.inTransit > 0))
       return fulfillment.some((l) => l.received > 0) ? "partial" : "dispatched";
-    if (hasIssues || fulfillment.some((l) => l.remainingToReceive > 0))
+    if (hasIssues) return "partial";
+    if (fulfillment.some((l) => l.remainingToReceive > 0)) {
+      if (
+        ["requested", "preparing"].includes(previousStatus ?? "") &&
+        fulfillment.every((line) => line.received === 0 && line.cancelled === 0)
+      )
+        return previousStatus!;
       return "partial";
+    }
     return fulfillment.some((l) => l.cancelled > 0)
       ? fulfillment.some((l) => l.received > 0)
         ? "closed_partial"

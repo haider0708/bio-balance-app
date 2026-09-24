@@ -1,6 +1,8 @@
-# État de l’implémentation — 24 septembre 2026
+# État de l’implémentation — 25 septembre 2026
 
-Dernière mise à jour : [formulaires, invitations et navigation — 1.1.8](forms-invitations-2026-09-24.md). Backend `1d312cf` déployé, migration et restauration vérifiées, quatre jobs CI réussis. Les quatre APK/AAB sont signés et les quatre applications 1.1.8+12 sont installées sur le Samsung : UID conservés, ouverture et démarrage contrôlés, Admin laissé ouvert. Données et comptes conservés. Le contrôle tactile complet reste à valider ; les versions ci-dessous restent historiques.
+Candidate en cours de livraison : [commandes, réception et équipe — 1.1.9](orders-reception-2026-09-24.md). 133 tests backend, 287 tests Flutter, contrats HTTP et reprise hors ligne réussis. Données conservées ; installation à confirmer dans le registre de livraison.
+
+Version précédente : [formulaires, invitations et navigation — 1.1.8](forms-invitations-2026-09-24.md). Backend `1d312cf` déployé, migration et restauration vérifiées, quatre jobs CI réussis. Les quatre APK/AAB sont signés et les quatre applications 1.1.8+12 sont installées sur le Samsung : UID conservés, ouverture et démarrage contrôlés, Admin laissé ouvert. Données et comptes conservés. Le contrôle tactile complet reste à valider ; les versions ci-dessous restent historiques.
 
 La [correction de synchronisation 1.1.4+8](sync-recovery-2026-09-23.md) traite les opérations de tous les magasins depuis chaque espace, avec état en direct et magasin indiqué. Les paramètres retirent les sélecteurs redondants tout en conservant les réglages. Analyse sans diagnostic, 252 tests Flutter réussis, deux parcours HTTP réels et reprise après arrêt Android forcé réussis. Les identifiants et données sont conservés ; backend et schéma inchangés. APK/AAB signés depuis `ef99ad3`, candidate installée sur Samsung sans effacement, session conservée et file vérifiée vide. Réception rejetée conservée dans l’historique des résolutions. Voir la preuve de livraison pour la CI et les contrôles physiques.
 

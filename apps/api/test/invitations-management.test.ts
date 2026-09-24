@@ -101,6 +101,40 @@ afterAll(async () => {
   await db.$disconnect();
   await owner.$disconnect();
 });
+it("blocks changing one's own group access even when another responsible exists", async () => {
+  const colleague = account();
+  await owner.user.create({
+    data: { ...colleague, passwordHash: "test:none" },
+  });
+  await owner.organizationMembership.create({
+    data: { organizationId: group, userId: colleague.id },
+  });
+  for (const input of [
+    { role: "responsible" as const, active: false, storeIds: [] },
+    { role: "salesperson" as const, active: true, storeIds: [store] },
+  ]) {
+    await expect(
+      groups.member(manager, group, manager.id, input),
+    ).rejects.toMatchObject({ code: "SELF_ACCESS_CHANGE" });
+  }
+  expect(
+    (
+      await owner.organizationMembership.findUniqueOrThrow({
+        where: {
+          organizationId_userId: { organizationId: group, userId: manager.id },
+        },
+      })
+    ).active,
+  ).toBe(true);
+  await expect(
+    identity.invite(manager, {
+      organizationId: group,
+      storeId: store,
+      email: manager.email,
+      permissions: ["sell"],
+    }),
+  ).rejects.toMatchObject({ code: "SELF_ACCESS_CHANGE" });
+});
 it("tracks expiry, resend, replacement and single-use activation without exposing tokens", async () => {
   const first = await invite(),
     old = await code(first.id);

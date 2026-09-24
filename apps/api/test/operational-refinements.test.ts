@@ -122,6 +122,167 @@ afterAll(async () => {
   await db.$disconnect();
   await owner.$disconnect();
 });
+it("lets a responsible cancel an unprepared request once without moving stock", async () => {
+  const orderId = randomUUID();
+  await ops.submit(
+    manager,
+    op({
+      type: "order.create",
+      orderId,
+      lines: [{ productId: product, quantity: 7 }],
+    }),
+  );
+  const cancel = op(
+    { type: "order.cancel", orderId, reason: "Demande devenue inutile" },
+    1,
+  );
+  const accepted = await ops.submit(manager, cancel);
+  expect(accepted.status).toBe("accepted");
+  expect(await ops.submit(manager, cancel)).toEqual(accepted);
+  expect(
+    (
+      await owner.replenishmentOrder.findUniqueOrThrow({
+        where: { id: orderId },
+      })
+    ).status,
+  ).toBe("cancelled");
+  expect(
+    await owner.stockMovement.count({
+      where: { operationId: cancel.operationId },
+    }),
+  ).toBe(0);
+});
+it("closes responsible cancellation at preparation and retains admin remainder controls", async () => {
+  const orderId = randomUUID();
+  await ops.submit(
+    manager,
+    op({
+      type: "order.create",
+      orderId,
+      lines: [{ productId: product, quantity: 7 }],
+    }),
+  );
+  expect(
+    (await ops.submit(admin, op({ type: "order.prepare", orderId }, 1))).status,
+  ).toBe("accepted");
+  const rejected = await ops.submit(
+    manager,
+    op({ type: "order.cancel", orderId, reason: "Trop tard" }, 2),
+  );
+  expect(rejected.code).toBe("ORDER_CANCELLATION_CLOSED");
+  expect(
+    (
+      await owner.replenishmentOrder.findUniqueOrThrow({
+        where: { id: orderId },
+      })
+    ).status,
+  ).toBe("preparing");
+  expect(
+    (
+      await ops.submit(
+        admin,
+        op({ type: "order.cancel", orderId, reason: "Accord avec magasin" }, 2),
+      )
+    ).status,
+  ).toBe("accepted");
+});
+it("serializes cancellation racing with preparation without changing inventory", async () => {
+  const orderId = randomUUID();
+  await ops.submit(
+    manager,
+    op({
+      type: "order.create",
+      orderId,
+      lines: [{ productId: product, quantity: 3 }],
+    }),
+  );
+  const prepare = op({ type: "order.prepare", orderId }, 1);
+  const cancel = op(
+    { type: "order.cancel", orderId, reason: "Annulation magasin" },
+    1,
+  );
+  const results = await Promise.all([
+    ops.submit(admin, prepare),
+    ops.submit(manager, cancel),
+  ]);
+  expect(results.filter((r) => r.status === "accepted")).toHaveLength(1);
+  expect(results.filter((r) => r.status === "conflict")).toHaveLength(1);
+  const saved = await owner.replenishmentOrder.findUniqueOrThrow({
+    where: { id: orderId },
+  });
+  expect(["preparing", "cancelled"]).toContain(saved.status);
+  expect(saved.version).toBe(2);
+  expect(
+    await owner.stockMovement.count({
+      where: { operationId: { in: [prepare.operationId, cancel.operationId] } },
+    }),
+  ).toBe(0);
+});
+it("keeps an amended request cancellable before preparation and never moves a shipment backwards", async () => {
+  const orderId = randomUUID();
+  await ops.submit(
+    manager,
+    op({
+      type: "order.create",
+      orderId,
+      lines: [{ productId: product, quantity: 8 }],
+    }),
+  );
+  expect(
+    (
+      await ops.submit(
+        admin,
+        op(
+          {
+            type: "order.amend",
+            orderId,
+            lines: [{ productId: product, quantity: 6 }],
+            reason: "Quantité convenue",
+          },
+          1,
+        ),
+      )
+    ).status,
+  ).toBe("accepted");
+  expect(
+    (
+      await owner.replenishmentOrder.findUniqueOrThrow({
+        where: { id: orderId },
+      })
+    ).status,
+  ).toBe("requested");
+  expect(
+    (
+      await ops.submit(
+        manager,
+        op(
+          {
+            type: "order.cancel",
+            orderId,
+            reason: "Annulation avant préparation",
+          },
+          2,
+        ),
+      )
+    ).status,
+  ).toBe("accepted");
+  const sent = await shipment(3);
+  expect(
+    (
+      await ops.submit(
+        admin,
+        op({ type: "order.prepare", orderId: sent.orderId }, 2),
+      )
+    ).code,
+  ).toBe("ORDER_PREPARATION_UNAVAILABLE");
+  expect(
+    (
+      await owner.replenishmentOrder.findUniqueOrThrow({
+        where: { id: sent.orderId },
+      })
+    ).status,
+  ).toBe("dispatched");
+});
 it("denies every seller stock/reception route even with a legacy receive grant", async () => {
   const { deliveryId, orderId } = await shipment();
   const commands: Command[] = [
@@ -589,4 +750,154 @@ it("keeps partially received orders visible while another shipment is in transit
     "transit",
   );
   expect(list.items.map((i) => i.id)).toContain(orderId);
+});
+it("tracks order concerns before shipment without stock effects, with protected resolution and replay", async () => {
+  const orderId = randomUUID();
+  await ops.submit(
+    manager,
+    op({
+      type: "order.create",
+      orderId,
+      lines: [{ productId: product, quantity: 4 }],
+    }),
+  );
+  await owner.membership.updateMany({
+    where: { storeId: store, userId: seller.id },
+    data: { active: true },
+  });
+  const report = op(
+    { type: "order.report", orderId, reason: "Livrer uniquement mardi matin" },
+    1,
+  );
+  const before = await owner.stockMovement.count({ where: { storeId: store } });
+  const accepted = await ops.submit(manager, report);
+  expect(accepted.status).toBe("accepted");
+  expect(await ops.submit(manager, report)).toEqual(accepted);
+  const detail = await reports.order(manager, org, store, orderId);
+  expect(detail.order).toMatchObject({ status: "requested", version: 2 });
+  expect(detail.problem).toMatchObject({
+    active: true,
+    message: "Livrer uniquement mardi matin",
+  });
+  expect(
+    (await reports.alert(admin, org, store, detail.problem!.id)).orderId,
+  ).toBe(orderId);
+  const page = await reports.orders(
+    admin,
+    {
+      scope: "group",
+      organizationId: org,
+      from: "2026-09-01",
+      to: "2026-09-30",
+    },
+    undefined,
+    "issues",
+  );
+  expect(page.items.map((i) => i.id)).toContain(orderId);
+  expect(
+    (
+      await ops.submit(
+        manager,
+        op(
+          { type: "order.resolve", orderId, reason: "Je le ferme moi-même" },
+          2,
+        ),
+      )
+    ).code,
+  ).toBe("FORBIDDEN");
+  expect(
+    (
+      await ops.submit(
+        seller,
+        op({ type: "order.report", orderId, reason: "Autre problème" }, 2),
+      )
+    ).code,
+  ).toBe("FORBIDDEN");
+  expect(
+    (
+      await ops.submit(
+        manager,
+        op({ type: "order.report", orderId, reason: "Une seconde fois" }, 2),
+      )
+    ).code,
+  ).toBe("ISSUE_EXISTS");
+  expect(
+    (
+      await ops.submit(
+        admin,
+        op(
+          {
+            type: "order.resolve",
+            orderId,
+            reason: "Livraison mardi confirmée",
+          },
+          2,
+        ),
+      )
+    ).status,
+  ).toBe("accepted");
+  const resolved = await reports.order(admin, org, store, orderId);
+  expect(resolved.problem?.active).toBe(false);
+  expect(resolved.history.map((h) => h.action)).toEqual([
+    "order.create",
+    "order.report",
+    "order.resolve",
+  ]);
+  expect(await owner.stockMovement.count({ where: { storeId: store } })).toBe(
+    before,
+  );
+  expect(
+    (
+      await ops.submit(
+        manager,
+        op(
+          {
+            type: "order.cancel",
+            orderId,
+            reason: "Finalement plus nécessaire",
+          },
+          3,
+        ),
+      )
+    ).status,
+  ).toBe("accepted");
+  const notices = await owner.notification.findMany({
+    where: { storeId: store, targetId: orderId },
+  });
+  expect(notices.some((n) => n.userId === admin.id)).toBe(true);
+  expect(notices.some((n) => n.userId === manager.id)).toBe(true);
+  expect(notices.some((n) => n.userId === seller.id)).toBe(false);
+});
+it("keeps order problems visible even when the first alert page is full", async () => {
+  const orderId = randomUUID();
+  await ops.submit(
+    manager,
+    op({
+      type: "order.create",
+      orderId,
+      lines: [{ productId: product, quantity: 1 }],
+    }),
+  );
+  await ops.submit(
+    manager,
+    op({ type: "order.report", orderId, reason: "Demande à vérifier" }, 1),
+  );
+  await owner.alert.updateMany({
+    where: { storeId: store, key: `order:${orderId}` },
+    data: { createdAt: new Date("2020-01-01") },
+  });
+  await owner.alert.createMany({
+    data: Array.from({ length: 201 }, () => ({
+      organizationId: org,
+      storeId: store,
+      kind: "test",
+      key: randomUUID(),
+      message: "Isolated alert fixture",
+    })),
+  });
+  const snapshot = await workspace.snapshot(manager, org, store);
+  expect(snapshot.alerts.some((a) => a.key === `order:${orderId}`)).toBe(false);
+  expect(
+    snapshot.orders.find((order) => order.id === orderId)?.openIssues,
+  ).toBe(1);
 });

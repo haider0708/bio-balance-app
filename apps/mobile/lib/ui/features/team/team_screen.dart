@@ -42,6 +42,11 @@ class GroupTeamViewModel extends ChangeNotifier {
   );
   final PartnerGroup group;
   Json? data;
+  List<Json> get members => objects(data?['members'])
+      .where(
+        (member) => workspace.user.admin || member['id'] != workspace.user.id,
+      )
+      .toList();
   String? error;
   bool loading = false, closed = false;
   StoreData? _data;
@@ -118,7 +123,7 @@ class _GroupTeamPageState extends State<GroupTeamPage> {
         ),
         if (vm.loading) const LinearProgressIndicator(),
         if (vm.error != null) Notice(vm.error!, retry: vm.load),
-        for (final member in objects(vm.data?['members']))
+        for (final member in vm.members)
           CompactRow(
             title: member['name'],
             subtitle:
@@ -144,7 +149,7 @@ class _GroupTeamPageState extends State<GroupTeamPage> {
             ),
           ),
         ),
-        if (vm.data != null && objects(vm.data?['members']).isEmpty)
+        if (vm.data != null && vm.members.isEmpty)
           const EmptyState(
             title: 'Ajoutez votre équipe',
             description: 'Chacun utilise son propre compte. Les activités restent attribuées à leur auteur.',

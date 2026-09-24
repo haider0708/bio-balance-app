@@ -107,6 +107,20 @@ export const commandSchema = z.discriminatedUnion("type", [
     .strict(),
   z
     .object({
+      type: z.literal("order.report"),
+      orderId: id,
+      reason: z.string().trim().min(3).max(500),
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal("order.resolve"),
+      orderId: id,
+      reason: z.string().trim().min(3).max(500),
+    })
+    .strict(),
+  z
+    .object({
       type: z.literal("delivery.report"),
       deliveryId: id,
       reason: z.string().trim().min(3).max(500),
