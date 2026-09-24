@@ -1,6 +1,6 @@
 # Operational refinements — implementation record
 
-Candidate: **1.1.7+11**. The backend and migrations are deployed; all three signed Android installations are updated. The live reset remains pending final journey checks and reconnection of the Samsung. This record is updated with execution evidence before handover.
+Version **1.1.7+11** is deployed and installed in all three Samsung copies. All four CI jobs passed. The live server reset is complete: accounts, credentials, MFA and catalog were preserved. **Phone-cache clearing and the post-reset physical login check remain pending because the Samsung disconnected.** Do not report those two checks as passed.
 
 ## Approved reset and preservation
 
@@ -37,9 +37,9 @@ Legacy v1/v2 queued envelopes and accepted results remain readable. An old zero-
 - Android role journeys: **2 passed**, with actual database effects for all three roles, manager-only reception, seller corrections/returns, reward handover, announcements and access removal while editing.
 - Manual screenshot review: orders, notifications, store access settings, order editor and stock entry are readable at phone width; layout tests include landscape/200% text. Lifecycle and mixed-condition receipt captures were also reviewed; form actions now remain above the keyboard.
 
-## Execution still in progress
+## Remaining physical checks
 
-Native Android role/restart journeys; additional uncertain-response and lifecycle/receipt screenshot checks; generated drift verification; commit/push/CI; immutable images and compatible VPS rollout; signed three-app installation; final quiesced backup/reset and exact post-reset counts. Final evidence and any unavailable platform checks must be stated explicitly. Physical iOS, public store publishing, off-server backup and HA are outside this update.
+Reconnect the authorized Samsung `R58MA0MRF8D` and clear only `tn.biobalance.app`, `tn.biobalance.app.responsable` and `tn.biobalance.app.vendeur`. Do not repeat the server reset. Verify fresh login screens and leave the responsible account ready to restart onboarding. Authenticator and other applications must remain untouched. Physical iOS, public store publishing, off-server backup and HA remain outside this update.
 
 ## Final local checks
 
@@ -55,3 +55,35 @@ Implementation commit `505795b` contains the backend and migrations. Backend ima
 - Signed APK/AAB sets for Admin, Responsable and Vendeur were built from clean source `471a2cc` with version **1.1.7+11**. All three were installed over the Samsung copies; package UIDs and app data were retained. Admin and Responsable workspace launches passed before the phone disconnected. Vendeur launch and the final cache reset await reconnection.
 - CI run `35920326511` passed backend, Android analysis/build and unsigned iOS compilation. The Android role journey exposed an account-switch timing assumption: a locally saved receipt was not necessarily synchronized before logging out. The test now asserts authoritative opening stock, order acceptance and physical reception before dependent cross-account work. The business effects and permissions assertions remain unchanged; the amended journey is being rerun.
 - No live business data has been cleared at this checkpoint. [Manual retest instructions](manual-retest-1.1.7.md) describe the intended clean setup after the authorized reset.
+
+## Final execution evidence — 24 September 2026
+
+### Code and checks
+
+- Backend implementation: `505795b`; signed mobile source: `471a2cc`. Test/documentation follow-up: `972f7cc`; it changes no runtime source.
+- [CI run 35942475807](https://github.com/haider0708/bio-balance-app/actions/runs/35942475807): **backend, Android, iOS compilation and Android journeys all passed**. iOS is an unsigned compile check, not physical-device acceptance.
+- The strengthened native journey passed locally and in CI. It waits for authoritative stock/order/reception acceptance before switching accounts. The local save path remains offline-capable; logging out must not make another account see an unaccepted command. Analyzer remained clean.
+- Local raw evidence is under `.artifacts/`: `refinements-final-api.log`, `refinements-final-flutter.log`, `refinements-final-contract.log`, `refinements-final-mobile-sync.log`, `refinements-journeys-ci-fix.log`, `refinements-final-restart.log` and `operational-refinements/ci-result.json`. These logs are not committed because operational artifacts may contain account context.
+
+### Deployment and verified live reset
+
+- Four API instances, normal worker, isolated media worker, Nginx and PostgreSQL are healthy. The restricted application database role and forced RLS remain enabled. No other VPS application/database was changed.
+- Before the reset, BioBalance API/workers were stopped and backup **`20260924T013701Z-30b91d6d`** was created with a quiescent database and media. The isolated restore passed dump checksums and verified **102 original/thumbnail files** against database sizes and SHA-256.
+- The account-preserving reset committed once. Full bidirectional row comparisons confirmed that User (including password/MFA), Product and retained catalog MediaAsset rows were unchanged. One maintenance audit references the backup.
+- Post-reset counts: **4 users, 51 products, 51 catalog images, 2 group-creation grants**. Groups, stores, sales, lots, orders, deliveries, rewards, training, notifications and sessions are **zero**. Old sessions were revoked.
+- API/workers restarted and Nginx reloaded. Public HTTPS probes with curl returned `/health` **200**, `/v1/groups` **401** and `/v1/notification-inbox` **401** without authentication. An initial Python-default-agent probe was rejected by Cloudflare with code 1010; no edge policy was weakened.
+- Backup and monitoring timers are active. Temporary databases/media from both restore exercises were removed by their exact recorded names; verified backup sets remain subject to existing bounded retention. Backup storage was **12 MB** after the exercise.
+
+### Samsung installation and outstanding cache clearing
+
+All three signed APKs were installed over the existing applications with package UIDs/data preserved, before resetting the server:
+
+| Copy | Version | APK SHA-256 |
+|---|---|---|
+| Admin | 1.1.7+11 | `6dee5e25527f5a372de82d6f8cd6eeb2d323adf5e7541041d8c3b076d646704a` |
+| Responsable | 1.1.7+11 | `1d8e2f5a0f9006a11f3410574e295205b1a3a4f8acf2dad16d96c07efa58b017` |
+| Vendeur | 1.1.7+11 | `bc805976366956cfdd72d581bb1dd86fdf276b79ad6b05d2d578c0322b6d7137` |
+
+Admin and Responsable workspace launches were observed on the Samsung before disconnection. Vendeur installation/version checks passed, but its physical launch and all three post-reset cache/login checks remain pending. No phone data or Authenticator state has been cleared in this update yet. The retained old server sessions can no longer submit operations.
+
+[Manual retest guide](manual-retest-1.1.7.md). The existing responsible account can create a new group; the existing seller must receive a new store assignment/invitation and use the same password when activating it. No sample stock or sales are recreated automatically.

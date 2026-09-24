@@ -1,10 +1,12 @@
 # BioBalance 1.1.7 — reprise des tests manuels
 
+**État du 24 septembre :** le serveur est remis à zéro et les trois copies sont installées en 1.1.7. Le Samsung doit être reconnecté pour effacer uniquement leurs anciens caches et vérifier les écrans de connexion avant de reprendre ce parcours.
+
 Les mots de passe existants restent valables. L’authentification MFA administrateur reste dans votre application d’authentification. Les trois copies BioBalance ont des sessions séparées et utilisent le même backend.
 
 1. **Admin** : connectez-vous avec `boudhriwa.haydar@gmail.com` et votre code MFA. Vérifiez le catalogue conservé et l’absence de magasins/ventes après la remise à zéro.
 2. **Responsable** : connectez-vous avec `haydar.boudhrioua@gmail.com`. Créez votre groupe, puis un magasin. Le droit de créer le groupe est déjà rétabli ; aucune nouvelle invitation administrateur n’est nécessaire pour ce compte existant. Suivez le guide. Vous pouvez déclarer explicitement ne pas avoir de stock initial.
-3. **Équipe** : invitez le compte vendeur `hayder.boudhrioua@gmail.com` (avec « e »), choisissez les magasins autorisés, puis activez l’invitation dans BioBalance Vendeur. Le compte et son mot de passe ont été conservés ; ses anciennes affectations ont été retirées avec les magasins.
+3. **Équipe** : invitez le compte vendeur `hayder.boudhrioua@gmail.com` (avec « e »), choisissez les magasins autorisés, puis activez l’invitation dans BioBalance Vendeur. Saisissez son mot de passe actuel pendant l’activation. Le compte et son mot de passe ont été conservés ; ses anciennes affectations ont été retirées avec les magasins.
 4. **Réapprovisionnement** : demandez 20 unités d’un produit. Dans Admin, préparez puis expédiez 15. Le stock du magasin doit toujours être zéro. Dans Responsable, confirmez 12 unités avec un lot et une péremption : le stock doit devenir 12, avec trois unités à régler et cinq restant à expédier. L’admin règle le manque avant d’expédier les trois unités de remplacement. Une réception répétée ne doit jamais ajouter une deuxième fois le stock.
 5. **Vente / correction / retour** : configurez dix points par unité. Vendez une unité, corrigez la vente à deux unités, puis retournez-en une vendable. Le résultat net doit être une unité vendue, dix points gagnés et onze unités disponibles. Vérifiez magasin, vendeur et historique sur la vente et le tableau de bord.
 6. **Récompense** : créez une récompense coûtant dix points. Le vendeur la demande : les points sont réservés. Le responsable confirme la remise : les points sont déduits. Si elle est liée à une unité du produit, le stock passe à dix ; aucun point de vente supplémentaire n’est créé. Le classement garde les dix points gagnés.
