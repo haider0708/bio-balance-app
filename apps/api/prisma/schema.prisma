@@ -36,6 +36,11 @@ model AccessToken {
   usedAt DateTime?
   createdBy String? @db.Uuid
   kind String @default("legacy")
+  createdAt DateTime? @default(now())
+  acceptedAt DateTime?
+  closedReason String?
+  archivedAt DateTime?
+  version Int @default(1)
   storeIds String[] @default([]) @db.Uuid
 }
 model ReportExport {

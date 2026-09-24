@@ -145,6 +145,17 @@ afterAll(async () => {
   await owner.$disconnect();
 });
 describe.sequential("group redesign and reporting projections", () => {
+  const seller: Actor = {
+    id: randomUUID(),
+    name: "Group seller",
+    email: `group-seller-${randomUUID()}@example.test`,
+    platformAdmin: false,
+  };
+  beforeAll(async () => {
+    await owner.user.create({
+      data: { ...seller, passwordHash: "test-only-not-a-login" },
+    });
+  });
   const groups = new GroupService(db, workspace),
     dashboards = new DashboardService(db);
   let groupId = "",
@@ -2041,6 +2052,15 @@ describe.sequential(
       ).rejects.toMatchObject({ code: "SESSION_EXPIRED" });
     });
     it("paginates optimized sale reads without crossing seller or store scope", async () => {
+      const seller: Actor = {
+        id: randomUUID(),
+        name: "Read seller",
+        email: `read-seller-${randomUUID()}@example.test`,
+        platformAdmin: false,
+      };
+      await owner.user.create({
+        data: { ...seller, passwordHash: "test-only-not-a-login" },
+      });
       const readStore = await owner.store.create({
         data: {
           organizationId: org,

@@ -27,6 +27,54 @@ class ApiClient extends SessionTransport {
   Future<Map<String, dynamic>> push(
     List<Map<String, dynamic>> operations,
   ) async => (await pushRaw(operations)).toJson();
+  Future<InvitationManagementListResponseDto> invitationManagementList({
+    String? organizationId,
+    String? after,
+    String? includeArchived,
+  }) async {
+    final value = await request(
+      'GET',
+      '/v1/identity/invitations',
+      query: {
+        "organizationId": ?organizationId,
+        "after": ?after,
+        "includeArchived": ?includeArchived,
+      },
+    );
+    return InvitationManagementListResponseDto.fromJson(
+      Map<String, dynamic>.from(value as Map),
+    );
+  }
+
+  Future<IdentityInviteResponseDto> identityInvite({
+    required IdentityInviteRequestDto body,
+  }) async {
+    final value = await request(
+      'POST',
+      '/v1/identity/invitations',
+      body: body.toJson(),
+      query: {},
+    );
+    return IdentityInviteResponseDto.fromJson(
+      Map<String, dynamic>.from(value as Map),
+    );
+  }
+
+  Future<InvitationManagementActionResponseDto> invitationManagementAction({
+    required String id,
+    required InvitationManagementActionRequestDto body,
+  }) async {
+    final value = await request(
+      'POST',
+      '/v1/identity/invitations/${Uri.encodeComponent(id)}/actions',
+      body: body.toJson(),
+      query: {},
+    );
+    return InvitationManagementActionResponseDto.fromJson(
+      Map<String, dynamic>.from(value as Map),
+    );
+  }
+
   Future<ExportCreateResponseDto> exportCreate({
     required ExportCreateRequestDto body,
   }) async {
@@ -345,20 +393,6 @@ class ApiClient extends SessionTransport {
   Future<IdentityLogoutResponseDto> identityLogout() async {
     final value = await request('POST', '/v1/identity/logout', query: {});
     return IdentityLogoutResponseDto.fromJson(
-      Map<String, dynamic>.from(value as Map),
-    );
-  }
-
-  Future<IdentityInviteResponseDto> identityInvite({
-    required IdentityInviteRequestDto body,
-  }) async {
-    final value = await request(
-      'POST',
-      '/v1/identity/invitations',
-      body: body.toJson(),
-      query: {},
-    );
-    return IdentityInviteResponseDto.fromJson(
       Map<String, dynamic>.from(value as Map),
     );
   }

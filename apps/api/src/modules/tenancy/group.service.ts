@@ -328,9 +328,9 @@ export class GroupService {
       requireRule(
         !input.active ||
           input.role === "responsible" ||
-          input.storeIds.length > 0,
+          input.storeIds.length === 1,
         "STORE_REQUIRED",
-        "Choisissez au moins un magasin.",
+        "Choisissez un seul magasin pour ce vendeur.",
       );
       if (input.role === "responsible" || manager)
         await tx.organizationMembership.upsert({
@@ -342,28 +342,34 @@ export class GroupService {
           },
           update: { active: input.active && input.role === "responsible" },
         });
+      // Release old assignments before activating the selected store. Both phases
+      // commit together, so transfers preserve the one-store invariant and history.
       for (const store of stores) {
         await tx.$executeRaw`SELECT set_config('app.store_id',${store.id},true)`;
-        const active =
-          input.active &&
-          input.role === "salesperson" &&
-          input.storeIds.includes(store.id);
-        if (active)
-          await tx.membership.upsert({
-            where: { storeId_userId: { storeId: store.id, userId } },
-            create: {
-              organizationId: id,
-              storeId: store.id,
-              userId,
-              permissions: ["sell"],
-            },
-            update: { active: true, permissions: ["sell"] },
-          });
-        else
-          await tx.membership.updateMany({
-            where: { storeId: store.id, userId },
-            data: { active: false },
-          });
+        await tx.membership.updateMany({
+          where: { storeId: store.id, userId },
+          data: { active: false },
+        });
+      }
+      if (input.active && input.role === "salesperson") {
+        const storeId = input.storeIds[0]!;
+        requireRule(
+          stores.some((s) => s.id === storeId && s.status === "active"),
+          "STORE_ACCESS_REVOKED",
+          "Choisissez un magasin actif.",
+          409,
+        );
+        await tx.$executeRaw`SELECT set_config('app.store_id',${storeId},true)`;
+        await tx.membership.upsert({
+          where: { storeId_userId: { storeId, userId } },
+          create: {
+            organizationId: id,
+            storeId,
+            userId,
+            permissions: ["sell"],
+          },
+          update: { active: true, permissions: ["sell"] },
+        });
       }
       await tx.auditEntry.create({
         data: {

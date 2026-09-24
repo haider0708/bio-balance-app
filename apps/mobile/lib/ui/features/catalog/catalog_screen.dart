@@ -151,8 +151,14 @@ class _CatalogPageState extends State<CatalogPage> {
     if (await openEditor(
       context,
       title: p == null ? 'Créer un produit' : 'Modifier le produit',
+      description: 'Renseignez la référence et le nom. Les autres informations peuvent être complétées ensuite.',
       fields: [
-        FieldSpec('reference', 'Référence', initial: p?['reference'] ?? ''),
+        FieldSpec(
+          'reference',
+          'Référence',
+          initial: p?['reference'] ?? '',
+          section: 'Identité du produit',
+        ),
         FieldSpec('name', 'Nom du produit', initial: p?['name'] ?? ''),
         FieldSpec(
           'imageId',
@@ -170,6 +176,7 @@ class _CatalogPageState extends State<CatalogPage> {
         FieldSpec(
           'description',
           'Description',
+          section: 'Informations et utilisation',
           initial: p?['description'] ?? '',
           multiline: true,
           required: false,
@@ -196,6 +203,8 @@ class _CatalogPageState extends State<CatalogPage> {
         FieldSpec(
           'priceStatus',
           'Statut du prix de référence',
+          section: 'Prix de référence',
+          hint: 'Chaque magasin conserve son propre prix de vente.',
           initial: p?['priceStatus'] ?? 'missing',
           options: const {
             'missing': 'À compléter',
@@ -215,6 +224,7 @@ class _CatalogPageState extends State<CatalogPage> {
         FieldSpec(
           'sourceUrls',
           'Sources vérifiées (une URL par ligne)',
+          section: 'Vérification et publication',
           initial: (p?['sourceUrls'] as List? ?? []).join('\n'),
           required: false,
           multiline: true,

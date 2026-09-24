@@ -159,7 +159,7 @@ class _GroupMemberEditorState extends State<GroupMemberEditor> {
     children: [
       SectionTitle(
         widget.group.name,
-        subtitle: 'Un compte personnel. Un rôle clair. Les magasins autorisés ci-dessous.',
+        subtitle: 'Un compte personnel. Un rôle clair. Un magasin par vendeur.',
       ),
       if (error != null) ...[
         Notice(error!, error: true),
@@ -209,13 +209,12 @@ class _GroupMemberEditorState extends State<GroupMemberEditor> {
         )
       else ...[
         const Text(
-          'Enregistre les ventes et réceptions. Consulte ses points et ses formations.',
+          'Enregistre et corrige ses ventes. Consulte ses points, ses récompenses et ses formations.',
         ),
         const SizedBox(height: 20),
         SectionTitle(
-          'Magasins autorisés',
-          subtitle:
-              '${selected.where((id) => stores.any((s) => s.id == id)).length} sélectionné(s) · plusieurs choix possibles',
+          'Magasin attribué',
+          subtitle: 'Un vendeur travaille dans un seul magasin.',
         ),
         if (stores.length > 5)
           TextField(
@@ -225,26 +224,38 @@ class _GroupMemberEditorState extends State<GroupMemberEditor> {
               prefixIcon: Icon(AppIcons.search),
             ),
           ),
-        for (final store in stores.where(
-          (s) => '${s.name} ${s.city}'.toLowerCase().contains(query),
-        ))
-          CheckboxListTile(
-            contentPadding: EdgeInsets.zero,
-            controlAffinity: ListTileControlAffinity.leading,
-            title: Text(store.name),
-            subtitle: Text(store.city),
-            value: selected.contains(store.id),
-            onChanged: !ready || busy
-                ? null
-                : (v) {
-                    setState(() {
-                      v == true
-                          ? selected.add(store.id)
-                          : selected.remove(store.id);
-                    });
-                    persist();
-                  },
+        if (selected.length > 1)
+          const Notice(
+            'Ce brouillon contient plusieurs magasins. Choisissez le seul magasin à attribuer.',
+            error: true,
           ),
+        RadioGroup<String>(
+          groupValue: selected.length == 1 ? selected.single : null,
+          onChanged: (value) {
+            if (!ready || busy || value == null) return;
+            setState(() {
+              selected
+                ..clear()
+                ..add(value);
+            });
+            persist();
+          },
+          child: Column(
+            children: [
+              for (final store in stores.where(
+                (s) => '${s.name} ${s.city}'.toLowerCase().contains(query),
+              ))
+                RadioListTile<String>(
+                  contentPadding: EdgeInsets.zero,
+                  controlAffinity: ListTileControlAffinity.leading,
+                  title: Text(store.name),
+                  subtitle: Text(store.city),
+                  value: store.id,
+                  enabled: ready && !busy,
+                ),
+            ],
+          ),
+        ),
         if (stores.isEmpty)
           const Notice('Créez un magasin avant d’inviter un vendeur.'),
       ],
@@ -285,9 +296,9 @@ class _GroupMemberEditorState extends State<GroupMemberEditor> {
       final ids = role == 'responsible'
           ? <String>[]
           : selected.where((id) => stores.any((s) => s.id == id)).toList();
-      if (role == 'salesperson' && active && ids.isEmpty) {
+      if (role == 'salesperson' && active && ids.length != 1) {
         throw const FormatException(
-          'Choisissez au moins un magasin pour ce vendeur.',
+          'Choisissez un seul magasin pour ce vendeur.',
         );
       }
       if (widget.member == null) {

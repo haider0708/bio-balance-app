@@ -447,7 +447,10 @@ void main() {
         }),
       );
       await t.pumpAndSettle();
-      expect(find.text('collegue@example.test'), findsOneWidget);
+      expect(
+        find.text('1 en attente · voir tout l’historique'),
+        findsOneWidget,
+      );
       await t.pumpWidget(const SizedBox());
       await f.close();
     },

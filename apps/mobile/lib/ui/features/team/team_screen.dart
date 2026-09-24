@@ -1,3 +1,5 @@
+import 'invitations_screen.dart';
+
 import 'package:flutter/material.dart';
 
 import '../../../domain/models/models.dart';
@@ -107,7 +109,7 @@ class _GroupTeamPageState extends State<GroupTeamPage> {
       children: [
         SectionTitle(
           'Équipe de ${widget.group.name}',
-          subtitle: 'Les responsables gèrent tous les magasins. Les vendeurs accèdent uniquement aux magasins choisis.',
+          subtitle: 'Les responsables gèrent tous les magasins. Chaque vendeur est affecté à un seul magasin.',
           action: FilledButton.icon(
             onPressed: () => edit(),
             icon: const Icon(AppIcons.personAddAlt),
@@ -127,18 +129,21 @@ class _GroupTeamPageState extends State<GroupTeamPage> {
             icon: AppIcons.personOutline,
             onTap: () => edit(member),
           ),
-        if (objects(vm.data?['invitations']).isNotEmpty)
-          const SectionTitle('Invitations en attente'),
-        for (final item in objects(vm.data?['invitations']))
-          CompactRow(
-            title: item['email'],
-            subtitle: item['kind'] == 'responsible'
-                ? 'Responsable du groupe'
-                : 'Vendeur',
-            footer: const StatusChip('En attente d’activation'),
-            icon: AppIcons.mailOutline,
-            onTap: () => edit(null, item),
+        CompactRow(
+          title: 'Invitations et suivi',
+          subtitle:
+              '${objects(vm.data?['invitations']).length} en attente · voir tout l’historique',
+          icon: AppIcons.mailOutline,
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => InvitationsScreen(
+                workspace: widget.workspace,
+                group: widget.group,
+              ),
+            ),
           ),
+        ),
         if (vm.data != null && objects(vm.data?['members']).isEmpty)
           const EmptyState(
             title: 'Ajoutez votre équipe',

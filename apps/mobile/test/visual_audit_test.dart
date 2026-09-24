@@ -1,3 +1,5 @@
+import 'package:biobalance/ui/features/team/invitations_screen.dart';
+
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -71,6 +73,29 @@ class AuditApi extends PreviewApi {
   AuditApi() {
     authenticate('test-only', accountId: 'user');
   }
+  @override
+  Future<InvitationManagementListResponseDto> invitationManagementList({
+    String? organizationId,
+    String? after,
+    String? includeArchived,
+  }) async => InvitationManagementListResponseDto.fromJson({
+    'items': [
+      for (final status in ['pending', 'expired', 'accepted', 'revoked'])
+        {
+          'id': status,
+          'email': '$status@example.test',
+          'organizationId': organizationId,
+          'kind': 'salesperson',
+          'storeIds': ['store'],
+          'status': status,
+          'createdAt': '2026-09-23T10:00:00Z',
+          'expiresAt': '2026-09-25T10:00:00Z',
+          'acceptedAt': status == 'accepted' ? '2026-09-24T10:00:00Z' : null,
+          'version': 1,
+        },
+    ],
+    'nextCursor': null,
+  });
   @override
   Future<CatalogListResponseDto> catalogList({String? after}) async =>
       CatalogListResponseDto.fromJson({
@@ -237,6 +262,84 @@ void main() {
         ))
         .load();
   });
+  for (final large in [false, true]) {
+    testWidgets(
+      'product form media layout ${large ? "200 percent" : "phone"}',
+      (t) async {
+        viewport(t, large ? const Size(800, 360) : const Size(360, 800));
+        final f = VisualFixture(), key = GlobalKey();
+        await t.pumpWidget(f.app(const SizedBox()));
+        final imageContext = t.element(find.byType(SizedBox).first);
+        await t.runAsync(
+          () => precacheImage(
+            ResizeImage(FileImage(productPhoto), height: 60),
+            imageContext,
+          ),
+        );
+        await t.pumpWidget(
+          f.app(
+            Scaffold(body: CatalogPage(vm: f.vm)),
+            scale: large ? 2 : 1,
+            capture: key,
+          ),
+        );
+        await t.pumpAndSettle();
+        await t.tap(find.text('Ajouter un produit'));
+        await t.pumpAndSettle();
+        expect(find.text('Identité du produit'), findsOneWidget);
+        expect(t.takeException(), isNull);
+        if (!large) await screenshot(t, key, 'audit-product-editor');
+        await t.ensureVisible(find.text('Choisir une image'));
+        await t.pumpAndSettle();
+        expect(find.text('Choisir une image').hitTestable(), findsOneWidget);
+        if (!large) await screenshot(t, key, 'audit-product-editor-image');
+        expect(t.takeException(), isNull);
+        await t.pumpWidget(const SizedBox());
+        await f.close();
+      },
+    );
+    testWidgets(
+      'training media and association controls ${large ? "200 percent" : "phone"}',
+      (t) async {
+        viewport(t, large ? const Size(800, 360) : const Size(360, 800));
+        final f = VisualFixture(), key = GlobalKey();
+        await t.pumpWidget(
+          f.app(
+            TrainingEditor(
+              vm: f.vm,
+              article: {...article, 'type': 'video', 'status': 'draft'},
+            ),
+            scale: large ? 2 : 1,
+            capture: key,
+          ),
+        );
+        await t.pumpAndSettle();
+        for (final label in [
+          'Associer des produits',
+          'Choisir une vidéo',
+          'Aperçu du contenu',
+        ]) {
+          await t.ensureVisible(find.text(label));
+          await t.pumpAndSettle();
+          expect(find.text(label).hitTestable(), findsOneWidget);
+          expect(t.takeException(), isNull);
+          if (!large) {
+            await screenshot(
+              t,
+              key,
+              'audit-training-${label == 'Associer des produits'
+                  ? 'association'
+                  : label == 'Choisir une vidéo'
+                  ? 'media'
+                  : 'publication'}',
+            );
+          }
+        }
+        await t.pumpWidget(const SizedBox());
+        await f.close();
+      },
+    );
+  }
   final pages = <String, Widget Function(VisualFixture)>{
     'catalog': (f) => CatalogPage(vm: f.vm),
     'product': (f) => ProductInformation(vm: f.vm, product: photoProduct),
@@ -255,9 +358,14 @@ void main() {
     'order-editor': (f) => OrderEditor(vm: f.vm, initialProductId: 'p'),
     'rewards': (f) => RewardsPage(vm: f.vm),
     'team': (f) => TeamPage(vm: f.vm),
+    'invitations': (f) => InvitationsScreen(workspace: f.vm),
     'training': (f) => TrainingPage(vm: f.vm),
     'article': (f) => TrainingReader(vm: f.vm, article: article),
     'training-editor': (f) => TrainingEditor(vm: f.vm),
+    'training-video-editor': (f) => TrainingEditor(
+      vm: f.vm,
+      article: {...article, 'type': 'video', 'status': 'draft'},
+    ),
     'announcement': (f) => AnnouncementScreen(vm: f.vm),
     'notifications': (f) => NotificationsScreen(vm: f.vm),
     'store-settings': (f) => StoreSettingsPage(vm: f.vm),

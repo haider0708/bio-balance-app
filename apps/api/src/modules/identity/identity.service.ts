@@ -1,3 +1,4 @@
+import { issueInvitation } from "./issue-invitation";
 import { accountLink } from "./account-links";
 import { invitationIsAuthorized } from "./invitation-policy";
 import type { EmailPayload } from "../../shared/email/email-delivery";
@@ -252,8 +253,6 @@ export class IdentityService {
         "Seul BioBalance peut inviter un responsable.",
         403,
       );
-    const token = randomBytes(32).toString("base64url");
-    accountLink("invite", token);
     const create = async (tx: Prisma.TransactionClient) => {
       const targetOrganization =
         organizationId ??
@@ -262,58 +261,12 @@ export class IdentityService {
             data: { name: input.organizationName ?? input.email },
           })
         ).id;
-      // Older clients still use this route; they share the same replacement
-      // lock so they cannot leave a second usable invitation in the group.
-      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`invite:${targetOrganization}:${input.email}`}, 0))`;
-      await tx.accessToken.updateMany({
-        where: {
-          email: input.email,
-          purpose: "invite",
-          usedAt: null,
-          organizationId: targetOrganization,
-        },
-        data: { usedAt: new Date() },
-      });
-      const invitation = await tx.accessToken.create({
-        data: {
-          email: input.email,
-          tokenHash: tokenHash(token),
-          purpose: "invite",
-          organizationId: targetOrganization,
-          storeId: input.storeId,
-          permissions: input.permissions,
-          createdBy: actor.id,
-          expiresAt: new Date(Date.now() + 48 * 3600_000),
-        },
-      });
-      await tx.job.create({
-        data: {
-          kind: "email",
-          key: `invite:${invitation.id}`,
-          payload: {
-            version: "1",
-            template: "invite",
-            to: input.email,
-            accessTokenId: invitation.id,
-            token,
-          } satisfies EmailPayload,
-        },
-      });
-      await tx.auditEntry.create({
-        data: {
-          actorId: actor.id,
-          organizationId: targetOrganization,
-          action: "identity.invite",
-          targetId: invitation.id,
-          details: { email: input.email, storeId: input.storeId ?? null },
-        },
-      });
-      return {
-        id: invitation.id,
+      return issueInvitation(tx, actor, {
         email: input.email,
-        status: "invited",
-        expiresAt: invitation.expiresAt,
-      };
+        organizationId: targetOrganization,
+        storeId: input.storeId,
+        permissions: input.permissions,
+      });
     };
     if (input.storeId) {
       return this.db.scoped(
@@ -348,8 +301,6 @@ export class IdentityService {
       "VALIDATION",
       "Groupe requis.",
     );
-    const token = randomBytes(32).toString("base64url");
-    accountLink("invite", token);
     const create = async (tx: Prisma.TransactionClient) => {
       // Serializes simultaneous invitations for the same person and group.
       // Replaced capabilities remain in history, but can no longer activate.
@@ -382,6 +333,17 @@ export class IdentityService {
           );
         }
       }
+      if (input.organizationId) {
+        const group = await tx.organization.findUnique({
+          where: { id: input.organizationId },
+        });
+        requireRule(
+          group?.status === "active",
+          "GROUP_ACCESS_REVOKED",
+          "Ce groupe n’est pas actif. Réactivez-le avant d’inviter une personne.",
+          403,
+        );
+      }
       const storeIds = [...new Set(input.storeIds ?? [])];
       if (input.kind === "new_group")
         requireRule(
@@ -392,12 +354,16 @@ export class IdentityService {
       else {
         requireRule(input.organizationId, "VALIDATION", "Groupe requis.");
         requireRule(
-          input.kind !== "salesperson" || storeIds.length > 0,
+          input.kind !== "salesperson" || storeIds.length === 1,
           "STORE_REQUIRED",
-          "Choisissez au moins un magasin.",
+          "Choisissez un seul magasin pour ce vendeur.",
         );
         const count = await tx.store.count({
-          where: { organizationId: input.organizationId, id: { in: storeIds } },
+          where: {
+            organizationId: input.organizationId,
+            id: { in: storeIds },
+            status: "active",
+          },
         });
         requireRule(
           count === storeIds.length,
@@ -405,59 +371,16 @@ export class IdentityService {
           "Magasin extérieur au groupe.",
         );
       }
-      await tx.accessToken.updateMany({
-        where: {
-          email: input.email,
-          purpose: "invite",
-          usedAt: null,
-          organizationId: input.organizationId ?? null,
-        },
-        data: { usedAt: new Date() },
-      });
-      const invitation = await tx.accessToken.create({
-        data: {
-          email: input.email,
-          tokenHash: tokenHash(token),
-          purpose: "invite",
-          kind: input.kind,
-          organizationId: input.organizationId,
-          storeIds,
-          permissions:
-            input.kind === "salesperson"
-              ? ["sell"]
-              : ["manage", "sell", "receive"],
-          createdBy: actor.id,
-          expiresAt: new Date(Date.now() + 48 * 3600_000),
-        },
-      });
-      await tx.job.create({
-        data: {
-          kind: "email",
-          key: `invite:${invitation.id}`,
-          payload: {
-            version: "1",
-            template: "invite",
-            to: input.email,
-            accessTokenId: invitation.id,
-            token,
-          } satisfies EmailPayload,
-        },
-      });
-      await tx.auditEntry.create({
-        data: {
-          actorId: actor.id,
-          organizationId: input.organizationId,
-          action: "identity.invite",
-          targetId: invitation.id,
-          details: { email: input.email, kind: input.kind, storeIds },
-        },
-      });
-      return {
-        id: invitation.id,
+      return issueInvitation(tx, actor, {
         email: input.email,
-        status: "invited",
-        expiresAt: invitation.expiresAt,
-      };
+        kind: input.kind,
+        organizationId: input.organizationId,
+        storeIds,
+        permissions:
+          input.kind === "salesperson"
+            ? ["sell"]
+            : ["manage", "sell", "receive"],
+      });
     };
     return input.kind === "new_group"
       ? this.db.authenticated(actor, create, true)
@@ -525,7 +448,11 @@ export class IdentityService {
       );
       const used = await tx.accessToken.updateMany({
         where: { id: invite.id, usedAt: null, expiresAt: { gt: new Date() } },
-        data: { usedAt: new Date() },
+        data: {
+          usedAt: new Date(),
+          acceptedAt: new Date(),
+          version: { increment: 1 },
+        },
       });
       requireRule(
         used.count === 1,

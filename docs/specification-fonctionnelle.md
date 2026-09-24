@@ -1,5 +1,15 @@
 # BioBalance — Spécification fonctionnelle approuvée
 
+## Ajustements du 24 septembre 2026
+
+Un vendeur possède **un seul magasin actif**, y compris entre groupes. Le responsable reste autorisé sur tout son groupe. Une réaffectation explicite conserve les anciennes appartenances inactives et l’historique. Les anciens brouillons contenant plusieurs magasins demandent une sélection unique.
+
+Les invitations sont consultables avec leur statut, validité et rôle. Renvoyer crée un nouveau code et invalide le précédent ; révoquer invalide le code ; retirer masque l’invitation tout en conservant son historique et le compte. Les anciens codes consommés dont le motif est inconnu sont affichés « Terminée », sans inventer une acceptation.
+
+Dans un groupe ou magasin, l’administrateur dispose d’un retour direct à l’administration. Les changements d’onglet ne s’empilent plus dans l’historique Retour. Les coordonnées et le contrôle d’accès du groupe se trouvent dans Paramètres et gestion. Les filtres de commandes sont sur une ligne horizontale défilante ; le métier des commandes reste inchangé.
+
+Les formulaires partagés s’étirent sur la largeur disponible, avec sections lisibles et action principale fixe. Les formations séparent contenu, produits associés, vidéo et publication ; l’aperçu fait partie de la publication.
+
 Référence : plans d’implémentation du 21 septembre et de refonte du 23 septembre 2026. L’état réel du logiciel et les validations se trouvent dans [implementation-status.md](implementation-status.md).
 
 ## Périmètre
@@ -10,11 +20,11 @@ Les abonnements payants, le web admin, WhatsApp, les classements régionaux/nati
 
 ## Accès et mise en route
 
-- Trois rôles : administrateur BioBalance, responsable de groupe, vendeur affecté aux magasins. Tout responsable possède la même autorité sur tous les magasins de son groupe ; aucun rôle propriétaire distinct. BioBalance invite les nouveaux responsables ; activation puis création de leur groupe via une autorisation à usage unique. Inviter ne crée plus de groupe. Les responsables invitent d’autres responsables dans le groupe existant ou des vendeurs dans les magasins explicitement choisis. Connexion personnelle par email et mot de passe, récupération de compte, invitations expirables, sessions révocables et MFA administrateur.
+- Trois rôles : administrateur BioBalance, responsable de groupe, vendeur affecté à un magasin. Tout responsable possède la même autorité sur tous les magasins de son groupe ; aucun rôle propriétaire distinct. BioBalance invite les nouveaux responsables ; activation puis création de leur groupe via une autorisation à usage unique. Inviter ne crée plus de groupe. Les responsables invitent d’autres responsables dans le groupe existant ou des vendeurs dans leur magasin explicitement choisi. Connexion personnelle par email et mot de passe, récupération de compte, invitations expirables, sessions révocables et MFA administrateur.
 - Les permissions proviennent des appartenances à une organisation et à un magasin. Un responsable peut également vendre. Un vendeur corrige uniquement ses ventes ; le responsable et l’administrateur corrigent les ventes des magasins autorisés.
 - Le guide reprend après interruption : compte, groupe, premier magasin, équipe, stock initial, configuration des prix/seuils/points. Nom, adresse et ville sont requis ; téléphone et image sont facultatifs.
 - La progression du guide est dérivée des données enregistrées. « Je travaille seul » et « Pas de stock initial » sont des choix explicites ; les produits portés configurés à zéro point demandent confirmation.
-- L’administrateur commence au réseau, le responsable au groupe, le vendeur à son magasin autorisé. Un seul sélecteur recherchable de groupe apparaît en haut à gauche : changer de groupe revient à son résumé. Un magasin s’ouvre depuis la liste du groupe ; il n’y a pas de second menu déroulant. Les vendeurs affectés à plusieurs magasins choisissent parmi leurs seuls magasins autorisés. Le bouton Retour suit les pages, onglets et périmètres précédents. Les brouillons et opérations ne changent jamais de compte ni de magasin.
+- L’administrateur commence au réseau, le responsable au groupe, le vendeur à son magasin autorisé. Un seul sélecteur recherchable de groupe apparaît en haut à gauche : changer de groupe revient à son résumé. Un magasin s’ouvre depuis la liste du groupe ; il n’y a pas de second menu déroulant. Un vendeur possède un seul magasin actif. Le bouton Retour remonte les pages et périmètres précédents ; un changement d’onglet n’ajoute pas une entrée à cet historique. Les brouillons et opérations ne changent jamais de compte ni de magasin.
 - Désactiver ou retirer un accès conserve les ventes, mouvements et identités historiques.
 
 ## Ventes, lots et exactitude

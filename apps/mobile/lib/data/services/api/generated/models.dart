@@ -4130,6 +4130,100 @@ final class ScopedOrderDetailsDto {
   };
 }
 
+final class InvitationRecordDto {
+  final Set<String> _presentFields;
+  Set<String> get presentFields => _presentFields;
+  final String id;
+  final String email;
+  final String? organizationId;
+  final String kind;
+  final List<String> storeIds;
+  final String status;
+  final String? createdAt;
+  final String expiresAt;
+  final String? acceptedAt;
+  final int version;
+  InvitationRecordDto({
+    Set<String> presentFields = const {},
+    required this.id,
+    required this.email,
+    required this.organizationId,
+    required this.kind,
+    required List<String> storeIds,
+    required this.status,
+    required this.createdAt,
+    required this.expiresAt,
+    required this.acceptedAt,
+    required this.version,
+  }) : _presentFields = Set.unmodifiable(presentFields),
+       storeIds = List.unmodifiable(storeIds);
+  factory InvitationRecordDto.fromJson(Map<String, dynamic> json) {
+    return InvitationRecordDto(
+      presentFields: json.keys.toSet(),
+      id: json["id"] as String,
+      email: json["email"] as String,
+      organizationId: json["organizationId"] == null
+          ? null
+          : json["organizationId"] as String,
+      kind: json["kind"] as String,
+      storeIds: List.unmodifiable(
+        (json["storeIds"] as List).map((item) => item as String),
+      ),
+      status: json["status"] as String,
+      createdAt: json["createdAt"] == null ? null : json["createdAt"] as String,
+      expiresAt: json["expiresAt"] as String,
+      acceptedAt: json["acceptedAt"] == null
+          ? null
+          : json["acceptedAt"] as String,
+      version: wireInteger(json["version"]),
+    );
+  }
+  Map<String, dynamic> toJson() => {
+    "id": id,
+    "email": email,
+    "organizationId": organizationId,
+    "kind": kind,
+    "storeIds": storeIds.map((item) => item).toList(),
+    "status": status,
+    "createdAt": createdAt,
+    "expiresAt": expiresAt,
+    "acceptedAt": acceptedAt,
+    "version": version,
+  };
+}
+
+final class InvitationPageDto {
+  final Set<String> _presentFields;
+  Set<String> get presentFields => _presentFields;
+  final List<InvitationRecordDto> items;
+  final String? nextCursor;
+  InvitationPageDto({
+    Set<String> presentFields = const {},
+    required List<InvitationRecordDto> items,
+    required this.nextCursor,
+  }) : _presentFields = Set.unmodifiable(presentFields),
+       items = List.unmodifiable(items);
+  factory InvitationPageDto.fromJson(Map<String, dynamic> json) {
+    return InvitationPageDto(
+      presentFields: json.keys.toSet(),
+      items: List.unmodifiable(
+        (json["items"] as List).map(
+          (item) => InvitationRecordDto.fromJson(
+            Map<String, dynamic>.from(item as Map),
+          ),
+        ),
+      ),
+      nextCursor: json["nextCursor"] == null
+          ? null
+          : json["nextCursor"] as String,
+    );
+  }
+  Map<String, dynamic> toJson() => {
+    "items": items.map((item) => item.toJson()).toList(),
+    "nextCursor": nextCursor,
+  };
+}
+
 sealed class CommandDto {
   const CommandDto();
   factory CommandDto.fromJson(Object? json) {
@@ -4277,6 +4371,127 @@ sealed class CatalogImportResultDto {
     throw const FormatException('Invalid CatalogImportResult result');
   }
   Object? toJson();
+}
+
+typedef InvitationManagementListResponseDto = InvitationPageDto;
+typedef IdentityInviteResponseDto = InvitationDto;
+
+final class IdentityInviteRequestDto {
+  final Set<String> _presentFields;
+  Set<String> get presentFields => _presentFields;
+  final String email;
+  final String? kind;
+  final List<String>? storeIds;
+  final String? organizationId;
+  final String? organizationName;
+  final String? storeId;
+  final List<String>? permissions;
+  IdentityInviteRequestDto({
+    Set<String> presentFields = const {},
+    required this.email,
+    this.kind,
+    List<String>? storeIds,
+    this.organizationId,
+    this.organizationName,
+    this.storeId,
+    List<String>? permissions,
+  }) : _presentFields = Set.unmodifiable(presentFields),
+       storeIds = storeIds == null ? null : List.unmodifiable(storeIds),
+       permissions = permissions == null
+           ? null
+           : List.unmodifiable(permissions);
+  factory IdentityInviteRequestDto.fromJson(Map<String, dynamic> json) {
+    return IdentityInviteRequestDto(
+      presentFields: json.keys.toSet(),
+      email: json["email"] as String,
+      kind: json["kind"] == null ? null : json["kind"] as String,
+      storeIds: json["storeIds"] == null
+          ? null
+          : List.unmodifiable(
+              (json["storeIds"] as List).map((item) => item as String),
+            ),
+      organizationId: json["organizationId"] == null
+          ? null
+          : json["organizationId"] as String,
+      organizationName: json["organizationName"] == null
+          ? null
+          : json["organizationName"] as String,
+      storeId: json["storeId"] == null ? null : json["storeId"] as String,
+      permissions: json["permissions"] == null
+          ? null
+          : List.unmodifiable(
+              (json["permissions"] as List).map((item) => item as String),
+            ),
+    );
+  }
+  Map<String, dynamic> toJson() => {
+    "email": email,
+    if (kind != null || _presentFields.contains("kind")) "kind": kind,
+    if (storeIds != null || _presentFields.contains("storeIds"))
+      "storeIds": storeIds?.map((item) => item).toList(),
+    if (organizationId != null || _presentFields.contains("organizationId"))
+      "organizationId": organizationId,
+    if (organizationName != null || _presentFields.contains("organizationName"))
+      "organizationName": organizationName,
+    if (storeId != null || _presentFields.contains("storeId"))
+      "storeId": storeId,
+    if (permissions != null || _presentFields.contains("permissions"))
+      "permissions": permissions?.map((item) => item).toList(),
+  };
+}
+
+final class InvitationManagementActionResponseDto {
+  final Set<String> _presentFields;
+  Set<String> get presentFields => _presentFields;
+  bool get ok => true;
+  final String id;
+  InvitationManagementActionResponseDto({
+    Set<String> presentFields = const {},
+    required this.id,
+  }) : _presentFields = Set.unmodifiable(presentFields);
+  factory InvitationManagementActionResponseDto.fromJson(
+    Map<String, dynamic> json,
+  ) {
+    if (json["ok"] != true) {
+      throw const FormatException(
+        "Invalid InvitationManagementActionResponse ok",
+      );
+    }
+    return InvitationManagementActionResponseDto(
+      presentFields: json.keys.toSet(),
+      id: json["id"] as String,
+    );
+  }
+  Map<String, dynamic> toJson() => {"ok": true, "id": id};
+}
+
+final class InvitationManagementActionRequestDto {
+  final Set<String> _presentFields;
+  Set<String> get presentFields => _presentFields;
+  final String action;
+  final int expectedVersion;
+  final String operationId;
+  InvitationManagementActionRequestDto({
+    Set<String> presentFields = const {},
+    required this.action,
+    required this.expectedVersion,
+    required this.operationId,
+  }) : _presentFields = Set.unmodifiable(presentFields);
+  factory InvitationManagementActionRequestDto.fromJson(
+    Map<String, dynamic> json,
+  ) {
+    return InvitationManagementActionRequestDto(
+      presentFields: json.keys.toSet(),
+      action: json["action"] as String,
+      expectedVersion: wireInteger(json["expectedVersion"]),
+      operationId: json["operationId"] as String,
+    );
+  }
+  Map<String, dynamic> toJson() => {
+    "action": action,
+    "expectedVersion": expectedVersion,
+    "operationId": operationId,
+  };
 }
 
 typedef ExportCreateResponseDto = ReportExportDto;
@@ -4516,72 +4731,6 @@ final class IdentityLoginRequestDto {
 
 typedef IdentityMeResponseDto = UserDto;
 typedef IdentityLogoutResponseDto = OkDto;
-typedef IdentityInviteResponseDto = InvitationDto;
-
-final class IdentityInviteRequestDto {
-  final Set<String> _presentFields;
-  Set<String> get presentFields => _presentFields;
-  final String email;
-  final String? kind;
-  final List<String>? storeIds;
-  final String? organizationId;
-  final String? organizationName;
-  final String? storeId;
-  final List<String>? permissions;
-  IdentityInviteRequestDto({
-    Set<String> presentFields = const {},
-    required this.email,
-    this.kind,
-    List<String>? storeIds,
-    this.organizationId,
-    this.organizationName,
-    this.storeId,
-    List<String>? permissions,
-  }) : _presentFields = Set.unmodifiable(presentFields),
-       storeIds = storeIds == null ? null : List.unmodifiable(storeIds),
-       permissions = permissions == null
-           ? null
-           : List.unmodifiable(permissions);
-  factory IdentityInviteRequestDto.fromJson(Map<String, dynamic> json) {
-    return IdentityInviteRequestDto(
-      presentFields: json.keys.toSet(),
-      email: json["email"] as String,
-      kind: json["kind"] == null ? null : json["kind"] as String,
-      storeIds: json["storeIds"] == null
-          ? null
-          : List.unmodifiable(
-              (json["storeIds"] as List).map((item) => item as String),
-            ),
-      organizationId: json["organizationId"] == null
-          ? null
-          : json["organizationId"] as String,
-      organizationName: json["organizationName"] == null
-          ? null
-          : json["organizationName"] as String,
-      storeId: json["storeId"] == null ? null : json["storeId"] as String,
-      permissions: json["permissions"] == null
-          ? null
-          : List.unmodifiable(
-              (json["permissions"] as List).map((item) => item as String),
-            ),
-    );
-  }
-  Map<String, dynamic> toJson() => {
-    "email": email,
-    if (kind != null || _presentFields.contains("kind")) "kind": kind,
-    if (storeIds != null || _presentFields.contains("storeIds"))
-      "storeIds": storeIds?.map((item) => item).toList(),
-    if (organizationId != null || _presentFields.contains("organizationId"))
-      "organizationId": organizationId,
-    if (organizationName != null || _presentFields.contains("organizationName"))
-      "organizationName": organizationName,
-    if (storeId != null || _presentFields.contains("storeId"))
-      "storeId": storeId,
-    if (permissions != null || _presentFields.contains("permissions"))
-      "permissions": permissions?.map((item) => item).toList(),
-  };
-}
-
 typedef IdentityActivateResponseDto = ActivatedDto;
 
 final class IdentityActivateRequestDto {

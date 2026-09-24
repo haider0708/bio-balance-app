@@ -2257,6 +2257,80 @@ const Map<String, Map<String, dynamic>> _schemas = {
     "required": ["order", "deliveries"],
     "additionalProperties": false,
   },
+  "InvitationRecord": {
+    "type": "object",
+    "properties": {
+      "id": {"type": "string", "format": "uuid"},
+      "email": {"type": "string"},
+      "organizationId": {
+        "anyOf": [
+          {"type": "string", "format": "uuid"},
+          {"type": "null"},
+        ],
+      },
+      "kind": {"type": "string"},
+      "storeIds": {
+        "type": "array",
+        "items": {"type": "string", "format": "uuid"},
+      },
+      "status": {
+        "type": "string",
+        "enum": [
+          "pending",
+          "expired",
+          "accepted",
+          "revoked",
+          "replaced",
+          "closed",
+          "archived",
+        ],
+      },
+      "createdAt": {
+        "anyOf": [
+          {"type": "string", "format": "date-time"},
+          {"type": "null"},
+        ],
+      },
+      "expiresAt": {"type": "string", "format": "date-time"},
+      "acceptedAt": {
+        "anyOf": [
+          {"type": "string", "format": "date-time"},
+          {"type": "null"},
+        ],
+      },
+      "version": {"type": "integer"},
+    },
+    "required": [
+      "id",
+      "email",
+      "organizationId",
+      "kind",
+      "storeIds",
+      "status",
+      "createdAt",
+      "expiresAt",
+      "acceptedAt",
+      "version",
+    ],
+    "additionalProperties": false,
+  },
+  "InvitationPage": {
+    "type": "object",
+    "properties": {
+      "items": {
+        "type": "array",
+        "items": {"\$ref": "#/components/schemas/InvitationRecord"},
+      },
+      "nextCursor": {
+        "anyOf": [
+          {"type": "string", "format": "uuid"},
+          {"type": "null"},
+        ],
+      },
+    },
+    "required": ["items", "nextCursor"],
+    "additionalProperties": false,
+  },
   "Command": {
     "oneOf": [
       {"\$ref": "#/components/schemas/CommandSaleCreate"},
@@ -2342,6 +2416,84 @@ const Map<String, Map<String, dynamic>> _schemas = {
       {"\$ref": "#/components/schemas/CatalogImportResultTrue"},
       {"\$ref": "#/components/schemas/Count"},
     ],
+  },
+  "InvitationManagementListResponse": {
+    "\$ref": "#/components/schemas/InvitationPage",
+  },
+  "IdentityInviteResponse": {"\$ref": "#/components/schemas/Invitation"},
+  "IdentityInviteRequest": {
+    "type": "object",
+    "properties": {
+      "email": {
+        "type": "string",
+        "format": "email",
+        "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}\$",
+      },
+      "kind": {
+        "type": "string",
+        "enum": ["new_group", "responsible", "salesperson"],
+      },
+      "storeIds": {
+        "maxItems": 1,
+        "type": "array",
+        "items": {
+          "type": "string",
+          "format": "uuid",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)\$",
+        },
+      },
+      "organizationId": {
+        "type": "string",
+        "format": "uuid",
+        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)\$",
+      },
+      "organizationName": {"type": "string", "minLength": 2, "maxLength": 120},
+      "storeId": {
+        "type": "string",
+        "format": "uuid",
+        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)\$",
+      },
+      "permissions": {
+        "default": ["sell", "receive"],
+        "minItems": 1,
+        "type": "array",
+        "items": {
+          "type": "string",
+          "enum": ["sell", "receive", "manage"],
+        },
+      },
+    },
+    "required": ["email"],
+  },
+  "InvitationManagementActionResponse": {
+    "type": "object",
+    "properties": {
+      "ok": {"const": true, "type": "boolean"},
+      "id": {"type": "string", "format": "uuid"},
+    },
+    "required": ["ok", "id"],
+    "additionalProperties": false,
+  },
+  "InvitationManagementActionRequest": {
+    "type": "object",
+    "properties": {
+      "action": {
+        "type": "string",
+        "enum": ["resend", "revoke", "archive"],
+      },
+      "expectedVersion": {
+        "type": "integer",
+        "exclusiveMinimum": 0,
+        "maximum": 9007199254740991,
+      },
+      "operationId": {
+        "type": "string",
+        "format": "uuid",
+        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)\$",
+      },
+    },
+    "required": ["action", "expectedVersion", "operationId"],
+    "additionalProperties": false,
   },
   "ExportCreateResponse": {"\$ref": "#/components/schemas/ReportExport"},
   "ExportCreateRequest": {
@@ -2469,7 +2621,7 @@ const Map<String, Map<String, dynamic>> _schemas = {
       },
       "storeIds": {
         "default": [],
-        "maxItems": 500,
+        "maxItems": 1,
         "type": "array",
         "items": {
           "type": "string",
@@ -2499,51 +2651,6 @@ const Map<String, Map<String, dynamic>> _schemas = {
   },
   "IdentityMeResponse": {"\$ref": "#/components/schemas/User"},
   "IdentityLogoutResponse": {"\$ref": "#/components/schemas/Ok"},
-  "IdentityInviteResponse": {"\$ref": "#/components/schemas/Invitation"},
-  "IdentityInviteRequest": {
-    "type": "object",
-    "properties": {
-      "email": {
-        "type": "string",
-        "format": "email",
-        "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}\$",
-      },
-      "kind": {
-        "type": "string",
-        "enum": ["new_group", "responsible", "salesperson"],
-      },
-      "storeIds": {
-        "maxItems": 500,
-        "type": "array",
-        "items": {
-          "type": "string",
-          "format": "uuid",
-          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)\$",
-        },
-      },
-      "organizationId": {
-        "type": "string",
-        "format": "uuid",
-        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)\$",
-      },
-      "organizationName": {"type": "string", "minLength": 2, "maxLength": 120},
-      "storeId": {
-        "type": "string",
-        "format": "uuid",
-        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)\$",
-      },
-      "permissions": {
-        "default": ["sell", "receive"],
-        "minItems": 1,
-        "type": "array",
-        "items": {
-          "type": "string",
-          "enum": ["sell", "receive", "manage"],
-        },
-      },
-    },
-    "required": ["email"],
-  },
   "IdentityActivateResponse": {"\$ref": "#/components/schemas/Activated"},
   "IdentityActivateRequest": {
     "type": "object",

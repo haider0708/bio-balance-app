@@ -21,7 +21,10 @@ export const GroupRequests = {
     .object({
       active: z.boolean(),
       role: z.enum(["responsible", "salesperson"]),
-      storeIds: z.array(z.uuid()).max(500).default([]),
+      storeIds: z
+        .array(z.uuid())
+        .max(1, "Un vendeur est affecté à un seul magasin.")
+        .default([]),
     })
     .strict(),
 };

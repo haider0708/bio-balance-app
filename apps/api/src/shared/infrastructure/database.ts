@@ -199,6 +199,19 @@ export class Database extends PrismaClient implements OnModuleDestroy {
         }
         if (
           error instanceof Prisma.PrismaClientKnownRequestError &&
+          error.code === "P2002" &&
+          error.meta?.modelName === "Membership" &&
+          (JSON.stringify(error.meta) ?? "").includes(
+            "Membership_one_active_seller_store",
+          )
+        )
+          throw new DomainError(
+            "SELLER_ALREADY_ASSIGNED",
+            "Ce vendeur est déjà affecté à un magasin. Désactivez son ancien accès avant de l’affecter ailleurs.",
+            409,
+          );
+        if (
+          error instanceof Prisma.PrismaClientKnownRequestError &&
           error.code === "P2002"
         )
           throw new DomainError(

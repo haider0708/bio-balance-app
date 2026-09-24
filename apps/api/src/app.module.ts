@@ -1,3 +1,7 @@
+import {
+  InvitationManagementController,
+  InvitationManagementService,
+} from "./modules/identity/invitation-management";
 import { PasswordHasher } from "./modules/identity/password-hasher";
 import { ReportingService } from "./modules/reporting/reporting.service";
 import { AdminService } from "./modules/reporting/admin.service";
@@ -36,6 +40,7 @@ class HealthController {
 }
 @Module({
   controllers: [
+    InvitationManagementController,
     ExportController,
     DashboardController,
     GroupController,
@@ -50,6 +55,7 @@ class HealthController {
     ReportingController,
   ],
   providers: [
+    InvitationManagementService,
     ExportService,
     DashboardService,
     GroupService,

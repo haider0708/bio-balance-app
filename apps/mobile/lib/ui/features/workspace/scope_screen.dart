@@ -197,7 +197,9 @@ class _ScopeScreenState extends State<ScopeScreen> with WidgetsBindingObserver {
           title: s.kind == ScopeKind.network
               ? 'Votre réseau'
               : s.kind == ScopeKind.group
-              ? 'Résumé du groupe'
+              ? (workspace.user.admin
+                    ? 'Supervision du groupe'
+                    : 'Résumé du groupe')
               : seller
               ? 'Bonjour ${workspace.user.name.split(' ').first}'
               : store!.name,
@@ -333,6 +335,22 @@ class _ScopeScreenState extends State<ScopeScreen> with WidgetsBindingObserver {
             child: LayoutBuilder(
               builder: (context, bounds) => Column(
                 children: [
+                  if (workspace.user.admin && s.kind != ScopeKind.network)
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        child: TextButton.icon(
+                          key: const ValueKey('scope.administration'),
+                          onPressed: scope.switching
+                              ? null
+                              : () =>
+                                    run(context, scope.returnToAdministration),
+                          icon: const Icon(AppIcons.arrowBack, size: 18),
+                          label: const Text('Retour à l’administration'),
+                        ),
+                      ),
+                    ),
                   if (scope.error != null)
                     Padding(
                       padding: const EdgeInsets.symmetric(

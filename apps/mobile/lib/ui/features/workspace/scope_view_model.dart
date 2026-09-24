@@ -28,6 +28,12 @@ class ScopeViewModel extends ChangeNotifier {
   bool get canGoBack => _history.isNotEmpty || tab != 0;
   Future<void> back() async {
     if (switching) return;
+    if (tab != 0) {
+      await workspace.flushDrafts();
+      tabs[scope.key] = 0;
+      if (!closed) notifyListeners();
+      return;
+    }
     while (_history.isNotEmpty) {
       final previous = _history.last;
       final group = previous.scope.group;
@@ -42,11 +48,6 @@ class ScopeViewModel extends ChangeNotifier {
       _history.removeLast();
       if (!closed) notifyListeners();
       return;
-    }
-    if (tab != 0) {
-      await workspace.flushDrafts();
-      tabs[scope.key] = 0;
-      if (!closed) notifyListeners();
     }
   }
 
@@ -108,7 +109,6 @@ class ScopeViewModel extends ChangeNotifier {
   int get tab => tabs[scope.key] ?? 0;
   void setTab(int value) {
     if (switching || value == tab) return;
-    _remember();
     tabs[scope.key] = value;
     notifyListeners();
   }
@@ -253,6 +253,14 @@ class ScopeViewModel extends ChangeNotifier {
       }
       if (groups.isEmpty) rethrow;
     }
+    if (!closed) notifyListeners();
+  }
+
+  Future<void> returnToAdministration() async {
+    if (!workspace.user.admin || switching || closed) return;
+    await _switch(const WorkspaceScope.network(), remember: false);
+    // Clear only after the draft flush and switch succeed.
+    _history.clear();
     if (!closed) notifyListeners();
   }
 

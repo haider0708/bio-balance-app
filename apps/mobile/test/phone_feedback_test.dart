@@ -88,7 +88,7 @@ void main() {
     expect(vm.loading, false);
   });
   testWidgets(
-    'group invitation separates group-wide responsibility from multistore selling',
+    'group invitation separates group-wide responsibility from one-store selling',
     (t) async {
       final f = ScopeFixture();
       addTearDown(f.close);
@@ -102,7 +102,7 @@ void main() {
         ),
       );
       await t.pumpAndSettle();
-      expect(find.byType(CheckboxListTile), findsNWidgets(3));
+      expect(find.byType(RadioListTile<String>), findsNWidgets(3));
       expect(find.text('Magasin Bizerte'), findsNothing);
       await t.ensureVisible(find.text('Magasin Tunis'));
       await t.pumpAndSettle();
@@ -113,16 +113,26 @@ void main() {
       await t.pumpAndSettle();
       expect(
         t
-            .widgetList<CheckboxListTile>(find.byType(CheckboxListTile))
-            .where((w) => w.value == true)
+            .widgetList<RadioListTile<String>>(
+              find.byType(RadioListTile<String>),
+            )
+            .where(
+              (w) =>
+                  w.value ==
+                  t
+                      .widget<RadioGroup<String>>(
+                        find.byType(RadioGroup<String>),
+                      )
+                      .groupValue,
+            )
             .length,
-        2,
+        1,
       );
       await t.ensureVisible(find.text('Responsable'));
       await t.pumpAndSettle();
       await t.tap(find.text('Responsable'));
       await t.pumpAndSettle();
-      expect(find.byType(CheckboxListTile), findsNothing);
+      expect(find.byType(RadioListTile<String>), findsNothing);
       expect(find.textContaining('actuels et futurs'), findsOneWidget);
       await t.ensureVisible(find.text('Vendeur'));
       await t.pumpAndSettle();
@@ -130,10 +140,20 @@ void main() {
       await t.pumpAndSettle();
       expect(
         t
-            .widgetList<CheckboxListTile>(find.byType(CheckboxListTile))
-            .where((w) => w.value == true)
+            .widgetList<RadioListTile<String>>(
+              find.byType(RadioListTile<String>),
+            )
+            .where(
+              (w) =>
+                  w.value ==
+                  t
+                      .widget<RadioGroup<String>>(
+                        find.byType(RadioGroup<String>),
+                      )
+                      .groupValue,
+            )
             .length,
-        2,
+        1,
       );
       await t.pumpWidget(const SizedBox());
     },
@@ -212,8 +232,18 @@ void main() {
       );
       expect(
         t
-            .widgetList<CheckboxListTile>(find.byType(CheckboxListTile))
-            .where((w) => w.value == true)
+            .widgetList<RadioListTile<String>>(
+              find.byType(RadioListTile<String>),
+            )
+            .where(
+              (w) =>
+                  w.value ==
+                  t
+                      .widget<RadioGroup<String>>(
+                        find.byType(RadioGroup<String>),
+                      )
+                      .groupValue,
+            )
             .single
             .title,
         isA<Text>().having((w) => w.data, 'store', 'Magasin Sousse'),
@@ -330,6 +360,78 @@ void main() {
     expect(t.takeException(), isNull);
     await t.pumpWidget(const SizedBox());
   });
+  test(
+    'administrator returns directly without replaying tab history',
+    () async {
+      final f = ScopeFixture();
+      addTearDown(f.close);
+      await f.scope.selectGroup(f.scope.groups.first);
+      f.scope.setTab(1);
+      await f.scope.selectStore(f.scope.stores.first);
+      f.scope.setTab(1);
+      f.scope.setTab(2);
+      await f.scope.returnToAdministration();
+      expect(f.scope.scope.group, isNull);
+      expect(f.scope.scope.store, isNull);
+      expect(f.scope.canGoBack, false);
+      f.scope.dispose();
+    },
+  );
+  test(
+    'direct administration return preserves scope when draft saving fails',
+    () async {
+      final f = ScopeFixture();
+      addTearDown(f.close);
+      await f.scope.selectGroup(f.scope.groups.first);
+      final release = f.workspace.registerDraft(() async {
+        throw const AppFailure('STORAGE_FULL', 'Stockage plein');
+      });
+      await expectLater(
+        f.scope.returnToAdministration(),
+        throwsA(isA<AppFailure>()),
+      );
+      expect(f.scope.scope.group!.id, 'g1');
+      expect(f.scope.canGoBack, true);
+      release();
+      await f.scope.returnToAdministration();
+      expect(f.scope.scope.group, isNull);
+      f.scope.dispose();
+    },
+  );
+  testWidgets(
+    'order filters stay on one horizontal row and all remain reachable',
+    (t) async {
+      t.view.physicalSize = const Size(360, 640);
+      t.view.devicePixelRatio = 1;
+      addTearDown(t.view.resetPhysicalSize);
+      addTearDown(t.view.resetDevicePixelRatio);
+      OrderSection? chosen;
+      await t.pumpWidget(
+        MaterialApp(
+          theme: appTheme(),
+          home: Scaffold(
+            body: OrderSections(
+              selected: OrderSection.all,
+              admin: true,
+              onChanged: (v) => chosen = v,
+            ),
+          ),
+        ),
+      );
+      final y = t.getCenter(find.byKey(const ValueKey('orders.all'))).dy;
+      for (final section in OrderSection.values) {
+        expect(
+          t.getCenter(find.byKey(ValueKey('orders.${section.name}'))).dy,
+          y,
+        );
+      }
+      await t.ensureVisible(find.byKey(const ValueKey('orders.complete')));
+      await t.pumpAndSettle();
+      await t.tap(find.byKey(const ValueKey('orders.complete')));
+      expect(chosen, OrderSection.complete);
+      expect(t.takeException(), isNull);
+    },
+  );
   test('Back restores the preceding tab and scope', () async {
     final f = ScopeFixture();
     addTearDown(f.close);

@@ -19,7 +19,7 @@ export async function invitationIsAuthorized(
   if (invitation.kind === "responsible" || invitation.kind === "salesperson") {
     if (
       invitation.kind === "salesperson" &&
-      (!invitation.storeIds.length ||
+      (invitation.storeIds.length !== 1 ||
         (await tx.store.count({
           where: {
             id: { in: invitation.storeIds },

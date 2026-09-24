@@ -5,6 +5,24 @@ Object? decodeResponse(
   String operationId,
   Object? value,
 ) => switch (operationId) {
+  "InvitationManagementList" => (() {
+    final decoded = InvitationManagementListResponseDto.fromJson(
+      Map<String, dynamic>.from(value as Map),
+    );
+    return decoded.toJson();
+  })(),
+  "IdentityInvite" => (() {
+    final decoded = IdentityInviteResponseDto.fromJson(
+      Map<String, dynamic>.from(value as Map),
+    );
+    return decoded.toJson();
+  })(),
+  "InvitationManagementAction" => (() {
+    final decoded = InvitationManagementActionResponseDto.fromJson(
+      Map<String, dynamic>.from(value as Map),
+    );
+    return decoded.toJson();
+  })(),
   "ExportCreate" => (() {
     final decoded = ExportCreateResponseDto.fromJson(
       Map<String, dynamic>.from(value as Map),
@@ -130,12 +148,6 @@ Object? decodeResponse(
   })(),
   "IdentityLogout" => (() {
     final decoded = IdentityLogoutResponseDto.fromJson(
-      Map<String, dynamic>.from(value as Map),
-    );
-    return decoded.toJson();
-  })(),
-  "IdentityInvite" => (() {
-    final decoded = IdentityInviteResponseDto.fromJson(
       Map<String, dynamic>.from(value as Map),
     );
     return decoded.toJson();

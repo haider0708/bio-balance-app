@@ -21,6 +21,8 @@ class FieldSpec {
   final String initial;
   final bool required, numeric, multiline;
   final Map<String, String>? options;
+  final String? section;
+  final String? hint;
   final String? imagePurpose;
   final String? imageGroupId;
   const FieldSpec(
@@ -31,6 +33,8 @@ class FieldSpec {
     this.numeric = false,
     this.multiline = false,
     this.options,
+    this.section,
+    this.hint,
     this.imagePurpose,
     this.imageGroupId,
   });
@@ -174,75 +178,82 @@ class _EditorScreenState extends State<EditorScreen> {
       Form(
         key: key,
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: widget.fields
-              .map(
-                (f) => Padding(
-                  padding: const EdgeInsets.only(bottom: 16),
-                  child: f.imagePurpose != null && widget.workspace != null
-                      ? ImageInput(
-                          vm: widget.workspace!,
-                          store: ['catalog', 'group'].contains(f.imagePurpose)
-                              ? null
-                              : draftStore,
-                          purpose: f.imagePurpose!,
-                          groupId: f.imageGroupId,
-                          label: f.label,
-                          controller: controllers[f.key]!,
-                          enabled: draftReady && !busy && !completed,
-                          onBusyChanged: (value) {
-                            if (mounted) {
-                              setState(() => mediaBusy = value);
-                            }
-                          },
-                        )
-                      : f.options == null
-                      ? TextFormField(
-                          key: ValueKey('field.${f.key}'),
-                          controller: controllers[f.key],
-                          enabled:
-                              draftReady && !busy && !mediaBusy && !completed,
-                          textInputAction: f.multiline
-                              ? TextInputAction.newline
-                              : widget.fields.last.key == f.key
-                              ? TextInputAction.done
-                              : TextInputAction.next,
-                          onFieldSubmitted: (_) {
-                            if (widget.fields.last.key == f.key) {
-                              save();
-                            }
-                          },
-                          keyboardType: f.numeric
-                              ? const TextInputType.numberWithOptions(
-                                  decimal: true,
-                                )
-                              : f.multiline
-                              ? TextInputType.multiline
-                              : f.key.toLowerCase().contains('email')
-                              ? TextInputType.emailAddress
-                              : f.key.toLowerCase().contains('phone')
-                              ? TextInputType.phone
-                              : TextInputType.text,
-                          minLines: f.multiline ? 4 : 1,
-                          maxLines: f.multiline ? null : 1,
-                          decoration: InputDecoration(
-                            labelText: f.label,
-                            alignLabelWithHint: f.multiline,
+              .expand<Widget>(
+                (f) => [
+                  if (f.section != null) FormSectionHeading(f.section!),
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 16),
+                    child: f.imagePurpose != null && widget.workspace != null
+                        ? ImageInput(
+                            vm: widget.workspace!,
+                            store: ['catalog', 'group'].contains(f.imagePurpose)
+                                ? null
+                                : draftStore,
+                            purpose: f.imagePurpose!,
+                            groupId: f.imageGroupId,
+                            label: f.label,
+                            controller: controllers[f.key]!,
+                            enabled: draftReady && !busy && !completed,
+                            onBusyChanged: (value) {
+                              if (mounted) {
+                                setState(() => mediaBusy = value);
+                              }
+                            },
+                          )
+                        : f.options == null
+                        ? TextFormField(
+                            key: ValueKey('field.${f.key}'),
+                            controller: controllers[f.key],
+                            enabled:
+                                draftReady && !busy && !mediaBusy && !completed,
+                            textInputAction: f.multiline
+                                ? TextInputAction.newline
+                                : widget.fields.last.key == f.key
+                                ? TextInputAction.done
+                                : TextInputAction.next,
+                            onFieldSubmitted: (_) {
+                              if (widget.fields.last.key == f.key) {
+                                save();
+                              }
+                            },
+                            keyboardType: f.numeric
+                                ? const TextInputType.numberWithOptions(
+                                    decimal: true,
+                                  )
+                                : f.multiline
+                                ? TextInputType.multiline
+                                : f.key.toLowerCase().contains('email')
+                                ? TextInputType.emailAddress
+                                : f.key.toLowerCase().contains('phone')
+                                ? TextInputType.phone
+                                : TextInputType.text,
+                            minLines: f.multiline ? 4 : 1,
+                            maxLines: f.multiline ? null : 1,
+                            decoration: InputDecoration(
+                              labelText: f.label,
+                              alignLabelWithHint: f.multiline,
+                              helperText:
+                                  f.hint ?? (f.required ? null : 'Facultatif'),
+                              helperMaxLines: 3,
+                            ),
+                            validator: (value) =>
+                                f.required && (value?.trim().isEmpty ?? true)
+                                ? 'Ce champ est requis.'
+                                : null,
+                          )
+                        : OptionField(
+                            key: ValueKey('field.${f.key}'),
+                            label: f.label,
+                            options: f.options!,
+                            controller: controllers[f.key]!,
+                            required: f.required,
+                            enabled:
+                                draftReady && !busy && !mediaBusy && !completed,
                           ),
-                          validator: (value) =>
-                              f.required && (value?.trim().isEmpty ?? true)
-                              ? 'Ce champ est requis.'
-                              : null,
-                        )
-                      : OptionField(
-                          key: ValueKey('field.${f.key}'),
-                          label: f.label,
-                          options: f.options!,
-                          controller: controllers[f.key]!,
-                          required: f.required,
-                          enabled:
-                              draftReady && !busy && !mediaBusy && !completed,
-                        ),
-                ),
+                  ),
+                ],
               )
               .toList(),
         ),

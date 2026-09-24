@@ -61,9 +61,10 @@ class _ImageInputState extends State<ImageInput> {
 
   @override
   Widget build(BuildContext context) => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
+    crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
       Text(widget.label, style: Theme.of(context).textTheme.titleMedium),
+      const SizedBox(height: 8),
       if (widget.controller.text.isNotEmpty) ...[
         const SizedBox(height: 12),
         ProtectedImage(vm: widget.vm, id: widget.controller.text, height: 140),
@@ -73,8 +74,9 @@ class _ImageInputState extends State<ImageInput> {
         LinearProgressIndicator(value: progress),
         const Text('Téléversement et traitement de l’image…'),
       ],
-      Wrap(
-        spacing: 8,
+      const SizedBox(height: 8),
+      Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           OutlinedButton.icon(
             onPressed: busy || !widget.enabled ? null : choose,
@@ -94,6 +96,7 @@ class _ImageInputState extends State<ImageInput> {
             ),
         ],
       ),
+      const SizedBox(height: 8),
       const Text(
         'JPEG ou PNG · 10 Mo maximum',
         style: TextStyle(fontSize: 14, color: muted),

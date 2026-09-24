@@ -1,3 +1,6 @@
+import '../team/invitations_screen.dart';
+import 'lifecycle_screen.dart';
+
 import 'package:flutter/material.dart';
 
 import '../../core/design.dart';
@@ -172,7 +175,25 @@ class MorePage extends StatelessWidget {
         ],
         if (groupManage && scope != null) ...[
           const SizedBox(height: 20),
-          SectionTitle('Gestion du groupe', subtitle: group.name),
+          SectionTitle('Paramètres du groupe', subtitle: group.name),
+          if (vm.user.admin)
+            CompactRow(
+              title: 'Accès du groupe · ${statusLabel(group.status)}',
+              subtitle:
+                  'Suspendre, réactiver ou archiver le groupe et ses magasins',
+              icon: AppIcons.lockOutline,
+              onTap: () => run(context, () async {
+                await manageLifecycle(
+                  context,
+                  vm,
+                  groupId: group.id,
+                  name: group.name,
+                  version: group.version,
+                  status: group.status,
+                );
+                await scope!.refresh();
+              }),
+            ),
           CompactRow(
             title: 'Informations du groupe',
             subtitle: 'Nom, téléphone et image',
@@ -189,6 +210,27 @@ class MorePage extends StatelessWidget {
         if (vm.user.admin) ...[
           const SizedBox(height: 20),
           const SectionTitle('Administration BioBalance'),
+          if (group != null && scope != null)
+            CompactRow(
+              title: 'Retour à l’administration',
+              subtitle: 'Vue globale de tous les groupes',
+              icon: AppIcons.arrowBack,
+              onTap: () => run(context, () async {
+                await scope!.returnToAdministration();
+                if (context.mounted) {
+                  Navigator.of(context).popUntil((route) => route.isFirst);
+                }
+              }),
+            ),
+          link(
+            context,
+            'Invitations et suivi',
+            AppIcons.mailOutline,
+            InvitationsScreen(workspace: vm),
+            fullScreen: true,
+            subtitle:
+                'Renvoyer, révoquer et suivre les invitations de responsables',
+          ),
           link(context, 'Catalogue', AppIcons.spaOutlined, CatalogPage(vm: vm)),
           link(
             context,

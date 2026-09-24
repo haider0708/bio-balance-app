@@ -11,7 +11,10 @@ export namespace IdentityRequests {
   export const Invite = z.object({
     email,
     kind: z.enum(["new_group", "responsible", "salesperson"]).optional(),
-    storeIds: z.array(z.uuid()).max(500).optional(),
+    storeIds: z
+      .array(z.uuid())
+      .max(1, "Un vendeur est affecté à un seul magasin.")
+      .optional(),
     organizationId: z.uuid().optional(),
     organizationName: z.string().min(2).max(120).optional(),
     storeId: z.uuid().optional(),

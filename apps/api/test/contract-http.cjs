@@ -244,6 +244,8 @@ const owner = new PrismaClient({
         permissions: ["sell"],
       },
     });
+    const invitePage = await call("GET", `/v1/identity/invitations?organizationId=${org}`, {as: adminToken});
+    assert.equal(invitePage.items.find((i) => i.id === invitation.id).status, 'pending');
     const mail = await owner.job.findUniqueOrThrow({
       where: { key: `invite:${invitation.id}` },
     });
@@ -251,6 +253,9 @@ const owner = new PrismaClient({
     await call("POST", "/v1/identity/activate", {
       as: null,
       body: { token: activation, name: "Invited seller", password },
+    });
+    await call("POST", `/v1/identity/invitations/${invitation.id}/actions`, {
+      as: adminToken, body: { action: 'archive', expectedVersion: 2, operationId: randomUUID() },
     });
     await call("POST", "/v1/identity/forgot-password", {
       as: null,

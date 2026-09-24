@@ -41,7 +41,7 @@ enum OrderSection {
   };
 }
 
-class OrderSections extends StatelessWidget {
+class OrderSections extends StatefulWidget {
   final OrderSection selected;
   final bool admin;
   final ValueChanged<OrderSection> onChanged;
@@ -52,27 +52,78 @@ class OrderSections extends StatelessWidget {
     required this.onChanged,
   });
   @override
+  State<OrderSections> createState() => _OrderSectionsState();
+}
+
+class _OrderSectionsState extends State<OrderSections> {
+  final scroll = ScrollController();
+  final anchors = {
+    for (final section in OrderSection.values) section: GlobalKey(),
+  };
+  @override
+  void initState() {
+    super.initState();
+    revealSelection();
+  }
+
+  @override
+  void didUpdateWidget(covariant OrderSections oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.selected != widget.selected) revealSelection();
+  }
+
+  void revealSelection() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final anchor = anchors[widget.selected]?.currentContext;
+      if (anchor != null && scroll.hasClients) {
+        scroll.position.ensureVisible(
+          anchor.findRenderObject()!,
+          alignment: .5,
+        );
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    scroll.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) => Padding(
     padding: const EdgeInsets.only(bottom: 20),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            for (final section in OrderSection.values)
-              ChoiceChip(
-                key: ValueKey('orders.${section.name}'),
-                label: Text(section.title(admin)),
-                selected: section == selected,
-                onSelected: (_) => onChanged(section),
-              ),
-          ],
+        Scrollbar(
+          controller: scroll,
+          thumbVisibility: true,
+          child: SingleChildScrollView(
+            controller: scroll,
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Row(
+              children: [
+                for (final section in OrderSection.values)
+                  Padding(
+                    key: anchors[section],
+                    padding: const EdgeInsets.only(right: 8),
+                    child: ChoiceChip(
+                      key: ValueKey('orders.${section.name}'),
+                      label: Text(section.title(widget.admin)),
+                      selected: section == widget.selected,
+                      onSelected: (_) => widget.onChanged(section),
+                    ),
+                  ),
+              ],
+            ),
+          ),
         ),
         const SizedBox(height: 12),
         Text(
-          selected.description(admin),
+          widget.selected.description(widget.admin),
           style: Theme.of(context).textTheme.bodySmall,
         ),
       ],

@@ -1,3 +1,4 @@
+import { invitationAction } from "../../modules/identity/invitation-management";
 import { lifecycleRequest } from "../../modules/tenancy/lifecycle";
 import { z } from "zod";
 import { exportRequest } from "../../modules/reporting/export.controller";
@@ -25,9 +26,12 @@ import {
   str,
   uuid,
   integer,
+  nullable,
+  timestamp,
 } from "./wire-schemas";
 
 const requests: Record<string, z.ZodType> = {
+  InvitationManagementController_action: invitationAction,
   GroupController_lifecycle: lifecycleRequest,
   ExportController_create: exportRequest,
   GroupController_create: GroupRequests.Create,
@@ -55,6 +59,11 @@ const requests: Record<string, z.ZodType> = {
   OperationsController_status: syncBatchSchema,
 };
 const responses: Record<string, Schema> = {
+  InvitationManagementController_list: ref("InvitationPage"),
+  InvitationManagementController_action: obj({
+    ok: { const: true, type: "boolean" },
+    id: uuid,
+  }),
   GroupController_lifecycle: ref("Ok"),
   GroupController_impact: obj({
     orders: integer,
@@ -154,6 +163,33 @@ export function applyContract(document: OpenAPIObject): OpenAPIObject {
   const schemas: Record<string, Schema> = structuredClone(wireSchemas);
   extendLegacySchemas(schemas);
   Object.assign(schemas, redesignSchemas);
+  schemas.InvitationRecord = obj({
+    id: uuid,
+    email: str,
+    organizationId: nullable(uuid),
+    kind: str,
+    storeIds: arr(uuid),
+    status: {
+      type: "string",
+      enum: [
+        "pending",
+        "expired",
+        "accepted",
+        "revoked",
+        "replaced",
+        "closed",
+        "archived",
+      ],
+    },
+    createdAt: nullable(timestamp),
+    expiresAt: timestamp,
+    acceptedAt: nullable(timestamp),
+    version: integer,
+  });
+  schemas.InvitationPage = obj({
+    items: arr(ref("InvitationRecord")),
+    nextCursor: nullable(uuid),
+  });
   for (const [name, fields] of Object.entries({
     Group: ["status", "statusReason", "statusChangedAt", "statusChangedBy"],
     GroupAccess: [
@@ -227,6 +263,15 @@ export function applyContract(document: OpenAPIObject): OpenAPIObject {
         )
       )
         params.push(parameter("storeId", "query", uuid));
+      if (original === "InvitationManagementController_list")
+        params.push(
+          parameter("organizationId", "query", uuid),
+          parameter("after", "query", uuid),
+          parameter("includeArchived", "query", {
+            type: "string",
+            enum: ["true", "false"],
+          }),
+        );
       if (original === "NotificationsController_inbox")
         params.push(parameter("cursor", "query", str));
       if (original === "GroupController_list")

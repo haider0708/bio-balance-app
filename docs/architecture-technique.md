@@ -1,5 +1,13 @@
 # BioBalance — Architecture technique
 
+## Complément du 24 septembre 2026
+
+`InvitationManagementService` expose une liste paginée par groupe (ou les invitations de création de groupe pour l’administrateur) et des actions versionnées/idempotentes. `issueInvitation` centralise émission, remplacement du code, job email et audit dans la transaction autorisée. Le client utilise les DTO générés et conserve l’identifiant d’une action incertaine dans le stockage du compte pour la rejouer sans nouvel effet.
+
+La migration `202609240004_invitation_management` ajoute les métadonnées d’historique aux codes, un index unique partiel sur l’affectation active d’un vendeur, une contrainte d’invitation à un seul magasin et un index unique des actions d’invitation. Elle échoue si des affectations incompatibles existent, sans les supprimer. Les transferts dans un groupe libèrent puis réactivent l’affectation dans une transaction. Aucun journal de vente/stock/points ni payload d’outbox n’est modifié.
+
+Le retour direct vers l’administration attend la persistance des brouillons avant de vider l’historique de navigation. Les informations et contrôles du groupe sont regroupés dans les paramètres, sans changer les autorisations de l’administrateur.
+
 Référence : plans approuvés les 21 et 23 septembre 2026. Voir [spécification](specification-fonctionnelle.md), [contrat OpenAPI](../contracts/openapi/biobalance.json), [état de réalisation](implementation-status.md) et [exploitation](runbook.md).
 
 ## Structure

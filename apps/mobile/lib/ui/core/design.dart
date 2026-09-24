@@ -608,3 +608,28 @@ class FormContent extends StatelessWidget {
     ),
   );
 }
+
+/// Consistent hierarchy for long forms without nesting scroll views or cards.
+class FormSectionHeading extends StatelessWidget {
+  final String title;
+  final String? description;
+  const FormSectionHeading(this.title, {super.key, this.description});
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.only(top: 8, bottom: 20),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          title,
+          style: Theme.of(context).textTheme.titleMedium
+              ?.copyWith(fontWeight: FontWeight.w700),
+        ),
+        if (description != null) ...[
+          const SizedBox(height: 6),
+          Text(description!, style: Theme.of(context).textTheme.bodySmall),
+        ],
+      ],
+    ),
+  );
+}

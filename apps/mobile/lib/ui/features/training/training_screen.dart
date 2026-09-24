@@ -240,39 +240,15 @@ class _TrainingEditorState extends State<TrainingEditor> {
             ? 'Créer une formation'
             : 'Éditer une formation',
         maxWidth: 760,
-        action: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            OutlinedButton.icon(
-              onPressed: !initialized
-                  ? null
-                  : () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => TrainingReader(
-                          vm: widget.vm,
-                          article: editor.preview(),
-                          preview: true,
-                          mediaReady: state.value('mediaStatus') == 'ready',
-                        ),
-                      ),
-                    ),
-              icon: const Icon(AppIcons.visibilityOutlined),
-              label: const Text('Aperçu du contenu'),
-            ),
-            const SizedBox(height: 8),
-            FilledButton(
-              onPressed: blocked || state.conflict
-                  ? null
-                  : () async {
-                      if (await editor.save() && context.mounted) {
-                        completeRoute(context);
-                      }
-                    },
-              child: const Text('Enregistrer le contenu'),
-            ),
-          ],
+        action: FilledButton(
+          onPressed: blocked || state.conflict
+              ? null
+              : () async {
+                  if (await editor.save() && context.mounted) {
+                    completeRoute(context);
+                  }
+                },
+          child: const Text('Enregistrer le contenu'),
         ),
         children: [
           if (state.error != null) Notice(state.error!, error: true),
@@ -289,6 +265,11 @@ class _TrainingEditorState extends State<TrainingEditor> {
               onPressed: restore,
               child: const Text('Réessayer de récupérer le brouillon'),
             ),
+          const FormSectionHeading(
+            'Votre contenu',
+            description:
+                'Un titre clair et des conseils utiles pour les équipes.',
+          ),
           TextField(
             controller: title,
             enabled: initialized && !state.busy,
@@ -299,7 +280,7 @@ class _TrainingEditorState extends State<TrainingEditor> {
           TextField(
             controller: body,
             enabled: initialized && !state.busy,
-            minLines: 6,
+            minLines: 4,
             maxLines: null,
             keyboardType: TextInputType.multiline,
             decoration: const InputDecoration(
@@ -308,8 +289,10 @@ class _TrainingEditorState extends State<TrainingEditor> {
             ),
           ),
           const SizedBox(height: 20),
+          const FormSectionHeading('Format de la formation'),
           Wrap(
             spacing: 8,
+            runSpacing: 8,
             children: [
               for (final type in ['article', 'video'])
                 ChoiceChip(
@@ -322,6 +305,10 @@ class _TrainingEditorState extends State<TrainingEditor> {
             ],
           ),
           const SizedBox(height: 16),
+          const FormSectionHeading(
+            'Produits associés',
+            description: 'Facultatif · retrouvez cette formation depuis les fiches produits.',
+          ),
           OutlinedButton.icon(
             onPressed: blocked || catalog.loading ? null : associate,
             icon: const Icon(AppIcons.link),
@@ -331,8 +318,10 @@ class _TrainingEditorState extends State<TrainingEditor> {
                   : 'Associer des produits',
             ),
           ),
+          const SizedBox(height: 8),
           Wrap(
             spacing: 8,
+            runSpacing: 8,
             children: editor.productIds
                 .map(
                   (id) => Chip(
@@ -347,6 +336,11 @@ class _TrainingEditorState extends State<TrainingEditor> {
                 .toList(),
           ),
           if (state.value('type') == 'video') ...[
+            const SizedBox(height: 16),
+            const FormSectionHeading(
+              'Vidéo',
+              description: 'Choisissez le fichier, puis attendez la fin du traitement avant de publier.',
+            ),
             OutlinedButton.icon(
               onPressed: blocked ? null : upload,
               icon: const Icon(AppIcons.uploadFile),
@@ -386,6 +380,26 @@ class _TrainingEditorState extends State<TrainingEditor> {
               ),
             ],
           ],
+          const SizedBox(height: 16),
+          const FormSectionHeading('Publication'),
+          OutlinedButton.icon(
+            onPressed: !initialized
+                ? null
+                : () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => TrainingReader(
+                        vm: widget.vm,
+                        article: editor.preview(),
+                        preview: true,
+                        mediaReady: state.value('mediaStatus') == 'ready',
+                      ),
+                    ),
+                  ),
+            icon: const Icon(AppIcons.visibilityOutlined),
+            label: const Text('Aperçu du contenu'),
+          ),
+
           const SizedBox(height: 16),
           DropdownButtonFormField<String>(
             icon: const Icon(AppIcons.keyboardArrowDown),

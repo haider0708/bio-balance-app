@@ -1,3 +1,5 @@
+import '../team/invitations_screen.dart';
+
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 
@@ -7,7 +9,6 @@ import '../../core/forms.dart';
 import '../media/image_input.dart';
 import '../stores/stores_screen.dart';
 import 'scope_view_model.dart';
-import 'lifecycle_screen.dart';
 import 'operation_helpers.dart';
 
 class GroupOverviewLinks extends StatelessWidget {
@@ -32,7 +33,7 @@ class GroupOverviewLinks extends StatelessWidget {
             ),
           ),
         SectionTitle(
-          'Vos magasins',
+          scope.workspace.user.admin ? 'Magasins du groupe' : 'Vos magasins',
           subtitle: '${scope.stores.length} magasin(s) dans ce groupe',
           action: TextButton.icon(
             onPressed: group.status == 'active'
@@ -59,29 +60,6 @@ class GroupOverviewLinks extends StatelessWidget {
             onPressed: () => scope.setTab(1),
             child: const Text('Voir tous les magasins'),
           ),
-        if (scope.workspace.user.admin)
-          TextButton.icon(
-            onPressed: () => run(context, () async {
-              await manageLifecycle(
-                context,
-                scope.workspace,
-                groupId: group.id,
-                name: group.name,
-                version: group.version,
-                status: group.status,
-              );
-              await scope.refresh();
-            }),
-            icon: const Icon(AppIcons.settingsOutlined),
-            label: Text('Accès du groupe · ${statusLabel(group.status)}'),
-          ),
-        TextButton.icon(
-          onPressed: group.status == 'archived'
-              ? null
-              : () => editGroup(context, scope),
-          icon: const Icon(AppIcons.settingsOutlined),
-          label: const Text('Informations du groupe'),
-        ),
       ],
     );
   }
@@ -273,6 +251,19 @@ class _GroupsPageState extends State<GroupsPage> {
             onPressed: () => inviteManager(context, vm.workspace),
             icon: const Icon(AppIcons.personAddAlt),
             label: const Text('Inviter un responsable'),
+          ),
+        if (!widget.stores && vm.workspace.user.admin)
+          CompactRow(
+            title: 'Invitations et suivi',
+            subtitle:
+                'Suivre les responsables invités et gérer leur invitation',
+            icon: AppIcons.mailOutline,
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => InvitationsScreen(workspace: vm.workspace),
+              ),
+            ),
           ),
         if (vm.grants.isNotEmpty)
           FilledButton.icon(
