@@ -57,9 +57,11 @@ Nettoyage limité aux anciennes images BioBalance : conservation des versions `1
 
 Les fichiers signés et leurs manifestes sont conservés localement ; le registre `.artifacts/forms-release/verified-artifacts.json` contient chemins et empreintes APK/AAB. La première tentative Responsable a subi un crash du compilateur JIT C2 du JDK hôte. La reprise avec `JAVA_TOOL_OPTIONS=-XX:-UseLoopPredicate` a réussi ; cet ajustement concerne uniquement la JVM de compilation. Les optimisations et contrôles de signature de l’application sont conservés.
 
-### Installation Samsung — en attente
+### Installation Samsung — réalisée
 
-Le Samsung est devenu inaccessible sur la connexion de débogage sans fil pendant les builds. Aucun appareil Android n’est actuellement visible par ADB ; aucune installation de 1.1.8 ni suppression de données n’a été effectuée sur le téléphone. Les quatre mises à jour sont prêtes pour une installation `adb install -r` dès reconnexion. Le script local `.artifacts/forms-release/install-phone.py` vérifie version et conservation des UID avant/après. Le contrôle physique des nouveaux formulaires sur Samsung reste donc à faire.
+Le 24 septembre 2026, après une tentative USB interrompue par la déconnexion du câble, la connexion sans fil a été rétablie et l’identité du Samsung SM-G975F a été vérifiée. Les quatre applications Admin, Responsable, Vendeur et Vendeur 2 ont été mises à jour en place vers **1.1.8+12** avec `adb install -r --no-incremental`. Chaque installation a réussi ; les UID 10358, 10359, 10360 et 10361 sont inchangés. Aucune désinstallation, aucun effacement de données et aucune réinitialisation du backend.
+
+Pour chaque application : version vérifiée, processus vivant, activité au premier plan et absence d’exception fatale/non gérée observée dans les journaux du processus lors du contrôle de démarrage. Admin est laissé ouvert. Les preuves locales sont `installed-{role}.json` et `phone-startup-checks.json` dans `.artifacts/forms-release/`. Ce contrôle confirme installation et ouverture ; le parcours tactile complet des nouveaux formulaires sur Samsung reste à valider avec l’utilisateur.
 
 Les preuves locales sont sous `.artifacts/forms-*` et `.artifacts/forms-release/` : tests, contrats, CI, sauvegarde/restauration, migrations, déploiement, images, services et manifestes. Les fichiers contenant une configuration privée ne sont jamais joints au dépôt.
 
