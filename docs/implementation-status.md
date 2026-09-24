@@ -1,6 +1,6 @@
 # État de l’implémentation — 25 septembre 2026
 
-Candidate en cours de livraison : [commandes, réception et équipe — 1.1.9](orders-reception-2026-09-24.md). 133 tests backend, 287 tests Flutter, contrats HTTP et reprise hors ligne réussis. Données conservées ; installation à confirmer dans le registre de livraison.
+[Commandes, réception et équipe — 1.1.9+13](orders-reception-2026-09-24.md) : backend `3f180ba` déployé, sauvegarde/restauration vérifiées, quatre APK/AAB signés. 133 tests backend, 287 tests Flutter, contrats HTTP, reprise hors ligne et parcours natif local réussis. Reprise Android après arrêt forcé, caméra refusée et vidéo hors ligne réussies localement. Les quatre jobs CI `5922430` ont réussi après correction d’un sélecteur de test, sans modification du code applicatif : backend, Android, parcours/reprise Android et iOS non signé. Données conservées. **Installation Samsung en attente : téléphone non connecté ; dernière version installée confirmée 1.1.8+12.**
 
 Version précédente : [formulaires, invitations et navigation — 1.1.8](forms-invitations-2026-09-24.md). Backend `1d312cf` déployé, migration et restauration vérifiées, quatre jobs CI réussis. Les quatre APK/AAB sont signés et les quatre applications 1.1.8+12 sont installées sur le Samsung : UID conservés, ouverture et démarrage contrôlés, Admin laissé ouvert. Données et comptes conservés. Le contrôle tactile complet reste à valider ; les versions ci-dessous restent historiques.
 

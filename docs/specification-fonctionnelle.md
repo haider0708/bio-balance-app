@@ -6,7 +6,7 @@ Un vendeur possède **un seul magasin actif**, y compris entre groupes. Le respo
 
 Les invitations sont consultables avec leur statut, validité et rôle. Renvoyer crée un nouveau code et invalide le précédent ; révoquer invalide le code ; retirer masque l’invitation tout en conservant son historique et le compte. Les anciens codes consommés dont le motif est inconnu sont affichés « Terminée », sans inventer une acceptation.
 
-Dans un groupe ou magasin, l’administrateur dispose d’un retour direct à l’administration. Les changements d’onglet ne s’empilent plus dans l’historique Retour. Les coordonnées et le contrôle d’accès du groupe se trouvent dans Paramètres et gestion. Les filtres de commandes sont sur une ligne horizontale défilante ; le métier des commandes reste inchangé.
+Dans un groupe ou magasin, l’administrateur dispose d’un retour direct à l’administration. Les changements d’onglet ne s’empilent plus dans l’historique Retour. Les coordonnées et le contrôle d’accès du groupe se trouvent dans Paramètres et gestion. Les filtres de commandes et de stock sont sur une ligne horizontale défilante. Le cycle des commandes suit les règles de réapprovisionnement ci-dessous.
 
 Les formulaires partagés s’étirent sur la largeur disponible, avec sections lisibles et action principale fixe. Les formations séparent contenu, produits associés, vidéo et publication ; l’aperçu fait partie de la publication.
 
@@ -25,14 +25,14 @@ Les abonnements payants, le web admin, WhatsApp, les classements régionaux/nati
 - Le guide reprend après interruption : compte, groupe, premier magasin, équipe, stock initial, configuration des prix/seuils/points. Nom, adresse et ville sont requis ; téléphone et image sont facultatifs.
 - La progression du guide est dérivée des données enregistrées. « Je travaille seul » et « Pas de stock initial » sont des choix explicites ; les produits portés configurés à zéro point demandent confirmation.
 - L’administrateur commence au réseau, le responsable au groupe, le vendeur à son magasin autorisé. Un seul sélecteur recherchable de groupe apparaît en haut à gauche : changer de groupe revient à son résumé. Un magasin s’ouvre depuis la liste du groupe ; il n’y a pas de second menu déroulant. Un vendeur possède un seul magasin actif. Le bouton Retour remonte les pages et périmètres précédents ; un changement d’onglet n’ajoute pas une entrée à cet historique. Les brouillons et opérations ne changent jamais de compte ni de magasin.
-- Désactiver ou retirer un accès conserve les ventes, mouvements et identités historiques.
+- Désactiver ou retirer un accès conserve les ventes, mouvements et identités historiques. Le responsable ne peut pas modifier son propre rôle ni désactiver son propre accès depuis l’équipe ; son compte ne figure pas dans les membres modifiables. Le serveur protège également ces opérations.
 
 ## Ventes, lots et exactitude
 
 - Vente directe réalisée en magasin : scanner ou chercher, vérifier les quantités, prix et lots, enregistrer. Plusieurs produits et allocations de lots sont autorisés.
 - Les prix sont calculés exactement en millimes entiers ; JSON utilise une chaîne décimale pour éviter toute perte de précision. Affichage `49,900 TND`, dates `DD/MM/YYYY`.
 - Lots identifiés par magasin, produit, numéro de lot et date de péremption. Quantités entières ; une péremption au mois devient le dernier jour du mois.
-- Le lot valide avec quantité positive expirant le plus tôt est proposé, avec choix du lot effectivement remis. Stock périmé ou endommagé exclu du disponible, mais conservé dans l’historique.
+- Le lot valide avec quantité positive expirant le plus tôt est proposé, avec choix du lot effectivement remis. Stock périmé ou endommagé exclu du disponible, mais conservé dans l’historique. Les lots vides ne sont plus proposés pour une nouvelle vente ni listés comme stock actif ; allocations de brouillons/corrections, écarts négatifs et quantités endommagées restent accessibles.
 - Le vendeur peut saisir un lot et sa péremption manquants pendant la vente. Métadonnées du lot et vente sont atomiques ; aucun stock entrant artificiel ni produit global créé par le vendeur.
 - Filtres disponibles : stock faible, écarts, péremption dans les 30 jours et lots expirés. Les dates civiles de péremption sont distinctes des horodatages affichés en heure tunisienne.
 - Une vente réelle dépassant le stock enregistré est conservée. Elle entraîne un écart à régulariser, sans inventer une réception.
@@ -52,10 +52,15 @@ Les abonnements payants, le web admin, WhatsApp, les classements régionaux/nati
 ## Réapprovisionnement
 
 - Seuil par produit/magasin, alerte à quantité inférieure ou égale, rupture distincte à zéro. L’alerte reste visible et n’est pas répétée à chaque vente.
-- Le responsable commande à tout moment. BioBalance prépare et expédie ; chaque livraison physique possède un identifiant partagé.
-- L’expédition ne change pas le stock du magasin. La réception renseigne les quantités réelles, lots, dates et écarts.
-- Une réception totalement manquante accepte zéro unité avec motif et confirmation explicite. Le reste à expédier déduit les unités effectivement reçues et celles encore en transit ; les suivis gardent leurs propres identifiants.
-- Une livraison ne peut pas être réceptionnée deux fois. Les livraisons complémentaires utilisent de nouveaux identifiants. Les quantités manquantes restent visibles.
+- Le responsable commande à tout moment, depuis le groupe ou le magasin. Depuis le groupe, il choisit un de ses magasins autorisés dans l’éditeur. Le brouillon conserve ce magasin ; changer de magasin sauvegarde d’abord la saisie, sans déplacer l’espace d’origine. Un échec de sauvegarde bloque ce changement.
+- Cycle normal : demande → préparation BioBalance → expédition → réception physique par le responsable. Le vendeur ne réceptionne pas de livraisons et ne gère pas les commandes.
+- Le responsable peut annuler uniquement une demande non préparée. Préparation et annulation concurrentes sont contrôlées par version dans la transaction. Les actions administrateur restent auditées et ne peuvent effacer une réception ou les quantités physiquement engagées.
+- L’expédition ne change pas le stock du magasin. La réception renseigne les quantités réelles, lots, péremptions et écarts, produit par produit ; plusieurs lots peuvent être reçus pour le même produit. Une livraison physique possède un identifiant partagé et ne peut être réceptionnée deux fois.
+- « Non reçue », ou zéro unité avec motif et confirmation explicite, signale une anomalie à l’administrateur sans entrée de stock ni réception définitive. Une réception ultérieure reste possible. Un responsable peut aussi signaler un problème général à toute étape ; l’administrateur le résout avec explication. Ces signalements seuls ne modifient ni stock ni statut logistique.
+- Quantités demandées, prévues, reçues, en transit, retenues pour écart, annulées et restant à expédier restent distinguées. Le reste déduit les unités reçues et encore engagées ; la résolution d’un écart peut libérer le reliquat. Les livraisons complémentaires ont de nouveaux identifiants.
+- Les détails affichent groupe, magasin, étape suivante, produits, livraisons et historique. Les signalements et résolutions conservent auteur et motif ; les responsables et l’administrateur sont notifiés dans l’application.
+
+Voir [les règles et preuves 1.1.9](orders-reception-2026-09-24.md).
 
 ## Formation et communication
 

@@ -23,9 +23,10 @@ Candidate 1.1.9+13, après 1.1.8. Conserver comptes, données métier, brouillon
 ## Validation locale
 
 - 133 tests backend réussis, dont annulation responsable, concurrence préparation/annulation, préservation du statut après modification, signalement/résolution idempotents, destinataires et blocage de sa propre modification d’accès.
-- 287 tests Flutter réussis ; les quatre scénarios dépendant d’un laboratoire restent distincts. Après ajustement visuel final, 75 contrôles ciblés téléphone/paysage 200 % passent. Analyse sans diagnostic ; génération OpenAPI/Dart reproductible.
+- 287 tests Flutter réussis ; les quatre scénarios dépendant d’un laboratoire restent distincts. Après ajustement visuel final, 75 contrôles ciblés téléphone/paysage 200 % passent. Après les derniers ajustements de garde et de brouillon, 24 tests ciblés passent également. Analyse sans diagnostic ; génération OpenAPI/Dart reproductible.
 - 66 contrats HTTP réels validés, puis décodés par le client Dart généré ; deux parcours HTTP/SQLite/PostgreSQL de reprise hors ligne passent (5 opérations, 6 mouvements, 3 révisions, stock 7/1 et version 7, 20 points). Lot manquant : sortie réelle sans entrée artificielle.
 - Parcours Android des trois rôles réussi sur émulateur, avec API/PostgreSQL isolés et vérification des stocks, ventes, points et récompenses. Le formulaire de réception est parcouru par produit attendu.
+- Reprise Android après arrêt forcé réussie : compte, identifiant et payload conservés ; une seule vente acceptée, stock 7/version 3 et 30 points. Caméra refusée avec recherche manuelle fonctionnelle, puis vidéo H.264 téléchargée et lue hors ligne. Le premier essai local a détecté un sélecteur de test trop strict sur le texte « Caméra indisponible » ; `5922430` corrige uniquement ce test. Le scénario complet relancé passe, et l’analyse finale ne signale aucun problème.
 - Captures contrôlées inspectées : [commande responsable](screenshots/orders-responsible-detail.png), [réception](screenshots/refinement-receipt.png), [stock](screenshots/audit-stock.png), [invitations](screenshots/audit-invitations.png). Les scénarios vérifient la conservation du brouillon si le stockage échoue et l’isolation entre magasins.
 
 ## Contrats et compatibilité
@@ -53,4 +54,29 @@ Sauvegarde `/srv/biobalance-backups/20260924T230229Z-0cf2b464` restaurée sur un
 
 ## Livraison
 
-Déploiement, signatures, CI et installation à consigner après réalisation. Aucune réinitialisation prévue. La qualification physique complète et iOS restent distinctes des contrôles sur émulateur.
+Code livré : `3f180baab0d0c27c5ff181a3b8adf35c7bd90463`, poussé sur `codex/biobalance-app`. Backend actif : `biobalance-api:3f180ba` et `biobalance-media:3f180ba`. Les quatre API, les deux workers, Nginx et PostgreSQL sont sains ; HTTPS `/health` répond `200`. Un nouveau contrôle après plus de 30 minutes confirme ces états. Les 24 migrations sont appliquées, aucune migration supplémentaire pour cette version.
+
+Comptages avant/après identiques : 5 comptes, 52 produits, 1 groupe, 2 magasins, aucune vente et 3 mouvements de stock. Aucun effacement ni création de données de démonstration. Le déploiement a remplacé les services progressivement, avec contrôle de santé et rechargement Nginx entre les remplacements.
+
+Configuration privée de retour arrière : `/opt/biobalance/rollback-orders-3f180ba/backend.env`. Les images précédentes `1d312cf` sont conservées. Les anciennes images BioBalance `7bac0ce` et `505795b`, sans conteneur utilisateur, ont été retirées ; aucun nettoyage global Docker et aucun service tiers modifié. Environ 27 Go libres sur le VPS après nettoyage. Un rollback applicatif conserve la base actuelle ; il ne doit pas restaurer une ancienne sauvegarde à la place des nouvelles opérations.
+
+[CI initiale](https://github.com/haider0708/bio-balance-app/actions/runs/36071567888) : backend, Android et iOS non signé réussis. Le journal du job natif confirme le parcours des trois rôles réussi ; la reprise s’est ensuite bloquée à la connexion du driver Flutter avant le démarrage de la phase restaurée. Ce job a été annulé. [CI finale](https://github.com/haider0708/bio-balance-app/actions/runs/36074110338), commit `5922430aa32e7fcefaa55e6426bbd4dc28a00fea` : **quatre jobs réussis** — backend, Android, parcours Android avec reprise après arrêt forcé, compilation iOS non signée. Les sources de l’application et du serveur restent celles de `3f180ba` ; seule une assertion de test change.
+
+### Paquets Android
+
+Les quatre APK et quatre AAB **1.1.9+13** sont signés depuis le même commit propre `3f180ba`. Identifiants, version, certificats existants, manifeste de sécurité, alignement natif et SHA-256 vérifiés. La génération réutilise l’ajustement du compilateur JDK hôte `-XX:-UseLoopPredicate` ; les optimisations de l’application restent actives.
+
+| Application | APK signé | SHA-256 APK |
+|---|---|---|
+| admin | [1.1.9+13](../.artifacts/releases/builds/20260924T231324Z-android-signed/biobalance-signed.apk) | `9c2f9358f7b5cbb141ca142249ccb2f3d779a7fc98eadcb44ba0db7bb3828010` |
+| responsable | [1.1.9+13](../.artifacts/releases/builds/20260924T231754Z-android-signed/biobalance-signed.apk) | `f31490795fddc7563306e79dc6e475aebd17e2258069fce2ef20f36c822251b2` |
+| vendeur | [1.1.9+13](../.artifacts/releases/builds/20260924T232224Z-android-signed/biobalance-signed.apk) | `92020e15db51427b32b6c2a8ad1753be8a6acdf23d5dd96f519b4f9de9f478a6` |
+| vendeur2 | [1.1.9+13](../.artifacts/releases/builds/20260924T232654Z-android-signed/biobalance-signed.apk) | `12ca07eff34e5427963e6321ab1f8d3a4057de3fffdf7cbe17b1107e160883ed` |
+
+Le registre local `.artifacts/orders-release/verified-artifacts.json` contient les chemins, empreintes APK/AAB, identifiants et commit ; chaque répertoire de construction possède son manifeste et ses preuves de signature. Les journaux de tests, restauration et déploiement sont sous `.artifacts/orders-*`.
+
+### Samsung — installation en attente
+
+Le Samsung n’est actuellement visible ni en USB ni en débogage sans fil ; l’ancienne adresse sans fil est inaccessible. **La version 1.1.9 n’a donc pas été installée sur le téléphone.** La dernière installation confirmée reste 1.1.8+12. Les quatre mises à jour sont prêtes pour `adb install -r --no-incremental`, avec contrôle de l’identité du téléphone et conservation des UID. Aucune désinstallation, aucun effacement et aucune réinitialisation ne sont requis.
+
+Les tests sur émulateur et les captures contrôlées ne remplacent pas le parcours tactile de cette version sur le Samsung. Qualification physique complète, publication Apple/Google et pilote restent distincts ; aucune signature Apple ou acceptation en magasin d’applications n’est revendiquée.

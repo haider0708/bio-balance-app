@@ -2,9 +2,9 @@
 
 Application Flutter en français pour les vendeurs, responsables de groupes et l’administration BioBalance. API NestJS, PostgreSQL et stockage local Drift ; architecture objet avec MVVM, injection par constructeur et règles métier séparées des interfaces.
 
-**État : backend déployé sur https://api.galylio.com et APK Android v1.0.0 signé ; qualification physique, distribution Play/iOS et pilote en attente.** [Télécharger la release Android](https://github.com/haider0708/bio-balance-app/releases/tag/v1.0.0). Voir [l’état détaillé](docs/implementation-status.md), la [spécification](docs/specification-fonctionnelle.md), l’[architecture](docs/architecture-technique.md) et le [runbook](docs/runbook.md).
+**État : backend déployé sur https://api.galylio.com ; candidate Android 1.1.9+13 signée pour les quatre installations de test. Mise à jour Samsung en attente de connexion ; qualification physique complète, distribution Play/iOS et pilote en attente.** [Télécharger la release Android](https://github.com/haider0708/bio-balance-app/releases/tag/v1.0.0). Voir [l’état détaillé](docs/implementation-status.md), la [spécification](docs/specification-fonctionnelle.md), l’[architecture](docs/architecture-technique.md) et le [runbook](docs/runbook.md).
 
-Dernière refonte : [groupes, tableaux de bord et interface 1.1.0+4](docs/redesign-2026-09-23.md), avec [captures et revue visuelle](docs/screenshot-inventory-2026-09-23.md). La release publique v1.0.0 reste distincte de la nouvelle candidate.
+Dernière candidate : [commandes, réception, stock et équipe 1.1.9+13](docs/orders-reception-2026-09-24.md). La [refonte groupes et tableaux de bord](docs/redesign-2026-09-23.md) et son [registre visuel](docs/screenshot-inventory-2026-09-23.md) conservent les choix précédents. La release publique v1.0.0 reste distincte de cette candidate.
 
 ## Organisation
 

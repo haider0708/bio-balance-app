@@ -101,7 +101,7 @@ Les demandes de récompense, commandes non terminées, livraisons en cours et r�
 
 `shared/contracts` définit les schémas publics et partage les validateurs Zod des requêtes avec les contrôleurs. Toute route sans contrat échoue à la génération. Le client Dart génère les objets immuables, unions et signatures typées ; les repositories les adaptent aux modèles du domaine. L’audit reste un document JSON extensible. Les envois d’anciennes commandes conservent le payload brut persistant, sans réinterprétation par les nouveaux DTO.
 
-`npm run test:contracts` vérifie les 45 endpoints via une API/PostgreSQL isolés et compare les réponses réelles après décodage/réencodage Dart. `scripts/check-contract-drift.sh` régénère puis compare les fichiers versionnés. Les overrides `@prisma/config → deepmerge-ts 8.0.2` et `prisma → mysql2 3.24.4` corrigent des dépendances CLI sans passer à Prisma prerelease ; génération et migrations ont été revérifiées.
+`npm run test:contracts` vérifie les 66 endpoints via une API/PostgreSQL isolés et compare les réponses réelles après décodage/réencodage Dart. `scripts/check-contract-drift.sh` régénère puis compare les fichiers versionnés. Les overrides `@prisma/config → deepmerge-ts 8.0.2` et `prisma → mysql2 3.24.4` corrigent des dépendances CLI sans passer à Prisma prerelease ; génération et migrations ont été revérifiées.
 
 
 ### Preuves de déploiement et distribution
@@ -139,3 +139,12 @@ Les quotas généraux sur comptes authentifiés ont été retirés. Les limites 
 `NavigatorPopHandler` relaie le retour Android au navigateur protégé ; `ScopeViewModel` conserve un historique borné des contextes/onglets sans modifier le contexte des commandes en attente. `FormPage` / `FormContent` séparent le défilement du contenu et l’action au-dessus du clavier. Les formulaires de groupe reprennent les anciennes clés de brouillon et copient durablement un ancien brouillon lié au magasin avant de nettoyer cette copie.
 
 Les invitations et remplacements de récupération sont sérialisés par compte/groupe dans PostgreSQL. Le filtre d’étape des commandes s’applique avant la pagination ; les résultats incluent les réceptions et la projection existante de fulfillment. `PhotoRepository` libère son registre de requêtes sans retourner la Future en cours depuis `whenComplete`.
+
+
+## Commandes, réception et filtres — 1.1.9
+
+L’objet `Order` contrôle préparation, expédition, annulation et conservation des engagements. `OperationsService` applique les changements, notifications, audit et versions dans la même transaction idempotente. `order.report` et `order.resolve` conservent le protocole existant : l’alerte `order_problem` projette le problème ouvert et l’audit append-only conserve chaque signalement/résolution. Aucune migration ni réécriture de l’outbox n’est requise.
+
+`orderSummaries` centralise quantités de fulfillment et nombres d’incidents. Ce même calcul est utilisé pour la page initiale, les pages de snapshot supplémentaires et les détails, afin qu’un signalement ne disparaisse pas au-delà de la première page d’alertes. Les anciens chemins d’expédition restent compatibles pendant la mise à jour ; le nouveau parcours guide préparation puis expédition.
+
+Côté Flutter, `OrderWorkflow` expose les actions de chaque rôle/étape, `ReceiptPlan` calcule saisies et écarts, et `InventorySelection` distingue lots opérationnels et allocations à conserver. `OrderCreationScreen` utilise un modèle de magasin temporaire, lié au groupe autorisé, sans modifier le contexte ni la sélection mémorisée derrière la route. La sauvegarde du brouillon précède le changement de magasin. `FilterBar` garde une seule ligne défilante et rend l’option sélectionnée visible.
