@@ -53,3 +53,9 @@ Elle conserve exactement les produits, leurs médias, le compte administrateur (
 Révoquer les anciennes sessions fait partie du reset. Effacer également les données locales des installations de test concernées avant reconnexion pour éviter les anciennes files hors ligne. Cette suppression locale appartient uniquement à cette réinitialisation demandée ; elle n’est jamais exécutée automatiquement au lancement ou à la mise à jour de l’app.
 
 Vérifier et nettoyer uniquement les fichiers média/export devenus orphelins dans les volumes BioBalance. Conserver la sauvegarde dans la politique existante de rétention (7 jours, 4 semaines, plafond 4 Gio). Les sauvegardes locales ne couvrent pas la perte du VPS.
+
+## Deuxième vendeur — installation du 24 septembre 2026
+
+**BioBalance Vendeur 2 (1.1.7+11)** a été signé, installé et lancé sur le Samsung. Son package `tn.biobalance.app.vendeur2` possède un UID Android distinct ; les UID, versions et dates d’installation/mise à jour des trois copies existantes sont inchangés. Aucune base serveur ni donnée d’application existante n’a été réinitialisée. Android confirme le lancement de la nouvelle activité ; le parcours de connexion du second vendeur reste à effectuer par l’utilisateur.
+
+Validation : 38 tests d’outillage release, analyse Flutter sans anomalie, signatures APK/AAB et alignement natif vérifiés. Preuve locale : `.artifacts/vendeur2-install-evidence.json`. Pour représenter une seconde personne, l’inviter depuis Responsable avec une adresse distincte puis activer ce compte dans Vendeur 2.
