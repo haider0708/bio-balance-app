@@ -1,6 +1,6 @@
-# État de l’implémentation — 23 septembre 2026
+# État de l’implémentation — 24 septembre 2026
 
-Mise à jour en cours : [formulaires, invitations et navigation — 1.1.8](forms-invitations-2026-09-24.md). Les résultats et le déploiement de cette candidate sont consignés séparément ; les versions ci-dessous restent historiques.
+Dernière mise à jour : [formulaires, invitations et navigation — 1.1.8](forms-invitations-2026-09-24.md). Backend `1d312cf` déployé, migration et restauration vérifiées, quatre jobs CI réussis. Les quatre APK/AAB sont signés ; leur installation attend la reconnexion du Samsung. Données et comptes conservés. Les résultats détaillés et cette limite physique sont consignés dans le registre ; les versions ci-dessous restent historiques.
 
 La [correction de synchronisation 1.1.4+8](sync-recovery-2026-09-23.md) traite les opérations de tous les magasins depuis chaque espace, avec état en direct et magasin indiqué. Les paramètres retirent les sélecteurs redondants tout en conservant les réglages. Analyse sans diagnostic, 252 tests Flutter réussis, deux parcours HTTP réels et reprise après arrêt Android forcé réussis. Les identifiants et données sont conservés ; backend et schéma inchangés. APK/AAB signés depuis `ef99ad3`, candidate installée sur Samsung sans effacement, session conservée et file vérifiée vide. Réception rejetée conservée dans l’historique des résolutions. Voir la preuve de livraison pour la CI et les contrôles physiques.
 
