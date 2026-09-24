@@ -9,7 +9,7 @@ import zipfile
 
 apk, sdk = pathlib.Path(sys.argv[1]).resolve(), pathlib.Path(sys.argv[2]).resolve()
 application_id = sys.argv[3] if len(sys.argv) > 3 else 'tn.biobalance.app'
-if application_id not in {'tn.biobalance.app', 'tn.biobalance.app.responsable', 'tn.biobalance.app.vendeur'}:
+if application_id not in {'tn.biobalance.app', 'tn.biobalance.app.responsable', 'tn.biobalance.app.vendeur', 'tn.biobalance.app.vendeur2'}:
     sys.exit('Unsupported Android application ID')
 readers = sorted(sdk.glob('ndk/*/toolchains/llvm/prebuilt/*/bin/llvm-readelf'))
 if not readers:

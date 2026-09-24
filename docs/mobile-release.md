@@ -64,4 +64,4 @@ Vérifier l’association sur les appareils Android/iOS signés, y compris une i
 
 ## Installations privées pour tester les trois rôles
 
-Le champ optionnel `ANDROID_INSTALLATION` accepte `admin`, `responsable` ou `vendeur`, uniquement pour Android. Sans ce champ, l’identité de production habituelle est inchangée. Voir [le guide de test manuel](manual-role-testing.md) pour les packages, comptes et configurations. Ces variantes n’ajoutent aucune permission et ne préremplissent aucun compte.
+Le champ optionnel `ANDROID_INSTALLATION` accepte `vendeur2`, `admin`, `responsable` ou `vendeur`, uniquement pour Android. Sans ce champ, l’identité de production habituelle est inchangée. Voir [le guide de test manuel](manual-role-testing.md) pour les packages, comptes et configurations. Ces variantes n’ajoutent aucune permission et ne préremplissent aucun compte.

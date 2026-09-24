@@ -83,7 +83,7 @@ if [[ "$platform" == android ]]; then
   application_id=$(python3 - "$config" <<'PYID'
 import json,sys
 installation=json.load(open(sys.argv[1])).get('ANDROID_INSTALLATION','')
-print('tn.biobalance.app'+('.'+installation if installation in {'responsable','vendeur'} else ''))
+print('tn.biobalance.app'+('.'+installation if installation in {'responsable','vendeur','vendeur2'} else ''))
 PYID
 )
   python3 scripts/verify-android-binary.py "$output/biobalance-$mode.apk" "$sdk" "$application_id" > "$output/native-alignment.txt"

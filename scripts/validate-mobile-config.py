@@ -14,7 +14,7 @@ def validate(config, mode, platform):
     if not FIELDS <= set(config) or set(config) - FIELDS - {'AUTH_LINK_HOST', 'ANDROID_INSTALLATION'} or any(not isinstance(v, str) for v in config.values()):
         raise ValueError('Exactly the documented public mobile configuration fields are required')
     installation = config.get('ANDROID_INSTALLATION', '')
-    if installation not in {'', 'admin', 'responsable', 'vendeur'}:
+    if installation not in {'', 'admin', 'responsable', 'vendeur', 'vendeur2'}:
         raise ValueError('Unsupported Android installation')
     if platform != 'android' and installation:
         raise ValueError('Private Android installations cannot be used for iOS')

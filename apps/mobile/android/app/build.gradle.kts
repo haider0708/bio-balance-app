@@ -28,6 +28,7 @@ android {
             "admin" -> "tn.biobalance.app" to "BioBalance Admin"
             "responsable" -> "tn.biobalance.app.responsable" to "BioBalance Responsable"
             "vendeur" -> "tn.biobalance.app.vendeur" to "BioBalance Vendeur"
+            "vendeur2" -> "tn.biobalance.app.vendeur2" to "BioBalance Vendeur 2"
             else -> error("Unsupported Android installation")
         }
         applicationId = identity.first
@@ -36,7 +37,7 @@ android {
         require(authLinkHost.isEmpty() || Regex("[a-z0-9]+(?:[a-z0-9.-]*[a-z0-9])?").matches(authLinkHost)) { "AUTH_LINK_HOST must be a DNS name" }
         // Only the main installation handles verified links. Private copies use
         // manual invitation/recovery codes, without competing for the same URL.
-        manifestPlaceholders["authLinkHost"] = if (installation in listOf("responsable", "vendeur"))
+        manifestPlaceholders["authLinkHost"] = if (installation in listOf("responsable", "vendeur", "vendeur2"))
             "account-links.invalid" else authLinkHost.ifEmpty { "account-links.invalid" }
 
         // You can update the following values to match your application needs.

@@ -7,12 +7,14 @@ abstract final class Installation {
       ? 'BioBalance Responsable'
       : variant == 'vendeur'
       ? 'BioBalance Vendeur'
+      : variant == 'vendeur2'
+      ? 'BioBalance Vendeur 2'
       : 'BioBalance';
   static const loginHint = variant == 'admin'
       ? 'Connectez-vous avec votre compte administrateur.'
       : variant == 'responsable'
       ? 'Activez votre invitation ou connectez-vous avec votre compte responsable.'
-      : variant == 'vendeur'
+      : variant == 'vendeur' || variant == 'vendeur2'
       ? 'Activez votre invitation ou connectez-vous avec votre compte vendeur.'
       : 'Accédez à votre espace BioBalance';
 }

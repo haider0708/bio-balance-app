@@ -20,7 +20,7 @@ class BuildConfigTest(unittest.TestCase):
         value={k:'' for k in module.FIELDS};value['API_BASE_URL']='https://api.example.invalid'
         module.validate(value,'compile-only','android')
     def test_private_installations_are_explicit_and_android_only(self):
-        for installation in ['admin','responsable','vendeur']:
+        for installation in ['admin','responsable','vendeur','vendeur2']:
             value = {**self.config,'ANDROID_INSTALLATION':installation}
             module.validate(value,'signed','android')
             with self.assertRaises(ValueError): module.validate(value,'signed','ios')
