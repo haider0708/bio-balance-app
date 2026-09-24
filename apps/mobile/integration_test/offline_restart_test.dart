@@ -129,7 +129,7 @@ void main() {
       await j.tap('Nouvelle vente');
       await j.tap('Scanner un produit');
       await j.until(
-        () => find.text('Caméra indisponible').evaluate().isNotEmpty,
+        () => find.textContaining('Caméra indisponible').evaluate().isNotEmpty,
         reason: 'native camera denial is recoverable',
       );
       await j.tap('Utiliser la recherche manuelle');
