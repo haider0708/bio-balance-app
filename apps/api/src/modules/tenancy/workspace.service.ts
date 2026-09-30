@@ -15,6 +15,19 @@ import { Actor, Scope } from "../operations/domain/contracts";
 import { Prisma } from "@prisma/client";
 import { requireRule } from "../../shared/domain/errors";
 import { PrismaLedger } from "../operations/infrastructure/prisma-ledger";
+const storeNatures = ["pharmacie", "parapharmacie"] as const;
+export type StoreNature = (typeof storeNatures)[number];
+/** Enforced here as well as in the request contract: callers that bypass HTTP
+ * must not be able to record a store as both natures or as neither. */
+function requireStoreNature(value: unknown): StoreNature {
+  requireRule(
+    storeNatures.includes(value as StoreNature),
+    "VALIDATION",
+    "Choisissez la nature du magasin : pharmacie ou parapharmacie.",
+    400,
+  );
+  return value as StoreNature;
+}
 @Injectable()
 export class WorkspaceService {
   constructor(private readonly db: Database) {}
@@ -119,6 +132,7 @@ export class WorkspaceService {
     input: {
       organizationId: string;
       name: string;
+      nature: StoreNature;
       address: string;
       city: string;
       phone?: string;
@@ -149,7 +163,9 @@ export class WorkspaceService {
         "Réactivez le groupe avant d’ajouter un magasin.",
         409,
       );
-      const store = await tx.store.create({ data: input });
+      const store = await tx.store.create({
+        data: { ...input, nature: requireStoreNature(input.nature) },
+      });
       await tx.membership.create({
         data: {
           organizationId: store.organizationId,
@@ -170,6 +186,15 @@ export class WorkspaceService {
       });
       return store;
     });
+  }
+  /** Rewards and points rules belong to BioBalance alone. */
+  private gamificationAdmin(actor: Actor) {
+    requireRule(
+      actor.platformAdmin,
+      "FORBIDDEN",
+      "Les points et les récompenses sont gérés par BioBalance.",
+      403,
+    );
   }
   private manager(scope: Scope) {
     requireRule(
@@ -251,19 +276,35 @@ export class WorkspaceService {
           "La configuration a changé.",
           409,
         );
+        // The points rate is BioBalance's rule. A responsable configures price
+        // and threshold and must leave the existing rate untouched.
+        const admin = scope.actor.platformAdmin;
         requireRule(
-          input.pointsPerUnit > 0 || input.zeroPointsConfirmed === true,
+          admin || input.pointsPerUnit === (old?.pointsPerUnit ?? 0),
+          "FORBIDDEN",
+          "Les points par unité sont fixés par BioBalance.",
+          403,
+        );
+        requireRule(
+          !admin ||
+            input.pointsPerUnit > 0 ||
+            input.zeroPointsConfirmed === true,
           "ZERO_POINTS_CONFIRMATION",
           "Confirmez que ce produit ne rapporte aucun point.",
         );
         const data = {
           priceConfigured: true,
-          zeroPointsConfirmed:
-            input.pointsPerUnit === 0 && input.zeroPointsConfirmed === true,
           priceMillimes: BigInt(input.priceMillimes),
           threshold: input.threshold,
-          pointsPerUnit: input.pointsPerUnit,
-          pointsConfigured: true,
+          ...(admin
+            ? {
+                zeroPointsConfirmed:
+                  input.pointsPerUnit === 0 &&
+                  input.zeroPointsConfirmed === true,
+                pointsPerUnit: input.pointsPerUnit,
+                pointsConfigured: true,
+              }
+            : {}),
         };
         const result = await tx.storeProduct.upsert({
           where: { storeId_productId: { storeId: store, productId } },
@@ -319,6 +360,7 @@ export class WorkspaceService {
     store: string,
     input: {
       name: string;
+      nature: StoreNature;
       address: string;
       city: string;
       phone?: string | null;
@@ -338,7 +380,11 @@ export class WorkspaceService {
       const { expectedVersion, ...data } = input;
       return tx.store.update({
         where: { id: store },
-        data: { ...data, version: { increment: 1 } },
+        data: {
+          ...data,
+          nature: requireStoreNature(input.nature),
+          version: { increment: 1 },
+        },
       });
     });
   }
@@ -424,6 +470,7 @@ export class WorkspaceService {
       "reward.configure",
       input.id ?? store,
       async (tx) => {
+        this.gamificationAdmin(actor);
         const { expectedVersion, id, ...data } = input;
         await requireImage(tx, input.imageId, "reward", store);
         if (input.productId)

@@ -21,6 +21,10 @@ class FieldSpec {
   final String initial;
   final bool required, numeric, multiline;
   final Map<String, String>? options;
+
+  /// Renders a short list of options as chips instead of a searchable sheet.
+  /// Suitable when the number of choices is known to stay small.
+  final bool choice;
   final String? section;
   final String? hint;
   final String? imagePurpose;
@@ -33,11 +37,12 @@ class FieldSpec {
     this.numeric = false,
     this.multiline = false,
     this.options,
+    this.choice = false,
     this.section,
     this.hint,
     this.imagePurpose,
     this.imageGroupId,
-  });
+  }) : assert(!choice || options != null, 'A choice field needs its options.');
 }
 
 class EditorScreen extends StatefulWidget {
@@ -202,6 +207,17 @@ class _EditorScreenState extends State<EditorScreen> {
                               }
                             },
                           )
+                        : f.choice
+                        ? _ChoiceChips(
+                            key: ValueKey('field.${f.key}'),
+                            label: f.label,
+                            hint: f.hint,
+                            options: f.options!,
+                            controller: controllers[f.key]!,
+                            required: f.required,
+                            enabled:
+                                draftReady && !busy && !mediaBusy && !completed,
+                          )
                         : f.options == null
                         ? TextFormField(
                             key: ValueKey('field.${f.key}'),
@@ -339,6 +355,111 @@ Future<bool> openEditor(
       ),
     ) ??
     false;
+
+/// A small closed set of options shown as chips. The selection lives in the
+/// form's own controller, so a saved draft restores the choice without a
+/// separate value that could drift.
+class _ChoiceChips extends StatefulWidget {
+  final String label;
+  final String? hint;
+  final Map<String, String> options;
+  final TextEditingController controller;
+  final bool required, enabled;
+  const _ChoiceChips({
+    super.key,
+    required this.label,
+    required this.options,
+    required this.controller,
+    this.hint,
+    this.required = true,
+    this.enabled = true,
+  });
+
+  @override
+  State<_ChoiceChips> createState() => _ChoiceChipsState();
+}
+
+class _ChoiceChipsState extends State<_ChoiceChips> {
+  final field = GlobalKey<FormFieldState<String>>();
+  String? get selected => widget.options.containsKey(widget.controller.text)
+      ? widget.controller.text
+      : null;
+  @override
+  void initState() {
+    super.initState();
+    widget.controller.addListener(changed);
+  }
+
+  @override
+  void didUpdateWidget(covariant _ChoiceChips oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.controller != widget.controller) {
+      oldWidget.controller.removeListener(changed);
+      widget.controller.addListener(changed);
+    }
+  }
+
+  void changed() {
+    field.currentState?.didChange(selected);
+    setState(() {});
+  }
+
+  @override
+  void dispose() {
+    widget.controller.removeListener(changed);
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => FormField<String>(
+    key: field,
+    initialValue: selected,
+    validator: (_) =>
+        widget.required && selected == null ? 'Choisissez une valeur.' : null,
+    builder: (state) => Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          widget.label,
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            color: widget.enabled ? ink : muted,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        if (widget.hint != null) ...[
+          const SizedBox(height: 2),
+          Text(widget.hint!, style: Theme.of(context).textTheme.bodySmall),
+        ],
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            for (final option in widget.options.entries)
+              ChoiceChip(
+                key: ValueKey('field.${widget.label}.${option.key}'),
+                label: Text(option.value),
+                selected: option.key == selected,
+                onSelected: !widget.enabled
+                    ? null
+                    : (value) =>
+                          widget.controller.text = value ? option.key : '',
+              ),
+          ],
+        ),
+        if (state.errorText != null) ...[
+          const SizedBox(height: 6),
+          Text(
+            state.errorText!,
+            style: Theme.of(context).textTheme.bodySmall
+                ?.copyWith(color: Theme.of(context).colorScheme.error),
+          ),
+        ],
+      ],
+    ),
+  );
+}
+
 int whole(String input, {bool allowZero = false}) {
   final value = int.tryParse(input);
   if (value == null || value < (allowZero ? 0 : 1) || value > 1000000) {

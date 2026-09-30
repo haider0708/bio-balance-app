@@ -1,3 +1,27 @@
+# BioBalance 1.1.11+15 (complément) — points et récompenses réservés à BioBalance
+
+Seul l’administrateur crée les récompenses, fixe les points par unité et confirme ou refuse les remises. Le responsable garde prix et seuil ; le vendeur demande une récompense et annule sa propre demande. Contrôle serveur (403) et écrans adaptés ; le guide de démarrage n’exige plus de barème. Aucune migration, données conservées.
+
+---
+
+# BioBalance 1.1.11+15 — nature du magasin
+
+Un magasin est soit une pharmacie, soit une parapharmacie. Le responsable choisit la nature en créant le magasin et peut la corriger ensuite, comme l’administrateur. La nature est affichée dans les listes, le groupe et la fiche du magasin.
+
+Les deux natures ne sont jamais cumulables : enum requis à la requête, contrôle du service et contrainte PostgreSQL. Les magasins antérieurs gardent une nature inconnue et sont invités à la renseigner ; aucun fait commercial n’est inventé. Migration additive `202609250001_store_nature`, aucun journal de vente, de stock ou de points touché.
+
+133 tests backend, 299 tests Flutter, 66 contrats HTTP et deux parcours hors ligne réussis. Données, comptes et brouillons conservés. [Détails et preuves](store-nature-2026-09-29.md).
+
+---
+
+# BioBalance 1.1.10+14 — cohérence pendant la synchronisation
+
+Un rafraîchissement et un envoi simultanés ne peuvent plus afficher deux fois une réception ou mélanger le cache et les opérations en attente. Les lectures et envois restent liés au compte et au magasin ; les saisies locales restent disponibles hors ligne.
+
+Deux courses reproduites avant correction, quatre nouvelles régressions, suites backend/Flutter et reprise réelle vérifiées. Aucun changement backend ni migration ; comptes, brouillons et données conservés. [Audit et preuves](logic-audit-2026-09-25.md).
+
+---
+
 # BioBalance 1.1.9+13 — commandes, réception et équipe
 
 Commande depuis le groupe avec choix du magasin, annulation responsable avant préparation, étapes administrateur explicites, réception par produit/lot et signalements suivis. Stock augmenté uniquement à la réception physique. Filtres stock sur une ligne, lots épuisés masqués des choix opérationnels, invitations compactes et propre accès du responsable protégé.

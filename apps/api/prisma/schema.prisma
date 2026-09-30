@@ -115,6 +115,9 @@ model Store {
   id String @id @default(uuid()) @db.Uuid
   organizationId String @db.Uuid
   name String
+  // A store is either a pharmacie or a parapharmacie, never both. Stores that
+  // predate this attribute keep an unknown nature rather than an invented one.
+  nature String?
   address String
   city String
   phone String?

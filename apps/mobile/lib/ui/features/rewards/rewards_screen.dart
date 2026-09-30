@@ -72,7 +72,9 @@ class _RewardsPageState extends State<RewardsPage> {
             .list('claims')
             .where((c) => widget.claimId == null || c['id'] == widget.claimId)
             .toList();
-    final manage = vm.state.store!.canManage || vm.user.admin;
+    // Rewards and points are BioBalance's to run; others only request and cancel their own.
+    final manage = vm.user.admin;
+    final seeTeam = manage || vm.state.store!.canManage;
     return Content.builder(
       itemCount: rewards.length + claims.length + ranking.length + 2,
       itemBuilder: (context, index) {
@@ -132,7 +134,7 @@ class _RewardsPageState extends State<RewardsPage> {
             title: claim['title'],
             value: '${claim['cost']} pts',
             subtitle:
-                '${statusLabel(claim['status'])}${manage ? ' · ${data.list('team').where((m) => m['userId'] == claim['userId']).firstOrNull?['name'] ?? (claim['userId'] == vm.user.id ? vm.user.name : 'Membre de l’équipe')}' : ''}',
+                '${statusLabel(claim['status'])}${seeTeam ? ' · ${data.list('team').where((m) => m['userId'] == claim['userId']).firstOrNull?['name'] ?? (claim['userId'] == vm.user.id ? vm.user.name : 'Membre de l’équipe')}' : ''}',
             footer: claim['status'] != 'requested'
                 ? null
                 : Wrap(
@@ -154,12 +156,14 @@ class _RewardsPageState extends State<RewardsPage> {
                           child: const Text('Refuser'),
                         ),
                       ],
-                      TextButton(
-                        onPressed: busyActions.contains('claim:${claim['id']}')
-                            ? null
-                            : () => resolve(context, claim, 'cancelled'),
-                        child: const Text('Annuler la demande'),
-                      ),
+                      if (manage || claim['userId'] == vm.user.id)
+                        TextButton(
+                          onPressed:
+                              busyActions.contains('claim:${claim['id']}')
+                              ? null
+                              : () => resolve(context, claim, 'cancelled'),
+                          child: const Text('Annuler la demande'),
+                        ),
                     ],
                   ),
           );
@@ -244,8 +248,7 @@ class _RewardsPageState extends State<RewardsPage> {
         if (rewards.isEmpty)
           const EmptyState(
             title: 'Les récompenses arrivent bientôt',
-            description:
-                'Le responsable peut créer les récompenses de ce magasin.',
+            description: 'BioBalance crée les récompenses de ce magasin.',
             icon: AppIcons.redeemOutlined,
           ),
       ],
@@ -287,7 +290,7 @@ class _RewardsPageState extends State<RewardsPage> {
       if (await confirmAction(
         context,
         'Réserver cette récompense ?',
-        '${reward['cost']} points seront réservés. Ils seront déduits quand le responsable confirmera la remise.',
+        '${reward['cost']} points seront réservés. Ils seront déduits quand BioBalance confirmera la remise.',
       )) {
         if (!context.mounted) return;
         await run(

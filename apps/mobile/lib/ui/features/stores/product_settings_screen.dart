@@ -31,7 +31,11 @@ class _ProductSettingsPageState extends State<ProductSettingsPage> {
           return CompactRow(
             title: product.name,
             subtitle:
-                '${Money(integer(config['priceMillimes'])).formatted} · Seuil ${config['threshold']} u.\n${config['pointsConfigured'] == true ? '${config['pointsPerUnit']} points / unité' : 'Points à configurer'}',
+                '${Money(integer(config['priceMillimes'])).formatted} · Seuil ${config['threshold']} u.\n${config['pointsConfigured'] == true
+                    ? '${config['pointsPerUnit']} points / unité'
+                    : widget.vm.user.admin
+                    ? 'Points à configurer'
+                    : 'Points définis par BioBalance'}',
             trailing: const Icon(AppIcons.editOutlined, size: 20, color: muted),
             onTap: () => configureStoreProduct(context, widget.vm, product),
           );

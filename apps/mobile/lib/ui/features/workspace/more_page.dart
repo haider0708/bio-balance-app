@@ -122,7 +122,7 @@ class MorePage extends StatelessWidget {
             'Paramètres du magasin',
             AppIcons.storefrontOutlined,
             StoreSettingsPage(vm: vm),
-            subtitle: 'Nom, coordonnées et image',
+            subtitle: 'Nature, nom, coordonnées et image',
           ),
           link(
             context,

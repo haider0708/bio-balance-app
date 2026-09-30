@@ -1,6 +1,7 @@
 import 'batch_declaration.dart';
 import 'tunis_dates.dart';
 import 'money.dart';
+import 'store_nature.dart';
 
 typedef Json = Map<String, dynamic>;
 int integer(dynamic value) =>
@@ -37,6 +38,8 @@ class Store {
   final List<String> permissions;
   final int onboardingStep, version;
   final String status;
+  // Null only for a store created before its nature was recorded.
+  final String? nature;
   final String? imageId;
   Store.fromJson(Json v)
     : version = integer(v['version'] ?? 1),
@@ -46,6 +49,7 @@ class Store {
       organizationName = v['organizationName'] ?? '',
       name = v['name'],
       city = v['city'] ?? '',
+      nature = storeNatureOf(v),
       permissions = List.unmodifiable(
         List<String>.from(v['permissions'] ?? []),
       ),
@@ -53,12 +57,16 @@ class Store {
       imageId = v['imageId'];
   bool get canManage => permissions.contains('manage');
   bool get canSell => permissions.contains('sell') || canManage;
+
+  /// A store whose nature is still unknown is not ready to sell.
+  bool get hasNature => nature != null;
   Json toJson() => {
     'id': id,
     'organizationId': organizationId,
     'organizationName': organizationName,
     'name': name,
     'city': city,
+    'nature': nature,
     'permissions': permissions,
     'onboardingStep': onboardingStep,
     'status': status,

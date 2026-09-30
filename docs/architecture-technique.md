@@ -1,5 +1,13 @@
 # BioBalance — Architecture technique
 
+## Complément du 29 septembre 2026
+
+`Store.nature` est une colonne texte unique : « pharmacie » ou « parapharmacie », ce qui rend la double valeur structurellement impossible. La migration additive `202609250001_store_nature` ajoute la colonne **nulable** et la contrainte `Store_nature`, sans affecter les magasins existants : une nature inconnue reste inconnue plutôt que devinée. Le même raisonnement que `onboardingStep` s'applique, et aucun journal de vente, de stock, de points ni payload d'outbox n'est réécrit.
+
+La séparation est appliquée à trois niveaux. `WorkspaceRequests.Create` et `UpdateStore` déclarent `nature` comme enum **requis**, sans valeur par défaut, donc le contrat OpenAPI et le client Dart généré l'exigent aussi. `requireStoreNature` dans `WorkspaceService` refuse toute valeur inconnue, y compris pour un appelant qui contourne HTTP. La contrainte PostgreSQL tient même si un script écrit directement. L'audit `store.create`/`store.update` porte déjà le détail de la fiche retournée, donc la nature y figure sans traitement ajouté.
+
+Côté Flutter, `store_nature.dart` porte les valeurs, les libellés et les textes d'aide, et `Store.nature` est un `String?` : `null` signifie « non renseigné », jamais une valeur inventée. Une valeur que le client ne sait pas nommer reste inconnue et n'atteint ni un libellé ni un formulaire, ce qui garde un ancien client lisible face à un serveur plus récent. `FieldSpec.choice` rend un petit ensemble fermé de choix sous forme de puces dans l'éditeur partagé ; la sélection reste dans le contrôleur du formulaire, donc la restauration de brouillon fonctionne comme pour un champ texte. `storeNatureSelection` renvoie une valeur vide pour une nature inconnue, ce qui force le choix plutôt que de proposer une valeur.
+
 ## Complément du 24 septembre 2026
 
 `InvitationManagementService` expose une liste paginée par groupe (ou les invitations de création de groupe pour l’administrateur) et des actions versionnées/idempotentes. `issueInvitation` centralise émission, remplacement du code, job email et audit dans la transaction autorisée. Le client utilise les DTO générés et conserve l’identifiant d’une action incertaine dans le stockage du compte pour la rejouer sans nouvel effet.

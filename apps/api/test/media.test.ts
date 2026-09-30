@@ -163,6 +163,7 @@ it("processes a scoped image, verifies it, and refuses cross-store attachment an
   await service.chunk(manager, asset.id, 1000, image.subarray(1000));
   const settings = {
     name: "Updated",
+    nature: "parapharmacie" as const,
     address: "Test address",
     city: "Tunis",
     expectedVersion: 1,
@@ -252,7 +253,16 @@ it("processes a scoped image, verifies it, and refuses cross-store attachment an
   );
   await service.chunk(manager, rewardImage.id, 0, image);
   await new MediaProcessor(db, root).process(rewardImage.id);
-  const reward = await workspace.reward(manager, org, store, {
+  const rewardAdmin = {
+    id: randomUUID(),
+    name: "Reward admin",
+    email: `${randomUUID()}@example.test`,
+    platformAdmin: true,
+  };
+  await owner.user.create({
+    data: { ...rewardAdmin, passwordHash: "test-only" },
+  });
+  const reward = await workspace.reward(rewardAdmin, org, store, {
     title: "Gift",
     description: "Test",
     cost: 20,

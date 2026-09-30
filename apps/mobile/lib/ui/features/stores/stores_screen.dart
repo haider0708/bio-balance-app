@@ -118,7 +118,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             ),
             if ((progress['incompleteProducts'] as List? ?? []).isNotEmpty)
               Notice(
-                '${(progress['incompleteProducts'] as List).length} produit(s) restent à paramétrer. Confirmez explicitement les produits à zéro point.',
+                '${(progress['incompleteProducts'] as List).length} produit(s) restent à paramétrer : indiquez leur prix.',
               ),
             const SizedBox(height: 20),
             FilledButton(

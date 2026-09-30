@@ -4,6 +4,7 @@ import 'package:biobalance/data/repositories/offline_repository.dart';
 import 'package:biobalance/data/services/api/generated/api_client.dart';
 import 'package:biobalance/data/services/local_database/database.dart';
 import 'package:biobalance/domain/models/models.dart';
+import 'package:biobalance/domain/models/store_nature.dart';
 import 'package:biobalance/ui/features/workspace/workspace_view_model.dart';
 import 'package:drift/native.dart';
 
@@ -261,4 +262,148 @@ void main() {
       controller.dispose();
     },
   );
+
+  testWidgets('a nature choice offers both natures and blocks saving without one', (
+    t,
+  ) async {
+    Map<String, String>? submitted;
+    await t.pumpWidget(
+      MaterialApp(
+        theme: appTheme(),
+        home: EditorScreen(
+          title: 'Ajouter un magasin',
+          fields: const [
+            FieldSpec(
+              'nature',
+              'Nature du magasin',
+              options: storeNatureLabels,
+              choice: true,
+            ),
+            FieldSpec('name', 'Nom du magasin', initial: 'Parahouse'),
+          ],
+          submit: (values) async => submitted = values,
+        ),
+      ),
+    );
+    expect(find.text('Nature du magasin'), findsOneWidget);
+    expect(find.text('Pharmacie'), findsOneWidget);
+    expect(find.text('Parapharmacie'), findsOneWidget);
+    // Nothing is selected yet, so the two natures stay visibly unselected.
+    expect(
+      t
+          .widgetList<ChoiceChip>(find.byType(ChoiceChip))
+          .where((c) => c.selected),
+      isEmpty,
+    );
+
+    await t.tap(find.byKey(const ValueKey('editor.save')));
+    await t.pumpAndSettle();
+    expect(submitted, isNull);
+    expect(find.text('Choisissez une valeur.'), findsOneWidget);
+
+    await t.tap(find.text('Parapharmacie'));
+    await t.pumpAndSettle();
+    await t.tap(find.byKey(const ValueKey('editor.save')));
+    await t.pumpAndSettle();
+    expect(submitted?['nature'], 'parapharmacie');
+    expect(submitted?['name'], 'Parahouse');
+
+    // One nature at a time: choosing the other one replaces the first.
+    await t.pumpWidget(const SizedBox());
+    final editor = EditorScreen(
+      title: 'Modifier le magasin',
+      fields: const [
+        FieldSpec(
+          'nature',
+          'Nature du magasin',
+          initial: 'parapharmacie',
+          options: storeNatureLabels,
+          choice: true,
+        ),
+      ],
+      submit: (values) async => submitted = values,
+    );
+    await t.pumpWidget(MaterialApp(theme: appTheme(), home: editor));
+    await t.pumpAndSettle();
+    expect(
+      t
+          .widgetList<ChoiceChip>(find.byType(ChoiceChip))
+          .where((c) => c.selected)
+          .map((c) => (c.label as Text).data),
+      ['Parapharmacie'],
+    );
+    await t.tap(find.text('Pharmacie'));
+    await t.pumpAndSettle();
+    await t.tap(find.byKey(const ValueKey('editor.save')));
+    await t.pumpAndSettle();
+    expect(submitted?['nature'], 'pharmacie');
+  });
+
+  testWidgets('the nature choice stays usable on a narrow phone at 200% text', (
+    t,
+  ) async {
+    t.view.physicalSize = const Size(360, 640);
+    t.view.devicePixelRatio = 1;
+    addTearDown(t.view.resetPhysicalSize);
+    addTearDown(t.view.resetDevicePixelRatio);
+    Map<String, String>? submitted;
+    await t.pumpWidget(
+      MaterialApp(
+        theme: appTheme(),
+        builder: (context, child) => MediaQuery(
+          data: MediaQuery.of(context)
+              .copyWith(textScaler: const TextScaler.linear(2)),
+          child: child!,
+        ),
+        home: EditorScreen(
+          title: 'Ajouter un magasin',
+          fields: const [
+            FieldSpec(
+              'nature',
+              'Nature du magasin',
+              section: 'Type d’enseigne',
+              hint: 'Un magasin est soit une pharmacie, soit une parapharmacie.',
+              options: storeNatureLabels,
+              choice: true,
+            ),
+            FieldSpec(
+              'name',
+              'Nom du magasin',
+              section: 'Informations',
+              initial: 'Parahouse',
+            ),
+          ],
+          submit: (values) async => submitted = values,
+        ),
+      ),
+    );
+    await t.pumpAndSettle();
+    expect(t.takeException(), isNull);
+    expect(find.text('Type d’enseigne'), findsOneWidget);
+    expect(find.text('Informations'), findsOneWidget);
+    // Both natures stay reachable and labelled, not truncated to a bare letter.
+    for (final label in ['Pharmacie', 'Parapharmacie']) {
+      final choice = find.ancestor(
+        of: find.text(label),
+        matching: find.byType(ChoiceChip),
+      );
+      expect(choice, findsOneWidget, reason: label);
+      expect(
+        t.getSize(choice).height,
+        greaterThanOrEqualTo(48),
+        reason: '$label keeps a 48 dp touch target at 200% text',
+      );
+    }
+    await Scrollable.ensureVisible(
+      t.element(find.text('Parapharmacie')),
+      alignment: .5,
+    );
+    await t.pumpAndSettle();
+    await t.tap(find.text('Parapharmacie'));
+    await t.pumpAndSettle();
+    expect(t.takeException(), isNull);
+    await t.tap(find.byKey(const ValueKey('editor.save')));
+    await t.pumpAndSettle();
+    expect(submitted?['nature'], 'parapharmacie');
+  });
 }

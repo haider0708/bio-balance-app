@@ -235,6 +235,15 @@ const Map<String, Map<String, dynamic>> _schemas = {
       "id": {"type": "string", "format": "uuid"},
       "organizationId": {"type": "string", "format": "uuid"},
       "name": {"type": "string"},
+      "nature": {
+        "anyOf": [
+          {
+            "type": "string",
+            "enum": ["pharmacie", "parapharmacie"],
+          },
+          {"type": "null"},
+        ],
+      },
       "address": {"type": "string"},
       "city": {"type": "string"},
       "phone": {
@@ -279,6 +288,7 @@ const Map<String, Map<String, dynamic>> _schemas = {
       "id",
       "organizationId",
       "name",
+      "nature",
       "address",
       "city",
       "phone",
@@ -298,6 +308,15 @@ const Map<String, Map<String, dynamic>> _schemas = {
       "id": {"type": "string", "format": "uuid"},
       "organizationId": {"type": "string", "format": "uuid"},
       "name": {"type": "string"},
+      "nature": {
+        "anyOf": [
+          {
+            "type": "string",
+            "enum": ["pharmacie", "parapharmacie"],
+          },
+          {"type": "null"},
+        ],
+      },
       "address": {"type": "string"},
       "city": {"type": "string"},
       "phone": {
@@ -350,6 +369,7 @@ const Map<String, Map<String, dynamic>> _schemas = {
       "id",
       "organizationId",
       "name",
+      "nature",
       "address",
       "city",
       "phone",
@@ -2729,11 +2749,15 @@ const Map<String, Map<String, dynamic>> _schemas = {
         "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)\$",
       },
       "name": {"type": "string", "minLength": 2, "maxLength": 120},
+      "nature": {
+        "type": "string",
+        "enum": ["pharmacie", "parapharmacie"],
+      },
       "address": {"type": "string", "minLength": 3, "maxLength": 300},
       "city": {"type": "string", "minLength": 2, "maxLength": 120},
       "phone": {"type": "string", "maxLength": 30},
     },
-    "required": ["organizationId", "name", "address", "city"],
+    "required": ["organizationId", "name", "nature", "address", "city"],
     "additionalProperties": false,
   },
   "WorkspaceUpdateStoreResponse": {"\$ref": "#/components/schemas/Store"},
@@ -2741,6 +2765,10 @@ const Map<String, Map<String, dynamic>> _schemas = {
     "type": "object",
     "properties": {
       "name": {"type": "string", "minLength": 2, "maxLength": 120},
+      "nature": {
+        "type": "string",
+        "enum": ["pharmacie", "parapharmacie"],
+      },
       "address": {"type": "string", "minLength": 3, "maxLength": 300},
       "city": {"type": "string", "minLength": 2, "maxLength": 120},
       "phone": {
@@ -2765,7 +2793,7 @@ const Map<String, Map<String, dynamic>> _schemas = {
         "maximum": 9007199254740991,
       },
     },
-    "required": ["name", "address", "city", "expectedVersion"],
+    "required": ["name", "nature", "address", "city", "expectedVersion"],
     "additionalProperties": false,
   },
   "WorkspaceSnapshotResponse": {"\$ref": "#/components/schemas/Snapshot"},

@@ -41,10 +41,13 @@ export namespace IdentityRequests {
 export namespace WorkspaceRequests {
   const uuid = z.uuid();
   const name = z.string().trim().min(2).max(120);
+  // Mutually exclusive: one store carries exactly one of these two natures.
+  const nature = z.enum(["pharmacie", "parapharmacie"]);
   export const Create = z
     .object({
       organizationId: uuid,
       name,
+      nature,
       address: z.string().trim().min(3).max(300),
       city: name,
       phone: z.string().max(30).optional(),
@@ -53,6 +56,7 @@ export namespace WorkspaceRequests {
   export const UpdateStore = z
     .object({
       name,
+      nature,
       address: z.string().trim().min(3).max(300),
       city: name,
       phone: z.string().trim().max(30).nullable().optional(),

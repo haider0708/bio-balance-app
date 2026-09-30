@@ -67,6 +67,11 @@ export const wireSchemas: Record<string, Schema> = {
     id: uuid,
     organizationId: uuid,
     name: str,
+    // Null only for a store created before the nature was recorded.
+    nature: nullable({
+      type: "string",
+      enum: ["pharmacie", "parapharmacie"],
+    }),
     address: str,
     city: str,
     phone: nullable(str),

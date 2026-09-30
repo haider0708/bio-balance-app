@@ -211,15 +211,19 @@ class ProductDetail extends StatelessWidget {
             ),
             if (config['pointsConfigured'] != true) ...[
               const SizedBox(height: 16),
-              const Notice(
-                'Aucun barème configuré : ce produit attribue actuellement zéro point.',
+              Notice(
+                vm.user.admin
+                    ? 'Aucun barème configuré : ce produit attribue actuellement zéro point.'
+                    : 'Aucun barème de points défini par BioBalance : ce produit attribue actuellement zéro point.',
               ),
             ],
             const SizedBox(height: 20),
             OutlinedButton.icon(
               onPressed: () => configure(context),
               icon: const Icon(AppIcons.tune),
-              label: const Text('Prix, seuil et points'),
+              label: Text(
+                vm.user.admin ? 'Prix, seuil et points' : 'Prix et seuil',
+              ),
             ),
             const SizedBox(height: 20),
             SectionTitle(
@@ -702,16 +706,21 @@ Future<void> configureStoreProduct(
         initial: '${config['threshold']}',
         numeric: true,
       ),
-      FieldSpec(
-        'points',
-        'Points par unité vendue',
-        initial: '${config['pointsPerUnit']}',
-        numeric: true,
-      ),
+      // The points rate is set by BioBalance only.
+      if (vm.user.admin)
+        FieldSpec(
+          'points',
+          'Points par unité vendue',
+          initial: '${config['pointsPerUnit']}',
+          numeric: true,
+        ),
     ],
     submit: (v) async {
-      final points = whole(v['points']!, allowZero: true);
-      if (points == 0 &&
+      final points = vm.user.admin
+          ? whole(v['points']!, allowZero: true)
+          : integer(config['pointsPerUnit']);
+      if (vm.user.admin &&
+          points == 0 &&
           !await confirmAction(
             context,
             'Confirmer : zéro point',
@@ -727,7 +736,7 @@ Future<void> configureStoreProduct(
         'priceMillimes': Money.parse(v['price']!).millimes.toString(),
         'threshold': whole(v['threshold']!, allowZero: true),
         'pointsPerUnit': points,
-        'zeroPointsConfirmed': points == 0,
+        'zeroPointsConfirmed': vm.user.admin && points == 0,
         if (config['version'] != null) 'expectedVersion': config['version'],
       });
     },

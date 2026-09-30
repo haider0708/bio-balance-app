@@ -15,18 +15,13 @@ export class OnboardingProgress {
     carried: string[],
     configurations: {
       productId: string;
-      pointsConfigured: boolean;
-      pointsPerUnit: number;
-      zeroPointsConfirmed: boolean;
+      priceConfigured: boolean;
     }[],
   ) {
-    const incompleteProducts = carried.filter((id) => {
-      const config = configurations.find((c) => c.productId === id);
-      return (
-        !config?.pointsConfigured ||
-        (config.pointsPerUnit === 0 && !config.zeroPointsConfirmed)
-      );
-    });
+    // Points rates belong to BioBalance, so they never block a store's setup.
+    const incompleteProducts = carried.filter(
+      (id) => !configurations.find((c) => c.productId === id)?.priceConfigured,
+    );
     const steps = {
       profile:
         store.name.trim().length >= 2 &&

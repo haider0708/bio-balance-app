@@ -210,6 +210,7 @@ const owner = new PrismaClient({
         body: {
           organizationId: org,
           name: "Contract store",
+          nature: "parapharmacie",
           address: "Rue de test",
           city: "Tunis",
         },
@@ -229,6 +230,7 @@ const owner = new PrismaClient({
     await call("PATCH", `${storeUrl}?${scope}`, {
       body: {
         name: "Updated store",
+        nature: "parapharmacie",
         address: "Rue de test",
         city: "Tunis",
         phone: null,
@@ -297,6 +299,7 @@ const owner = new PrismaClient({
       },
     });
     await call("PATCH", `${storeUrl}/products/${product.id}?${scope}`, {
+      as: adminToken,
       body: { priceMillimes: "12345", threshold: 5, pointsPerUnit: 10 },
     });
     await call("PATCH", `${storeUrl}/team/${staffId}?${scope}`, {
@@ -369,6 +372,7 @@ const owner = new PrismaClient({
     ])
       await call("GET", `${storeUrl}/collections/${resource}?${scope}`);
     const reward = await call("POST", `${storeUrl}/rewards?${scope}`, {
+      as: adminToken,
       body: {
         title: "Contract gift",
         description: "Fixture",
@@ -387,6 +391,7 @@ const owner = new PrismaClient({
         { type: "reward.resolve", claimId: claim, decision: "fulfilled" },
         1,
       ),
+      adminToken,
     );
     const orderId = randomUUID(),
       deliveryId = randomUUID();

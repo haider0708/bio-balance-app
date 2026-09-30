@@ -134,7 +134,7 @@ beforeAll(async () => {
   await owner.product.create({
     data: { id: product, reference: product, name: "Test serum" },
   });
-  await workspace.configureProduct(actor, org, store, product, {
+  await workspace.configureProduct(admin, org, store, product, {
     priceMillimes: "49900",
     threshold: 5,
     pointsPerUnit: 10,
@@ -222,6 +222,7 @@ describe.sequential("group redesign and reporting projections", () => {
       await workspace.createStore(actor, {
         organizationId: groupId,
         name: "Parahouse Tunis",
+        nature: "parapharmacie" as const,
         address: "Test",
         city: "Tunis",
       })
@@ -231,6 +232,57 @@ describe.sequential("group redesign and reporting projections", () => {
         (s) => s.id === newStore && s.permissions.includes("manage"),
       ),
     ).toBe(true);
+    expect(
+      (await workspace.stores(actor)).find((s) => s.id === newStore)?.nature,
+    ).toBe("parapharmacie");
+    // One store carries exactly one nature: neither an unknown value nor both.
+    await expect(
+      workspace.createStore(actor, {
+        organizationId: groupId,
+        name: "Nature absente",
+        address: "Test",
+        city: "Tunis",
+      } as never),
+    ).rejects.toMatchObject({ code: "VALIDATION" });
+    await expect(
+      workspace.createStore(actor, {
+        organizationId: groupId,
+        name: "Nature inventée",
+        nature: "pharmacie et parapharmacie",
+        address: "Test",
+        city: "Tunis",
+      } as never),
+    ).rejects.toMatchObject({ code: "VALIDATION" });
+    // The database constraint holds even for a caller that skips the service.
+    await expect(
+      owner.store.update({
+        where: { id: newStore },
+        data: { nature: "both" as never },
+      }),
+    ).rejects.toThrow();
+    // A responsable corrects the nature of their own store; the audit keeps it.
+    const before = (await workspace.stores(actor)).find(
+      (s) => s.id === newStore,
+    )!;
+    await workspace.updateStore(actor, groupId, newStore, {
+      name: before.name,
+      nature: "pharmacie",
+      address: "Test",
+      city: "Tunis",
+      expectedVersion: before.version,
+    });
+    expect(
+      (await workspace.stores(actor)).find((s) => s.id === newStore)?.nature,
+    ).toBe("pharmacie");
+    await expect(
+      workspace.updateStore(actor, groupId, newStore, {
+        name: before.name,
+        nature: "pharmacie",
+        address: "Test",
+        city: "Tunis",
+        expectedVersion: before.version,
+      }),
+    ).rejects.toMatchObject({ code: "VERSION_CONFLICT" });
     const teamInvite = await identity.invite(actor, {
       email: `team-${randomUUID()}@example.test`,
       kind: "salesperson",
@@ -276,6 +328,7 @@ describe.sequential("group redesign and reporting projections", () => {
     const extra = await workspace.createStore(actor, {
       organizationId: group.id,
       name: "Second store",
+      nature: "pharmacie" as const,
       address: "Test",
       city: "Sousse",
     });
@@ -832,7 +885,7 @@ describe.sequential(
         ],
       });
       expect((await service.submit(seller, sale)).status).toBe("accepted");
-      await workspace.configureProduct(actor, org, store, product, {
+      await workspace.configureProduct(admin, org, store, product, {
         priceMillimes: "49900",
         threshold: 5,
         pointsPerUnit: 99,
@@ -894,7 +947,7 @@ describe.sequential(
       ).toBe(9);
     });
     it("reserves, fulfills a product reward once, and carries a later return into a negative balance", async () => {
-      const reward = await workspace.reward(actor, org, store, {
+      const reward = await workspace.reward(admin, org, store, {
         title: "Test reward",
         description: "",
         cost: 10,
@@ -927,8 +980,8 @@ describe.sequential(
         { type: "reward.resolve", claimId, decision: "fulfilled" },
         1,
       );
-      expect((await service.submit(actor, fulfill)).status).toBe("accepted");
-      await service.submit(actor, fulfill);
+      expect((await service.submit(admin, fulfill)).status).toBe("accepted");
+      await service.submit(admin, fulfill);
       expect(
         (await owner.inventoryLot.findUniqueOrThrow({ where: { id: lotId } }))
           .sellable,
@@ -1339,7 +1392,69 @@ describe.sequential(
           .remainingToDispatch,
       ).toBe(0);
     });
-    it("derives setup from saved choices and requires an explicit zero-point confirmation", async () => {
+    it("leaves rewards and claim decisions to BioBalance", async () => {
+      const values = {
+        title: "Admin only",
+        description: "",
+        cost: 5,
+        quantity: 1,
+        active: true,
+      };
+      await expect(workspace.reward(actor, org, store, values)).rejects.toThrow(
+        "BioBalance",
+      );
+      const reward = await workspace.reward(admin, org, store, values);
+      await owner.pointsAccount.upsert({
+        where: { storeId_userId: { storeId: store, userId: seller.id } },
+        create: {
+          organizationId: org,
+          storeId: store,
+          userId: seller.id,
+          balance: 50n,
+        },
+        update: { balance: 50n },
+      });
+      const claimId = randomUUID(),
+        other = randomUUID();
+      for (const id of [claimId, other])
+        expect(
+          (
+            await service.submit(
+              seller,
+              op({ type: "reward.request", claimId: id, rewardId: reward.id }),
+            )
+          ).status,
+        ).toBe("accepted");
+      for (const decision of ["fulfilled", "rejected"] as const)
+        expect(
+          (
+            await service.submit(
+              actor,
+              op({ type: "reward.resolve", claimId, decision }, 1),
+            )
+          ).code,
+        ).toBe("FORBIDDEN");
+      expect(
+        (
+          await service.submit(
+            seller,
+            op({ type: "reward.resolve", claimId, decision: "cancelled" }, 1),
+          )
+        ).status,
+      ).toBe("accepted");
+      expect(
+        (
+          await service.submit(
+            admin,
+            op(
+              { type: "reward.resolve", claimId: other, decision: "rejected" },
+              1,
+            ),
+          )
+        ).status,
+      ).toBe("accepted");
+    });
+    it("derives setup from saved choices and keeps points rates with BioBalance", async () => {
       const setupStore = randomUUID();
       await owner.store.create({
         data: {
@@ -1372,8 +1487,16 @@ describe.sequential(
         expectedVersion: progress.store.version,
       });
       expect(progress.onboarding.complete).toBe(true);
+      // Points rates belong to BioBalance: a responsable cannot set them.
       await expect(
         workspace.configureProduct(actor, org, setupStore, product, {
+          priceMillimes: "1000",
+          threshold: 5,
+          pointsPerUnit: 7,
+        }),
+      ).rejects.toThrow("BioBalance");
+      await expect(
+        workspace.configureProduct(admin, org, setupStore, product, {
           priceMillimes: "1000",
           threshold: 5,
           pointsPerUnit: 0,
@@ -1382,25 +1505,57 @@ describe.sequential(
       expect(
         await owner.storeProduct.count({ where: { storeId: setupStore } }),
       ).toBe(0);
+      // Price and threshold stay with the responsable and never block setup.
       const config = await workspace.configureProduct(
         actor,
+        org,
+        setupStore,
+        product,
+        { priceMillimes: "1000", threshold: 5, pointsPerUnit: 0 },
+      );
+      expect(config.priceConfigured).toBe(true);
+      expect(config.pointsConfigured).toBe(false);
+      const adminConfig = await workspace.configureProduct(
+        admin,
         org,
         setupStore,
         product,
         {
           priceMillimes: "1000",
           threshold: 5,
-          pointsPerUnit: 0,
-          zeroPointsConfirmed: true,
+          pointsPerUnit: 12,
+          expectedVersion: config.version,
         },
       );
-      expect(config.zeroPointsConfirmed).toBe(true);
+      expect(adminConfig.pointsPerUnit).toBe(12);
+      await expect(
+        workspace.configureProduct(actor, org, setupStore, product, {
+          priceMillimes: "1500",
+          threshold: 5,
+          pointsPerUnit: 3,
+          expectedVersion: adminConfig.version,
+        }),
+      ).rejects.toThrow("BioBalance");
+      const kept = await workspace.configureProduct(
+        actor,
+        org,
+        setupStore,
+        product,
+        {
+          priceMillimes: "1500",
+          threshold: 5,
+          pointsPerUnit: 12,
+          expectedVersion: adminConfig.version,
+        },
+      );
+      expect(kept.pointsPerUnit).toBe(12);
       const complete = await workspace.onboarding(actor, org, setupStore, {
         step: 5,
       });
       expect(complete.store.onboardingStep).toBe(5);
       const changed = await workspace.updateStore(actor, org, setupStore, {
         name: "Nouveau nom",
+        nature: "pharmacie" as const,
         address: "Adresse modifiée",
         city: "Sfax",
         phone: "12345678",
@@ -1410,6 +1565,7 @@ describe.sequential(
       await expect(
         workspace.updateStore(actor, org, setupStore, {
           name: "Obsolète",
+          nature: "pharmacie" as const,
           address: "Test address",
           city: "Sfax",
           expectedVersion: complete.store.version,
@@ -1417,7 +1573,7 @@ describe.sequential(
       ).rejects.toThrow("modifié");
       await owner.storeProduct.update({
         where: { id: config.id },
-        data: { zeroPointsConfirmed: false },
+        data: { priceConfigured: false },
       });
       expect(
         (await workspace.snapshot(actor, org, setupStore)).onboarding?.complete,

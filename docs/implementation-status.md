@@ -1,4 +1,8 @@
-# État de l’implémentation — 25 septembre 2026
+# État de l’implémentation — 29 septembre 2026
+
+[Nature du magasin — 1.1.11+15](store-nature-2026-09-29.md) : un magasin est une pharmacie ou une parapharmacie, jamais les deux. Choix obligatoire à la création par le responsable, correction par le responsable et l’administrateur, affichage dans les listes et la fiche. Enum requis, contrôle du service et contrainte PostgreSQL ; les magasins antérieurs gardent une nature inconnue, sans fait inventé. Migration additive `202609250001_store_nature`. 133 tests backend, 299 tests Flutter, 66 contrats HTTP, deux parcours hors ligne et APK debug réussis. **Aucune installation sur le Samsung : téléphone non connecté, dernière version installée confirmée 1.1.8+12.**
+
+[Revue logique — 1.1.10+14](logic-audit-2026-09-25.md) : deux courses de synchronisation reproduites et corrigées dans le dépôt local partagé. 133 tests backend, 291 tests Flutter, analyse et reprise HTTP/SQLite/PostgreSQL réussis. Aucun changement backend ni migration, données conservées. Vérification des signatures/CI et installation consignées dans le registre de revue.
 
 [Commandes, réception et équipe — 1.1.9+13](orders-reception-2026-09-24.md) : backend `3f180ba` déployé, sauvegarde/restauration vérifiées, quatre APK/AAB signés. 133 tests backend, 287 tests Flutter, contrats HTTP, reprise hors ligne et parcours natif local réussis. Reprise Android après arrêt forcé, caméra refusée et vidéo hors ligne réussies localement. Les quatre jobs CI `5922430` ont réussi après correction d’un sélecteur de test, sans modification du code applicatif : backend, Android, parcours/reprise Android et iOS non signé. Données conservées. **Installation Samsung en attente : téléphone non connecté ; dernière version installée confirmée 1.1.8+12.**
 

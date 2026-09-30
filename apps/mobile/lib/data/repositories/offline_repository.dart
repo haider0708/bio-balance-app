@@ -16,7 +16,7 @@ class OfflineRepository implements WorkspaceRepository {
   final AppDatabase db;
   final ApiClient api;
   final _synchronizations = <String, Future<void>>{};
-  final _refreshes = <String, Future<void>>{};
+  final _storeWork = <String, Future<void>>{};
   final DateTime Function() now;
   final RetryPolicy retryPolicy;
   OfflineRepository(
@@ -86,11 +86,16 @@ class OfflineRepository implements WorkspaceRepository {
 
   @override
   Future<StoreData?> load(UserAccount user, Store store) async {
-    final entries =
-        await (db.select(db.cacheEntries)..where(
-              (t) => t.accountId.equals(user.id) & t.storeId.equals(store.id),
-            ))
-            .get();
+    // Acknowledgment installs server data and removes provisional effects in
+    // one transaction. Read both from that same state, then decode off the lock.
+    final (entries, pending) = await db.transaction(() async {
+      final entries =
+          await (db.select(db.cacheEntries)..where(
+                (t) => t.accountId.equals(user.id) & t.storeId.equals(store.id),
+              ))
+              .get();
+      return (entries, await operations(user.id, store.id));
+    });
     if (entries.isEmpty) return null;
     final raw = <String, dynamic>{};
     for (final entry in entries) {
@@ -101,7 +106,6 @@ class OfflineRepository implements WorkspaceRepository {
         (raw[entry.resource] ??= <dynamic>[]).add(value);
       }
     }
-    final pending = await operations(user.id, store.id);
     final sales = objects(raw['sales']);
     final lots = objects(raw['lots']);
     final deliveries = objects(raw['deliveries']);
@@ -220,15 +224,23 @@ class OfflineRepository implements WorkspaceRepository {
       });
 
   @override
-  Future<void> refresh(UserAccount user, Store store) {
+  Future<void> refresh(UserAccount user, Store store) =>
+      _serializeStoreWork(user, store, () => _refreshWithRecovery(user, store));
+
+  Future<void> _serializeStoreWork(
+    UserAccount user,
+    Store store,
+    Future<void> Function() action,
+  ) {
     final key = '${api.generation}:${user.id}:${store.id}';
     final binding = api.binding;
-    final previous = _refreshes[key];
+    final previous = _storeWork[key];
     late final Future<void> work;
     work =
         (() async {
-          // Serialize snapshot installation, including callers outside the sync
-          // loop. An older response must not overwrite a newer cached snapshot.
+          // Serialize snapshot reads and uploads together. Otherwise a snapshot
+          // can include a newly committed operation absent from its requested
+          // acknowledgments, leaving that operation's provisional effect twice.
           if (previous != null) {
             try {
               await previous;
@@ -237,11 +249,11 @@ class OfflineRepository implements WorkspaceRepository {
             }
           }
           api.requireBinding(binding);
-          await _refreshWithRecovery(user, store);
+          await action();
         })().whenComplete(() {
-          if (identical(_refreshes[key], work)) _refreshes.remove(key);
+          if (identical(_storeWork[key], work)) _storeWork.remove(key);
         });
-    _refreshes[key] = work;
+    _storeWork[key] = work;
     return work;
   }
 
@@ -689,11 +701,12 @@ class OfflineRepository implements WorkspaceRepository {
     final existing = _synchronizations[key];
     if (existing != null) return existing;
     late final Future<void> work;
-    work = _synchronize(user, store).whenComplete(() {
-      if (identical(_synchronizations[key], work)) {
-        _synchronizations.remove(key);
-      }
-    });
+    work = _serializeStoreWork(user, store, () => _synchronize(user, store))
+        .whenComplete(() {
+          if (identical(_synchronizations[key], work)) {
+            _synchronizations.remove(key);
+          }
+        });
     _synchronizations[key] = work;
     return work;
   }
@@ -883,7 +896,8 @@ class OfflineRepository implements WorkspaceRepository {
       }
     }
     api.requireBinding(binding);
-    await refresh(user, store);
+    // Already inside this store's serialized work; do not enqueue behind self.
+    await _refreshWithRecovery(user, store);
   }
 
   Future<void> _update(OutboxRow operation, OutboxRowsCompanion values) async {

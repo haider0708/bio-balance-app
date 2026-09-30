@@ -59,6 +59,7 @@ abstract final class AppIcons {
   static const menu = LucideIcons.menu;
   static const menuBookOutlined = LucideIcons.bookOpen;
   static const moreHoriz = LucideIcons.ellipsis;
+  static const natureOutlined = LucideIcons.tag;
   static const noPhotographyOutlined = LucideIcons.cameraOff;
   static const notificationsActiveOutlined = LucideIcons.bellRing;
   static const notificationsNone = LucideIcons.bell;

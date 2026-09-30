@@ -84,6 +84,7 @@ void main() {
     () {
       final source = <String, dynamic>{
         'name': 'Magasin',
+        'nature': 'parapharmacie',
         'address': 'Rue de Tunis',
         'city': 'Tunis',
         'expectedVersion': 1,

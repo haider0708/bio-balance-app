@@ -192,6 +192,7 @@ describe("audit regressions against PostgreSQL", () => {
         workspace.createStore(actor, {
           organizationId: org.id,
           name: "Denied",
+          nature: "parapharmacie" as const,
           address: "Test address",
           city: "Tunis",
         }),

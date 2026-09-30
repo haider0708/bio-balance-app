@@ -19,7 +19,7 @@ const workspaceTips = [
   ),
   (
     'Remettre une récompense',
-    'Une demande réserve les points du vendeur. Le responsable confirme après avoir remis la récompense ; les points sont alors déduits. Chaque magasin conserve son propre barème.',
+    'Une demande réserve les points du vendeur. BioBalance confirme la remise de la récompense ; les points sont alors déduits. Chaque magasin conserve son propre barème.',
   ),
 ];
 

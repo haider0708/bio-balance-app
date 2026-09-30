@@ -3,6 +3,7 @@ import '../team/invitations_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../../domain/models/store_nature.dart';
 import '../../../domain/models/workspace_scope.dart';
 import '../../core/design.dart';
 import '../../core/forms.dart';
@@ -51,7 +52,8 @@ class GroupOverviewLinks extends StatelessWidget {
           CompactRow(
             title: store.name,
             subtitle:
-                '${store.city}${store.onboardingStep < 5 ? ' · Configuration à terminer' : ''}',
+                '${storeNatureLabel(store.nature)} · ${store.city}'
+                '${store.onboardingStep < 5 ? ' · Configuration à terminer' : ''}',
             icon: AppIcons.storefrontOutlined,
             onTap: () => run(context, () => scope.selectStore(store)),
           ),
@@ -183,8 +185,8 @@ class _GroupsPageState extends State<GroupsPage> {
           subtitle: group != null
               ? '${group.storeCount} magasin(s)'
               : widget.allStores
-              ? '${store!.organizationName} · ${store.city}'
-              : store!.city,
+              ? '${store!.organizationName} · ${storeNatureLabel(store.nature)} · ${store.city}'
+              : '${storeNatureLabel(store!.nature)} · ${store.city}',
           leading: image == null
               ? Icon(
                   widget.stores
@@ -353,15 +355,29 @@ Future<void> createScopedStore(BuildContext context, ScopeViewModel vm) async {
     description:
         'Groupe : ${group.name}\nCe magasin aura son propre stock, ses ventes et ses récompenses.',
     draftKey: 'store-create:${group.id}',
-    fields: const [
-      FieldSpec('name', 'Nom du magasin'),
+    fields: [
+      FieldSpec(
+        'nature',
+        'Nature du magasin',
+        section: 'Type d’enseigne',
+        hint: 'Un magasin est soit une pharmacie, soit une parapharmacie.',
+        options: storeNatureLabels,
+        choice: true,
+      ),
+      FieldSpec('name', 'Nom du magasin', section: 'Informations'),
       FieldSpec('address', 'Adresse'),
       FieldSpec('city', 'Ville'),
       FieldSpec('phone', 'Téléphone (facultatif)', required: false),
     ],
     submit: (v) async {
+      if (!isStoreNature(v['nature'])) {
+        throw const FormatException(
+          'Choisissez la nature du magasin : pharmacie ou parapharmacie.',
+        );
+      }
       id = (await vm.workspace.stores.create({
         ...v,
+        'nature': v['nature'],
         'organizationId': group.id,
       })).id;
     },

@@ -296,6 +296,7 @@ final class StoreDto {
   final String id;
   final String organizationId;
   final String name;
+  final String? nature;
   final String address;
   final String city;
   final String? phone;
@@ -315,6 +316,7 @@ final class StoreDto {
     required this.id,
     required this.organizationId,
     required this.name,
+    required this.nature,
     required this.address,
     required this.city,
     required this.phone,
@@ -336,6 +338,7 @@ final class StoreDto {
       id: json["id"] as String,
       organizationId: json["organizationId"] as String,
       name: json["name"] as String,
+      nature: json["nature"] == null ? null : json["nature"] as String,
       address: json["address"] as String,
       city: json["city"] as String,
       phone: json["phone"] == null ? null : json["phone"] as String,
@@ -362,6 +365,7 @@ final class StoreDto {
     "id": id,
     "organizationId": organizationId,
     "name": name,
+    "nature": nature,
     "address": address,
     "city": city,
     "phone": phone,
@@ -388,6 +392,7 @@ final class StoreAccessDto {
   final String id;
   final String organizationId;
   final String name;
+  final String? nature;
   final String address;
   final String city;
   final String? phone;
@@ -409,6 +414,7 @@ final class StoreAccessDto {
     required this.id,
     required this.organizationId,
     required this.name,
+    required this.nature,
     required this.address,
     required this.city,
     required this.phone,
@@ -433,6 +439,7 @@ final class StoreAccessDto {
       id: json["id"] as String,
       organizationId: json["organizationId"] as String,
       name: json["name"] as String,
+      nature: json["nature"] == null ? null : json["nature"] as String,
       address: json["address"] as String,
       city: json["city"] as String,
       phone: json["phone"] == null ? null : json["phone"] as String,
@@ -465,6 +472,7 @@ final class StoreAccessDto {
     "id": id,
     "organizationId": organizationId,
     "name": name,
+    "nature": nature,
     "address": address,
     "city": city,
     "phone": phone,
@@ -4862,6 +4870,7 @@ final class WorkspaceCreateRequestDto {
   Set<String> get presentFields => _presentFields;
   final String organizationId;
   final String name;
+  final String nature;
   final String address;
   final String city;
   final String? phone;
@@ -4869,6 +4878,7 @@ final class WorkspaceCreateRequestDto {
     Set<String> presentFields = const {},
     required this.organizationId,
     required this.name,
+    required this.nature,
     required this.address,
     required this.city,
     this.phone,
@@ -4878,6 +4888,7 @@ final class WorkspaceCreateRequestDto {
       presentFields: json.keys.toSet(),
       organizationId: json["organizationId"] as String,
       name: json["name"] as String,
+      nature: json["nature"] as String,
       address: json["address"] as String,
       city: json["city"] as String,
       phone: json["phone"] == null ? null : json["phone"] as String,
@@ -4886,6 +4897,7 @@ final class WorkspaceCreateRequestDto {
   Map<String, dynamic> toJson() => {
     "organizationId": organizationId,
     "name": name,
+    "nature": nature,
     "address": address,
     "city": city,
     if (phone != null || _presentFields.contains("phone")) "phone": phone,
@@ -4898,6 +4910,7 @@ final class WorkspaceUpdateStoreRequestDto {
   final Set<String> _presentFields;
   Set<String> get presentFields => _presentFields;
   final String name;
+  final String nature;
   final String address;
   final String city;
   final String? phone;
@@ -4906,6 +4919,7 @@ final class WorkspaceUpdateStoreRequestDto {
   WorkspaceUpdateStoreRequestDto({
     Set<String> presentFields = const {},
     required this.name,
+    required this.nature,
     required this.address,
     required this.city,
     this.phone,
@@ -4916,6 +4930,7 @@ final class WorkspaceUpdateStoreRequestDto {
     return WorkspaceUpdateStoreRequestDto(
       presentFields: json.keys.toSet(),
       name: json["name"] as String,
+      nature: json["nature"] as String,
       address: json["address"] as String,
       city: json["city"] as String,
       phone: json["phone"] == null ? null : json["phone"] as String,
@@ -4925,6 +4940,7 @@ final class WorkspaceUpdateStoreRequestDto {
   }
   Map<String, dynamic> toJson() => {
     "name": name,
+    "nature": nature,
     "address": address,
     "city": city,
     if (phone != null || _presentFields.contains("phone")) "phone": phone,

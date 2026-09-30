@@ -1,5 +1,15 @@
 # BioBalance — Spécification fonctionnelle approuvée
 
+## Ajustements du 30 septembre 2026
+
+Les points et les récompenses sont **gérés uniquement par l’administrateur BioBalance** : création et modification des récompenses, points par unité de chaque produit et traitement des demandes (remise confirmée ou refusée). Le responsable et le vendeur ne peuvent plus ni créer de récompense, ni fixer un barème, ni confirmer ou refuser une remise. Le vendeur continue à demander une récompense, à consulter ses points et le classement, et à annuler **sa propre** demande. Le responsable continue à fixer prix et seuil du produit ; son écran n’affiche plus les points par unité, et le serveur refuse toute modification du barème par un autre compte que l’administrateur. Le guide de démarrage d’un magasin ne dépend plus du barème de points. Les récompenses, demandes et points existants sont conservés ; aucune migration.
+
+## Ajustements du 29 septembre 2026
+
+Un magasin est **soit une pharmacie, soit une parapharmacie** ; il ne peut pas être les deux. La nature est choisie par le responsable au moment de la création, avant le nom et l'adresse, et reste obligatoire. Le responsable du groupe et l'administrateur BioBalance la corrigent ensuite dans la fiche du magasin. Elle s'affiche dans la liste des magasins, la liste de tous les magasins, le résumé du groupe et la fiche. La nature n'a aucune autre incidence : catalogue, ventes, commandes, points et récompenses sont identiques pour les deux.
+
+Un magasin créé avant cet attribut **garde une nature inconnue** : aucune nature n'est supposée, et la fiche demande la correction. Le reste de la fiche n'est pas bloqué par cette absence.
+
 ## Ajustements du 24 septembre 2026
 
 Un vendeur possède **un seul magasin actif**, y compris entre groupes. Le responsable reste autorisé sur tout son groupe. Une réaffectation explicite conserve les anciennes appartenances inactives et l’historique. Les anciens brouillons contenant plusieurs magasins demandent une sélection unique.

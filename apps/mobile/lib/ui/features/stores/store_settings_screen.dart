@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../data/repositories/store_settings_repository.dart';
 import '../../../domain/models/models.dart';
+import '../../../domain/models/store_nature.dart';
 import '../../core/design.dart';
 import '../../core/forms.dart';
 import '../media/image_input.dart';
@@ -26,7 +27,7 @@ class StoreSettingsPage extends StatelessWidget {
         children: [
           SectionTitle(
             store.name,
-            subtitle: 'Coordonnées et image',
+            subtitle: 'Nature, coordonnées et image',
             action: FilledButton.icon(
               onPressed: saved['status'] == 'archived'
                   ? null
@@ -56,6 +57,18 @@ class StoreSettingsPage extends StatelessWidget {
             ),
           if (saved['imageId'] != null)
             ProtectedImage(vm: vm, id: saved['imageId'], height: 160),
+          if (!store.hasNature)
+            const Notice(
+              'La nature de ce magasin n’est pas encore renseignée. '
+              'Modifiez le magasin pour indiquer s’il s’agit d’une pharmacie '
+              'ou d’une parapharmacie.',
+            ),
+          CompactRow(
+            title: 'Nature du magasin',
+            subtitle: storeNatureHelpText(store.nature),
+            value: storeNatureLabel(store.nature),
+            icon: AppIcons.natureOutlined,
+          ),
           CompactRow(
             title: 'Adresse',
             subtitle: '${saved['address']}\n${saved['city']}',
@@ -77,6 +90,14 @@ class StoreSettingsPage extends StatelessWidget {
       context,
       title: 'Modifier le magasin',
       fields: [
+        FieldSpec(
+          'nature',
+          'Nature du magasin',
+          initial: storeNatureSelection(store.nature),
+          hint: 'Une pharmacie ou une parapharmacie. Les deux ne sont pas cumulables.',
+          options: storeNatureLabels,
+          choice: true,
+        ),
         FieldSpec('name', 'Nom du magasin', initial: saved['name']),
         FieldSpec('address', 'Adresse', initial: saved['address']),
         FieldSpec('city', 'Ville', initial: saved['city']),
@@ -96,8 +117,14 @@ class StoreSettingsPage extends StatelessWidget {
       ],
       submit: (values) async {
         vm.requireAccess(store, 'manage');
+        if (!isStoreNature(values['nature'])) {
+          throw const FormatException(
+            'Choisissez la nature du magasin : pharmacie ou parapharmacie.',
+          );
+        }
         await StoreSettingsRepository(vm.api).update(store, {
           ...values,
+          'nature': values['nature'],
           'imageId': values['imageId']!.isEmpty ? null : values['imageId'],
           'expectedVersion': saved['version'],
         });

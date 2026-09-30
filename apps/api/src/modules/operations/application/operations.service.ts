@@ -726,9 +726,17 @@ export class OperationsService {
     if (cmd.type === "reward.resolve") {
       const claim = await ledger.claim(cmd.claimId);
       this.version(claim.version, op.expectedVersion);
+      // A member may withdraw their own request; handing over or refusing a
+      // reward is BioBalance's decision alone.
       if (cmd.decision === "cancelled" && claim.userId === actor.id)
         this.allow(ledger, "sell");
-      else this.allow(ledger, "manage");
+      else
+        requireRule(
+          actor.platformAdmin,
+          "FORBIDDEN",
+          "Les récompenses sont traitées par BioBalance.",
+          403,
+        );
       requireRule(
         claim.status === "requested",
         "CLAIM_ALREADY_RESOLVED",
