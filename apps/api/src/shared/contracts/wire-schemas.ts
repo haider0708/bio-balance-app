@@ -496,6 +496,35 @@ wireSchemas.StoreAccess = obj(
   },
   [...wireSchemas.Store!.required, "permissions"],
 );
+const priceLevel = {
+  type: "string",
+  enum: ["wholesale", "store_supply", "retail"],
+};
+wireSchemas.PriceEntry = obj({
+  id: uuid,
+  level: priceLevel,
+  productId: uuid,
+  organizationId: nullable(uuid),
+  storeId: nullable(uuid),
+  priceMillimes: decimal,
+  reason: nullable(str),
+  // Only BioBalance sees who changed a price.
+  author: nullable(str),
+  seeded: bool,
+  createdAt: timestamp,
+});
+wireSchemas.PriceHistory = obj({ items: arr(ref("PriceEntry")) });
+// A level the caller may not see is always null, never a different price.
+wireSchemas.CurrentPrices = obj({
+  items: arr(
+    obj({
+      productId: uuid,
+      retailMillimes: nullable(decimal),
+      supplyMillimes: nullable(decimal),
+      wholesaleMillimes: nullable(decimal),
+    }),
+  ),
+});
 wireSchemas.Wholesaler = obj({
   id: uuid,
   storeId: uuid,

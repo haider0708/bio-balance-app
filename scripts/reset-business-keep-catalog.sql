@@ -21,11 +21,11 @@ BEGIN
   END IF;
   SELECT array_agg(tablename::text ORDER BY tablename) INTO actual
     FROM pg_tables WHERE schemaname='public';
-  IF actual IS DISTINCT FROM (SELECT array_agg(x ORDER BY x) FROM unnest(ARRAY['AccessToken', 'Alert', 'Announcement', 'AuditEntry', 'Change', 'ContentSubmission', 'Delivery', 'DeliveryReceipt', 'DeviceToken', 'GroupCreationGrant', 'InventoryLot', 'Job', 'LoginAttempt', 'MediaAsset', 'Membership', 'Notification', 'Organization', 'OrganizationMembership', 'PointsAccount', 'PointsEntry', 'ProcessedOperation', 'Product', 'PushDelivery', 'ReplenishmentOrder', 'ReportExport', 'ReportExportRow', 'RequestBudget', 'Reward', 'RewardClaim', 'Sale', 'SaleRevision', 'SalesContribution', 'SalesDay', 'SalesProductDay', 'Session', 'StockMovement', 'Store', 'StoreCursor', 'StoreProduct', 'SyncSnapshotPage', 'TrainingContent', 'UploadChunk', 'User', '_prisma_migrations']) x) THEN
+  IF actual IS DISTINCT FROM (SELECT array_agg(x ORDER BY x) FROM unnest(ARRAY['AccessToken', 'Alert', 'Announcement', 'AuditEntry', 'Change', 'ContentSubmission', 'Delivery', 'DeliveryIssue', 'DeliveryReceipt', 'DeviceToken', 'GroupCreationGrant', 'InventoryLot', 'Job', 'LoginAttempt', 'MediaAsset', 'Membership', 'Notification', 'Organization', 'OrganizationMembership', 'PointsAccount', 'PointsEntry', 'PointsRateVersion', 'PriceVersion', 'ProcessedOperation', 'Product', 'PushDelivery', 'ReplenishmentOrder', 'ReportExport', 'ReportExportRow', 'RequestBudget', 'Reward', 'RewardClaim', 'Sale', 'SaleRevision', 'SalesContribution', 'SalesDay', 'SalesProductDay', 'Session', 'StockMovement', 'Store', 'StoreCursor', 'StoreProduct', 'SyncSnapshotPage', 'TrainingContent', 'UploadChunk', 'User', '_prisma_migrations']) x) THEN
     RAISE EXCEPTION 'Database schema changed; review the reset table inventory';
   END IF;
 END $$;
-LOCK TABLE "AccessToken", "Alert", "Announcement", "AuditEntry", "Change", "ContentSubmission", "Delivery", "DeliveryReceipt", "DeviceToken", "GroupCreationGrant", "InventoryLot", "Job", "LoginAttempt", "MediaAsset", "Membership", "Notification", "Organization", "OrganizationMembership", "PointsAccount", "PointsEntry", "ProcessedOperation", "Product", "PushDelivery", "ReplenishmentOrder", "ReportExport", "ReportExportRow", "RequestBudget", "Reward", "RewardClaim", "Sale", "SaleRevision", "SalesContribution", "SalesDay", "SalesProductDay", "Session", "StockMovement", "Store", "StoreCursor", "StoreProduct", "SyncSnapshotPage", "TrainingContent", "UploadChunk", "User", "_prisma_migrations" IN ACCESS EXCLUSIVE MODE;
+LOCK TABLE "AccessToken", "Alert", "Announcement", "AuditEntry", "Change", "ContentSubmission", "Delivery", "DeliveryIssue", "DeliveryReceipt", "DeviceToken", "GroupCreationGrant", "InventoryLot", "Job", "LoginAttempt", "MediaAsset", "Membership", "Notification", "Organization", "OrganizationMembership", "PointsAccount", "PointsEntry", "PointsRateVersion", "PriceVersion", "ProcessedOperation", "Product", "PushDelivery", "ReplenishmentOrder", "ReportExport", "ReportExportRow", "RequestBudget", "Reward", "RewardClaim", "Sale", "SaleRevision", "SalesContribution", "SalesDay", "SalesProductDay", "Session", "StockMovement", "Store", "StoreCursor", "StoreProduct", "SyncSnapshotPage", "TrainingContent", "UploadChunk", "User", "_prisma_migrations" IN ACCESS EXCLUSIVE MODE;
 CREATE TEMP TABLE reset_catalog ON COMMIT DROP AS SELECT * FROM "Product";
 CREATE TEMP TABLE reset_media ON COMMIT DROP AS SELECT * FROM "MediaAsset"
   WHERE id IN (SELECT "imageId" FROM "Product" WHERE "imageId" IS NOT NULL);
@@ -53,6 +53,7 @@ TRUNCATE TABLE
   "Change",
   "ContentSubmission",
   "Delivery",
+  "DeliveryIssue",
   "DeliveryReceipt",
   "DeviceToken",
   "GroupCreationGrant",
@@ -65,6 +66,8 @@ TRUNCATE TABLE
   "OrganizationMembership",
   "PointsAccount",
   "PointsEntry",
+  "PointsRateVersion",
+  "PriceVersion",
   "ProcessedOperation",
   "PushDelivery",
   "ReplenishmentOrder",

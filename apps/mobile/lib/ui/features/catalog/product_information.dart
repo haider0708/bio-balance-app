@@ -4,6 +4,7 @@ import '../../../domain/models/models.dart';
 import '../../../domain/models/money.dart';
 import '../../core/design.dart';
 import '../media/image_input.dart';
+import '../pricing/pricing_screens.dart';
 import '../workspace/workspace_view_model.dart';
 
 class ProductInformation extends StatelessWidget {
@@ -37,17 +38,46 @@ class ProductInformation extends StatelessWidget {
           subtitle: product['barcode'] ?? 'Code-barres à compléter',
           icon: AppIcons.scan,
         ),
-        CompactRow(
-          title: 'Prix de référence',
-          value: price == null
-              ? 'À compléter'
-              : Money(integer(price)).formatted,
-          subtitle: product['priceStatus'] == 'sample'
-              ? 'Tarif de démonstration'
-              : product['priceStatus'] == 'verified'
-              ? 'Prix vérifié · chaque magasin fixe son prix de vente'
-              : 'Prix non vérifié',
-        ),
+        // The catalogue's reference price is BioBalance's own.
+        if (vm.user.admin) ...[
+          CompactRow(
+            title: 'Prix de référence',
+            value: price == null
+                ? 'À compléter'
+                : Money(integer(price)).formatted,
+            subtitle: product['priceStatus'] == 'sample'
+                ? 'Tarif de démonstration'
+                : product['priceStatus'] == 'verified'
+                ? 'Prix vérifié · chaque magasin fixe son prix de vente'
+                : 'Prix non vérifié',
+          ),
+          CompactRow(
+            title: 'Prix de gros et d’approvisionnement',
+            subtitle: 'Définir les prix et consulter l’historique',
+            icon: AppIcons.tuneOutlined,
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => ProductPricesScreen(vm: vm, product: product),
+              ),
+            ),
+          ),
+        ] else if (vm.state.store?.canManage == true)
+          CompactRow(
+            title: 'Historique des prix',
+            subtitle: 'Vos prix d’achat et de vente, avec leurs dates',
+            icon: AppIcons.tuneOutlined,
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => PriceHistoryScreen(
+                  vm: vm,
+                  product: product,
+                  store: vm.state.store,
+                ),
+              ),
+            ),
+          ),
         const SizedBox(height: 20),
         const SectionTitle('À propos du produit'),
         Text(

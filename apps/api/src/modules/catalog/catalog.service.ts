@@ -3,6 +3,20 @@ import { Injectable } from "@nestjs/common";
 import { Database, json } from "../../shared/infrastructure/database";
 import { Actor } from "../operations/domain/contracts";
 import { requireRule } from "../../shared/domain/errors";
+/** The catalogue's reference price is BioBalance's own: other roles see the
+ * product, never this figure. Wholesale, supply and retail prices live in the
+ * price book, under their own visibility rules. */
+export function publicProducts<
+  T extends { referencePriceMillimes: bigint | null; priceStatus: string },
+>(products: T[], admin: boolean): T[] {
+  return admin
+    ? products
+    : products.map((p) => ({
+        ...p,
+        referencePriceMillimes: null,
+        priceStatus: "missing",
+      }));
+}
 export interface ProductInput {
   id?: string;
   reference: string;
@@ -43,7 +57,7 @@ export class CatalogService {
         take: 101,
       });
       return {
-        items: items.slice(0, 100),
+        items: publicProducts(items.slice(0, 100), current.platformAdmin),
         nextCursor: items.length > 100 ? items[99]!.id : null,
       };
     });

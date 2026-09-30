@@ -558,6 +558,20 @@ const owner = new PrismaClient({
     await call("GET", `/v1/groups/${org}/lifecycle`,{as:adminToken});
     await call("POST", `/v1/groups/${org}/lifecycle`,{as:adminToken,body:{operationId:randomUUID(),expectedVersion:2,status:'suspended',reason:'Contract lifecycle check'}});
     await call("POST", `/v1/groups/${org}/lifecycle`,{as:adminToken,body:{operationId:randomUUID(),expectedVersion:3,status:'active',reason:'Contract lifecycle restored'}});
+    await call("POST", "/v1/prices", {
+      as: adminToken,
+      body: {
+        operationId: randomUUID(),
+        level: "store_supply",
+        productId: product.id,
+        priceMillimes: "40000",
+        reason: "Contract supply price",
+      },
+    });
+    await call("GET", `/v1/prices/current?organizationId=${org}&storeId=${store}`);
+    await call("GET", `/v1/prices/history?productId=${product.id}`, {
+      as: adminToken,
+    });
     const wholesaler = await call("POST", "/v1/wholesalers", {
       as: adminToken,
       body: {

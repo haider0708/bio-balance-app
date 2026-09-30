@@ -570,3 +570,32 @@ model DeliveryIssue {
   version Int @default(1)
   @@index([storeId,status])
 }
+
+// Append-only price book: wholesale (A), store_supply (B) and retail (C) prices.
+model PriceVersion {
+  id String @id @db.Uuid
+  level String
+  productId String @db.Uuid
+  organizationId String? @db.Uuid
+  storeId String? @db.Uuid
+  priceMillimes BigInt
+  reason String?
+  operationId String? @unique @db.Uuid
+  createdBy String? @db.Uuid
+  seeded Boolean @default(false)
+  createdAt DateTime @default(now())
+  @@index([level,productId,storeId,organizationId,createdAt(sort: Desc)], map: "PriceVersion_lookup")
+}
+
+model PointsRateVersion {
+  id String @id @db.Uuid
+  organizationId String @db.Uuid
+  storeId String @db.Uuid
+  productId String @db.Uuid
+  pointsPerUnit Int
+  reason String?
+  createdBy String? @db.Uuid
+  seeded Boolean @default(false)
+  createdAt DateTime @default(now())
+  @@index([storeId,productId,createdAt(sort: Desc)], map: "PointsRateVersion_lookup")
+}

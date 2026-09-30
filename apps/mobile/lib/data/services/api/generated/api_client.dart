@@ -27,6 +27,55 @@ class ApiClient extends SessionTransport {
   Future<Map<String, dynamic>> push(
     List<Map<String, dynamic>> operations,
   ) async => (await pushRaw(operations)).toJson();
+  Future<PricingCurrentResponseDto> pricingCurrent({
+    required String organizationId,
+    required String storeId,
+  }) async {
+    final value = await request(
+      'GET',
+      '/v1/prices/current',
+      query: {"organizationId": organizationId, "storeId": storeId},
+    );
+    return PricingCurrentResponseDto.fromJson(
+      Map<String, dynamic>.from(value as Map),
+    );
+  }
+
+  Future<PricingHistoryResponseDto> pricingHistory({
+    required String productId,
+    String? organizationId,
+    String? storeId,
+    String? level,
+  }) async {
+    final value = await request(
+      'GET',
+      '/v1/prices/history',
+      query: {
+        "productId": productId,
+        "organizationId": ?organizationId,
+        "storeId": ?storeId,
+        "level": ?level,
+      },
+    );
+    return PricingHistoryResponseDto.fromJson(
+      Map<String, dynamic>.from(value as Map),
+    );
+  }
+
+  Future<PricingSetResponseDto> pricingSet({
+    required PricingSetRequestDto body,
+  }) async {
+    final value = await request(
+      'POST',
+      '/v1/prices',
+      body: body.toJson(),
+      query: {},
+    );
+    return PricingSetResponseDto.fromJson(
+      Map<String, dynamic>.from(value as Map),
+    );
+  }
+
   Future<List<WholesalerDto>> wholesaleList() async {
     final value = await request('GET', '/v1/wholesalers', query: {});
     return List.unmodifiable(

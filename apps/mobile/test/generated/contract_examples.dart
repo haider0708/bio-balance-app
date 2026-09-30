@@ -5,6 +5,24 @@ Object? decodeResponse(
   String operationId,
   Object? value,
 ) => switch (operationId) {
+  "PricingCurrent" => (() {
+    final decoded = PricingCurrentResponseDto.fromJson(
+      Map<String, dynamic>.from(value as Map),
+    );
+    return decoded.toJson();
+  })(),
+  "PricingHistory" => (() {
+    final decoded = PricingHistoryResponseDto.fromJson(
+      Map<String, dynamic>.from(value as Map),
+    );
+    return decoded.toJson();
+  })(),
+  "PricingSet" => (() {
+    final decoded = PricingSetResponseDto.fromJson(
+      Map<String, dynamic>.from(value as Map),
+    );
+    return decoded.toJson();
+  })(),
   "WholesaleList" => (() {
     final decoded = List.unmodifiable(
       (value as List).map(

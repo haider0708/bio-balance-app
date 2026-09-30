@@ -71,6 +71,7 @@ export namespace WorkspaceRequests {
       pointsPerUnit: z.number().int().min(0).max(100_000),
       zeroPointsConfirmed: z.boolean().optional(),
       expectedVersion: z.number().int().positive().optional(),
+      reason: z.string().trim().min(3).max(300).optional(),
     })
     .strict();
   export const Member = z

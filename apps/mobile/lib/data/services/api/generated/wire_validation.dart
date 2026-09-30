@@ -1612,6 +1612,79 @@ const Map<String, Map<String, dynamic>> _schemas = {
     "required": ["id"],
     "additionalProperties": false,
   },
+  "PriceEntry": {
+    "type": "object",
+    "properties": {
+      "id": {"type": "string", "format": "uuid"},
+      "level": {
+        "type": "string",
+        "enum": ["wholesale", "store_supply", "retail"],
+      },
+      "productId": {"type": "string", "format": "uuid"},
+      "organizationId": {
+        "anyOf": [
+          {"type": "string", "format": "uuid"},
+          {"type": "null"},
+        ],
+      },
+      "storeId": {
+        "anyOf": [
+          {"type": "string", "format": "uuid"},
+          {"type": "null"},
+        ],
+      },
+      "priceMillimes": {"type": "string", "pattern": "^-?[0-9]+\$"},
+      "reason": {
+        "anyOf": [
+          {"type": "string"},
+          {"type": "null"},
+        ],
+      },
+      "author": {
+        "anyOf": [
+          {"type": "string"},
+          {"type": "null"},
+        ],
+      },
+      "seeded": {"type": "boolean"},
+      "createdAt": {"type": "string", "format": "date-time"},
+    },
+    "required": [
+      "id",
+      "level",
+      "productId",
+      "organizationId",
+      "storeId",
+      "priceMillimes",
+      "reason",
+      "author",
+      "seeded",
+      "createdAt",
+    ],
+    "additionalProperties": false,
+  },
+  "PriceHistory": {
+    "type": "object",
+    "properties": {
+      "items": {
+        "type": "array",
+        "items": {"\$ref": "#/components/schemas/PriceEntry"},
+      },
+    },
+    "required": ["items"],
+    "additionalProperties": false,
+  },
+  "CurrentPrices": {
+    "type": "object",
+    "properties": {
+      "items": {
+        "type": "array",
+        "items": {"\$ref": "#/components/schemas/CurrentPricesItemsItem"},
+      },
+    },
+    "required": ["items"],
+    "additionalProperties": false,
+  },
   "Wholesaler": {
     "type": "object",
     "properties": {
@@ -2608,6 +2681,42 @@ const Map<String, Map<String, dynamic>> _schemas = {
       {"\$ref": "#/components/schemas/Count"},
     ],
   },
+  "PricingCurrentResponse": {"\$ref": "#/components/schemas/CurrentPrices"},
+  "PricingHistoryResponse": {"\$ref": "#/components/schemas/PriceHistory"},
+  "PricingSetResponse": {"\$ref": "#/components/schemas/PriceEntry"},
+  "PricingSetRequest": {
+    "type": "object",
+    "properties": {
+      "operationId": {
+        "type": "string",
+        "format": "uuid",
+        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)\$",
+      },
+      "level": {
+        "type": "string",
+        "enum": ["wholesale", "store_supply"],
+      },
+      "productId": {
+        "type": "string",
+        "format": "uuid",
+        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)\$",
+      },
+      "organizationId": {
+        "type": "string",
+        "format": "uuid",
+        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)\$",
+      },
+      "storeId": {
+        "type": "string",
+        "format": "uuid",
+        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)\$",
+      },
+      "priceMillimes": {"type": "string", "pattern": "^(0|[1-9]\\d{0,14})\$"},
+      "reason": {"type": "string", "minLength": 3, "maxLength": 300},
+    },
+    "required": ["operationId", "level", "productId", "priceMillimes"],
+    "additionalProperties": false,
+  },
   "WholesaleListResponse": {
     "type": "array",
     "items": {"\$ref": "#/components/schemas/Wholesaler"},
@@ -3000,6 +3109,7 @@ const Map<String, Map<String, dynamic>> _schemas = {
         "exclusiveMinimum": 0,
         "maximum": 9007199254740991,
       },
+      "reason": {"type": "string", "minLength": 3, "maxLength": 300},
     },
     "required": ["priceMillimes", "threshold", "pointsPerUnit"],
     "additionalProperties": false,
@@ -3323,6 +3433,37 @@ const Map<String, Map<String, dynamic>> _schemas = {
       "message": {"type": "string"},
     },
     "required": ["path", "message"],
+    "additionalProperties": false,
+  },
+  "CurrentPricesItemsItem": {
+    "type": "object",
+    "properties": {
+      "productId": {"type": "string", "format": "uuid"},
+      "retailMillimes": {
+        "anyOf": [
+          {"type": "string", "pattern": "^-?[0-9]+\$"},
+          {"type": "null"},
+        ],
+      },
+      "supplyMillimes": {
+        "anyOf": [
+          {"type": "string", "pattern": "^-?[0-9]+\$"},
+          {"type": "null"},
+        ],
+      },
+      "wholesaleMillimes": {
+        "anyOf": [
+          {"type": "string", "pattern": "^-?[0-9]+\$"},
+          {"type": "null"},
+        ],
+      },
+    },
+    "required": [
+      "productId",
+      "retailMillimes",
+      "supplyMillimes",
+      "wholesaleMillimes",
+    ],
     "additionalProperties": false,
   },
   "SyncResultAccepted": {

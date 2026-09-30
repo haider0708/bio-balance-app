@@ -5,6 +5,7 @@ import { exportRequest } from "../../modules/reporting/export.controller";
 import { OpenAPIObject } from "@nestjs/swagger";
 import { GroupRequests } from "../../modules/tenancy/group.contracts";
 import { redesignSchemas, extendLegacySchemas } from "./redesign-schemas";
+import { PricingRequests } from "../../modules/pricing/pricing.contracts";
 import { WholesaleRequests } from "../../modules/wholesale/wholesale.contracts";
 import {
   IdentityRequests,
@@ -57,6 +58,7 @@ const requests: Record<string, z.ZodType> = {
   TrainingController_save: TrainingRequests.Save,
   TrainingController_start: TrainingRequests.Start,
   WholesaleController_create: WholesaleRequests.Create,
+  PricingController_set: PricingRequests.Set,
   OperationsController_push: syncBatchSchema,
   OperationsController_status: syncBatchSchema,
 };
@@ -134,6 +136,9 @@ const responses: Record<string, Schema> = {
   ReportingController_export: { type: "string" },
   ReportingController_overview: ref("ReportOverview"),
   AdminController_overview: ref("AdminOverview"),
+  PricingController_current: ref("CurrentPrices"),
+  PricingController_history: ref("PriceHistory"),
+  PricingController_set: ref("PriceEntry"),
   WholesaleController_list: arr(ref("Wholesaler")),
   WholesaleController_create: ref("Wholesaler"),
   WholesaleController_orders: ref("OrderPage"),
@@ -293,6 +298,21 @@ export function applyContract(document: OpenAPIObject): OpenAPIObject {
           parameter("phase", "query", {
             type: "string",
             enum: ["open", "complete", "all"],
+          }),
+        );
+      if (original === "PricingController_current")
+        params.push(
+          parameter("organizationId", "query", uuid, true),
+          parameter("storeId", "query", uuid, true),
+        );
+      if (original === "PricingController_history")
+        params.push(
+          parameter("productId", "query", uuid, true),
+          parameter("organizationId", "query", uuid),
+          parameter("storeId", "query", uuid),
+          parameter("level", "query", {
+            type: "string",
+            enum: ["wholesale", "store_supply", "retail"],
           }),
         );
       if (original === "NotificationsController_inbox")

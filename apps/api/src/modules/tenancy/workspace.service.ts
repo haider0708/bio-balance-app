@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { monthlyRanking } from "../reporting/monthly-ranking";
 import { SnapshotPages } from "./infrastructure/snapshot-pages";
 import { decodeHistoryCursor } from "../../shared/domain/pagination";
@@ -8,6 +9,7 @@ import {
   outstandingSupply,
 } from "../operations/infrastructure/order-fulfillment-query";
 import { onboardingProgress } from "./onboarding";
+import { publicProducts } from "../catalog/catalog.service";
 import { requireImage } from "../training/media-authorization";
 import { Injectable } from "@nestjs/common";
 import { Database, json } from "../../shared/infrastructure/database";
@@ -269,6 +271,7 @@ export class WorkspaceService {
       pointsPerUnit: number;
       zeroPointsConfirmed?: boolean;
       expectedVersion?: number;
+      reason?: string;
     },
   ) {
     return this.mutate(
@@ -322,6 +325,43 @@ export class WorkspaceService {
           create: { organizationId: org, storeId: store, productId, ...data },
           update: { ...data, version: { increment: 1 } },
         });
+        // Every price and rate change is recorded; past sales keep their own values.
+        // A grossiste depot sells nothing over a counter, so it has no retail price.
+        if (
+          !scope.wholesale &&
+          (!old ||
+            !old.priceConfigured ||
+            old.priceMillimes !== BigInt(input.priceMillimes))
+        )
+          await tx.priceVersion.create({
+            data: {
+              id: randomUUID(),
+              level: "retail",
+              productId,
+              organizationId: org,
+              storeId: store,
+              priceMillimes: BigInt(input.priceMillimes),
+              reason: input.reason ?? null,
+              createdBy: actor.id,
+            },
+          });
+        if (
+          admin &&
+          (!old ||
+            !old.pointsConfigured ||
+            old.pointsPerUnit !== input.pointsPerUnit)
+        )
+          await tx.pointsRateVersion.create({
+            data: {
+              id: randomUUID(),
+              organizationId: org,
+              storeId: store,
+              productId,
+              pointsPerUnit: input.pointsPerUnit,
+              reason: input.reason ?? null,
+              createdBy: actor.id,
+            },
+          });
         await new PrismaLedger(tx, scope).alerts([productId]);
         return result;
       },
@@ -642,10 +682,13 @@ export class WorkspaceService {
       >`SELECT COUNT(*)::bigint AS count,COALESCE(SUM("totalMillimes"),0)::bigint AS total FROM "Sale" WHERE "storeId"=${store}::uuid AND (${manage} OR "sellerId"=${actor.id}::uuid) AND "occurredAt">=((date_trunc('day', now() AT TIME ZONE ${scope.timezone}) AT TIME ZONE ${scope.timezone}) AT TIME ZONE 'UTC')`;
       const products = useDelta
         ? []
-        : await tx.product.findMany({
-            orderBy: { id: "asc" },
-            take: 1000,
-          });
+        : publicProducts(
+            await tx.product.findMany({
+              orderBy: { id: "asc" },
+              take: 1000,
+            }),
+            scope.actor.platformAdmin,
+          );
       const acknowledgedSaleIds = accepted.flatMap((a) => {
         const result = a.result as unknown as { data?: { id?: string } };
         return result.data?.id ? [result.data.id] : [];
@@ -700,10 +743,13 @@ export class WorkspaceService {
                   where: { storeId: store, id: { gt: after } },
                   ...options,
                 });
-              return tx.product.findMany({
-                where: { id: { gt: after } },
-                ...options,
-              });
+              return publicProducts(
+                await tx.product.findMany({
+                  where: { id: { gt: after } },
+                  ...options,
+                }),
+                scope.actor.platformAdmin,
+              );
             },
           );
         }
@@ -814,10 +860,13 @@ export class WorkspaceService {
       if (resource === "config")
         return tx.storeProduct.findMany({ where: base, ...options });
       if (resource === "products")
-        return tx.product.findMany({
-          where: after ? { id: { gt: after } } : {},
-          ...options,
-        });
+        return publicProducts(
+          await tx.product.findMany({
+            where: after ? { id: { gt: after } } : {},
+            ...options,
+          }),
+          scope.actor.platformAdmin,
+        );
       if (resource === "sales")
         return tx.sale.findMany({
           where: {

@@ -11,6 +11,7 @@ import 'package:flutter/material.dart';
 import '../reporting/history_screen.dart';
 
 import '../../../domain/models/models.dart';
+import '../../../data/repositories/pricing_repository.dart';
 import '../../../domain/models/tunis_dates.dart';
 import '../../../domain/models/money.dart';
 import '../../core/design.dart';
@@ -690,16 +691,38 @@ Future<void> configureStoreProduct(
   Product product,
 ) async {
   final config = vm.state.data!.config(product.id), store = vm.state.store!;
+  // What this role pays is shown beside the price it sets; a hidden level is null.
+  Json? prices;
+  try {
+    prices = (await PricingRepository(vm.repositoryContext)
+        .current(store))[product.id];
+  } catch (_) {
+    /* Offline: the editor still works without the purchase price. */
+  }
+  final purchase = store.wholesale
+      ? [
+          if (prices?['wholesaleMillimes'] != null)
+            'Vous payez ${Money(integer(prices!['wholesaleMillimes'])).formatted}',
+          if (prices?['supplyMillimes'] != null)
+            'les magasins paient ${Money(integer(prices!['supplyMillimes'])).formatted}',
+        ].join(' · ')
+      : prices?['supplyMillimes'] == null
+      ? null
+      : 'Prix d’achat fixé par BioBalance : ${Money(integer(prices!['supplyMillimes'])).formatted}';
+  if (!context.mounted) return;
   if (await openEditor(
     context,
     title: 'Paramétrer le produit',
+    description: purchase == null || purchase.isEmpty ? null : purchase,
     fields: [
-      FieldSpec(
-        'price',
-        'Prix par défaut (TND)',
-        initial: Money(integer(config['priceMillimes'])).input,
-        numeric: true,
-      ),
+      // A depot sells nothing over a counter: it has no retail price.
+      if (!store.wholesale)
+        FieldSpec(
+          'price',
+          'Prix de vente (TND)',
+          initial: Money(integer(config['priceMillimes'])).input,
+          numeric: true,
+        ),
       FieldSpec(
         'threshold',
         'Seuil de réapprovisionnement',
@@ -710,10 +733,14 @@ Future<void> configureStoreProduct(
       if (vm.user.admin)
         FieldSpec(
           'points',
-          'Points par unité vendue',
+          store.wholesale
+              ? 'Points par unité livrée'
+              : 'Points par unité vendue',
           initial: '${config['pointsPerUnit']}',
           numeric: true,
         ),
+      // Changes are recorded with their date; a reason makes them traceable.
+      const FieldSpec('reason', 'Motif du changement', required: false),
     ],
     submit: (v) async {
       final points = vm.user.admin
@@ -732,8 +759,12 @@ Future<void> configureStoreProduct(
         );
       }
       vm.requireAccess(store, 'manage');
+      final reason = (v['reason'] ?? '').trim();
       await vm.catalog.configure(store, product.id, {
-        'priceMillimes': Money.parse(v['price']!).millimes.toString(),
+        'priceMillimes': store.wholesale
+            ? '0'
+            : Money.parse(v['price']!).millimes.toString(),
+        if (reason.length >= 3) 'reason': reason,
         'threshold': whole(v['threshold']!, allowZero: true),
         'pointsPerUnit': points,
         'zeroPointsConfirmed': vm.user.admin && points == 0,
