@@ -110,6 +110,29 @@ export async function outstandingSupply(
   }));
 }
 
+/** The handling grossiste's name, or null when BioBalance handles the order. */
+export async function supplierNames(
+  tx: Prisma.TransactionClient,
+  orders: { supplierStoreId?: string | null }[],
+) {
+  const ids = [
+    ...new Set(
+      orders.flatMap((o) => (o.supplierStoreId ? [o.supplierStoreId] : [])),
+    ),
+  ];
+  const stores = ids.length
+    ? await tx.store.findMany({
+        where: { id: { in: ids } },
+        select: { id: true, name: true },
+      })
+    : [];
+  return (order: { supplierStoreId?: string | null }) =>
+    order.supplierStoreId
+      ? (stores.find((s) => s.id === order.supplierStoreId)?.name ??
+        "Grossiste")
+      : null;
+}
+
 /** Every snapshot page carries the same fulfillment and unresolved-problem data. */
 export async function orderSummaries(
   tx: Prisma.TransactionClient,
@@ -142,10 +165,12 @@ export async function orderSummaries(
       select: { key: true },
     }),
   ]);
+  const supplierName = await supplierNames(tx, orders);
   const counts = new Map(issues.map((issue) => [issue.orderId, issue._count]));
   const active = new Set(problems.map((problem) => problem.key.slice(6)));
   return orders.map((order) => ({
     ...order,
+    supplierName: supplierName(order),
     fulfillment: fulfillment.get(order.id),
     openIssues: (counts.get(order.id) ?? 0) + (active.has(order.id) ? 1 : 0),
   }));

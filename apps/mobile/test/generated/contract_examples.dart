@@ -5,6 +5,33 @@ Object? decodeResponse(
   String operationId,
   Object? value,
 ) => switch (operationId) {
+  "WholesaleList" => (() {
+    final decoded = List.unmodifiable(
+      (value as List).map(
+        (item) =>
+            WholesalerDto.fromJson(Map<String, dynamic>.from(item as Map)),
+      ),
+    );
+    return decoded.map((item) => item.toJson()).toList();
+  })(),
+  "WholesaleCreate" => (() {
+    final decoded = WholesaleCreateResponseDto.fromJson(
+      Map<String, dynamic>.from(value as Map),
+    );
+    return decoded.toJson();
+  })(),
+  "WholesaleOrders" => (() {
+    final decoded = WholesaleOrdersResponseDto.fromJson(
+      Map<String, dynamic>.from(value as Map),
+    );
+    return decoded.toJson();
+  })(),
+  "WholesaleOrder" => (() {
+    final decoded = WholesaleOrderResponseDto.fromJson(
+      Map<String, dynamic>.from(value as Map),
+    );
+    return decoded.toJson();
+  })(),
   "InvitationManagementList" => (() {
     final decoded = InvitationManagementListResponseDto.fromJson(
       Map<String, dynamic>.from(value as Map),

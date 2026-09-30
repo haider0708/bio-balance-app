@@ -1,5 +1,13 @@
 # BioBalance — Architecture technique
 
+## Grossistes — 30 septembre 2026
+
+La migration additive `202609300001_wholesale` ajoute `Organization.kind` (`retail` par défaut ou `wholesale`), `ReplenishmentOrder.supplier*` et `Delivery.source*` (paires nulles ensemble, clés étrangères vers `Store`). Aucune table, aucun historique ni payload d’outbox n’est modifié. Un grossiste est une organisation `wholesale` avec **un dépôt** (un `Store`) et un compte responsable : il réutilise lots, mouvements, alertes, points, récompenses, réception et synchronisation. Les permissions d’un dépôt sont `manage`/`receive`, sans `sell` ; le service refuse ventes et retours (`WHOLESALE_NO_SALES`), magasins supplémentaires et équipe.
+
+La commande d’un magasin est traitée par BioBalance ou par le dépôt attribué (`order.assign`, administrateur seul, tant qu’aucune livraison n’a commencé). Le grossiste agit **dans la portée du magasin destinataire**, avec `supplierStoreId` dans l’enveloppe : `Database.scopedSupplier` vérifie dans la transaction sa session, son compte responsable du dépôt et l’état des deux espaces ; seuls `order.prepare`, `delivery.dispatch` et `delivery.resolve` sont permis, et chacun revérifie que la commande ou la livraison appartient à ce dépôt. Le stock du dépôt change par `Ledger.inDepot`, qui bascule le contexte RLS de la même transaction vers le dépôt, écrit ses mouvements (identifiant de changement propre) et son flux de synchronisation (`touch`), puis restaure le contexte d’origine. Une expédition de grossiste mémorise les lots (`lotId`, lot, péremption, quantité) dans `Delivery.lines` ; celle de BioBalance n’en porte pas.
+
+Les lectures du grossiste passent par `/v1/supplier/orders` et des politiques RLS de lecture (`app.supplier_store`) limitées aux commandes et livraisons de son dépôt. Les points (`creditDepot`) sont écrits dans le dépôt à la réception du magasin, sans condition d’état du dépôt, comme le retour de livraison. Le contrat passe à 70 endpoints (`/v1/wholesalers`, `/v1/supplier/orders`).
+
 ## Complément du 29 septembre 2026
 
 `Store.nature` est une colonne texte unique : « pharmacie » ou « parapharmacie », ce qui rend la double valeur structurellement impossible. La migration additive `202609250001_store_nature` ajoute la colonne **nulable** et la contrainte `Store_nature`, sans affecter les magasins existants : une nature inconnue reste inconnue plutôt que devinée. Le même raisonnement que `onboardingStep` s'applique, et aucun journal de vente, de stock, de points ni payload d'outbox n'est réécrit.

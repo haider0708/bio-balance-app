@@ -5,6 +5,7 @@ import { exportRequest } from "../../modules/reporting/export.controller";
 import { OpenAPIObject } from "@nestjs/swagger";
 import { GroupRequests } from "../../modules/tenancy/group.contracts";
 import { redesignSchemas, extendLegacySchemas } from "./redesign-schemas";
+import { WholesaleRequests } from "../../modules/wholesale/wholesale.contracts";
 import {
   IdentityRequests,
   WorkspaceRequests,
@@ -55,6 +56,7 @@ const requests: Record<string, z.ZodType> = {
   NotificationsController_announce: NotificationRequests.Announce,
   TrainingController_save: TrainingRequests.Save,
   TrainingController_start: TrainingRequests.Start,
+  WholesaleController_create: WholesaleRequests.Create,
   OperationsController_push: syncBatchSchema,
   OperationsController_status: syncBatchSchema,
 };
@@ -132,6 +134,10 @@ const responses: Record<string, Schema> = {
   ReportingController_export: { type: "string" },
   ReportingController_overview: ref("ReportOverview"),
   AdminController_overview: ref("AdminOverview"),
+  WholesaleController_list: arr(ref("Wholesaler")),
+  WholesaleController_create: ref("Wholesaler"),
+  WholesaleController_orders: ref("OrderPage"),
+  WholesaleController_order: ref("ScopedOrderDetails"),
   OperationsController_push: ref("SyncResponse"),
   OperationsController_status: ref("StatusResponse"),
 };
@@ -270,6 +276,23 @@ export function applyContract(document: OpenAPIObject): OpenAPIObject {
           parameter("includeArchived", "query", {
             type: "string",
             enum: ["true", "false"],
+          }),
+        );
+      if (
+        ["WholesaleController_orders", "WholesaleController_order"].includes(
+          original,
+        )
+      )
+        params.push(
+          parameter("organizationId", "query", uuid, true),
+          parameter("storeId", "query", uuid, true),
+        );
+      if (original === "WholesaleController_orders")
+        params.push(
+          parameter("after", "query", uuid),
+          parameter("phase", "query", {
+            type: "string",
+            enum: ["open", "complete", "all"],
           }),
         );
       if (original === "NotificationsController_inbox")

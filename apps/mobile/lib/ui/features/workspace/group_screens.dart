@@ -155,7 +155,7 @@ class _GroupsPageState extends State<GroupsPage> {
   @override
   Widget build(BuildContext context) {
     final vm = widget.vm;
-    final groups = vm.groups
+    final groups = vm.retailGroups
         .where(
           (g) =>
               g.name.toLowerCase().contains(query) &&
@@ -165,6 +165,7 @@ class _GroupsPageState extends State<GroupsPage> {
     final stores = (widget.allStores ? vm.workspace.state.stores : vm.stores)
         .where(
           (s) =>
+              !s.wholesale &&
               '${s.name} ${s.city}'.toLowerCase().contains(query) &&
               (includeInactive || s.status == 'active'),
         )

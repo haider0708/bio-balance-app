@@ -41,8 +41,11 @@ class Store {
   // Null only for a store created before its nature was recorded.
   final String? nature;
   final String? imageId;
+  // A grossiste depot receives and ships stock but records no sales.
+  final bool wholesale;
   Store.fromJson(Json v)
-    : version = integer(v['version'] ?? 1),
+    : wholesale = v['organizationKind'] == 'wholesale',
+      version = integer(v['version'] ?? 1),
       status = v['status'] ?? 'active',
       id = v['id'],
       organizationId = v['organizationId'],
@@ -56,7 +59,7 @@ class Store {
       onboardingStep = integer(v['onboardingStep']),
       imageId = v['imageId'];
   bool get canManage => permissions.contains('manage');
-  bool get canSell => permissions.contains('sell') || canManage;
+  bool get canSell => !wholesale && (permissions.contains('sell') || canManage);
 
   /// A store whose nature is still unknown is not ready to sell.
   bool get hasNature => nature != null;
@@ -64,6 +67,7 @@ class Store {
     'id': id,
     'organizationId': organizationId,
     'organizationName': organizationName,
+    'organizationKind': wholesale ? 'wholesale' : 'retail',
     'name': name,
     'city': city,
     'nature': nature,

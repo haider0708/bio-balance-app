@@ -1,5 +1,17 @@
 # BioBalance — Spécification fonctionnelle approuvée
 
+## Grossistes — 30 septembre 2026
+
+Un **grossiste** est une société dotée d’**un seul compte** et d’**un dépôt** ; il n’a ni équipe ni magasins, n’enregistre aucune vente et n’apparaît pas parmi les groupes. BioBalance le crée et l’invite par email. BioBalance et le grossiste peuvent saisir le stock initial du dépôt, par lot et péremption, comme pour un magasin. Le grossiste reçoit, expédie et suit son stock ; BioBalance définit le catalogue, les points par unité et les récompenses du dépôt.
+
+**Commande d’un grossiste à BioBalance.** Le grossiste commande quand son stock baisse. BioBalance prépare et expédie (son propre stock n’est pas suivi). Le stock du grossiste augmente **à sa réception**, par lot, avec écarts, comme pour un responsable.
+
+**Commande d’un magasin.** Le responsable commande pour le magasin choisi ; la commande arrive à BioBalance, qui la **traite lui-même ou l’attribue à un grossiste**. BioBalance peut changer de fournisseur ou reprendre la commande tant qu’aucune livraison n’a commencé. Un seul acteur traite une commande : BioBalance ou le grossiste attribué, jamais les deux. Le grossiste attribué prépare, puis expédie **en choisissant les lots** : son stock diminue à l’expédition ; celui du magasin n’augmente qu’à la réception physique par le responsable, par lot. Une livraison retournée remet ses lots dans le stock du dépôt ; une livraison perdue ne les remet pas. Le grossiste règle les écarts de ses livraisons ; BioBalance voit tout et peut intervenir.
+
+**Points du grossiste.** Seul le grossiste en gagne : points par unité livrée, comptés quand le magasin confirme la réception (unités acceptées, jamais au-delà des quantités expédiées). Le barème et les récompenses sont définis par BioBalance, propres au dépôt et séparés des points des équipes. Aucun classement pour les grossistes.
+
+Aucun prix ni paiement n’existe entre grossiste et magasin : seules les quantités sont suivies. Un dépôt suspendu ne peut plus expédier, mais ne bloque jamais la confirmation d’un magasin ni le retour de marchandises déjà en route ; son archivage reste refusé tant que des commandes attribuées, des livraisons en route ou du stock subsistent.
+
 ## Ajustements du 30 septembre 2026
 
 Les points et les récompenses sont **gérés uniquement par l’administrateur BioBalance** : création et modification des récompenses, points par unité de chaque produit et traitement des demandes (remise confirmée ou refusée). Le responsable et le vendeur ne peuvent plus ni créer de récompense, ni fixer un barème, ni confirmer ou refuser une remise. Le vendeur continue à demander une récompense, à consulter ses points et le classement, et à annuler **sa propre** demande. Le responsable continue à fixer prix et seuil du produit ; son écran n’affiche plus les points par unité, et le serveur refuse toute modification du barème par un autre compte que l’administrateur. Le guide de démarrage d’un magasin ne dépend plus du barème de points. Les récompenses, demandes et points existants sont conservés ; aucune migration.

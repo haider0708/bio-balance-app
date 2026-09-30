@@ -14,7 +14,12 @@ class OnlineOperationsRepository {
   final UserAccount user;
   OnlineOperationsRepository(this.context, this.local, this.user);
   final _inflight = <String, Future<void>>{};
-  Future<void> submit(Store store, Json command, {int? expectedVersion}) {
+  Future<void> submit(
+    Store store,
+    Json command, {
+    int? expectedVersion,
+    String? supplierStoreId,
+  }) {
     final target =
         command['deliveryId'] ??
         command['rewardId'] ??
@@ -25,9 +30,10 @@ class OnlineOperationsRepository {
     final scope = '${store.organizationId}:${store.id}:$key';
     return _inflight.putIfAbsent(
       scope,
-      () => _submit(store, command, key, expectedVersion).whenComplete(() {
-        _inflight.remove(scope);
-      }),
+      () => _submit(store, command, key, expectedVersion, supplierStoreId)
+          .whenComplete(() {
+            _inflight.remove(scope);
+          }),
     );
   }
 
@@ -36,6 +42,7 @@ class OnlineOperationsRepository {
     Json command,
     String key,
     int? expectedVersion,
+    String? supplierStoreId,
   ) async {
     final prior = await local.draft(user.id, store.id, key);
     final operation =
@@ -46,6 +53,8 @@ class OnlineOperationsRepository {
           'storeId': store.id,
           'payloadVersion': 2,
           'expectedVersion': ?expectedVersion,
+          // A grossiste acts on its assigned order from its own depot.
+          'supplierStoreId': ?supplierStoreId,
           'command': command,
         };
     final changed = !const DeepCollectionEquality().equals(

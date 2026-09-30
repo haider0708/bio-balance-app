@@ -1,3 +1,11 @@
+# BioBalance 1.2.0+16 — grossistes
+
+BioBalance crée et invite des grossistes (un compte, un dépôt), saisit ou laisse saisir leur stock initial, et leur attribue des commandes de magasins. Le grossiste expédie par lot (son stock diminue à l’expédition) ; le stock du magasin n’augmente qu’à la réception du responsable. Il commande lui-même à BioBalance quand son stock baisse, et gagne des points par unité livrée, séparés de ceux des équipes (sans classement). Un seul acteur traite chaque commande.
+
+Migration additive `202609300001_wholesale`, 70 contrats HTTP. Les points et récompenses restent gérés par BioBalance seul. [Détails](wholesale-2026-09-30.md).
+
+---
+
 # BioBalance 1.1.11+15 (complément) — points et récompenses réservés à BioBalance
 
 Seul l’administrateur crée les récompenses, fixe les points par unité et confirme ou refuse les remises. Le responsable garde prix et seuil ; le vendeur demande une récompense et annule sa propre demande. Contrôle serveur (403) et écrans adaptés ; le guide de démarrage n’exige plus de barème. Aucune migration, données conservées.

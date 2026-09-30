@@ -14,6 +14,16 @@ import {
 import { FulfillmentLine } from "../domain/order-fulfillment";
 export interface Ledger {
   checkInventory(operationId?: string): Promise<void>;
+  /** Runs work against a grossiste depot's stock, inside the same transaction. */
+  inDepot<T>(
+    depotStoreId: string,
+    work: (depot: Ledger) => Promise<T>,
+    options?: { allowInactive?: boolean },
+  ): Promise<T>;
+  /** Records a stock change in this store's synchronization feed. */
+  touch(entity: string, entityId: string, changeId: string): Promise<void>;
+  /** The active responsible account of a depot's organization. */
+  owner(): Promise<string | null>;
   cursor(): Promise<string>;
   dependenciesAccepted(ids: string[]): Promise<boolean>;
   readonly scope: Scope;
@@ -106,5 +116,6 @@ export abstract class UnitOfWork {
     organizationId: string,
     storeId: string,
     work: (ledger: Ledger) => Promise<T>,
+    supplierStoreId?: string,
   ): Promise<T>;
 }

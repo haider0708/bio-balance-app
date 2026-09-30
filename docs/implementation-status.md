@@ -1,4 +1,7 @@
-# État de l’implémentation — 29 septembre 2026
+# État de l’implémentation — 30 septembre 2026
+
+[Grossistes — 1.2.0+16](wholesale-2026-09-30.md) : création et invitation par BioBalance, dépôt par lot, commandes du grossiste à BioBalance, attribution des commandes de magasins, expédition par lot, points séparés. Points et récompenses réservés à BioBalance. Migration additive `202609300001_wholesale`. **Non déployé ; aucune installation sur téléphone.**
+
 
 [Nature du magasin — 1.1.11+15](store-nature-2026-09-29.md) : un magasin est une pharmacie ou une parapharmacie, jamais les deux. Choix obligatoire à la création par le responsable, correction par le responsable et l’administrateur, affichage dans les listes et la fiche. Enum requis, contrôle du service et contrainte PostgreSQL ; les magasins antérieurs gardent une nature inconnue, sans fait inventé. Migration additive `202609250001_store_nature`. 133 tests backend, 299 tests Flutter, 66 contrats HTTP, deux parcours hors ligne et APK debug réussis. **Aucune installation sur le Samsung : téléphone non connecté, dernière version installée confirmée 1.1.8+12.**
 

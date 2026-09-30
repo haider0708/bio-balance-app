@@ -25,8 +25,12 @@ export class PrismaUnitOfWork extends UnitOfWork {
     organizationId: string,
     storeId: string,
     work: (ledger: Ledger) => Promise<T>,
+    supplierStoreId?: string,
   ): Promise<T> {
-    return this.db.scoped(actor, organizationId, storeId, async (tx, scope) => {
+    const enter = async (
+      tx: Prisma.TransactionClient,
+      scope: Scope,
+    ): Promise<T> => {
       await tx.storeCursor.upsert({
         where: { storeId },
         create: { storeId, organizationId },
@@ -34,7 +38,16 @@ export class PrismaUnitOfWork extends UnitOfWork {
       });
       await tx.$queryRaw`SELECT "storeId" FROM "StoreCursor" WHERE "storeId"=${storeId}::uuid FOR UPDATE`;
       return work(new PrismaLedger(tx, scope));
-    });
+    };
+    return supplierStoreId
+      ? this.db.scopedSupplier(
+          actor,
+          supplierStoreId,
+          organizationId,
+          storeId,
+          enter,
+        )
+      : this.db.scoped(actor, organizationId, storeId, enter);
   }
 }
 export class PrismaLedger implements Ledger {
@@ -47,6 +60,79 @@ export class PrismaLedger implements Ledger {
       organizationId: scope.organizationId,
       storeId: scope.storeId,
     };
+  }
+  /** Stock of a grossiste depot changes in the depot's own scope and feed. */
+  async inDepot<T>(
+    depotStoreId: string,
+    work: (depot: Ledger) => Promise<T>,
+    options: { allowInactive?: boolean } = {},
+  ): Promise<T> {
+    const store = await this.tx.store.findUnique({
+      where: { id: depotStoreId },
+    });
+    const group = store
+      ? await this.tx.organization.findUnique({
+          where: { id: store.organizationId },
+        })
+      : null;
+    requireRule(
+      store &&
+        group?.kind === "wholesale" &&
+        (options.allowInactive ||
+          (group.status === "active" && store.status === "active")),
+      "SUPPLIER_UNAVAILABLE",
+      "Ce grossiste n’est pas disponible.",
+      409,
+    );
+    await this.tx
+      .$executeRaw`SELECT set_config('app.organization_id',${store.organizationId},true), set_config('app.store_id',${store.id},true)`;
+    await this.tx.storeCursor.upsert({
+      where: { storeId: store.id },
+      create: { storeId: store.id, organizationId: store.organizationId },
+      update: {},
+    });
+    await this.tx
+      .$queryRaw`SELECT "storeId" FROM "StoreCursor" WHERE "storeId"=${store.id}::uuid FOR UPDATE`;
+    const result = await work(
+      new PrismaLedger(this.tx, {
+        actor: this.scope.actor,
+        organizationId: store.organizationId,
+        storeId: store.id,
+        timezone: store.timezone,
+        permissions: ["manage", "receive"],
+        wholesale: true,
+      }),
+    );
+    await this.tx
+      .$executeRaw`SELECT set_config('app.organization_id',${this.scope.organizationId},true), set_config('app.store_id',${this.scope.storeId},true)`;
+    return result;
+  }
+  async touch(entity: string, entityId: string, changeId: string) {
+    const cursor = await this.tx.storeCursor.update({
+      where: { storeId: this.scope.storeId },
+      data: { value: { increment: 1 } },
+    });
+    await this.tx.change.create({
+      data: {
+        id: changeId,
+        ...this.context,
+        cursor: cursor.value,
+        entity,
+        entityId,
+      },
+    });
+  }
+  async owner() {
+    const members = await this.tx.organizationMembership.findMany({
+      where: { organizationId: this.scope.organizationId, active: true },
+      orderBy: { id: "asc" },
+    });
+    const users = await this.tx.user.findMany({
+      where: { id: { in: members.map((m) => m.userId) }, disabled: false },
+      select: { id: true },
+      orderBy: { id: "asc" },
+    });
+    return users[0]?.id ?? null;
   }
   async cursor() {
     return (

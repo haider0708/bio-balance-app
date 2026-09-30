@@ -12,8 +12,8 @@ class ScopeHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final canBrowse =
         vm.workspace.user.admin ||
-        vm.groups.any((g) => g.canManage) ||
-        vm.groups.length > 1 ||
+        vm.retailGroups.any((g) => g.canManage) ||
+        vm.retailGroups.length > 1 ||
         vm.stores.length > 1;
     return Semantics(
       label: 'Groupe sélectionné',
@@ -75,7 +75,7 @@ class ScopeHeader extends StatelessWidget {
     final options = [
       if (vm.workspace.user.admin)
         (id: '', title: 'Tous les groupes', subtitle: 'Vue du réseau'),
-      for (final g in vm.groups)
+      for (final g in vm.retailGroups)
         (id: g.id, title: g.name, subtitle: '${g.storeCount} magasin(s)'),
     ];
     final id = await pickScope(

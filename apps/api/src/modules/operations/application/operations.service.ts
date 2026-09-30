@@ -8,6 +8,7 @@ import {
   OperationResult,
   CommandOutcome,
   SaleRecord,
+  DispatchedLine,
 } from "../domain/contracts";
 import { Sale } from "../domain/sale";
 import { Ledger, UnitOfWork } from "./ports";
@@ -40,6 +41,7 @@ export class OperationsService {
             }
           : { operationId: operation.operationId, status: "unknown" as const };
       },
+      operation.supplierStoreId,
     );
   }
   async submit(actor: Actor, operation: Operation): Promise<OperationResult> {
@@ -81,6 +83,7 @@ export class OperationsService {
           );
           return result;
         },
+        operation.supplierStoreId,
       );
     } catch (error) {
       if (!(error instanceof DomainError)) throw error;
@@ -134,10 +137,178 @@ export class OperationsService {
     this.version(sale.version, expected);
     return sale;
   }
+  /** A grossiste ships from identified lots and its stock drops at dispatch;
+   * BioBalance's own stock is not tracked, so its dispatch carries no lots. */
+  private async shipFromDepot(
+    ledger: Ledger,
+    order: { supplierStoreId?: string | null },
+    lines: {
+      productId: string;
+      quantity: number;
+      allocations?: { lotId: string; quantity: number }[];
+    }[],
+    deliveryId: string,
+  ): Promise<DispatchedLine[]> {
+    if (!order.supplierStoreId) {
+      requireRule(
+        lines.every((l) => !l.allocations),
+        "ALLOCATIONS_NOT_ALLOWED",
+        "Les lots ne sont pas suivis pour les expéditions de BioBalance.",
+      );
+      return lines.map(({ productId, quantity }) => ({ productId, quantity }));
+    }
+    for (const line of lines)
+      requireRule(
+        line.allocations &&
+          new Set(line.allocations.map((a) => a.lotId)).size ===
+            line.allocations.length &&
+          line.allocations.reduce((sum, a) => sum + a.quantity, 0) ===
+            line.quantity,
+        "ALLOCATION_MISMATCH",
+        "Choisissez les lots dont les quantités correspondent à la ligne.",
+      );
+    return ledger.inDepot(order.supplierStoreId, async (depot) => {
+      const changeId = randomUUID();
+      const today = localDate(new Date(), depot.scope.timezone);
+      const wanted = new Map<string, number>();
+      for (const line of lines)
+        for (const a of line.allocations!)
+          wanted.set(a.lotId, (wanted.get(a.lotId) ?? 0) + a.quantity);
+      const snapshot = new Map<
+        string,
+        { lotId: string; batch: string; expiry: string }
+      >();
+      for (const [lotId, quantity] of wanted) {
+        const lot = await depot.lot(lotId);
+        requireRule(
+          lines.some(
+            (l) =>
+              l.productId === lot.productId &&
+              l.allocations!.some((a) => a.lotId === lotId),
+          ),
+          "LOT_MISMATCH",
+          "Le lot ne correspond pas au produit.",
+        );
+        requireRule(
+          lot.expiry.toISOString().slice(0, 10) >= today,
+          "LOT_EXPIRED",
+          "Un lot périmé ne peut pas être expédié.",
+          409,
+        );
+        requireRule(
+          lot.sellable >= quantity,
+          "INSUFFICIENT_STOCK",
+          "Stock du dépôt insuffisant pour ce lot.",
+          409,
+        );
+        snapshot.set(lotId, {
+          lotId,
+          batch: lot.batch,
+          expiry: lot.expiry.toISOString().slice(0, 10),
+        });
+        await depot.move(
+          lotId,
+          -quantity,
+          deliveryId,
+          changeId,
+          "delivery.dispatch",
+        );
+      }
+      await depot.alerts(lines.map((l) => l.productId));
+      await depot.touch("delivery.dispatch", deliveryId, changeId);
+      return lines.map((line) => ({
+        productId: line.productId,
+        quantity: line.quantity,
+        allocations: line.allocations!.map((a) => ({
+          ...snapshot.get(a.lotId)!,
+          quantity: a.quantity,
+        })),
+      }));
+    });
+  }
+  private async restoreDepotStock(
+    ledger: Ledger,
+    delivery: {
+      id: string;
+      sourceStoreId?: string | null;
+      lines: DispatchedLine[];
+    },
+    operationId: string,
+  ) {
+    if (!delivery.sourceStoreId) return;
+    // Goods already on the road return even if the depot was since suspended.
+    await ledger.inDepot(
+      delivery.sourceStoreId,
+      async (depot) => {
+        const changeId = randomUUID();
+        const products: string[] = [];
+        for (const line of delivery.lines)
+          for (const a of line.allocations ?? []) {
+            products.push(line.productId);
+            await depot.move(
+              a.lotId,
+              a.quantity,
+              delivery.id,
+              changeId,
+              "delivery.return",
+            );
+          }
+        await depot.alerts(products);
+        await depot.touch("delivery.return", delivery.id, changeId);
+        await depot.notify(
+          `${operationId}:return`,
+          "Livraison retournée",
+          "Les quantités retournées ont été remises dans votre stock.",
+        );
+      },
+      { allowInactive: true },
+    );
+  }
+  /** Points for a grossiste follow units the store has confirmed receiving. */
+  private async creditDepot(
+    ledger: Ledger,
+    delivery: { id: string; sourceStoreId?: string | null },
+    units: Map<string, number>,
+  ) {
+    if (!delivery.sourceStoreId || !units.size) return;
+    // A store's confirmation never depends on the depot's current status.
+    await ledger.inDepot(
+      delivery.sourceStoreId,
+      async (depot) => {
+        const owner = await depot.owner();
+        if (!owner) return;
+        const changeId = randomUUID();
+        let points = 0n;
+        for (const [productId, quantity] of units)
+          points += BigInt(quantity) * BigInt(await depot.rate(productId));
+        if (points > 0n)
+          await depot.credit(owner, points, "earned", delivery.id, changeId);
+        await depot.touch("points.earned", delivery.id, changeId);
+      },
+      { allowInactive: true },
+    );
+  }
   private async apply(ledger: Ledger, op: Operation): Promise<CommandOutcome> {
     const cmd = op.command,
       actor = ledger.scope.actor,
       affected = new Set<string>();
+    // A grossiste acting on an assigned order may only prepare, ship and settle it.
+    requireRule(
+      !ledger.scope.supplier ||
+        ["order.prepare", "delivery.dispatch", "delivery.resolve"].includes(
+          cmd.type,
+        ),
+      "FORBIDDEN",
+      "Vous n’avez pas accès à cette action.",
+      403,
+    );
+    requireRule(
+      !ledger.scope.wholesale ||
+        !["sale.create", "sale.correct", "sale.return"].includes(cmd.type),
+      "WHOLESALE_NO_SALES",
+      "Un grossiste n’enregistre pas de ventes.",
+      403,
+    );
     if (cmd.type === "sale.create" || cmd.type === "sale.correct") {
       this.allow(ledger, "sell");
       const previous =
@@ -447,13 +618,16 @@ export class OperationsService {
       return { id: delivery.id, version: delivery.version, status: "reported" };
     }
     if (cmd.type === "delivery.resolve") {
+      const delivery = await ledger.delivery(cmd.deliveryId);
+      // BioBalance settles any delivery; a grossiste settles only its own.
       requireRule(
-        actor.platformAdmin,
+        actor.platformAdmin ||
+          (!!ledger.scope.supplier &&
+            delivery.sourceStoreId === ledger.scope.supplier.storeId),
         "FORBIDDEN",
-        "Action réservée à BioBalance.",
+        "Action réservée à BioBalance ou au grossiste de cette livraison.",
         403,
       );
-      const delivery = await ledger.delivery(cmd.deliveryId);
       this.version(delivery.version, op.expectedVersion);
       const issue = await ledger.issue(delivery.id);
       requireRule(
@@ -479,6 +653,9 @@ export class OperationsService {
         );
         if (cmd.decision === "lost" || cmd.decision === "returned")
           delivery.status = cmd.decision;
+        // Returned goods go back to the depot's lots; lost goods do not.
+        if (cmd.decision === "returned" && delivery.sourceStoreId)
+          await this.restoreDepotStock(ledger, delivery, op.operationId);
         issue.status = "resolved";
         issue.heldLines = [];
       }
@@ -503,14 +680,74 @@ export class OperationsService {
         status: delivery.status,
       };
     }
-    if (cmd.type === "order.prepare" || cmd.type === "delivery.dispatch") {
+    if (cmd.type === "order.assign") {
       requireRule(
         actor.platformAdmin,
         "FORBIDDEN",
         "Action réservée à BioBalance.",
         403,
       );
+      requireRule(
+        !ledger.scope.wholesale,
+        "WHOLESALE_ORDER",
+        "Une commande de grossiste est traitée par BioBalance.",
+        409,
+      );
       const order = await ledger.order(cmd.orderId);
+      this.version(order.version, op.expectedVersion);
+      Order.editable(order);
+      const fulfillment = await ledger.fulfillment(order);
+      requireRule(
+        ["requested", "preparing"].includes(order.status) &&
+          fulfillment.every((l) => l.inTransit === 0 && l.received === 0),
+        "ORDER_ASSIGNMENT_CLOSED",
+        "Une livraison a déjà commencé : la commande ne peut plus changer de fournisseur.",
+        409,
+      );
+      if (cmd.supplierStoreId) {
+        const organizationId = await ledger.inDepot(
+          cmd.supplierStoreId,
+          async (depot) => {
+            await depot.notify(
+              op.operationId,
+              "Commande à préparer",
+              "BioBalance vous a attribué une commande de magasin.",
+            );
+            return depot.scope.organizationId;
+          },
+        );
+        order.supplierStoreId = cmd.supplierStoreId;
+        order.supplierOrganizationId = organizationId;
+      } else {
+        order.supplierStoreId = null;
+        order.supplierOrganizationId = null;
+      }
+      // The new handler starts from the beginning of the preparation step.
+      order.status = "requested";
+      order.version++;
+      await ledger.saveOrder(order);
+      await ledger.notify(
+        op.operationId,
+        "Fournisseur de la commande",
+        cmd.supplierStoreId
+          ? "Votre commande sera livrée par un grossiste partenaire."
+          : "Votre commande sera livrée par BioBalance.",
+      );
+      return { id: order.id, version: order.version, status: order.status };
+    }
+    if (cmd.type === "order.prepare" || cmd.type === "delivery.dispatch") {
+      const order = await ledger.order(cmd.orderId);
+      // Exactly one party handles an order: BioBalance, or the assigned grossiste.
+      requireRule(
+        ledger.scope.supplier
+          ? order.supplierStoreId === ledger.scope.supplier.storeId
+          : actor.platformAdmin && !order.supplierStoreId,
+        "FORBIDDEN",
+        order.supplierStoreId
+          ? "Cette commande est attribuée à un grossiste. Reprenez-la avant de la traiter."
+          : "Action réservée à BioBalance.",
+        403,
+      );
       this.version(order.version, op.expectedVersion);
       Order.editable(order);
       if (cmd.type === "order.prepare") {
@@ -518,7 +755,9 @@ export class OperationsService {
         await ledger.notify(
           op.operationId,
           "Commande en préparation",
-          "BioBalance prépare les produits demandés. La demande ne peut plus être annulée depuis le magasin.",
+          order.supplierStoreId
+            ? "Le grossiste prépare les produits demandés. La demande ne peut plus être annulée depuis le magasin."
+            : "BioBalance prépare les produits demandés. La demande ne peut plus être annulée depuis le magasin.",
         );
       } else {
         const fulfillment = await ledger.fulfillment(order);
@@ -537,12 +776,24 @@ export class OperationsService {
             "Quantité supérieure au reste à expédier.",
           );
         }
+        const lines = await this.shipFromDepot(
+          ledger,
+          order,
+          cmd.lines,
+          cmd.deliveryId,
+        );
         await ledger.saveDelivery({
           id: cmd.deliveryId,
           orderId: order.id,
-          lines: cmd.lines,
+          lines,
           status: "dispatched",
           version: 1,
+          ...(order.supplierStoreId
+            ? {
+                sourceStoreId: order.supplierStoreId,
+                sourceOrganizationId: order.supplierOrganizationId,
+              }
+            : {}),
         });
         order.status = Order.status(
           await ledger.fulfillment(order),
@@ -684,6 +935,15 @@ export class OperationsService {
       order.version++;
       await ledger.saveOrder(order);
       await ledger.alerts([...affected]);
+      await this.creditDepot(
+        ledger,
+        delivery,
+        new Map(
+          differences
+            .map((l) => [l.productId, Math.min(l.actual, l.expected)] as const)
+            .filter(([, quantity]) => quantity > 0),
+        ),
+      );
       await ledger.notify(
         op.operationId,
         "Livraison réceptionnée",

@@ -16,6 +16,10 @@ export async function invitationIsAuthorized(
     where: { id: invitation.organizationId },
   });
   if (!organization || organization.status !== "active") return false;
+  // A grossiste is invited by BioBalance alone, into its own wholesale organization.
+  if (invitation.kind === "wholesaler")
+    return issuer.platformAdmin && organization.kind === "wholesale";
+  if (organization.kind !== "retail") return false;
   if (invitation.kind === "responsible" || invitation.kind === "salesperson") {
     if (
       invitation.kind === "salesperson" &&

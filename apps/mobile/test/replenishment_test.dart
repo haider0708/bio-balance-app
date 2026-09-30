@@ -94,6 +94,7 @@ class RecordingWorkspace extends WorkspaceViewModel {
     Json command, {
     int? expectedVersion,
     Store? targetStore,
+    String? supplierStoreId,
   }) async {
     submitted = command;
     submittedStore = targetStore;

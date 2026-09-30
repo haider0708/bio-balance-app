@@ -20,6 +20,9 @@ class ScopeViewModel extends ChangeNotifier {
   );
   WorkspaceScope scope = const WorkspaceScope.network();
   List<PartnerGroup> groups = const [];
+  // A grossiste is listed beside the groups but is never offered as one.
+  List<PartnerGroup> get retailGroups =>
+      groups.where((g) => !g.wholesale).toList();
   List<String> grants = const [];
   bool loading = true, switching = false, refreshing = false, closed = false;
   String? error;
@@ -147,7 +150,7 @@ class ScopeViewModel extends ChangeNotifier {
       return;
     }
     final epoch = _accessEpoch;
-    final managed = groups.where((g) => g.canManage).toList();
+    final managed = groups.where((g) => g.canManage && !g.wholesale).toList();
     final saved = await workspace.repository.draft(
       workspace.user.id,
       '',

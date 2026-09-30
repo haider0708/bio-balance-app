@@ -72,7 +72,9 @@ class SalesPage extends StatelessWidget {
         SectionTitle(
           vm.state.store!.canManage ? 'Ventes du magasin' : 'Mes ventes',
           subtitle: 'Ventes, corrections et retours',
-          action: vm.state.store!.canSell || vm.user.admin
+          action:
+              vm.state.store!.canSell ||
+                  (vm.user.admin && !vm.state.store!.wholesale)
               ? FilledButton.icon(
                   onPressed: () => Navigator.push(
                     context,

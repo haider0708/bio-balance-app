@@ -36,14 +36,14 @@ class _RewardsPageState extends State<RewardsPage> {
     rankingModel = RankingViewModel(() => widget.vm.rewards.ranking(store));
     lastSync = widget.vm.state.syncedAt;
     widget.vm.addListener(workspaceChanged);
-    unawaited(rankingModel.refresh());
+    if (!store.wholesale) unawaited(rankingModel.refresh());
   }
 
   void workspaceChanged() {
     final current = widget.vm.state;
     if (current.store?.id == store.id && current.syncedAt != lastSync) {
       lastSync = current.syncedAt;
-      unawaited(rankingModel.refresh());
+      if (!store.wholesale) unawaited(rankingModel.refresh());
     }
   }
 
@@ -76,7 +76,11 @@ class _RewardsPageState extends State<RewardsPage> {
     final manage = vm.user.admin;
     final seeTeam = manage || vm.state.store!.canManage;
     return Content.builder(
-      itemCount: rewards.length + claims.length + ranking.length + 2,
+      // A grossiste's points stand alone: no ranking among stores.
+      itemCount:
+          rewards.length +
+          claims.length +
+          (vm.state.store!.wholesale ? 1 : ranking.length + 2),
       itemBuilder: (context, index) {
         if (index < rewards.length) {
           final reward = rewards[index];

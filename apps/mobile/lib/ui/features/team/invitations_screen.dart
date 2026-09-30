@@ -123,11 +123,13 @@ class _InvitationsScreenState extends State<InvitationsScreen> {
                 ),
               ),
               const SizedBox(width: 8),
-              TextButton.icon(
-                onPressed: model.busy || model.loading ? null : invite,
-                icon: const Icon(AppIcons.personAddAlt),
-                label: const Text('Inviter'),
-              ),
+              // A grossiste has no team: only its own invitation is managed here.
+              if (widget.group?.wholesale != true)
+                TextButton.icon(
+                  onPressed: model.busy || model.loading ? null : invite,
+                  icon: const Icon(AppIcons.personAddAlt),
+                  label: const Text('Inviter'),
+                ),
             ],
           ),
           Text(

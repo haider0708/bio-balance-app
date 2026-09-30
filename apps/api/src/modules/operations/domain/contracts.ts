@@ -35,6 +35,10 @@ const receiptLine = z
   })
   .strict();
 const orderLine = z.object({ productId: id, quantity }).strict();
+// A grossiste ships from identified lots; BioBalance's own stock is not tracked.
+const dispatchLine = orderLine
+  .extend({ allocations: z.array(allocation).min(1).max(50).optional() })
+  .strict();
 export const commandSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("sale.create"), ...saleFields }).strict(),
   z
@@ -92,6 +96,14 @@ export const commandSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("order.prepare"), orderId: id }).strict(),
   z
     .object({
+      type: z.literal("order.assign"),
+      orderId: id,
+      // Null returns the order to BioBalance.
+      supplierStoreId: id.nullable(),
+    })
+    .strict(),
+  z
+    .object({
       type: z.literal("order.amend"),
       orderId: id,
       lines: z.array(orderLine).min(1).max(200),
@@ -139,7 +151,7 @@ export const commandSchema = z.discriminatedUnion("type", [
       type: z.literal("delivery.dispatch"),
       orderId: id,
       deliveryId: id,
-      lines: z.array(orderLine).min(1).max(200),
+      lines: z.array(dispatchLine).min(1).max(200),
     })
     .strict(),
   z
@@ -175,6 +187,8 @@ export const operationSchema = z
     payloadVersion: z.union([z.literal(1), z.literal(2)]),
     dependencies: z.array(id).max(5000).optional(),
     expectedVersion: z.number().int().min(1).optional(),
+    // Set by a grossiste acting on an order assigned to its depot.
+    supplierStoreId: id.optional(),
     command: commandSchema,
   })
   .strict();
@@ -200,6 +214,10 @@ export interface Scope {
   actor: Actor;
   permissions: string[];
   timezone: string;
+  /** A grossiste depot records no sales. */
+  wholesale?: boolean;
+  /** Present when a grossiste acts on an order assigned to its depot. */
+  supplier?: { organizationId: string; storeId: string };
 }
 export interface Lot {
   id: string;
@@ -243,12 +261,27 @@ export interface OrderRecord {
   id: string;
   status: string;
   lines: { productId: string; quantity: number }[];
+  supplierStoreId?: string | null;
+  supplierOrganizationId?: string | null;
   version: number;
   requestedLines?: { productId: string; quantity: number }[];
   cancelledLines?: { productId: string; quantity: number }[];
 }
-export interface DeliveryRecord extends OrderRecord {
+export interface DispatchedLine {
+  productId: string;
+  quantity: number;
+  allocations?: {
+    lotId: string;
+    batch: string;
+    expiry: string;
+    quantity: number;
+  }[];
+}
+export interface DeliveryRecord extends Omit<OrderRecord, "lines"> {
   orderId: string;
+  lines: DispatchedLine[];
+  sourceStoreId?: string | null;
+  sourceOrganizationId?: string | null;
 }
 export interface DeliveryIssueRecord {
   id: string;

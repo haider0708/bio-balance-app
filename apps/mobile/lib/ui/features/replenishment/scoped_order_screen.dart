@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../data/repositories/dashboard_repository.dart';
+import '../../../data/repositories/wholesale_repository.dart';
 import '../../../domain/models/dashboard.dart';
 import '../../../domain/models/models.dart';
 import '../../core/design.dart';
@@ -392,6 +393,7 @@ class _ExactOrderScreenState extends State<ExactOrderScreen> {
             objects(data?['fulfillment']),
             admin: vm.user.admin,
             manager: widget.store.canManage,
+            wholesaleStore: widget.store.wholesale,
           );
     final disabled = busy || loading || vm.state.offline;
     final problem = data?['problem'] as Json?;
@@ -423,6 +425,12 @@ class _ExactOrderScreenState extends State<ExactOrderScreen> {
                         ? AppTone.success
                         : AppTone.info,
                   ),
+                  if (workflow.assigned)
+                    StatusChip(
+                      'Grossiste · ${workflow.supplierName ?? '—'}',
+                      icon: AppIcons.localShippingOutlined,
+                      tone: AppTone.reward,
+                    ),
                   Text(
                     TunisDates.timestampLabel(order['createdAt']),
                     style: const TextStyle(fontSize: 14, color: muted),
@@ -432,6 +440,18 @@ class _ExactOrderScreenState extends State<ExactOrderScreen> {
               const SizedBox(height: 12),
               Text(workflow.nextStep),
               const SizedBox(height: 16),
+              if (workflow.canAssign)
+                OutlinedButton.icon(
+                  onPressed: disabled
+                      ? null
+                      : () => action(() => assign(order, workflow)),
+                  icon: const Icon(AppIcons.localShippingOutlined),
+                  label: Text(
+                    workflow.assigned
+                        ? 'Changer de fournisseur ou reprendre'
+                        : 'Attribuer à un grossiste',
+                  ),
+                ),
               if (workflow.canPrepare)
                 FilledButton.icon(
                   onPressed: disabled
@@ -641,6 +661,38 @@ class _ExactOrderScreenState extends State<ExactOrderScreen> {
         OrderActions(vm).problem(order, values['reason']!, resolve: resolve),
   ).then((_) {});
 
+  /// BioBalance hands the order to a grossiste, or keeps it.
+  Future<void> assign(Json order, OrderWorkflow workflow) async {
+    final wholesalers = (await WholesaleRepository(
+      vm.repositoryContext,
+    ).list()).where((w) => w['activated'] == true && w['status'] == 'active');
+    if (!mounted) return;
+    await openEditor(
+      context,
+      title: 'Fournisseur de la commande',
+      description: 'Le grossiste choisi prépare et livre cette commande depuis son stock. Sans grossiste, BioBalance s’en occupe.',
+      fields: [
+        FieldSpec(
+          'supplier',
+          'Fournisseur',
+          initial: workflow.supplierStoreId ?? 'biobalance',
+          options: {
+            'biobalance': 'BioBalance',
+            for (final w in wholesalers) w['storeId'] as String: w['name'],
+          },
+        ),
+      ],
+      submit: (values) => vm.online({
+        'type': 'order.assign',
+        'orderId': order['id'],
+        'supplierStoreId': values['supplier'] == 'biobalance'
+            ? null
+            : values['supplier'],
+      }, expectedVersion: integer(order['version'])),
+      submitLabel: 'Enregistrer',
+    );
+  }
+
   Future<void> manageIssue(Json issue) async {
     final delivery = objects(data?['deliveries'])
         .where((d) => d['id'] == issue['deliveryId'])
@@ -728,6 +780,7 @@ class _ExactOrderScreenState extends State<ExactOrderScreen> {
         'order.amend': 'Quantités modifiées',
         'order.cancel': 'Reliquat annulé',
         'order.prepare': 'Mise en préparation',
+        'order.assign': 'Fournisseur modifié',
         'delivery.dispatch': 'Livraison expédiée',
         'delivery.receive': 'Réception enregistrée',
         'delivery.report': 'Livraison signalée',

@@ -264,10 +264,23 @@ export const wireSchemas: Record<string, Schema> = {
     lines: arr(ref("FulfillmentLine")),
   }),
   Supply: obj({ productId: uuid, quantity: integer }),
+  DispatchedLine: obj(
+    {
+      productId: uuid,
+      quantity: integer,
+      allocations: arr(
+        obj({ lotId: uuid, batch: str, expiry: str, quantity: integer }),
+      ),
+    },
+    ["productId", "quantity"],
+  ),
   Delivery: obj({
     ...scoped,
     orderId: uuid,
-    lines: arr(ref("OrderLine")),
+    lines: arr(ref("DispatchedLine")),
+    // Set only for a delivery shipped from a grossiste depot.
+    sourceOrganizationId: nullable(uuid),
+    sourceStoreId: nullable(uuid),
     status: str,
     version: integer,
     dispatchedAt: timestamp,
@@ -478,10 +491,25 @@ wireSchemas.StoreAccess = obj(
   {
     ...wireSchemas.Store!.properties,
     organizationName: str,
+    organizationKind: { type: "string", enum: ["retail", "wholesale"] },
     permissions: permission,
   },
   [...wireSchemas.Store!.required, "permissions"],
 );
+wireSchemas.Wholesaler = obj({
+  id: uuid,
+  storeId: uuid,
+  name: str,
+  address: str,
+  city: str,
+  phone: nullable(str),
+  status: str,
+  version: integer,
+  createdAt: timestamp,
+  contactName: nullable(str),
+  contactEmail: nullable(str),
+  activated: bool,
+});
 wireSchemas.Sale = obj({
   ...wireSchemas.SaleRecord!.properties,
   organizationId: uuid,

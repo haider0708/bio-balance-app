@@ -19,14 +19,23 @@ export async function lifecycleImpact(
   storeId?: string,
 ) {
   const where = { organizationId, ...(storeId ? { storeId } : {}) };
+  // A grossiste is also answerable for the store orders and deliveries it handles.
+  const supplied = storeId
+    ? { supplierStoreId: storeId }
+    : { supplierOrganizationId: organizationId };
+  const sourced = storeId
+    ? { sourceStoreId: storeId }
+    : { sourceOrganizationId: organizationId };
+  const open = { notIn: ["received", "cancelled", "closed_partial"] };
   const [orders, deliveries, rewards, issues, stock] = await Promise.all([
-    tx.replenishmentOrder.count({
-      where: {
-        ...where,
-        status: { notIn: ["received", "cancelled", "closed_partial"] },
-      },
-    }),
-    tx.delivery.count({ where: { ...where, status: "dispatched" } }),
+    Promise.all([
+      tx.replenishmentOrder.count({ where: { ...where, status: open } }),
+      tx.replenishmentOrder.count({ where: { ...supplied, status: open } }),
+    ]).then(([own, handled]) => own + handled),
+    Promise.all([
+      tx.delivery.count({ where: { ...where, status: "dispatched" } }),
+      tx.delivery.count({ where: { ...sourced, status: "dispatched" } }),
+    ]).then(([own, shipped]) => own + shipped),
     tx.rewardClaim.count({ where: { ...where, status: "requested" } }),
     tx.deliveryIssue.count({
       where: { ...where, status: { not: "resolved" } },

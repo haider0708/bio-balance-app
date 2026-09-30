@@ -19,6 +19,7 @@ import '../notifications/notifications_view_model.dart';
 import '../replenishment/scoped_order_screen.dart';
 import '../replenishment/order_screens.dart';
 import '../rewards/rewards_screen.dart';
+import '../wholesale/wholesale_home.dart';
 import '../sales/sale_screen.dart';
 import '../sales/sales_history_screen.dart';
 import '../reporting/scoped_sales_screen.dart';
@@ -189,6 +190,8 @@ class _ScopeScreenState extends State<ScopeScreen> with WidgetsBindingObserver {
               ),
           ],
         );
+      } else if (scope.tab == 0 && store != null && store.wholesale) {
+        page = WholesaleHome(vm: workspace, scope: scope);
       } else if (scope.tab == 0) {
         final report = dashboard();
         page = DashboardScreen(
@@ -270,6 +273,8 @@ class _ScopeScreenState extends State<ScopeScreen> with WidgetsBindingObserver {
             group: s.group!,
           ),
           (ScopeKind.group, _, 3) => ScopedOrdersPage(scope: scope),
+          (ScopeKind.store, false, 2) when store!.wholesale =>
+            WholesaleOrdersPage(vm: workspace),
           (ScopeKind.store, false, 1) => StockPage(vm: workspace),
           (ScopeKind.store, false, 2) => OrdersPage(vm: workspace),
           (ScopeKind.store, false, 3) => MorePage(vm: workspace, scope: scope),

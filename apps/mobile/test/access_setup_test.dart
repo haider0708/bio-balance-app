@@ -19,6 +19,7 @@ GroupListResponseDto directory({required bool manage}) =>
         {
           'id': 'g1',
           'name': 'Parahouse',
+          'kind': 'retail',
           'createdAt': '2026-09-23T10:00:00Z',
           'imageId': null,
           'phone': null,

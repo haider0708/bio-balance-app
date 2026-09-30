@@ -254,6 +254,14 @@ export class IdentityService {
         403,
       );
     const create = async (tx: Prisma.TransactionClient) => {
+      if (organizationId)
+        requireRule(
+          (await tx.organization.findUnique({ where: { id: organizationId } }))
+            ?.kind !== "wholesale",
+          "WHOLESALE_TEAM",
+          "Un grossiste n’a pas d’équipe.",
+          409,
+        );
       const targetOrganization =
         organizationId ??
         (
@@ -341,6 +349,12 @@ export class IdentityService {
           group?.status === "active",
           "WORKSPACE_INACTIVE",
           "Ce groupe n’est pas actif. Réactivez-le avant d’inviter une personne.",
+          409,
+        );
+        requireRule(
+          group.kind === "retail",
+          "WHOLESALE_TEAM",
+          "Un grossiste n’a pas d’équipe.",
           409,
         );
       }

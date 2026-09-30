@@ -93,6 +93,7 @@ export class Database extends PrismaClient implements OnModuleDestroy {
           storeId: string | null;
           storeStatus: string | null;
           groupStatus: string | null;
+          groupKind: string | null;
           userId: string | null;
           timezone: string | null;
           disabled: boolean | null;
@@ -102,7 +103,7 @@ export class Database extends PrismaClient implements OnModuleDestroy {
           permissions: string[];
           sessionValid: boolean;
         }[]
-      >`SELECT s.id AS "storeId",s.status AS "storeStatus",g.status AS "groupStatus",s.timezone,u.id AS "userId",u.disabled,u."platformAdmin",
+      >`SELECT s.id AS "storeId",s.status AS "storeStatus",g.status AS "groupStatus",g.kind AS "groupKind",s.timezone,u.id AS "userId",u.disabled,u."platformAdmin",
               COALESCE(m.active,false) AS "memberActive",COALESCE(o.active,false) AS "ownerActive",
               COALESCE(m.permissions,'{}'::text[]) AS permissions,
               (${actor.sessionId ?? null}::uuid IS NULL OR EXISTS(
@@ -160,9 +161,13 @@ export class Database extends PrismaClient implements OnModuleDestroy {
         "Cet espace est archivé. Son historique reste consultable, mais aucune nouvelle opération n’est autorisée.",
         409,
       );
+      // A grossiste depot receives and ships stock but records no sales.
+      const wholesale = access.groupKind === "wholesale";
       const permissions =
         access.platformAdmin || access.ownerActive
-          ? ["manage", "sell", "receive"]
+          ? wholesale
+            ? ["manage", "receive"]
+            : ["manage", "sell", "receive"]
           : access.permissions.filter(
               (p) => p !== "receive" || access.permissions.includes("manage"),
             );
@@ -173,9 +178,83 @@ export class Database extends PrismaClient implements OnModuleDestroy {
         storeId,
         timezone: access.timezone!,
         permissions,
+        wholesale,
       };
       return fn(tx, scope);
     }, isolationLevel);
+  }
+
+  /** A grossiste acting on an order assigned to its depot. The scope is the
+   * order's store, but access comes from the depot's responsible account; the
+   * caller must still confirm the order is assigned to this depot. */
+  scopedSupplier<T>(
+    actor: Actor,
+    supplierStoreId: string,
+    organizationId: string,
+    storeId: string,
+    fn: (tx: Prisma.TransactionClient, scope: Scope) => Promise<T>,
+  ): Promise<T> {
+    return this.transaction(async (tx) => {
+      const [access] = await tx.$queryRaw<
+        {
+          timezone: string;
+          storeStatus: string;
+          groupStatus: string;
+          supplierOrganizationId: string | null;
+          supplierKind: string | null;
+          supplierStatus: string | null;
+          supplierStoreStatus: string | null;
+          disabled: boolean | null;
+          ownerActive: boolean;
+          sessionValid: boolean;
+        }[]
+      >`SELECT d.timezone,d.status AS "storeStatus",dg.status AS "groupStatus",
+              s."organizationId" AS "supplierOrganizationId",g.kind AS "supplierKind",
+              g.status AS "supplierStatus",s.status AS "supplierStoreStatus",u.disabled,
+              COALESCE(o.active,false) AS "ownerActive",
+              (${actor.sessionId ?? null}::uuid IS NULL OR EXISTS(
+                SELECT 1 FROM "Session" ss WHERE ss.id=${actor.sessionId ?? null}::uuid
+                AND ss."userId"=${actor.id}::uuid AND ss."revokedAt" IS NULL
+                AND ss."expiresAt">(CURRENT_TIMESTAMP AT TIME ZONE 'UTC'))) AS "sessionValid"
+              FROM "Store" d JOIN "Organization" dg ON dg.id=d."organizationId"
+              LEFT JOIN "Store" s ON s.id=${supplierStoreId}::uuid
+              LEFT JOIN "Organization" g ON g.id=s."organizationId"
+              LEFT JOIN "User" u ON u.id=${actor.id}::uuid
+              LEFT JOIN "OrganizationMembership" o ON o."organizationId"=g.id AND o."userId"=u.id
+              WHERE d.id=${storeId}::uuid AND d."organizationId"=${organizationId}::uuid`;
+      requireRule(access, "STORE_ACCESS_REVOKED", "Magasin inaccessible.", 403);
+      requireRule(
+        access.sessionValid,
+        "SESSION_EXPIRED",
+        "Votre session a expiré. Vos opérations locales sont conservées.",
+        401,
+      );
+      requireRule(
+        access.disabled === false &&
+          access.ownerActive &&
+          access.supplierKind === "wholesale" &&
+          access.supplierStatus === "active" &&
+          access.supplierStoreStatus === "active" &&
+          access.storeStatus === "active" &&
+          access.groupStatus === "active",
+        "STORE_ACCESS_REVOKED",
+        "Cette commande n’est pas attribuée à votre dépôt.",
+        403,
+      );
+      await tx.$executeRaw`SELECT set_config('app.organization_id',${organizationId},true), set_config('app.store_id',${storeId},true), set_config('app.actor_id',${actor.id},true)`;
+      return fn(tx, {
+        actor: { ...actor, platformAdmin: false },
+        organizationId,
+        storeId,
+        timezone: access.timezone,
+        permissions: ["manage"],
+        wholesale: false,
+        supplier: {
+          organizationId: access.supplierOrganizationId!,
+          storeId: supplierStoreId,
+        },
+      });
+    }, "Serializable");
   }
 
   /** Database-only callbacks may be retried; external effects belong in jobs. */

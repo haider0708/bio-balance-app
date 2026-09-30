@@ -98,6 +98,8 @@ model Organization {
   createdAt DateTime @default(now())
   imageId String? @db.Uuid
   phone String?
+  // 'retail' groups own pharmacies; a 'wholesale' organization is a grossiste with one depot store.
+  kind String @default("retail")
   version Int @default(1)
 }
 model OrganizationMembership {
@@ -326,6 +328,8 @@ model RewardClaim {
   @@index([storeId,status,createdAt])
 }
 model ReplenishmentOrder {
+  supplierOrganizationId String? @db.Uuid
+  supplierStoreId String? @db.Uuid
   requestedLines Json @default("[]")
   cancelledLines Json @default("[]")
   id String @id @db.Uuid
@@ -340,6 +344,8 @@ model ReplenishmentOrder {
   @@index([storeId,status,createdAt])
 }
 model Delivery {
+  sourceOrganizationId String? @db.Uuid
+  sourceStoreId String? @db.Uuid
   id String @id @db.Uuid
   organizationId String @db.Uuid
   storeId String @db.Uuid

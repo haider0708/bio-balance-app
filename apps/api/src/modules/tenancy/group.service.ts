@@ -284,6 +284,13 @@ export class GroupService {
     input: z.infer<typeof GroupRequests.Member>,
   ) {
     return this.db.group(actor, id, async (tx, current) => {
+      requireRule(
+        (await tx.organization.findUnique({ where: { id } }))?.kind ===
+          "retail",
+        "WHOLESALE_TEAM",
+        "Un grossiste n’a pas d’équipe.",
+        409,
+      );
       const target = await tx.user.findUnique({ where: { id: userId } });
       requireRule(
         current.platformAdmin || current.id !== userId,

@@ -6,7 +6,10 @@ import { Database } from "../../shared/infrastructure/database";
 import { requireRule } from "../../shared/domain/errors";
 import { Actor } from "../operations/domain/contracts";
 import { DashboardQuery } from "./dashboard.contracts";
-import { orderFulfillment } from "../operations/infrastructure/order-fulfillment-query";
+import {
+  orderFulfillment,
+  supplierNames,
+} from "../operations/infrastructure/order-fulfillment-query";
 type Sum = { netMillimes: bigint; netUnits: bigint; saleCount: bigint };
 const summed = (value: Sum): Sum => ({
   netMillimes: value.netMillimes,
@@ -160,7 +163,11 @@ export class DashboardService {
         select: { id: true, name: true, organizationId: true, status: true },
       });
       const organizations = await tx.organization.findMany({
-        where: q.organizationId ? { id: q.organizationId } : {},
+        where: {
+          ...(q.organizationId ? { id: q.organizationId } : {}),
+          // Network counts describe retail groups and their pharmacies, not depots.
+          ...(q.scope === "network" ? { kind: "retail" } : {}),
+        },
         select: { id: true, name: true, status: true },
       });
       const products = await tx.product.findMany({
@@ -523,9 +530,11 @@ export class DashboardService {
         where: { id: { in: items.map((o) => o.organizationId) } },
         select: { id: true, name: true },
       });
+      const supplierName = await supplierNames(tx, items);
       return {
         items: items.slice(0, 50).map((o) => ({
           ...o,
+          supplierName: supplierName(o),
           storeName: stores.find((s) => s.id === o.storeId)!.name,
           groupName: groups.find((g) => g.id === o.organizationId)!.name,
         })),
@@ -615,7 +624,12 @@ export class DashboardService {
             id,
           ) ?? [];
         return {
-          order: { ...order, storeName: store.name, groupName: group.name },
+          order: {
+            ...order,
+            supplierName: (await supplierNames(tx, [order]))(order),
+            storeName: store.name,
+            groupName: group.name,
+          },
           deliveries,
           receipts,
           fulfillment,

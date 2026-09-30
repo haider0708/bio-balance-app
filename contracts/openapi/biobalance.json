@@ -1,6 +1,763 @@
 {
   "openapi": "3.1.0",
   "paths": {
+    "/v1/wholesalers": {
+      "get": {
+        "operationId": "WholesaleList",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Réponse autorisée. Les entiers monétaires sont des chaînes décimales exactes.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WholesaleListResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Erreur stable à traduire pour l’utilisateur",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Erreur stable à traduire pour l’utilisateur",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Erreur stable à traduire pour l’utilisateur",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Erreur stable à traduire pour l’utilisateur",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Erreur stable à traduire pour l’utilisateur",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Erreur stable à traduire pour l’utilisateur",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Erreur stable à traduire pour l’utilisateur",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Erreur stable à traduire pour l’utilisateur",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "416": {
+            "description": "Erreur stable à traduire pour l’utilisateur",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Erreur stable à traduire pour l’utilisateur",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Erreur stable à traduire pour l’utilisateur",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Erreur stable à traduire pour l’utilisateur",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Erreur stable à traduire pour l’utilisateur",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "wholesale"
+        ]
+      },
+      "post": {
+        "operationId": "WholesaleCreate",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": "Réponse autorisée. Les entiers monétaires sont des chaînes décimales exactes.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WholesaleCreateResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Erreur stable à traduire pour l’utilisateur",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Erreur stable à traduire pour l’utilisateur",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Erreur stable à traduire pour l’utilisateur",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Erreur stable à traduire pour l’utilisateur",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Erreur stable à traduire pour l’utilisateur",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Erreur stable à traduire pour l’utilisateur",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Erreur stable à traduire pour l’utilisateur",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Erreur stable à traduire pour l’utilisateur",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "416": {
+            "description": "Erreur stable à traduire pour l’utilisateur",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Erreur stable à traduire pour l’utilisateur",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Erreur stable à traduire pour l’utilisateur",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Erreur stable à traduire pour l’utilisateur",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Erreur stable à traduire pour l’utilisateur",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "wholesale"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WholesaleCreateRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/supplier/orders": {
+      "get": {
+        "operationId": "WholesaleOrders",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "storeId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "after",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "phase",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "open",
+                "complete",
+                "all"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Réponse autorisée. Les entiers monétaires sont des chaînes décimales exactes.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WholesaleOrdersResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Erreur stable à traduire pour l’utilisateur",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Erreur stable à traduire pour l’utilisateur",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Erreur stable à traduire pour l’utilisateur",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Erreur stable à traduire pour l’utilisateur",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Erreur stable à traduire pour l’utilisateur",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Erreur stable à traduire pour l’utilisateur",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Erreur stable à traduire pour l’utilisateur",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Erreur stable à traduire pour l’utilisateur",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "416": {
+            "description": "Erreur stable à traduire pour l’utilisateur",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Erreur stable à traduire pour l’utilisateur",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Erreur stable à traduire pour l’utilisateur",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Erreur stable à traduire pour l’utilisateur",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Erreur stable à traduire pour l’utilisateur",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "wholesale"
+        ]
+      }
+    },
+    "/v1/supplier/orders/{id}": {
+      "get": {
+        "operationId": "WholesaleOrder",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "storeId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Réponse autorisée. Les entiers monétaires sont des chaînes décimales exactes.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WholesaleOrderResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Erreur stable à traduire pour l’utilisateur",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Erreur stable à traduire pour l’utilisateur",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Erreur stable à traduire pour l’utilisateur",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Erreur stable à traduire pour l’utilisateur",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Erreur stable à traduire pour l’utilisateur",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Erreur stable à traduire pour l’utilisateur",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Erreur stable à traduire pour l’utilisateur",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Erreur stable à traduire pour l’utilisateur",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "416": {
+            "description": "Erreur stable à traduire pour l’utilisateur",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Erreur stable à traduire pour l’utilisateur",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Erreur stable à traduire pour l’utilisateur",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Erreur stable à traduire pour l’utilisateur",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Erreur stable à traduire pour l’utilisateur",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "wholesale"
+        ]
+      }
+    },
     "/v1/identity/invitations": {
       "get": {
         "operationId": "InvitationManagementList",
@@ -12861,6 +13618,13 @@
               }
             ]
           },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "retail",
+              "wholesale"
+            ]
+          },
           "imageId": {
             "anyOf": [
               {
@@ -13097,6 +13861,13 @@
           },
           "organizationName": {
             "type": "string"
+          },
+          "organizationKind": {
+            "type": "string",
+            "enum": [
+              "retail",
+              "wholesale"
+            ]
           },
           "permissions": {
             "type": "array",
@@ -14174,6 +14945,38 @@
           "storeName": {
             "type": "string"
           },
+          "supplierOrganizationId": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "supplierStoreId": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "supplierName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "openIssues": {
             "type": "integer"
           },
@@ -14247,6 +15050,51 @@
         ],
         "additionalProperties": false
       },
+      "DispatchedLine": {
+        "type": "object",
+        "properties": {
+          "productId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "quantity": {
+            "type": "integer"
+          },
+          "allocations": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "lotId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "batch": {
+                  "type": "string"
+                },
+                "expiry": {
+                  "type": "string"
+                },
+                "quantity": {
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "lotId",
+                "batch",
+                "expiry",
+                "quantity"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "productId",
+          "quantity"
+        ],
+        "additionalProperties": false
+      },
       "Delivery": {
         "type": "object",
         "properties": {
@@ -14269,8 +15117,30 @@
           "lines": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/OrderLine"
+              "$ref": "#/components/schemas/DispatchedLine"
             }
+          },
+          "sourceOrganizationId": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "sourceStoreId": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "status": {
             "type": "string"
@@ -14300,6 +15170,8 @@
           "storeId",
           "orderId",
           "lines",
+          "sourceOrganizationId",
+          "sourceStoreId",
           "status",
           "version",
           "dispatchedAt",
@@ -15348,6 +16220,86 @@
         },
         "required": [
           "id"
+        ],
+        "additionalProperties": false
+      },
+      "Wholesaler": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "storeId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "address": {
+            "type": "string"
+          },
+          "city": {
+            "type": "string"
+          },
+          "phone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "status": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "contactName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "contactEmail": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "activated": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "storeId",
+          "name",
+          "address",
+          "city",
+          "phone",
+          "status",
+          "version",
+          "createdAt",
+          "contactName",
+          "contactEmail",
+          "activated"
         ],
         "additionalProperties": false
       },
@@ -16533,6 +17485,13 @@
           "name": {
             "type": "string"
           },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "retail",
+              "wholesale"
+            ]
+          },
           "createdAt": {
             "type": "string",
             "format": "date-time"
@@ -16600,6 +17559,7 @@
         "required": [
           "id",
           "name",
+          "kind",
           "createdAt",
           "imageId",
           "phone",
@@ -16616,6 +17576,13 @@
           },
           "name": {
             "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "retail",
+              "wholesale"
+            ]
           },
           "createdAt": {
             "type": "string",
@@ -16690,6 +17657,7 @@
         "required": [
           "id",
           "name",
+          "kind",
           "createdAt",
           "imageId",
           "phone",
@@ -17363,6 +18331,38 @@
       "ScopedOrder": {
         "type": "object",
         "properties": {
+          "supplierOrganizationId": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "supplierStoreId": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "supplierName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "requestedLines": {
             "type": "array",
             "items": {
@@ -17457,6 +18457,9 @@
           }
         },
         "required": [
+          "supplierOrganizationId",
+          "supplierStoreId",
+          "supplierName",
           "id",
           "organizationId",
           "storeId",
@@ -18234,6 +19237,38 @@
             "properties": {
               "type": {
                 "type": "string",
+                "const": "order.assign"
+              },
+              "orderId": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              },
+              "supplierStoreId": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "type",
+              "orderId",
+              "supplierStoreId"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
                 "const": "order.amend"
               },
               "orderId": {
@@ -18448,6 +19483,31 @@
                       "type": "integer",
                       "minimum": 1,
                       "maximum": 1000000
+                    },
+                    "allocations": {
+                      "minItems": 1,
+                      "maxItems": 50,
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "lotId": {
+                            "type": "string",
+                            "format": "uuid",
+                            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                          },
+                          "quantity": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 1000000
+                          }
+                        },
+                        "required": [
+                          "lotId",
+                          "quantity"
+                        ],
+                        "additionalProperties": false
+                      }
                     }
                   },
                   "required": [
@@ -18628,6 +19688,11 @@
             "minimum": 1,
             "maximum": 9007199254740991
           },
+          "supplierStoreId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
           "command": {
             "$ref": "#/components/schemas/Command"
           }
@@ -18772,6 +19837,63 @@
             "$ref": "#/components/schemas/Count"
           }
         ]
+      },
+      "WholesaleListResponse": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/Wholesaler"
+        }
+      },
+      "WholesaleCreateResponse": {
+        "$ref": "#/components/schemas/Wholesaler"
+      },
+      "WholesaleCreateRequest": {
+        "type": "object",
+        "properties": {
+          "operationId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 120
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+          },
+          "address": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 300
+          },
+          "city": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 120
+          },
+          "phone": {
+            "type": "string",
+            "maxLength": 30
+          }
+        },
+        "required": [
+          "operationId",
+          "name",
+          "email",
+          "address",
+          "city"
+        ],
+        "additionalProperties": false
+      },
+      "WholesaleOrdersResponse": {
+        "$ref": "#/components/schemas/OrderPage"
+      },
+      "WholesaleOrderResponse": {
+        "$ref": "#/components/schemas/ScopedOrderDetails"
       },
       "InvitationManagementListResponse": {
         "$ref": "#/components/schemas/InvitationPage"

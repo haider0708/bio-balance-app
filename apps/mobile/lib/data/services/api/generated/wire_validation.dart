@@ -212,6 +212,10 @@ const Map<String, Map<String, dynamic>> _schemas = {
           {"type": "null"},
         ],
       },
+      "kind": {
+        "type": "string",
+        "enum": ["retail", "wholesale"],
+      },
       "imageId": {
         "anyOf": [
           {"type": "string", "format": "uuid"},
@@ -338,6 +342,10 @@ const Map<String, Map<String, dynamic>> _schemas = {
       "version": {"type": "integer"},
       "createdAt": {"type": "string", "format": "date-time"},
       "organizationName": {"type": "string"},
+      "organizationKind": {
+        "type": "string",
+        "enum": ["retail", "wholesale"],
+      },
       "permissions": {
         "type": "array",
         "items": {
@@ -924,6 +932,24 @@ const Map<String, Map<String, dynamic>> _schemas = {
         "items": {"\$ref": "#/components/schemas/FulfillmentLine"},
       },
       "storeName": {"type": "string"},
+      "supplierOrganizationId": {
+        "anyOf": [
+          {"type": "string", "format": "uuid"},
+          {"type": "null"},
+        ],
+      },
+      "supplierStoreId": {
+        "anyOf": [
+          {"type": "string", "format": "uuid"},
+          {"type": "null"},
+        ],
+      },
+      "supplierName": {
+        "anyOf": [
+          {"type": "string"},
+          {"type": "null"},
+        ],
+      },
       "openIssues": {"type": "integer"},
       "requestedLines": {
         "type": "array",
@@ -969,6 +995,21 @@ const Map<String, Map<String, dynamic>> _schemas = {
     "required": ["productId", "quantity"],
     "additionalProperties": false,
   },
+  "DispatchedLine": {
+    "type": "object",
+    "properties": {
+      "productId": {"type": "string", "format": "uuid"},
+      "quantity": {"type": "integer"},
+      "allocations": {
+        "type": "array",
+        "items": {
+          "\$ref": "#/components/schemas/DispatchedLineAllocationsItem",
+        },
+      },
+    },
+    "required": ["productId", "quantity"],
+    "additionalProperties": false,
+  },
   "Delivery": {
     "type": "object",
     "properties": {
@@ -978,7 +1019,19 @@ const Map<String, Map<String, dynamic>> _schemas = {
       "orderId": {"type": "string", "format": "uuid"},
       "lines": {
         "type": "array",
-        "items": {"\$ref": "#/components/schemas/OrderLine"},
+        "items": {"\$ref": "#/components/schemas/DispatchedLine"},
+      },
+      "sourceOrganizationId": {
+        "anyOf": [
+          {"type": "string", "format": "uuid"},
+          {"type": "null"},
+        ],
+      },
+      "sourceStoreId": {
+        "anyOf": [
+          {"type": "string", "format": "uuid"},
+          {"type": "null"},
+        ],
       },
       "status": {"type": "string"},
       "version": {"type": "integer"},
@@ -996,6 +1049,8 @@ const Map<String, Map<String, dynamic>> _schemas = {
       "storeId",
       "orderId",
       "lines",
+      "sourceOrganizationId",
+      "sourceStoreId",
       "status",
       "version",
       "dispatchedAt",
@@ -1557,6 +1612,53 @@ const Map<String, Map<String, dynamic>> _schemas = {
     "required": ["id"],
     "additionalProperties": false,
   },
+  "Wholesaler": {
+    "type": "object",
+    "properties": {
+      "id": {"type": "string", "format": "uuid"},
+      "storeId": {"type": "string", "format": "uuid"},
+      "name": {"type": "string"},
+      "address": {"type": "string"},
+      "city": {"type": "string"},
+      "phone": {
+        "anyOf": [
+          {"type": "string"},
+          {"type": "null"},
+        ],
+      },
+      "status": {"type": "string"},
+      "version": {"type": "integer"},
+      "createdAt": {"type": "string", "format": "date-time"},
+      "contactName": {
+        "anyOf": [
+          {"type": "string"},
+          {"type": "null"},
+        ],
+      },
+      "contactEmail": {
+        "anyOf": [
+          {"type": "string"},
+          {"type": "null"},
+        ],
+      },
+      "activated": {"type": "boolean"},
+    },
+    "required": [
+      "id",
+      "storeId",
+      "name",
+      "address",
+      "city",
+      "phone",
+      "status",
+      "version",
+      "createdAt",
+      "contactName",
+      "contactEmail",
+      "activated",
+    ],
+    "additionalProperties": false,
+  },
   "SyncResult": {
     "oneOf": [
       {"\$ref": "#/components/schemas/SyncResultAccepted"},
@@ -1906,6 +2008,10 @@ const Map<String, Map<String, dynamic>> _schemas = {
     "properties": {
       "id": {"type": "string", "format": "uuid"},
       "name": {"type": "string"},
+      "kind": {
+        "type": "string",
+        "enum": ["retail", "wholesale"],
+      },
       "createdAt": {"type": "string", "format": "date-time"},
       "imageId": {
         "anyOf": [
@@ -1940,7 +2046,15 @@ const Map<String, Map<String, dynamic>> _schemas = {
         ],
       },
     },
-    "required": ["id", "name", "createdAt", "imageId", "phone", "version"],
+    "required": [
+      "id",
+      "name",
+      "kind",
+      "createdAt",
+      "imageId",
+      "phone",
+      "version",
+    ],
     "additionalProperties": false,
   },
   "GroupAccess": {
@@ -1948,6 +2062,10 @@ const Map<String, Map<String, dynamic>> _schemas = {
     "properties": {
       "id": {"type": "string", "format": "uuid"},
       "name": {"type": "string"},
+      "kind": {
+        "type": "string",
+        "enum": ["retail", "wholesale"],
+      },
       "createdAt": {"type": "string", "format": "date-time"},
       "imageId": {
         "anyOf": [
@@ -1987,6 +2105,7 @@ const Map<String, Map<String, dynamic>> _schemas = {
     "required": [
       "id",
       "name",
+      "kind",
       "createdAt",
       "imageId",
       "phone",
@@ -2190,6 +2309,24 @@ const Map<String, Map<String, dynamic>> _schemas = {
   "ScopedOrder": {
     "type": "object",
     "properties": {
+      "supplierOrganizationId": {
+        "anyOf": [
+          {"type": "string", "format": "uuid"},
+          {"type": "null"},
+        ],
+      },
+      "supplierStoreId": {
+        "anyOf": [
+          {"type": "string", "format": "uuid"},
+          {"type": "null"},
+        ],
+      },
+      "supplierName": {
+        "anyOf": [
+          {"type": "string"},
+          {"type": "null"},
+        ],
+      },
       "requestedLines": {
         "type": "array",
         "items": {
@@ -2217,6 +2354,9 @@ const Map<String, Map<String, dynamic>> _schemas = {
       "groupName": {"type": "string"},
     },
     "required": [
+      "supplierOrganizationId",
+      "supplierStoreId",
+      "supplierName",
       "id",
       "organizationId",
       "storeId",
@@ -2384,6 +2524,7 @@ const Map<String, Map<String, dynamic>> _schemas = {
       {"\$ref": "#/components/schemas/CommandStockDamage"},
       {"\$ref": "#/components/schemas/CommandOrderCreate"},
       {"\$ref": "#/components/schemas/CommandOrderPrepare"},
+      {"\$ref": "#/components/schemas/CommandOrderAssign"},
       {"\$ref": "#/components/schemas/CommandOrderAmend"},
       {"\$ref": "#/components/schemas/CommandOrderCancel"},
       {"\$ref": "#/components/schemas/CommandOrderReport"},
@@ -2432,6 +2573,11 @@ const Map<String, Map<String, dynamic>> _schemas = {
         "minimum": 1,
         "maximum": 9007199254740991,
       },
+      "supplierStoreId": {
+        "type": "string",
+        "format": "uuid",
+        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)\$",
+      },
       "command": {"\$ref": "#/components/schemas/Command"},
     },
     "required": [
@@ -2461,6 +2607,36 @@ const Map<String, Map<String, dynamic>> _schemas = {
       {"\$ref": "#/components/schemas/CatalogImportResultTrue"},
       {"\$ref": "#/components/schemas/Count"},
     ],
+  },
+  "WholesaleListResponse": {
+    "type": "array",
+    "items": {"\$ref": "#/components/schemas/Wholesaler"},
+  },
+  "WholesaleCreateResponse": {"\$ref": "#/components/schemas/Wholesaler"},
+  "WholesaleCreateRequest": {
+    "type": "object",
+    "properties": {
+      "operationId": {
+        "type": "string",
+        "format": "uuid",
+        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)\$",
+      },
+      "name": {"type": "string", "minLength": 2, "maxLength": 120},
+      "email": {
+        "type": "string",
+        "format": "email",
+        "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}\$",
+      },
+      "address": {"type": "string", "minLength": 3, "maxLength": 300},
+      "city": {"type": "string", "minLength": 2, "maxLength": 120},
+      "phone": {"type": "string", "maxLength": 30},
+    },
+    "required": ["operationId", "name", "email", "address", "city"],
+    "additionalProperties": false,
+  },
+  "WholesaleOrdersResponse": {"\$ref": "#/components/schemas/OrderPage"},
+  "WholesaleOrderResponse": {
+    "\$ref": "#/components/schemas/ScopedOrderDetails",
   },
   "InvitationManagementListResponse": {
     "\$ref": "#/components/schemas/InvitationPage",
@@ -3129,6 +3305,17 @@ const Map<String, Map<String, dynamic>> _schemas = {
   "TrainingMediaResponse": {"type": "string", "format": "binary"},
   "ReportingOverviewResponse": {"\$ref": "#/components/schemas/ReportOverview"},
   "ReportingExportResponse": {"type": "string"},
+  "DispatchedLineAllocationsItem": {
+    "type": "object",
+    "properties": {
+      "lotId": {"type": "string", "format": "uuid"},
+      "batch": {"type": "string"},
+      "expiry": {"type": "string"},
+      "quantity": {"type": "integer"},
+    },
+    "required": ["lotId", "batch", "expiry", "quantity"],
+    "additionalProperties": false,
+  },
   "ApiErrorFieldsItem": {
     "type": "object",
     "properties": {
@@ -3846,6 +4033,29 @@ const Map<String, Map<String, dynamic>> _schemas = {
     "required": ["type", "orderId"],
     "additionalProperties": false,
   },
+  "CommandOrderAssign": {
+    "type": "object",
+    "properties": {
+      "type": {"type": "string", "const": "order.assign"},
+      "orderId": {
+        "type": "string",
+        "format": "uuid",
+        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)\$",
+      },
+      "supplierStoreId": {
+        "anyOf": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)\$",
+          },
+          {"type": "null"},
+        ],
+      },
+    },
+    "required": ["type", "orderId", "supplierStoreId"],
+    "additionalProperties": false,
+  },
   "CommandOrderAmend": {
     "type": "object",
     "properties": {
@@ -4257,6 +4467,14 @@ const Map<String, Map<String, dynamic>> _schemas = {
         "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)\$",
       },
       "quantity": {"type": "integer", "minimum": 1, "maximum": 1000000},
+      "allocations": {
+        "minItems": 1,
+        "maxItems": 50,
+        "type": "array",
+        "items": {
+          "\$ref": "#/components/schemas/CommandDeliveryDispatchLinesItemAllocationsItem",
+        },
+      },
     },
     "required": ["productId", "quantity"],
     "additionalProperties": false,
@@ -4385,6 +4603,19 @@ const Map<String, Map<String, dynamic>> _schemas = {
     "additionalProperties": false,
   },
   "CommandSaleCorrectLinesItemAllocationsItem": {
+    "type": "object",
+    "properties": {
+      "lotId": {
+        "type": "string",
+        "format": "uuid",
+        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)\$",
+      },
+      "quantity": {"type": "integer", "minimum": 1, "maximum": 1000000},
+    },
+    "required": ["lotId", "quantity"],
+    "additionalProperties": false,
+  },
+  "CommandDeliveryDispatchLinesItemAllocationsItem": {
     "type": "object",
     "properties": {
       "lotId": {

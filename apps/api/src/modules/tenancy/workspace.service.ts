@@ -112,10 +112,16 @@ export class WorkspaceService {
         ...s,
         organizationName: organizations.find((o) => o.id === s.organizationId)
           ?.name,
+        organizationKind:
+          organizations.find((o) => o.id === s.organizationId)?.kind ??
+          "retail",
         permissions:
           actor.platformAdmin ||
           owners.some((o) => o.organizationId === s.organizationId)
-            ? ["manage", "sell", "receive"]
+            ? organizations.find((o) => o.id === s.organizationId)?.kind ===
+              "wholesale"
+              ? ["manage", "receive"]
+              : ["manage", "sell", "receive"]
             : members
                 .find((m) => m.storeId === s.id)!
                 .permissions.filter(
@@ -153,14 +159,19 @@ export class WorkspaceService {
         "Vous ne pouvez pas créer un magasin dans cette organisation.",
         403,
       );
+      const group = await tx.organization.findUniqueOrThrow({
+        where: { id: input.organizationId },
+      });
       requireRule(
-        (
-          await tx.organization.findUniqueOrThrow({
-            where: { id: input.organizationId },
-          })
-        ).status === "active",
+        group.status === "active",
         "WORKSPACE_INACTIVE",
         "Réactivez le groupe avant d’ajouter un magasin.",
+        409,
+      );
+      requireRule(
+        group.kind === "retail",
+        "WHOLESALE_DEPOT",
+        "Un grossiste n’a qu’un dépôt, créé avec lui.",
         409,
       );
       const store = await tx.store.create({

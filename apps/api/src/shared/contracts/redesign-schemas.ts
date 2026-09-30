@@ -15,6 +15,7 @@ const totals = { netMillimes: decimal, netUnits: decimal, saleCount: decimal };
 const group = {
   id: uuid,
   name: str,
+  kind: { type: "string", enum: ["retail", "wholesale"] },
   createdAt: timestamp,
   imageId: nullable(uuid),
   phone: nullable(str),
@@ -188,6 +189,9 @@ export const redesignSchemas: Record<string, Schema> = {
     version: integer,
   }),
   ScopedOrder: obj({
+    supplierOrganizationId: nullable(uuid),
+    supplierStoreId: nullable(uuid),
+    supplierName: nullable(str),
     requestedLines: arr(obj({ productId: uuid, quantity: integer })),
     cancelledLines: arr(obj({ productId: uuid, quantity: integer })),
     id: uuid,
@@ -235,6 +239,9 @@ export const redesignSchemas: Record<string, Schema> = {
 };
 export function extendLegacySchemas(schemas: Record<string, Schema>) {
   Object.assign(schemas.Order!.properties, {
+    supplierOrganizationId: nullable(uuid),
+    supplierStoreId: nullable(uuid),
+    supplierName: nullable(str),
     openIssues: integer,
     requestedLines: arr(ref("OrderLine")),
     cancelledLines: arr(ref("OrderLine")),
@@ -247,6 +254,7 @@ export function extendLegacySchemas(schemas: Record<string, Schema>) {
       statusChangedBy: nullable(uuid),
     });
   Object.assign(schemas.Organization!.properties, {
+    kind: { type: "string", enum: ["retail", "wholesale"] },
     imageId: nullable(uuid),
     phone: nullable(str),
     version: integer,

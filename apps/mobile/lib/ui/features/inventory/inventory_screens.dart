@@ -445,7 +445,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
               productId: expected['productId'],
             ),
             subtitle:
-                '${expected['quantity']} attendues · ${plan.enteredUnits(expected['productId'])} saisies',
+                '${expected['quantity']} attendues · ${plan.enteredUnits(expected['productId'])} saisies${objects(expected['allocations']).isEmpty ? '' : '\nLots annoncés : ${objects(expected['allocations']).map((a) => '${a['batch']} (exp. ${TunisDates.dateOnlyLabel(a['expiry'])}) × ${a['quantity']}').join(', ')}'}',
             footer: TextButton.icon(
               onPressed: busy || !restored || missing
                   ? null

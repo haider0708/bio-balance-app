@@ -4,13 +4,17 @@ enum ScopeKind { network, group, store }
 
 class PartnerGroup {
   final String id, name, status;
+  // 'wholesale' marks a grossiste: one depot store and one responsible account.
+  final String kind;
   final String? imageId, phone;
   final int version, storeCount;
   final bool canManage;
+  bool get wholesale => kind == 'wholesale';
   const PartnerGroup({
     required this.id,
     required this.name,
     this.status = 'active',
+    this.kind = 'retail',
     this.imageId,
     this.phone,
     this.version = 1,
@@ -21,6 +25,7 @@ class PartnerGroup {
     id: v['id'],
     name: v['name'],
     status: v['status'] ?? 'active',
+    kind: v['kind'] ?? 'retail',
     imageId: v['imageId'],
     phone: v['phone'],
     version: integer(v['version'] ?? 1),
@@ -31,6 +36,7 @@ class PartnerGroup {
     'id': id,
     'name': name,
     'status': status,
+    'kind': kind,
     'imageId': imageId,
     'phone': phone,
     'version': version,

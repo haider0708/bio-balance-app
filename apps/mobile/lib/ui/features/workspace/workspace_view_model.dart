@@ -609,10 +609,16 @@ class WorkspaceViewModel extends ChangeNotifier {
     Json command, {
     int? expectedVersion,
     Store? targetStore,
+    String? supplierStoreId,
   }) async {
     final store = targetStore ?? state.store!;
     requireAccess(store);
-    await commands.submit(store, command, expectedVersion: expectedVersion);
+    await commands.submit(
+      store,
+      command,
+      expectedVersion: expectedVersion,
+      supplierStoreId: supplierStoreId,
+    );
     if (state.store?.id == store.id) await synchronize();
   }
 

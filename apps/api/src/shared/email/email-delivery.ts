@@ -147,7 +147,7 @@ export class EmailDeliveryService {
         organizationName,
         storeName,
         invitationKind: token.kind as
-          "new_group" | "responsible" | "salesperson" | null,
+          "new_group" | "responsible" | "salesperson" | "wholesaler" | null,
       });
     });
   }

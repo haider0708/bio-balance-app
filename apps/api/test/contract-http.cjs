@@ -558,6 +558,51 @@ const owner = new PrismaClient({
     await call("GET", `/v1/groups/${org}/lifecycle`,{as:adminToken});
     await call("POST", `/v1/groups/${org}/lifecycle`,{as:adminToken,body:{operationId:randomUUID(),expectedVersion:2,status:'suspended',reason:'Contract lifecycle check'}});
     await call("POST", `/v1/groups/${org}/lifecycle`,{as:adminToken,body:{operationId:randomUUID(),expectedVersion:3,status:'active',reason:'Contract lifecycle restored'}});
+    const wholesaler = await call("POST", "/v1/wholesalers", {
+      as: adminToken,
+      body: {
+        operationId: randomUUID(),
+        name: "Contract wholesaler",
+        email: `wholesaler-${randomUUID()}@example.test`,
+        address: "Zone industrielle",
+        city: "Sfax",
+      },
+    });
+    const wholesalers = await call("GET", "/v1/wholesalers", { as: adminToken });
+    assert(wholesalers.some((w) => w.id === wholesaler.id), "listed wholesaler");
+    const assignedOrder = randomUUID();
+    await owner.replenishmentOrder.create({
+      data: {
+        id: assignedOrder,
+        organizationId: org,
+        storeId: store,
+        status: "requested",
+        lines: [{ productId: product.id, quantity: 1 }],
+        requestedLines: [{ productId: product.id, quantity: 1 }],
+        createdBy: managerId,
+      },
+    });
+    await push(
+      envelope(
+        {
+          type: "order.assign",
+          orderId: assignedOrder,
+          supplierStoreId: wholesaler.storeId,
+        },
+        1,
+      ),
+      adminToken,
+    );
+    const supplierScope = `organizationId=${wholesaler.id}&storeId=${wholesaler.storeId}`;
+    const supplierOrders = await call(
+      "GET",
+      `/v1/supplier/orders?${supplierScope}&phase=all`,
+      { as: adminToken },
+    );
+    assert.equal(supplierOrders.items[0].supplierStoreId, wholesaler.storeId);
+    await call("GET", `/v1/supplier/orders/${assignedOrder}?${supplierScope}`, {
+      as: adminToken,
+    });
     await call("POST", "/v1/identity/logout");
     const missing = routes
       .map((r) => r.spec.operationId)

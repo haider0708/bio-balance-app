@@ -30,6 +30,7 @@ class Invitation {
     'new_group' => 'Responsable · création de groupe',
     'responsible' => 'Responsable · tout le groupe',
     'salesperson' => 'Vendeur · un magasin',
+    'wholesaler' => 'Grossiste · stock et livraisons',
     _ => 'Invitation existante',
   };
 }

@@ -1,4 +1,5 @@
 import '../team/invitations_screen.dart';
+import '../wholesale/wholesalers_screen.dart';
 import 'lifecycle_screen.dart';
 
 import 'package:flutter/material.dart';
@@ -66,6 +67,7 @@ class MorePage extends StatelessWidget {
   Widget contents(BuildContext context) {
     final store = vm.state.store;
     final group = scope?.scope.group;
+    final wholesale = store?.wholesale == true;
     final manage = store != null && (vm.user.admin || store.canManage);
     final groupManage = group != null && (vm.user.admin || group.canManage);
     return Content(
@@ -87,19 +89,20 @@ class MorePage extends StatelessWidget {
         const SizedBox(height: 12),
         if (store != null) ...[
           const SectionTitle('Activité du magasin'),
+          if (!wholesale)
+            link(
+              context,
+              'Ventes & corrections',
+              AppIcons.receiptLongOutlined,
+              SalesPage(vm: vm),
+            ),
           link(
             context,
-            'Ventes & corrections',
-            AppIcons.receiptLongOutlined,
-            SalesPage(vm: vm),
-          ),
-          link(
-            context,
-            'Récompenses & classement',
+            wholesale ? 'Points et récompenses' : 'Récompenses & classement',
             AppIcons.redeemOutlined,
             RewardsPage(vm: vm),
           ),
-          if (!vm.user.admin)
+          if (!vm.user.admin && !wholesale)
             link(
               context,
               'Formation',
@@ -108,57 +111,64 @@ class MorePage extends StatelessWidget {
             ),
         ],
         if (manage) ...[
-          link(
-            context,
-            'Envoyer une annonce',
-            AppIcons.campaignOutlined,
-            AnnouncementScreen(vm: vm),
-            fullScreen: true,
-          ),
+          if (!wholesale)
+            link(
+              context,
+              'Envoyer une annonce',
+              AppIcons.campaignOutlined,
+              AnnouncementScreen(vm: vm),
+              fullScreen: true,
+            ),
           const SizedBox(height: 20),
-          const SectionTitle('Configuration du magasin'),
-          link(
-            context,
-            'Paramètres du magasin',
-            AppIcons.storefrontOutlined,
-            StoreSettingsPage(vm: vm),
-            subtitle: 'Nature, nom, coordonnées et image',
+          SectionTitle(
+            wholesale ? 'Configuration du dépôt' : 'Configuration du magasin',
           ),
+          if (!wholesale)
+            link(
+              context,
+              'Paramètres du magasin',
+              AppIcons.storefrontOutlined,
+              StoreSettingsPage(vm: vm),
+              subtitle: 'Nature, nom, coordonnées et image',
+            ),
           link(
             context,
-            'Prix, points et seuils',
+            wholesale ? 'Seuils et points' : 'Prix, points et seuils',
             AppIcons.tuneOutlined,
             ProductSettingsPage(vm: vm),
           ),
-          link(
-            context,
-            'Équipe et accès',
-            AppIcons.groupsOutlined,
-            TeamPage(vm: vm),
-          ),
-          link(
-            context,
-            'Guide de configuration',
-            AppIcons.checklistOutlined,
-            OnboardingScreen(vm: vm),
-            fullScreen: true,
-          ),
+          if (!wholesale) ...[
+            link(
+              context,
+              'Équipe et accès',
+              AppIcons.groupsOutlined,
+              TeamPage(vm: vm),
+            ),
+            link(
+              context,
+              'Guide de configuration',
+              AppIcons.checklistOutlined,
+              OnboardingScreen(vm: vm),
+              fullScreen: true,
+            ),
+          ],
           const SizedBox(height: 20),
           const SectionTitle('Suivi'),
-          link(
-            context,
-            'Historique et exports',
-            AppIcons.assessmentOutlined,
-            ScopedSalesScreen(
-              workspace: vm,
-              scope: 'store',
-              period: DashboardPeriod.month(),
-              groupId: vm.state.store!.organizationId,
-              storeId: vm.state.store!.id,
-              title: vm.state.store!.name,
+          if (!wholesale)
+            link(
+              context,
+              'Historique et exports',
+              AppIcons.assessmentOutlined,
+              ScopedSalesScreen(
+                workspace: vm,
+                scope: 'store',
+                period: DashboardPeriod.month(),
+                groupId: vm.state.store!.organizationId,
+                storeId: vm.state.store!.id,
+                title: vm.state.store!.name,
+              ),
+              fullScreen: true,
             ),
-            fullScreen: true,
-          ),
           link(
             context,
             'Journal d’audit',
@@ -200,12 +210,13 @@ class MorePage extends StatelessWidget {
             icon: AppIcons.settingsOutlined,
             onTap: () => run(context, () => editGroup(context, scope!)),
           ),
-          link(
-            context,
-            'Équipe du groupe et invitations',
-            AppIcons.groupsOutlined,
-            GroupTeamPage(workspace: vm, group: group),
-          ),
+          if (!group.wholesale)
+            link(
+              context,
+              'Équipe du groupe et invitations',
+              AppIcons.groupsOutlined,
+              GroupTeamPage(workspace: vm, group: group),
+            ),
         ],
         if (vm.user.admin) ...[
           const SizedBox(height: 20),
@@ -230,6 +241,14 @@ class MorePage extends StatelessWidget {
             fullScreen: true,
             subtitle:
                 'Renvoyer, révoquer et suivre les invitations de responsables',
+          ),
+          link(
+            context,
+            'Grossistes',
+            AppIcons.localShippingOutlined,
+            WholesalersScreen(workspace: vm, scope: scope),
+            fullScreen: true,
+            subtitle: 'Créer un grossiste, son stock initial et son invitation',
           ),
           link(context, 'Catalogue', AppIcons.spaOutlined, CatalogPage(vm: vm)),
           link(
