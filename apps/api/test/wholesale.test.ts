@@ -733,8 +733,7 @@ describe("store orders handled by a grossiste", () => {
           )
         ).code,
       ).toBe("FORBIDDEN");
-      await accepted(
-        grossiste,
+      const resolve = (actor: Actor, supplier?: string) =>
         retail(
           {
             type: "delivery.resolve",
@@ -743,9 +742,15 @@ describe("store orders handled by a grossiste", () => {
             reason: "Réglé",
           },
           current.version,
-          depot,
-        ),
-      );
+          supplier,
+        );
+      if (resolution === "returned") {
+        // A return is decided by BioBalance alone, after inspection.
+        expect(
+          (await service.submit(grossiste, resolve(grossiste, depot))).code,
+        ).toBe("FORBIDDEN");
+        await accepted(admin, resolve(admin));
+      } else await accepted(grossiste, resolve(grossiste, depot));
       return { before, after: await stock(depot, lot(depot, product, "A")) };
     };
     const back = await run(returnedOrder, returned, "returned");

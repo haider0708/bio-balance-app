@@ -488,41 +488,182 @@ export class OperationsService {
       await ledger.alerts([...affected]);
       return { id: op.operationId };
     }
-    if (cmd.type === "stock.adjust" || cmd.type === "stock.damage") {
+    if (cmd.type === "stock.adjust") {
       this.allow(ledger, "manage");
       const lot = await ledger.lot(cmd.lotId);
       this.version(lot.version, op.expectedVersion);
-      if (cmd.type === "stock.damage") {
-        requireRule(
-          lot.sellable >= cmd.quantity,
-          "INSUFFICIENT_STOCK",
-          "Stock insuffisant pour cette sortie.",
-        );
-        await ledger.move(
-          lot.id,
-          -cmd.quantity,
-          op.operationId,
-          op.operationId,
-          cmd.reason,
-        );
-        await ledger.move(
-          lot.id,
-          cmd.quantity,
-          op.operationId,
-          op.operationId,
-          "damage",
-          "damaged",
-        );
-      } else
-        await ledger.move(
-          lot.id,
-          cmd.quantity - lot.sellable,
-          op.operationId,
-          op.operationId,
-          `adjustment: ${cmd.reason}`,
-        );
+      await ledger.move(
+        lot.id,
+        cmd.quantity - lot.sellable,
+        op.operationId,
+        op.operationId,
+        `adjustment: ${cmd.reason}`,
+      );
       await ledger.alerts([lot.productId]);
       return { id: lot.id };
+    }
+    // Damaged or expired goods leave sellable stock at once and wait for BioBalance.
+    if (cmd.type === "stock.damage" || cmd.type === "quality.flag") {
+      this.allow(ledger, "manage");
+      const lot = await ledger.lot(cmd.lotId);
+      this.version(lot.version, op.expectedVersion);
+      const flagId = cmd.type === "quality.flag" ? cmd.flagId : op.operationId;
+      const kind = cmd.type === "quality.flag" ? cmd.kind : "damaged";
+      const note =
+        (cmd.type === "quality.flag" ? cmd.note : cmd.reason)?.trim() ?? "";
+      requireRule(
+        lot.sellable >= cmd.quantity,
+        "INSUFFICIENT_STOCK",
+        "Stock insuffisant pour cette sortie.",
+      );
+      requireRule(
+        kind !== "expired" ||
+          lot.expiry.toISOString().slice(0, 10) <
+            localDate(new Date(), ledger.scope.timezone),
+        "NOT_EXPIRED",
+        "Ce lot n’est pas encore périmé.",
+      );
+      requireRule(
+        kind !== "damaged" || note.length >= 3,
+        "MISSING_NOTE",
+        "Décrivez le dommage constaté.",
+      );
+      await ledger.move(
+        lot.id,
+        -cmd.quantity,
+        flagId,
+        op.operationId,
+        note || `Non-conformité : ${kind}`,
+      );
+      await ledger.move(
+        lot.id,
+        cmd.quantity,
+        flagId,
+        op.operationId,
+        "damage",
+        "damaged",
+      );
+      const source = await ledger.lotSource(lot.id);
+      await ledger.saveFlag({
+        id: flagId,
+        lotId: lot.id,
+        batch: lot.batch,
+        expiry: lot.expiry.toISOString().slice(0, 10),
+        productId: lot.productId,
+        quantity: cmd.quantity,
+        kind,
+        note: note || null,
+        status: "open",
+        flaggedBy: actor.id,
+        decidedBy: null,
+        decidedAt: null,
+        decisionNote: null,
+        sourceDeliveryId: source?.deliveryId ?? null,
+        sourceTicket: source?.ticketNumber ?? null,
+        valueMillimes: null,
+        operationId: op.operationId,
+        version: 1,
+      });
+      await ledger.alerts([lot.productId]);
+      await ledger.notify(
+        op.operationId,
+        "Produit non conforme à inspecter",
+        `${cmd.quantity} unité(s) ${kind === "expired" ? "périmée(s)" : "abîmée(s)"}, lot ${lot.batch}. BioBalance décide de la suite.`,
+      );
+      return { id: flagId, version: 1 };
+    }
+    if (cmd.type === "quality.resolve") {
+      requireRule(
+        actor.platformAdmin,
+        "FORBIDDEN",
+        "Seul BioBalance décide de la suite d’un produit non conforme.",
+        403,
+      );
+      const flag = await ledger.flag(cmd.flagId);
+      this.version(flag.version, op.expectedVersion);
+      requireRule(
+        flag.status === "open",
+        "FLAG_DECIDED",
+        "Ce signalement a déjà été décidé.",
+        409,
+      );
+      const lot = await ledger.lot(flag.lotId);
+      requireRule(
+        lot.damaged >= flag.quantity,
+        "FLAG_STOCK_CHANGED",
+        "Les unités signalées ne sont plus en stock non vendable.",
+        409,
+      );
+      let value: bigint | null = null;
+      if (cmd.decision === "confirm") {
+        // The loss is valued at the price fixed on the delivery the goods came with.
+        const source = flag.sourceDeliveryId
+          ? await ledger.delivery(flag.sourceDeliveryId).catch(() => null)
+          : null;
+        const fixed = source?.lines.find(
+          (l) => l.productId === flag.productId,
+        )?.unitPriceMillimes;
+        const price =
+          fixed != null
+            ? BigInt(fixed)
+            : (await ledger.supplyPrices([flag.productId])).get(flag.productId);
+        value = price === undefined ? null : price * BigInt(flag.quantity);
+        await ledger.move(
+          lot.id,
+          -flag.quantity,
+          flag.id,
+          op.operationId,
+          "quality.writeoff",
+          "damaged",
+        );
+      } else {
+        // An expired product is never put back on sale.
+        requireRule(
+          flag.kind === "damaged" &&
+            lot.expiry.toISOString().slice(0, 10) >=
+              localDate(new Date(), ledger.scope.timezone),
+          "EXPIRED_NOT_RELEASABLE",
+          "Un produit périmé ne peut pas être remis en vente.",
+          409,
+        );
+        await ledger.move(
+          lot.id,
+          -flag.quantity,
+          flag.id,
+          op.operationId,
+          "quality.release",
+          "damaged",
+        );
+        await ledger.move(
+          lot.id,
+          flag.quantity,
+          flag.id,
+          op.operationId,
+          "quality.release",
+        );
+      }
+      await ledger.decideFlag({
+        ...flag,
+        status: cmd.decision === "confirm" ? "confirmed" : "rejected",
+        decidedBy: actor.id,
+        decidedAt: new Date(),
+        decisionNote: cmd.note,
+        valueMillimes: value,
+        version: flag.version + 1,
+      });
+      await ledger.alerts([flag.productId]);
+      await ledger.notify(
+        op.operationId,
+        cmd.decision === "confirm"
+          ? "Produit non conforme retiré du stock"
+          : "Produit remis en vente",
+        cmd.note,
+      );
+      return {
+        id: flag.id,
+        version: flag.version + 1,
+        status: cmd.decision === "confirm" ? "confirmed" : "rejected",
+      };
     }
     if (cmd.type === "order.create") {
       this.allow(ledger, "manage");
@@ -720,6 +861,13 @@ export class OperationsService {
         );
         if (cmd.decision === "lost" || cmd.decision === "returned")
           delivery.status = cmd.decision;
+        // A return is decided by BioBalance alone, after inspection.
+        requireRule(
+          cmd.decision !== "returned" || actor.platformAdmin,
+          "FORBIDDEN",
+          "Seul BioBalance décide d’un retour, après inspection.",
+          403,
+        );
         // Returned goods go back to the depot's lots; lost goods do not.
         if (cmd.decision === "returned" && delivery.sourceStoreId)
           await this.restoreDepotStock(ledger, delivery, op.operationId);

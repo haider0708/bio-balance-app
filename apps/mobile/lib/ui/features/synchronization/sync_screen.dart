@@ -20,6 +20,7 @@ String operationLabel(String type) =>
       'stock.receive': 'Entrée de stock',
       'stock.adjust': 'Inventaire',
       'stock.damage': 'Produits endommagés',
+      'quality.flag': 'Produit non conforme',
       'delivery.receive': 'Réception de livraison',
     }[type] ??
     'Opération du magasin';

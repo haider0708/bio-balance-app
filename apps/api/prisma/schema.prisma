@@ -603,3 +603,30 @@ model PointsRateVersion {
   createdAt DateTime @default(now())
   @@index([storeId,productId,createdAt(sort: Desc)], map: "PointsRateVersion_lookup")
 }
+
+// Damaged or expired goods flagged by a store or depot and decided by BioBalance.
+model QualityFlag {
+  id String @id @db.Uuid
+  organizationId String @db.Uuid
+  storeId String @db.Uuid
+  lotId String @db.Uuid
+  batch String
+  expiry DateTime @db.Date
+  productId String @db.Uuid
+  quantity Int
+  kind String
+  note String?
+  status String @default("open")
+  flaggedBy String @db.Uuid
+  flaggedAt DateTime @default(now())
+  decidedBy String? @db.Uuid
+  decidedAt DateTime?
+  decisionNote String?
+  sourceDeliveryId String? @db.Uuid
+  sourceTicket String?
+  valueMillimes BigInt?
+  operationId String @db.Uuid
+  version Int @default(1)
+  @@index([storeId,status,flaggedAt(sort: Desc)], map: "QualityFlag_store_status")
+  @@index([organizationId,status,flaggedAt(sort: Desc)], map: "QualityFlag_group_status")
+}

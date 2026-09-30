@@ -33,6 +33,10 @@ import {
   TicketController,
   TicketService,
 } from "./modules/operations/http/ticket.controller";
+import {
+  QualityController,
+  QualityService,
+} from "./modules/operations/http/quality.controller";
 import { PricingService } from "./modules/pricing/pricing.service";
 import { PricingController } from "./modules/pricing/pricing.controller";
 import { WholesaleService } from "./modules/wholesale/wholesale.service";
@@ -48,6 +52,7 @@ class HealthController {
 }
 @Module({
   controllers: [
+    QualityController,
     TicketController,
     PricingController,
     WholesaleController,
@@ -66,6 +71,7 @@ class HealthController {
     ReportingController,
   ],
   providers: [
+    QualityService,
     TicketService,
     PricingService,
     WholesaleService,

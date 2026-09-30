@@ -572,6 +572,36 @@ wireSchemas.DeliveryTicket = obj({
   ),
   totalMillimes: nullable(decimal),
 });
+wireSchemas.QualityFlag = obj({
+  id: uuid,
+  organizationId: uuid,
+  storeId: uuid,
+  storeName: str,
+  groupName: str,
+  lotId: uuid,
+  batch: str,
+  expiry: str,
+  productId: uuid,
+  productName: str,
+  quantity: integer,
+  kind: { type: "string", enum: ["damaged", "expired"] },
+  note: nullable(str),
+  status: { type: "string", enum: ["open", "confirmed", "rejected"] },
+  flaggedBy: uuid,
+  flaggerName: nullable(str),
+  flaggedAt: timestamp,
+  decidedBy: nullable(uuid),
+  deciderName: nullable(str),
+  decidedAt: nullable(timestamp),
+  decisionNote: nullable(str),
+  sourceDeliveryId: nullable(uuid),
+  sourceTicket: nullable(str),
+  supplierName: nullable(str),
+  // The loss, valued at the price fixed on the delivery; set once decided.
+  valueMillimes: nullable(decimal),
+  version: integer,
+});
+wireSchemas.QualityFlagPage = obj({ items: arr(ref("QualityFlag")) });
 wireSchemas.Wholesaler = obj({
   id: uuid,
   storeId: uuid,

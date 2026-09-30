@@ -10,6 +10,7 @@ import {
   DeliveryRecord,
   OperationResult,
   DeliveryIssueRecord,
+  FlagRecord,
 } from "../domain/contracts";
 import { FulfillmentLine } from "../domain/order-fulfillment";
 export interface Ledger {
@@ -103,6 +104,13 @@ export interface Ledger {
     operationId: string,
     proof: { scanned: boolean; manualReason?: string },
   ): Promise<void>;
+  saveFlag(flag: FlagRecord): Promise<void>;
+  flag(id: string): Promise<FlagRecord>;
+  decideFlag(flag: FlagRecord): Promise<void>;
+  /** The delivery that last brought a lot into this store or depot. */
+  lotSource(
+    lotId: string,
+  ): Promise<{ deliveryId: string; ticketNumber: string } | null>;
   /** The price each product is ordered at: wholesale for a depot, else supply. */
   supplyPrices(productIds: string[]): Promise<Map<string, bigint>>;
   /** The next delivery ticket number, BL-YYYY-NNNNNN. */

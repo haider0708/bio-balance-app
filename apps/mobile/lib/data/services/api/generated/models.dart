@@ -3147,6 +3147,164 @@ final class DeliveryTicketDto {
   };
 }
 
+final class QualityFlagDto {
+  final Set<String> _presentFields;
+  Set<String> get presentFields => _presentFields;
+  final String id;
+  final String organizationId;
+  final String storeId;
+  final String storeName;
+  final String groupName;
+  final String lotId;
+  final String batch;
+  final String expiry;
+  final String productId;
+  final String productName;
+  final int quantity;
+  final String kind;
+  final String? note;
+  final String status;
+  final String flaggedBy;
+  final String? flaggerName;
+  final String flaggedAt;
+  final String? decidedBy;
+  final String? deciderName;
+  final String? decidedAt;
+  final String? decisionNote;
+  final String? sourceDeliveryId;
+  final String? sourceTicket;
+  final String? supplierName;
+  final String? valueMillimes;
+  final int version;
+  QualityFlagDto({
+    Set<String> presentFields = const {},
+    required this.id,
+    required this.organizationId,
+    required this.storeId,
+    required this.storeName,
+    required this.groupName,
+    required this.lotId,
+    required this.batch,
+    required this.expiry,
+    required this.productId,
+    required this.productName,
+    required this.quantity,
+    required this.kind,
+    required this.note,
+    required this.status,
+    required this.flaggedBy,
+    required this.flaggerName,
+    required this.flaggedAt,
+    required this.decidedBy,
+    required this.deciderName,
+    required this.decidedAt,
+    required this.decisionNote,
+    required this.sourceDeliveryId,
+    required this.sourceTicket,
+    required this.supplierName,
+    required this.valueMillimes,
+    required this.version,
+  }) : _presentFields = Set.unmodifiable(presentFields);
+  factory QualityFlagDto.fromJson(Map<String, dynamic> json) {
+    return QualityFlagDto(
+      presentFields: json.keys.toSet(),
+      id: json["id"] as String,
+      organizationId: json["organizationId"] as String,
+      storeId: json["storeId"] as String,
+      storeName: json["storeName"] as String,
+      groupName: json["groupName"] as String,
+      lotId: json["lotId"] as String,
+      batch: json["batch"] as String,
+      expiry: json["expiry"] as String,
+      productId: json["productId"] as String,
+      productName: json["productName"] as String,
+      quantity: wireInteger(json["quantity"]),
+      kind: json["kind"] as String,
+      note: json["note"] == null ? null : json["note"] as String,
+      status: json["status"] as String,
+      flaggedBy: json["flaggedBy"] as String,
+      flaggerName: json["flaggerName"] == null
+          ? null
+          : json["flaggerName"] as String,
+      flaggedAt: json["flaggedAt"] as String,
+      decidedBy: json["decidedBy"] == null ? null : json["decidedBy"] as String,
+      deciderName: json["deciderName"] == null
+          ? null
+          : json["deciderName"] as String,
+      decidedAt: json["decidedAt"] == null ? null : json["decidedAt"] as String,
+      decisionNote: json["decisionNote"] == null
+          ? null
+          : json["decisionNote"] as String,
+      sourceDeliveryId: json["sourceDeliveryId"] == null
+          ? null
+          : json["sourceDeliveryId"] as String,
+      sourceTicket: json["sourceTicket"] == null
+          ? null
+          : json["sourceTicket"] as String,
+      supplierName: json["supplierName"] == null
+          ? null
+          : json["supplierName"] as String,
+      valueMillimes: json["valueMillimes"] == null
+          ? null
+          : json["valueMillimes"] as String,
+      version: wireInteger(json["version"]),
+    );
+  }
+  Map<String, dynamic> toJson() => {
+    "id": id,
+    "organizationId": organizationId,
+    "storeId": storeId,
+    "storeName": storeName,
+    "groupName": groupName,
+    "lotId": lotId,
+    "batch": batch,
+    "expiry": expiry,
+    "productId": productId,
+    "productName": productName,
+    "quantity": quantity,
+    "kind": kind,
+    "note": note,
+    "status": status,
+    "flaggedBy": flaggedBy,
+    "flaggerName": flaggerName,
+    "flaggedAt": flaggedAt,
+    "decidedBy": decidedBy,
+    "deciderName": deciderName,
+    "decidedAt": decidedAt,
+    "decisionNote": decisionNote,
+    "sourceDeliveryId": sourceDeliveryId,
+    "sourceTicket": sourceTicket,
+    "supplierName": supplierName,
+    "valueMillimes": valueMillimes,
+    "version": version,
+  };
+}
+
+final class QualityFlagPageDto {
+  final Set<String> _presentFields;
+  Set<String> get presentFields => _presentFields;
+  final List<QualityFlagDto> items;
+  QualityFlagPageDto({
+    Set<String> presentFields = const {},
+    required List<QualityFlagDto> items,
+  }) : _presentFields = Set.unmodifiable(presentFields),
+       items = List.unmodifiable(items);
+  factory QualityFlagPageDto.fromJson(Map<String, dynamic> json) {
+    return QualityFlagPageDto(
+      presentFields: json.keys.toSet(),
+      items: List.unmodifiable(
+        (json["items"] as List).map(
+          (item) =>
+              QualityFlagDto.fromJson(Map<String, dynamic>.from(item as Map)),
+        ),
+      ),
+    );
+  }
+  Map<String, dynamic> toJson() => {
+    "items": items.map((item) => item.toJson()).toList(),
+  };
+}
+
 final class WholesalerDto {
   final Set<String> _presentFields;
   Set<String> get presentFields => _presentFields;
@@ -4713,6 +4871,12 @@ sealed class CommandDto {
     if (matchesWire(json, "CommandStockAdjust")) {
       return CommandStockAdjustDto.fromJson(json as Map<String, dynamic>);
     }
+    if (matchesWire(json, "CommandQualityFlag")) {
+      return CommandQualityFlagDto.fromJson(json as Map<String, dynamic>);
+    }
+    if (matchesWire(json, "CommandQualityResolve")) {
+      return CommandQualityResolveDto.fromJson(json as Map<String, dynamic>);
+    }
     if (matchesWire(json, "CommandStockDamage")) {
       return CommandStockDamageDto.fromJson(json as Map<String, dynamic>);
     }
@@ -4863,6 +5027,7 @@ sealed class CatalogImportResultDto {
   Object? toJson();
 }
 
+typedef QualityListResponseDto = QualityFlagPageDto;
 typedef TicketGetResponseDto = DeliveryTicketDto;
 typedef PricingCurrentResponseDto = CurrentPricesDto;
 typedef PricingHistoryResponseDto = PriceHistoryDto;
@@ -7501,6 +7666,80 @@ final class CommandStockAdjustDto implements CommandDto {
     "lotId": lotId,
     "quantity": quantity,
     "reason": reason,
+  };
+}
+
+final class CommandQualityFlagDto implements CommandDto {
+  final Set<String> _presentFields;
+  Set<String> get presentFields => _presentFields;
+  String get type => "quality.flag";
+  final String flagId;
+  final String lotId;
+  final int quantity;
+  final String kind;
+  final String? note;
+  CommandQualityFlagDto({
+    Set<String> presentFields = const {},
+    required this.flagId,
+    required this.lotId,
+    required this.quantity,
+    required this.kind,
+    this.note,
+  }) : _presentFields = Set.unmodifiable(presentFields);
+  factory CommandQualityFlagDto.fromJson(Map<String, dynamic> json) {
+    if (json["type"] != "quality.flag") {
+      throw const FormatException("Invalid CommandQualityFlag type");
+    }
+    return CommandQualityFlagDto(
+      presentFields: json.keys.toSet(),
+      flagId: json["flagId"] as String,
+      lotId: json["lotId"] as String,
+      quantity: wireInteger(json["quantity"]),
+      kind: json["kind"] as String,
+      note: json["note"] == null ? null : json["note"] as String,
+    );
+  }
+  @override
+  Map<String, dynamic> toJson() => {
+    "type": "quality.flag",
+    "flagId": flagId,
+    "lotId": lotId,
+    "quantity": quantity,
+    "kind": kind,
+    if (note != null || _presentFields.contains("note")) "note": note,
+  };
+}
+
+final class CommandQualityResolveDto implements CommandDto {
+  final Set<String> _presentFields;
+  Set<String> get presentFields => _presentFields;
+  String get type => "quality.resolve";
+  final String flagId;
+  final String decision;
+  final String note;
+  CommandQualityResolveDto({
+    Set<String> presentFields = const {},
+    required this.flagId,
+    required this.decision,
+    required this.note,
+  }) : _presentFields = Set.unmodifiable(presentFields);
+  factory CommandQualityResolveDto.fromJson(Map<String, dynamic> json) {
+    if (json["type"] != "quality.resolve") {
+      throw const FormatException("Invalid CommandQualityResolve type");
+    }
+    return CommandQualityResolveDto(
+      presentFields: json.keys.toSet(),
+      flagId: json["flagId"] as String,
+      decision: json["decision"] as String,
+      note: json["note"] as String,
+    );
+  }
+  @override
+  Map<String, dynamic> toJson() => {
+    "type": "quality.resolve",
+    "flagId": flagId,
+    "decision": decision,
+    "note": note,
   };
 }
 

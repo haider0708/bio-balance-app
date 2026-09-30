@@ -577,6 +577,8 @@ const owner = new PrismaClient({
     await call("GET", `/v1/prices/history?productId=${product.id}`, {
       as: adminToken,
     });
+    await call("GET", `/v1/quality-flags?organizationId=${org}&storeId=${store}&status=all`);
+    await call("GET", "/v1/quality-flags?status=all", { as: adminToken });
     const wholesaler = await call("POST", "/v1/wholesalers", {
       as: adminToken,
       body: {

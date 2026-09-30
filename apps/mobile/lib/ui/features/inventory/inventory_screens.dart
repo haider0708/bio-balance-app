@@ -6,6 +6,8 @@ import '../../../domain/models/receipt_plan.dart';
 
 import 'dart:async';
 
+import 'package:uuid/uuid.dart';
+
 import 'package:flutter/material.dart';
 
 import '../reporting/history_screen.dart';
@@ -265,8 +267,12 @@ class ProductDetail extends StatelessWidget {
                       child: const Text('Ajuster'),
                     ),
                     TextButton(
-                      onPressed: () => adjust(context, lot, true),
-                      child: const Text('Signaler des dommages'),
+                      onPressed: () => flag(context, lot),
+                      child: Text(
+                        lot.expired && lot.sellable > 0
+                            ? 'Signaler comme périmé'
+                            : 'Signaler non conforme',
+                      ),
                     ),
                   ],
                 ),
@@ -279,6 +285,60 @@ class ProductDetail extends StatelessWidget {
   );
   Future<void> configure(BuildContext context) =>
       configureStoreProduct(context, vm, product);
+
+  /// Damaged or expired goods: held out of sale at once, then BioBalance decides.
+  Future<void> flag(BuildContext context, InventoryLot lot) async {
+    final store = vm.state.store!;
+    final expired = lot.expired && lot.sellable > 0;
+    // One flag per form: a retry never flags the same units twice.
+    final flagId = const Uuid().v4();
+    await openEditor(
+      context,
+      draftKey: 'quality:${lot.id}',
+      title: expired
+          ? 'Signaler un lot périmé'
+          : 'Signaler un produit non conforme',
+      description:
+          '${vm.productName(lot.productId)} · Lot ${lot.batch}. Les unités sortent du stock vendable tout de suite ; BioBalance décide ensuite de leur sort.',
+      fields: [
+        if (expired)
+          const FieldSpec(
+            'kind',
+            'Motif',
+            initial: 'expired',
+            options: {'expired': 'Périmé', 'damaged': 'Abîmé'},
+            choice: true,
+          ),
+        FieldSpec(
+          'quantity',
+          'Unités concernées',
+          initial: expired ? '${lot.sellable}' : '',
+          numeric: true,
+        ),
+        FieldSpec(
+          'note',
+          expired ? 'Remarque (facultatif)' : 'Décrivez le dommage constaté',
+          required: !expired,
+        ),
+      ],
+      submitWithDraft: (v, draftKey) async {
+        final note = (v['note'] ?? '').trim();
+        await vm.queue(
+          {
+            'type': 'quality.flag',
+            'flagId': flagId,
+            'lotId': lot.id,
+            'quantity': whole(v['quantity']!),
+            'kind': expired ? (v['kind'] ?? 'expired') : 'damaged',
+            if (note.isNotEmpty) 'note': note,
+          },
+          expectedVersion: lot.version,
+          targetStore: store,
+          draftKey: draftKey,
+        );
+      },
+    );
+  }
 
   Future<void> adjust(
     BuildContext context,

@@ -14,6 +14,7 @@ import {
   OrderRecord,
   DeliveryRecord,
   OperationResult,
+  FlagRecord,
 } from "../domain/contracts";
 import { UnitOfWork, Ledger } from "../application/ports";
 import { latestPrices, withPriceAccess } from "../../pricing/pricing.service";
@@ -680,6 +681,63 @@ export class PrismaLedger implements Ledger {
         resolvedAt: issue.status === "resolved" ? new Date() : null,
       },
     });
+  }
+  async saveFlag(flag: FlagRecord) {
+    await this.tx.qualityFlag.create({
+      data: {
+        ...this.context,
+        id: flag.id,
+        lotId: flag.lotId,
+        batch: flag.batch,
+        expiry: new Date(`${flag.expiry}T00:00:00Z`),
+        productId: flag.productId,
+        quantity: flag.quantity,
+        kind: flag.kind,
+        note: flag.note,
+        flaggedBy: flag.flaggedBy,
+        sourceDeliveryId: flag.sourceDeliveryId,
+        sourceTicket: flag.sourceTicket,
+        operationId: flag.operationId,
+      },
+    });
+  }
+  async flag(id: string): Promise<FlagRecord> {
+    const row = await this.tx.qualityFlag.findFirst({
+      where: { id, ...this.context },
+    });
+    requireRule(row, "NOT_FOUND", "Signalement introuvable.", 404);
+    return {
+      ...row,
+      expiry: row.expiry.toISOString().slice(0, 10),
+      kind: row.kind as FlagRecord["kind"],
+      status: row.status as FlagRecord["status"],
+    };
+  }
+  async decideFlag(flag: FlagRecord) {
+    await this.tx.qualityFlag.update({
+      where: { id: flag.id },
+      data: {
+        status: flag.status,
+        decidedBy: flag.decidedBy,
+        decidedAt: flag.decidedAt,
+        decisionNote: flag.decisionNote,
+        valueMillimes: flag.valueMillimes,
+        version: flag.version,
+      },
+    });
+  }
+  async lotSource(lotId: string) {
+    const movement = await this.tx.stockMovement.findFirst({
+      where: { ...this.context, lotId, reason: "delivery.receive" },
+      orderBy: { createdAt: "desc" },
+    });
+    if (!movement) return null;
+    const delivery = await this.tx.delivery.findFirst({
+      where: { id: movement.sourceId, ...this.context },
+    });
+    return delivery
+      ? { deliveryId: delivery.id, ticketNumber: delivery.ticketNumber }
+      : null;
   }
   async supplyPrices(productIds: string[]) {
     if (!productIds.length) return new Map<string, bigint>();

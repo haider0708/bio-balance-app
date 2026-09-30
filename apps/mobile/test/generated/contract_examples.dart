@@ -5,6 +5,12 @@ Object? decodeResponse(
   String operationId,
   Object? value,
 ) => switch (operationId) {
+  "QualityList" => (() {
+    final decoded = QualityListResponseDto.fromJson(
+      Map<String, dynamic>.from(value as Map),
+    );
+    return decoded.toJson();
+  })(),
   "TicketGet" => (() {
     final decoded = TicketGetResponseDto.fromJson(
       Map<String, dynamic>.from(value as Map),

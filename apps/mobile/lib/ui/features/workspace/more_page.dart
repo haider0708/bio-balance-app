@@ -1,5 +1,6 @@
 import '../team/invitations_screen.dart';
 import '../wholesale/wholesalers_screen.dart';
+import '../quality/quality_flags_screen.dart';
 import 'lifecycle_screen.dart';
 
 import 'package:flutter/material.dart';
@@ -111,6 +112,14 @@ class MorePage extends StatelessWidget {
             ),
         ],
         if (manage) ...[
+          link(
+            context,
+            'Produits non conformes',
+            AppIcons.infoOutline,
+            QualityFlagsScreen(vm: vm, store: store),
+            fullScreen: true,
+            subtitle: 'Produits abîmés ou périmés signalés et décisions de BioBalance',
+          ),
           if (!wholesale)
             link(
               context,
@@ -241,6 +250,14 @@ class MorePage extends StatelessWidget {
             fullScreen: true,
             subtitle:
                 'Renvoyer, révoquer et suivre les invitations de responsables',
+          ),
+          link(
+            context,
+            'Non-conformités du réseau',
+            AppIcons.infoOutline,
+            QualityFlagsScreen(vm: vm, title: 'Non-conformités du réseau'),
+            fullScreen: true,
+            subtitle: 'Signalements de tous les magasins et dépôts à inspecter',
           ),
           link(
             context,

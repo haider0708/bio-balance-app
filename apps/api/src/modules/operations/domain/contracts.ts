@@ -90,6 +90,24 @@ export const commandSchema = z.discriminatedUnion("type", [
     .strict(),
   z
     .object({
+      type: z.literal("quality.flag"),
+      flagId: id,
+      lotId: id,
+      quantity,
+      kind: z.enum(["damaged", "expired"]),
+      note: z.string().trim().max(500).optional(),
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal("quality.resolve"),
+      flagId: id,
+      decision: z.enum(["confirm", "reject"]),
+      note: z.string().trim().min(3).max(500),
+    })
+    .strict(),
+  z
+    .object({
       type: z.literal("stock.damage"),
       lotId: id,
       quantity,
@@ -272,6 +290,26 @@ export interface ClaimRecord extends Omit<RewardRecord, "id" | "active"> {
   rewardId: string;
   userId: string;
   status: string;
+  version: number;
+}
+export interface FlagRecord {
+  id: string;
+  lotId: string;
+  batch: string;
+  expiry: string;
+  productId: string;
+  quantity: number;
+  kind: "damaged" | "expired";
+  note: string | null;
+  status: "open" | "confirmed" | "rejected";
+  flaggedBy: string;
+  decidedBy: string | null;
+  decidedAt: Date | null;
+  decisionNote: string | null;
+  sourceDeliveryId: string | null;
+  sourceTicket: string | null;
+  valueMillimes: bigint | null;
+  operationId: string;
   version: number;
 }
 export interface OrderLineRecord {

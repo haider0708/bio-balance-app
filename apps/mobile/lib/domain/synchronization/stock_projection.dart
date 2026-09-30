@@ -126,11 +126,13 @@ class StockProjection {
           ),
         );
       }
-    } else if (type == 'stock.damage' || type == 'stock.adjust') {
+    } else if (type == 'stock.damage' ||
+        type == 'quality.flag' ||
+        type == 'stock.adjust') {
       final id = command['lotId'] as String;
       final lot = data?.list('lots').where((l) => l['id'] == id).firstOrNull;
       final quantity = integer(command['quantity']);
-      if (type == 'stock.damage') {
+      if (type == 'stock.damage' || type == 'quality.flag') {
         if (lot != null && integer(lot['sellable']) < quantity) {
           throw const AppFailure(
             'INSUFFICIENT_STOCK',

@@ -27,6 +27,25 @@ class ApiClient extends SessionTransport {
   Future<Map<String, dynamic>> push(
     List<Map<String, dynamic>> operations,
   ) async => (await pushRaw(operations)).toJson();
+  Future<QualityListResponseDto> qualityList({
+    String? organizationId,
+    String? storeId,
+    String? status,
+  }) async {
+    final value = await request(
+      'GET',
+      '/v1/quality-flags',
+      query: {
+        "organizationId": ?organizationId,
+        "storeId": ?storeId,
+        "status": ?status,
+      },
+    );
+    return QualityListResponseDto.fromJson(
+      Map<String, dynamic>.from(value as Map),
+    );
+  }
+
   Future<TicketGetResponseDto> ticketGet({
     String? organizationId,
     String? supplierStoreId,

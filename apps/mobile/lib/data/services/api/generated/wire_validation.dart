@@ -1765,6 +1765,133 @@ const Map<String, Map<String, dynamic>> _schemas = {
     ],
     "additionalProperties": false,
   },
+  "QualityFlag": {
+    "type": "object",
+    "properties": {
+      "id": {"type": "string", "format": "uuid"},
+      "organizationId": {"type": "string", "format": "uuid"},
+      "storeId": {"type": "string", "format": "uuid"},
+      "storeName": {"type": "string"},
+      "groupName": {"type": "string"},
+      "lotId": {"type": "string", "format": "uuid"},
+      "batch": {"type": "string"},
+      "expiry": {"type": "string"},
+      "productId": {"type": "string", "format": "uuid"},
+      "productName": {"type": "string"},
+      "quantity": {"type": "integer"},
+      "kind": {
+        "type": "string",
+        "enum": ["damaged", "expired"],
+      },
+      "note": {
+        "anyOf": [
+          {"type": "string"},
+          {"type": "null"},
+        ],
+      },
+      "status": {
+        "type": "string",
+        "enum": ["open", "confirmed", "rejected"],
+      },
+      "flaggedBy": {"type": "string", "format": "uuid"},
+      "flaggerName": {
+        "anyOf": [
+          {"type": "string"},
+          {"type": "null"},
+        ],
+      },
+      "flaggedAt": {"type": "string", "format": "date-time"},
+      "decidedBy": {
+        "anyOf": [
+          {"type": "string", "format": "uuid"},
+          {"type": "null"},
+        ],
+      },
+      "deciderName": {
+        "anyOf": [
+          {"type": "string"},
+          {"type": "null"},
+        ],
+      },
+      "decidedAt": {
+        "anyOf": [
+          {"type": "string", "format": "date-time"},
+          {"type": "null"},
+        ],
+      },
+      "decisionNote": {
+        "anyOf": [
+          {"type": "string"},
+          {"type": "null"},
+        ],
+      },
+      "sourceDeliveryId": {
+        "anyOf": [
+          {"type": "string", "format": "uuid"},
+          {"type": "null"},
+        ],
+      },
+      "sourceTicket": {
+        "anyOf": [
+          {"type": "string"},
+          {"type": "null"},
+        ],
+      },
+      "supplierName": {
+        "anyOf": [
+          {"type": "string"},
+          {"type": "null"},
+        ],
+      },
+      "valueMillimes": {
+        "anyOf": [
+          {"type": "string", "pattern": "^-?[0-9]+\$"},
+          {"type": "null"},
+        ],
+      },
+      "version": {"type": "integer"},
+    },
+    "required": [
+      "id",
+      "organizationId",
+      "storeId",
+      "storeName",
+      "groupName",
+      "lotId",
+      "batch",
+      "expiry",
+      "productId",
+      "productName",
+      "quantity",
+      "kind",
+      "note",
+      "status",
+      "flaggedBy",
+      "flaggerName",
+      "flaggedAt",
+      "decidedBy",
+      "deciderName",
+      "decidedAt",
+      "decisionNote",
+      "sourceDeliveryId",
+      "sourceTicket",
+      "supplierName",
+      "valueMillimes",
+      "version",
+    ],
+    "additionalProperties": false,
+  },
+  "QualityFlagPage": {
+    "type": "object",
+    "properties": {
+      "items": {
+        "type": "array",
+        "items": {"\$ref": "#/components/schemas/QualityFlag"},
+      },
+    },
+    "required": ["items"],
+    "additionalProperties": false,
+  },
   "Wholesaler": {
     "type": "object",
     "properties": {
@@ -2672,6 +2799,8 @@ const Map<String, Map<String, dynamic>> _schemas = {
       {"\$ref": "#/components/schemas/CommandSaleReturn"},
       {"\$ref": "#/components/schemas/CommandStockReceive"},
       {"\$ref": "#/components/schemas/CommandStockAdjust"},
+      {"\$ref": "#/components/schemas/CommandQualityFlag"},
+      {"\$ref": "#/components/schemas/CommandQualityResolve"},
       {"\$ref": "#/components/schemas/CommandStockDamage"},
       {"\$ref": "#/components/schemas/CommandOrderCreate"},
       {"\$ref": "#/components/schemas/CommandOrderPrepare"},
@@ -2760,6 +2889,7 @@ const Map<String, Map<String, dynamic>> _schemas = {
       {"\$ref": "#/components/schemas/Count"},
     ],
   },
+  "QualityListResponse": {"\$ref": "#/components/schemas/QualityFlagPage"},
   "TicketGetResponse": {"\$ref": "#/components/schemas/DeliveryTicket"},
   "PricingCurrentResponse": {"\$ref": "#/components/schemas/CurrentPrices"},
   "PricingHistoryResponse": {"\$ref": "#/components/schemas/PriceHistory"},
@@ -4219,6 +4349,48 @@ const Map<String, Map<String, dynamic>> _schemas = {
       "reason": {"type": "string", "minLength": 3, "maxLength": 300},
     },
     "required": ["type", "lotId", "quantity", "reason"],
+    "additionalProperties": false,
+  },
+  "CommandQualityFlag": {
+    "type": "object",
+    "properties": {
+      "type": {"type": "string", "const": "quality.flag"},
+      "flagId": {
+        "type": "string",
+        "format": "uuid",
+        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)\$",
+      },
+      "lotId": {
+        "type": "string",
+        "format": "uuid",
+        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)\$",
+      },
+      "quantity": {"type": "integer", "minimum": 1, "maximum": 1000000},
+      "kind": {
+        "type": "string",
+        "enum": ["damaged", "expired"],
+      },
+      "note": {"type": "string", "maxLength": 500},
+    },
+    "required": ["type", "flagId", "lotId", "quantity", "kind"],
+    "additionalProperties": false,
+  },
+  "CommandQualityResolve": {
+    "type": "object",
+    "properties": {
+      "type": {"type": "string", "const": "quality.resolve"},
+      "flagId": {
+        "type": "string",
+        "format": "uuid",
+        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)\$",
+      },
+      "decision": {
+        "type": "string",
+        "enum": ["confirm", "reject"],
+      },
+      "note": {"type": "string", "minLength": 3, "maxLength": 500},
+    },
+    "required": ["type", "flagId", "decision", "note"],
     "additionalProperties": false,
   },
   "CommandStockDamage": {
