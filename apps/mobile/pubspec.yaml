@@ -1,7 +1,7 @@
 name: biobalance
 description: "BioBalance : magasins, stocks, ventes et récompenses."
 publish_to: 'none'
-version: 1.2.0+16
+version: 1.3.0+17
 
 environment:
   sdk: ^3.13.4

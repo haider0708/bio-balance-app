@@ -64,6 +64,10 @@ export interface Ledger {
     bucket?: "sellable" | "damaged",
   ): Promise<void>;
   rate(productId: string): Promise<number>;
+  /** The points rate in force at the sale date (see PointsRateVersion). */
+  rateAt(productId: string, at: Date): Promise<number>;
+  /** The store's retail prices in force at a given moment. */
+  listPrices(productIds: string[], at: Date): Promise<Map<string, bigint>>;
   sale(id: string): Promise<SaleRecord | null>;
   saveSale(
     sale: SaleRecord,

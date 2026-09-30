@@ -429,13 +429,19 @@ describe("who sees which price", () => {
   });
 
   it("hides the catalogue's reference price from everyone but BioBalance", async () => {
-    expect(
-      (await catalog.list(admin)).items.find((p) => p.id === product)!
-        .referencePriceMillimes,
-    ).toBe(55000n);
-    const seen = (await catalog.list(responsable)).items.find(
-      (p) => p.id === product,
-    )!;
+    // The shared test database holds many products: read every page.
+    const find = async (actor: Actor) => {
+      let after: string | undefined;
+      do {
+        const page = await catalog.list(actor, after);
+        const hit = page.items.find((p) => p.id === product);
+        if (hit) return hit;
+        after = page.nextCursor ?? undefined;
+      } while (after);
+      throw new Error("PRODUCT_NOT_LISTED");
+    };
+    expect((await find(admin)).referencePriceMillimes).toBe(55000n);
+    const seen = await find(responsable);
     expect(seen.referencePriceMillimes).toBeNull();
     expect(seen.priceStatus).toBe("missing");
     const snapshot = await workspace.snapshot(responsable, org, store);

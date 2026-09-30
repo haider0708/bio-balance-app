@@ -144,14 +144,27 @@ export const wireSchemas: Record<string, Schema> = {
     createdAt: timestamp,
   }),
   SaleAllocation: obj({ lotId: uuid, quantity: integer }),
-  AcceptedSaleLine: obj({
-    id: uuid,
-    productId: uuid,
-    quantity: integer,
-    unitPriceMillimes: decimal,
-    allocations: arr(ref("SaleAllocation")),
-    pointsPerUnit: integer,
-  }),
+  AcceptedSaleLine: obj(
+    {
+      id: uuid,
+      productId: uuid,
+      quantity: integer,
+      // What the customer paid, which the seller may set.
+      unitPriceMillimes: decimal,
+      // The store's retail price on the sale date; absent on older sales.
+      listPriceMillimes: nullable(decimal),
+      allocations: arr(ref("SaleAllocation")),
+      pointsPerUnit: integer,
+    },
+    [
+      "id",
+      "productId",
+      "quantity",
+      "unitPriceMillimes",
+      "allocations",
+      "pointsPerUnit",
+    ],
+  ),
   SaleRecord: obj({
     id: uuid,
     sellerId: uuid,

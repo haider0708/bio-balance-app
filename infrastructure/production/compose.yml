@@ -15,6 +15,8 @@ x-api-environment: &api-env
   MEDIA_PENDING_LIMIT: ${MEDIA_PENDING_LIMIT:-20}
   MEDIA_FREE_BYTES: ${MEDIA_FREE_BYTES:-1073741824}
   MEDIA_INTERNAL_REDIRECT: 'true'
+  # Set to true once every phone runs 1.3+: a reception then needs a QR scan or a reason.
+  TICKET_SCAN_REQUIRED: ${TICKET_SCAN_REQUIRED:-false}
 x-app: &app
   image: ${API_IMAGE:?Set an immutable API image tag or digest}
   restart: unless-stopped

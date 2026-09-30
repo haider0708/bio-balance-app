@@ -617,6 +617,12 @@ const Map<String, Map<String, dynamic>> _schemas = {
       "productId": {"type": "string", "format": "uuid"},
       "quantity": {"type": "integer"},
       "unitPriceMillimes": {"type": "string", "pattern": "^-?[0-9]+\$"},
+      "listPriceMillimes": {
+        "anyOf": [
+          {"type": "string", "pattern": "^-?[0-9]+\$"},
+          {"type": "null"},
+        ],
+      },
       "allocations": {
         "type": "array",
         "items": {"\$ref": "#/components/schemas/SaleAllocation"},

@@ -1,5 +1,7 @@
 # État de l’implémentation — 30 septembre 2026
 
+[Prix, bons de livraison et non-conformités — 1.3.0+17](pricing-tickets-quality-2026-09-30.md) : historique des prix et des taux par rôle, bons numérotés avec QR et lots déclarés, réception par scan, signalements décidés par BioBalance, prix et taux de la date de la vente. Migrations `202609300002` à `202609300004`. **Non déployé ; aucune installation sur téléphone.**
+
 [Grossistes — 1.2.0+16](wholesale-2026-09-30.md) : création et invitation par BioBalance, dépôt par lot, commandes du grossiste à BioBalance, attribution des commandes de magasins, expédition par lot, points séparés. Points et récompenses réservés à BioBalance. Migration additive `202609300001_wholesale`. **Non déployé ; aucune installation sur téléphone.**
 
 

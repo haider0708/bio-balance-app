@@ -13,6 +13,15 @@ import '../sales/sale_screen.dart';
 import '../authentication/session_view_model.dart';
 import '../workspace/workspace_view_model.dart';
 
+/// The store's price on the sale date, shown only when another price was charged.
+String priceNote(Json line) {
+  final list = line['listPriceMillimes'];
+  if (list == null || integer(list) == integer(line['unitPriceMillimes'])) {
+    return '';
+  }
+  return ' (prix catalogue ${Money(integer(list)).formatted})';
+}
+
 class SalesPage extends StatelessWidget {
   final WorkspaceViewModel vm;
   const SalesPage({super.key, required this.vm});
@@ -201,7 +210,7 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
               contentPadding: EdgeInsets.zero,
               title: Text(widget.vm.productName(l['productId'])),
               subtitle: Text(
-                '${l['quantity']} unités × ${Money(integer(l['unitPriceMillimes'])).formatted}\n${objects(l['allocations']).map((a) => '${a['quantity']} × lot ${widget.vm.state.data?.lots.where((lot) => lot.id == a['lotId']).firstOrNull?.batch ?? a['lotId']}').join(' · ')}',
+                '${l['quantity']} unités × ${Money(integer(l['unitPriceMillimes'])).formatted}${priceNote(l)}\n${objects(l['allocations']).map((a) => '${a['quantity']} × lot ${widget.vm.state.data?.lots.where((lot) => lot.id == a['lotId']).firstOrNull?.batch ?? a['lotId']}').join(' · ')}',
               ),
             ),
           ),

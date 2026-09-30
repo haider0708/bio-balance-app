@@ -106,6 +106,9 @@ class _QualityFlagsScreenState extends State<QualityFlagsScreen> {
   @override
   Widget build(BuildContext context) {
     final admin = widget.vm.user.admin;
+    final loss = items
+        .where((f) => f['status'] == 'confirmed' && f['valueMillimes'] != null)
+        .fold<int>(0, (sum, f) => sum + integer(f['valueMillimes']));
     return Scaffold(
       appBar: AppBar(title: Text(widget.title)),
       body: Content(
@@ -133,6 +136,13 @@ class _QualityFlagsScreenState extends State<QualityFlagsScreen> {
             },
           ),
           const SizedBox(height: 12),
+          if (filter == _Filter.decided && loss > 0)
+            CompactRow(
+              title: 'Pertes enregistrées',
+              subtitle: 'Produits retirés du stock, au prix de leur livraison',
+              value: Money(loss).formatted,
+              icon: AppIcons.receiptLongOutlined,
+            ),
           if (loading) const LinearProgressIndicator(),
           if (error != null) Notice(error!, retry: load),
           if (!loading && items.isEmpty && error == null)

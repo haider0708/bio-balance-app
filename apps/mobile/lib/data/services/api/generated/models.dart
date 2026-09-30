@@ -947,6 +947,7 @@ final class AcceptedSaleLineDto {
   final String productId;
   final int quantity;
   final String unitPriceMillimes;
+  final String? listPriceMillimes;
   final List<SaleAllocationDto> allocations;
   final int pointsPerUnit;
   AcceptedSaleLineDto({
@@ -955,6 +956,7 @@ final class AcceptedSaleLineDto {
     required this.productId,
     required this.quantity,
     required this.unitPriceMillimes,
+    this.listPriceMillimes,
     required List<SaleAllocationDto> allocations,
     required this.pointsPerUnit,
   }) : _presentFields = Set.unmodifiable(presentFields),
@@ -966,6 +968,9 @@ final class AcceptedSaleLineDto {
       productId: json["productId"] as String,
       quantity: wireInteger(json["quantity"]),
       unitPriceMillimes: json["unitPriceMillimes"] as String,
+      listPriceMillimes: json["listPriceMillimes"] == null
+          ? null
+          : json["listPriceMillimes"] as String,
       allocations: List.unmodifiable(
         (json["allocations"] as List).map(
           (item) => SaleAllocationDto.fromJson(
@@ -981,6 +986,9 @@ final class AcceptedSaleLineDto {
     "productId": productId,
     "quantity": quantity,
     "unitPriceMillimes": unitPriceMillimes,
+    if (listPriceMillimes != null ||
+        _presentFields.contains("listPriceMillimes"))
+      "listPriceMillimes": listPriceMillimes,
     "allocations": allocations.map((item) => item.toJson()).toList(),
     "pointsPerUnit": pointsPerUnit,
   };

@@ -1,5 +1,13 @@
 # BioBalance — Spécification fonctionnelle approuvée
 
+## Prix, bons de livraison et produits non conformes — 30 septembre 2026
+
+**Prix.** Trois niveaux : le **prix de gros** (BioBalance → grossiste) et le **prix d’approvisionnement** (fournisseur → magasin) sont fixés par BioBalance seul, par défaut ou pour un grossiste ou un magasin précis ; le **prix de vente** est fixé par le responsable de son magasin. BioBalance voit tous les niveaux ; le responsable voit son prix d’achat et son prix de vente ; le grossiste voit son prix de gros et le prix par défaut des magasins ; le vendeur voit le prix de vente de son magasin. Chaque changement est enregistré avec son auteur, sa date et son motif ; rien n’est modifié ni supprimé, et les commandes, bons, ventes et pertes passés gardent leur prix. Le prix de référence du catalogue n’est visible que de BioBalance. Une vente garde le prix facturé (que le vendeur peut modifier) et le prix de vente du magasin à sa date. Les points suivent le taux en vigueur à la date de la vente (dans les 14 jours, sinon le taux à l’acceptation).
+
+**Bon de livraison.** Toute livraison est un bon numéro `BL-AAAA-NNNNNN` dressé par l’expéditeur (BioBalance ou grossiste) avec les lots, les péremptions, les quantités et les prix de la commande. Son QR se colle sur le colis et n’est visible que de l’expéditeur ; le responsable scanne le colis, confirme les lots et les quantités, et le stock augmente alors sous ces lots. Sans scan, la réception est signalée à BioBalance. Le QR perdu se renouvelle par l’expéditeur.
+
+**Produits abîmés ou périmés.** Le responsable (ou le grossiste) signale un lot : les unités sortent du stock vendable tout de suite. BioBalance seul décide de retirer du stock (perte enregistrée) ou de remettre en vente ; un produit périmé n’est jamais remis en vente et une décision est définitive. Le retour d’une livraison en transit est aussi décidé par BioBalance seul.
+
 ## Grossistes — 30 septembre 2026
 
 Un **grossiste** est une société dotée d’**un seul compte** et d’**un dépôt** ; il n’a ni équipe ni magasins, n’enregistre aucune vente et n’apparaît pas parmi les groupes. BioBalance le crée et l’invite par email. BioBalance et le grossiste peuvent saisir le stock initial du dépôt, par lot et péremption, comme pour un magasin. Le grossiste reçoit, expédie et suit son stock ; BioBalance définit le catalogue, les points par unité et les récompenses du dépôt.

@@ -15343,6 +15343,17 @@
             "type": "string",
             "pattern": "^-?[0-9]+$"
           },
+          "listPriceMillimes": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^-?[0-9]+$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "allocations": {
             "type": "array",
             "items": {

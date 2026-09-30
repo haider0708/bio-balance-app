@@ -28,10 +28,13 @@ export async function latestPrices(
   level: PriceLevel,
   scope: { organizationId?: string | null; storeId?: string | null },
   productIds?: string[],
+  // The price in force at that moment; omitted means now.
+  at?: Date,
 ): Promise<Map<string, bigint>> {
   const products = productIds?.length
     ? Prisma.sql`AND "productId" IN (${Prisma.join(productIds.map((id) => Prisma.sql`${id}::uuid`))})`
     : Prisma.empty;
+  const until = at ? Prisma.sql`AND "createdAt"<=${at}` : Prisma.empty;
   const match =
     level === "retail"
       ? Prisma.sql`"storeId"=${scope.storeId}::uuid`
@@ -44,7 +47,7 @@ export async function latestPrices(
       : Prisma.sql`("storeId" IS NULL)`;
   const rows = await tx.$queryRaw<Row[]>(
     Prisma.sql`SELECT DISTINCT ON ("productId") "productId","priceMillimes","createdAt"
-      FROM "PriceVersion" WHERE level=${level} AND ${match} ${products}
+      FROM "PriceVersion" WHERE level=${level} AND ${match} ${products} ${until}
       ORDER BY "productId",${specific} ASC,"createdAt" DESC,id DESC`,
   );
   return new Map(rows.map((r) => [r.productId, r.priceMillimes]));

@@ -29,6 +29,10 @@ Installer les unités `biobalance-tls.service`/`.timer` et activer le timer apr�
 
 Démarrer les API configurées (deux par défaut, quatre avec l’override go2code), le worker notifications/tâches, le worker média et Nginx avec `up -d --wait`. Nginx résout les services Docker au cours de leur vie ; remplacer une API à la fois permet aux autres de servir les requêtes. Les workers terminent leur tâche avant arrêt (60 secondes pour le worker opérationnel, 11 minutes pour un transcodage borné). Vérifier `/health`, authentification, accès intermagasins refusé, réception et vente. Le média est servi par une location interne Nginx après autorisation API ; l’accès direct à `/_media/` doit échouer et une vidéo autorisée doit accepter `Range`.
 
+## Bons de livraison
+
+Le QR des bons est signé avec une clé dérivée de `MFA_ENCRYPTION_KEY` : la conserver, sa perte invaliderait les QR en circulation. `TICKET_SCAN_REQUIRED=true` (environnement des API) refuse toute réception sans scan ni motif ; à activer quand tous les téléphones ont la version 1.3. Une réception sans scan est notifiée à BioBalance (« Réception sans scan »).
+
 ## Téléphones
 
 Définir `API_BASE_URL` HTTPS au build. Firebase est retiré ; aucun compte de service ni SDK Firebase n’est requis. Les messages sont accessibles dans la boîte de notifications du VPS. Les alertes OS app fermée sont reportées. SMTP reste utilisé pour les invitations et la récupération.

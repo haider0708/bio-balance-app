@@ -389,7 +389,10 @@ export class OperationsService {
       const lots = new Map();
       const rates = new Map<string, number>();
       for (const line of cmd.lines) {
-        rates.set(line.productId, await ledger.rate(line.productId));
+        rates.set(
+          line.productId,
+          await ledger.rateAt(line.productId, new Date(cmd.occurredAt)),
+        );
         affected.add(line.productId);
         for (const a of line.allocations)
           lots.set(a.lotId, await ledger.lot(a.lotId));
@@ -403,6 +406,12 @@ export class OperationsService {
         lots,
         ledger.scope.timezone,
         previous,
+        new Date(),
+        // The store's retail price on the sale date is kept beside the price charged.
+        await ledger.listPrices(
+          cmd.lines.map((l) => l.productId),
+          new Date(cmd.occurredAt),
+        ),
       );
       for (const line of previous?.lines ?? []) affected.add(line.productId);
       for (const [lotId, delta] of sale.stockDelta(previous))

@@ -1,3 +1,11 @@
+# BioBalance 1.3.0+17 — prix, bons de livraison et non-conformités
+
+Trois niveaux de prix avec historique inaltérable et visibilité par rôle ; chaque commande, bon, vente et perte garde le prix de son jour. Chaque livraison est un bon numéroté avec lots, péremptions et QR : le responsable scanne le colis pour ajouter les quantités à son stock. Les produits abîmés ou périmés se signalent et BioBalance seul décide. Les points suivent le taux de la date de la vente. Les retours en transit sont décidés par BioBalance seul.
+
+Migrations additives `202609300002` à `202609300004`, 75 contrats HTTP. [Détails](pricing-tickets-quality-2026-09-30.md).
+
+---
+
 # BioBalance 1.2.0+16 — grossistes
 
 BioBalance crée et invite des grossistes (un compte, un dépôt), saisit ou laisse saisir leur stock initial, et leur attribue des commandes de magasins. Le grossiste expédie par lot (son stock diminue à l’expédition) ; le stock du magasin n’augmente qu’à la réception du responsable. Il commande lui-même à BioBalance quand son stock baisse, et gagne des points par unité livrée, séparés de ceux des équipes (sans classement). Un seul acteur traite chaque commande.

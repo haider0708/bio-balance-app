@@ -17,7 +17,10 @@ Json storeJson({Object? nature, bool includeNature = true}) => {
 void main() {
   group('store nature', () {
     test('a store is a pharmacie or a parapharmacie, never both', () {
-      expect(Store.fromJson(storeJson(nature: 'pharmacie')).nature, 'pharmacie');
+      expect(
+        Store.fromJson(storeJson(nature: 'pharmacie')).nature,
+        'pharmacie',
+      );
       expect(
         Store.fromJson(storeJson(nature: 'parapharmacie')).nature,
         'parapharmacie',

@@ -263,81 +263,82 @@ void main() {
     },
   );
 
-  testWidgets('a nature choice offers both natures and blocks saving without one', (
-    t,
-  ) async {
-    Map<String, String>? submitted;
-    await t.pumpWidget(
-      MaterialApp(
-        theme: appTheme(),
-        home: EditorScreen(
-          title: 'Ajouter un magasin',
-          fields: const [
-            FieldSpec(
-              'nature',
-              'Nature du magasin',
-              options: storeNatureLabels,
-              choice: true,
-            ),
-            FieldSpec('name', 'Nom du magasin', initial: 'Parahouse'),
-          ],
-          submit: (values) async => submitted = values,
+  testWidgets(
+    'a nature choice offers both natures and blocks saving without one',
+    (t) async {
+      Map<String, String>? submitted;
+      await t.pumpWidget(
+        MaterialApp(
+          theme: appTheme(),
+          home: EditorScreen(
+            title: 'Ajouter un magasin',
+            fields: const [
+              FieldSpec(
+                'nature',
+                'Nature du magasin',
+                options: storeNatureLabels,
+                choice: true,
+              ),
+              FieldSpec('name', 'Nom du magasin', initial: 'Parahouse'),
+            ],
+            submit: (values) async => submitted = values,
+          ),
         ),
-      ),
-    );
-    expect(find.text('Nature du magasin'), findsOneWidget);
-    expect(find.text('Pharmacie'), findsOneWidget);
-    expect(find.text('Parapharmacie'), findsOneWidget);
-    // Nothing is selected yet, so the two natures stay visibly unselected.
-    expect(
-      t
-          .widgetList<ChoiceChip>(find.byType(ChoiceChip))
-          .where((c) => c.selected),
-      isEmpty,
-    );
+      );
+      expect(find.text('Nature du magasin'), findsOneWidget);
+      expect(find.text('Pharmacie'), findsOneWidget);
+      expect(find.text('Parapharmacie'), findsOneWidget);
+      // Nothing is selected yet, so the two natures stay visibly unselected.
+      expect(
+        t
+            .widgetList<ChoiceChip>(find.byType(ChoiceChip))
+            .where((c) => c.selected),
+        isEmpty,
+      );
 
-    await t.tap(find.byKey(const ValueKey('editor.save')));
-    await t.pumpAndSettle();
-    expect(submitted, isNull);
-    expect(find.text('Choisissez une valeur.'), findsOneWidget);
+      await t.tap(find.byKey(const ValueKey('editor.save')));
+      await t.pumpAndSettle();
+      expect(submitted, isNull);
+      expect(find.text('Choisissez une valeur.'), findsOneWidget);
 
-    await t.tap(find.text('Parapharmacie'));
-    await t.pumpAndSettle();
-    await t.tap(find.byKey(const ValueKey('editor.save')));
-    await t.pumpAndSettle();
-    expect(submitted?['nature'], 'parapharmacie');
-    expect(submitted?['name'], 'Parahouse');
+      await t.tap(find.text('Parapharmacie'));
+      await t.pumpAndSettle();
+      await t.tap(find.byKey(const ValueKey('editor.save')));
+      await t.pumpAndSettle();
+      expect(submitted?['nature'], 'parapharmacie');
+      expect(submitted?['name'], 'Parahouse');
 
-    // One nature at a time: choosing the other one replaces the first.
-    await t.pumpWidget(const SizedBox());
-    final editor = EditorScreen(
-      title: 'Modifier le magasin',
-      fields: const [
-        FieldSpec(
-          'nature',
-          'Nature du magasin',
-          initial: 'parapharmacie',
-          options: storeNatureLabels,
-          choice: true,
-        ),
-      ],
-      submit: (values) async => submitted = values,
-    );
-    await t.pumpWidget(MaterialApp(theme: appTheme(), home: editor));
-    await t.pumpAndSettle();
-    expect(
-      t
-          .widgetList<ChoiceChip>(find.byType(ChoiceChip))
-          .where((c) => c.selected)
-          .map((c) => (c.label as Text).data),
-      ['Parapharmacie'],
-    );
-    await t.tap(find.text('Pharmacie'));
-    await t.pumpAndSettle();
-    await t.tap(find.byKey(const ValueKey('editor.save')));
-    await t.pumpAndSettle();
-    expect(submitted?['nature'], 'pharmacie');
-  });
+      // One nature at a time: choosing the other one replaces the first.
+      await t.pumpWidget(const SizedBox());
+      final editor = EditorScreen(
+        title: 'Modifier le magasin',
+        fields: const [
+          FieldSpec(
+            'nature',
+            'Nature du magasin',
+            initial: 'parapharmacie',
+            options: storeNatureLabels,
+            choice: true,
+          ),
+        ],
+        submit: (values) async => submitted = values,
+      );
+      await t.pumpWidget(MaterialApp(theme: appTheme(), home: editor));
+      await t.pumpAndSettle();
+      expect(
+        t
+            .widgetList<ChoiceChip>(find.byType(ChoiceChip))
+            .where((c) => c.selected)
+            .map((c) => (c.label as Text).data),
+        ['Parapharmacie'],
+      );
+      await t.tap(find.text('Pharmacie'));
+      await t.pumpAndSettle();
+      await t.tap(find.byKey(const ValueKey('editor.save')));
+      await t.pumpAndSettle();
+      expect(submitted?['nature'], 'pharmacie');
+    },
+  );
 
   testWidgets('the nature choice stays usable on a narrow phone at 200% text', (
     t,
@@ -362,7 +363,8 @@ void main() {
               'nature',
               'Nature du magasin',
               section: 'Type d’enseigne',
-              hint: 'Un magasin est soit une pharmacie, soit une parapharmacie.',
+              hint:
+                  'Un magasin est soit une pharmacie, soit une parapharmacie.',
               options: storeNatureLabels,
               choice: true,
             ),

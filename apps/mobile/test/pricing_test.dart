@@ -2,6 +2,8 @@ import 'package:biobalance/data/services/api/generated/api_client.dart';
 import 'package:biobalance/data/services/local_database/database.dart';
 import 'package:biobalance/domain/models/models.dart';
 import 'package:biobalance/ui/features/catalog/product_information.dart';
+import 'package:biobalance/ui/features/sales/sales_history_screen.dart'
+    show priceNote;
 import 'package:biobalance/ui/features/workspace/workspace_view_model.dart';
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
@@ -55,6 +57,7 @@ Future<void> show(WidgetTester tester, UserAccount user, Store? current) async {
 }
 
 void main() {
+  priceNoteTests();
   testWidgets(
     'BioBalance sees the reference price and manages the price levels',
     (tester) async {
@@ -81,4 +84,26 @@ void main() {
     expect(find.text('Historique des prix'), findsNothing);
     expect(find.text('Prix de gros et d’approvisionnement'), findsNothing);
   });
+}
+
+void priceNoteTests() {
+  test(
+    'a sale shows the catalogue price only when another price was charged',
+    () {
+      expect(
+        priceNote({'unitPriceMillimes': '50000', 'listPriceMillimes': '59900'}),
+        ' (prix catalogue 59,900 TND)',
+      );
+      expect(
+        priceNote({'unitPriceMillimes': '59900', 'listPriceMillimes': '59900'}),
+        '',
+      );
+      // Older sales carry no list price: nothing is invented.
+      expect(priceNote({'unitPriceMillimes': '50000'}), '');
+      expect(
+        priceNote({'unitPriceMillimes': '50000', 'listPriceMillimes': null}),
+        '',
+      );
+    },
+  );
 }

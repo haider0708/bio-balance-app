@@ -13,6 +13,7 @@ export class Sale {
     timezone: string,
     previous?: SaleRecord,
     now = new Date(),
+    listPrices: Map<string, bigint> = new Map(),
   ): Sale {
     requireRule(
       Number.isFinite(occurredAt.getTime()) &&
@@ -68,6 +69,13 @@ export class Sale {
       );
       return {
         ...line,
+        // Kept from the first acceptance, so a correction never rewrites history.
+        listPriceMillimes:
+          accepted?.listPriceMillimes ??
+          previous?.lines.find((old) => old.productId === line.productId)
+            ?.listPriceMillimes ??
+          listPrices.get(line.productId)?.toString() ??
+          null,
         pointsPerUnit:
           accepted?.pointsPerUnit ??
           previous?.lines.find((old) => old.productId === line.productId)

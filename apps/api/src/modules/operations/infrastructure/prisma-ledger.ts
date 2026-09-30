@@ -400,6 +400,36 @@ export class PrismaLedger implements Ledger {
     });
     return config?.pointsPerUnit ?? 0;
   }
+  /** A sale earns the rate in force on its date. A sale reaching the server more
+   * than 14 days late earns the rate in force at acceptance. A store or product
+   * with no rate history uses its current rate. */
+  async rateAt(productId: string, at: Date) {
+    const current = await this.rate(productId);
+    if (Date.now() - at.getTime() > 14 * 86_400_000) return current;
+    const version = await this.tx.pointsRateVersion.findFirst({
+      where: {
+        storeId: this.scope.storeId,
+        productId,
+        createdAt: { lte: at },
+      },
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+    });
+    if (version) return version.pointsPerUnit;
+    const any = await this.tx.pointsRateVersion.count({
+      where: { storeId: this.scope.storeId, productId },
+    });
+    return any === 0 ? current : 0;
+  }
+  async listPrices(productIds: string[], at: Date) {
+    if (!productIds.length) return new Map<string, bigint>();
+    return latestPrices(
+      this.tx,
+      "retail",
+      { storeId: this.scope.storeId },
+      productIds,
+      at,
+    );
+  }
   async sale(id: string): Promise<SaleRecord | null> {
     const value = await this.tx.sale.findFirst({
       where: { id, ...this.context },

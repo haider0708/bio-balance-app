@@ -235,6 +235,8 @@ export type Command = Operation["command"];
 export type LineInput = z.infer<typeof saleLine>;
 export interface AcceptedLine extends LineInput {
   pointsPerUnit: number;
+  /** The store's retail price on the sale date, beside the price charged. */
+  listPriceMillimes?: string | null;
 }
 export interface Actor {
   sessionId?: string;
