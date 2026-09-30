@@ -87,7 +87,7 @@ export class PricingService {
             "Identifiant d’opération déjà utilisé.",
             409,
           );
-          return this.entry(tx, prior, true);
+          return this.entry(prior, await this.authors(tx, [prior], true));
         }
         requireRule(
           await tx.product.findUnique({ where: { id: input.productId } }),
@@ -179,7 +179,7 @@ export class PricingService {
             }),
           },
         });
-        return this.entry(tx, row, true);
+        return this.entry(row, await this.authors(tx, [row], true));
       },
       true,
     );
@@ -266,7 +266,6 @@ export class PricingService {
   history(actor: Actor, raw: unknown) {
     const q = priceHistoryQuery.parse(raw);
     return this.db.authenticated(actor, async (tx, current) => {
-      const levels: PriceLevel[] = [];
       const where: Prisma.PriceVersionWhereInput[] = [];
       let admin = current.platformAdmin;
       if (q.storeId || q.organizationId) {
@@ -285,21 +284,17 @@ export class PricingService {
         );
         admin = v.admin;
         if (v.retail) {
-          levels.push("retail");
           where.push({ level: "retail", storeId: q.storeId });
         }
         if (v.supply) {
-          levels.push("store_supply");
           where.push({
             level: "store_supply",
             OR: [{ storeId: null }, { storeId: q.storeId }],
           });
         } else if (v.wholesalePrice) {
-          levels.push("store_supply");
           where.push({ level: "store_supply", storeId: null });
         }
         if (v.wholesalePrice) {
-          levels.push("wholesale");
           where.push({
             level: "wholesale",
             OR: [
@@ -316,7 +311,6 @@ export class PricingService {
           403,
         );
         for (const level of ["wholesale", "store_supply", "retail"] as const) {
-          levels.push(level);
           where.push({ level });
         }
       }
@@ -332,15 +326,30 @@ export class PricingService {
         orderBy: [{ createdAt: "desc" }, { id: "desc" }],
         take: 200,
       });
-      const visible = rows;
-      const items = [];
-      for (const row of visible) items.push(await this.entry(tx, row, admin));
-      return { items };
+      const authors = await this.authors(tx, rows, admin);
+      return { items: rows.map((row) => this.entry(row, authors)) };
     });
   }
 
-  private async entry(
+  /** One lookup for every author, instead of one per entry. */
+  private async authors(
     tx: Tx,
+    rows: { createdBy: string | null }[],
+    show: boolean,
+  ) {
+    const ids = show
+      ? [...new Set(rows.flatMap((r) => (r.createdBy ? [r.createdBy] : [])))]
+      : [];
+    const users = ids.length
+      ? await tx.user.findMany({
+          where: { id: { in: ids } },
+          select: { id: true, name: true },
+        })
+      : [];
+    return new Map(users.map((u) => [u.id, u.name]));
+  }
+
+  private entry(
     row: {
       id: string;
       level: string;
@@ -353,15 +362,8 @@ export class PricingService {
       seeded: boolean;
       createdAt: Date;
     },
-    showAuthor: boolean,
+    authors: Map<string, string>,
   ) {
-    const author =
-      showAuthor && row.createdBy
-        ? await tx.user.findUnique({
-            where: { id: row.createdBy },
-            select: { name: true },
-          })
-        : null;
     return {
       id: row.id,
       level: row.level,
@@ -370,7 +372,7 @@ export class PricingService {
       storeId: row.storeId,
       priceMillimes: row.priceMillimes,
       reason: row.reason,
-      author: author?.name ?? null,
+      author: row.createdBy ? (authors.get(row.createdBy) ?? null) : null,
       seeded: row.seeded,
       createdAt: row.createdAt,
     };

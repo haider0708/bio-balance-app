@@ -12,7 +12,7 @@ try:
         org=manifest['organizations'][s['organizationIndex']]['id']
         candidates=[x for x in stores if x['organizationId']==org and x['name']==s['name']]
         if len(candidates)>1:raise ValueError('Ambiguous existing store')
-        fields={k:s[k] for k in ('name','address','city')};fields['organizationId']=org
+        fields={k:s[k] for k in ('name','address','city')};fields['organizationId']=org;fields['nature']=s.get('nature','pharmacie')
         store=candidates[0] if candidates else c.call('POST','/v1/stores',fields,expected=201)
         if any(store[k]!=v for k,v in fields.items()):raise ValueError('Existing store differs')
         result.append({**s,**store})

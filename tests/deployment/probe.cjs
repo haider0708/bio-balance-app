@@ -33,10 +33,10 @@ const wait=ms=>new Promise(r=>setTimeout(r,ms));
  let state;
  if(process.argv[2]==='verify') state=JSON.parse(await fs.readFile(path.join(lab,'state.json')));
  else {
-  const store=(await call('POST','/v1/stores',{organizationId:fixture.organizationId,name:'Deployment validation',address:'Adresse de test',city:'Tunis'})).data;
+  const store=(await call('POST','/v1/stores',{organizationId:fixture.organizationId,name:'Deployment validation',nature:'pharmacie',address:'Adresse de test',city:'Tunis'})).data;
   const scoped=`/v1/stores/${store.id}`,scope=`organizationId=${fixture.organizationId}`;
   const product=(await call('POST','/v1/catalog/products',{reference:'DEPLOY-'+randomUUID(),name:'Produit de test',active:true},admin)).data;
-  await call('PATCH',`${scoped}/products/${product.id}?${scope}`,{priceMillimes:'49900',threshold:5,pointsPerUnit:10});
+  await call('PATCH',`${scoped}/products/${product.id}?${scope}`,{priceMillimes:'49900',threshold:5,pointsPerUnit:10},admin);
   const envelope=command=>({operationId:randomUUID(),organizationId:fixture.organizationId,storeId:store.id,payloadVersion:2,dependencies:[],command});
   const push=async operation=>{const result=(await call('POST','/v1/sync/push',{operations:[operation]})).data.results[0];assert.equal(result.status,'accepted');return result;};
   await push(envelope({type:'stock.receive',reason:'opening',lines:[{productId:product.id,batch:'DEPLOY',expiry:'2030-12-31',quantity:10}]}));

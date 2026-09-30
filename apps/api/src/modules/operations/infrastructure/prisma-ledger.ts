@@ -712,6 +712,12 @@ export class PrismaLedger implements Ledger {
       },
     });
   }
+  async renewTicket(deliveryId: string, ticketVersion: number) {
+    await this.tx.delivery.update({
+      where: { id: deliveryId },
+      data: { ticketVersion },
+    });
+  }
   async saveFlag(flag: FlagRecord) {
     await this.tx.qualityFlag.create({
       data: {

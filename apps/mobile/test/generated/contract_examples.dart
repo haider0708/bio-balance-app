@@ -179,12 +179,6 @@ Object? decodeResponse(
     );
     return decoded.toJson();
   })(),
-  "AdminOverview" => (() {
-    final decoded = AdminOverviewResponseDto.fromJson(
-      Map<String, dynamic>.from(value as Map),
-    );
-    return decoded.toJson();
-  })(),
   "HealthHealth" => (() {
     final decoded = HealthHealthResponseDto.fromJson(
       Map<String, dynamic>.from(value as Map),
@@ -287,12 +281,6 @@ Object? decodeResponse(
   })(),
   "WorkspaceSale" => (() {
     final decoded = WorkspaceSaleResponseDto.fromJson(
-      Map<String, dynamic>.from(value as Map),
-    );
-    return decoded.toJson();
-  })(),
-  "WorkspaceChanges" => (() {
-    final decoded = WorkspaceChangesResponseDto.fromJson(
       Map<String, dynamic>.from(value as Map),
     );
     return decoded.toJson();
@@ -441,12 +429,6 @@ Object? decodeResponse(
   })(),
   "TrainingMetadata" => (() {
     final decoded = TrainingMetadataResponseDto.fromJson(
-      Map<String, dynamic>.from(value as Map),
-    );
-    return decoded.toJson();
-  })(),
-  "ReportingOverview" => (() {
-    final decoded = ReportingOverviewResponseDto.fromJson(
       Map<String, dynamic>.from(value as Map),
     );
     return decoded.toJson();

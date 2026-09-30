@@ -23,8 +23,6 @@ import {
 } from "../src/modules/identity/identity.service";
 import { CatalogService } from "../src/modules/catalog/catalog.service";
 import { WorkspaceService } from "../src/modules/tenancy/workspace.service";
-import { AdminService } from "../src/modules/reporting/admin.service";
-import { ReportingService } from "../src/modules/reporting/reporting.service";
 import {
   decodeHistoryCursor,
   syncCursor,
@@ -196,8 +194,6 @@ describe("audit regressions against PostgreSQL", () => {
           address: "Test address",
           city: "Tunis",
         }),
-      () => new AdminService(db).overview(actor),
-      () => new ReportingService(db, workspace).overview(actor),
       () =>
         new CatalogService(db).save(actor, {
           reference: randomUUID(),

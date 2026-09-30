@@ -46,7 +46,7 @@ def main(a):
     if old:
      if any(str(old[k])!=str(v) for k,v in wanted.items()):raise ValueError('Existing demo configuration modified')
     else:
-     manager.call('PATCH',route(s,'/products/'+p['id']),wanted);time.sleep(.12)
+     admin.call('PATCH',route(s,'/products/'+p['id']),wanted);time.sleep(.12)
    lines=[{'productId':p['id'],'batch':'DEMO-'+s['slug'].upper()+'-202609-'+str(i+1).zfill(2),'expiry':valid,'quantity':50 if i==0 else 4 if i==1 else 2 if i==2 else 18+(i+store_index)%15} for i,p in enumerate(products)]
    lines += [{'productId':products[4]['id'],'batch':'DEMO-EXPIRY-SOON','expiry':(day+datetime.timedelta(days=20)).isoformat(),'quantity':3},{'productId':products[5]['id'],'batch':'DEMO-EXPIRED','expiry':(day-datetime.timedelta(days=7)).isoformat(),'quantity':2}]
    op(manager,s,'opening',lambda:{'type':'stock.receive','reason':'opening','lines':lines})
@@ -69,22 +69,22 @@ def main(a):
     if index==0:wanted['productId']=p['id']
     matching=[r for r in rewards if r['title']==title]
     if len(matching)>1:raise ValueError('Ambiguous reward')
-    reward=matching[0] if matching else manager.call('POST',route(s,'/rewards'),wanted,expected=201)
+    reward=matching[0] if matching else admin.call('POST',route(s,'/rewards'),wanted,expected=201)
     claim=ident(s['slug']+'/claim/'+str(index))
     op(seller,s,'claim/'+str(index),lambda:{'type':'reward.request','claimId':claim,'rewardId':reward['id']})
-    if index==0:op(manager,s,'fulfill',lambda:{'type':'reward.resolve','claimId':claim,'decision':'fulfilled'},1)
+    if index==0:op(admin,s,'fulfill',lambda:{'type':'reward.resolve','claimId':claim,'decision':'fulfilled'},1)
    order=ident(s['slug']+'/order');product=products[1]['id']
    op(manager,s,'order',lambda:{'type':'order.create','orderId':order,'lines':[{'productId':product,'quantity':12}]})
    if store_index<4:op(admin,s,'prepare',lambda:{'type':'order.prepare','orderId':order},1)
    if store_index<3:
     delivery=ident(s['slug']+'/delivery')
-    op(admin,s,'dispatch',lambda:{'type':'delivery.dispatch','orderId':order,'deliveryId':delivery,'lines':[{'productId':product,'quantity':12}]},2)
+    op(admin,s,'dispatch',lambda:{'type':'delivery.dispatch','orderId':order,'deliveryId':delivery,'lines':[{'productId':product,'quantity':12,'allocations':[{'batch':'DEMO-DELIVERY-202609','expiry':valid,'quantity':12}]}]},2)
     received=12 if store_index==0 else 8 if store_index==1 else 0
-    op(seller,s,'receive',lambda:{'type':'delivery.receive','deliveryId':delivery,'lines':[{'productId':product,'batch':'DEMO-DELIVERY-202609','expiry':valid,'quantity':received}] if received else [],'note':'DÉMO : livraison complète' if received==12 else 'DÉMO : colis incomplet' if received else 'DÉMO : colis non reçu'},1)
+    op(seller,s,'receive',lambda:{'type':'delivery.receive','deliveryId':delivery,'lines':[{'productId':product,'batch':'DEMO-DELIVERY-202609','expiry':valid,'quantity':received}] if received else [],'manualReason':'DÉMO : réception sans scan','note':'DÉMO : livraison complète' if received==12 else 'DÉMO : colis incomplet' if received else 'DÉMO : colis non reçu'},1)
     fulfillment=manager.call('GET',route(s,'/orders/'+order+'/fulfillment'))
     if store_index==1:
      remaining=fulfillment['lines'][0]['remainingToDispatch']
-     op(admin,s,'follow-up',lambda:{'type':'delivery.dispatch','orderId':order,'deliveryId':ident(s['slug']+'/follow-up-delivery'),'lines':[{'productId':product,'quantity':remaining}]},fulfillment['version'])
+     op(admin,s,'follow-up',lambda:{'type':'delivery.dispatch','orderId':order,'deliveryId':ident(s['slug']+'/follow-up-delivery'),'lines':[{'productId':product,'quantity':remaining,'allocations':[{'batch':'DEMO-DELIVERY-202609','expiry':valid,'quantity':remaining}]}]},fulfillment['version'])
    announcement={'id':ident(s['slug']+'/announcement'),'title':'Bienvenue dans le magasin de démonstration','body':'Les stocks, lots, ventes et récompenses de ce magasin sont fictifs. Utilisez-les pour découvrir le parcours avant de saisir les données réelles.','audience':'salespeople'}
    manager.call('POST',route(s,'/announcements'),announcement,expected=201)
    manager.call('PATCH',route(s,'/onboarding'),{'step':5})

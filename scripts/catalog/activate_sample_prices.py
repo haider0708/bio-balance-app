@@ -188,7 +188,8 @@ def run(args):
                     if any(str(old[k]) != str(v) for k, v in wanted.items()):
                         raise ValueError('Existing demo price configuration changed')
                 else:
-                    manager.call('PATCH', route(store, '/products/' + product_id), wanted)
+                    # Points per unit are BioBalance's rule: the administrator configures them.
+                    admin.call('PATCH', route(store, '/products/' + product_id), wanted)
                 lines.append({'productId': product_id, 'batch': 'DEMO-SAMPLE-' + store['slug'].upper() + '-' + str(index + 1),
                               'expiry': expiry, 'quantity': 15 + index})
             if 'operation' not in entry:

@@ -24,6 +24,7 @@ class OnlineOperationsRepository {
         command['deliveryId'] ??
         command['rewardId'] ??
         command['claimId'] ??
+        command['flagId'] ??
         (command['type'] == 'order.create' ? 'new' : command['orderId']) ??
         'new';
     final key = 'online:${command['type']}:$target';

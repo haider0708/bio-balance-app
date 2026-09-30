@@ -1010,20 +1010,6 @@ export class WorkspaceService {
       return { sale, revisions, people };
     });
   }
-  changes(actor: Actor, org: string, store: string, after: string) {
-    return this.db.scopedSnapshot(actor, org, store, async (tx) => {
-      const changes = await tx.change.findMany({
-        where: { storeId: store, cursor: { gt: BigInt(after) } },
-        orderBy: { cursor: "asc" },
-        take: 200,
-      });
-      return {
-        changes,
-        cursor: (changes.at(-1)?.cursor ?? BigInt(after)).toString(),
-        hasMore: changes.length === 200,
-      };
-    });
-  }
   ranking(actor: Actor, org: string, store: string) {
     return this.db.scopedSnapshot(actor, org, store, async (tx, scope) => {
       return monthlyRanking(tx, store, scope.timezone);

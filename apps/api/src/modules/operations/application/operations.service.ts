@@ -933,7 +933,7 @@ export class OperationsService {
           cmd.supplierStoreId,
           async (depot) => {
             await depot.notify(
-              op.operationId,
+              `${op.operationId}:depot`,
               "Commande à préparer",
               "BioBalance vous a attribué une commande de magasin.",
             );
@@ -1062,9 +1062,9 @@ export class OperationsService {
         "Ce bon n’est plus en transit.",
         409,
       );
-      delivery.ticketVersion = (delivery.ticketVersion ?? 1) + 1;
-      delivery.version++;
-      await ledger.saveDelivery(delivery);
+      // Only the QR changes. The delivery keeps its version, so a receiver whose
+      // phone has not synced yet can still confirm the physical reception.
+      await ledger.renewTicket(delivery.id, (delivery.ticketVersion ?? 1) + 1);
       return { id: delivery.id, version: delivery.version };
     }
     if (cmd.type === "delivery.receive") {

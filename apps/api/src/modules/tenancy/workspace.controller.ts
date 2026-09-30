@@ -155,19 +155,6 @@ export class WorkspaceController {
       uuid.parse(sale),
     );
   }
-  @Get("stores/:store/changes") changes(
-    @Req() r: AuthRequest,
-    @Param("store") s: string,
-    @Query("organizationId") o: string,
-    @Query("after") after = "0",
-  ) {
-    return this.service.changes(
-      r.actor,
-      uuid.parse(o),
-      uuid.parse(s),
-      syncCursor.parse(after),
-    );
-  }
   @Get("stores/:store/ranking") ranking(
     @Req() r: AuthRequest,
     @Param("store") s: string,

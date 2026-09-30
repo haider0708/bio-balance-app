@@ -378,19 +378,6 @@ export const wireSchemas: Record<string, Schema> = {
       "resolvedAt",
     ],
   ),
-  Change: obj({
-    ...scoped,
-    cursor: decimal,
-    entity: str,
-    entityId: str,
-    deleted: bool,
-    createdAt: timestamp,
-  }),
-  ChangePage: obj({
-    changes: arr(ref("Change")),
-    cursor: decimal,
-    hasMore: bool,
-  }),
   AuditEntry: obj({
     id: uuid,
     organizationId: nullable(uuid),
@@ -479,18 +466,6 @@ export const wireSchemas: Record<string, Schema> = {
   Ranking: obj({
     month: { type: "string", pattern: "^[0-9]{4}-[0-9]{2}$" },
     scores: arr(ref("RankingScore")),
-  }),
-  AdminOverview: obj({
-    storeCount: integer,
-    staffCount: integer,
-    orders: arr(ref("Order")),
-    alerts: arr(ref("Alert")),
-  }),
-  ReportOverview: obj({
-    stores: arr(ref("StoreAccess")),
-    totalStores: integer,
-    organizations: integer,
-    staff: integer,
   }),
   ApiError: obj(
     {

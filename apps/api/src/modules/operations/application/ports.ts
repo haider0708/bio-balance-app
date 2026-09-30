@@ -108,6 +108,8 @@ export interface Ledger {
     operationId: string,
     proof: { scanned: boolean; manualReason?: string },
   ): Promise<void>;
+  /** Replaces a delivery's QR without touching the delivery itself. */
+  renewTicket(deliveryId: string, ticketVersion: number): Promise<void>;
   saveFlag(flag: FlagRecord): Promise<void>;
   flag(id: string): Promise<FlagRecord>;
   decideFlag(flag: FlagRecord): Promise<void>;

@@ -36,11 +36,12 @@ Le responsable (ou le grossiste pour son dépôt) **signale** un lot et une quan
 ## Validation locale
 
 - **Backend :** 102 tests d’intégration PostgreSQL dont l’historique des prix (visibilité par rôle, priorité des prix particuliers, immutabilité), les bons (numérotation, QR valide/invalide/renouvelé, réception sans scan, lot hors bon), les signalements (stock, décision, valeur, finalité) et les ventes (prix de la date, taux de la date, corrections, ventes tardives). Audit 14, sécurité 10, notifications 5, email 19, domaine 19, médias 5.
-- **75 contrats HTTP** vérifiés sur l’API réelle puis décodés par le client Dart régénéré ; dérive nulle.
+- **71 contrats HTTP** vérifiés sur l’API réelle puis décodés par le client Dart régénéré ; dérive nulle.
 - **Flutter :** tests de lecture du QR, réception par scan, déclaration des lots, visibilité des prix par rôle et projection hors ligne des signalements.
 
 ## Limites connues
 
+- Une vente synchronisée tardivement peut choisir le taux de points de sa date déclarée (14 jours) : la date vient du téléphone. Limite acceptée ; chaque vente reste tracée et visible de BioBalance.
 - Aucune installation sur téléphone ; l’écran du bon, le scan et les écrans de décision sont essayés seulement par des tests d’interface. Aucune qualification iOS.
 - Les scripts `reset-business-keep-*.sql` ont reçu les nouvelles tables mais n’ont pas été rejoués.
 - Les prix d’approvisionnement et de gros se définissent produit par produit ; l’import CSV de prix n’existe pas encore.

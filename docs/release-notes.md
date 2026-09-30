@@ -2,7 +2,7 @@
 
 Trois niveaux de prix avec historique inaltérable et visibilité par rôle ; chaque commande, bon, vente et perte garde le prix de son jour. Chaque livraison est un bon numéroté avec lots, péremptions et QR : le responsable scanne le colis pour ajouter les quantités à son stock. Les produits abîmés ou périmés se signalent et BioBalance seul décide. Les points suivent le taux de la date de la vente. Les retours en transit sont décidés par BioBalance seul.
 
-Migrations additives `202609300002` à `202609300004`, 75 contrats HTTP. [Détails](pricing-tickets-quality-2026-09-30.md).
+Migrations additives `202609300002` à `202609300004`, 71 contrats HTTP. [Détails](pricing-tickets-quality-2026-09-30.md).
 
 ---
 

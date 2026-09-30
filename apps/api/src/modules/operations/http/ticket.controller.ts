@@ -6,6 +6,7 @@ import { Database } from "../../../shared/infrastructure/database";
 import { requireRule } from "../../../shared/domain/errors";
 import { AuthRequest } from "../../../shared/infrastructure/http";
 import { ticketPayload } from "../../../shared/domain/delivery-ticket";
+import { requireDepotAccess } from "../../wholesale/depot-access";
 import { Actor, DispatchedLine } from "../domain/contracts";
 
 const ticketQuery = z.object({
@@ -32,25 +33,15 @@ export class TicketService {
           "Bon réservé à l’expéditeur.",
           403,
         );
-        const depot = await tx.store.findFirst({
-          where: { id: q.supplierStoreId, organizationId: q.organizationId },
-        });
-        const group = await tx.organization.findUnique({
-          where: { id: q.organizationId },
-        });
-        const member = await tx.organizationMembership.findUnique({
-          where: {
-            organizationId_userId: {
-              organizationId: q.organizationId!,
-              userId: current.id,
-            },
+        await requireDepotAccess(
+          tx,
+          current,
+          q.organizationId!,
+          q.supplierStoreId!,
+          {
+            allowInactive: true,
+            message: "Bon réservé à l’expéditeur.",
           },
-        });
-        requireRule(
-          depot && group?.kind === "wholesale" && member?.active,
-          "FORBIDDEN",
-          "Bon réservé à l’expéditeur.",
-          403,
         );
         await tx.$executeRaw`SELECT set_config('app.supplier_store',${q.supplierStoreId!},true)`;
       }

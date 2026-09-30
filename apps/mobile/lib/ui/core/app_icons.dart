@@ -13,9 +13,7 @@ abstract final class AppIcons {
   static const trophy = LucideIcons.trophy;
   static const scan = LucideIcons.scanBarcode;
   static const help = LucideIcons.circleHelp;
-  static const accountCircleOutlined = LucideIcons.circleUserRound;
   static const add = LucideIcons.plus;
-  static const addBusinessOutlined = LucideIcons.store;
   static const addPhotoAlternateOutlined = LucideIcons.imagePlus;
   static const assessmentOutlined = LucideIcons.chartNoAxesCombined;
   static const assignmentReturnOutlined = LucideIcons.undo2;
@@ -54,10 +52,8 @@ abstract final class AppIcons {
   static const lockOutline = LucideIcons.lockKeyhole;
   static const logout = LucideIcons.logOut;
   static const mailOutline = LucideIcons.mail;
-  static const manageAccountsOutlined = LucideIcons.userRoundCog;
   static const manageSearch = LucideIcons.searchCheck;
   static const markEmailReadOutlined = LucideIcons.mailOpen;
-  static const markEmailUnreadOutlined = LucideIcons.mail;
   static const menu = LucideIcons.menu;
   static const menuBookOutlined = LucideIcons.bookOpen;
   static const moreHoriz = LucideIcons.ellipsis;
@@ -93,5 +89,4 @@ abstract final class AppIcons {
   static const uploadFile = LucideIcons.upload;
   static const visibilityOffOutlined = LucideIcons.eyeOff;
   static const visibilityOutlined = LucideIcons.eye;
-  static const warningAmberOutlined = LucideIcons.triangleAlert;
 }

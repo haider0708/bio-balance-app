@@ -109,4 +109,71 @@ void main() {
     dio.close();
     await db.close();
   });
+
+  test(
+    'two decisions on different flags never share one saved operation',
+    () async {
+      final dio = Dio(BaseOptions(baseUrl: 'https://example.invalid'));
+      final sent = <Json>[];
+      dio.interceptors.add(
+        InterceptorsWrapper(
+          onRequest: (options, handler) {
+            final op = (options.data as Map)['operations'][0] as Json;
+            sent.add(op);
+            handler.resolve(
+              Response(
+                requestOptions: options,
+                statusCode: 200,
+                data: {
+                  'results': [
+                    {
+                      'operationId': op['operationId'],
+                      'status': 'accepted',
+                      'data': {'id': 'flag'},
+                    },
+                  ],
+                },
+              ),
+            );
+          },
+        ),
+      );
+      final api = ApiClient(baseUrl: 'https://example.invalid', dio: dio)
+        ..authenticate('test-only', accountId: 'admin');
+      final db = AppDatabase(NativeDatabase.memory());
+      addTearDown(db.close);
+      final repo = OnlineOperationsRepository(
+        RepositoryContext(api),
+        OfflineRepository(db, api),
+        const UserAccount(
+          id: 'admin',
+          email: 'admin@example.test',
+          name: 'Admin',
+          admin: true,
+        ),
+      );
+      final store = Store.fromJson({
+        'id': 'store',
+        'organizationId': 'org',
+        'name': 'Magasin',
+        'permissions': ['manage'],
+      });
+      Json decision(String flagId) => {
+        'type': 'quality.resolve',
+        'flagId': flagId,
+        'decision': 'confirm',
+        'note': 'Retiré du stock',
+      };
+      // Both decisions start together: neither may be merged into the other.
+      await Future.wait([
+        repo.submit(store, decision('flag-a'), expectedVersion: 1),
+        repo.submit(store, decision('flag-b'), expectedVersion: 1),
+      ]);
+      expect(sent.map((op) => op['command']['flagId']).toSet(), {
+        'flag-a',
+        'flag-b',
+      });
+      expect(sent.map((op) => op['operationId']).toSet(), hasLength(2));
+    },
+  );
 }

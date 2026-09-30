@@ -446,7 +446,6 @@ const owner = new PrismaClient({
     );
     await call("GET", `${storeUrl}/orders/${orderId}/fulfillment?${scope}`);
     await call("GET", `${storeUrl}/ranking?${scope}`);
-    await call("GET", `${storeUrl}/changes?${scope}`);
     await owner.inventoryLot.createMany({
       data: Array.from({ length: 501 }, (_, i) => ({
         organizationId: org,
@@ -533,9 +532,6 @@ const owner = new PrismaClient({
       headers: { Range: "bytes=10-" },
       status: 206,
     });
-    await call("GET", "/v1/admin/overview", { as: adminToken });
-    await call("GET", "/v1/reports/overview", { as: adminToken });
-    await call("GET", `/v1/reports/stores/${store}/sales.csv?${scope}`);
     await call("GET", "/v1/groups");
     await call("GET", `/v1/groups/${org}/stores`);
     await call("GET", `/v1/groups/${org}/team`);

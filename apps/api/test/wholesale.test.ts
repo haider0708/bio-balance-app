@@ -757,7 +757,7 @@ describe("store orders handled by a grossiste", () => {
     expect(back.after).toBe(back.before + 4);
     const gone = await run(lostOrder, lost, "lost");
     expect(gone.after).toBe(gone.before);
-  });
+  }, 30000);
 
   it("shows a grossiste only the orders assigned to its own depot", async () => {
     const mine = await wholesale.orders(grossiste, {

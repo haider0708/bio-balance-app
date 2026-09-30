@@ -10,17 +10,4 @@ class TeamRepository {
       body: IdentityInviteRequestDto.fromJson(input),
     );
   });
-  Future<void> setAccess(
-    Store store,
-    String userId, {
-    required bool active,
-    required List<String> permissions,
-  }) => context.run(() async {
-    await context.api.workspaceMember(
-      store: store.id,
-      organizationId: store.organizationId,
-      user: userId,
-      body: WorkspaceMemberRequestDto(active: active, permissions: permissions),
-    );
-  });
 }

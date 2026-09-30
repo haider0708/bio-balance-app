@@ -501,13 +501,6 @@ class ApiClient extends SessionTransport {
     );
   }
 
-  Future<AdminOverviewResponseDto> adminOverview() async {
-    final value = await request('GET', '/v1/admin/overview', query: {});
-    return AdminOverviewResponseDto.fromJson(
-      Map<String, dynamic>.from(value as Map),
-    );
-  }
-
   Future<HealthHealthResponseDto> healthHealth() async {
     final value = await request('GET', '/health', query: {});
     return HealthHealthResponseDto.fromJson(
@@ -735,21 +728,6 @@ class ApiClient extends SessionTransport {
       query: {"organizationId": organizationId},
     );
     return WorkspaceSaleResponseDto.fromJson(
-      Map<String, dynamic>.from(value as Map),
-    );
-  }
-
-  Future<WorkspaceChangesResponseDto> workspaceChanges({
-    required String store,
-    required String organizationId,
-    String? after,
-  }) async {
-    final value = await request(
-      'GET',
-      '/v1/stores/${Uri.encodeComponent(store)}/changes',
-      query: {"organizationId": organizationId, "after": ?after},
-    );
-    return WorkspaceChangesResponseDto.fromJson(
       Map<String, dynamic>.from(value as Map),
     );
   }
@@ -1110,25 +1088,5 @@ class ApiClient extends SessionTransport {
       cancelToken: cancelToken,
     );
     return response.data!;
-  }
-
-  Future<ReportingOverviewResponseDto> reportingOverview() async {
-    final value = await request('GET', '/v1/reports/overview', query: {});
-    return ReportingOverviewResponseDto.fromJson(
-      Map<String, dynamic>.from(value as Map),
-    );
-  }
-
-  Future<String> reportingExport({
-    required String store,
-    required String organizationId,
-    String? after,
-  }) async {
-    final value = await request(
-      'GET',
-      '/v1/reports/stores/${Uri.encodeComponent(store)}/sales.csv',
-      query: {"organizationId": organizationId, "after": ?after},
-    );
-    return value as String;
   }
 }

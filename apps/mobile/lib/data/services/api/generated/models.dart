@@ -2112,85 +2112,6 @@ final class AlertDto {
   };
 }
 
-final class ChangeDto {
-  final Set<String> _presentFields;
-  Set<String> get presentFields => _presentFields;
-  final String id;
-  final String organizationId;
-  final String storeId;
-  final String cursor;
-  final String entity;
-  final String entityId;
-  final bool deleted;
-  final String createdAt;
-  ChangeDto({
-    Set<String> presentFields = const {},
-    required this.id,
-    required this.organizationId,
-    required this.storeId,
-    required this.cursor,
-    required this.entity,
-    required this.entityId,
-    required this.deleted,
-    required this.createdAt,
-  }) : _presentFields = Set.unmodifiable(presentFields);
-  factory ChangeDto.fromJson(Map<String, dynamic> json) {
-    return ChangeDto(
-      presentFields: json.keys.toSet(),
-      id: json["id"] as String,
-      organizationId: json["organizationId"] as String,
-      storeId: json["storeId"] as String,
-      cursor: json["cursor"] as String,
-      entity: json["entity"] as String,
-      entityId: json["entityId"] as String,
-      deleted: json["deleted"] as bool,
-      createdAt: json["createdAt"] as String,
-    );
-  }
-  Map<String, dynamic> toJson() => {
-    "id": id,
-    "organizationId": organizationId,
-    "storeId": storeId,
-    "cursor": cursor,
-    "entity": entity,
-    "entityId": entityId,
-    "deleted": deleted,
-    "createdAt": createdAt,
-  };
-}
-
-final class ChangePageDto {
-  final Set<String> _presentFields;
-  Set<String> get presentFields => _presentFields;
-  final List<ChangeDto> changes;
-  final String cursor;
-  final bool hasMore;
-  ChangePageDto({
-    Set<String> presentFields = const {},
-    required List<ChangeDto> changes,
-    required this.cursor,
-    required this.hasMore,
-  }) : _presentFields = Set.unmodifiable(presentFields),
-       changes = List.unmodifiable(changes);
-  factory ChangePageDto.fromJson(Map<String, dynamic> json) {
-    return ChangePageDto(
-      presentFields: json.keys.toSet(),
-      changes: List.unmodifiable(
-        (json["changes"] as List).map(
-          (item) => ChangeDto.fromJson(Map<String, dynamic>.from(item as Map)),
-        ),
-      ),
-      cursor: json["cursor"] as String,
-      hasMore: json["hasMore"] as bool,
-    );
-  }
-  Map<String, dynamic> toJson() => {
-    "changes": changes.map((item) => item.toJson()).toList(),
-    "cursor": cursor,
-    "hasMore": hasMore,
-  };
-}
-
 final class AuditEntryDto implements CollectionItemDto, HistoryItemDto {
   final Set<String> _presentFields;
   Set<String> get presentFields => _presentFields;
@@ -2751,84 +2672,6 @@ final class RankingDto {
   Map<String, dynamic> toJson() => {
     "month": month,
     "scores": scores.map((item) => item.toJson()).toList(),
-  };
-}
-
-final class AdminOverviewDto {
-  final Set<String> _presentFields;
-  Set<String> get presentFields => _presentFields;
-  final int storeCount;
-  final int staffCount;
-  final List<OrderDto> orders;
-  final List<AlertDto> alerts;
-  AdminOverviewDto({
-    Set<String> presentFields = const {},
-    required this.storeCount,
-    required this.staffCount,
-    required List<OrderDto> orders,
-    required List<AlertDto> alerts,
-  }) : _presentFields = Set.unmodifiable(presentFields),
-       orders = List.unmodifiable(orders),
-       alerts = List.unmodifiable(alerts);
-  factory AdminOverviewDto.fromJson(Map<String, dynamic> json) {
-    return AdminOverviewDto(
-      presentFields: json.keys.toSet(),
-      storeCount: wireInteger(json["storeCount"]),
-      staffCount: wireInteger(json["staffCount"]),
-      orders: List.unmodifiable(
-        (json["orders"] as List).map(
-          (item) => OrderDto.fromJson(Map<String, dynamic>.from(item as Map)),
-        ),
-      ),
-      alerts: List.unmodifiable(
-        (json["alerts"] as List).map(
-          (item) => AlertDto.fromJson(Map<String, dynamic>.from(item as Map)),
-        ),
-      ),
-    );
-  }
-  Map<String, dynamic> toJson() => {
-    "storeCount": storeCount,
-    "staffCount": staffCount,
-    "orders": orders.map((item) => item.toJson()).toList(),
-    "alerts": alerts.map((item) => item.toJson()).toList(),
-  };
-}
-
-final class ReportOverviewDto {
-  final Set<String> _presentFields;
-  Set<String> get presentFields => _presentFields;
-  final List<StoreAccessDto> stores;
-  final int totalStores;
-  final int organizations;
-  final int staff;
-  ReportOverviewDto({
-    Set<String> presentFields = const {},
-    required List<StoreAccessDto> stores,
-    required this.totalStores,
-    required this.organizations,
-    required this.staff,
-  }) : _presentFields = Set.unmodifiable(presentFields),
-       stores = List.unmodifiable(stores);
-  factory ReportOverviewDto.fromJson(Map<String, dynamic> json) {
-    return ReportOverviewDto(
-      presentFields: json.keys.toSet(),
-      stores: List.unmodifiable(
-        (json["stores"] as List).map(
-          (item) =>
-              StoreAccessDto.fromJson(Map<String, dynamic>.from(item as Map)),
-        ),
-      ),
-      totalStores: wireInteger(json["totalStores"]),
-      organizations: wireInteger(json["organizations"]),
-      staff: wireInteger(json["staff"]),
-    );
-  }
-  Map<String, dynamic> toJson() => {
-    "stores": stores.map((item) => item.toJson()).toList(),
-    "totalStores": totalStores,
-    "organizations": organizations,
-    "staff": staff,
   };
 }
 
@@ -5457,7 +5300,6 @@ final class GroupMemberRequestDto {
   };
 }
 
-typedef AdminOverviewResponseDto = AdminOverviewDto;
 typedef HealthHealthResponseDto = HealthDto;
 typedef IdentityLoginResponseDto = LoginResponseDto;
 
@@ -5655,7 +5497,6 @@ typedef WorkspaceCollectionResponseDto = List<CollectionItemDto>;
 typedef WorkspaceHistoryResponseDto = HistoryPageDto;
 typedef WorkspaceFulfillmentResponseDto = OrderFulfillmentDto;
 typedef WorkspaceSaleResponseDto = SaleDetailsDto;
-typedef WorkspaceChangesResponseDto = ChangePageDto;
 typedef WorkspaceRankingResponseDto = RankingDto;
 typedef WorkspaceConfigResponseDto = StoreProductDto;
 
@@ -6195,8 +6036,6 @@ typedef TrainingStatusResponseDto = UploadStatusDto;
 typedef TrainingChunkResponseDto = UploadChunkResultDto;
 typedef TrainingMetadataResponseDto = MediaMetadataDto;
 typedef TrainingMediaResponseDto = String;
-typedef ReportingOverviewResponseDto = ReportOverviewDto;
-typedef ReportingExportResponseDto = String;
 
 final class DispatchedLineAllocationsItemDto {
   final Set<String> _presentFields;

@@ -1203,43 +1203,6 @@ const Map<String, Map<String, dynamic>> _schemas = {
     ],
     "additionalProperties": false,
   },
-  "Change": {
-    "type": "object",
-    "properties": {
-      "id": {"type": "string", "format": "uuid"},
-      "organizationId": {"type": "string", "format": "uuid"},
-      "storeId": {"type": "string", "format": "uuid"},
-      "cursor": {"type": "string", "pattern": "^-?[0-9]+\$"},
-      "entity": {"type": "string"},
-      "entityId": {"type": "string"},
-      "deleted": {"type": "boolean"},
-      "createdAt": {"type": "string", "format": "date-time"},
-    },
-    "required": [
-      "id",
-      "organizationId",
-      "storeId",
-      "cursor",
-      "entity",
-      "entityId",
-      "deleted",
-      "createdAt",
-    ],
-    "additionalProperties": false,
-  },
-  "ChangePage": {
-    "type": "object",
-    "properties": {
-      "changes": {
-        "type": "array",
-        "items": {"\$ref": "#/components/schemas/Change"},
-      },
-      "cursor": {"type": "string", "pattern": "^-?[0-9]+\$"},
-      "hasMore": {"type": "boolean"},
-    },
-    "required": ["changes", "cursor", "hasMore"],
-    "additionalProperties": false,
-  },
   "AuditEntry": {
     "type": "object",
     "properties": {
@@ -1572,37 +1535,6 @@ const Map<String, Map<String, dynamic>> _schemas = {
       },
     },
     "required": ["month", "scores"],
-    "additionalProperties": false,
-  },
-  "AdminOverview": {
-    "type": "object",
-    "properties": {
-      "storeCount": {"type": "integer"},
-      "staffCount": {"type": "integer"},
-      "orders": {
-        "type": "array",
-        "items": {"\$ref": "#/components/schemas/Order"},
-      },
-      "alerts": {
-        "type": "array",
-        "items": {"\$ref": "#/components/schemas/Alert"},
-      },
-    },
-    "required": ["storeCount", "staffCount", "orders", "alerts"],
-    "additionalProperties": false,
-  },
-  "ReportOverview": {
-    "type": "object",
-    "properties": {
-      "stores": {
-        "type": "array",
-        "items": {"\$ref": "#/components/schemas/StoreAccess"},
-      },
-      "totalStores": {"type": "integer"},
-      "organizations": {"type": "integer"},
-      "staff": {"type": "integer"},
-    },
-    "required": ["stores", "totalStores", "organizations", "staff"],
     "additionalProperties": false,
   },
   "ApiError": {
@@ -3179,7 +3111,6 @@ const Map<String, Map<String, dynamic>> _schemas = {
     "required": ["active", "role"],
     "additionalProperties": false,
   },
-  "AdminOverviewResponse": {"\$ref": "#/components/schemas/AdminOverview"},
   "HealthHealthResponse": {"\$ref": "#/components/schemas/Health"},
   "IdentityLoginResponse": {"\$ref": "#/components/schemas/LoginResponse"},
   "IdentityLoginRequest": {
@@ -3310,7 +3241,6 @@ const Map<String, Map<String, dynamic>> _schemas = {
     "\$ref": "#/components/schemas/OrderFulfillment",
   },
   "WorkspaceSaleResponse": {"\$ref": "#/components/schemas/SaleDetails"},
-  "WorkspaceChangesResponse": {"\$ref": "#/components/schemas/ChangePage"},
   "WorkspaceRankingResponse": {"\$ref": "#/components/schemas/Ranking"},
   "WorkspaceConfigResponse": {"\$ref": "#/components/schemas/StoreProduct"},
   "WorkspaceConfigRequest": {
@@ -3629,8 +3559,6 @@ const Map<String, Map<String, dynamic>> _schemas = {
   "TrainingChunkResponse": {"\$ref": "#/components/schemas/UploadChunkResult"},
   "TrainingMetadataResponse": {"\$ref": "#/components/schemas/MediaMetadata"},
   "TrainingMediaResponse": {"type": "string", "format": "binary"},
-  "ReportingOverviewResponse": {"\$ref": "#/components/schemas/ReportOverview"},
-  "ReportingExportResponse": {"type": "string"},
   "DispatchedLineAllocationsItem": {
     "type": "object",
     "properties": {

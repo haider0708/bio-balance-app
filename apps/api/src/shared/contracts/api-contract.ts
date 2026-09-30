@@ -110,7 +110,6 @@ const responses: Record<string, Schema> = {
   WorkspaceController_history: ref("HistoryPage"),
   WorkspaceController_fulfillment: ref("OrderFulfillment"),
   WorkspaceController_sale: ref("SaleDetails"),
-  WorkspaceController_changes: ref("ChangePage"),
   WorkspaceController_ranking: ref("Ranking"),
   WorkspaceController_config: ref("StoreProduct"),
   WorkspaceController_member: ref("Membership"),
@@ -133,9 +132,6 @@ const responses: Record<string, Schema> = {
   TrainingController_chunk: ref("UploadChunkResult"),
   TrainingController_metadata: ref("MediaMetadata"),
   TrainingController_media: { type: "string", format: "binary" },
-  ReportingController_export: { type: "string" },
-  ReportingController_overview: ref("ReportOverview"),
-  AdminController_overview: ref("AdminOverview"),
   TicketController_get: ref("DeliveryTicket"),
   QualityController_list: ref("QualityFlagPage"),
   PricingController_current: ref("CurrentPrices"),
@@ -397,11 +393,9 @@ export function applyContract(document: OpenAPIObject): OpenAPIObject {
           }),
         );
       if (
-        [
-          "WorkspaceController_collection",
-          "ReportingController_export",
-          "TrainingController_list",
-        ].includes(original)
+        ["WorkspaceController_collection", "TrainingController_list"].includes(
+          original,
+        )
       )
         params.push(parameter("after", "query", uuid));
       if (original === "WorkspaceController_history")
@@ -411,14 +405,6 @@ export function applyContract(document: OpenAPIObject): OpenAPIObject {
             type: "string",
             maxLength: 300,
             pattern: "^[A-Za-z0-9_-]+$",
-          }),
-        );
-      if (original === "WorkspaceController_changes")
-        params.push(
-          parameter("after", "query", {
-            type: "string",
-            pattern: "^[0-9]{1,19}$",
-            default: "0",
           }),
         );
       if (original === "NotificationsController_list")
@@ -484,9 +470,7 @@ export function applyContract(document: OpenAPIObject): OpenAPIObject {
       const contentType =
         original === "TrainingController_media"
           ? "application/octet-stream"
-          : ["ReportingController_export", "ExportController_file"].includes(
-                original,
-              )
+          : original === "ExportController_file"
             ? "text/csv"
             : "application/json";
       const success = method === "post" ? "201" : "200";

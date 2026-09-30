@@ -411,17 +411,19 @@ describe("delivery tickets", () => {
       ).code,
     ).toBe("FORBIDDEN");
     await accepted(admin, retail({ type: "delivery.reissue", deliveryId }, 1));
+    // The old QR stops working, but the delivery keeps its version: a receiver
+    // whose phone has not synced can still confirm the parcel with the new QR.
     expect(
       (
         await service.submit(
           manager,
-          receive(deliveryId, 2, { ticketCode: code }),
+          receive(deliveryId, 1, { ticketCode: code }),
         )
       ).code,
     ).toBe("TICKET_INVALID");
     const fresh = codeOf((await tickets.ticket(admin, deliveryId, {})).qr);
     expect(fresh).not.toBe(code);
-    await accepted(manager, receive(deliveryId, 2, { ticketCode: fresh }));
+    await accepted(manager, receive(deliveryId, 1, { ticketCode: fresh }));
     const receipt = await owner.deliveryReceipt.findFirstOrThrow({
       where: { deliveryId },
     });
@@ -436,7 +438,7 @@ describe("delivery tickets", () => {
       (
         await service.submit(
           admin,
-          retail({ type: "delivery.reissue", deliveryId }, 3),
+          retail({ type: "delivery.reissue", deliveryId }, 2),
         )
       ).code,
     ).toBe("DELIVERY_CLOSED");

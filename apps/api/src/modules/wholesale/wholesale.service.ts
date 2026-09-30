@@ -4,6 +4,7 @@ import { z } from "zod";
 import { Database, json } from "../../shared/infrastructure/database";
 import { requireRule } from "../../shared/domain/errors";
 import { Actor } from "../operations/domain/contracts";
+import { requireDepotAccess } from "./depot-access";
 import { issueInvitation } from "../identity/issue-invitation";
 import {
   orderFulfillment,
@@ -114,46 +115,68 @@ export class WholesaleService {
           orderBy: { name: "asc" },
           take: 500,
         });
-        return Promise.all(rows.map((row) => this.view(tx, row.id)));
+        return this.views(
+          tx,
+          rows.map((row) => row.id),
+        );
       },
       true,
     );
   }
 
   private async view(tx: Prisma.TransactionClient, organizationId: string) {
-    const organization = await tx.organization.findUniqueOrThrow({
-      where: { id: organizationId },
+    return (await this.views(tx, [organizationId]))[0]!;
+  }
+
+  /** Grossistes with their depot and account, in a handful of queries. */
+  private async views(tx: Prisma.TransactionClient, organizationIds: string[]) {
+    const [organizations, stores, members, invitations] = await Promise.all([
+      tx.organization.findMany({ where: { id: { in: organizationIds } } }),
+      tx.store.findMany({
+        where: { organizationId: { in: organizationIds } },
+        orderBy: { createdAt: "asc" },
+      }),
+      tx.organizationMembership.findMany({
+        where: { organizationId: { in: organizationIds }, active: true },
+      }),
+      tx.accessToken.findMany({
+        where: {
+          organizationId: { in: organizationIds },
+          purpose: "invite",
+          kind: "wholesaler",
+        },
+        orderBy: { createdAt: "desc" },
+      }),
+    ]);
+    const users = await tx.user.findMany({
+      where: { id: { in: members.map((m) => m.userId) } },
     });
-    const store = await tx.store.findFirstOrThrow({
-      where: { organizationId },
-      orderBy: { createdAt: "asc" },
+    return organizationIds.flatMap((id) => {
+      const organization = organizations.find((o) => o.id === id);
+      const store = stores.find((s) => s.organizationId === id);
+      if (!organization || !store) return [];
+      const member = members.find((m) => m.organizationId === id);
+      const user = member ? users.find((u) => u.id === member.userId) : null;
+      const invitation = user
+        ? null
+        : invitations.find((i) => i.organizationId === id);
+      return [
+        {
+          id: organization.id,
+          storeId: store.id,
+          name: organization.name,
+          address: store.address,
+          city: store.city,
+          phone: organization.phone,
+          status: organization.status,
+          version: organization.version,
+          createdAt: organization.createdAt,
+          contactName: user?.name ?? null,
+          contactEmail: user?.email ?? invitation?.email ?? null,
+          activated: !!user,
+        },
+      ];
     });
-    const member = await tx.organizationMembership.findFirst({
-      where: { organizationId, active: true },
-    });
-    const user = member
-      ? await tx.user.findUnique({ where: { id: member.userId } })
-      : null;
-    const invitation = user
-      ? null
-      : await tx.accessToken.findFirst({
-          where: { organizationId, purpose: "invite", kind: "wholesaler" },
-          orderBy: { createdAt: "desc" },
-        });
-    return {
-      id: organization.id,
-      storeId: store.id,
-      name: organization.name,
-      address: store.address,
-      city: store.city,
-      phone: organization.phone,
-      status: organization.status,
-      version: organization.version,
-      createdAt: organization.createdAt,
-      contactName: user?.name ?? null,
-      contactEmail: user?.email ?? invitation?.email ?? null,
-      activated: !!user,
-    };
   }
 
   /** The depot's responsible account, or BioBalance, reads orders assigned to it. */
@@ -164,26 +187,7 @@ export class WholesaleService {
     work: (tx: Prisma.TransactionClient) => Promise<T>,
   ) {
     return this.db.authenticated(actor, async (tx, current) => {
-      const depot = await tx.store.findFirst({
-        where: { id: storeId, organizationId },
-      });
-      const group = await tx.organization.findUnique({
-        where: { id: organizationId },
-      });
-      const member = await tx.organizationMembership.findUnique({
-        where: {
-          organizationId_userId: { organizationId, userId: current.id },
-        },
-      });
-      requireRule(
-        depot &&
-          group?.kind === "wholesale" &&
-          (current.platformAdmin ||
-            (member?.active && group.status === "active")),
-        "STORE_ACCESS_REVOKED",
-        "Dépôt inaccessible.",
-        403,
-      );
+      await requireDepotAccess(tx, current, organizationId, storeId);
       await tx.$executeRaw`SELECT set_config('app.supplier_store',${storeId},true)`;
       if (current.platformAdmin)
         await tx.$executeRaw`SELECT set_config('app.admin_read','true',true)`;
