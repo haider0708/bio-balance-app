@@ -290,6 +290,17 @@ class Journey {
     bool shipment = false,
   }) async {
     if (shipment) {
+      // The emulator cannot read a QR: the reception is made without a scan,
+      // with its reason, and BioBalance is told.
+      await tap('Je ne peux pas scanner');
+      await t.enterText(
+        find.widgetWithText(
+          TextField,
+          'Pourquoi le QR ne peut pas être scanné (obligatoire)',
+        ),
+        'Essai sur émulateur',
+      );
+      await t.pumpAndSettle();
       await tap('Saisir le lot reçu');
     } else {
       await tap('Ajouter un produit et un lot');
@@ -470,11 +481,19 @@ void main() {
     await j.tap('Mettre en préparation');
     await j.ready();
     await j.tap('Expédier une livraison');
-    await j.tapKey('editor.save');
-    await j.until(
-      () => j.key('editor.save').evaluate().isEmpty,
-      reason: 'delivery editor closed',
+    // BioBalance declares the lot and expiry printed on the delivery ticket.
+    await tester.enterText(find.widgetWithText(TextField, 'Lot'), 'DELIVERY');
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Péremption'),
+      '12/2030',
     );
+    await tester.pumpAndSettle();
+    await j.tap('Confirmer et créer le bon');
+    await j.until(
+      () => find.text('Bon de livraison').evaluate().isNotEmpty,
+      reason: 'delivery ticket shown',
+    );
+    await j.back();
     await j.ready();
     await j.logout();
     debugPrint('JOURNEY: responsible person confirms physical reception');
