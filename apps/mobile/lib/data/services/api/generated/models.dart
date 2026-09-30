@@ -1454,21 +1454,29 @@ final class OrderLineDto {
   Set<String> get presentFields => _presentFields;
   final String productId;
   final int quantity;
+  final String? unitPriceMillimes;
   OrderLineDto({
     Set<String> presentFields = const {},
     required this.productId,
     required this.quantity,
+    this.unitPriceMillimes,
   }) : _presentFields = Set.unmodifiable(presentFields);
   factory OrderLineDto.fromJson(Map<String, dynamic> json) {
     return OrderLineDto(
       presentFields: json.keys.toSet(),
       productId: json["productId"] as String,
       quantity: wireInteger(json["quantity"]),
+      unitPriceMillimes: json["unitPriceMillimes"] == null
+          ? null
+          : json["unitPriceMillimes"] as String,
     );
   }
   Map<String, dynamic> toJson() => {
     "productId": productId,
     "quantity": quantity,
+    if (unitPriceMillimes != null ||
+        _presentFields.contains("unitPriceMillimes"))
+      "unitPriceMillimes": unitPriceMillimes,
   };
 }
 
@@ -1719,11 +1727,13 @@ final class DispatchedLineDto {
   Set<String> get presentFields => _presentFields;
   final String productId;
   final int quantity;
+  final String? unitPriceMillimes;
   final List<DispatchedLineAllocationsItemDto>? allocations;
   DispatchedLineDto({
     Set<String> presentFields = const {},
     required this.productId,
     required this.quantity,
+    this.unitPriceMillimes,
     List<DispatchedLineAllocationsItemDto>? allocations,
   }) : _presentFields = Set.unmodifiable(presentFields),
        allocations = allocations == null
@@ -1734,6 +1744,9 @@ final class DispatchedLineDto {
       presentFields: json.keys.toSet(),
       productId: json["productId"] as String,
       quantity: wireInteger(json["quantity"]),
+      unitPriceMillimes: json["unitPriceMillimes"] == null
+          ? null
+          : json["unitPriceMillimes"] as String,
       allocations: json["allocations"] == null
           ? null
           : List.unmodifiable(
@@ -1748,6 +1761,9 @@ final class DispatchedLineDto {
   Map<String, dynamic> toJson() => {
     "productId": productId,
     "quantity": quantity,
+    if (unitPriceMillimes != null ||
+        _presentFields.contains("unitPriceMillimes"))
+      "unitPriceMillimes": unitPriceMillimes,
     if (allocations != null || _presentFields.contains("allocations"))
       "allocations": allocations?.map((item) => item.toJson()).toList(),
   };
@@ -1763,6 +1779,8 @@ final class DeliveryDto {
   final List<DispatchedLineDto> lines;
   final String? sourceOrganizationId;
   final String? sourceStoreId;
+  final String ticketNumber;
+  final int ticketVersion;
   final String status;
   final int version;
   final String dispatchedAt;
@@ -1776,6 +1794,8 @@ final class DeliveryDto {
     required List<DispatchedLineDto> lines,
     required this.sourceOrganizationId,
     required this.sourceStoreId,
+    required this.ticketNumber,
+    required this.ticketVersion,
     required this.status,
     required this.version,
     required this.dispatchedAt,
@@ -1802,6 +1822,8 @@ final class DeliveryDto {
       sourceStoreId: json["sourceStoreId"] == null
           ? null
           : json["sourceStoreId"] as String,
+      ticketNumber: json["ticketNumber"] as String,
+      ticketVersion: wireInteger(json["ticketVersion"]),
       status: json["status"] as String,
       version: wireInteger(json["version"]),
       dispatchedAt: json["dispatchedAt"] as String,
@@ -1818,6 +1840,8 @@ final class DeliveryDto {
     "lines": lines.map((item) => item.toJson()).toList(),
     "sourceOrganizationId": sourceOrganizationId,
     "sourceStoreId": sourceStoreId,
+    "ticketNumber": ticketNumber,
+    "ticketVersion": ticketVersion,
     "status": status,
     "version": version,
     "dispatchedAt": dispatchedAt,
@@ -1908,12 +1932,17 @@ final class DeliveryDifferencesDto {
   Set<String> get presentFields => _presentFields;
   final List<DeliveryDifferenceDto> lines;
   final String note;
+  final List<DeliveryDifferencesOutsideTicketItemDto>? outsideTicket;
   DeliveryDifferencesDto({
     Set<String> presentFields = const {},
     required List<DeliveryDifferenceDto> lines,
     required this.note,
+    List<DeliveryDifferencesOutsideTicketItemDto>? outsideTicket,
   }) : _presentFields = Set.unmodifiable(presentFields),
-       lines = List.unmodifiable(lines);
+       lines = List.unmodifiable(lines),
+       outsideTicket = outsideTicket == null
+           ? null
+           : List.unmodifiable(outsideTicket);
   factory DeliveryDifferencesDto.fromJson(Map<String, dynamic> json) {
     return DeliveryDifferencesDto(
       presentFields: json.keys.toSet(),
@@ -1925,11 +1954,22 @@ final class DeliveryDifferencesDto {
         ),
       ),
       note: json["note"] as String,
+      outsideTicket: json["outsideTicket"] == null
+          ? null
+          : List.unmodifiable(
+              (json["outsideTicket"] as List).map(
+                (item) => DeliveryDifferencesOutsideTicketItemDto.fromJson(
+                  Map<String, dynamic>.from(item as Map),
+                ),
+              ),
+            ),
     );
   }
   Map<String, dynamic> toJson() => {
     "lines": lines.map((item) => item.toJson()).toList(),
     "note": note,
+    if (outsideTicket != null || _presentFields.contains("outsideTicket"))
+      "outsideTicket": outsideTicket?.map((item) => item.toJson()).toList(),
   };
 }
 
@@ -1942,6 +1982,8 @@ final class DeliveryReceiptDto {
   final String deliveryId;
   final List<ReceiptLineDto> lines;
   final DeliveryDifferencesDto differences;
+  final bool scanned;
+  final String? manualReason;
   final String actorId;
   final String operationId;
   final String createdAt;
@@ -1953,6 +1995,8 @@ final class DeliveryReceiptDto {
     required this.deliveryId,
     required List<ReceiptLineDto> lines,
     required this.differences,
+    required this.scanned,
+    required this.manualReason,
     required this.actorId,
     required this.operationId,
     required this.createdAt,
@@ -1974,6 +2018,10 @@ final class DeliveryReceiptDto {
       differences: DeliveryDifferencesDto.fromJson(
         Map<String, dynamic>.from(json["differences"] as Map),
       ),
+      scanned: json["scanned"] as bool,
+      manualReason: json["manualReason"] == null
+          ? null
+          : json["manualReason"] as String,
       actorId: json["actorId"] as String,
       operationId: json["operationId"] as String,
       createdAt: json["createdAt"] as String,
@@ -1986,6 +2034,8 @@ final class DeliveryReceiptDto {
     "deliveryId": deliveryId,
     "lines": lines.map((item) => item.toJson()).toList(),
     "differences": differences.toJson(),
+    "scanned": scanned,
+    "manualReason": manualReason,
     "actorId": actorId,
     "operationId": operationId,
     "createdAt": createdAt,
@@ -3012,6 +3062,88 @@ final class CurrentPricesDto {
   }
   Map<String, dynamic> toJson() => {
     "items": items.map((item) => item.toJson()).toList(),
+  };
+}
+
+final class DeliveryTicketDto {
+  final Set<String> _presentFields;
+  Set<String> get presentFields => _presentFields;
+  final String deliveryId;
+  final int deliveryVersion;
+  final String organizationId;
+  final String storeId;
+  final String number;
+  final int version;
+  final String status;
+  final String qr;
+  final String storeName;
+  final String groupName;
+  final String? supplierName;
+  final String dispatchedAt;
+  final List<DeliveryTicketLinesItemDto> lines;
+  final String? totalMillimes;
+  DeliveryTicketDto({
+    Set<String> presentFields = const {},
+    required this.deliveryId,
+    required this.deliveryVersion,
+    required this.organizationId,
+    required this.storeId,
+    required this.number,
+    required this.version,
+    required this.status,
+    required this.qr,
+    required this.storeName,
+    required this.groupName,
+    required this.supplierName,
+    required this.dispatchedAt,
+    required List<DeliveryTicketLinesItemDto> lines,
+    required this.totalMillimes,
+  }) : _presentFields = Set.unmodifiable(presentFields),
+       lines = List.unmodifiable(lines);
+  factory DeliveryTicketDto.fromJson(Map<String, dynamic> json) {
+    return DeliveryTicketDto(
+      presentFields: json.keys.toSet(),
+      deliveryId: json["deliveryId"] as String,
+      deliveryVersion: wireInteger(json["deliveryVersion"]),
+      organizationId: json["organizationId"] as String,
+      storeId: json["storeId"] as String,
+      number: json["number"] as String,
+      version: wireInteger(json["version"]),
+      status: json["status"] as String,
+      qr: json["qr"] as String,
+      storeName: json["storeName"] as String,
+      groupName: json["groupName"] as String,
+      supplierName: json["supplierName"] == null
+          ? null
+          : json["supplierName"] as String,
+      dispatchedAt: json["dispatchedAt"] as String,
+      lines: List.unmodifiable(
+        (json["lines"] as List).map(
+          (item) => DeliveryTicketLinesItemDto.fromJson(
+            Map<String, dynamic>.from(item as Map),
+          ),
+        ),
+      ),
+      totalMillimes: json["totalMillimes"] == null
+          ? null
+          : json["totalMillimes"] as String,
+    );
+  }
+  Map<String, dynamic> toJson() => {
+    "deliveryId": deliveryId,
+    "deliveryVersion": deliveryVersion,
+    "organizationId": organizationId,
+    "storeId": storeId,
+    "number": number,
+    "version": version,
+    "status": status,
+    "qr": qr,
+    "storeName": storeName,
+    "groupName": groupName,
+    "supplierName": supplierName,
+    "dispatchedAt": dispatchedAt,
+    "lines": lines.map((item) => item.toJson()).toList(),
+    "totalMillimes": totalMillimes,
   };
 }
 
@@ -4198,13 +4330,13 @@ final class ScopedOrderDto {
   final String? supplierOrganizationId;
   final String? supplierStoreId;
   final String? supplierName;
-  final List<ScopedOrderRequestedLinesItemDto>? requestedLines;
+  final List<OrderLineDto>? requestedLines;
   final List<ScopedOrderCancelledLinesItemDto>? cancelledLines;
   final String id;
   final String organizationId;
   final String storeId;
   final String createdBy;
-  final List<ScopedOrderLinesItemDto> lines;
+  final List<OrderLineDto> lines;
   final String status;
   final int version;
   final String createdAt;
@@ -4215,13 +4347,13 @@ final class ScopedOrderDto {
     required this.supplierOrganizationId,
     required this.supplierStoreId,
     required this.supplierName,
-    List<ScopedOrderRequestedLinesItemDto>? requestedLines,
+    List<OrderLineDto>? requestedLines,
     List<ScopedOrderCancelledLinesItemDto>? cancelledLines,
     required this.id,
     required this.organizationId,
     required this.storeId,
     required this.createdBy,
-    required List<ScopedOrderLinesItemDto> lines,
+    required List<OrderLineDto> lines,
     required this.status,
     required this.version,
     required this.createdAt,
@@ -4251,7 +4383,7 @@ final class ScopedOrderDto {
           ? null
           : List.unmodifiable(
               (json["requestedLines"] as List).map(
-                (item) => ScopedOrderRequestedLinesItemDto.fromJson(
+                (item) => OrderLineDto.fromJson(
                   Map<String, dynamic>.from(item as Map),
                 ),
               ),
@@ -4271,9 +4403,8 @@ final class ScopedOrderDto {
       createdBy: json["createdBy"] as String,
       lines: List.unmodifiable(
         (json["lines"] as List).map(
-          (item) => ScopedOrderLinesItemDto.fromJson(
-            Map<String, dynamic>.from(item as Map),
-          ),
+          (item) =>
+              OrderLineDto.fromJson(Map<String, dynamic>.from(item as Map)),
         ),
       ),
       status: json["status"] as String,
@@ -4615,6 +4746,9 @@ sealed class CommandDto {
     if (matchesWire(json, "CommandDeliveryDispatch")) {
       return CommandDeliveryDispatchDto.fromJson(json as Map<String, dynamic>);
     }
+    if (matchesWire(json, "CommandDeliveryReissue")) {
+      return CommandDeliveryReissueDto.fromJson(json as Map<String, dynamic>);
+    }
     if (matchesWire(json, "CommandDeliveryReceive")) {
       return CommandDeliveryReceiveDto.fromJson(json as Map<String, dynamic>);
     }
@@ -4729,6 +4863,7 @@ sealed class CatalogImportResultDto {
   Object? toJson();
 }
 
+typedef TicketGetResponseDto = DeliveryTicketDto;
 typedef PricingCurrentResponseDto = CurrentPricesDto;
 typedef PricingHistoryResponseDto = PriceHistoryDto;
 typedef PricingSetResponseDto = PriceEntryDto;
@@ -5893,13 +6028,13 @@ typedef ReportingExportResponseDto = String;
 final class DispatchedLineAllocationsItemDto {
   final Set<String> _presentFields;
   Set<String> get presentFields => _presentFields;
-  final String lotId;
+  final String? lotId;
   final String batch;
   final String expiry;
   final int quantity;
   DispatchedLineAllocationsItemDto({
     Set<String> presentFields = const {},
-    required this.lotId,
+    this.lotId,
     required this.batch,
     required this.expiry,
     required this.quantity,
@@ -5907,17 +6042,46 @@ final class DispatchedLineAllocationsItemDto {
   factory DispatchedLineAllocationsItemDto.fromJson(Map<String, dynamic> json) {
     return DispatchedLineAllocationsItemDto(
       presentFields: json.keys.toSet(),
-      lotId: json["lotId"] as String,
+      lotId: json["lotId"] == null ? null : json["lotId"] as String,
       batch: json["batch"] as String,
       expiry: json["expiry"] as String,
       quantity: wireInteger(json["quantity"]),
     );
   }
   Map<String, dynamic> toJson() => {
-    "lotId": lotId,
+    if (lotId != null || _presentFields.contains("lotId")) "lotId": lotId,
     "batch": batch,
     "expiry": expiry,
     "quantity": quantity,
+  };
+}
+
+final class DeliveryDifferencesOutsideTicketItemDto {
+  final Set<String> _presentFields;
+  Set<String> get presentFields => _presentFields;
+  final String productId;
+  final String batch;
+  final String expiry;
+  DeliveryDifferencesOutsideTicketItemDto({
+    Set<String> presentFields = const {},
+    required this.productId,
+    required this.batch,
+    required this.expiry,
+  }) : _presentFields = Set.unmodifiable(presentFields);
+  factory DeliveryDifferencesOutsideTicketItemDto.fromJson(
+    Map<String, dynamic> json,
+  ) {
+    return DeliveryDifferencesOutsideTicketItemDto(
+      presentFields: json.keys.toSet(),
+      productId: json["productId"] as String,
+      batch: json["batch"] as String,
+      expiry: json["expiry"] as String,
+    );
+  }
+  Map<String, dynamic> toJson() => {
+    "productId": productId,
+    "batch": batch,
+    "expiry": expiry,
   };
 }
 
@@ -5975,6 +6139,46 @@ final class CurrentPricesItemsItemDto {
     "retailMillimes": retailMillimes,
     "supplyMillimes": supplyMillimes,
     "wholesaleMillimes": wholesaleMillimes,
+  };
+}
+
+final class DeliveryTicketLinesItemDto {
+  final Set<String> _presentFields;
+  Set<String> get presentFields => _presentFields;
+  final String productId;
+  final int quantity;
+  final String? unitPriceMillimes;
+  final List<DeliveryTicketLinesItemAllocationsItemDto> allocations;
+  DeliveryTicketLinesItemDto({
+    Set<String> presentFields = const {},
+    required this.productId,
+    required this.quantity,
+    required this.unitPriceMillimes,
+    required List<DeliveryTicketLinesItemAllocationsItemDto> allocations,
+  }) : _presentFields = Set.unmodifiable(presentFields),
+       allocations = List.unmodifiable(allocations);
+  factory DeliveryTicketLinesItemDto.fromJson(Map<String, dynamic> json) {
+    return DeliveryTicketLinesItemDto(
+      presentFields: json.keys.toSet(),
+      productId: json["productId"] as String,
+      quantity: wireInteger(json["quantity"]),
+      unitPriceMillimes: json["unitPriceMillimes"] == null
+          ? null
+          : json["unitPriceMillimes"] as String,
+      allocations: List.unmodifiable(
+        (json["allocations"] as List).map(
+          (item) => DeliveryTicketLinesItemAllocationsItemDto.fromJson(
+            Map<String, dynamic>.from(item as Map),
+          ),
+        ),
+      ),
+    );
+  }
+  Map<String, dynamic> toJson() => {
+    "productId": productId,
+    "quantity": quantity,
+    "unitPriceMillimes": unitPriceMillimes,
+    "allocations": allocations.map((item) => item.toJson()).toList(),
   };
 }
 
@@ -7011,29 +7215,6 @@ final class DeliveryIssueHeldLinesItemDto {
   };
 }
 
-final class ScopedOrderRequestedLinesItemDto {
-  final Set<String> _presentFields;
-  Set<String> get presentFields => _presentFields;
-  final String productId;
-  final int quantity;
-  ScopedOrderRequestedLinesItemDto({
-    Set<String> presentFields = const {},
-    required this.productId,
-    required this.quantity,
-  }) : _presentFields = Set.unmodifiable(presentFields);
-  factory ScopedOrderRequestedLinesItemDto.fromJson(Map<String, dynamic> json) {
-    return ScopedOrderRequestedLinesItemDto(
-      presentFields: json.keys.toSet(),
-      productId: json["productId"] as String,
-      quantity: wireInteger(json["quantity"]),
-    );
-  }
-  Map<String, dynamic> toJson() => {
-    "productId": productId,
-    "quantity": quantity,
-  };
-}
-
 final class ScopedOrderCancelledLinesItemDto {
   final Set<String> _presentFields;
   Set<String> get presentFields => _presentFields;
@@ -7046,29 +7227,6 @@ final class ScopedOrderCancelledLinesItemDto {
   }) : _presentFields = Set.unmodifiable(presentFields);
   factory ScopedOrderCancelledLinesItemDto.fromJson(Map<String, dynamic> json) {
     return ScopedOrderCancelledLinesItemDto(
-      presentFields: json.keys.toSet(),
-      productId: json["productId"] as String,
-      quantity: wireInteger(json["quantity"]),
-    );
-  }
-  Map<String, dynamic> toJson() => {
-    "productId": productId,
-    "quantity": quantity,
-  };
-}
-
-final class ScopedOrderLinesItemDto {
-  final Set<String> _presentFields;
-  Set<String> get presentFields => _presentFields;
-  final String productId;
-  final int quantity;
-  ScopedOrderLinesItemDto({
-    Set<String> presentFields = const {},
-    required this.productId,
-    required this.quantity,
-  }) : _presentFields = Set.unmodifiable(presentFields);
-  factory ScopedOrderLinesItemDto.fromJson(Map<String, dynamic> json) {
-    return ScopedOrderLinesItemDto(
       presentFields: json.keys.toSet(),
       productId: json["productId"] as String,
       quantity: wireInteger(json["quantity"]),
@@ -7700,16 +7858,45 @@ final class CommandDeliveryDispatchDto implements CommandDto {
   };
 }
 
+final class CommandDeliveryReissueDto implements CommandDto {
+  final Set<String> _presentFields;
+  Set<String> get presentFields => _presentFields;
+  String get type => "delivery.reissue";
+  final String deliveryId;
+  CommandDeliveryReissueDto({
+    Set<String> presentFields = const {},
+    required this.deliveryId,
+  }) : _presentFields = Set.unmodifiable(presentFields);
+  factory CommandDeliveryReissueDto.fromJson(Map<String, dynamic> json) {
+    if (json["type"] != "delivery.reissue") {
+      throw const FormatException("Invalid CommandDeliveryReissue type");
+    }
+    return CommandDeliveryReissueDto(
+      presentFields: json.keys.toSet(),
+      deliveryId: json["deliveryId"] as String,
+    );
+  }
+  @override
+  Map<String, dynamic> toJson() => {
+    "type": "delivery.reissue",
+    "deliveryId": deliveryId,
+  };
+}
+
 final class CommandDeliveryReceiveDto implements CommandDto {
   final Set<String> _presentFields;
   Set<String> get presentFields => _presentFields;
   String get type => "delivery.receive";
   final String deliveryId;
+  final String? ticketCode;
+  final String? manualReason;
   final List<CommandDeliveryReceiveLinesItemDto> lines;
   final String? note;
   CommandDeliveryReceiveDto({
     Set<String> presentFields = const {},
     required this.deliveryId,
+    this.ticketCode,
+    this.manualReason,
     required List<CommandDeliveryReceiveLinesItemDto> lines,
     this.note,
   }) : _presentFields = Set.unmodifiable(presentFields),
@@ -7721,6 +7908,12 @@ final class CommandDeliveryReceiveDto implements CommandDto {
     return CommandDeliveryReceiveDto(
       presentFields: json.keys.toSet(),
       deliveryId: json["deliveryId"] as String,
+      ticketCode: json["ticketCode"] == null
+          ? null
+          : json["ticketCode"] as String,
+      manualReason: json["manualReason"] == null
+          ? null
+          : json["manualReason"] as String,
       lines: List.unmodifiable(
         (json["lines"] as List).map(
           (item) => CommandDeliveryReceiveLinesItemDto.fromJson(
@@ -7735,6 +7928,10 @@ final class CommandDeliveryReceiveDto implements CommandDto {
   Map<String, dynamic> toJson() => {
     "type": "delivery.receive",
     "deliveryId": deliveryId,
+    if (ticketCode != null || _presentFields.contains("ticketCode"))
+      "ticketCode": ticketCode,
+    if (manualReason != null || _presentFields.contains("manualReason"))
+      "manualReason": manualReason,
     "lines": lines.map((item) => item.toJson()).toList(),
     if (note != null || _presentFields.contains("note")) "note": note,
   };
@@ -7950,6 +8147,35 @@ final class CatalogImportRequestRowsItemDto {
     if (sourceUrls != null || _presentFields.contains("sourceUrls"))
       "sourceUrls": sourceUrls?.map((item) => item).toList(),
     if (active != null || _presentFields.contains("active")) "active": active,
+  };
+}
+
+final class DeliveryTicketLinesItemAllocationsItemDto {
+  final Set<String> _presentFields;
+  Set<String> get presentFields => _presentFields;
+  final String batch;
+  final String expiry;
+  final int quantity;
+  DeliveryTicketLinesItemAllocationsItemDto({
+    Set<String> presentFields = const {},
+    required this.batch,
+    required this.expiry,
+    required this.quantity,
+  }) : _presentFields = Set.unmodifiable(presentFields);
+  factory DeliveryTicketLinesItemAllocationsItemDto.fromJson(
+    Map<String, dynamic> json,
+  ) {
+    return DeliveryTicketLinesItemAllocationsItemDto(
+      presentFields: json.keys.toSet(),
+      batch: json["batch"] as String,
+      expiry: json["expiry"] as String,
+      quantity: wireInteger(json["quantity"]),
+    );
+  }
+  Map<String, dynamic> toJson() => {
+    "batch": batch,
+    "expiry": expiry,
+    "quantity": quantity,
   };
 }
 
@@ -8525,11 +8751,15 @@ final class CommandSaleCorrectLinesItemAllocationsItemDto {
 final class CommandDeliveryDispatchLinesItemAllocationsItemDto {
   final Set<String> _presentFields;
   Set<String> get presentFields => _presentFields;
-  final String lotId;
+  final String? lotId;
+  final String? batch;
+  final String? expiry;
   final int quantity;
   CommandDeliveryDispatchLinesItemAllocationsItemDto({
     Set<String> presentFields = const {},
-    required this.lotId,
+    this.lotId,
+    this.batch,
+    this.expiry,
     required this.quantity,
   }) : _presentFields = Set.unmodifiable(presentFields);
   factory CommandDeliveryDispatchLinesItemAllocationsItemDto.fromJson(
@@ -8537,9 +8767,16 @@ final class CommandDeliveryDispatchLinesItemAllocationsItemDto {
   ) {
     return CommandDeliveryDispatchLinesItemAllocationsItemDto(
       presentFields: json.keys.toSet(),
-      lotId: json["lotId"] as String,
+      lotId: json["lotId"] == null ? null : json["lotId"] as String,
+      batch: json["batch"] == null ? null : json["batch"] as String,
+      expiry: json["expiry"] == null ? null : json["expiry"] as String,
       quantity: wireInteger(json["quantity"]),
     );
   }
-  Map<String, dynamic> toJson() => {"lotId": lotId, "quantity": quantity};
+  Map<String, dynamic> toJson() => {
+    if (lotId != null || _presentFields.contains("lotId")) "lotId": lotId,
+    if (batch != null || _presentFields.contains("batch")) "batch": batch,
+    if (expiry != null || _presentFields.contains("expiry")) "expiry": expiry,
+    "quantity": quantity,
+  };
 }

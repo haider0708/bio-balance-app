@@ -1137,7 +1137,15 @@ describe.sequential(
                 type: "delivery.dispatch",
                 orderId,
                 deliveryId,
-                lines: [{ productId: product, quantity: 10 }],
+                lines: [
+                  {
+                    productId: product,
+                    quantity: 10,
+                    allocations: [
+                      { batch: "SHIP", expiry: "2031-06-30", quantity: 10 },
+                    ],
+                  },
+                ],
               },
               1,
             ),
@@ -1233,7 +1241,15 @@ describe.sequential(
                 type: "delivery.dispatch",
                 orderId,
                 deliveryId: followup,
-                lines: [{ productId: product, quantity: 2 }],
+                lines: [
+                  {
+                    productId: product,
+                    quantity: 2,
+                    allocations: [
+                      { batch: "SHIP", expiry: "2031-06-30", quantity: 2 },
+                    ],
+                  },
+                ],
               },
               updated.version,
             ),
@@ -1293,7 +1309,15 @@ describe.sequential(
             type: "delivery.dispatch",
             orderId,
             deliveryId,
-            lines: [{ productId: product, quantity: 6 }],
+            lines: [
+              {
+                productId: product,
+                quantity: 6,
+                allocations: [
+                  { batch: "SHIP", expiry: "2031-06-30", quantity: 6 },
+                ],
+              },
+            ],
           },
           1,
         ),
@@ -1364,7 +1388,15 @@ describe.sequential(
                 type: "delivery.dispatch",
                 orderId,
                 deliveryId: randomUUID(),
-                lines: [{ productId: product, quantity: 7 }],
+                lines: [
+                  {
+                    productId: product,
+                    quantity: 7,
+                    allocations: [
+                      { batch: "SHIP", expiry: "2031-06-30", quantity: 7 },
+                    ],
+                  },
+                ],
               },
               remaining.version,
             ),
@@ -1380,7 +1412,15 @@ describe.sequential(
                 type: "delivery.dispatch",
                 orderId,
                 deliveryId: randomUUID(),
-                lines: [{ productId: product, quantity: 6 }],
+                lines: [
+                  {
+                    productId: product,
+                    quantity: 6,
+                    allocations: [
+                      { batch: "SHIP", expiry: "2031-06-30", quantity: 6 },
+                    ],
+                  },
+                ],
               },
               remaining.version,
             ),

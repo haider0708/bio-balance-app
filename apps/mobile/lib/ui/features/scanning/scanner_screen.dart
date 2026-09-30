@@ -10,7 +10,14 @@ import '../../core/navigation.dart';
 import 'scanner_view_model.dart';
 
 class ScannerScreen extends StatefulWidget {
-  const ScannerScreen({super.key});
+  final String title, hint, manualLabel;
+  const ScannerScreen({
+    super.key,
+    this.title = 'Scanner un code-barres',
+    this.manualLabel = 'Utiliser la recherche manuelle',
+    this.hint =
+        'Placez le code-barres dans le cadre. Rapprochez-vous si nécessaire.',
+  });
   @override
   State<ScannerScreen> createState() => _ScannerScreenState();
 }
@@ -55,7 +62,7 @@ class _ScannerScreenState extends State<ScannerScreen>
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(
-      title: const Text('Scanner un code-barres'),
+      title: Text(widget.title),
       actions: [
         ValueListenableBuilder(
           valueListenable: vm.controller,
@@ -155,11 +162,9 @@ class _ScannerScreenState extends State<ScannerScreen>
                           vm.setActive(false);
                           Navigator.pop(context);
                         },
-                        child: const Text('Utiliser la recherche manuelle'),
+                        child: Text(widget.manualLabel),
                       ),
-                      Text(
-                        vm.error ?? 'Placez le code-barres dans le cadre. Rapprochez-vous si nécessaire.',
-                      ),
+                      Text(vm.error ?? widget.hint),
                       if (vm.error != null)
                         TextButton(
                           onPressed: vm.retry,

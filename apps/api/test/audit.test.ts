@@ -526,6 +526,7 @@ it("retains every pending operational item in immutable snapshot pages", async (
       orderId: o.id,
       status: "dispatched",
       lines: o.lines,
+      ticketNumber: `BL-TEST-${randomUUID()}`,
     })),
   });
   const snapshot = await workspace.snapshot(

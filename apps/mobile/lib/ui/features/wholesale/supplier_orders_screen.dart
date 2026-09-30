@@ -10,6 +10,7 @@ import '../../../domain/models/tunis_dates.dart';
 import '../../core/design.dart';
 import '../../core/forms.dart';
 import '../authentication/session_view_model.dart';
+import '../replenishment/delivery_ticket_screen.dart';
 import '../replenishment/order_sections.dart';
 import '../workspace/operation_helpers.dart';
 import '../workspace/workspace_view_model.dart';
@@ -362,8 +363,26 @@ class _SupplierOrderScreenState extends State<SupplierOrderScreen> {
             .where((l) => (l['condition'] ?? 'sellable') == condition)
             .fold<int>(0, (sum, l) => sum + integer(l['quantity']));
     return CompactRow(
-      title:
-          'Livraison ${delivery['id'].toString().substring(0, 8).toUpperCase()}',
+      title: 'Bon ${delivery['ticketNumber']}',
+      footer: delivery['status'] == 'dispatched'
+          ? Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton.icon(
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => DeliveryTicketScreen(
+                      vm: vm,
+                      deliveryId: delivery['id'],
+                      depot: widget.depot,
+                    ),
+                  ),
+                ),
+                icon: const Icon(AppIcons.qrCode, size: 18),
+                label: const Text('Bon et QR'),
+              ),
+            )
+          : null,
       subtitle:
           '${statusLabel(delivery['status'])} · ${TunisDates.timestampLabel(delivery['dispatchedAt'])}${lots.isEmpty ? '' : '\n$lots'}${receipt == null ? '' : '\nReçue : ${units('sellable')} vendables${units('damaged') > 0 ? ' · ${units('damaged')} non vendables' : ''}${units('refused') > 0 ? ' · ${units('refused')} refusées' : ''}'}',
       icon: AppIcons.localShippingOutlined,
@@ -427,7 +446,7 @@ class _SupplierOrderScreenState extends State<SupplierOrderScreen> {
     final lines = fulfillment
         .where((l) => integer(l['remainingToDispatch']) > 0)
         .toList();
-    final sent = await Navigator.push<bool>(
+    final sent = await Navigator.push<String>(
       context,
       MaterialPageRoute(
         builder: (_) => SupplierDispatchScreen(
@@ -440,7 +459,19 @@ class _SupplierOrderScreenState extends State<SupplierOrderScreen> {
         ),
       ),
     );
-    if (sent == true && mounted) await load();
+    if (sent != null && mounted) {
+      await Navigator.push<void>(
+        context,
+        MaterialPageRoute(
+          builder: (_) => DeliveryTicketScreen(
+            vm: vm,
+            deliveryId: sent,
+            depot: widget.depot,
+          ),
+        ),
+      );
+      if (mounted) await load();
+    }
   }
 }
 
@@ -554,7 +585,7 @@ class _SupplierDispatchScreenState extends State<SupplierDispatchScreen> {
         'deliveryId': deliveryId,
         'lines': shipped,
       }, integer(widget.order['version']));
-      if (mounted) Navigator.pop(context, true);
+      if (mounted) Navigator.pop(context, deliveryId);
     } catch (e) {
       if (mounted) setState(() => error = SessionViewModel.message(e));
     } finally {

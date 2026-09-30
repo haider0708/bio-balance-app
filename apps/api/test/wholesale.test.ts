@@ -333,7 +333,33 @@ describe("grossiste orders from BioBalance", () => {
         2,
       ),
     );
-    expect(withLots.code).toBe("ALLOCATIONS_NOT_ALLOWED");
+    // BioBalance declares batch and expiry; it names no depot lot.
+    expect(withLots.code).toBe("ALLOCATION_MISMATCH");
+    const dispatchLines = (allocations: unknown[] | undefined) => [
+      { productId: product, quantity: 20, allocations },
+    ];
+    for (const [allocations, code] of [
+      [undefined, "ALLOCATION_MISMATCH"],
+      [[{ batch: "B", expiry: "2020-01-31", quantity: 20 }], "LOT_EXPIRED"],
+    ] as const)
+      expect(
+        (
+          await service.submit(
+            admin,
+            atDepot(
+              {
+                type: "delivery.dispatch",
+                orderId,
+                deliveryId,
+                lines: dispatchLines([...(allocations ?? [])]).map((l) =>
+                  allocations ? l : { productId: l.productId, quantity: 20 },
+                ),
+              } as Command,
+              2,
+            ),
+          )
+        ).code,
+      ).toBe(code);
     await accepted(
       admin,
       atDepot(
@@ -341,8 +367,10 @@ describe("grossiste orders from BioBalance", () => {
           type: "delivery.dispatch",
           orderId,
           deliveryId,
-          lines: [{ productId: product, quantity: 20 }],
-        },
+          lines: dispatchLines([
+            { batch: "B", expiry: "2031-06-30", quantity: 20 },
+          ]),
+        } as Command,
         2,
       ),
     );
@@ -520,6 +548,7 @@ describe("store orders handled by a grossiste", () => {
       {
         productId: product,
         quantity: 12,
+        unitPriceMillimes: null,
         allocations: [
           {
             lotId: lot(depot, product, "A"),

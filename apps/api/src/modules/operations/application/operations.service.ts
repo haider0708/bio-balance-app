@@ -11,6 +11,7 @@ import {
   DispatchedLine,
 } from "../domain/contracts";
 import { Sale } from "../domain/sale";
+import { verifyTicketCode } from "../../../shared/domain/delivery-ticket";
 import { Ledger, UnitOfWork } from "./ports";
 function canonical(value: unknown): string {
   if (Array.isArray(value)) return `[${value.map(canonical).join(",")}]`;
@@ -137,29 +138,64 @@ export class OperationsService {
     this.version(sale.version, expected);
     return sale;
   }
-  /** A grossiste ships from identified lots and its stock drops at dispatch;
-   * BioBalance's own stock is not tracked, so its dispatch carries no lots. */
+  /** Every shipment carries the lots printed on its ticket. A grossiste names the
+   * depot lots it ships, and its stock drops at dispatch; BioBalance, whose own
+   * stock is not tracked, declares the batch and expiry of what it sends. */
   private async shipFromDepot(
     ledger: Ledger,
     order: { supplierStoreId?: string | null },
     lines: {
       productId: string;
       quantity: number;
-      allocations?: { lotId: string; quantity: number }[];
+      allocations?: {
+        lotId?: string;
+        batch?: string;
+        expiry?: string;
+        quantity: number;
+      }[];
     }[],
     deliveryId: string,
   ): Promise<DispatchedLine[]> {
     if (!order.supplierStoreId) {
-      requireRule(
-        lines.every((l) => !l.allocations),
-        "ALLOCATIONS_NOT_ALLOWED",
-        "Les lots ne sont pas suivis pour les expéditions de BioBalance.",
-      );
-      return lines.map(({ productId, quantity }) => ({ productId, quantity }));
+      const today = localDate(new Date(), ledger.scope.timezone);
+      return lines.map((line) => {
+        const seen = new Set<string>();
+        requireRule(
+          line.allocations &&
+            line.allocations.every((a) => !a.lotId && a.batch && a.expiry) &&
+            line.allocations.reduce((sum, a) => sum + a.quantity, 0) ===
+              line.quantity,
+          "ALLOCATION_MISMATCH",
+          "Indiquez le lot et la péremption de chaque quantité expédiée.",
+        );
+        const allocations = line.allocations!.map((a) => {
+          const expiry = expiryDate(a.expiry!);
+          requireRule(
+            expiry >= today,
+            "LOT_EXPIRED",
+            "Un lot périmé ne peut pas être expédié.",
+            409,
+          );
+          const key = `${a.batch}|${expiry}`;
+          requireRule(
+            !seen.has(key),
+            "DUPLICATE_LOT",
+            "Regroupez les quantités du même lot.",
+          );
+          seen.add(key);
+          return { batch: a.batch!, expiry, quantity: a.quantity };
+        });
+        return {
+          productId: line.productId,
+          quantity: line.quantity,
+          allocations,
+        };
+      });
     }
     for (const line of lines)
       requireRule(
         line.allocations &&
+          line.allocations.every((a) => a.lotId) &&
           new Set(line.allocations.map((a) => a.lotId)).size ===
             line.allocations.length &&
           line.allocations.reduce((sum, a) => sum + a.quantity, 0) ===
@@ -173,7 +209,7 @@ export class OperationsService {
       const wanted = new Map<string, number>();
       for (const line of lines)
         for (const a of line.allocations!)
-          wanted.set(a.lotId, (wanted.get(a.lotId) ?? 0) + a.quantity);
+          wanted.set(a.lotId!, (wanted.get(a.lotId!) ?? 0) + a.quantity);
       const snapshot = new Map<
         string,
         { lotId: string; batch: string; expiry: string }
@@ -220,7 +256,7 @@ export class OperationsService {
         productId: line.productId,
         quantity: line.quantity,
         allocations: line.allocations!.map((a) => ({
-          ...snapshot.get(a.lotId)!,
+          ...snapshot.get(a.lotId!)!,
           quantity: a.quantity,
         })),
       }));
@@ -244,6 +280,7 @@ export class OperationsService {
         const products: string[] = [];
         for (const line of delivery.lines)
           for (const a of line.allocations ?? []) {
+            if (!a.lotId) continue;
             products.push(line.productId);
             await depot.move(
               a.lotId,
@@ -295,9 +332,12 @@ export class OperationsService {
     // A grossiste acting on an assigned order may only prepare, ship and settle it.
     requireRule(
       !ledger.scope.supplier ||
-        ["order.prepare", "delivery.dispatch", "delivery.resolve"].includes(
-          cmd.type,
-        ),
+        [
+          "order.prepare",
+          "delivery.dispatch",
+          "delivery.resolve",
+          "delivery.reissue",
+        ].includes(cmd.type),
       "FORBIDDEN",
       "Vous n’avez pas accès à cette action.",
       403,
@@ -492,10 +532,18 @@ export class OperationsService {
         "Produit répété.",
       );
       for (const line of cmd.lines) await ledger.rate(line.productId);
+      // The price in force is fixed on the line; a later price change never alters it.
+      const prices = await ledger.supplyPrices(
+        cmd.lines.map((l) => l.productId),
+      );
+      const priced = cmd.lines.map((l) => ({
+        ...l,
+        unitPriceMillimes: prices.get(l.productId)?.toString() ?? null,
+      }));
       await ledger.saveOrder({
         id: cmd.orderId,
-        lines: cmd.lines,
-        requestedLines: cmd.lines,
+        lines: priced,
+        requestedLines: priced,
         cancelledLines: [],
         status: "requested",
         version: 1,
@@ -555,7 +603,26 @@ export class OperationsService {
       const fulfillment = await ledger.fulfillment(order);
       if (cmd.type === "order.amend") {
         for (const line of cmd.lines) await ledger.rate(line.productId);
-        Order.amend(order, cmd.lines, fulfillment);
+        // Existing lines keep the price they were ordered at; new products get today's.
+        const fresh = await ledger.supplyPrices(
+          cmd.lines
+            .filter(
+              (l) => !order.lines.some((o) => o.productId === l.productId),
+            )
+            .map((l) => l.productId),
+        );
+        Order.amend(
+          order,
+          cmd.lines.map((l) => ({
+            ...l,
+            unitPriceMillimes:
+              order.lines.find((o) => o.productId === l.productId)
+                ?.unitPriceMillimes ??
+              fresh.get(l.productId)?.toString() ??
+              null,
+          })),
+          fulfillment,
+        );
       } else if (actor.platformAdmin) Order.cancel(order, fulfillment);
       else Order.cancelRequest(order, fulfillment);
       await ledger.saveOrder(order);
@@ -785,9 +852,16 @@ export class OperationsService {
         await ledger.saveDelivery({
           id: cmd.deliveryId,
           orderId: order.id,
-          lines,
+          // Each line carries its lots and the price fixed on the order.
+          lines: lines.map((l) => ({
+            ...l,
+            unitPriceMillimes:
+              order.lines.find((o) => o.productId === l.productId)
+                ?.unitPriceMillimes ?? null,
+          })),
           status: "dispatched",
           version: 1,
+          ticketNumber: await ledger.nextTicketNumber(),
           ...(order.supplierStoreId
             ? {
                 sourceStoreId: order.supplierStoreId,
@@ -812,6 +886,29 @@ export class OperationsService {
         version: cmd.type === "delivery.dispatch" ? 1 : order.version,
         orderVersion: order.version,
       };
+    }
+    if (cmd.type === "delivery.reissue") {
+      const delivery = await ledger.delivery(cmd.deliveryId);
+      // Only the shipper (BioBalance, or the grossiste that shipped) renews a QR.
+      requireRule(
+        actor.platformAdmin ||
+          (!!ledger.scope.supplier &&
+            delivery.sourceStoreId === ledger.scope.supplier.storeId),
+        "FORBIDDEN",
+        "Seul l’expéditeur peut renouveler le QR de ce bon.",
+        403,
+      );
+      this.version(delivery.version, op.expectedVersion);
+      requireRule(
+        delivery.status === "dispatched",
+        "DELIVERY_CLOSED",
+        "Ce bon n’est plus en transit.",
+        409,
+      );
+      delivery.ticketVersion = (delivery.ticketVersion ?? 1) + 1;
+      delivery.version++;
+      await ledger.saveDelivery(delivery);
+      return { id: delivery.id, version: delivery.version };
     }
     if (cmd.type === "delivery.receive") {
       this.allow(ledger, "manage");
@@ -848,6 +945,43 @@ export class OperationsService {
           (bucket.get(line.productId) ?? 0) + line.quantity,
         );
       }
+      // The ticket's QR proves the parcel is physically here.
+      let scanned = false;
+      if (cmd.ticketCode !== undefined) {
+        requireRule(
+          verifyTicketCode(
+            delivery.id,
+            delivery.ticketVersion ?? 1,
+            cmd.ticketCode,
+          ),
+          "TICKET_INVALID",
+          "Ce QR ne correspond pas à cette livraison ou a été remplacé. Demandez un nouveau bon à l’expéditeur.",
+          409,
+        );
+        scanned = true;
+      } else if (process.env.TICKET_SCAN_REQUIRED === "true")
+        requireRule(
+          cmd.manualReason,
+          "TICKET_SCAN_REQUIRED",
+          "Scannez le QR du bon de livraison, ou indiquez pourquoi c’est impossible.",
+        );
+      // A lot the ticket does not list is reported, never silently accepted.
+      const outsideTicket = cmd.lines
+        .filter((line) => {
+          const listed = delivery.lines.find(
+            (l) => l.productId === line.productId,
+          )?.allocations;
+          if (!listed?.length) return false;
+          const expiry = expiryDate(line.expiry);
+          return !listed.some(
+            (a) => a.batch === line.batch && a.expiry === expiry,
+          );
+        })
+        .map((line) => ({
+          productId: line.productId,
+          batch: line.batch,
+          expiry: expiryDate(line.expiry),
+        }));
       const differences = delivery.lines.map((l) => ({
         productId: l.productId,
         expected: l.quantity,
@@ -872,9 +1006,17 @@ export class OperationsService {
       await ledger.receipt(
         delivery.id,
         cmd.lines,
-        { lines: differences, note: cmd.note },
+        { lines: differences, note: cmd.note, outsideTicket },
         op.operationId,
+        { scanned, manualReason: cmd.manualReason },
       );
+      // A reception without the QR is flagged to BioBalance, never hidden.
+      if (!scanned)
+        await ledger.notify(
+          `${op.operationId}:manual`,
+          "Réception sans scan",
+          `Le bon ${delivery.ticketNumber} a été réceptionné sans scanner son QR${cmd.manualReason ? ` : ${cmd.manualReason}` : "."}`,
+        );
       for (const line of cmd.lines) {
         if (line.condition === "refused") continue;
         await ledger.receive(

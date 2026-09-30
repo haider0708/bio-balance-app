@@ -8,6 +8,8 @@ abstract final class AppIcons {
   static const calendar = LucideIcons.calendarDays;
   static const photo = LucideIcons.image;
   static const package = LucideIcons.package;
+  static const share = LucideIcons.share2;
+  static const qrCode = LucideIcons.qrCode;
   static const trophy = LucideIcons.trophy;
   static const scan = LucideIcons.scanBarcode;
   static const help = LucideIcons.circleHelp;

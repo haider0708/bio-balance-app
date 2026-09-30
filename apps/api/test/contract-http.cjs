@@ -409,7 +409,7 @@ const owner = new PrismaClient({
           type: "delivery.dispatch",
           orderId,
           deliveryId,
-          lines: [{ productId: product.id, quantity: 5 }],
+          lines: [{ productId: product.id, quantity: 5, allocations: [{ batch: "SHIP", expiry: "2031-06-30", quantity: 5 }] }],
         },
         2,
       ),
@@ -421,11 +421,16 @@ const owner = new PrismaClient({
         (v) => v.resource === "deliveries" && v.version === 1,
       ),
     );
+    const ticket = await call("GET", `/v1/tickets/${deliveryId}`, {
+      as: adminToken,
+    });
+    assert.match(ticket.qr, /^BB1\./);
     await push(
       envelope(
         {
           type: "delivery.receive",
           deliveryId,
+          ticketCode: ticket.qr.split(".")[2],
           lines: [
             {
               productId: product.id,

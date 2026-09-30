@@ -136,6 +136,7 @@ const responses: Record<string, Schema> = {
   ReportingController_export: { type: "string" },
   ReportingController_overview: ref("ReportOverview"),
   AdminController_overview: ref("AdminOverview"),
+  TicketController_get: ref("DeliveryTicket"),
   PricingController_current: ref("CurrentPrices"),
   PricingController_history: ref("PriceHistory"),
   PricingController_set: ref("PriceEntry"),
@@ -299,6 +300,11 @@ export function applyContract(document: OpenAPIObject): OpenAPIObject {
             type: "string",
             enum: ["open", "complete", "all"],
           }),
+        );
+      if (original === "TicketController_get")
+        params.push(
+          parameter("organizationId", "query", uuid),
+          parameter("supplierStoreId", "query", uuid),
         );
       if (original === "PricingController_current")
         params.push(

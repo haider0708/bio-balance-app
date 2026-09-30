@@ -12,6 +12,7 @@ import '../reporting/history_screen.dart';
 
 import '../../../domain/models/models.dart';
 import '../../../data/repositories/pricing_repository.dart';
+import '../../../domain/models/delivery_ticket.dart';
 import '../../../domain/models/tunis_dates.dart';
 import '../../../domain/models/money.dart';
 import '../../core/design.dart';
@@ -317,7 +318,14 @@ class ProductDetail extends StatelessWidget {
 class ReceiptScreen extends StatefulWidget {
   final WorkspaceViewModel vm;
   final Json? delivery;
-  const ReceiptScreen({super.key, required this.vm, this.delivery});
+  // The code already read from the parcel's QR, when the scan came first.
+  final String? scannedCode;
+  const ReceiptScreen({
+    super.key,
+    required this.vm,
+    this.delivery,
+    this.scannedCode,
+  });
   @override
   State<ReceiptScreen> createState() => _ReceiptScreenState();
 }
@@ -325,7 +333,10 @@ class ReceiptScreen extends StatefulWidget {
 class _ReceiptScreenState extends State<ReceiptScreen> {
   List<Json> lines = [];
   final note = TextEditingController();
-  String? error;
+  // Proof of the physical parcel: the scanned QR code, or why it was not scanned.
+  final manualReason = TextEditingController();
+  String? ticketCode, error;
+  bool manualEntry = false;
   bool busy = false,
       loading = true,
       missing = false,
@@ -344,6 +355,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
     super.initState();
     unregister = widget.vm.registerDraft(persist);
     note.addListener(changed);
+    manualReason.addListener(changed);
     unawaited(restore());
   }
 
@@ -359,7 +371,15 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
           lines = objects(draft?['lines']);
           note.text = draft?['note'] ?? '';
           missing = draft?['missing'] == true;
+          ticketCode = draft?['ticketCode'];
+          manualEntry = draft?['manual'] == true;
+          manualReason.text = draft?['manualReason'] ?? '';
           restored = true;
+          if (ticketCode == null && widget.scannedCode != null) {
+            ticketCode = widget.scannedCode;
+            manualEntry = false;
+            if (lines.isEmpty) prefill();
+          }
         });
       }
     } catch (e) {
@@ -376,6 +396,9 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
       'lines': List<Json>.from(lines),
       'note': note.text,
       'missing': missing,
+      'ticketCode': ticketCode,
+      'manual': manualEntry,
+      'manualReason': manualReason.text,
     };
     return _tail = _tail
         .catchError((Object _) {})
@@ -398,6 +421,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
   void dispose() {
     unregister();
     note.dispose();
+    manualReason.dispose();
     super.dispose();
   }
 
@@ -434,6 +458,8 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
           child: const Text('Recharger le brouillon'),
         ),
       if (widget.delivery != null) ...[
+        ticketPanel(),
+        const SizedBox(height: 16),
         const Text(
           'Pour chaque produit : quantité reçue, numéro de lot et péremption.',
         ),
@@ -530,6 +556,115 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
       const SizedBox(height: 24),
     ],
   );
+  Widget ticketPanel() {
+    final number = widget.delivery?['ticketNumber'];
+    if (ticketCode != null) {
+      return CompactRow(
+        title: 'Bon ${number ?? ''} vérifié',
+        subtitle: 'Le QR du colis a été scanné. Comptez ce que vous recevez.',
+        icon: AppIcons.checkCircleOutline,
+        tone: AppTone.success,
+      );
+    }
+    if (manualEntry) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          TextField(
+            controller: manualReason,
+            enabled: !busy && restored,
+            maxLength: 300,
+            decoration: const InputDecoration(
+              labelText: 'Pourquoi le QR ne peut pas être scanné (obligatoire)',
+            ),
+          ),
+          const Text(
+            'Cette réception sera signalée à BioBalance comme faite sans scan.',
+            style: TextStyle(fontSize: 14, color: muted),
+          ),
+          TextButton.icon(
+            onPressed: busy
+                ? null
+                : () {
+                    setState(() => manualEntry = false);
+                    changed();
+                  },
+            icon: const Icon(AppIcons.qrCode, size: 18),
+            label: const Text('Scanner plutôt le QR'),
+          ),
+        ],
+      );
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        FilledButton.icon(
+          onPressed: busy || !restored ? null : scan,
+          icon: const Icon(AppIcons.qrCode),
+          label: Text(
+            number == null
+                ? 'Scanner le QR du colis'
+                : 'Scanner le QR du bon $number',
+          ),
+        ),
+        TextButton(
+          onPressed: busy || !restored
+              ? null
+              : () {
+                  setState(() => manualEntry = true);
+                  changed();
+                },
+          child: const Text('Je ne peux pas scanner'),
+        ),
+      ],
+    );
+  }
+
+  /// Announced lots become the starting point; the receiver confirms or corrects.
+  void prefill() {
+    for (final expected in objects(widget.delivery?['lines'])) {
+      for (final a in objects(expected['allocations'])) {
+        lines.add({
+          'productId': expected['productId'],
+          'quantity': integer(a['quantity']),
+          'batch': a['batch'],
+          'expiry': a['expiry'],
+          'condition': 'sellable',
+        });
+      }
+    }
+  }
+
+  Future<void> scan() async {
+    final raw = await Navigator.push<String>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const ScannerScreen(
+          title: 'Scanner le bon de livraison',
+          hint: 'Placez le QR collé sur le colis dans le cadre.',
+          manualLabel: 'Revenir sans scanner',
+        ),
+      ),
+    );
+    if (raw == null || !mounted) return;
+    final scanned = TicketScan.parse(raw);
+    if (scanned == null || scanned.deliveryId != widget.delivery!['id']) {
+      setState(
+        () => error = scanned == null
+            ? 'Ce QR n’est pas un bon de livraison BioBalance.'
+            : 'Ce QR appartient à une autre livraison.',
+      );
+      return;
+    }
+    setState(() {
+      ticketCode = scanned.code;
+      manualEntry = false;
+      error = null;
+      if (lines.isEmpty) prefill();
+    });
+    changed();
+  }
+
   Future<void> add() async {
     final product = await showModalBottomSheet<Product>(
       context: context,
@@ -630,6 +765,14 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
           'Expliquez les unités abîmées, refusées ou supplémentaires.',
         );
       }
+      if (widget.delivery != null &&
+          lines.isNotEmpty &&
+          ticketCode == null &&
+          !(manualEntry && manualReason.text.trim().length >= 3)) {
+        throw const FormatException(
+          'Scannez le QR du colis, ou indiquez pourquoi vous ne pouvez pas.',
+        );
+      }
       if (lines.isEmpty) {
         if (widget.delivery == null || !missing || note.text.trim().isEmpty) {
           throw const FormatException(
@@ -656,6 +799,10 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
                 'deliveryId': widget.delivery!['id'],
                 'lines': lines,
                 'note': note.text.trim(),
+                if (lines.isNotEmpty && ticketCode != null)
+                  'ticketCode': ticketCode
+                else if (lines.isNotEmpty && manualEntry)
+                  'manualReason': manualReason.text.trim(),
               },
         expectedVersion: widget.delivery == null
             ? null

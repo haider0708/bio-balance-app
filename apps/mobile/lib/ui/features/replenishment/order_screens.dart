@@ -1,5 +1,9 @@
 import '../catalog/product_information.dart';
 import '../workspace/operation_helpers.dart';
+import '../../../domain/models/delivery_ticket.dart';
+import '../inventory/inventory_screens.dart';
+import 'declared_dispatch_screen.dart';
+import 'delivery_ticket_screen.dart';
 import 'order_sections.dart';
 import 'scoped_order_screen.dart';
 import '../../core/navigation.dart';
@@ -35,6 +39,7 @@ class OrdersPage extends StatelessWidget {
     );
   }
 
+  /// BioBalance ships: it declares the lots, then shows the ticket's QR.
   Future<void> dispatch(BuildContext context, Json order) async {
     final store = vm.state.store!;
     vm.requireAccess(store, 'manage');
@@ -43,6 +48,12 @@ class OrdersPage extends StatelessWidget {
     if (!context.mounted) return;
     final lines = remaining.lines
         .where((line) => line.remainingToDispatch > 0)
+        .map(
+          (l) => <String, dynamic>{
+            'productId': l.productId,
+            'remainingToDispatch': l.remainingToDispatch,
+          },
+        )
         .toList();
     if (lines.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -52,52 +63,65 @@ class OrdersPage extends StatelessWidget {
       );
       return;
     }
-    final deliveryId = const Uuid().v4();
-    await openEditor(
+    final deliveryId = await Navigator.push<String>(
       context,
-      title: 'Préparer une livraison',
-      description:
-          '${store.name}\n${remaining.lines.map((l) => '${vm.productName(l.productId)} : ${l.received} reçues, ${l.inTransit} engagées (en route ou à vérifier), ${l.remainingToDispatch} à expédier').join('\n')}',
-      fields: lines
-          .map(
-            (l) => FieldSpec(
-              l.productId,
-              vm.productName(l.productId),
-              initial: '${l.remainingToDispatch}',
-              numeric: true,
-            ),
-          )
-          .toList(),
-      submit: (values) async {
-        final selected = <Json>[];
-        for (final line in lines) {
-          final quantity = whole(values[line.productId]!, allowZero: true);
-          if (quantity > line.remainingToDispatch) {
-            throw const FormatException(
-              'La quantité dépasse le reste à expédier.',
-            );
-          }
-          if (quantity > 0) {
-            selected.add({'productId': line.productId, 'quantity': quantity});
-          }
-        }
-        if (selected.isEmpty) {
-          throw const FormatException('Ajoutez au moins une unité à expédier.');
-        }
-        await vm.online(
-          {
-            'type': 'delivery.dispatch',
-            'orderId': remaining.orderId,
-            'deliveryId': deliveryId,
-            'lines': selected,
-          },
-          expectedVersion: remaining.version,
-          targetStore: store,
-        );
-      },
-      submitLabel: 'Confirmer l’expédition',
+      MaterialPageRoute(
+        builder: (_) => DeclaredDispatchScreen(
+          parent: vm,
+          destination: store,
+          order: {...order, 'version': remaining.version},
+          lines: lines,
+          submit: (command, version) =>
+              vm.online(command, expectedVersion: version, targetStore: store),
+        ),
+      ),
+    );
+    if (deliveryId == null || !context.mounted) return;
+    await Navigator.push<void>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => DeliveryTicketScreen(vm: vm, deliveryId: deliveryId),
+      ),
     );
   }
+}
+
+/// Scanning the parcel's QR opens its reception, with the announced lots.
+Future<void> scanTicket(BuildContext context, WorkspaceViewModel vm) async {
+  final raw = await Navigator.push<String>(
+    context,
+    MaterialPageRoute(
+      builder: (_) => const ScannerScreen(
+        title: 'Scanner le bon de livraison',
+        hint: 'Placez le QR collé sur le colis dans le cadre.',
+        manualLabel: 'Annuler',
+      ),
+    ),
+  );
+  if (raw == null || !context.mounted) return;
+  final scan = TicketScan.parse(raw);
+  if (scan == null) {
+    throw const AppFailure(
+      'INVALID_TICKET',
+      'Ce QR n’est pas un bon de livraison BioBalance.',
+    );
+  }
+  final delivery = (vm.state.data?.list('deliveries') ?? [])
+      .where((d) => d['id'] == scan.deliveryId && d['status'] == 'dispatched')
+      .firstOrNull;
+  if (delivery == null) {
+    throw const AppFailure(
+      'DELIVERY_UNKNOWN',
+      'Ce bon n’est pas (ou plus) à réceptionner dans ce magasin. Actualisez la synchronisation puis réessayez.',
+    );
+  }
+  await Navigator.push<void>(
+    context,
+    MaterialPageRoute(
+      builder: (_) =>
+          ReceiptScreen(vm: vm, delivery: delivery, scannedCode: scan.code),
+    ),
+  );
 }
 
 class _StoreOrdersList extends StatefulWidget {
@@ -180,6 +204,12 @@ class _StoreOrdersListState extends State<_StoreOrdersList> {
               onPressed: () => OrdersPage(vm: vm).create(context),
               icon: const Icon(AppIcons.add),
               label: const Text('Nouvelle commande'),
+            ),
+            const SizedBox(height: 8),
+            OutlinedButton.icon(
+              onPressed: () => run(context, () => scanTicket(context, vm)),
+              icon: const Icon(AppIcons.qrCode),
+              label: const Text('Scanner un bon de livraison'),
             ),
             const SizedBox(height: 20),
           ],

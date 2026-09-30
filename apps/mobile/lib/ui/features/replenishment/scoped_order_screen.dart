@@ -14,6 +14,7 @@ import '../workspace/workspace_view_model.dart';
 import '../workspace/operation_helpers.dart';
 import '../catalog/product_information.dart';
 import '../../../domain/models/order_workflow.dart';
+import 'delivery_ticket_screen.dart';
 import 'order_screens.dart';
 import 'order_sections.dart';
 import 'order_actions.dart';
@@ -587,8 +588,7 @@ class _ExactOrderScreenState extends State<ExactOrderScreen> {
     final hasIssue = objects(data?['issues'])
         .any((issue) => issue['deliveryId'] == delivery['id']);
     return CompactRow(
-      title:
-          'Livraison ${delivery['id'].toString().substring(0, 8).toUpperCase()}',
+      title: 'Bon ${delivery['ticketNumber']}',
       subtitle:
           '${statusLabel(delivery['status'])} · ${TunisDates.timestampLabel(delivery['dispatchedAt'])}\n${objects(delivery['lines']).fold<int>(0, (sum, line) => sum + integer(line['quantity']))} unités expédiées',
       icon: AppIcons.localShippingOutlined,
@@ -596,6 +596,19 @@ class _ExactOrderScreenState extends State<ExactOrderScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           ?receiptSummary(delivery),
+          // BioBalance ships the parcel, so BioBalance holds its QR.
+          if (vm.user.admin && delivery['status'] == 'dispatched')
+            TextButton.icon(
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) =>
+                      DeliveryTicketScreen(vm: vm, deliveryId: delivery['id']),
+                ),
+              ),
+              icon: const Icon(AppIcons.qrCode, size: 18),
+              label: const Text('Bon et QR'),
+            ),
           if (canReceive) ...[
             const SizedBox(height: 8),
             Wrap(

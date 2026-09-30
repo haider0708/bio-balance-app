@@ -227,7 +227,14 @@ export const wireSchemas: Record<string, Schema> = {
     createdAt: timestamp,
     resolvedAt: nullable(timestamp),
   }),
-  OrderLine: obj({ productId: uuid, quantity: integer }),
+  OrderLine: obj(
+    {
+      productId: uuid,
+      quantity: integer,
+      unitPriceMillimes: nullable(decimal),
+    },
+    ["productId", "quantity"],
+  ),
   FulfillmentLine: obj({
     cancelled: integer,
     productId: uuid,
@@ -268,8 +275,14 @@ export const wireSchemas: Record<string, Schema> = {
     {
       productId: uuid,
       quantity: integer,
+      unitPriceMillimes: nullable(decimal),
+      // lotId is the depot's lot; BioBalance's shipments declare batch and expiry only.
       allocations: arr(
-        obj({ lotId: uuid, batch: str, expiry: str, quantity: integer }),
+        obj({ lotId: uuid, batch: str, expiry: str, quantity: integer }, [
+          "batch",
+          "expiry",
+          "quantity",
+        ]),
       ),
     },
     ["productId", "quantity"],
@@ -281,6 +294,8 @@ export const wireSchemas: Record<string, Schema> = {
     // Set only for a delivery shipped from a grossiste depot.
     sourceOrganizationId: nullable(uuid),
     sourceStoreId: nullable(uuid),
+    ticketNumber: str,
+    ticketVersion: integer,
     status: str,
     version: integer,
     dispatchedAt: timestamp,
@@ -307,15 +322,22 @@ export const wireSchemas: Record<string, Schema> = {
     },
     ["productId", "expected", "actual"],
   ),
-  DeliveryDifferences: obj({
-    lines: arr(ref("DeliveryDifference")),
-    note: str,
-  }),
+  DeliveryDifferences: obj(
+    {
+      lines: arr(ref("DeliveryDifference")),
+      note: str,
+      // Lots received that the ticket does not list.
+      outsideTicket: arr(obj({ productId: uuid, batch: str, expiry: str })),
+    },
+    ["lines", "note"],
+  ),
   DeliveryReceipt: obj({
     ...scoped,
     deliveryId: uuid,
     lines: arr(ref("ReceiptLine")),
     differences: ref("DeliveryDifferences"),
+    scanned: bool,
+    manualReason: nullable(str),
     actorId: uuid,
     operationId: uuid,
     createdAt: timestamp,
@@ -524,6 +546,31 @@ wireSchemas.CurrentPrices = obj({
       wholesaleMillimes: nullable(decimal),
     }),
   ),
+});
+wireSchemas.DeliveryTicket = obj({
+  deliveryId: uuid,
+  // Needed to act on the delivery: its version and the receiving store.
+  deliveryVersion: integer,
+  organizationId: uuid,
+  storeId: uuid,
+  number: str,
+  version: integer,
+  status: str,
+  // The string printed in the QR; only the shipper receives it.
+  qr: str,
+  storeName: str,
+  groupName: str,
+  supplierName: nullable(str),
+  dispatchedAt: timestamp,
+  lines: arr(
+    obj({
+      productId: uuid,
+      quantity: integer,
+      unitPriceMillimes: nullable(decimal),
+      allocations: arr(obj({ batch: str, expiry: str, quantity: integer })),
+    }),
+  ),
+  totalMillimes: nullable(decimal),
 });
 wireSchemas.Wholesaler = obj({
   id: uuid,

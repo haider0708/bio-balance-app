@@ -36,8 +36,18 @@ const receiptLine = z
   .strict();
 const orderLine = z.object({ productId: id, quantity }).strict();
 // A grossiste ships from identified lots; BioBalance's own stock is not tracked.
+// A grossiste names the depot lot it ships; BioBalance, which does not track its
+// own stock, declares the batch and expiry it puts on the ticket.
+const shippedLot = z
+  .object({
+    lotId: id.optional(),
+    batch: z.string().trim().min(1).max(100).optional(),
+    expiry: z.string().max(10).optional(),
+    quantity,
+  })
+  .strict();
 const dispatchLine = orderLine
-  .extend({ allocations: z.array(allocation).min(1).max(50).optional() })
+  .extend({ allocations: z.array(shippedLot).min(1).max(50).optional() })
   .strict();
 export const commandSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("sale.create"), ...saleFields }).strict(),
@@ -154,10 +164,17 @@ export const commandSchema = z.discriminatedUnion("type", [
       lines: z.array(dispatchLine).min(1).max(200),
     })
     .strict(),
+  z.object({ type: z.literal("delivery.reissue"), deliveryId: id }).strict(),
   z
     .object({
       type: z.literal("delivery.receive"),
       deliveryId: id,
+      // The code read from the parcel's QR, or the reason it could not be scanned.
+      ticketCode: z
+        .string()
+        .regex(/^[A-Za-z0-9_-]{16,64}$/)
+        .optional(),
+      manualReason: z.string().trim().min(3).max(300).optional(),
       lines: z
         .array(
           receiptLine.extend({
@@ -257,10 +274,16 @@ export interface ClaimRecord extends Omit<RewardRecord, "id" | "active"> {
   status: string;
   version: number;
 }
+export interface OrderLineRecord {
+  productId: string;
+  quantity: number;
+  /** The supply price fixed when the line was ordered (null when none was set). */
+  unitPriceMillimes?: string | null;
+}
 export interface OrderRecord {
   id: string;
   status: string;
-  lines: { productId: string; quantity: number }[];
+  lines: OrderLineRecord[];
   supplierStoreId?: string | null;
   supplierOrganizationId?: string | null;
   version: number;
@@ -270,8 +293,10 @@ export interface OrderRecord {
 export interface DispatchedLine {
   productId: string;
   quantity: number;
+  unitPriceMillimes?: string | null;
   allocations?: {
-    lotId: string;
+    // The depot's lot; absent when BioBalance shipped and declared the lot.
+    lotId?: string;
     batch: string;
     expiry: string;
     quantity: number;
@@ -282,6 +307,8 @@ export interface DeliveryRecord extends Omit<OrderRecord, "lines"> {
   lines: DispatchedLine[];
   sourceStoreId?: string | null;
   sourceOrganizationId?: string | null;
+  ticketNumber?: string;
+  ticketVersion?: number;
 }
 export interface DeliveryIssueRecord {
   id: string;

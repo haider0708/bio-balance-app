@@ -888,6 +888,12 @@ const Map<String, Map<String, dynamic>> _schemas = {
     "properties": {
       "productId": {"type": "string", "format": "uuid"},
       "quantity": {"type": "integer"},
+      "unitPriceMillimes": {
+        "anyOf": [
+          {"type": "string", "pattern": "^-?[0-9]+\$"},
+          {"type": "null"},
+        ],
+      },
     },
     "required": ["productId", "quantity"],
     "additionalProperties": false,
@@ -1000,6 +1006,12 @@ const Map<String, Map<String, dynamic>> _schemas = {
     "properties": {
       "productId": {"type": "string", "format": "uuid"},
       "quantity": {"type": "integer"},
+      "unitPriceMillimes": {
+        "anyOf": [
+          {"type": "string", "pattern": "^-?[0-9]+\$"},
+          {"type": "null"},
+        ],
+      },
       "allocations": {
         "type": "array",
         "items": {
@@ -1033,6 +1045,8 @@ const Map<String, Map<String, dynamic>> _schemas = {
           {"type": "null"},
         ],
       },
+      "ticketNumber": {"type": "string"},
+      "ticketVersion": {"type": "integer"},
       "status": {"type": "string"},
       "version": {"type": "integer"},
       "dispatchedAt": {"type": "string", "format": "date-time"},
@@ -1051,6 +1065,8 @@ const Map<String, Map<String, dynamic>> _schemas = {
       "lines",
       "sourceOrganizationId",
       "sourceStoreId",
+      "ticketNumber",
+      "ticketVersion",
       "status",
       "version",
       "dispatchedAt",
@@ -1094,6 +1110,12 @@ const Map<String, Map<String, dynamic>> _schemas = {
         "items": {"\$ref": "#/components/schemas/DeliveryDifference"},
       },
       "note": {"type": "string"},
+      "outsideTicket": {
+        "type": "array",
+        "items": {
+          "\$ref": "#/components/schemas/DeliveryDifferencesOutsideTicketItem",
+        },
+      },
     },
     "required": ["lines", "note"],
     "additionalProperties": false,
@@ -1110,6 +1132,13 @@ const Map<String, Map<String, dynamic>> _schemas = {
         "items": {"\$ref": "#/components/schemas/ReceiptLine"},
       },
       "differences": {"\$ref": "#/components/schemas/DeliveryDifferences"},
+      "scanned": {"type": "boolean"},
+      "manualReason": {
+        "anyOf": [
+          {"type": "string"},
+          {"type": "null"},
+        ],
+      },
       "actorId": {"type": "string", "format": "uuid"},
       "operationId": {"type": "string", "format": "uuid"},
       "createdAt": {"type": "string", "format": "date-time"},
@@ -1121,6 +1150,8 @@ const Map<String, Map<String, dynamic>> _schemas = {
       "deliveryId",
       "lines",
       "differences",
+      "scanned",
+      "manualReason",
       "actorId",
       "operationId",
       "createdAt",
@@ -1683,6 +1714,55 @@ const Map<String, Map<String, dynamic>> _schemas = {
       },
     },
     "required": ["items"],
+    "additionalProperties": false,
+  },
+  "DeliveryTicket": {
+    "type": "object",
+    "properties": {
+      "deliveryId": {"type": "string", "format": "uuid"},
+      "deliveryVersion": {"type": "integer"},
+      "organizationId": {"type": "string", "format": "uuid"},
+      "storeId": {"type": "string", "format": "uuid"},
+      "number": {"type": "string"},
+      "version": {"type": "integer"},
+      "status": {"type": "string"},
+      "qr": {"type": "string"},
+      "storeName": {"type": "string"},
+      "groupName": {"type": "string"},
+      "supplierName": {
+        "anyOf": [
+          {"type": "string"},
+          {"type": "null"},
+        ],
+      },
+      "dispatchedAt": {"type": "string", "format": "date-time"},
+      "lines": {
+        "type": "array",
+        "items": {"\$ref": "#/components/schemas/DeliveryTicketLinesItem"},
+      },
+      "totalMillimes": {
+        "anyOf": [
+          {"type": "string", "pattern": "^-?[0-9]+\$"},
+          {"type": "null"},
+        ],
+      },
+    },
+    "required": [
+      "deliveryId",
+      "deliveryVersion",
+      "organizationId",
+      "storeId",
+      "number",
+      "version",
+      "status",
+      "qr",
+      "storeName",
+      "groupName",
+      "supplierName",
+      "dispatchedAt",
+      "lines",
+      "totalMillimes",
+    ],
     "additionalProperties": false,
   },
   "Wholesaler": {
@@ -2402,9 +2482,7 @@ const Map<String, Map<String, dynamic>> _schemas = {
       },
       "requestedLines": {
         "type": "array",
-        "items": {
-          "\$ref": "#/components/schemas/ScopedOrderRequestedLinesItem",
-        },
+        "items": {"\$ref": "#/components/schemas/OrderLine"},
       },
       "cancelledLines": {
         "type": "array",
@@ -2418,7 +2496,7 @@ const Map<String, Map<String, dynamic>> _schemas = {
       "createdBy": {"type": "string", "format": "uuid"},
       "lines": {
         "type": "array",
-        "items": {"\$ref": "#/components/schemas/ScopedOrderLinesItem"},
+        "items": {"\$ref": "#/components/schemas/OrderLine"},
       },
       "status": {"type": "string"},
       "version": {"type": "integer"},
@@ -2605,6 +2683,7 @@ const Map<String, Map<String, dynamic>> _schemas = {
       {"\$ref": "#/components/schemas/CommandDeliveryReport"},
       {"\$ref": "#/components/schemas/CommandDeliveryResolve"},
       {"\$ref": "#/components/schemas/CommandDeliveryDispatch"},
+      {"\$ref": "#/components/schemas/CommandDeliveryReissue"},
       {"\$ref": "#/components/schemas/CommandDeliveryReceive"},
       {"\$ref": "#/components/schemas/CommandRewardRequest"},
       {"\$ref": "#/components/schemas/CommandRewardResolve"},
@@ -2681,6 +2760,7 @@ const Map<String, Map<String, dynamic>> _schemas = {
       {"\$ref": "#/components/schemas/Count"},
     ],
   },
+  "TicketGetResponse": {"\$ref": "#/components/schemas/DeliveryTicket"},
   "PricingCurrentResponse": {"\$ref": "#/components/schemas/CurrentPrices"},
   "PricingHistoryResponse": {"\$ref": "#/components/schemas/PriceHistory"},
   "PricingSetResponse": {"\$ref": "#/components/schemas/PriceEntry"},
@@ -3423,7 +3503,17 @@ const Map<String, Map<String, dynamic>> _schemas = {
       "expiry": {"type": "string"},
       "quantity": {"type": "integer"},
     },
-    "required": ["lotId", "batch", "expiry", "quantity"],
+    "required": ["batch", "expiry", "quantity"],
+    "additionalProperties": false,
+  },
+  "DeliveryDifferencesOutsideTicketItem": {
+    "type": "object",
+    "properties": {
+      "productId": {"type": "string", "format": "uuid"},
+      "batch": {"type": "string"},
+      "expiry": {"type": "string"},
+    },
+    "required": ["productId", "batch", "expiry"],
     "additionalProperties": false,
   },
   "ApiErrorFieldsItem": {
@@ -3464,6 +3554,28 @@ const Map<String, Map<String, dynamic>> _schemas = {
       "supplyMillimes",
       "wholesaleMillimes",
     ],
+    "additionalProperties": false,
+  },
+  "DeliveryTicketLinesItem": {
+    "type": "object",
+    "properties": {
+      "productId": {"type": "string", "format": "uuid"},
+      "quantity": {"type": "integer"},
+      "unitPriceMillimes": {
+        "anyOf": [
+          {"type": "string", "pattern": "^-?[0-9]+\$"},
+          {"type": "null"},
+        ],
+      },
+      "allocations": {
+        "type": "array",
+        "items": {
+          "\$ref":
+              "#/components/schemas/DeliveryTicketLinesItemAllocationsItem",
+        },
+      },
+    },
+    "required": ["productId", "quantity", "unitPriceMillimes", "allocations"],
     "additionalProperties": false,
   },
   "SyncResultAccepted": {
@@ -3970,25 +4082,7 @@ const Map<String, Map<String, dynamic>> _schemas = {
     "required": ["productId", "quantity"],
     "additionalProperties": false,
   },
-  "ScopedOrderRequestedLinesItem": {
-    "type": "object",
-    "properties": {
-      "productId": {"type": "string", "format": "uuid"},
-      "quantity": {"type": "integer"},
-    },
-    "required": ["productId", "quantity"],
-    "additionalProperties": false,
-  },
   "ScopedOrderCancelledLinesItem": {
-    "type": "object",
-    "properties": {
-      "productId": {"type": "string", "format": "uuid"},
-      "quantity": {"type": "integer"},
-    },
-    "required": ["productId", "quantity"],
-    "additionalProperties": false,
-  },
-  "ScopedOrderLinesItem": {
     "type": "object",
     "properties": {
       "productId": {"type": "string", "format": "uuid"},
@@ -4317,6 +4411,19 @@ const Map<String, Map<String, dynamic>> _schemas = {
     "required": ["type", "orderId", "deliveryId", "lines"],
     "additionalProperties": false,
   },
+  "CommandDeliveryReissue": {
+    "type": "object",
+    "properties": {
+      "type": {"type": "string", "const": "delivery.reissue"},
+      "deliveryId": {
+        "type": "string",
+        "format": "uuid",
+        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)\$",
+      },
+    },
+    "required": ["type", "deliveryId"],
+    "additionalProperties": false,
+  },
   "CommandDeliveryReceive": {
     "type": "object",
     "properties": {
@@ -4326,6 +4433,8 @@ const Map<String, Map<String, dynamic>> _schemas = {
         "format": "uuid",
         "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)\$",
       },
+      "ticketCode": {"type": "string", "pattern": "^[A-Za-z0-9_-]{16,64}\$"},
+      "manualReason": {"type": "string", "minLength": 3, "maxLength": 300},
       "lines": {
         "maxItems": 200,
         "type": "array",
@@ -4425,6 +4534,16 @@ const Map<String, Map<String, dynamic>> _schemas = {
       "active": {"default": true, "type": "boolean"},
     },
     "required": ["reference", "name"],
+    "additionalProperties": false,
+  },
+  "DeliveryTicketLinesItemAllocationsItem": {
+    "type": "object",
+    "properties": {
+      "batch": {"type": "string"},
+      "expiry": {"type": "string"},
+      "quantity": {"type": "integer"},
+    },
+    "required": ["batch", "expiry", "quantity"],
     "additionalProperties": false,
   },
   "CommandSaleCreateBatchDeclarationsItem": {
@@ -4764,9 +4883,11 @@ const Map<String, Map<String, dynamic>> _schemas = {
         "format": "uuid",
         "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)\$",
       },
+      "batch": {"type": "string", "minLength": 1, "maxLength": 100},
+      "expiry": {"type": "string", "maxLength": 10},
       "quantity": {"type": "integer", "minimum": 1, "maximum": 1000000},
     },
-    "required": ["lotId", "quantity"],
+    "required": ["quantity"],
     "additionalProperties": false,
   },
 };

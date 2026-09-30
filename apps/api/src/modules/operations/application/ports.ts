@@ -101,7 +101,12 @@ export interface Ledger {
     lines: unknown,
     differences: unknown,
     operationId: string,
+    proof: { scanned: boolean; manualReason?: string },
   ): Promise<void>;
+  /** The price each product is ordered at: wholesale for a depot, else supply. */
+  supplyPrices(productIds: string[]): Promise<Map<string, bigint>>;
+  /** The next delivery ticket number, BL-YYYY-NNNNNN. */
+  nextTicketNumber(): Promise<string>;
   alerts(productIds: string[]): Promise<void>;
   notify(
     key: string,

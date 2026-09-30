@@ -74,7 +74,15 @@ async function shipment(quantity = 10) {
             type: "delivery.dispatch",
             orderId,
             deliveryId,
-            lines: [{ productId: product, quantity }],
+            lines: [
+              {
+                productId: product,
+                quantity,
+                allocations: [
+                  { batch: "SHIP", expiry: "2031-06-30", quantity },
+                ],
+              },
+            ],
           },
           1,
         ),
@@ -381,7 +389,15 @@ it("does not accept a lost original after its replacement was dispatched", async
             type: "delivery.dispatch",
             orderId,
             deliveryId: randomUUID(),
-            lines: [{ productId: product, quantity: 3 }],
+            lines: [
+              {
+                productId: product,
+                quantity: 3,
+                allocations: [
+                  { batch: "SHIP", expiry: "2031-06-30", quantity: 3 },
+                ],
+              },
+            ],
           },
           order.version,
         ),
@@ -431,7 +447,7 @@ it("preserves original quantities, forbids reducing commitments, and closes only
         where: { id: orderId },
       })
     ).requestedLines,
-  ).toEqual([{ productId: product, quantity: 20 }]);
+  ).toEqual([{ productId: product, quantity: 20, unitPriceMillimes: null }]);
   await ops.submit(
     admin,
     op(
@@ -439,7 +455,15 @@ it("preserves original quantities, forbids reducing commitments, and closes only
         type: "delivery.dispatch",
         orderId,
         deliveryId: randomUUID(),
-        lines: [{ productId: product, quantity: 10 }],
+        lines: [
+          {
+            productId: product,
+            quantity: 10,
+            allocations: [
+              { batch: "SHIP", expiry: "2031-06-30", quantity: 10 },
+            ],
+          },
+        ],
       },
       2,
     ),
@@ -732,7 +756,13 @@ it("keeps partially received orders visible while another shipment is in transit
         type: "delivery.dispatch",
         orderId,
         deliveryId: randomUUID(),
-        lines: [{ productId: product, quantity: 4 }],
+        lines: [
+          {
+            productId: product,
+            quantity: 4,
+            allocations: [{ batch: "SHIP", expiry: "2031-06-30", quantity: 4 }],
+          },
+        ],
       },
       order.version,
     ),

@@ -27,6 +27,24 @@ class ApiClient extends SessionTransport {
   Future<Map<String, dynamic>> push(
     List<Map<String, dynamic>> operations,
   ) async => (await pushRaw(operations)).toJson();
+  Future<TicketGetResponseDto> ticketGet({
+    String? organizationId,
+    String? supplierStoreId,
+    required String id,
+  }) async {
+    final value = await request(
+      'GET',
+      '/v1/tickets/${Uri.encodeComponent(id)}',
+      query: {
+        "organizationId": ?organizationId,
+        "supplierStoreId": ?supplierStoreId,
+      },
+    );
+    return TicketGetResponseDto.fromJson(
+      Map<String, dynamic>.from(value as Map),
+    );
+  }
+
   Future<PricingCurrentResponseDto> pricingCurrent({
     required String organizationId,
     required String storeId,

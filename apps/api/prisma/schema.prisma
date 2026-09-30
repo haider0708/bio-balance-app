@@ -346,6 +346,8 @@ model ReplenishmentOrder {
 model Delivery {
   sourceOrganizationId String? @db.Uuid
   sourceStoreId String? @db.Uuid
+  ticketNumber String @unique
+  ticketVersion Int @default(1)
   id String @id @db.Uuid
   organizationId String @db.Uuid
   storeId String @db.Uuid
@@ -360,6 +362,8 @@ model Delivery {
   @@index([storeId,orderId])
 }
 model DeliveryReceipt {
+  scanned Boolean @default(false)
+  manualReason String?
   id String @id @default(uuid()) @db.Uuid
   organizationId String @db.Uuid
   storeId String @db.Uuid

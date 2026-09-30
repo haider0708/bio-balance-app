@@ -16,6 +16,7 @@ import {
   OperationResult,
 } from "../domain/contracts";
 import { UnitOfWork, Ledger } from "../application/ports";
+import { latestPrices, withPriceAccess } from "../../pricing/pricing.service";
 export class PrismaUnitOfWork extends UnitOfWork {
   constructor(private readonly db: Database) {
     super();
@@ -528,9 +529,9 @@ export class PrismaLedger implements Ledger {
     requireRule(item, "NOT_FOUND", "Commande introuvable.", 404);
     return {
       ...item,
-      lines: item.lines as OrderRecord["lines"],
-      requestedLines: item.requestedLines as OrderRecord["lines"],
-      cancelledLines: item.cancelledLines as OrderRecord["lines"],
+      lines: item.lines as unknown as OrderRecord["lines"],
+      requestedLines: item.requestedLines as unknown as OrderRecord["lines"],
+      cancelledLines: item.cancelledLines as unknown as OrderRecord["lines"],
     };
   }
   async saveOrder(value: OrderRecord) {
@@ -555,7 +556,10 @@ export class PrismaLedger implements Ledger {
       where: { ...this.context, id },
     });
     requireRule(item, "NOT_FOUND", "Livraison introuvable.", 404);
-    return { ...item, lines: item.lines as OrderRecord["lines"] };
+    return {
+      ...item,
+      lines: item.lines as unknown as DeliveryRecord["lines"],
+    };
   }
   async fulfillment(order: OrderRecord) {
     const result = await orderFulfillment(
@@ -569,7 +573,13 @@ export class PrismaLedger implements Ledger {
   async saveDelivery(value: DeliveryRecord) {
     const data = { ...value, lines: json(value.lines) };
     if (value.version === 1)
-      await this.tx.delivery.create({ data: { ...data, ...this.context } });
+      await this.tx.delivery.create({
+        data: {
+          ...data,
+          ...this.context,
+          ticketNumber: value.ticketNumber ?? (await this.nextTicketNumber()),
+        },
+      });
     else
       await this.tx.delivery.update({
         where: { id: value.id },
@@ -671,14 +681,42 @@ export class PrismaLedger implements Ledger {
       },
     });
   }
+  async supplyPrices(productIds: string[]) {
+    if (!productIds.length) return new Map<string, bigint>();
+    return withPriceAccess(this.tx, () =>
+      this.scope.wholesale
+        ? latestPrices(
+            this.tx,
+            "wholesale",
+            { organizationId: this.scope.organizationId },
+            productIds,
+          )
+        : latestPrices(
+            this.tx,
+            "store_supply",
+            { storeId: this.scope.storeId },
+            productIds,
+          ),
+    );
+  }
+  async nextTicketNumber() {
+    const [row] = await this.tx.$queryRaw<
+      { n: bigint }[]
+    >`SELECT nextval('"DeliveryTicketSeq"') AS n`;
+    const year = localDate(new Date(), this.scope.timezone).slice(0, 4);
+    return `BL-${year}-${String(row!.n).padStart(6, "0")}`;
+  }
   async receipt(
     deliveryId: string,
     lines: unknown,
     differences: unknown,
     operationId: string,
+    proof: { scanned: boolean; manualReason?: string },
   ) {
     await this.tx.deliveryReceipt.create({
       data: {
+        scanned: proof.scanned,
+        manualReason: proof.manualReason ?? null,
         ...this.context,
         deliveryId,
         lines: json(lines),

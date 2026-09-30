@@ -1,6 +1,204 @@
 {
   "openapi": "3.1.0",
   "paths": {
+    "/v1/tickets/{id}": {
+      "get": {
+        "operationId": "TicketGet",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "supplierStoreId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Réponse autorisée. Les entiers monétaires sont des chaînes décimales exactes.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TicketGetResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Erreur stable à traduire pour l’utilisateur",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Erreur stable à traduire pour l’utilisateur",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Erreur stable à traduire pour l’utilisateur",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Erreur stable à traduire pour l’utilisateur",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Erreur stable à traduire pour l’utilisateur",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Erreur stable à traduire pour l’utilisateur",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Erreur stable à traduire pour l’utilisateur",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Erreur stable à traduire pour l’utilisateur",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "416": {
+            "description": "Erreur stable à traduire pour l’utilisateur",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Erreur stable à traduire pour l’utilisateur",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Erreur stable à traduire pour l’utilisateur",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Erreur stable à traduire pour l’utilisateur",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Erreur stable à traduire pour l’utilisateur",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "deliveries"
+        ]
+      }
+    },
     "/v1/prices/current": {
       "get": {
         "operationId": "PricingCurrent",
@@ -15437,6 +15635,17 @@
           },
           "quantity": {
             "type": "integer"
+          },
+          "unitPriceMillimes": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^-?[0-9]+$"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
@@ -15640,6 +15849,17 @@
           "quantity": {
             "type": "integer"
           },
+          "unitPriceMillimes": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^-?[0-9]+$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "allocations": {
             "type": "array",
             "items": {
@@ -15660,7 +15880,6 @@
                 }
               },
               "required": [
-                "lotId",
                 "batch",
                 "expiry",
                 "quantity"
@@ -15722,6 +15941,12 @@
               }
             ]
           },
+          "ticketNumber": {
+            "type": "string"
+          },
+          "ticketVersion": {
+            "type": "integer"
+          },
           "status": {
             "type": "string"
           },
@@ -15752,6 +15977,8 @@
           "lines",
           "sourceOrganizationId",
           "sourceStoreId",
+          "ticketNumber",
+          "ticketVersion",
           "status",
           "version",
           "dispatchedAt",
@@ -15833,6 +16060,30 @@
           },
           "note": {
             "type": "string"
+          },
+          "outsideTicket": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "productId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "batch": {
+                  "type": "string"
+                },
+                "expiry": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "productId",
+                "batch",
+                "expiry"
+              ],
+              "additionalProperties": false
+            }
           }
         },
         "required": [
@@ -15869,6 +16120,19 @@
           "differences": {
             "$ref": "#/components/schemas/DeliveryDifferences"
           },
+          "scanned": {
+            "type": "boolean"
+          },
+          "manualReason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "actorId": {
             "type": "string",
             "format": "uuid"
@@ -15889,6 +16153,8 @@
           "deliveryId",
           "lines",
           "differences",
+          "scanned",
+          "manualReason",
           "actorId",
           "operationId",
           "createdAt"
@@ -16963,6 +17229,142 @@
         },
         "required": [
           "items"
+        ],
+        "additionalProperties": false
+      },
+      "DeliveryTicket": {
+        "type": "object",
+        "properties": {
+          "deliveryId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "deliveryVersion": {
+            "type": "integer"
+          },
+          "organizationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "storeId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "number": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer"
+          },
+          "status": {
+            "type": "string"
+          },
+          "qr": {
+            "type": "string"
+          },
+          "storeName": {
+            "type": "string"
+          },
+          "groupName": {
+            "type": "string"
+          },
+          "supplierName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "dispatchedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "productId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "quantity": {
+                  "type": "integer"
+                },
+                "unitPriceMillimes": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "pattern": "^-?[0-9]+$"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "allocations": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "batch": {
+                        "type": "string"
+                      },
+                      "expiry": {
+                        "type": "string"
+                      },
+                      "quantity": {
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "batch",
+                      "expiry",
+                      "quantity"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "required": [
+                "productId",
+                "quantity",
+                "unitPriceMillimes",
+                "allocations"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "totalMillimes": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^-?[0-9]+$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "deliveryId",
+          "deliveryVersion",
+          "organizationId",
+          "storeId",
+          "number",
+          "version",
+          "status",
+          "qr",
+          "storeName",
+          "groupName",
+          "supplierName",
+          "dispatchedAt",
+          "lines",
+          "totalMillimes"
         ],
         "additionalProperties": false
       },
@@ -19109,21 +19511,7 @@
           "requestedLines": {
             "type": "array",
             "items": {
-              "type": "object",
-              "properties": {
-                "productId": {
-                  "type": "string",
-                  "format": "uuid"
-                },
-                "quantity": {
-                  "type": "integer"
-                }
-              },
-              "required": [
-                "productId",
-                "quantity"
-              ],
-              "additionalProperties": false
+              "$ref": "#/components/schemas/OrderLine"
             }
           },
           "cancelledLines": {
@@ -19165,21 +19553,7 @@
           "lines": {
             "type": "array",
             "items": {
-              "type": "object",
-              "properties": {
-                "productId": {
-                  "type": "string",
-                  "format": "uuid"
-                },
-                "quantity": {
-                  "type": "integer"
-                }
-              },
-              "required": [
-                "productId",
-                "quantity"
-              ],
-              "additionalProperties": false
+              "$ref": "#/components/schemas/OrderLine"
             }
           },
           "status": {
@@ -20239,6 +20613,15 @@
                             "format": "uuid",
                             "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
                           },
+                          "batch": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 100
+                          },
+                          "expiry": {
+                            "type": "string",
+                            "maxLength": 10
+                          },
                           "quantity": {
                             "type": "integer",
                             "minimum": 1,
@@ -20246,7 +20629,6 @@
                           }
                         },
                         "required": [
-                          "lotId",
                           "quantity"
                         ],
                         "additionalProperties": false
@@ -20274,12 +20656,40 @@
             "properties": {
               "type": {
                 "type": "string",
+                "const": "delivery.reissue"
+              },
+              "deliveryId": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              }
+            },
+            "required": [
+              "type",
+              "deliveryId"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
                 "const": "delivery.receive"
               },
               "deliveryId": {
                 "type": "string",
                 "format": "uuid",
                 "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              },
+              "ticketCode": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9_-]{16,64}$"
+              },
+              "manualReason": {
+                "type": "string",
+                "minLength": 3,
+                "maxLength": 300
               },
               "lines": {
                 "maxItems": 200,
@@ -20580,6 +20990,9 @@
             "$ref": "#/components/schemas/Count"
           }
         ]
+      },
+      "TicketGetResponse": {
+        "$ref": "#/components/schemas/DeliveryTicket"
       },
       "PricingCurrentResponse": {
         "$ref": "#/components/schemas/CurrentPrices"

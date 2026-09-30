@@ -29,6 +29,10 @@ import { NotificationsService } from "./modules/notifications/notifications.serv
 import { NotificationsController } from "./modules/notifications/notifications.controller";
 import { TrainingService } from "./modules/training/training.service";
 import { TrainingController } from "./modules/training/training.controller";
+import {
+  TicketController,
+  TicketService,
+} from "./modules/operations/http/ticket.controller";
 import { PricingService } from "./modules/pricing/pricing.service";
 import { PricingController } from "./modules/pricing/pricing.controller";
 import { WholesaleService } from "./modules/wholesale/wholesale.service";
@@ -44,6 +48,7 @@ class HealthController {
 }
 @Module({
   controllers: [
+    TicketController,
     PricingController,
     WholesaleController,
     InvitationManagementController,
@@ -61,6 +66,7 @@ class HealthController {
     ReportingController,
   ],
   providers: [
+    TicketService,
     PricingService,
     WholesaleService,
     InvitationManagementService,

@@ -257,6 +257,7 @@ it("pages each order phase independently and returns actual reception history in
   });
   const parcel = await owner.delivery.create({
     data: {
+      ticketNumber: `BL-TEST-${randomUUID().slice(0, 8)}`,
       id: randomUUID(),
       organizationId: f.org.id,
       storeId: f.store.id,
@@ -278,6 +279,7 @@ it("pages each order phase independently and returns actual reception history in
   });
   await owner.delivery.create({
     data: {
+      ticketNumber: `BL-TEST-${randomUUID().slice(0, 8)}`,
       id: randomUUID(),
       organizationId: f.org.id,
       storeId: f.store.id,
