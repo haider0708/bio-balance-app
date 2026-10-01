@@ -85,6 +85,24 @@ CLAIMS_FR = {'ANIMAL FRIENDLY': 'respectueux des animaux', 'COLOURANT FREE': 'sa
              'GLUTEN FREE': 'sans gluten', 'MINERAL OIL FREE': 'sans huile minérale', 'PERFUME FREE': 'sans parfum',
              'PETROLATUM FREE': 'sans pétrolatum', 'PRESERVATIVE FREE': 'sans conservateur', 'SILICONE FREE': 'sans silicone',
              'VEGAN - NATURAL PRODUCT': 'vegan, d’origine naturelle'}
+# Ingredient lists quoted from retailers' own pages when neither the manufacturer nor
+# Barcode Lookup gives them (two independent pages for the serum; the gel's single page
+# is a retailer's transcription, typos corrected to standard INCI names).
+INCI_RETAIL = {
+    '8697711721014': ('Aqua, Glycerin, Propanediol, Betaine, Zinc Lactate, Niacinamide, Sodium Ascorbyl Phosphate, Xanthan Gum, '
+                      'Nordihydroguaiaretic Acid, Oleanolic Acid, Biotin, PEG-60 Almond Glycerides, Caprylyl Glycol, Carbomer, '
+                      'Sodium Metabisulfite, Centella Asiatica Extract, Butylene Glycol, Polysorbate 20, Hydroxyethylcellulose, '
+                      'Phenoxyethanol, Ethylhexylglycerin, Citric Acid, Sodium Citrate',
+                      'https://gemerwholesale.com/en/a/bio-balance-acnevit-serum | https://myoras.com/products/acnevit-anti-acne-serum'),
+    '8697711721021': ('Aqua, Sodium C14-16 Olefin Sulfonate, Cocamidopropyl Betaine, Decyl Glucoside, PEG-120 Methyl Glucose Dioleate, '
+                      'Tocopherol, C12-15 Alkyl Lactate, Glycerin, Sodium Ascorbyl Phosphate, Centella Asiatica Extract, '
+                      'Vitis Vinifera Seed Extract, Rosmarinus Officinalis Leaf Extract, Propylene Glycol, Niacinamide, Panthenol, '
+                      'Zinc Gluconate, Allantoin, Parfum, Limonene, Disodium EDTA, Hexamidine Diisethionate, Phenoxyethanol, '
+                      'Benzoic Acid, Dehydroacetic Acid, Butylene Glycol',
+                      'https://feel22.com/products/acnevit-anti-acne-cleansing-gel'),
+}
+# The glossy LipojeN shades share one formula (same list on N°31, N°32 and N°34).
+SAME_FORMULA = {'8697711011269': '8697711011252', '8697711011283': '8697711011252'}
 # French usage where the Tunisian site has none (translated from the manufacturer's English).
 USAGE_FR = {
     'DEO': 'Agiter avant emploi pour activer la formule. Appliquer sur des aisselles propres et sèches.',
@@ -176,7 +194,10 @@ INCI = re.compile(r'(?:Ingrediente|Ingredients|INGREDIENTS|Ingrédients|Съст
 
 
 def tidy_inci(text):
-    return re.sub(r'-\s+(\d)', r'-\1', re.sub(r'/\s+', '/', text))
+    text = re.sub(r'-\s+(\d)', r'-\1', re.sub(r'/\s+', '/', text))
+    text = re.sub(r'\bCI(\d)', r'CI \1', re.sub(r'\[\s*\+', '[+', text))
+    text = re.sub(r'(CI \d+) (CI \d+)', r'\1, \2', text)
+    return text + ']' if text.count('[') > text.count(']') else text
 
 
 def inci(text):
@@ -249,7 +270,8 @@ def run(args):
         instructions = (curated.get('instructions') or site.get('instructions', '')
                         or USAGE_FR.get(ean) or (USAGE_FR['DEO'] if 'DEO ROLL-ON' in MANUFACTURER_TITLE.get(ean, '') else ''))
         ingredients = (official.get('ingredients') or site.get('ingredients') or inci(bl.get('description'))
-                       or mapara.get(mapara_slug.get(ean, ''), ''))
+                       or mapara.get(mapara_slug.get(ean, ''), '') or INCI_RETAIL.get(ean, ('',))[0]
+                       or inci(capture.get(SAME_FORMULA.get(ean, ''), {}).get('description')))
         precautions = curated.get('precautions') or site.get('precautions', '')
         image = None
         for key in (ean, same_as.get(ean)):
@@ -261,7 +283,7 @@ def run(args):
             image, image_source = args.sources / f'bl-{ean}.jpg', f'https://www.barcodelookup.com/{ean}'
         if image:
             shutil.copyfile(image, args.out / 'images' / f'{ean}.jpg')
-        sources = [u for u in (url, f'https://www.barcodelookup.com/{ean}' if bl else '') if u]
+        sources = [u for u in (url, f'https://www.barcodelookup.com/{ean}' if bl else '', INCI_RETAIL.get(ean, ('', ''))[1]) if u]
         record = dict(ean=ean, reference=(own or {}).get('reference') or f'BB-EAN-{ean}', designation=designation,
                       name=name, range=rng, category=category, size=size, description=description,
                       instructions=instructions, ingredients=ingredients, precautions=precautions,

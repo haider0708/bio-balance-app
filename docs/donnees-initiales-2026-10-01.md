@@ -5,7 +5,7 @@
 | Champ | Renseigné |
 |---|---|
 | Nom, catégorie, contenance, description, conseils d’utilisation, photo, code-barres | 51 / 51 |
-| Ingrédients (INCI) | 47 / 51 (manquent : LipojeN N°35 et N°37, Acnevit sérum et gel) |
+| Ingrédients (INCI) | 51 / 51 |
 | Gamme | 50 / 51 (l’Eyelash Growth Serum n’appartient à aucune gamme) |
 | Précautions | 4 / 51 (uniquement quand une source les donne) |
 | Prix | 0 — BioBalance les fixe dans l’application (A, B, C) |
@@ -17,6 +17,7 @@
 3. **Le fabricant, biobalance.com.tr** (pages officielles) : liste d’ingrédients INCI, contenance, mentions de formule (sans parfum, vegan…), mode d’emploi des déodorants.
 4. **Barcode Lookup** (34 fiches sur 39) : produits absents du site (Eyelash, baumes Hello Clean, contour des yeux nuit), ingrédients et photos de secours.
 5. **MaPara Tunisie** (revendeur) : seulement des listes d’ingrédients quand rien d’autre n’en donne.
+6. **Pages de revendeurs** pour les 4 derniers INCI : sérum Acnevit (gemerwholesale.com et myoras.com, deux pages concordantes), gel Acnevit (feel22.com, transcription d’un revendeur, noms corrigés), LipojeN N°35 et N°37 (même formule que les teintes brillantes N°31, N°32 et N°34, dont la liste est identique).
 
 ## Codes-barres retrouvés (produits hors Excel)
 
