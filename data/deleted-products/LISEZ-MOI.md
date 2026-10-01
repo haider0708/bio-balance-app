@@ -1,5 +1,7 @@
 # Copie des données retirées du catalogue — 1er octobre 2026
 
+> Mise à jour : les 12 produits de biobalance.tn (10 repulpeurs LipojeN et 2 Acnevit) ont été **remis au catalogue avec leur code-barres retrouvé** (`data/initial-catalog/sources/extra-products.json`). Seul le produit « TEST » reste définitivement supprimé. Les tests (grossiste de démonstration, commandes et vente d’essai, Rosy Petal) ont été purgés de la production le même jour.
+
 - `produits-supprimes.*` : les 13 produits hors de la liste des 39 codes-barres (10 repulpeurs de lèvres, 2 Acnevit, 1 produit « TEST »), avec leur ancien prix, leur description et leur photo.
   - 12 ont été **supprimés** de la production.
   - **BB-WEB-55 (Repulpeur Rosy Petal N°05)** est seulement **désactivé** : mes essais (commandes, stock, une vente) y sont rattachés ; l’historique ne s’efface pas ligne à ligne.

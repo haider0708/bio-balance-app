@@ -1,0 +1,17 @@
+{
+  "note": "Produits de biobalance.tn absents de la liste Excel. Codes-barres relevés puis recoupés : Barcode Lookup (fiches LipojeN) et revendeurs affichant le même SKU (cosmetista.me, Amazon, puntofarma). Chaque code est un EAN-13 valide ; les teintes N°35 et N°37 suivent la suite des numéros de série et sont confirmées par cosmetista.me.",
+  "products": {
+    "8697711011122": {"reference": "BB-WEB-52", "name": "Repulpeur Lèvres Hot Chocolate N°03", "size": "5 ml", "range": "LipojeN", "evidence": "barcodelookup.com + lipojen.com"},
+    "8697711011139": {"reference": "BB-WEB-54", "name": "Repulpeur Lèvres Rose Venus N°04", "size": "5 ml", "range": "LipojeN", "evidence": "barcodelookup.com + lipojen.com"},
+    "8697711011146": {"reference": "BB-WEB-55", "name": "Repulpeur Lèvres Rosy Petal N°05", "size": "5 ml", "range": "LipojeN", "evidence": "barcodelookup.com (nommée Pink Love N°5) ; numéro 5 de la suite des séries", "note": "Même teinte N°5 : Barcode Lookup l’appelle Pink Love"},
+    "8697711011160": {"reference": "BB-WEB-56", "name": "Repulpeur Lèvres High Society N°07", "size": "5 ml", "range": "LipojeN", "evidence": "barcodelookup.com + lipojen.com"},
+    "8697711011191": {"reference": "BB-WEB-57", "name": "Repulpeur Lèvres Hot Red N°10", "size": "5 ml", "range": "LipojeN", "evidence": "barcodelookup.com + lipojen.com"},
+    "8697711011221": {"reference": "BB-WEB-58", "name": "Repulpeur Lèvres Flamingo Love N°31", "size": "5 ml", "range": "LipojeN", "evidence": "barcodelookup.com"},
+    "8697711011238": {"reference": "BB-WEB-59", "name": "Repulpeur Lèvres Coral Dream N°32", "size": "5 ml", "range": "LipojeN", "evidence": "barcodelookup.com"},
+    "8697711011252": {"reference": "BB-WEB-60", "name": "Repulpeur Lèvres Fuchsia Vibes N°34", "size": "5 ml", "range": "LipojeN", "evidence": "barcodelookup.com"},
+    "8697711011269": {"reference": "BB-WEB-61", "name": "Repulpeur Lèvres Candy Crush N°35", "size": "5 ml", "range": "LipojeN", "evidence": "cosmetista.me (SKU)"},
+    "8697711011283": {"reference": "BB-WEB-62", "name": "Repulpeur Lèvres Cinnamon Roll N°37", "size": "5 ml", "range": "LipojeN", "evidence": "cosmetista.me (SKU)"},
+    "8697711721014": {"reference": "BB-WEB-53", "name": "Acnevit Anti-Acne Serum", "size": "30 ml", "range": "Acnevit", "evidence": "Amazon (modèle) + puntofarma.com.py"},
+    "8697711721021": {"reference": "BB-WEB-63", "name": "Acnevit Anti-Acne Cleansing Gel", "size": "200 ml", "range": "Acnevit", "evidence": "Amazon (modèle) + cosmetista.me (SKU)"}
+  }
+}

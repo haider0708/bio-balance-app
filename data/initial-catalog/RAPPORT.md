@@ -1,16 +1,20 @@
-# Données initiales — 39 produits (les 39 codes-barres de votre liste)
+# Données initiales — 51 produits (39 codes de votre liste Excel + 12 produits de biobalance.tn dont le code-barres a été retrouvé)
 
 | Champ | Renseigné |
 |---|---|
-| Nom | 39/39 |
-| Catégorie | 39/39 |
-| Gamme | 38/39 |
-| Contenance | 39/39 |
-| Description | 39/39 |
-| Conseils d’utilisation | 39/39 |
-| Ingrédients | 39/39 |
-| Précautions | 4/39 |
-| Photo | 39/39 |
+| Nom | 51/51 |
+| Catégorie | 51/51 |
+| Gamme | 50/51 |
+| Contenance | 51/51 |
+| Description | 51/51 |
+| Conseils d’utilisation | 51/51 |
+| Ingrédients | 47/51 |
+| Précautions | 4/51 |
+| Photo | 51/51 |
 
 Aucun prix : BioBalance les fixe dans l’application (A, B, C). Une gamme vide est normale pour un produit hors gamme.
 
+- `8697711011269` Repulpeur Lèvres Candy Crush N°35 — manque : ingrédients
+- `8697711011283` Repulpeur Lèvres Cinnamon Roll N°37 — manque : ingrédients
+- `8697711721014` Acnevit Anti-Acne Serum — manque : ingrédients
+- `8697711721021` Acnevit Anti-Acne Cleansing Gel — manque : ingrédients

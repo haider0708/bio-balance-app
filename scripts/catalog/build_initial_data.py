@@ -88,12 +88,14 @@ CLAIMS_FR = {'ANIMAL FRIENDLY': 'respectueux des animaux', 'COLOURANT FREE': 'sa
 # French usage where the Tunisian site has none (translated from the manufacturer's English).
 USAGE_FR = {
     'DEO': 'Agiter avant emploi pour activer la formule. Appliquer sur des aisselles propres et sèches.',
+    '8697711721014': 'Appliquer le sérum deux fois par jour pendant les dix premiers jours, puis une fois par jour pour obtenir les résultats.',
+    '8697711721021': 'Appliquer sur le visage humide en évitant le contour des yeux, masser puis rincer à l’eau tiède. Utiliser deux fois par jour.',
     '8697711602115': 'Appliquer une petite quantité de sérum sur le visage propre et sec, matin et soir, et masser par mouvements circulaires doux jusqu’à absorption.',
     '8697711600838': 'Appliquer directement sur le visage nettoyé, matin et soir. Laisser le sérum pénétrer avant d’appliquer la crème hydratante.',
 }
 SMALL = {'and', 'de', 'of', 'with', 'for', 'the', 'à', 'et', 'pour', 'au', 'aux', 'du', 'en'}
 KEEP = {'AH', 'BHA', 'AHA', 'SPF', 'EGCG', 'PHA', 'UV', 'TND', 'HC', 'II'}
-RANGES = [('super serum', 'Super Serum'), ('super toner', 'Super Toner'), ('cream moisturizer', 'Super Cream'),
+RANGES = [('lipojen', 'LipojeN'), ('acnevit', 'Acnevit'), ('super serum', 'Super Serum'), ('super toner', 'Super Toner'), ('cream moisturizer', 'Super Cream'),
           ('super hydrator', 'Super Cream'), ('hello clean', 'Hello Clean'), ('dermasebum', 'Dermasebum'),
           ('dermasoothe', 'Dermasoothe'), ('dry & white', 'Dry & White'), ('dry & sport', 'Dry & Sport'),
           ('organic', 'Organic'), ('magic touch', 'Magic Touch')]
@@ -101,7 +103,7 @@ LABELS = r'(Avantages|Conseils? d[’\']utilisation|Mode d[’\']emploi|Ingr[ée
 
 
 def clean(text):
-    return re.sub(r'\s+', ' ', (text or '').replace('\xa0', ' ').replace('EXTRAit', 'Extrait')).strip()
+    return re.sub(r'\s+', ' ', (text or '').replace('\xa0', ' ').replace('EXTRAit', 'Extrait').replace('lévres', 'lèvres').replace('Lévres', 'Lèvres').replace('Fuchia', 'Fuchsia')).strip()
 
 
 def title_case(text):
@@ -173,6 +175,10 @@ def read_site_page(page):
 INCI = re.compile(r'(?:Ingrediente|Ingredients|INGREDIENTS|Ingrédients|Състав)\s*:\s*(.+?)(?=\s\.\s|\s\.$|https?://|$)', re.S)
 
 
+def tidy_inci(text):
+    return re.sub(r'-\s+(\d)', r'-\1', re.sub(r'/\s+', '/', text))
+
+
 def inci(text):
     """An INCI list is the same in every language: keep a candidate only when it reads as one
     (many Latin names, mostly capitalised, separated by commas)."""
@@ -182,13 +188,20 @@ def inci(text):
         tokens = [t.strip() for t in candidate.split(',') if t.strip()]
         if len(tokens) >= 6 and sum(bool(re.match(r'[A-Z0-9]', t)) for t in tokens) / len(tokens) >= 0.9 and len(candidate) > len(best):
             best = candidate
-    return best
+    return tidy_inci(best)
 
 
 def run(args):
     ws = openpyxl.load_workbook(args.workbook)['Feuil1']
     listed = [(str(r[0]), clean(r[1])) for r in ws.iter_rows(min_row=6, values_only=True) if r[0]]
-    catalog = {p['barcode']: p for p in json.loads(args.catalog.read_text())['products'] if p.get('barcode')}
+    products = json.loads(args.catalog.read_text())['products']
+    catalog = {p['barcode']: p for p in products if p.get('barcode')}
+    # Products of biobalance.tn that are not in the workbook, with the barcode found for each.
+    extras = json.loads(args.extra.read_text())['products']
+    by_reference = {p['reference']: p for p in products}
+    for ean, extra in extras.items():
+        catalog[ean] = by_reference[extra['reference']] | {'barcode': ean}
+    listed += [(ean, extra['name']) for ean, extra in extras.items()]
     pages = json.loads(args.site_pages.read_text())
     maker = {v['title']: v for v in json.loads(args.manufacturer.read_text()).values()}
     by_url = {u: read_site_page(p) | {'title': p['h1']} for u, p in pages.items()}
@@ -209,7 +222,8 @@ def run(args):
     for ean, designation in listed:
         own = catalog.get(ean)
         sibling = catalog.get(same_as.get(ean, ''))
-        curated = CURATED.get(ean, {})
+        extra = extras.get(ean, {})
+        curated = CURATED.get(ean, {}) or ({k: v for k, v in {'name': extra.get('name'), 'size': extra.get('size'), 'range': extra.get('range')}.items() if v} if extra else {})
         # A code whose own page is empty falls back on its sibling code (same product).
         source = sibling if ean in same_as else own
         url = (source or {}).get('sourceUrl') or ''
@@ -224,7 +238,12 @@ def run(args):
         intro = curated.get('description') or site.get('intro') or clean((source or {}).get('description', ''))
         benefits = curated.get('benefits') or site.get('benefits', [])
         claims = [CLAIMS_FR[c] for c in official.get('claims', []) if c in CLAIMS_FR]
-        description = intro + (('\n\nAvantages :\n' + '\n'.join(f'• {b}' for b in benefits)) if benefits else '')
+        if intro and intro[-1] not in '.!?':
+            intro += '.'
+        if len(benefits) == 1 and len(benefits[0]) > 160:
+            description = intro + '\n\n' + benefits[0]  # one long paragraph, not a bullet
+        else:
+            description = intro + (('\n\nAvantages :\n' + '\n'.join(f'• {b}' for b in benefits)) if benefits else '')
         if claims:
             description += '\n\nFormule : ' + ', '.join(claims) + '.'
         instructions = (curated.get('instructions') or site.get('instructions', '')
@@ -279,7 +298,7 @@ def write(out, rows):
     wb.save(out / 'produits.xlsx')
     total = len(rows)
     field = lambda k: sum(bool(r[k]) for r in rows)
-    lines = [f'# Données initiales — {total} produits (les {total} codes-barres de votre liste)', '',
+    lines = [f'# Données initiales — {total} produits (39 codes de votre liste Excel + {total - 39} produits de biobalance.tn dont le code-barres a été retrouvé)', '',
              '| Champ | Renseigné |', '|---|---|']
     lines += [f'| {label} | {field(k)}/{total} |' for k, label in
               (('name', 'Nom'), ('category', 'Catégorie'), ('range', 'Gamme'), ('size', 'Contenance'), ('description', 'Description'),
@@ -301,5 +320,6 @@ if __name__ == '__main__':
     ap.add_argument('--capture', type=pathlib.Path, default=root / 'data/initial-catalog/sources/barcodelookup-capture.json')
     ap.add_argument('--manufacturer', type=pathlib.Path, default=root / 'data/initial-catalog/sources/manufacturer-pages.json')
     ap.add_argument('--mapara', type=pathlib.Path, default=root / 'data/initial-catalog/sources/mapara-ingredients.json')
+    ap.add_argument('--extra', type=pathlib.Path, default=root / 'data/initial-catalog/sources/extra-products.json')
     ap.add_argument('--out', type=pathlib.Path, default=root / 'data/initial-catalog')
     run(ap.parse_args())
