@@ -807,8 +807,9 @@ export class PrismaLedger implements Ledger {
     return store.openingClosedAt !== null;
   }
   async closeOpening() {
-    await this.tx.store.update({
-      where: { id: this.scope.storeId },
+    // Only the first call writes, so later receipts never touch the store row.
+    await this.tx.store.updateMany({
+      where: { id: this.scope.storeId, openingClosedAt: null },
       data: { openingClosedAt: new Date() },
     });
   }

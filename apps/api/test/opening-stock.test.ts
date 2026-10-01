@@ -13,6 +13,7 @@ import {
   operationSchema,
 } from "../src/modules/operations/domain/contracts";
 import { WorkspaceService } from "../src/modules/tenancy/workspace.service";
+import { OperationsController } from "../src/modules/operations/http/operations.controller";
 
 process.env.DATABASE_URL =
   process.env.TEST_APP_DATABASE_URL ??
@@ -150,5 +151,40 @@ describe("the opening stock is declared once", () => {
         command: { ...opening("D"), reason: "receipt" },
       }).success,
     ).toBe(false);
+  });
+
+  it("rejects an operation it no longer knows without blocking the others", async () => {
+    const controller = new OperationsController(service);
+    const known = op(stores.stocked, {
+      type: "order.create",
+      orderId: randomUUID(),
+      lines: [{ productId: product, quantity: 2 }],
+    });
+    const stale = {
+      operationId: randomUUID(),
+      organizationId: org,
+      storeId: stores.stocked,
+      payloadVersion: 2,
+      command: {
+        type: "stock.adjust",
+        lotId: randomUUID(),
+        quantity: 1,
+        reason: "Comptage",
+      },
+    };
+    const { results } = (await controller.push({ actor: manager } as never, {
+      operations: [stale, known],
+    })) as {
+      results: { operationId: string; status: string; code?: string }[];
+    };
+    expect(results[0]).toMatchObject({
+      operationId: stale.operationId,
+      status: "rejected",
+      code: "UNSUPPORTED_OPERATION",
+    });
+    expect(results[1]).toMatchObject({
+      operationId: known.operationId,
+      status: "accepted",
+    });
   });
 });

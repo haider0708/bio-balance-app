@@ -42,10 +42,24 @@ class _ReceptionValidationScreenState extends State<ReceptionValidationScreen> {
   @override
   void initState() {
     super.initState();
-    // The store's claim is the starting point; BioBalance corrects it.
-    lines = [
-      for (final l in objects(claim?['lines'])) Map<String, dynamic>.from(l),
-    ];
+    // The store's claim is the starting point; without one, the shipment itself
+    // is, and BioBalance corrects it.
+    lines = claim != null
+        ? [
+            for (final l in objects(claim?['lines']))
+              Map<String, dynamic>.from(l),
+          ]
+        : [
+            for (final l in shipped)
+              for (final a in objects(l['allocations']))
+                {
+                  'productId': l['productId'],
+                  'batch': a['batch'],
+                  'expiry': a['expiry'],
+                  'quantity': integer(a['quantity']),
+                  'condition': 'sellable',
+                },
+          ];
   }
 
   @override
@@ -127,6 +141,11 @@ class _ReceptionValidationScreenState extends State<ReceptionValidationScreen> {
       error = null;
     });
     try {
+      if (lines.isEmpty) {
+        throw const FormatException(
+          'Ajoutez au moins un lot reçu. Si rien n’est arrivé, signalez la livraison comme non reçue.',
+        );
+      }
       if (note.text.trim().length < 3) {
         throw const FormatException(
           'Indiquez la décision et ce que vous avez vérifié.',
@@ -204,7 +223,7 @@ class _ReceptionValidationScreenState extends State<ReceptionValidationScreen> {
       const SizedBox(height: 16),
       const SectionTitle(
         'Expédié et validé',
-        subtitle: 'À gauche de chaque produit : ce que l’expéditeur a déclaré. En dessous : ce que vous validez.',
+        subtitle: 'Pour chaque produit : ce que l’expéditeur a déclaré, puis, en dessous, ce que vous validez.',
       ),
       for (final expected in shipped) ...[
         CompactRow(

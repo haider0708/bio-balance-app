@@ -15,7 +15,11 @@ const workspaceTips = [
   ),
   (
     'Réceptionner une livraison',
-    'Ouvrez la livraison et saisissez les quantités réellement reçues, les lots et les dates de péremption. Le stock augmente uniquement lors de la réception.',
+    'Scannez le QR collé sur le colis : vous voyez les lots et les quantités du bon, et le stock augmente quand vous confirmez. Si vous ne pouvez pas scanner, indiquez ce que vous avez reçu : BioBalance le compare à l’expédition puis valide, et le stock augmente à ce moment.',
+  ),
+  (
+    'Le stock de départ',
+    'Vous déclarez une seule fois le stock que vous avez déjà, ou vous indiquez que vous n’en avez pas. Ensuite le stock n’arrive que par commande et livraison, et ne se corrige pas à la main.',
   ),
   (
     'Remettre une récompense',

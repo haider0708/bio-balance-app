@@ -354,7 +354,7 @@ class _OrderEditorState extends State<OrderEditor> {
       ),
       const SizedBox(height: 8),
       const Text(
-        'Brouillon sauvegardé · connexion nécessaire pour envoyer',
+        'Votre saisie est enregistrée automatiquement. L’envoi demande une connexion.',
         style: TextStyle(fontSize: 14, color: muted),
       ),
       if (uncertain)

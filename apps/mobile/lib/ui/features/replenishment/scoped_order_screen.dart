@@ -601,6 +601,14 @@ class _ExactOrderScreenState extends State<ExactOrderScreen> {
       footer: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          if (delivery['status'] == 'pending_review' && !vm.user.admin)
+            const Padding(
+              padding: EdgeInsets.only(top: 4),
+              child: Text(
+                'BioBalance compare votre déclaration avec ce qui a été expédié. Le stock sera ajouté après sa validation.',
+                style: TextStyle(fontSize: 14, color: muted),
+              ),
+            ),
           ?receiptSummary(delivery),
           // BioBalance ships the parcel, so BioBalance holds its QR.
           if (vm.user.admin && delivery['status'] == 'dispatched')

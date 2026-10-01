@@ -199,7 +199,10 @@ export class DashboardService {
       const deliveries = personal
         ? 0
         : await tx.delivery.count({
-            where: { ...operational, status: "dispatched" },
+            where: {
+              ...operational,
+              status: { in: ["dispatched", "pending_review"] },
+            },
           });
       const claims = await tx.rewardClaim.count({
         where: {
@@ -378,7 +381,10 @@ export class DashboardService {
       if (kind === "deliveries")
         rows = (
           await tx.delivery.findMany({
-            where: { ...where, status: "dispatched" },
+            where: {
+              ...where,
+              status: { in: ["dispatched", "pending_review"] },
+            },
             orderBy: { id: "asc" },
             take: 51,
           })
@@ -386,7 +392,10 @@ export class DashboardService {
           ...d,
           productId: null,
           title: `Livraison ${d.id.slice(0, 8).toUpperCase()}`,
-          detail: "À réceptionner",
+          detail:
+            d.status === "pending_review"
+              ? "Réception sans scan à valider"
+              : "À réceptionner",
         }));
       if (kind === "rewards")
         rows = (

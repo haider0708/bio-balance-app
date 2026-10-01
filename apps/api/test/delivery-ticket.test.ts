@@ -460,6 +460,30 @@ describe("delivery tickets", () => {
     expect(await lot("OTHER")).toBeNull();
   });
 
+  it("closes the opening stock once a store has been supplied", async () => {
+    const { deliveryId } = await shipment(3, { batch: "SUPPLIED" });
+    const code = codeOf((await tickets.ticket(admin, deliveryId, {})).qr);
+    await accepted(manager, receive(deliveryId, 1, { ticketCode: code }));
+    expect(
+      (
+        await service.submit(manager, {
+          ...retail({
+            type: "stock.receive",
+            reason: "opening",
+            lines: [
+              {
+                productId: product,
+                batch: "LATE",
+                expiry: "2031-06-30",
+                quantity: 5,
+              },
+            ],
+          }),
+        })
+      ).code,
+    ).toBe("OPENING_CLOSED");
+  });
+
   it("moves nothing without the QR until BioBalance validates", async () => {
     const { deliveryId } = await shipment(5, { batch: "CLAIM" });
     const lot = (batch: string) =>
@@ -607,6 +631,49 @@ describe("delivery tickets", () => {
     expect(rejected.code).toBe("INSUFFICIENT_STOCK");
     expect((await delivery(huge.deliveryId)).status).toBe("pending_review");
   }, 60000);
+
+  it("sends refused units back to the depot, since they stay with the carrier", async () => {
+    const { deliveryId } = await shipment(10, { supplier: true });
+    const depotLot = async () =>
+      (
+        await owner.inventoryLot.findUniqueOrThrow({
+          where: { id: lotIdentity(depot, product, "D1", "2031-06-30") },
+        })
+      ).sellable;
+    await accepted(
+      manager,
+      receive(deliveryId, 1, { manualReason: "Pas de caméra" }, "D1", 8),
+    );
+    const before = await depotLot();
+    await accepted(
+      admin,
+      retail(
+        {
+          type: "delivery.validate",
+          deliveryId,
+          note: "Deux colis refusés",
+          shortfall: "returned",
+          lines: [
+            {
+              productId: product,
+              batch: "D1",
+              expiry: "2031-06-30",
+              quantity: 8,
+            },
+            {
+              productId: product,
+              batch: "D1",
+              expiry: "2031-06-30",
+              quantity: 2,
+              condition: "refused",
+            },
+          ],
+        },
+        (await delivery(deliveryId)).version,
+      ),
+    );
+    expect(await depotLot()).toBe(before + 2);
+  }, 30000);
 
   it("lists a lot the ticket does not carry in the validated receipt", async () => {
     const { deliveryId } = await shipment(5);

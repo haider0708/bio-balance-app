@@ -414,6 +414,8 @@ export class OperationsService {
       op.operationId,
       { scanned: proof.scanned, manualReason: proof.manualReason },
     );
+    // A store that was supplied has no opening stock left to declare.
+    await ledger.closeOpening();
     for (const line of lines) {
       if (line.condition === "refused") continue;
       await ledger.receive(
@@ -485,11 +487,27 @@ export class OperationsService {
   private async reconcileDepot(
     ledger: Ledger,
     delivery: DeliveryRecord,
-    differences: { productId: string; surplus: number; missing: number }[],
+    differences: {
+      productId: string;
+      expected: number;
+      actual: number;
+      damaged: number;
+    }[],
     shortfall: "returned" | "lost",
     operationId: string,
   ) {
-    const moves = differences.filter((d) => d.surplus > 0 || d.missing > 0);
+    // Only the units that stay at the store (sellable or damaged) are settled;
+    // refused units go back with the carrier and count as missing here.
+    const moves = differences
+      .map((d) => {
+        const kept = d.actual + d.damaged;
+        return {
+          productId: d.productId,
+          surplus: Math.max(0, kept - d.expected),
+          missing: Math.max(0, d.expected - kept),
+        };
+      })
+      .filter((d) => d.surplus > 0 || d.missing > 0);
     if (!moves.length) return;
     await ledger.inDepot(
       delivery.sourceStoreId!,

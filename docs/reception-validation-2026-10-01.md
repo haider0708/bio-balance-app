@@ -16,6 +16,14 @@ Candidate Android **1.4.0+18**, après 1.3.0+17. Migration additive `20261001000
 
 `TICKET_SCAN_REQUIRED` n’existe plus : un reçu sans scan est toujours une déclaration à valider.
 
+## Corrections de la revue (1.4.1+19)
+
+- Un magasin qui a reçu une livraison n’a plus de stock de départ à déclarer (`closeOpening` à la première réception).
+- Une opération inconnue (commande retirée depuis que le téléphone l’a mise en file) est rejetée seule avec `UNSUPPORTED_OPERATION` : elle ne bloque plus le lot de synchronisation.
+- Les unités refusées à la validation retournent au dépôt comme les unités manquantes.
+- L’écran de validation part de l’expédition quand le magasin n’a rien déclaré, refuse zéro lot, et le tableau de bord compte les réceptions à valider avec les livraisons à réceptionner.
+- Textes d’aide, du brouillon de commande et de la synchronisation mis en accord avec les nouvelles règles.
+
 ## Validation locale
 
 - 107 tests d’intégration PostgreSQL (nouveaux : scan exact, déclaration en attente, correction dépôt/magasin, stock déclaré une fois, commande inconnue), 71 contrats HTTP décodés par le client Dart régénéré, tests Flutter (écran de validation, reçu par scan en lecture seule, projection hors ligne, horloge de confiance).

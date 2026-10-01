@@ -315,7 +315,7 @@ class _SyncScreenState extends State<SyncScreen> {
               Text(
                 editable
                     ? 'Reprenez les lignes enregistrées et vérifiez-les avant de confirmer. Vous pouvez aussi conserver les données du serveur.'
-                    : 'Vérifiez les données actuelles du magasin. Conserver ces données retire les effets provisoires de cette saisie. Si nécessaire, enregistrez ensuite un nouveau retour, une réception ou un inventaire depuis son écran.',
+                    : 'Vérifiez les données actuelles du magasin. Conserver ces données retire les effets provisoires de cette saisie. Si nécessaire, enregistrez ensuite un nouveau retour, une réception depuis son écran.',
               ),
               const Text(
                 'La saisie d’origine et son motif de résolution restent conservés sur ce téléphone.',
