@@ -20,6 +20,7 @@ import '../../../domain/models/tunis_dates.dart';
 import '../../../domain/models/money.dart';
 import '../../core/design.dart';
 import '../../core/forms.dart';
+import '../../core/segment_bar.dart';
 import '../sales/sale_screen.dart';
 import '../media/image_input.dart';
 import '../authentication/session_view_model.dart';
@@ -108,8 +109,22 @@ class _StockPageState extends State<StockPage> {
             ),
           ),
           const SizedBox(height: 16),
-          _Segments(
-            counts: stock.counts,
+          SegmentBar(
+            keyPrefix: 'stock',
+            segments: {
+              for (final e in const {
+                'all': ('Tous', AppIcons.inventory2Outlined),
+                'low': ('Stock faible', AppIcons.errorOutline),
+                'discrepancy': ('Alertes', AppIcons.infoOutline),
+                'approaching': ('Péremption proche', AppIcons.schedule),
+                'expired': ('Périmés', AppIcons.close),
+              }.entries)
+                e.key: Segment(
+                  e.value.$1,
+                  e.value.$2,
+                  stock.counts[e.key] ?? 0,
+                ),
+            },
             selected: stock.filter,
             onChanged: (value) {
               stock.selectFilter(value);
@@ -151,40 +166,6 @@ class _StockPageState extends State<StockPage> {
       ),
     );
   }
-}
-
-/// Stock segments with their counts: tap one to see only those products.
-class _Segments extends StatelessWidget {
-  final Map<String, int> counts;
-  final String selected;
-  final ValueChanged<String> onChanged;
-  const _Segments({
-    required this.counts,
-    required this.selected,
-    required this.onChanged,
-  });
-  static const labels = {
-    'all': ('Tous', AppIcons.inventory2Outlined),
-    'low': ('Stock faible', AppIcons.errorOutline),
-    'discrepancy': ('Alertes', AppIcons.infoOutline),
-    'approaching': ('Péremption proche', AppIcons.schedule),
-    'expired': ('Périmés', AppIcons.errorOutline),
-  };
-  @override
-  Widget build(BuildContext context) => Wrap(
-    spacing: 8,
-    runSpacing: 8,
-    children: [
-      for (final e in labels.entries)
-        ChoiceChip(
-          key: ValueKey('stock.${e.key}'),
-          avatar: Icon(e.value.$2, size: 18),
-          label: Text('${e.value.$1} · ${counts[e.key] ?? 0}'),
-          selected: selected == e.key,
-          onSelected: (_) => onChanged(e.key),
-        ),
-    ],
-  );
 }
 
 class ProductDetail extends StatelessWidget {
@@ -379,7 +360,7 @@ class ReceiptScreen extends StatefulWidget {
 }
 
 class _ReceiptScreenState extends State<ReceiptScreen> {
-  List<Json> lines = [];
+  List<Json> lines = [], flags = [];
   final note = TextEditingController();
   // Proof of the physical parcel: the scanned QR code, or why it was not scanned.
   final manualReason = TextEditingController();
@@ -418,6 +399,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
       if (mounted) {
         setState(() {
           lines = objects(draft?['lines']);
+          flags = objects(draft?['flags']);
           note.text = draft?['note'] ?? '';
           missing = draft?['missing'] == true;
           ticketCode = draft?['ticketCode'];
@@ -428,6 +410,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
             ticketCode = widget.scannedCode;
             manualEntry = false;
             lines = [];
+            flags = [];
           }
         });
       }
@@ -443,6 +426,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
     if (committing) return _tail;
     final values = <String, dynamic>{
       'lines': List<Json>.from(lines),
+      'flags': List<Json>.from(flags),
       'note': note.text,
       'missing': missing,
       'ticketCode': ticketCode,
@@ -532,6 +516,47 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
                 .join('\n'),
             value: '${expected['quantity']} u.',
           ),
+        const SizedBox(height: 8),
+        Text(
+          'Le QR confirme les quantités, les lots et les dates. Il ne dit rien de l’état : signalez ici les unités abîmées ou refusées.',
+          style: const TextStyle(fontSize: 14, color: muted),
+        ),
+        for (final entry in flags.asMap().entries)
+          CompactRow(
+            title: widget.vm.productName(entry.value['productId']),
+            subtitle:
+                'Lot ${entry.value['batch']} · ${[if (integer(entry.value['damaged']) > 0) '${entry.value['damaged']} abîmées', if (integer(entry.value['refused']) > 0) '${entry.value['refused']} refusées'].join(' · ')}',
+            icon: AppIcons.errorOutline,
+            tone: AppTone.warning,
+            onTap: busy ? null : () => flagUnits(index: entry.key),
+            trailing: IconButton(
+              onPressed: busy
+                  ? null
+                  : () {
+                      setState(() => flags.removeAt(entry.key));
+                      changed();
+                    },
+              icon: const Icon(AppIcons.close),
+              tooltip: 'Retirer ce signalement',
+            ),
+          ),
+        OutlinedButton.icon(
+          onPressed: busy || !restored ? null : flagUnits,
+          icon: const Icon(AppIcons.errorOutline),
+          label: const Text('Signaler des unités abîmées ou refusées'),
+        ),
+        if (flags.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          TextField(
+            controller: note,
+            enabled: !busy && restored,
+            maxLength: 500,
+            maxLines: 3,
+            decoration: const InputDecoration(
+              labelText: 'Explication (obligatoire)',
+            ),
+          ),
+        ],
         TextButton(
           onPressed: busy
               ? null
@@ -539,6 +564,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
                   setState(() {
                     ticketCode = null;
                     manualEntry = true;
+                    flags = [];
                   });
                   changed();
                 },
@@ -613,24 +639,24 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
       if (!scanned && lines.isNotEmpty) ...[
         const SizedBox(height: 12),
         Text(
-          'Lots saisis · ${plan.sellable} vendables${plan.damaged > 0 ? ' · ${plan.damaged} abîmées' : ''}${plan.refused > 0 ? ' · ${plan.refused} refusées' : ''}',
+          'Lots saisis · ${plan.sellable + plan.damaged + plan.refused} reçues${plan.damaged > 0 ? ' · dont ${plan.damaged} abîmées' : ''}${plan.refused > 0 ? ' · dont ${plan.refused} refusées' : ''}',
           style: Theme.of(context).textTheme.titleSmall,
         ),
       ],
       if (!scanned)
-        for (final entry in lines.asMap().entries)
+        for (final group in lotGroups())
           CompactRow(
-            title: widget.vm.productName(entry.value['productId']),
+            title: widget.vm.productName(group.productId),
             subtitle:
-                '${entry.value['quantity']} unités · ${receiptCondition(entry.value)}\nLot ${entry.value['batch']} · ${TunisDates.dateOnlyLabel(entry.value['expiry'])}',
+                '${group.total} reçues${group.damaged > 0 ? ' · ${group.damaged} abîmées' : ''}${group.refused > 0 ? ' · ${group.refused} refusées' : ''}\nLot ${group.batch} · ${TunisDates.dateOnlyLabel(group.expiry)}',
             onTap: busy || !restored
                 ? null
-                : () => editLot(entry.value['productId'], index: entry.key),
+                : () => editLot(group.productId, group: group),
             trailing: IconButton(
               onPressed: busy || !restored
                   ? null
                   : () {
-                      setState(() => lines.removeAt(entry.key));
+                      setState(() => lines.removeWhere(group.owns));
                       changed();
                     },
               icon: const Icon(AppIcons.close),
@@ -764,65 +790,185 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
 
   Future<void> addProduct(String productId) => editLot(productId);
 
-  Future<void> editLot(String productId, {int? index}) async {
-    final target = index ?? lines.length;
-    final original = index == null ? null : lines[index];
-    final quantity = original == null
-        ? (widget.delivery == null
+  /// A lot as the store counted it: one row per product, batch and expiry.
+  List<_LotGroup> lotGroups() {
+    final groups = <String, _LotGroup>{};
+    for (final line in lines) {
+      final key = '${line['productId']}|${line['batch']}|${line['expiry']}';
+      final group = groups.putIfAbsent(
+        key,
+        () => _LotGroup(line['productId'], line['batch'], line['expiry']),
+      );
+      final n = integer(line['quantity']);
+      group.total += n;
+      switch (line['condition']) {
+        case 'damaged':
+          group.damaged += n;
+        case 'refused':
+          group.refused += n;
+      }
+    }
+    return groups.values.toList();
+  }
+
+  /// Units of a lot whose ticket is scanned: how many arrived damaged or were refused.
+  Future<void> flagUnits({int? index}) async {
+    final lots = <String, String>{};
+    final sources = <String, Json>{};
+    for (final line in objects(widget.delivery!['lines'])) {
+      for (final a in objects(line['allocations'])) {
+        final key = '${line['productId']}|${a['batch']}';
+        lots[key] =
+            '${widget.vm.productName(line['productId'])} · lot ${a['batch']} (${a['quantity']} u.)';
+        sources[key] = {...a, 'productId': line['productId']};
+      }
+    }
+    final original = index == null ? null : flags[index];
+    await openEditor(
+      context,
+      title: 'Signaler des unités',
+      description: 'Indiquez combien d’unités de ce lot sont abîmées (elles entrent en stock non vendable) ou refusées (laissées au transporteur).',
+      fields: [
+        FieldSpec(
+          'lot',
+          'Produit et lot',
+          options: lots,
+          initial: original == null
+              ? ''
+              : '${original['productId']}|${original['batch']}',
+        ),
+        FieldSpec(
+          'damaged',
+          'Unités abîmées',
+          initial: '${original?['damaged'] ?? 0}',
+          numeric: true,
+        ),
+        FieldSpec(
+          'refused',
+          'Unités refusées',
+          initial: '${original?['refused'] ?? 0}',
+          numeric: true,
+        ),
+      ],
+      submit: (values) async {
+        final source = sources[values['lot']]!;
+        final damaged = whole(values['damaged']!, allowZero: true);
+        final refused = whole(values['refused']!, allowZero: true);
+        if (damaged + refused == 0) {
+          throw const FormatException(
+            'Indiquez au moins une unité abîmée ou refusée.',
+          );
+        }
+        if (damaged + refused > integer(source['quantity'])) {
+          throw FormatException(
+            'Ce lot ne contient que ${source['quantity']} unités.',
+          );
+        }
+        final value = {
+          'productId': source['productId'],
+          'batch': source['batch'],
+          'damaged': damaged,
+          'refused': refused,
+        };
+        setState(() {
+          flags.removeWhere(
+            (f) =>
+                f['productId'] == value['productId'] &&
+                f['batch'] == value['batch'],
+          );
+          flags.add(value);
+        });
+        await persist();
+      },
+    );
+  }
+
+  Future<void> editLot(String productId, {_LotGroup? group}) async {
+    final quantity = group != null
+        ? group.total
+        : (widget.delivery == null
               ? 1
-              : plan.remaining(productId).clamp(1, 1000000))
-        : integer(original['quantity']);
+              : plan.remaining(productId).clamp(1, 1000000));
     await openEditor(
       context,
       title: widget.vm.productName(productId),
       fields: [
         FieldSpec(
           'quantity',
-          'Quantité de ce lot',
+          widget.delivery == null
+              ? 'Quantité de ce lot'
+              : 'Quantité reçue de ce lot',
           initial: '$quantity',
           numeric: true,
         ),
         FieldSpec(
           'batch',
           'Numéro de lot sur l’emballage',
-          initial: original?['batch'] ?? '',
+          initial: group?.batch ?? '',
         ),
         FieldSpec(
           'expiry',
           'Date de péremption',
           date: true,
           hint: 'Si seul le mois est imprimé, choisissez le dernier jour du mois.',
-          initial: original == null
-              ? ''
-              : TunisDates.dateOnlyLabel(original['expiry']),
+          initial: group == null ? '' : TunisDates.dateOnlyLabel(group.expiry),
         ),
-        if (widget.delivery != null)
+        if (widget.delivery != null) ...[
           FieldSpec(
-            'condition',
-            'État des unités',
-            initial: original?['condition'] ?? 'sellable',
-            options: const {
-              'sellable': 'Acceptées — stock vendable',
-              'damaged': 'Abîmées — stock non vendable',
-              'refused': 'Refusées — laissées au transporteur',
-            },
+            'damaged',
+            'Dont abîmées (non vendables)',
+            initial: '${group?.damaged ?? 0}',
+            numeric: true,
           ),
+          FieldSpec(
+            'refused',
+            'Dont refusées (laissées au transporteur)',
+            initial: '${group?.refused ?? 0}',
+            numeric: true,
+          ),
+        ],
       ],
       submit: (values) async {
-        final value = <String, dynamic>{
+        final total = whole(values['quantity']!);
+        final damaged = widget.delivery == null
+            ? 0
+            : whole(values['damaged']!, allowZero: true);
+        final refused = widget.delivery == null
+            ? 0
+            : whole(values['refused']!, allowZero: true);
+        if (damaged + refused > total) {
+          throw const FormatException(
+            'Les unités abîmées et refusées ne peuvent pas dépasser la quantité reçue.',
+          );
+        }
+        final base = {
           'productId': productId,
-          'quantity': whole(values['quantity']!),
           'batch': values['batch']!.trim(),
           'expiry': TunisDates.expiry(values['expiry']!),
-          if (widget.delivery != null) 'condition': values['condition'],
         };
+        final created = <Json>[
+          if (widget.delivery == null)
+            {...base, 'quantity': total}
+          else ...[
+            if (total - damaged - refused > 0)
+              {
+                ...base,
+                'quantity': total - damaged - refused,
+                'condition': 'sellable',
+              },
+            if (damaged > 0)
+              {...base, 'quantity': damaged, 'condition': 'damaged'},
+            if (refused > 0)
+              {...base, 'quantity': refused, 'condition': 'refused'},
+          ],
+        ];
         setState(() {
-          // Retrying a failed draft save replaces this row instead of duplicating it.
-          if (target < lines.length) {
-            lines[target] = value;
-          } else {
-            lines.add(value);
-          }
+          // Retrying a failed draft save replaces the lot instead of duplicating it.
+          final at = group == null
+              ? lines.length
+              : lines.indexWhere(group.owns).clamp(0, lines.length);
+          if (group != null) lines.removeWhere(group.owns);
+          lines.insertAll(at.clamp(0, lines.length), created);
         });
         await persist();
       },
@@ -836,6 +982,11 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
       final vm = widget.vm;
       vm.requireAccess(store, 'manage');
       await persist();
+      if (scanned && flags.isNotEmpty && note.text.trim().length < 3) {
+        throw const FormatException(
+          'Expliquez les unités abîmées ou refusées.',
+        );
+      }
       if (widget.delivery != null &&
           !scanned &&
           plan.requiresExplanation &&
@@ -878,10 +1029,11 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
                 'deliveryId': widget.delivery!['id'],
                 // A scanned parcel is booked as its ticket says; nothing is sent.
                 'lines': scanned ? <Json>[] : lines,
-                'note': scanned ? '' : note.text.trim(),
-                if (scanned)
-                  'ticketCode': ticketCode
-                else if (lines.isNotEmpty && manualEntry)
+                'note': scanned && flags.isEmpty ? '' : note.text.trim(),
+                if (scanned) ...{
+                  'ticketCode': ticketCode,
+                  'flags': flags,
+                } else if (lines.isNotEmpty && manualEntry)
                   'manualReason': manualReason.text.trim(),
               },
         expectedVersion: widget.delivery == null
@@ -1071,4 +1223,16 @@ class OpeningStockCard extends StatelessWidget {
       ),
     );
   }
+}
+
+/// One lot as counted by the receiver, gathered from its condition lines.
+class _LotGroup {
+  final String productId, batch;
+  final dynamic expiry;
+  int total = 0, damaged = 0, refused = 0;
+  _LotGroup(this.productId, this.batch, this.expiry);
+  bool owns(Json line) =>
+      line['productId'] == productId &&
+      line['batch'] == batch &&
+      line['expiry'] == expiry;
 }

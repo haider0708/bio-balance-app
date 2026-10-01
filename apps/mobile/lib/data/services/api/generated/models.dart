@@ -8018,6 +8018,7 @@ final class CommandDeliveryReceiveDto implements CommandDto {
   final String? ticketCode;
   final String? manualReason;
   final List<CommandDeliveryReceiveLinesItemDto> lines;
+  final List<CommandDeliveryReceiveFlagsItemDto>? flags;
   final String? note;
   CommandDeliveryReceiveDto({
     Set<String> presentFields = const {},
@@ -8025,9 +8026,11 @@ final class CommandDeliveryReceiveDto implements CommandDto {
     this.ticketCode,
     this.manualReason,
     required List<CommandDeliveryReceiveLinesItemDto> lines,
+    List<CommandDeliveryReceiveFlagsItemDto>? flags,
     this.note,
   }) : _presentFields = Set.unmodifiable(presentFields),
-       lines = List.unmodifiable(lines);
+       lines = List.unmodifiable(lines),
+       flags = flags == null ? null : List.unmodifiable(flags);
   factory CommandDeliveryReceiveDto.fromJson(Map<String, dynamic> json) {
     if (json["type"] != "delivery.receive") {
       throw const FormatException("Invalid CommandDeliveryReceive type");
@@ -8048,6 +8051,15 @@ final class CommandDeliveryReceiveDto implements CommandDto {
           ),
         ),
       ),
+      flags: json["flags"] == null
+          ? null
+          : List.unmodifiable(
+              (json["flags"] as List).map(
+                (item) => CommandDeliveryReceiveFlagsItemDto.fromJson(
+                  Map<String, dynamic>.from(item as Map),
+                ),
+              ),
+            ),
       note: json["note"] == null ? null : json["note"] as String,
     );
   }
@@ -8060,6 +8072,8 @@ final class CommandDeliveryReceiveDto implements CommandDto {
     if (manualReason != null || _presentFields.contains("manualReason"))
       "manualReason": manualReason,
     "lines": lines.map((item) => item.toJson()).toList(),
+    if (flags != null || _presentFields.contains("flags"))
+      "flags": flags?.map((item) => item.toJson()).toList(),
     if (note != null || _presentFields.contains("note")) "note": note,
   };
 }
@@ -8686,6 +8700,39 @@ final class CommandDeliveryReceiveLinesItemDto {
     "quantity": quantity,
     if (condition != null || _presentFields.contains("condition"))
       "condition": condition,
+  };
+}
+
+final class CommandDeliveryReceiveFlagsItemDto {
+  final Set<String> _presentFields;
+  Set<String> get presentFields => _presentFields;
+  final String productId;
+  final String batch;
+  final int damaged;
+  final int refused;
+  CommandDeliveryReceiveFlagsItemDto({
+    Set<String> presentFields = const {},
+    required this.productId,
+    required this.batch,
+    required this.damaged,
+    required this.refused,
+  }) : _presentFields = Set.unmodifiable(presentFields);
+  factory CommandDeliveryReceiveFlagsItemDto.fromJson(
+    Map<String, dynamic> json,
+  ) {
+    return CommandDeliveryReceiveFlagsItemDto(
+      presentFields: json.keys.toSet(),
+      productId: json["productId"] as String,
+      batch: json["batch"] as String,
+      damaged: wireInteger(json["damaged"]),
+      refused: wireInteger(json["refused"]),
+    );
+  }
+  Map<String, dynamic> toJson() => {
+    "productId": productId,
+    "batch": batch,
+    "damaged": damaged,
+    "refused": refused,
   };
 }
 

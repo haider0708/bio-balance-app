@@ -393,7 +393,7 @@ void main() {
         const Duration(seconds: 5),
       );
       await t.enterText(
-        find.widgetWithText(TextFormField, 'Quantité de ce lot'),
+        find.widgetWithText(TextFormField, 'Quantité reçue de ce lot'),
         '4',
       );
       await t.tap(find.text('Enregistrer'));

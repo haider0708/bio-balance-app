@@ -60,17 +60,37 @@ class StockProjection {
             ?.list('deliveries')
             .where((d) => d['id'] == command['deliveryId'])
             .firstOrNull;
+        final flags = objects(command['flags']);
+        int flagged(Json l, Json a, String key) => flags
+            .where(
+              (f) =>
+                  f['productId'] == l['productId'] && f['batch'] == a['batch'],
+            )
+            .fold(0, (n, f) => n + integer(f[key]));
         received = command['ticketCode'] == null
             ? const <Json>[]
             : [
                 for (final l in objects(delivery?['lines']))
-                  for (final a in objects(l['allocations']))
-                    {
-                      'productId': l['productId'],
-                      'batch': a['batch'],
-                      'expiry': a['expiry'],
-                      'quantity': a['quantity'],
-                    },
+                  for (final a in objects(l['allocations'])) ...[
+                    for (final part in [
+                      (
+                        'sellable',
+                        integer(a['quantity']) -
+                            flagged(l, a, 'damaged') -
+                            flagged(l, a, 'refused'),
+                      ),
+                      ('damaged', flagged(l, a, 'damaged')),
+                      ('refused', flagged(l, a, 'refused')),
+                    ])
+                      if (part.$2 > 0)
+                        {
+                          'productId': l['productId'],
+                          'batch': a['batch'],
+                          'expiry': a['expiry'],
+                          'quantity': part.$2,
+                          'condition': part.$1,
+                        },
+                  ],
               ];
       }
       for (final line in received) {

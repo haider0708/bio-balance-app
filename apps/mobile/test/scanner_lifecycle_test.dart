@@ -82,7 +82,6 @@ void main() {
       final options = camera.options.single;
       expect(options.detectionSpeed, DetectionSpeed.normal);
       expect(options.detectionTimeoutMs, 250);
-      expect(options.cameraResolution, const Size(640, 480));
       expect(options.returnImage, isFalse);
       expect(options.formats, isEmpty);
       await t.pumpWidget(const SizedBox());

@@ -1341,14 +1341,58 @@ export class OperationsService {
           "Ce QR ne correspond pas à cette livraison ou a été remplacé. Demandez un nouveau bon à l’expéditeur.",
           409,
         );
+        // The ticket fixes quantities, lots and dates; the store only reports
+        // the state of units it received (damaged) or turned away (refused).
+        const reports = cmd.flags ?? [];
+        const flagged = (productId: string, batch: string) =>
+          reports
+            .filter((f) => f.productId === productId && f.batch === batch)
+            .reduce(
+              (n, f) => ({
+                damaged: n.damaged + f.damaged,
+                refused: n.refused + f.refused,
+              }),
+              { damaged: 0, refused: 0 },
+            );
+        for (const f of reports)
+          requireRule(
+            delivery.lines.some((l) =>
+              (l.allocations ?? []).some(
+                (a) => l.productId === f.productId && a.batch === f.batch,
+              ),
+            ),
+            "VALIDATION",
+            "Ce signalement ne correspond à aucun lot du bon.",
+          );
         const lines = delivery.lines.flatMap((l) =>
-          (l.allocations ?? []).map((a) => ({
-            productId: l.productId,
-            batch: a.batch,
-            expiry: a.expiry,
-            quantity: a.quantity,
-            condition: "sellable" as const,
-          })),
+          (l.allocations ?? []).flatMap((a) => {
+            const { damaged, refused } = flagged(l.productId, a.batch);
+            requireRule(
+              damaged + refused <= a.quantity,
+              "VALIDATION",
+              "Plus d’unités signalées que d’unités dans le lot.",
+            );
+            const base = {
+              productId: l.productId,
+              batch: a.batch,
+              expiry: a.expiry,
+            };
+            return [
+              {
+                ...base,
+                quantity: a.quantity - damaged - refused,
+                condition: "sellable" as const,
+              },
+              { ...base, quantity: damaged, condition: "damaged" as const },
+              { ...base, quantity: refused, condition: "refused" as const },
+            ].filter((x) => x.quantity > 0);
+          }),
+        );
+        const reported = reports.some((f) => f.damaged + f.refused > 0);
+        requireRule(
+          !reported || cmd.note.trim().length >= 3,
+          "NOTE_REQUIRED",
+          "Expliquez les unités abîmées ou refusées.",
         );
         requireRule(
           lines.length > 0 &&
@@ -1363,9 +1407,15 @@ export class OperationsService {
           "Ce bon ne liste pas ses lots : indiquez ce que vous avez reçu, BioBalance validera.",
           409,
         );
+        if (reported)
+          await ledger.notify(
+            op.operationId,
+            "Unités signalées à la réception",
+            `Bon ${delivery.ticketNumber} : ${cmd.note.trim()}`,
+          );
         return this.settleReceipt(ledger, op, delivery, lines, {
           scanned: true,
-          note: "",
+          note: reported ? cmd.note.trim() : "",
         });
       }
       // Without the QR the store only says what it got. Nothing is added to its

@@ -9,6 +9,7 @@ import '../../core/design.dart';
 import '../workspace/workspace_view_model.dart';
 import '../media/image_input.dart';
 import 'dashboard_view_model.dart';
+import 'alert_segments.dart';
 import 'sales_trend_chart.dart';
 import '../workspace/workspace_help.dart';
 
@@ -302,14 +303,7 @@ class DashboardScreen extends StatelessWidget {
             if (data.list('alerts').isNotEmpty) ...[
               const SizedBox(height: 20),
               const SectionTitle('À vérifier'),
-              for (final alert in data.list('alerts'))
-                CompactRow(
-                  title: alert['message'],
-                  subtitle: alert['storeName'],
-                  icon: AppIcons.infoOutline,
-                  tone: AppTone.warning,
-                  onTap: onAlert == null ? null : () => onAlert!(alert),
-                ),
+              AlertSegments(alerts: data.list('alerts'), onAlert: onAlert),
             ],
           ],
         ],

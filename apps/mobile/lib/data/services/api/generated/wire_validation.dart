@@ -4568,6 +4568,14 @@ const Map<String, Map<String, dynamic>> _schemas = {
           "\$ref": "#/components/schemas/CommandDeliveryReceiveLinesItem",
         },
       },
+      "flags": {
+        "default": [],
+        "maxItems": 200,
+        "type": "array",
+        "items": {
+          "\$ref": "#/components/schemas/CommandDeliveryReceiveFlagsItem",
+        },
+      },
       "note": {"default": "", "type": "string", "maxLength": 500},
     },
     "required": ["type", "deliveryId", "lines"],
@@ -4908,6 +4916,21 @@ const Map<String, Map<String, dynamic>> _schemas = {
       },
     },
     "required": ["productId", "batch", "expiry", "quantity"],
+    "additionalProperties": false,
+  },
+  "CommandDeliveryReceiveFlagsItem": {
+    "type": "object",
+    "properties": {
+      "productId": {
+        "type": "string",
+        "format": "uuid",
+        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)\$",
+      },
+      "batch": {"type": "string", "minLength": 1, "maxLength": 100},
+      "damaged": {"type": "integer", "minimum": 0, "maximum": 1000000},
+      "refused": {"type": "integer", "minimum": 0, "maximum": 1000000},
+    },
+    "required": ["productId", "batch", "damaged", "refused"],
     "additionalProperties": false,
   },
   "CommandDeliveryValidateLinesItem": {

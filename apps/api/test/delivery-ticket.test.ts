@@ -460,6 +460,45 @@ describe("delivery tickets", () => {
     expect(await lot("OTHER")).toBeNull();
   });
 
+  it("lets the store report damaged and refused units even with the QR", async () => {
+    const { deliveryId } = await shipment(10, { batch: "STATE" });
+    const code = codeOf((await tickets.ticket(admin, deliveryId, {})).qr);
+    const flags = [
+      { productId: product, batch: "STATE", damaged: 2, refused: 1 },
+    ];
+    // The report needs an explanation, and cannot exceed the lot.
+    expect(
+      (
+        await service.submit(
+          manager,
+          receive(deliveryId, 1, { ticketCode: code, flags }),
+        )
+      ).code,
+    ).toBe("NOTE_REQUIRED");
+    expect(
+      (
+        await service.submit(
+          manager,
+          receive(deliveryId, 1, {
+            ticketCode: code,
+            note: "Trop",
+            flags: [{ ...flags[0], damaged: 10 }],
+          }),
+        )
+      ).code,
+    ).toBe("VALIDATION");
+    await accepted(
+      manager,
+      receive(deliveryId, 1, { ticketCode: code, note: "Colis écrasé", flags }),
+    );
+    const lot = await owner.inventoryLot.findUniqueOrThrow({
+      where: { id: lotIdentity(store, product, "STATE", "2031-06-30") },
+    });
+    // Quantities come from the ticket: 7 sellable, 2 damaged, 1 refused (not stocked).
+    expect(lot.sellable).toBe(7);
+    expect(lot.damaged).toBe(2);
+  });
+
   it("closes the opening stock once a store has been supplied", async () => {
     const { deliveryId } = await shipment(3, { batch: "SUPPLIED" });
     const code = codeOf((await tickets.ticket(admin, deliveryId, {})).qr);

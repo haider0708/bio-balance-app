@@ -48,7 +48,11 @@ class _ScannerScreenState extends State<ScannerScreen>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    foreground = state == AppLifecycleState.resumed;
+    // The permission dialog only makes the app inactive: the camera must not be
+    // stopped and restarted underneath it.
+    foreground =
+        state == AppLifecycleState.resumed ||
+        state == AppLifecycleState.inactive;
     vm.setActive(current && foreground);
   }
 
@@ -91,7 +95,7 @@ class _ScannerScreenState extends State<ScannerScreen>
               child: LayoutBuilder(
                 builder: (_, constraints) {
                   final size = constraints.biggest;
-                  final window = Rect.fromCenter(
+                  final frame = Rect.fromCenter(
                     center: size.center(Offset.zero),
                     width: math.min(480, size.width * .9),
                     height: math.min(240, size.height * .7),
@@ -99,7 +103,6 @@ class _ScannerScreenState extends State<ScannerScreen>
                   return MobileScanner(
                     controller: vm.controller,
                     useAppLifecycleState: false,
-                    scanWindow: window,
                     placeholderBuilder: (_) => const ColoredBox(
                       color: Colors.black,
                       child: Center(child: CircularProgressIndicator()),
@@ -108,7 +111,7 @@ class _ScannerScreenState extends State<ScannerScreen>
                       child: Stack(
                         children: [
                           Positioned.fromRect(
-                            rect: window,
+                            rect: frame,
                             child: DecoratedBox(
                               decoration: BoxDecoration(
                                 border: Border.all(

@@ -194,6 +194,21 @@ export const commandSchema = z.discriminatedUnion("type", [
           }),
         )
         .max(200),
+      // With a scanned QR the quantities, lots and dates are the ticket's. The
+      // store can still report the state of units: damaged or refused.
+      flags: z
+        .array(
+          z
+            .object({
+              productId: id,
+              batch: z.string().trim().min(1).max(100),
+              damaged: z.number().int().min(0).max(1000000),
+              refused: z.number().int().min(0).max(1000000),
+            })
+            .strict(),
+        )
+        .max(200)
+        .default([]),
       note: z.string().max(500).default(""),
     })
     .strict(),

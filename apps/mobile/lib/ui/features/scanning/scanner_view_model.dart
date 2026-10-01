@@ -14,7 +14,6 @@ class ScannerViewModel extends ChangeNotifier {
             autoStart: false,
             detectionSpeed: DetectionSpeed.normal,
             detectionTimeoutMs: 250,
-            cameraResolution: const Size(640, 480),
             returnImage: false,
             invertImage: false,
             autoZoom: false,
@@ -54,6 +53,18 @@ class ScannerViewModel extends ChangeNotifier {
     // No restart is allowed after a capture or while closing the route.
     if (_shouldRun) {
       if (!controller.value.isRunning) await controller.start();
+      // Right after the permission is granted the camera can refuse once; one
+      // short retry opens it without the user having to leave the screen.
+      if (_shouldRun &&
+          !controller.value.isRunning &&
+          controller.value.error != null &&
+          controller.value.error!.errorCode !=
+              MobileScannerErrorCode.permissionDenied) {
+        await Future<void>.delayed(const Duration(milliseconds: 600));
+        if (_shouldRun && !controller.value.isRunning) {
+          await controller.start();
+        }
+      }
       if (!_closed) {
         error = controller.value.error == null
             ? null
