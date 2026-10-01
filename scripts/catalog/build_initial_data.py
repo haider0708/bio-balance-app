@@ -124,6 +124,10 @@ def run(args):
         row['image_source'] = image_source
         missing = [label for label, ok in (('prix', row['price_tnd'] is not None), ('photo', bool(image))) if not ok]
         row['status'] = 'complet' if not missing else 'à compléter : ' + ' + '.join(missing)
+        # A price that does not come from BioBalance's own site is a reseller's, not yours.
+        if row['price_tnd'] is not None and 'biobalance.tn' not in (row['price_source'] or ''):
+            row['status'] = 'prix à confirmer (tarif revendeur)'
+            row['notes'].append('Prix relevé chez un revendeur, absent de biobalance.tn : à confirmer')
         row['notes'] = ' · '.join(row['notes'])
         rows.append(row)
     if args.refresh_prices:
@@ -162,9 +166,11 @@ def write(out, rows, off_list, capture):
                       p.get('sourceUrl', ''), 'Sur le site, pas dans votre liste, sans code-barres'])
     wb.save(out / 'produits.xlsx')
     done = sum(r['status'] == 'complet' for r in rows)
+    to_confirm = sum(r['status'].startswith('prix à confirmer') for r in rows)
     lines = [f'# Données initiales — {len(rows)} produits de votre liste', '',
              f'- **Complets (nom, description, prix, photo) : {done}**',
-             f'- À compléter : {len(rows) - done}', '']
+             f'- Prix à confirmer (tarif revendeur) : {to_confirm}',
+             f'- À compléter : {len(rows) - done - to_confirm}', '']
     for r in rows:
         if r['status'] != 'complet':
             lines.append(f"- `{r['ean']}` {r['name']} — {r['status']}" + (f" ({r['notes']})" if r['notes'] else ''))
