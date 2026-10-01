@@ -100,7 +100,7 @@ export class IdentityService {
       401,
     );
     const token = randomBytes(32).toString("base64url");
-    const expiresAt = new Date(Date.now() + 12 * 3600_000);
+    const expiresAt = new Date(Date.now() + 48 * 3600_000);
     await this.db.transaction(async (tx) => {
       // Serialize session issuance with password replacement. Hashing stays outside
       // the transaction, and the credential snapshot is checked again under lock.
