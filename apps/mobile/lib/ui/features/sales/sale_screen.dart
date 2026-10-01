@@ -503,7 +503,12 @@ class _LineEditorState extends State<LineEditor> {
       description: 'Cette saisie enregistre les informations du lot. La vente signalera le stock manquant au responsable.',
       fields: const [
         FieldSpec('batch', 'Numéro du lot'),
-        FieldSpec('expiry', 'Péremption : JJ/MM/AAAA ou MM/AAAA'),
+        FieldSpec(
+          'expiry',
+          'Date de péremption',
+          date: true,
+          hint: 'Si seul le mois est imprimé, choisissez le dernier jour du mois.',
+        ),
         FieldSpec('quantity', 'Unités vendues', initial: '1', numeric: true),
       ],
       submit: (values) async {

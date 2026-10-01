@@ -1,3 +1,4 @@
+import 'date_field.dart';
 import 'navigation.dart';
 
 import 'dart:async';
@@ -20,6 +21,9 @@ class FieldSpec {
   final String key, label;
   final String initial;
   final bool required, numeric, multiline;
+
+  /// A date chosen on a calendar (expiry dates), never typed.
+  final bool date;
   final Map<String, String>? options;
 
   /// Renders a short list of options as chips instead of a searchable sheet.
@@ -36,6 +40,7 @@ class FieldSpec {
     this.required = true,
     this.numeric = false,
     this.multiline = false,
+    this.date = false,
     this.options,
     this.choice = false,
     this.section,
@@ -206,6 +211,16 @@ class _EditorScreenState extends State<EditorScreen> {
                                 setState(() => mediaBusy = value);
                               }
                             },
+                          )
+                        : f.date
+                        ? ExpiryDateField(
+                            fieldKey: ValueKey('field.${f.key}'),
+                            controller: controllers[f.key]!,
+                            label: f.label,
+                            hint: f.hint,
+                            required: f.required,
+                            enabled:
+                                draftReady && !busy && !mediaBusy && !completed,
                           )
                         : f.choice
                         ? _ChoiceChips(

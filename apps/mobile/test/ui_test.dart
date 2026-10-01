@@ -382,7 +382,7 @@ void main() {
       await t.pumpWidget(f.app(f.home(storeView: true), capture: capture));
       await t.pumpAndSettle();
       await destination(t, 3, 'Plus');
-      final settings = find.text('Prix, points et seuils');
+      final settings = find.text('Prix et seuils');
       await t.scrollUntilVisible(
         settings,
         150,

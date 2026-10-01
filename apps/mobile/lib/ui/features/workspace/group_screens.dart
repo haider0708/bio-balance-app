@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import '../team/invitations_screen.dart';
 
 import 'package:flutter/material.dart';
@@ -133,6 +135,13 @@ class _GroupsPageState extends State<GroupsPage> {
   final search = TextEditingController();
   bool restored = false;
   @override
+  void initState() {
+    super.initState();
+    // What changed since the list was last loaded (a new group, a new store).
+    unawaited(widget.vm.refreshIfStale().catchError((Object _) {}));
+  }
+
+  @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     if (!restored) {
@@ -173,6 +182,7 @@ class _GroupsPageState extends State<GroupsPage> {
     final count = widget.stores ? stores.length : groups.length;
     return Content.builder(
       key: PageStorageKey('directory:${vm.scope.key}'),
+      onRefresh: () => vm.refresh().catchError((Object _) {}),
       itemCount: count,
       itemBuilder: (_, i) {
         final group = widget.stores ? null : groups[i],

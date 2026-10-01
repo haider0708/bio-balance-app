@@ -166,6 +166,10 @@ class _GroupTeamPageState extends State<GroupTeamPage> {
           group: widget.group,
           member: member,
           invitation: invitation,
+          storeId:
+              widget.workspace.state.store?.organizationId == widget.group.id
+              ? widget.workspace.state.store?.id
+              : null,
         ),
       ),
     );

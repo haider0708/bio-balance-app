@@ -15,6 +15,8 @@ class ProductSettingsPage extends StatefulWidget {
 
 class _ProductSettingsPageState extends State<ProductSettingsPage> {
   String query = '';
+  bool get showPoints =>
+      widget.vm.user.admin || widget.vm.state.store?.wholesale == true;
   @override
   Widget build(BuildContext context) => ListenableBuilder(
     listenable: widget.vm,
@@ -30,19 +32,23 @@ class _ProductSettingsPageState extends State<ProductSettingsPage> {
               config = data!.config(products[index].id);
           return CompactRow(
             title: product.name,
-            subtitle:
-                '${Money(integer(config['priceMillimes'])).formatted} · Seuil ${config['threshold']} u.\n${config['pointsConfigured'] == true
+            subtitle: [
+              '${Money(integer(config['priceMillimes'])).formatted} · Seuil ${config['threshold']} u.',
+              // Points are BioBalance's business: a store manager never sees them.
+              if (showPoints)
+                config['pointsConfigured'] == true
                     ? '${config['pointsPerUnit']} points / unité'
                     : widget.vm.user.admin
                     ? 'Points à configurer'
-                    : 'Points définis par BioBalance'}',
+                    : 'Points définis par BioBalance',
+            ].join('\n'),
             trailing: const Icon(AppIcons.editOutlined, size: 20, color: muted),
             onTap: () => configureStoreProduct(context, widget.vm, product),
           );
         },
         children: [
-          const SectionTitle(
-            'Prix, points et seuils',
+          SectionTitle(
+            showPoints ? 'Prix, points et seuils' : 'Prix et seuils',
             subtitle: 'Paramètres propres à ce magasin',
           ),
           TextField(

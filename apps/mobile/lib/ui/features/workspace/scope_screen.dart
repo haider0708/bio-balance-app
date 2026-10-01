@@ -147,10 +147,32 @@ class _ScopeScreenState extends State<ScopeScreen> with WidgetsBindingObserver {
     },
   );
 
+  /// The guide as its own page, reachable from the settings at any time.
+  void _openGuideRoute() {
+    guide.go(GuideStep.welcome);
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (routeContext) => Scaffold(
+          appBar: AppBar(title: const Text('Guide de configuration')),
+          body: SetupGuidePage(
+            model: guide,
+            actions: guideActions(routeContext),
+            onFinish: () {
+              Navigator.pop(routeContext);
+              unawaited(_finishGuide());
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    scope.openGuide = _openGuideRoute;
     unawaited(_loadGuide());
   }
 
@@ -169,6 +191,13 @@ class _ScopeScreenState extends State<ScopeScreen> with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     workspace.setForeground(state == AppLifecycleState.resumed);
     inbox.setActive(state == AppLifecycleState.resumed);
+    if (state == AppLifecycleState.resumed) {
+      unawaited(
+        scope
+            .refreshIfStale(maxAge: const Duration(minutes: 2))
+            .catchError((Object _) {}),
+      );
+    }
     if (state != AppLifecycleState.resumed) {
       unawaited(workspace.flushDrafts().catchError((Object _) {}));
     }

@@ -168,6 +168,7 @@ class _StoreOrdersListState extends State<_StoreOrdersList> {
           )
           .toList();
       return Content.builder(
+        onRefresh: () => vm.synchronize().catchError((Object _) {}),
         itemCount: orders.length,
         itemBuilder: (_, i) => OrderRow(
           order: orders[i],

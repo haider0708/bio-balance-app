@@ -87,6 +87,7 @@ class _StockPageState extends State<StockPage> {
       final vm = widget.vm, products = stock.rows;
       return Content.builder(
         key: PageStorageKey('stock-list:${vm.state.store?.id}'),
+        onRefresh: () => vm.synchronize().catchError((Object _) {}),
         itemCount: products.length,
         itemBuilder: (context, index) => productCard(products[index]),
         children: [
@@ -107,16 +108,9 @@ class _StockPageState extends State<StockPage> {
             ),
           ),
           const SizedBox(height: 16),
-          FilterBar<String>(
-            options: const {
-              'all': 'Tous',
-              'low': 'Stock faible',
-              'discrepancy': 'À vérifier',
-              'approaching': 'Péremption ≤ 30 jours',
-              'expired': 'Périmés',
-            },
+          _Segments(
+            counts: stock.counts,
             selected: stock.filter,
-            itemKey: (value) => ValueKey('stock.$value'),
             onChanged: (value) {
               stock.selectFilter(value);
               remember();
@@ -139,6 +133,7 @@ class _StockPageState extends State<StockPage> {
   Widget productCard(StockRow row) {
     final p = row.product, summary = row.summary;
     return CompactRow(
+      key: ValueKey(p.id),
       title: p.name,
       subtitle: [
         p.reference,
@@ -147,7 +142,7 @@ class _StockPageState extends State<StockPage> {
         if (summary.expired) 'Lots périmés',
       ].join(' · '),
       value: '${summary.available} u.',
-      leading: ProductPhoto(vm: widget.vm, productId: p.id),
+      leading: ProductPhoto(vm: widget.vm, productId: p.id, imageId: p.imageId),
       onTap: () => Navigator.push(
         context,
         MaterialPageRoute(
@@ -158,10 +153,46 @@ class _StockPageState extends State<StockPage> {
   }
 }
 
+/// Stock segments with their counts: tap one to see only those products.
+class _Segments extends StatelessWidget {
+  final Map<String, int> counts;
+  final String selected;
+  final ValueChanged<String> onChanged;
+  const _Segments({
+    required this.counts,
+    required this.selected,
+    required this.onChanged,
+  });
+  static const labels = {
+    'all': ('Tous', AppIcons.inventory2Outlined),
+    'low': ('Stock faible', AppIcons.errorOutline),
+    'discrepancy': ('Alertes', AppIcons.infoOutline),
+    'approaching': ('Péremption proche', AppIcons.schedule),
+    'expired': ('Périmés', AppIcons.errorOutline),
+  };
+  @override
+  Widget build(BuildContext context) => Wrap(
+    spacing: 8,
+    runSpacing: 8,
+    children: [
+      for (final e in labels.entries)
+        ChoiceChip(
+          key: ValueKey('stock.${e.key}'),
+          avatar: Icon(e.value.$2, size: 18),
+          label: Text('${e.value.$1} · ${counts[e.key] ?? 0}'),
+          selected: selected == e.key,
+          onSelected: (_) => onChanged(e.key),
+        ),
+    ],
+  );
+}
+
 class ProductDetail extends StatelessWidget {
   final WorkspaceViewModel vm;
   final Product product;
   const ProductDetail({super.key, required this.vm, required this.product});
+  // Points are BioBalance's business: a store manager never sees them.
+  bool get showPoints => vm.user.admin || vm.state.store?.wholesale == true;
   @override
   Widget build(BuildContext context) => ListenableBuilder(
     listenable: vm,
@@ -201,13 +232,14 @@ class ProductDetail extends StatelessWidget {
                   'Seuil : ${config['threshold']} unités',
                   icon: AppIcons.notificationsOutlined,
                 ),
-                StatusChip(
-                  '${config['pointsPerUnit']} points / unité',
-                  icon: AppIcons.starsOutlined,
-                ),
+                if (showPoints)
+                  StatusChip(
+                    '${config['pointsPerUnit']} points / unité',
+                    icon: AppIcons.starsOutlined,
+                  ),
               ],
             ),
-            if (config['pointsConfigured'] != true) ...[
+            if (showPoints && config['pointsConfigured'] != true) ...[
               const SizedBox(height: 16),
               Notice(
                 vm.user.admin
@@ -757,7 +789,9 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
         ),
         FieldSpec(
           'expiry',
-          'Péremption : JJ/MM/AAAA ou MM/AAAA',
+          'Date de péremption',
+          date: true,
+          hint: 'Si seul le mois est imprimé, choisissez le dernier jour du mois.',
           initial: original == null
               ? ''
               : TunisDates.dateOnlyLabel(original['expiry']),

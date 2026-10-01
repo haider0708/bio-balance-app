@@ -1,3 +1,5 @@
+import 'pick_date.dart';
+
 import 'package:biobalance/data/services/api/generated/api_client.dart';
 import 'package:biobalance/data/services/local_database/database.dart';
 import 'package:biobalance/domain/models/delivery_ticket.dart';
@@ -206,11 +208,11 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.textContaining('numéro de lot'), findsOneWidget);
       await tester.enterText(fields.at(0), 'L-42');
-      await tester.enterText(fields.at(1), '01/2020');
+      await pickDate(tester, fields.at(1), '01/01/2020');
       await tester.tap(find.text('Confirmer et créer le bon'));
       await tester.pumpAndSettle();
       expect(find.textContaining('est périmé'), findsOneWidget);
-      await tester.enterText(fields.at(1), '31/12/2099');
+      await pickDate(tester, fields.at(1), '31/12/2099');
       await tester.tap(find.text('Confirmer et créer le bon'));
       await tester.pumpAndSettle();
       expect(sent, hasLength(1));

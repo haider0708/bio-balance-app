@@ -1,3 +1,5 @@
+import 'pick_date.dart';
+
 import 'package:biobalance/data/services/api/generated/models.dart';
 import 'package:biobalance/data/services/local_database/database.dart';
 import 'package:biobalance/domain/models/models.dart';
@@ -364,12 +366,10 @@ void main() {
         find.widgetWithText(TextFormField, 'Numéro de lot sur l’emballage'),
         'BATCH-A',
       );
-      await t.enterText(
-        find.widgetWithText(
-          TextFormField,
-          'Péremption : JJ/MM/AAAA ou MM/AAAA',
-        ),
-        '12/2028',
+      await pickDate(
+        t,
+        find.widgetWithText(TextFormField, 'Date de péremption'),
+        '31/12/2028',
       );
       await t.tap(find.text('Enregistrer'));
       await t.pumpAndSettle(

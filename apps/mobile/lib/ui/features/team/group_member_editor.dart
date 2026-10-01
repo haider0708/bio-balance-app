@@ -16,12 +16,16 @@ class GroupMemberEditor extends StatefulWidget {
   final WorkspaceViewModel workspace;
   final PartnerGroup group;
   final Json? member, invitation;
+
+  /// The store a new seller is proposed for (the one being managed).
+  final String? storeId;
   const GroupMemberEditor({
     super.key,
     required this.workspace,
     required this.group,
     this.member,
     this.invitation,
+    this.storeId,
   });
   @override
   State<GroupMemberEditor> createState() => _GroupMemberEditorState();
@@ -54,6 +58,7 @@ class _GroupMemberEditorState extends State<GroupMemberEditor> {
     role = source?['role'] ?? source?['kind'] ?? 'salesperson';
     active = source?['active'] != false;
     selected.addAll(List<String>.from(source?['storeIds'] ?? []));
+    if (source == null && widget.storeId != null) selected.add(widget.storeId!);
     draft = FormDraftController(
       widget.workspace,
       null,

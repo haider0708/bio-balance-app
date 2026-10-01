@@ -118,6 +118,7 @@ class _InvitationsScreenState extends State<InvitationsScreen> {
         final shown = model.items.where(filter.contains).toList();
         final busy = model.busy || model.loading;
         return Content.builder(
+          onRefresh: model.load,
           itemCount: shown.length + (model.next == null ? 0 : 1),
           itemBuilder: (_, index) {
             if (index == shown.length) {

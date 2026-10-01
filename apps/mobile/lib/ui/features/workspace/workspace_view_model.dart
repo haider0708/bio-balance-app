@@ -1,3 +1,5 @@
+import 'package:collection/collection.dart';
+
 import '../../../data/repositories/online_operations_repository.dart';
 import '../../../data/repositories/repository_context.dart';
 import '../../../data/repositories/catalog_repository.dart';
@@ -420,9 +422,17 @@ class WorkspaceViewModel extends ChangeNotifier {
     final store = state.store;
     final selection = _selection;
     if (store == null || state.accessBlocked) return;
-    final data = await repository.load(user, store);
+    var data = await repository.load(user, store);
     final pending = await repository.pendingCount(user.id);
     if (selection != _selection || state.accessBlocked || _closed) return;
+    // Unchanged data keeps its identity, so screens built from it (stock, lists)
+    // are not recomputed at every background synchronization.
+    final previous = state.data;
+    if (data != null &&
+        previous != null &&
+        const DeepCollectionEquality().equals(previous.raw, data.raw)) {
+      data = previous;
+    }
     final permissions = List<String>.from(
       data?.raw['permissions'] ?? store.permissions,
     );

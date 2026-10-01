@@ -135,24 +135,32 @@ class ProductPhoto extends StatelessWidget {
   final WorkspaceViewModel vm;
   final String productId;
   final double size;
+
+  /// Known by the caller (a stock row), which spares a catalog scan per row.
+  final String? imageId;
   const ProductPhoto({
     super.key,
     required this.vm,
     required this.productId,
     this.size = 48,
+    this.imageId,
   });
   @override
   Widget build(BuildContext context) {
-    final image = vm.state.data
-        ?.list('products')
-        .where((p) => p['id'] == productId)
-        .firstOrNull?['imageId'];
-    return SizedBox(
-      width: size,
-      height: size + 8,
-      child: image == null
-          ? const Icon(AppIcons.photo, color: muted)
-          : ProtectedImage(vm: vm, id: image, height: size + 8),
+    final image =
+        imageId ??
+        vm.state.data
+            ?.list('products')
+            .where((p) => p['id'] == productId)
+            .firstOrNull?['imageId'];
+    return RepaintBoundary(
+      child: SizedBox(
+        width: size,
+        height: size + 8,
+        child: image == null
+            ? const Icon(AppIcons.photo, color: muted)
+            : ProtectedImage(vm: vm, id: image, height: size + 8),
+      ),
     );
   }
 }

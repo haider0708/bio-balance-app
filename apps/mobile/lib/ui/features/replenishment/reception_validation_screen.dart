@@ -99,7 +99,9 @@ class _ReceptionValidationScreenState extends State<ReceptionValidationScreen> {
         FieldSpec('batch', 'Numéro de lot', initial: original?['batch'] ?? ''),
         FieldSpec(
           'expiry',
-          'Péremption : JJ/MM/AAAA ou MM/AAAA',
+          'Date de péremption',
+          date: true,
+          hint: 'Si seul le mois est imprimé, choisissez le dernier jour du mois.',
           initial: original == null
               ? ''
               : TunisDates.dateOnlyLabel(original['expiry']),

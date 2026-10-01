@@ -142,6 +142,7 @@ class _ScopedOrdersPageState extends State<ScopedOrdersPage> {
       final items = vm.items;
       return Content.builder(
         key: PageStorageKey('orders:${widget.scope.scope.key}'),
+        onRefresh: () => vm.load().catchError((Object _) {}),
         itemCount: items.length,
         itemBuilder: (_, i) {
           final o = items[i];

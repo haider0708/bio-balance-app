@@ -38,6 +38,7 @@ class SalesPage extends StatelessWidget {
     }
     final sales = vm.state.data!.list('sales');
     return Content.builder(
+      onRefresh: () => vm.synchronize().catchError((Object _) {}),
       itemCount: sales.length,
       itemBuilder: (context, index) {
         final sale = sales[index];

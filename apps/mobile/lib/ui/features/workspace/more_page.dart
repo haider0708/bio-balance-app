@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/design.dart';
 import '../catalog/catalog_screen.dart';
+import '../pricing/pricing_hub_screen.dart';
 import '../sales/sales_history_screen.dart';
 import '../rewards/rewards_screen.dart';
 import '../training/training_screen.dart';
@@ -142,7 +143,11 @@ class MorePage extends StatelessWidget {
             ),
           link(
             context,
-            wholesale ? 'Seuils et points' : 'Prix, points et seuils',
+            wholesale
+                ? 'Seuils et points'
+                : vm.user.admin
+                ? 'Prix, points et seuils'
+                : 'Prix et seuils',
             AppIcons.tuneOutlined,
             ProductSettingsPage(vm: vm),
           ),
@@ -153,13 +158,21 @@ class MorePage extends StatelessWidget {
               AppIcons.groupsOutlined,
               TeamPage(vm: vm),
             ),
-            link(
-              context,
-              'Guide de configuration',
-              AppIcons.checklistOutlined,
-              OnboardingScreen(vm: vm),
-              fullScreen: true,
-            ),
+            if (scope?.openGuide != null && !vm.user.admin)
+              CompactRow(
+                title: 'Guide de configuration',
+                subtitle: 'Groupe, magasins, équipe, stock et prix pas à pas',
+                icon: AppIcons.checklistOutlined,
+                onTap: scope!.openGuide,
+              )
+            else
+              link(
+                context,
+                'Guide de configuration',
+                AppIcons.checklistOutlined,
+                OnboardingScreen(vm: vm),
+                fullScreen: true,
+              ),
           ],
           const SizedBox(height: 20),
           const SectionTitle('Suivi'),
@@ -188,13 +201,23 @@ class MorePage extends StatelessWidget {
         ],
         if (store == null && scope != null && scope!.groups.isNotEmpty) ...[
           const SectionTitle('Configuration des magasins'),
-          const Text(
-            'Ouvrez un magasin depuis votre groupe pour retrouver ses coordonnées, prix, points, seuils et autres réglages. Le groupe se choisit en haut de l’écran principal.',
+          Text(
+            vm.user.admin
+                ? 'Ouvrez un magasin depuis votre groupe pour retrouver ses coordonnées, prix, points, seuils et autres réglages. Le groupe se choisit en haut de l’écran principal.'
+                : 'Ouvrez un magasin depuis votre groupe pour retrouver ses coordonnées, prix, seuils et autres réglages.',
           ),
         ],
         if (groupManage && scope != null) ...[
           const SizedBox(height: 20),
           SectionTitle('Paramètres du groupe', subtitle: group.name),
+          // The guide stays available after it was finished.
+          if (!vm.user.admin && scope!.openGuide != null)
+            CompactRow(
+              title: 'Guide de configuration',
+              subtitle: 'Groupe, magasins, équipe, stock et prix pas à pas',
+              icon: AppIcons.checklistOutlined,
+              onTap: scope!.openGuide,
+            ),
           if (vm.user.admin)
             CompactRow(
               title: 'Accès du groupe · ${statusLabel(group.status)}',
@@ -266,6 +289,14 @@ class MorePage extends StatelessWidget {
             WholesalersScreen(workspace: vm, scope: scope),
             fullScreen: true,
             subtitle: 'Créer un grossiste, son stock initial et son invitation',
+          ),
+          link(
+            context,
+            'Prix',
+            AppIcons.tuneOutlined,
+            PricingHubScreen(vm: vm),
+            fullScreen: true,
+            subtitle: 'Prix des grossistes et des magasins, prix de vente',
           ),
           link(context, 'Catalogue', AppIcons.spaOutlined, CatalogPage(vm: vm)),
           link(

@@ -1,3 +1,5 @@
+import '../../core/date_field.dart';
+
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 
@@ -193,12 +195,10 @@ class _DeclaredDispatchScreenState extends State<DeclaredDispatchScreen> {
                 const SizedBox(width: 8),
                 Expanded(
                   flex: 3,
-                  child: TextField(
+                  child: ExpiryDateField(
                     controller: entry.value.expiry,
-                    decoration: const InputDecoration(
-                      labelText: 'Péremption',
-                      hintText: 'JJ/MM/AAAA',
-                    ),
+                    label: 'Péremption',
+                    required: false,
                   ),
                 ),
                 const SizedBox(width: 8),

@@ -24,6 +24,9 @@ class ScopeViewModel extends ChangeNotifier {
   List<PartnerGroup> get retailGroups =>
       groups.where((g) => !g.wholesale).toList();
   List<String> grants = const [];
+
+  /// Opens the setup guide from anywhere (settings), whether or not it was finished.
+  VoidCallback? openGuide;
   bool loading = true, switching = false, refreshing = false, closed = false;
   String? error;
   final Map<String, int> tabs = {};
@@ -178,6 +181,19 @@ class ScopeViewModel extends ChangeNotifier {
     }
   }
 
+  DateTime? _refreshedAt;
+
+  /// Refreshes when the directory is older than [maxAge], so opening a list shows
+  /// what changed meanwhile without hammering the server.
+  Future<void> refreshIfStale({Duration maxAge = const Duration(seconds: 30)}) {
+    final at = _refreshedAt;
+    if (at != null && DateTime.now().difference(at) < maxAge) {
+      return Future.value();
+    }
+    // Callers may be mid-build (initState); listeners are told after this frame.
+    return Future.microtask(refresh);
+  }
+
   Future<void> refresh() {
     if (closed) return Future.value();
     if (_refreshing != null) return _refreshing!;
@@ -185,6 +201,7 @@ class ScopeViewModel extends ChangeNotifier {
     final pending = _refresh().whenComplete(() {
       _refreshing = null;
       refreshing = false;
+      _refreshedAt = DateTime.now();
       if (!closed) notifyListeners();
     });
     _refreshing = pending;

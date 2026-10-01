@@ -99,6 +99,25 @@ class StockViewModel extends ChangeNotifier {
     }
   }
 
+  /// How many products fall in each segment, for the tabs.
+  Map<String, int> get counts {
+    final c = {for (final k in segments) k: 0};
+    for (final row in _all) {
+      for (final k in segments) {
+        if (row.summary.matches(k)) c[k] = c[k]! + 1;
+      }
+    }
+    return c;
+  }
+
+  static const segments = [
+    'all',
+    'low',
+    'discrepancy',
+    'approaching',
+    'expired',
+  ];
+
   void search(String value) {
     final normalized = value.trim().toLowerCase();
     if (query == normalized) return;

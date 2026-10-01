@@ -114,31 +114,45 @@ class Content extends StatelessWidget {
   final double maxWidth;
   final IndexedWidgetBuilder? itemBuilder;
   final int itemCount;
-  const Content({super.key, required this.children, this.maxWidth = 1100})
-    : itemBuilder = null,
-      itemCount = 0;
+
+  /// Pull down to refresh the list.
+  final Future<void> Function()? onRefresh;
+  const Content({
+    super.key,
+    required this.children,
+    this.maxWidth = 1100,
+    this.onRefresh,
+  }) : itemBuilder = null,
+       itemCount = 0;
   const Content.builder({
     super.key,
     this.children = const [],
     this.maxWidth = 1100,
     required this.itemCount,
     required this.itemBuilder,
+    this.onRefresh,
   });
   @override
-  Widget build(BuildContext context) => Align(
-    alignment: Alignment.topCenter,
-    child: ConstrainedBox(
-      constraints: BoxConstraints(maxWidth: maxWidth),
-      child: ListView.builder(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-        itemCount: children.length + itemCount,
-        itemBuilder: (context, index) => index < children.length
-            ? children[index]
-            : itemBuilder!(context, index - children.length),
+  Widget build(BuildContext context) {
+    final list = ListView.builder(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+      physics: onRefresh == null ? null : const AlwaysScrollableScrollPhysics(),
+      itemCount: children.length + itemCount,
+      itemBuilder: (context, index) => index < children.length
+          ? children[index]
+          : itemBuilder!(context, index - children.length),
+    );
+    return Align(
+      alignment: Alignment.topCenter,
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: maxWidth),
+        child: onRefresh == null
+            ? list
+            : RefreshIndicator(onRefresh: onRefresh!, child: list),
       ),
-    ),
-  );
+    );
+  }
 }
 
 class SectionTitle extends StatelessWidget {

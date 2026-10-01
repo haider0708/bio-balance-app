@@ -1,3 +1,5 @@
+import 'pick_date.dart';
+
 import 'package:biobalance/data/services/api/generated/api_client.dart';
 import 'package:biobalance/data/services/local_database/database.dart';
 import 'package:biobalance/domain/models/models.dart';
@@ -83,9 +85,10 @@ void main() {
       find.widgetWithText(TextFormField, 'Numéro du lot'),
       'MISSING-UI',
     );
-    await tester.enterText(
-      find.widgetWithText(TextFormField, 'Péremption : JJ/MM/AAAA ou MM/AAAA'),
-      '12/2029',
+    await pickDate(
+      tester,
+      find.widgetWithText(TextFormField, 'Date de péremption'),
+      '31/12/2029',
     );
     await tester.enterText(
       find.widgetWithText(TextFormField, 'Unités vendues'),
