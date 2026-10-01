@@ -1,0 +1,14 @@
+{
+  "source": "https://www.barcodelookup.com/<EAN>",
+  "capturedAt": "2026-10-01",
+  "note": "Fiches relevées une à une dans un navigateur (le site bloque les requêtes automatiques). Textes d’origine roumains/bulgares ; seuls les faits (nom, marque, volume, actifs) sont repris, réécrits en français.",
+  "products": {
+    "8697711722011": {"title": "Eyelash Ser Pentru Cresterea Genelor, Cu Peptide, Biotina Si Acid Hialuronic, Bio Balance, 6 Ml", "brand": "Bio Balance", "image": "https://images.barcodelookup.com/67178/671780280-1.jpg"},
+    "8697711601514": {"title": "Balsam De Curatare Faciala 3 in 1 Cu Vitamina C Pura, Pentru Ten Lipsit De Luminozitate, Hello Clean, Bio Balance, 100 Ml", "brand": "Bio Balance", "image": "https://images.barcodelookup.com/67167/671679904-1.jpg"},
+    "8697711601538": {"title": "Balsam De Curatare Faciala 3 in 1 Cu Acid Hialuronic, Pentru Ten Normal Sau Uscat, Hello Clean, Bio Balance, 100 Ml", "brand": "Bio Balance", "image": "https://images.barcodelookup.com/67167/671673508-1.jpg"},
+    "8697711601521": {"title": "Balsam De Curatare Faciala 3 in 1 Cu Squalane Si Bisabolol, Pentru Ten Sensibil Sau Cu Roseata, Hello Clean, Bio Balance, 100 Ml", "brand": "Bio Balance", "image": "https://images.barcodelookup.com/67168/671680077-1.jpg"},
+    "8697711601545": {"title": "Balsam De Curatare Faciala 3 in 1 Cu Acid Oleanolic, Pentru Ten Gras Sau Mixt, Hello Clean, Bio Balance, 100 Ml", "brand": "Bio Balance", "image": "https://images.barcodelookup.com/67167/671673967-1.jpg"},
+    "8697711602139": {"title": "Super Serum contur Ochi pentru Noapte, cu Fito-Retinol + Ceramide + Acid Hialuronic, Antirid si Intensiv Reparator, Bio Balance, 20 ml", "brand": "Bio Balance", "image": "https://images.barcodelookup.com/67168/671680381-1.jpg"},
+    "8697711622410": {"title": "BioBalance Dry & White Whitening Natural Deo Roll-on", "brand": "BioBalance", "image": null}
+  }
+}
