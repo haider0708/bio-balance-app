@@ -54,21 +54,47 @@ void main() {
       await db.close();
     },
   );
-  test(
-    'invitation policies keep accepted access separate from removable history',
-    () {
-      final item = Invitation.fromJson({
+  Invitation invitation(String status, {String? acceptedAt}) =>
+      Invitation.fromJson({
         'id': 'invite',
         'email': 'test@example.test',
         'kind': 'responsible',
-        'status': 'accepted',
-        'storeIds': [],
+        'status': status,
+        'storeIds': <String>[],
         'version': 2,
         'expiresAt': '2026-09-25T10:00:00Z',
+        'acceptedAt': acceptedAt,
       });
-      expect(item.canResend, false);
-      expect(item.canRevoke, false);
-      expect(item.canArchive, true);
-    },
-  );
+  test('an invitation offers only the actions its state allows', () {
+    // Pending: resend, disable or remove.
+    final pending = invitation('pending');
+    expect(
+      [pending.canResend, pending.canRevoke, pending.canRemove, pending.locked],
+      [true, true, true, false],
+    );
+    // Expired and disabled: relaunch or remove, never "disable" again.
+    for (final status in ['expired', 'revoked']) {
+      final item = invitation(status);
+      expect(
+        [item.canResend, item.canRevoke, item.canRemove, item.locked],
+        [true, false, true, false],
+        reason: status,
+      );
+    }
+    // The account exists: nothing can be done.
+    final accepted = invitation('accepted', acceptedAt: '2026-09-25T09:00:00Z');
+    expect(
+      [
+        accepted.canResend,
+        accepted.canRevoke,
+        accepted.canRemove,
+        accepted.locked,
+      ],
+      [false, false, false, true],
+    );
+    expect(accepted.statusLabel, 'Compte créé');
+    expect(accepted.dateLabel, startsWith('Compte créé le'));
+    expect(invitation('pending').dateLabel, startsWith('Valable jusqu’au'));
+    expect(invitation('expired').dateLabel, startsWith('Expirée le'));
+  });
 }

@@ -155,9 +155,16 @@ it("tracks expiry, resend, replacement and single-use activation without exposin
     invitations.action(manager, first.id, request),
   ]);
   expect(a).toEqual(b);
-  expect((await list()).items.find((x) => x.id === first.id)?.status).toBe(
-    "replaced",
-  );
+  // The replaced invitation leaves the default list; the new one stands in for it.
+  expect((await list()).items.some((x) => x.id === first.id)).toBe(false);
+  expect(
+    (
+      await invitations.list(manager, {
+        organizationId: group,
+        includeArchived: "true",
+      })
+    ).items.find((x) => x.id === first.id)?.status,
+  ).toBe("replaced");
   await expect(
     identity.activate(old.token, "Seller", "password-for-test", randomUUID()),
   ).rejects.toMatchObject({ code: "INVITATION_EXPIRED" });
@@ -174,13 +181,40 @@ it("tracks expiry, resend, replacement and single-use activation without exposin
   await expect(
     identity.activate(next.token, "Seller", "password-for-test", randomUUID()),
   ).rejects.toMatchObject({ code: "INVITATION_EXPIRED" });
+  // A created account locks its invitation: nothing can be done to it.
+  for (const action of ["revoke", "archive", "resend"] as const)
+    await expect(
+      invitations.action(manager, a.id, {
+        action,
+        expectedVersion: 2,
+        operationId: randomUUID(),
+      }),
+    ).rejects.toMatchObject({ code: "INVITATION_ACCEPTED" });
+});
+it("lists the newest invitation first, and only a pending one can be disabled", async () => {
+  const older = await invite();
+  await new Promise((r) => setTimeout(r, 20));
+  const newer = await invite();
+  const ids = (await list()).items.map((x) => x.id);
+  expect(ids.indexOf(newer.id)).toBeLessThan(ids.indexOf(older.id));
+  await owner.accessToken.update({
+    where: { id: older.id },
+    data: { expiresAt: new Date(Date.now() - 1000) },
+  });
+  // An expired code cannot be "disabled" (it already is); it is resent or removed.
   await expect(
-    invitations.action(manager, a.id, {
+    invitations.action(manager, older.id, {
       action: "revoke",
-      expectedVersion: 2,
+      expectedVersion: 1,
       operationId: randomUUID(),
     }),
   ).rejects.toMatchObject({ code: "INVITATION_CLOSED" });
+  await invitations.action(manager, older.id, {
+    action: "archive",
+    expectedVersion: 1,
+    operationId: randomUUID(),
+  });
+  expect((await list()).items.some((x) => x.id === older.id)).toBe(false);
 });
 it("revokes codes and archives history without deleting identities", async () => {
   const first = await invite(),

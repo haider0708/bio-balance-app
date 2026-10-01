@@ -72,17 +72,31 @@ export class InvitationManagementService {
         where: {
           purpose: "invite",
           organizationId: input.organizationId ?? null,
-          ...(cursor
-            ? {
-                OR: [
-                  { expiresAt: { lt: cursor.expiresAt } },
-                  { expiresAt: cursor.expiresAt, id: { lt: cursor.id } },
-                ],
-              }
-            : {}),
-          ...(input.includeArchived === "true" ? {} : { archivedAt: null }),
+          AND: [
+            cursor
+              ? cursor.createdAt
+                ? {
+                    OR: [
+                      { createdAt: { lt: cursor.createdAt } },
+                      { createdAt: cursor.createdAt, id: { lt: cursor.id } },
+                    ],
+                  }
+                : { createdAt: null, id: { lt: cursor.id } }
+              : {},
+            // A resent invitation replaces the old one: only the latest is shown,
+            // unless the history is asked for.
+            input.includeArchived === "true"
+              ? {}
+              : {
+                  archivedAt: null,
+                  OR: [
+                    { closedReason: null },
+                    { closedReason: { not: "replaced" } },
+                  ],
+                },
+          ],
         },
-        orderBy: [{ expiresAt: "desc" }, { id: "desc" }],
+        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
         take: 51,
       });
       const items = rows.slice(0, 50).map((row) => ({
@@ -156,6 +170,13 @@ export class InvitationManagementService {
           "Cette invitation a été retirée de la liste.",
           409,
         );
+        // Once the account exists the invitation is history: nothing can be done to it.
+        requireRule(
+          invitationStatus(row) !== "accepted",
+          "INVITATION_ACCEPTED",
+          "Le compte est créé : aucune action possible sur cette invitation.",
+          409,
+        );
         let resultId = id;
         if (input.action === "resend") {
           requireRule(
@@ -198,10 +219,11 @@ export class InvitationManagementService {
           });
           resultId = next.id;
         } else {
+          // Disabling applies to a code that can still be used; removing to any other.
           requireRule(
-            input.action === "archive" || !row.usedAt,
+            input.action === "archive" || invitationStatus(row) === "pending",
             "INVITATION_CLOSED",
-            "Cette invitation est terminée. Gérez l’accès depuis l’équipe.",
+            "Cette invitation n’est plus en attente : relancez-la ou supprimez-la.",
             409,
           );
           await tx.accessToken.update({

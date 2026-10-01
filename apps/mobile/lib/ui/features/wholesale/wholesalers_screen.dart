@@ -125,8 +125,8 @@ class _WholesalersScreenState extends State<WholesalersScreen> {
           CompactRow(
             title: 'Invitation et accès',
             subtitle: item['activated'] == true
-                ? 'Compte activé'
-                : 'Renvoyer ou révoquer l’invitation',
+                ? 'Compte créé'
+                : 'Renvoyer, désactiver ou supprimer l’invitation',
             icon: AppIcons.mailOutline,
             onTap: () => Navigator.pop(context, 'invitation'),
           ),
