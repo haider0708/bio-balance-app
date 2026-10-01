@@ -52,7 +52,28 @@ class StockProjection {
       if (command[key] != null) records.add('$key:${command[key]}');
     }
     if (type == 'stock.receive' || type == 'delivery.receive') {
-      for (final line in objects(command['lines'])) {
+      Iterable<Json> received = objects(command['lines']);
+      if (type == 'delivery.receive') {
+        // A scanned parcel is booked as its ticket lists it. Without the QR
+        // nothing is booked until BioBalance validates the claim.
+        final delivery = data
+            ?.list('deliveries')
+            .where((d) => d['id'] == command['deliveryId'])
+            .firstOrNull;
+        received = command['ticketCode'] == null
+            ? const <Json>[]
+            : [
+                for (final l in objects(delivery?['lines']))
+                  for (final a in objects(l['allocations']))
+                    {
+                      'productId': l['productId'],
+                      'batch': a['batch'],
+                      'expiry': a['expiry'],
+                      'quantity': a['quantity'],
+                    },
+              ];
+      }
+      for (final line in received) {
         if (line['condition'] == 'refused') continue;
         final damaged = line['condition'] == 'damaged';
         final lotId = lotIdentity(store, line);
@@ -126,32 +147,24 @@ class StockProjection {
           ),
         );
       }
-    } else if (type == 'stock.damage' ||
-        type == 'quality.flag' ||
-        type == 'stock.adjust') {
+    } else if (type == 'stock.damage' || type == 'quality.flag') {
       final id = command['lotId'] as String;
       final lot = data?.list('lots').where((l) => l['id'] == id).firstOrNull;
       final quantity = integer(command['quantity']);
-      if (type == 'stock.damage' || type == 'quality.flag') {
-        if (lot != null && integer(lot['sellable']) < quantity) {
-          throw const AppFailure(
-            'INSUFFICIENT_STOCK',
-            'Stock insuffisant pour cette sortie.',
-          );
-        }
-        movements.add(
-          LotMovement(
-            id,
-            sellableDelta: -quantity,
-            damagedDelta: quantity,
-            increments: 2,
-          ),
-        );
-      } else {
-        movements.add(
-          LotMovement(id, sellableDelta: quantity - integer(lot?['sellable'])),
+      if (lot != null && integer(lot['sellable']) < quantity) {
+        throw const AppFailure(
+          'INSUFFICIENT_STOCK',
+          'Stock insuffisant pour cette sortie.',
         );
       }
+      movements.add(
+        LotMovement(
+          id,
+          sellableDelta: -quantity,
+          damagedDelta: quantity,
+          increments: 2,
+        ),
+      );
     }
     records.addAll(movements.map((m) => 'lot:${m.lotId}'));
     return StockProjection(

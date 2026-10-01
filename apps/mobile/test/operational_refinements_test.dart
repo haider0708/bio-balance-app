@@ -152,7 +152,7 @@ void main() {
       );
       await t.pumpAndSettle();
       await t.scrollUntilVisible(
-        find.text('Confirmer la réception'),
+        find.text('Envoyer à BioBalance pour validation'),
         150,
         scrollable: find.byType(Scrollable).first,
       );

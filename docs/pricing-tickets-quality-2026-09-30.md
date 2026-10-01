@@ -27,7 +27,7 @@ Trois niveaux, un historique **append-only** (`PriceVersion`) :
 3. Le **QR** (`BB1.<livraison>.<code>`) est montré à l’expéditeur seul, qui le partage en image pour l’imprimer. Le code est dérivé côté serveur de la livraison et de la version du bon ; il prouve le colis, sans révéler son contenu. Le responsable du magasin ne le voit pas dans son application.
 4. À la réception, le responsable **scanne le colis**. L’application propose les lots annoncés ; il confirme ou corrige quantité, lot et état. Le stock augmente à cet instant, sous les lots du bon, et une différence ouvre un incident comme avant.
 5. **Renouveler** le QR (perdu, abîmé) est réservé à l’expéditeur : l’ancien code cesse de fonctionner, le numéro reste. Un bon reçu ne se renouvelle pas.
-6. Sans scan, le responsable indique pourquoi ; la réception est enregistrée comme faite sans scan et **signalée à BioBalance**. `TICKET_SCAN_REQUIRED=true` refuse toute réception sans scan ni motif ; par défaut elle est acceptée pour que les anciennes versions continuent de fonctionner. Un lot reçu que le bon ne liste pas est enregistré dans la réception.
+6. Sans scan, le responsable indique pourquoi ; la réception est enregistrée comme faite sans scan et **signalée à BioBalance**. *Remplacé en 1.4.0+18 : une réception sans scan attend désormais la validation de BioBalance, voir [la réception vérifiée](reception-validation-2026-10-01.md).*
 
 ## 3. Produits abîmés ou périmés
 

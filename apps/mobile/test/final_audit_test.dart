@@ -129,7 +129,7 @@ void main() {
       await expectLater(
         workspace.queue({
           'type': 'stock.receive',
-          'reason': 'receipt',
+          'reason': 'opening',
           'lines': [
             {
               'productId': 'p',

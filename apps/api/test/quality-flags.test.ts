@@ -1,3 +1,4 @@
+import { ticketCode } from "../src/shared/domain/delivery-ticket";
 import { beforeAll, afterAll, describe, it, expect } from "vitest";
 import { randomUUID } from "node:crypto";
 import { PrismaClient } from "@prisma/client";
@@ -66,6 +67,11 @@ const row = (id: string) =>
 const flagRow = (id: string) =>
   owner.qualityFlag.findUniqueOrThrow({ where: { id } });
 async function receive(batch: string, expiry: string, quantity: number) {
+  // Tests seed several lots; the opening declaration is otherwise one-time.
+  await owner.store.update({
+    where: { id: store },
+    data: { openingClosedAt: null },
+  });
   await accepted(
     manager,
     op({
@@ -261,15 +267,8 @@ describe("flagging damaged or expired goods", () => {
           type: "delivery.receive",
           deliveryId,
           note: "",
-          manualReason: "Essai",
-          lines: [
-            {
-              productId: product,
-              batch: "Q1",
-              expiry: "2031-06-30",
-              quantity: 6,
-            },
-          ],
+          ticketCode: ticketCode(deliveryId, 1),
+          lines: [],
         },
         1,
       ),

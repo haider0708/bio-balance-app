@@ -14,6 +14,7 @@ import '../reporting/history_screen.dart';
 
 import '../../../domain/models/models.dart';
 import '../../../data/repositories/pricing_repository.dart';
+import '../../../data/repositories/store_settings_repository.dart';
 import '../../../domain/models/delivery_ticket.dart';
 import '../../../domain/models/tunis_dates.dart';
 import '../../../domain/models/money.dart';
@@ -92,15 +93,8 @@ class _StockPageState extends State<StockPage> {
           SectionTitle(
             'Stock du magasin',
             subtitle: 'Les lots, les quantités et les dates au même endroit.',
-            action: FilledButton.icon(
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => ReceiptScreen(vm: vm)),
-              ),
-              icon: const Icon(AppIcons.add),
-              label: const Text('Entrée de stock'),
-            ),
           ),
+          OpeningStockCard(vm: vm),
           TextField(
             controller: search,
             onChanged: (value) {
@@ -251,7 +245,7 @@ class ProductDetail extends StatelessWidget {
             if (lots.isEmpty)
               const EmptyState(
                 title: 'Aucun lot en stock',
-                description: 'Les lots épuisés restent dans l’historique. Réceptionnez une livraison ou enregistrez une entrée de stock.',
+                description: 'Les lots épuisés restent dans l’historique. Le stock arrive par commande et livraison.',
               ),
             ...lots.map(
               (lot) => CompactRow(
@@ -262,10 +256,6 @@ class ProductDetail extends StatelessWidget {
                 footer: Wrap(
                   spacing: 8,
                   children: [
-                    TextButton(
-                      onPressed: () => adjust(context, lot, false),
-                      child: const Text('Ajuster'),
-                    ),
                     TextButton(
                       onPressed: () => flag(context, lot),
                       child: Text(
@@ -339,40 +329,6 @@ class ProductDetail extends StatelessWidget {
       },
     );
   }
-
-  Future<void> adjust(
-    BuildContext context,
-    InventoryLot lot,
-    bool damage,
-  ) async {
-    final store = vm.state.store!;
-    await openEditor(
-      context,
-      draftKey: 'stock:${damage ? 'damage' : 'adjust'}:${lot.id}',
-      title: damage ? 'Enregistrer des dommages' : 'Réconcilier le stock',
-      description:
-          '${vm.productName(lot.productId)} · Lot ${lot.batch}. Cette modification sera conservée avec votre identité et son motif.',
-      fields: [
-        FieldSpec(
-          'quantity',
-          damage ? 'Unités endommagées' : 'Quantité réellement comptée',
-          numeric: true,
-        ),
-        const FieldSpec('reason', 'Motif'),
-      ],
-      submitWithDraft: (v, draftKey) => vm.queue(
-        {
-          'type': damage ? 'stock.damage' : 'stock.adjust',
-          'lotId': lot.id,
-          'quantity': whole(v['quantity']!, allowZero: !damage),
-          'reason': v['reason'],
-        },
-        expectedVersion: lot.version,
-        targetStore: store,
-        draftKey: draftKey,
-      ),
-    );
-  }
 }
 
 class ReceiptScreen extends StatefulWidget {
@@ -407,6 +363,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
   late final VoidCallback unregister;
 
   late final Store store = widget.vm.state.store!;
+  bool get scanned => widget.delivery != null && ticketCode != null;
   ReceiptPlan get plan =>
       ReceiptPlan(objects(widget.delivery?['lines']), lines);
   String get key => 'receipt:${widget.delivery?['id'] ?? 'stock'}';
@@ -438,7 +395,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
           if (ticketCode == null && widget.scannedCode != null) {
             ticketCode = widget.scannedCode;
             manualEntry = false;
-            if (lines.isEmpty) prefill();
+            lines = [];
           }
         });
       }
@@ -492,12 +449,16 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
         : 'Réceptionner la livraison',
     maxWidth: 760,
     action: FilledButton(
-      onPressed: busy || !restored || (lines.isEmpty && !missing) ? null : save,
+      onPressed: busy || !restored || !(scanned || lines.isNotEmpty || missing)
+          ? null
+          : save,
       child: Text(
         busy
             ? 'Enregistrement…'
             : missing
             ? 'Signaler non reçue'
+            : widget.delivery != null && !scanned
+            ? 'Envoyer à BioBalance pour validation'
             : 'Confirmer la réception',
       ),
     ),
@@ -517,11 +478,46 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
           },
           child: const Text('Recharger le brouillon'),
         ),
-      if (widget.delivery != null) ...[
+      if (scanned) ...[
         ticketPanel(),
         const SizedBox(height: 16),
         const Text(
-          'Pour chaque produit : quantité reçue, numéro de lot et péremption.',
+          'Voici ce que contient le colis d’après son bon. Confirmez si c’est bien ce que vous recevez ; sinon, reprenez sans scanner et BioBalance tranchera.',
+        ),
+        const SizedBox(height: 16),
+        for (final expected in objects(widget.delivery!['lines']))
+          CompactRow(
+            title: widget.vm.productName(expected['productId']),
+            leading: ProductPhoto(
+              vm: widget.vm,
+              productId: expected['productId'],
+            ),
+            subtitle: objects(expected['allocations'])
+                .map(
+                  (a) =>
+                      '${a['quantity']} × lot ${a['batch']} (exp. ${TunisDates.dateOnlyLabel(a['expiry'])})',
+                )
+                .join('\n'),
+            value: '${expected['quantity']} u.',
+          ),
+        TextButton(
+          onPressed: busy
+              ? null
+              : () {
+                  setState(() {
+                    ticketCode = null;
+                    manualEntry = true;
+                  });
+                  changed();
+                },
+          child: const Text('Ce n’est pas ce que je reçois'),
+        ),
+      ],
+      if (widget.delivery != null && !scanned) ...[
+        ticketPanel(),
+        const SizedBox(height: 16),
+        const Text(
+          'Pour chaque produit : quantité reçue, numéro de lot et péremption. Le stock sera ajouté après validation par BioBalance.',
         ),
         const SizedBox(height: 16),
         for (final expected in objects(widget.delivery!['lines']))
@@ -582,32 +578,33 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
           icon: const Icon(AppIcons.add),
           label: const Text('Ajouter un produit et un lot'),
         ),
-      if (lines.isNotEmpty) ...[
+      if (!scanned && lines.isNotEmpty) ...[
         const SizedBox(height: 12),
         Text(
           'Lots saisis · ${plan.sellable} vendables${plan.damaged > 0 ? ' · ${plan.damaged} abîmées' : ''}${plan.refused > 0 ? ' · ${plan.refused} refusées' : ''}',
           style: Theme.of(context).textTheme.titleSmall,
         ),
       ],
-      for (final entry in lines.asMap().entries)
-        CompactRow(
-          title: widget.vm.productName(entry.value['productId']),
-          subtitle:
-              '${entry.value['quantity']} unités · ${receiptCondition(entry.value)}\nLot ${entry.value['batch']} · ${TunisDates.dateOnlyLabel(entry.value['expiry'])}',
-          onTap: busy || !restored
-              ? null
-              : () => editLot(entry.value['productId'], index: entry.key),
-          trailing: IconButton(
-            onPressed: busy || !restored
+      if (!scanned)
+        for (final entry in lines.asMap().entries)
+          CompactRow(
+            title: widget.vm.productName(entry.value['productId']),
+            subtitle:
+                '${entry.value['quantity']} unités · ${receiptCondition(entry.value)}\nLot ${entry.value['batch']} · ${TunisDates.dateOnlyLabel(entry.value['expiry'])}',
+            onTap: busy || !restored
                 ? null
-                : () {
-                    setState(() => lines.removeAt(entry.key));
-                    changed();
-                  },
-            icon: const Icon(AppIcons.close),
-            tooltip: 'Retirer ce lot',
+                : () => editLot(entry.value['productId'], index: entry.key),
+            trailing: IconButton(
+              onPressed: busy || !restored
+                  ? null
+                  : () {
+                      setState(() => lines.removeAt(entry.key));
+                      changed();
+                    },
+              icon: const Icon(AppIcons.close),
+              tooltip: 'Retirer ce lot',
+            ),
           ),
-        ),
       if (lines.isEmpty && !missing)
         const EmptyState(
           title: 'Ajoutez les unités reçues',
@@ -639,7 +636,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
             ),
           ),
           const Text(
-            'Cette réception sera signalée à BioBalance comme faite sans scan.',
+            'BioBalance comparera avec ce qui a été expédié, puis validera. Le stock n’augmente qu’à ce moment.',
             style: TextStyle(fontSize: 14, color: muted),
           ),
           TextButton.icon(
@@ -680,21 +677,6 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
     );
   }
 
-  /// Announced lots become the starting point; the receiver confirms or corrects.
-  void prefill() {
-    for (final expected in objects(widget.delivery?['lines'])) {
-      for (final a in objects(expected['allocations'])) {
-        lines.add({
-          'productId': expected['productId'],
-          'quantity': integer(a['quantity']),
-          'batch': a['batch'],
-          'expiry': a['expiry'],
-          'condition': 'sellable',
-        });
-      }
-    }
-  }
-
   Future<void> scan() async {
     final raw = await Navigator.push<String>(
       context,
@@ -720,7 +702,9 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
       ticketCode = scanned.code;
       manualEntry = false;
       error = null;
-      if (lines.isEmpty) prefill();
+      // A scanned parcel is booked as its ticket says: nothing to enter.
+      lines = [];
+      missing = false;
     });
     changed();
   }
@@ -819,6 +803,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
       vm.requireAccess(store, 'manage');
       await persist();
       if (widget.delivery != null &&
+          !scanned &&
           plan.requiresExplanation &&
           note.text.trim().length < 3) {
         throw const FormatException(
@@ -833,7 +818,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
           'Scannez le QR du colis, ou indiquez pourquoi vous ne pouvez pas.',
         );
       }
-      if (lines.isEmpty) {
+      if (lines.isEmpty && !scanned) {
         if (widget.delivery == null || !missing || note.text.trim().isEmpty) {
           throw const FormatException(
             'Expliquez pourquoi aucune unité n’a été reçue.',
@@ -853,13 +838,14 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
       await _tail;
       await vm.queue(
         widget.delivery == null
-            ? {'type': 'stock.receive', 'reason': 'receipt', 'lines': lines}
+            ? {'type': 'stock.receive', 'reason': 'opening', 'lines': lines}
             : {
                 'type': 'delivery.receive',
                 'deliveryId': widget.delivery!['id'],
-                'lines': lines,
-                'note': note.text.trim(),
-                if (lines.isNotEmpty && ticketCode != null)
+                // A scanned parcel is booked as its ticket says; nothing is sent.
+                'lines': scanned ? <Json>[] : lines,
+                'note': scanned ? '' : note.text.trim(),
+                if (scanned)
                   'ticketCode': ticketCode
                 else if (lines.isNotEmpty && manualEntry)
                   'manualReason': manualReason.text.trim(),
@@ -878,6 +864,8 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
             content: Text(
               missing
                   ? 'Signalement enregistré. Le stock reste inchangé.'
+                  : widget.delivery != null && !scanned
+                  ? 'Réception envoyée à BioBalance. Le stock augmentera après sa validation.'
                   : 'Réception enregistrée sur ce téléphone.',
             ),
           ),
@@ -980,5 +968,73 @@ Future<void> configureStoreProduct(
     },
   )) {
     await vm.synchronize();
+  }
+}
+
+/// The one chance to declare the stock already on the shelves. Afterwards stock
+/// only arrives by order and delivery, so every count can be traced.
+class OpeningStockCard extends StatelessWidget {
+  final WorkspaceViewModel vm;
+  const OpeningStockCard({super.key, required this.vm});
+
+  Future<void> noStock(BuildContext context) async {
+    final store = vm.state.store!;
+    if (!await confirmAction(
+      context,
+      'Je n’ai pas de stock',
+      'Ce choix est définitif : vous ne pourrez plus entrer de stock à la main. Vos produits arriveront par commande et livraison.',
+      label: 'Confirmer',
+    )) {
+      return;
+    }
+    if (!context.mounted) return;
+    await run(context, () async {
+      vm.requireAccess(store, 'manage');
+      await StoreSettingsRepository(vm.api).onboarding(store, {
+        'noOpeningStock': true,
+        'expectedVersion': (vm.state.data!.raw['store'] as Map)['version'],
+      });
+      await vm.synchronize();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final store = vm.state.store;
+    final data = vm.state.data;
+    if (store == null ||
+        data == null ||
+        store.openingClosed ||
+        data.lots.isNotEmpty ||
+        !(store.canManage || vm.user.admin)) {
+      return const SizedBox.shrink();
+    }
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: CompactRow(
+        title: 'Avez-vous déjà du stock ?',
+        subtitle: 'Vous avez une seule occasion de le déclarer. Ensuite, le stock n’arrive que par commande et livraison.',
+        icon: AppIcons.infoOutline,
+        tone: AppTone.warning,
+        footer: Wrap(
+          spacing: 12,
+          runSpacing: 8,
+          children: [
+            FilledButton.icon(
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => ReceiptScreen(vm: vm)),
+              ),
+              icon: const Icon(AppIcons.add),
+              label: const Text('Oui, je le saisis'),
+            ),
+            OutlinedButton(
+              onPressed: () => noStock(context),
+              child: const Text('Non, je commande'),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

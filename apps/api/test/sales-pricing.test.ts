@@ -60,6 +60,11 @@ const accepted = async (actor: Actor, operation: Operation) => {
   return result;
 };
 async function stock(productId: string, batch: string) {
+  // Tests seed several lots; the opening declaration is otherwise one-time.
+  await owner.store.update({
+    where: { id: store },
+    data: { openingClosedAt: null },
+  });
   await accepted(
     manager,
     op({
@@ -245,11 +250,11 @@ describe("the price list beside the price charged", () => {
 });
 
 describe("points follow the rate of the sale date", () => {
-  it("uses the rate in force on the day, for a sale within 14 days", async () => {
+  it("uses the rate in force on the day, for a sale within 3 days", async () => {
     const lotId = await stock(legacy, "L2");
     await rateVersion(legacy, 5, ago(10));
-    await rateVersion(legacy, 8, ago(3));
-    const earlier = await sell(legacy, lotId, ago(5), "40000", 2);
+    await rateVersion(legacy, 8, ago(2));
+    const earlier = await sell(legacy, lotId, ago(2.5), "40000", 2);
     expect(first(earlier).pointsPerUnit).toBe(5);
     expect(earlier.earnedPoints).toBe(10n);
     const later = await sell(legacy, lotId, ago(1), "40000", 2);
@@ -289,7 +294,7 @@ describe("points follow the rate of the sale date", () => {
     ).toBe(9n);
   });
 
-  it("uses the rate at acceptance for a sale more than 14 days old", async () => {
+  it("rates a sale older than 3 days as of three days before it arrived", async () => {
     const lotId = await stock(late, "T1");
     await rateVersion(late, 2, ago(40));
     await rateVersion(late, 6, ago(1));
@@ -304,14 +309,15 @@ describe("points follow the rate of the sale date", () => {
       },
     });
     const old = await sell(late, lotId, ago(30), "1000", 1);
-    expect(first(old).pointsPerUnit).toBe(6);
+    // A phone clock set back cannot buy the rate of 30 days ago.
+    expect(first(old).pointsPerUnit).toBe(2);
   });
 
-  it("gives no points before a rate existed, and the current rate when none was ever recorded", async () => {
+  it("never goes further back than 3 days, and uses the current rate when none was ever recorded", async () => {
     const lotId = await stock(legacy, "L3");
     const before = await sell(legacy, lotId, ago(12), "40000", 1);
-    // A rate was recorded 10 days ago; 12 days ago there was none.
-    expect(first(before).pointsPerUnit).toBe(0);
+    // 12 days ago there was no rate, but the sale is rated as of 3 days ago.
+    expect(first(before).pointsPerUnit).toBe(5);
     const fresh = randomUUID();
     await owner.product.create({
       data: { id: fresh, reference: fresh, name: "Produit sans barème" },

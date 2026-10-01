@@ -19,7 +19,7 @@ export async function orderFulfillment(
   >(Prisma.sql`
     SELECT d."orderId", expected->>'productId' AS "productId",
       COALESCE(SUM(LEAST((expected->>'quantity')::bigint, COALESCE(actual.quantity,0))) FILTER (WHERE d.status='received'), 0)::bigint AS received,
-      COALESCE(SUM((expected->>'quantity')::bigint) FILTER (WHERE d.status='dispatched'), 0)::bigint AS "inTransit"
+      COALESCE(SUM((expected->>'quantity')::bigint) FILTER (WHERE d.status IN ('dispatched','pending_review')), 0)::bigint AS "inTransit"
     FROM "Delivery" d LEFT JOIN "DeliveryReceipt" r ON r."deliveryId"=d.id
       AND r."storeId"=d."storeId" AND r."organizationId"=d."organizationId"
     CROSS JOIN LATERAL jsonb_array_elements(d.lines) expected
@@ -142,7 +142,7 @@ export async function orderSummaries(
 ) {
   if (!orders.length) return [];
   const ids = orders.map((order) => order.id);
-  const [fulfillment, issues, problems] = await Promise.all([
+  const [fulfillment, issues, problems, reviews] = await Promise.all([
     orderFulfillment(tx, organizationId, storeId, orders),
     tx.deliveryIssue.groupBy({
       by: ["orderId"],
@@ -164,7 +164,19 @@ export async function orderSummaries(
       },
       select: { key: true },
     }),
+    // Receipts without a scan wait for BioBalance to compare and validate them.
+    tx.delivery.groupBy({
+      by: ["orderId"],
+      where: {
+        organizationId,
+        storeId,
+        orderId: { in: ids },
+        status: "pending_review",
+      },
+      _count: true,
+    }),
   ]);
+  const pending = new Map(reviews.map((r) => [r.orderId, r._count]));
   const supplierName = await supplierNames(tx, orders);
   const counts = new Map(issues.map((issue) => [issue.orderId, issue._count]));
   const active = new Set(problems.map((problem) => problem.key.slice(6)));
@@ -173,5 +185,6 @@ export async function orderSummaries(
     supplierName: supplierName(order),
     fulfillment: fulfillment.get(order.id),
     openIssues: (counts.get(order.id) ?? 0) + (active.has(order.id) ? 1 : 0),
+    pendingReviews: pending.get(order.id) ?? 0,
   }));
 }

@@ -77,15 +77,9 @@ export const commandSchema = z.discriminatedUnion("type", [
     .object({
       type: z.literal("stock.receive"),
       lines: z.array(receiptLine).min(1).max(200),
-      reason: z.enum(["opening", "receipt"]),
-    })
-    .strict(),
-  z
-    .object({
-      type: z.literal("stock.adjust"),
-      lotId: id,
-      quantity: z.number().int().min(0).max(1_000_000),
-      reason: z.string().trim().min(3).max(300),
+      // Stock is declared once, at the start. After that it only moves by
+      // delivery, sale, customer return and BioBalance's own decisions.
+      reason: z.literal("opening"),
     })
     .strict(),
   z
@@ -201,6 +195,25 @@ export const commandSchema = z.discriminatedUnion("type", [
         )
         .max(200),
       note: z.string().max(500).default(""),
+    })
+    .strict(),
+  // BioBalance settles a receipt that was not confirmed by the QR: it sees what
+  // was shipped and what the store says it got, corrects it, and submits.
+  z
+    .object({
+      type: z.literal("delivery.validate"),
+      deliveryId: id,
+      lines: z
+        .array(
+          receiptLine.extend({
+            condition: z.enum(["sellable", "damaged", "refused"]).optional(),
+          }),
+        )
+        .max(200),
+      // What happens to units shipped but not received: back to the depot's
+      // lots, or written off. BioBalance's own shipments have no depot.
+      shortfall: z.enum(["returned", "lost"]).default("returned"),
+      note: z.string().trim().min(3).max(500),
     })
     .strict(),
   z
@@ -349,6 +362,8 @@ export interface DeliveryRecord extends Omit<OrderRecord, "lines"> {
   sourceOrganizationId?: string | null;
   ticketNumber?: string;
   ticketVersion?: number;
+  /** What the store says it received when it could not scan the QR. */
+  claim?: unknown;
 }
 export interface DeliveryIssueRecord {
   id: string;

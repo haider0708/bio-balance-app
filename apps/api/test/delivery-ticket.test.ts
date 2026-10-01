@@ -444,42 +444,196 @@ describe("delivery tickets", () => {
     ).toBe("DELIVERY_CLOSED");
   });
 
-  it("flags a reception without scan, and can require a reason", async () => {
-    const { deliveryId } = await shipment(5);
-    await accepted(manager, receive(deliveryId, 1));
-    const receipt = await owner.deliveryReceipt.findFirstOrThrow({
-      where: { deliveryId },
-    });
-    expect(receipt.scanned).toBe(false);
-    const flagged = await owner.notification.findFirst({
-      where: { storeId: store, title: "Réception sans scan" },
-    });
-    expect(flagged?.body).toContain((await delivery(deliveryId)).ticketNumber);
-    process.env.TICKET_SCAN_REQUIRED = "true";
-    try {
-      const strict = await shipment(5);
-      expect(
-        (await service.submit(manager, receive(strict.deliveryId, 1))).code,
-      ).toBe("TICKET_SCAN_REQUIRED");
-      await accepted(
-        manager,
-        receive(strict.deliveryId, 1, { manualReason: "Étiquette abîmée" }),
-      );
-      expect(
-        (
-          await owner.deliveryReceipt.findFirstOrThrow({
-            where: { deliveryId: strict.deliveryId },
-          })
-        ).manualReason,
-      ).toBe("Étiquette abîmée");
-    } finally {
-      delete process.env.TICKET_SCAN_REQUIRED;
-    }
+  it("books exactly what the ticket lists when the QR is scanned", async () => {
+    const { deliveryId } = await shipment(5, { batch: "TRUTH" });
+    const code = codeOf((await tickets.ticket(admin, deliveryId, {})).qr);
+    // The receiver cannot change the lots or quantities of a scanned parcel.
+    await accepted(
+      manager,
+      receive(deliveryId, 1, { ticketCode: code }, "OTHER", 9),
+    );
+    const lot = (batch: string) =>
+      owner.inventoryLot.findUnique({
+        where: { id: lotIdentity(store, product, batch, "2031-06-30") },
+      });
+    expect((await lot("TRUTH"))?.sellable).toBe(5);
+    expect(await lot("OTHER")).toBeNull();
   });
 
-  it("reports a lot the ticket does not list", async () => {
+  it("moves nothing without the QR until BioBalance validates", async () => {
+    const { deliveryId } = await shipment(5, { batch: "CLAIM" });
+    const lot = (batch: string) =>
+      owner.inventoryLot.findUnique({
+        where: { id: lotIdentity(store, product, batch, "2031-06-30") },
+      });
+    // Not scanning needs a reason.
+    expect(
+      (await service.submit(manager, receive(deliveryId, 1, {}, "CLAIM", 7)))
+        .code,
+    ).toBe("MANUAL_REASON_REQUIRED");
+    await accepted(
+      manager,
+      receive(deliveryId, 1, { manualReason: "Étiquette abîmée" }, "CLAIM", 7),
+    );
+    const waiting = await delivery(deliveryId);
+    expect(waiting.status).toBe("pending_review");
+    expect(waiting.claim).toMatchObject({ manualReason: "Étiquette abîmée" });
+    expect(await lot("CLAIM")).toBeNull();
+    expect(await owner.deliveryReceipt.count({ where: { deliveryId } })).toBe(
+      0,
+    );
+    expect(
+      (
+        await owner.notification.findFirst({
+          where: { storeId: store, title: "Réception à valider" },
+        })
+      )?.body,
+    ).toContain(waiting.ticketNumber);
+    // The goods stay on the road for the order until it is validated.
+    const row = await order(waiting.orderId);
+    expect(row.status).toBe("dispatched");
+    // Neither the store nor a second claim can settle it.
+    const validate = (lines: number) =>
+      retail(
+        {
+          type: "delivery.validate",
+          deliveryId,
+          note: "Comparé au bon",
+          shortfall: "returned",
+          lines: [
+            {
+              productId: product,
+              batch: "CLAIM",
+              expiry: "2031-06-30",
+              quantity: lines,
+            },
+          ],
+        },
+        waiting.version,
+      );
+    expect((await service.submit(manager, validate(5))).code).toBe("FORBIDDEN");
+    expect(
+      (await service.submit(manager, receive(deliveryId, waiting.version)))
+        .code,
+    ).toBe("DELIVERY_ALREADY_RECEIVED");
+    await accepted(admin, validate(5));
+    expect((await lot("CLAIM"))?.sellable).toBe(5);
+    expect((await delivery(deliveryId)).status).toBe("received");
+    expect(
+      (await owner.deliveryReceipt.findFirstOrThrow({ where: { deliveryId } }))
+        .scanned,
+    ).toBe(false);
+    expect((await service.submit(admin, validate(5))).code).toBeDefined();
+  });
+
+  it("settles a correction between the depot and the store", async () => {
+    const depotLot = async () =>
+      (
+        await owner.inventoryLot.findUniqueOrThrow({
+          where: { id: lotIdentity(depot, product, "D1", "2031-06-30") },
+        })
+      ).sellable;
+    const claim = async (quantity: number, shipped = 10) => {
+      const { deliveryId } = await shipment(shipped, { supplier: true });
+      await accepted(
+        manager,
+        receive(
+          deliveryId,
+          1,
+          { manualReason: "Pas de caméra" },
+          "D1",
+          quantity,
+        ),
+      );
+      return { deliveryId, version: (await delivery(deliveryId)).version };
+    };
+    const validate = (
+      d: { deliveryId: string; version: number },
+      quantity: number,
+      shortfall: "returned" | "lost",
+    ) =>
+      retail(
+        {
+          type: "delivery.validate",
+          deliveryId: d.deliveryId,
+          note: "Vérifié avec les deux parties",
+          shortfall,
+          lines: [
+            {
+              productId: product,
+              batch: "D1",
+              expiry: "2031-06-30",
+              quantity,
+            },
+          ],
+        },
+        d.version,
+      );
+    const storeLot = async () =>
+      (
+        await owner.inventoryLot.findUnique({
+          where: { id: lotIdentity(store, product, "D1", "2031-06-30") },
+        })
+      )?.sellable ?? 0;
+    // The grossiste lied: 6 reached the store, 4 go back to the depot.
+    const short = await claim(6);
+    const depotBefore = await depotLot(),
+      storeBefore = await storeLot();
+    await accepted(admin, validate(short, 6, "returned"));
+    expect(await depotLot()).toBe(depotBefore + 4);
+    expect(await storeLot()).toBe(storeBefore + 6);
+    // The store lied: BioBalance corrects it up to what was shipped, nothing moves back.
+    const lied = await claim(2);
+    const beforeLie = [await depotLot(), await storeLot()];
+    await accepted(admin, validate(lied, 10, "returned"));
+    expect(await depotLot()).toBe(beforeLie[0]);
+    expect(await storeLot()).toBe(beforeLie[1]! + 10);
+    // Written off: the missing units do not return to the depot.
+    const lost = await claim(7);
+    const beforeLost = await depotLot();
+    await accepted(admin, validate(lost, 7, "lost"));
+    expect(await depotLot()).toBe(beforeLost);
+    // Extra units come out of the depot, and only if it has them.
+    const extra = await claim(12);
+    const beforeExtra = [await depotLot(), await storeLot()];
+    await accepted(admin, validate(extra, 12, "returned"));
+    expect(await depotLot()).toBe(beforeExtra[0]! - 2);
+    expect(await storeLot()).toBe(beforeExtra[1]! + 12);
+    const huge = await claim(5);
+    const rejected = await service.submit(
+      admin,
+      validate(huge, 100_000, "returned"),
+    );
+    expect(rejected.code).toBe("INSUFFICIENT_STOCK");
+    expect((await delivery(huge.deliveryId)).status).toBe("pending_review");
+  }, 60000);
+
+  it("lists a lot the ticket does not carry in the validated receipt", async () => {
     const { deliveryId } = await shipment(5);
-    await accepted(manager, receive(deliveryId, 1, {}, "OTHER"));
+    await accepted(
+      manager,
+      receive(deliveryId, 1, { manualReason: "Colis ouvert" }, "OTHER"),
+    );
+    await accepted(
+      admin,
+      retail(
+        {
+          type: "delivery.validate",
+          deliveryId,
+          note: "Lot différent confirmé",
+          shortfall: "returned",
+          lines: [
+            {
+              productId: product,
+              batch: "OTHER",
+              expiry: "2031-06-30",
+              quantity: 5,
+            },
+          ],
+        },
+        (await delivery(deliveryId)).version,
+      ),
+    );
     const receipt = await owner.deliveryReceipt.findFirstOrThrow({
       where: { deliveryId },
     });

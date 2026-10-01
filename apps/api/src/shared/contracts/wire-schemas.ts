@@ -80,6 +80,8 @@ export const wireSchemas: Record<string, Schema> = {
     onboardingStep: integer,
     workingAlone: bool,
     noOpeningStock: bool,
+    // Set once the opening stock was declared (or declared absent); then closed for good.
+    openingClosedAt: nullable(timestamp),
     version: integer,
     createdAt: timestamp,
   }),
@@ -309,10 +311,19 @@ export const wireSchemas: Record<string, Schema> = {
     sourceStoreId: nullable(uuid),
     ticketNumber: str,
     ticketVersion: integer,
+    // What the store says it received when it could not scan the QR.
+    claim: nullable(ref("DeliveryClaim")),
     status: str,
     version: integer,
     dispatchedAt: timestamp,
     receivedAt: nullable(timestamp),
+  }),
+  DeliveryClaim: obj({
+    lines: arr(ref("ReceiptLine")),
+    note: str,
+    manualReason: str,
+    claimedBy: uuid,
+    claimedAt: str,
   }),
   ReceiptLine: obj(
     {
@@ -332,6 +343,7 @@ export const wireSchemas: Record<string, Schema> = {
       damaged: integer,
       refused: integer,
       surplus: integer,
+      missing: integer,
     },
     ["productId", "expected", "actual"],
   ),

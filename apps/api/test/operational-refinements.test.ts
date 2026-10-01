@@ -12,6 +12,7 @@ import {
   Operation,
 } from "../src/modules/operations/domain/contracts";
 import { WorkspaceService } from "../src/modules/tenancy/workspace.service";
+import { ticketCode } from "../src/shared/domain/delivery-ticket";
 import { WorkspaceLifecycle } from "../src/modules/tenancy/lifecycle";
 import { NotificationsService } from "../src/modules/notifications/notifications.service";
 import { DashboardService } from "../src/modules/reporting/dashboard.service";
@@ -306,7 +307,7 @@ it("denies every seller stock/reception route even with a legacy receive grant",
     { type: "order.cancel", orderId, reason: "Pas autorisé" },
     {
       type: "stock.receive",
-      reason: "receipt",
+      reason: "opening",
       lines: [
         { productId: product, batch: "S", expiry: "2028-12", quantity: 1 },
       ],
@@ -337,9 +338,8 @@ it("retains one physical reception after a delayed parcel is reported and then a
     {
       type: "delivery.receive",
       deliveryId,
-      lines: [
-        { productId: product, batch: "LATE", expiry: "2028-12", quantity: 4 },
-      ],
+      ticketCode: ticketCode(deliveryId, 1),
+      lines: [],
       note: "",
     },
     2,
@@ -639,6 +639,7 @@ it("tracks damaged/refused/surplus receipts without counting them as approved su
       type: "delivery.receive",
       deliveryId,
       note: "Deux abîmés, deux refusés",
+      manualReason: "QR illisible",
       lines: [
         { productId: product, batch: "MIXED", expiry: "2028-12", quantity: 6 },
         {
@@ -660,6 +661,33 @@ it("tracks damaged/refused/surplus receipts without counting them as approved su
     1,
   );
   expect((await ops.submit(manager, receipt)).status).toBe("accepted");
+  // Nothing is booked until BioBalance validates what the store claims.
+  expect(
+    await owner.inventoryLot.count({
+      where: { storeId: store, productId: product, batch: "MIXED" },
+    }),
+  ).toBe(0);
+  expect(
+    (await reports.order(admin, org, store, orderId)).fulfillment[0],
+  ).toMatchObject({ received: 0, inTransit: 10 });
+  const claim = (receipt.command as { lines: unknown[] }).lines;
+  expect(
+    (
+      await ops.submit(
+        admin,
+        op(
+          {
+            type: "delivery.validate",
+            deliveryId,
+            note: "Deux abîmés, deux refusés confirmés",
+            shortfall: "returned",
+            lines: claim as never,
+          },
+          2,
+        ),
+      )
+    ).status,
+  ).toBe("accepted");
   const lot = await owner.inventoryLot.findFirstOrThrow({
     where: { storeId: store, productId: product, batch: "MIXED" },
   });
@@ -667,10 +695,13 @@ it("tracks damaged/refused/surplus receipts without counting them as approved su
   const detail = await reports.order(admin, org, store, orderId);
   expect(detail.fulfillment[0]).toMatchObject({
     received: 6,
-    inTransit: 4,
-    remainingToDispatch: 0,
+    inTransit: 0,
+    remainingToDispatch: 4,
   });
   const extra = await shipment(3);
+  const surplusLines = [
+    { productId: product, batch: "SURPLUS", expiry: "2028-12", quantity: 5 },
+  ];
   expect(
     (
       await ops.submit(
@@ -680,16 +711,27 @@ it("tracks damaged/refused/surplus receipts without counting them as approved su
             type: "delivery.receive",
             deliveryId: extra.deliveryId,
             note: "Deux unités supplémentaires",
-            lines: [
-              {
-                productId: product,
-                batch: "SURPLUS",
-                expiry: "2028-12",
-                quantity: 5,
-              },
-            ],
+            manualReason: "QR illisible",
+            lines: surplusLines,
           },
           1,
+        ),
+      )
+    ).status,
+  ).toBe("accepted");
+  expect(
+    (
+      await ops.submit(
+        admin,
+        op(
+          {
+            type: "delivery.validate",
+            deliveryId: extra.deliveryId,
+            note: "Deux unités supplémentaires confirmées",
+            shortfall: "returned",
+            lines: surplusLines,
+          },
+          2,
         ),
       )
     ).status,
@@ -705,16 +747,18 @@ it("tracks damaged/refused/surplus receipts without counting them as approved su
       })
     ).sellable,
   ).toBe(5);
+  // BioBalance decided: no incident stays open.
   expect(
-    (
-      await owner.deliveryIssue.findUniqueOrThrow({
-        where: { deliveryId: extra.deliveryId },
-      })
-    ).status,
-  ).toBe("open");
+    await owner.deliveryIssue.count({
+      where: { deliveryId: extra.deliveryId },
+    }),
+  ).toBe(0);
 });
 it("keeps partially received orders visible while another shipment is in transit", async () => {
   const { orderId, deliveryId } = await shipment(10);
+  const partial = [
+    { productId: product, batch: "PARTIAL", expiry: "2028-12", quantity: 6 },
+  ];
   await ops.submit(
     manager,
     op(
@@ -722,14 +766,8 @@ it("keeps partially received orders visible while another shipment is in transit
         type: "delivery.receive",
         deliveryId,
         note: "Partiel",
-        lines: [
-          {
-            productId: product,
-            batch: "PARTIAL",
-            expiry: "2028-12",
-            quantity: 6,
-          },
-        ],
+        manualReason: "QR illisible",
+        lines: partial,
       },
       1,
     ),
@@ -738,10 +776,11 @@ it("keeps partially received orders visible while another shipment is in transit
     admin,
     op(
       {
-        type: "delivery.resolve",
+        type: "delivery.validate",
         deliveryId,
-        decision: "settled",
-        reason: "Reliquat confirmé",
+        note: "Reliquat confirmé",
+        shortfall: "returned",
+        lines: partial,
       },
       2,
     ),

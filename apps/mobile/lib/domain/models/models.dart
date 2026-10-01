@@ -43,8 +43,12 @@ class Store {
   final String? imageId;
   // A grossiste depot receives and ships stock but records no sales.
   final bool wholesale;
+  // The opening stock was declared (or declared absent): it cannot be entered again.
+  final bool openingClosed;
   Store.fromJson(Json v)
     : wholesale = v['organizationKind'] == 'wholesale',
+      openingClosed =
+          v['openingClosedAt'] != null || v['noOpeningStock'] == true,
       version = integer(v['version'] ?? 1),
       status = v['status'] ?? 'active',
       id = v['id'],
@@ -76,6 +80,7 @@ class Store {
     'status': status,
     'version': version,
     'imageId': imageId,
+    'openingClosedAt': openingClosed ? '1970-01-01T00:00:00.000Z' : null,
   };
 }
 

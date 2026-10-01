@@ -16,7 +16,8 @@ enum OrderSection {
   const OrderSection(this.label);
   bool contains(Json order) => switch (this) {
     all => true,
-    issues => integer(order['openIssues']) > 0,
+    issues =>
+      integer(order['openIssues']) > 0 || integer(order['pendingReviews']) > 0,
     preparation => [
       'requested',
       'preparing',
@@ -34,7 +35,7 @@ enum OrderSection {
     all =>
       'Toutes les commandes de cet espace, avec leur magasin et leur suivi.',
     issues =>
-      'Signalements sur les commandes et écarts de réception à traiter.',
+      'Signalements, livraisons non reçues et réceptions sans scan à valider.',
     preparation =>
       admin ? 'Demandes des magasins et compléments restant à expédier.' : 'BioBalance prépare vos produits. Ouvrez une commande pour suivre son avancement.',
     transit => 'Les produits sont en route. Le stock augmente seulement après réception.',
@@ -99,7 +100,9 @@ class OrderRow extends StatelessWidget {
       icon: AppIcons.package,
       tone: order['status'] == 'received' ? AppTone.success : AppTone.info,
       footer: StatusChip(
-        statusLabel(order['status']),
+        integer(order['pendingReviews']) > 0
+            ? 'Réception à valider'
+            : statusLabel(order['status']),
         icon: order['status'] == 'received'
             ? AppIcons.checkCircleOutline
             : AppIcons.package,

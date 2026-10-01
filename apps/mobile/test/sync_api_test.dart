@@ -113,7 +113,7 @@ void main() {
       });
       await queue({
         'type': 'stock.receive',
-        'reason': 'receipt',
+        'reason': 'opening',
         'lines': [receiptLine],
       }, draft: 'receipt');
       expect(await repo.draft(user.id, store.id, 'receipt'), isNull);

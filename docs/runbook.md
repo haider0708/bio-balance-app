@@ -31,7 +31,7 @@ Démarrer les API configurées (deux par défaut, quatre avec l’override go2co
 
 ## Bons de livraison
 
-Le QR des bons est signé avec une clé dérivée de `MFA_ENCRYPTION_KEY` : la conserver, sa perte invaliderait les QR en circulation. `TICKET_SCAN_REQUIRED=true` (environnement des API) refuse toute réception sans scan ni motif ; à activer quand tous les téléphones ont la version 1.3. Une réception sans scan est notifiée à BioBalance (« Réception sans scan »).
+Le QR des bons est signé avec une clé dérivée de `MFA_ENCRYPTION_KEY` : la conserver, sa perte invaliderait les QR en circulation. Une réception sans scan n’ajoute rien au stock : elle attend la validation de BioBalance (« Réception à valider »), voir [la réception vérifiée](reception-validation-2026-10-01.md).
 
 ## Téléphones
 

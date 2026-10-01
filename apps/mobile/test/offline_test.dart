@@ -441,7 +441,7 @@ void main() {
           }, {});
       await enqueue('receipt', {
         'type': 'stock.receive',
-        'reason': 'receipt',
+        'reason': 'opening',
         'lines': [line],
       }, null);
       await enqueue('damage', {
@@ -452,7 +452,7 @@ void main() {
       }, 2);
       await enqueue('unrelated', {
         'type': 'stock.receive',
-        'reason': 'receipt',
+        'reason': 'opening',
         'lines': [
           {...line, 'batch': 'C'},
         ],
@@ -509,36 +509,46 @@ void main() {
     expect(lots.single['damaged'], 2);
     expect(lots.single['version'], 6);
   });
-  test('delivery condition projection agrees with sellable and damaged server buckets', () {
-    final projection = StockProjection.forCommand(store.id, {
-      'type': 'delivery.receive',
-      'deliveryId': 'delivery',
-      'lines': [
-        {'productId': 'p', 'batch': 'B', 'expiry': '2028-12', 'quantity': 6},
+  test('a scanned parcel projects its ticket lots; a claim projects nothing', () {
+    final data = StoreData({
+      'deliveries': [
         {
-          'productId': 'p',
-          'batch': 'B',
-          'expiry': '2028-12',
-          'quantity': 2,
-          'condition': 'damaged',
-        },
-        {
-          'productId': 'p',
-          'batch': 'B',
-          'expiry': '2028-12',
-          'quantity': 2,
-          'condition': 'refused',
+          'id': 'delivery',
+          'lines': [
+            {
+              'productId': 'p',
+              'quantity': 8,
+              'allocations': [
+                {'batch': 'B', 'expiry': '2028-12', 'quantity': 6},
+                {'batch': 'C', 'expiry': '2029-01', 'quantity': 2},
+              ],
+            },
+          ],
         },
       ],
-    }, null);
+    });
+    final scanned = StockProjection.forCommand(store.id, {
+      'type': 'delivery.receive',
+      'deliveryId': 'delivery',
+      'ticketCode': 'AbCdEfGhIjKlMnOpQrStUv',
+      'lines': [],
+    }, data);
     final lots = <Json>[];
-    for (final effect in projection.movements) {
+    for (final effect in scanned.movements) {
       StockProjection.apply(lots, effect.toJson());
     }
-    expect(projection.movements.length, 2);
-    expect(lots.single['sellable'], 6);
-    expect(lots.single['damaged'], 2);
-    expect(lots.single['version'], 3);
+    expect(scanned.movements.length, 2);
+    expect(lots.map((l) => l['sellable']), [6, 2]);
+    // Without the QR the stock only moves once BioBalance validates.
+    final claim = StockProjection.forCommand(store.id, {
+      'type': 'delivery.receive',
+      'deliveryId': 'delivery',
+      'manualReason': 'QR illisible',
+      'lines': [
+        {'productId': 'p', 'batch': 'B', 'expiry': '2028-12', 'quantity': 6},
+      ],
+    }, data);
+    expect(claim.movements, isEmpty);
   });
   test('SQLite version 1 migration preserves a populated outbox', () async {
     final db = AppDatabase(

@@ -21,6 +21,9 @@ export interface Ledger {
     work: (depot: Ledger) => Promise<T>,
     options?: { allowInactive?: boolean },
   ): Promise<T>;
+  /** True once the opening stock was declared (or declared absent). */
+  openingClosed(): Promise<boolean>;
+  closeOpening(): Promise<void>;
   /** Records a stock change in this store's synchronization feed. */
   touch(entity: string, entityId: string, changeId: string): Promise<void>;
   /** The active responsible account of a depot's organization. */

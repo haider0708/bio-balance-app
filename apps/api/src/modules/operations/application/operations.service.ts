@@ -9,6 +9,7 @@ import {
   CommandOutcome,
   SaleRecord,
   DispatchedLine,
+  DeliveryRecord,
 } from "../domain/contracts";
 import { Sale } from "../domain/sale";
 import { verifyTicketCode } from "../../../shared/domain/delivery-ticket";
@@ -325,6 +326,233 @@ export class OperationsService {
       { allowInactive: true },
     );
   }
+  private checkProducts(
+    delivery: { lines: { productId: string }[] },
+    lines: { productId: string }[],
+  ) {
+    for (const line of lines)
+      requireRule(
+        delivery.lines.some((l) => l.productId === line.productId),
+        "UNEXPECTED_PRODUCT",
+        "Produit absent de cette livraison.",
+      );
+  }
+  /**
+   * Books a receipt: the stock enters the store, and the difference with the
+   * shipment is settled against the depot. Reached by a confirmed QR scan, or by
+   * BioBalance validating a claim.
+   */
+  private async settleReceipt(
+    ledger: Ledger,
+    op: Operation,
+    delivery: DeliveryRecord,
+    lines: {
+      productId: string;
+      batch: string;
+      expiry: string;
+      quantity: number;
+      condition: "sellable" | "damaged" | "refused";
+    }[],
+    proof: {
+      scanned: boolean;
+      note: string;
+      manualReason?: string;
+      shortfall?: "returned" | "lost";
+      validated?: boolean;
+    },
+  ) {
+    const affected = new Set<string>();
+    const sum = (condition: string) => {
+      const bucket = new Map<string, number>();
+      for (const line of lines)
+        if (line.condition === condition)
+          bucket.set(
+            line.productId,
+            (bucket.get(line.productId) ?? 0) + line.quantity,
+          );
+      return bucket;
+    };
+    const actual = sum("sellable"),
+      damaged = sum("damaged"),
+      refused = sum("refused");
+    const differences = delivery.lines.map((l) => {
+      const got =
+        (actual.get(l.productId) ?? 0) +
+        (damaged.get(l.productId) ?? 0) +
+        (refused.get(l.productId) ?? 0);
+      return {
+        productId: l.productId,
+        expected: l.quantity,
+        actual: actual.get(l.productId) ?? 0,
+        damaged: damaged.get(l.productId) ?? 0,
+        refused: refused.get(l.productId) ?? 0,
+        surplus: Math.max(0, got - l.quantity),
+        missing: Math.max(0, l.quantity - got),
+      };
+    });
+    // A lot the ticket does not list is recorded, never silently accepted.
+    const outsideTicket = lines
+      .filter((line) => {
+        const listed = delivery.lines.find(
+          (l) => l.productId === line.productId,
+        )?.allocations;
+        if (!listed?.length) return false;
+        const expiry = expiryDate(line.expiry);
+        return !listed.some(
+          (a) => a.batch === line.batch && a.expiry === expiry,
+        );
+      })
+      .map((line) => ({
+        productId: line.productId,
+        batch: line.batch,
+        expiry: expiryDate(line.expiry),
+      }));
+    await ledger.receipt(
+      delivery.id,
+      lines,
+      { lines: differences, note: proof.note, outsideTicket },
+      op.operationId,
+      { scanned: proof.scanned, manualReason: proof.manualReason },
+    );
+    for (const line of lines) {
+      if (line.condition === "refused") continue;
+      await ledger.receive(
+        line.productId,
+        line.batch,
+        expiryDate(line.expiry),
+        line.quantity,
+        delivery.id,
+        op.operationId,
+        "delivery.receive",
+        line.condition === "damaged" ? "damaged" : "sellable",
+      );
+      affected.add(line.productId);
+    }
+    // What the store got beyond the shipment comes out of the depot; what it did
+    // not get goes back there, or is written off. BioBalance's own stock is not tracked.
+    if (proof.validated && delivery.sourceStoreId)
+      await this.reconcileDepot(
+        ledger,
+        delivery,
+        differences,
+        proof.shortfall ?? "returned",
+        op.operationId,
+      );
+    const prior = await ledger.issue(delivery.id);
+    if (prior && prior.status !== "resolved")
+      await ledger.saveIssue({
+        ...prior,
+        status: "resolved",
+        heldLines: [],
+        resolution: proof.validated ? "validated" : "received",
+        resolutionNote: proof.validated
+          ? proof.note
+          : "Réception complète confirmée.",
+        version: prior.version + 1,
+      });
+    delivery.status = "received";
+    delivery.version++;
+    await ledger.saveDelivery(delivery);
+    const order = await ledger.order(delivery.orderId);
+    order.status = Order.status(
+      await ledger.fulfillment(order),
+      await ledger.hasIssues(order.id),
+    );
+    order.version++;
+    await ledger.saveOrder(order);
+    await ledger.alerts([...affected]);
+    await this.creditDepot(
+      ledger,
+      delivery,
+      new Map(
+        differences
+          .map((l) => [l.productId, Math.min(l.actual, l.expected)] as const)
+          .filter(([, quantity]) => quantity > 0),
+      ),
+    );
+    await ledger.notify(
+      op.operationId,
+      proof.validated ? "Réception validée" : "Livraison réceptionnée",
+      "Les quantités reçues ont été ajoutées au stock.",
+    );
+    return {
+      id: delivery.id,
+      version: delivery.version,
+      status: delivery.status,
+      differences,
+    };
+  }
+  private async reconcileDepot(
+    ledger: Ledger,
+    delivery: DeliveryRecord,
+    differences: { productId: string; surplus: number; missing: number }[],
+    shortfall: "returned" | "lost",
+    operationId: string,
+  ) {
+    const moves = differences.filter((d) => d.surplus > 0 || d.missing > 0);
+    if (!moves.length) return;
+    await ledger.inDepot(
+      delivery.sourceStoreId!,
+      async (depot) => {
+        const changeId = randomUUID();
+        const touched: string[] = [];
+        for (const d of moves) {
+          const lots = (
+            delivery.lines.find((l) => l.productId === d.productId)
+              ?.allocations ?? []
+          ).filter((a) => a.lotId);
+          if (d.missing > 0 && shortfall === "returned") {
+            let left = d.missing;
+            for (const a of lots) {
+              const back = Math.min(left, a.quantity);
+              if (back <= 0) continue;
+              await depot.move(
+                a.lotId!,
+                back,
+                delivery.id,
+                changeId,
+                "delivery.return",
+              );
+              left -= back;
+              touched.push(d.productId);
+            }
+          }
+          if (d.surplus > 0) {
+            let left = d.surplus;
+            for (const a of lots) {
+              if (left <= 0) break;
+              const lot = await depot.lot(a.lotId!);
+              const take = Math.min(left, lot.sellable);
+              if (take <= 0) continue;
+              await depot.move(
+                a.lotId!,
+                -take,
+                delivery.id,
+                changeId,
+                "delivery.correction",
+              );
+              left -= take;
+              touched.push(d.productId);
+            }
+            requireRule(
+              left === 0,
+              "INSUFFICIENT_STOCK",
+              "Le dépôt n’a pas assez de stock pour ce complément. Corrigez les quantités.",
+              409,
+            );
+          }
+        }
+        await depot.alerts(touched);
+        await depot.touch("delivery.correction", delivery.id, changeId);
+        await depot.notify(
+          `${operationId}:depot`,
+          "Réception corrigée",
+          "BioBalance a corrigé les quantités reçues : votre stock a été ajusté.",
+        );
+      },
+      { allowInactive: true },
+    );
+  }
   private async apply(ledger: Ledger, op: Operation): Promise<CommandOutcome> {
     const cmd = op.command,
       actor = ledger.scope.actor,
@@ -482,6 +710,14 @@ export class OperationsService {
     }
     if (cmd.type === "stock.receive") {
       this.allow(ledger, "manage");
+      // The one chance to declare what is already on the shelves. Afterwards stock
+      // only moves by delivery, sale, customer return and BioBalance's decisions.
+      requireRule(
+        !(await ledger.openingClosed()),
+        "OPENING_CLOSED",
+        "Le stock de départ a déjà été déclaré. Passez une commande pour recevoir des produits.",
+        409,
+      );
       for (const line of cmd.lines) {
         await ledger.receive(
           line.productId,
@@ -494,22 +730,9 @@ export class OperationsService {
         );
         affected.add(line.productId);
       }
+      await ledger.closeOpening();
       await ledger.alerts([...affected]);
       return { id: op.operationId };
-    }
-    if (cmd.type === "stock.adjust") {
-      this.allow(ledger, "manage");
-      const lot = await ledger.lot(cmd.lotId);
-      this.version(lot.version, op.expectedVersion);
-      await ledger.move(
-        lot.id,
-        cmd.quantity - lot.sellable,
-        op.operationId,
-        op.operationId,
-        `adjustment: ${cmd.reason}`,
-      );
-      await ledger.alerts([lot.productId]);
-      return { id: lot.id };
     }
     // Damaged or expired goods leave sellable stock at once and wait for BioBalance.
     if (cmd.type === "stock.damage" || cmd.type === "quality.flag") {
@@ -795,7 +1018,9 @@ export class OperationsService {
     }
     if (
       cmd.type === "delivery.report" ||
-      (cmd.type === "delivery.receive" && cmd.lines.length === 0)
+      (cmd.type === "delivery.receive" &&
+        cmd.lines.length === 0 &&
+        cmd.ticketCode === undefined)
     ) {
       this.allow(ledger, "manage");
       const delivery = await ledger.delivery(cmd.deliveryId);
@@ -846,6 +1071,13 @@ export class OperationsService {
         403,
       );
       this.version(delivery.version, op.expectedVersion);
+      // A grossiste follows its delivery up; only BioBalance decides the outcome.
+      requireRule(
+        cmd.decision === "tracing" || actor.platformAdmin,
+        "FORBIDDEN",
+        "Seul BioBalance décide du sort d’une livraison (perdue, retournée ou réglée).",
+        403,
+      );
       const issue = await ledger.issue(delivery.id);
       requireRule(
         issue && issue.status !== "resolved",
@@ -1074,36 +1306,12 @@ export class OperationsService {
       requireRule(
         delivery.status === "dispatched",
         "DELIVERY_ALREADY_RECEIVED",
-        "Cette livraison a déjà été réceptionnée.",
+        delivery.status === "pending_review"
+          ? "Cette réception attend la validation de BioBalance."
+          : "Cette livraison a déjà été réceptionnée.",
         409,
       );
-      requireRule(
-        cmd.lines.length > 0 || cmd.note.trim().length > 0,
-        "MISSING_DELIVERY_REASON",
-        "Expliquez pourquoi aucune unité n’a été reçue.",
-      );
-      const actual = new Map<string, number>();
-      const damaged = new Map<string, number>();
-      const refused = new Map<string, number>();
-      for (const line of cmd.lines) {
-        requireRule(
-          delivery.lines.some((l) => l.productId === line.productId),
-          "UNEXPECTED_PRODUCT",
-          "Produit absent de cette livraison.",
-        );
-        const bucket =
-          line.condition === "damaged"
-            ? damaged
-            : line.condition === "refused"
-              ? refused
-              : actual;
-        bucket.set(
-          line.productId,
-          (bucket.get(line.productId) ?? 0) + line.quantity,
-        );
-      }
-      // The ticket's QR proves the parcel is physically here.
-      let scanned = false;
+      // The QR is the truth: a valid scan confirms exactly what the ticket lists.
       if (cmd.ticketCode !== undefined) {
         requireRule(
           verifyTicketCode(
@@ -1115,142 +1323,99 @@ export class OperationsService {
           "Ce QR ne correspond pas à cette livraison ou a été remplacé. Demandez un nouveau bon à l’expéditeur.",
           409,
         );
-        scanned = true;
-      } else if (process.env.TICKET_SCAN_REQUIRED === "true")
+        const lines = delivery.lines.flatMap((l) =>
+          (l.allocations ?? []).map((a) => ({
+            productId: l.productId,
+            batch: a.batch,
+            expiry: a.expiry,
+            quantity: a.quantity,
+            condition: "sellable" as const,
+          })),
+        );
         requireRule(
-          cmd.manualReason,
-          "TICKET_SCAN_REQUIRED",
-          "Scannez le QR du bon de livraison, ou indiquez pourquoi c’est impossible.",
+          lines.length > 0 &&
+            delivery.lines.every(
+              (l) =>
+                (l.allocations ?? []).reduce(
+                  (sum, a) => sum + a.quantity,
+                  0,
+                ) === l.quantity,
+            ),
+          "TICKET_WITHOUT_LOTS",
+          "Ce bon ne liste pas ses lots : indiquez ce que vous avez reçu, BioBalance validera.",
+          409,
         );
-      // A lot the ticket does not list is reported, never silently accepted.
-      const outsideTicket = cmd.lines
-        .filter((line) => {
-          const listed = delivery.lines.find(
-            (l) => l.productId === line.productId,
-          )?.allocations;
-          if (!listed?.length) return false;
-          const expiry = expiryDate(line.expiry);
-          return !listed.some(
-            (a) => a.batch === line.batch && a.expiry === expiry,
-          );
-        })
-        .map((line) => ({
-          productId: line.productId,
-          batch: line.batch,
-          expiry: expiryDate(line.expiry),
-        }));
-      const differences = delivery.lines.map((l) => ({
-        productId: l.productId,
-        expected: l.quantity,
-        actual: actual.get(l.productId) ?? 0,
-        damaged: damaged.get(l.productId) ?? 0,
-        refused: refused.get(l.productId) ?? 0,
-        surplus: Math.max(
-          0,
-          (actual.get(l.productId) ?? 0) +
-            (damaged.get(l.productId) ?? 0) +
-            (refused.get(l.productId) ?? 0) -
-            l.quantity,
-        ),
-      }));
-      requireRule(
-        !differences.some(
-          (l) => l.damaged > 0 || l.refused > 0 || l.surplus > 0,
-        ) || cmd.note.trim().length >= 3,
-        "DELIVERY_DIFFERENCE_REASON",
-        "Expliquez les unités abîmées, refusées ou supplémentaires.",
-      );
-      await ledger.receipt(
-        delivery.id,
-        cmd.lines,
-        { lines: differences, note: cmd.note, outsideTicket },
-        op.operationId,
-        { scanned, manualReason: cmd.manualReason },
-      );
-      // A reception without the QR is flagged to BioBalance, never hidden.
-      if (!scanned)
-        await ledger.notify(
-          `${op.operationId}:manual`,
-          "Réception sans scan",
-          `Le bon ${delivery.ticketNumber} a été réceptionné sans scanner son QR${cmd.manualReason ? ` : ${cmd.manualReason}` : "."}`,
-        );
-      for (const line of cmd.lines) {
-        if (line.condition === "refused") continue;
-        await ledger.receive(
-          line.productId,
-          line.batch,
-          expiryDate(line.expiry),
-          line.quantity,
-          delivery.id,
-          op.operationId,
-          "delivery.receive",
-          line.condition === "damaged" ? "damaged" : "sellable",
-        );
-        affected.add(line.productId);
+        return this.settleReceipt(ledger, op, delivery, lines, {
+          scanned: true,
+          note: "",
+        });
       }
-      delivery.status = "received";
+      // Without the QR the store only says what it got. Nothing is added to its
+      // stock until BioBalance has compared that with what was shipped.
+      requireRule(
+        (cmd.manualReason ?? "").length >= 3,
+        "MANUAL_REASON_REQUIRED",
+        "Scannez le QR du colis, ou indiquez pourquoi c’est impossible.",
+      );
+      this.checkProducts(delivery, cmd.lines);
+      delivery.claim = {
+        lines: cmd.lines.map((l) => ({
+          productId: l.productId,
+          batch: l.batch,
+          expiry: expiryDate(l.expiry),
+          quantity: l.quantity,
+          condition: l.condition ?? "sellable",
+        })),
+        note: cmd.note.trim(),
+        manualReason: cmd.manualReason,
+        claimedBy: actor.id,
+        claimedAt: new Date().toISOString(),
+      };
+      delivery.status = "pending_review";
       delivery.version++;
       await ledger.saveDelivery(delivery);
-      const priorIssue = await ledger.issue(delivery.id);
-      const hasDifferences = differences.some(
-        (l) =>
-          l.expected !== l.actual ||
-          l.damaged > 0 ||
-          l.refused > 0 ||
-          l.surplus > 0,
-      );
-      if (hasDifferences) {
-        await ledger.saveIssue({
-          id: priorIssue?.id ?? randomUUID(),
-          deliveryId: delivery.id,
-          orderId: delivery.orderId,
-          status: "open",
-          reason:
-            cmd.note.trim() || "Écart entre les quantités expédiées et reçues.",
-          heldLines: differences
-            .filter((l) => l.expected > l.actual)
-            .map((l) => ({
-              productId: l.productId,
-              quantity: l.expected - l.actual,
-            })),
-          version: (priorIssue?.version ?? 0) + 1,
-        });
-      } else if (priorIssue && priorIssue.status !== "resolved") {
-        await ledger.saveIssue({
-          ...priorIssue,
-          status: "resolved",
-          heldLines: [],
-          resolution: "received",
-          resolutionNote: "Réception complète confirmée.",
-          version: priorIssue.version + 1,
-        });
-      }
-      const order = await ledger.order(delivery.orderId);
-      const fulfillment = await ledger.fulfillment(order);
-      order.status = Order.status(
-        fulfillment,
-        await ledger.hasIssues(order.id),
-      );
-      order.version++;
-      await ledger.saveOrder(order);
-      await ledger.alerts([...affected]);
-      await this.creditDepot(
-        ledger,
-        delivery,
-        new Map(
-          differences
-            .map((l) => [l.productId, Math.min(l.actual, l.expected)] as const)
-            .filter(([, quantity]) => quantity > 0),
-        ),
-      );
       await ledger.notify(
         op.operationId,
-        "Livraison réceptionnée",
-        cmd.lines.length
-          ? "Les quantités reçues ont été ajoutées au stock."
-          : "Le magasin n’a reçu aucune unité. Consultez le motif et préparez le suivi.",
+        "Réception à valider",
+        `Le bon ${delivery.ticketNumber} a été réceptionné sans scan : ${cmd.manualReason}. Comparez et validez.`,
       );
-      return { id: delivery.id, version: delivery.version, differences };
+      return {
+        id: delivery.id,
+        version: delivery.version,
+        status: delivery.status,
+      };
+    }
+    if (cmd.type === "delivery.validate") {
+      requireRule(
+        actor.platformAdmin,
+        "FORBIDDEN",
+        "Seul BioBalance valide une réception sans scan.",
+        403,
+      );
+      const delivery = await ledger.delivery(cmd.deliveryId);
+      this.version(delivery.version, op.expectedVersion);
+      // BioBalance may also settle a parcel on the store's behalf.
+      requireRule(
+        ["pending_review", "dispatched"].includes(delivery.status),
+        "NOTHING_TO_VALIDATE",
+        "Cette livraison est déjà réceptionnée ou clôturée.",
+        409,
+      );
+      this.checkProducts(delivery, cmd.lines);
+      return this.settleReceipt(
+        ledger,
+        op,
+        delivery,
+        cmd.lines.map((l) => ({ ...l, condition: l.condition ?? "sellable" })),
+        {
+          scanned: false,
+          note: cmd.note,
+          manualReason: (delivery.claim as { manualReason?: string } | null)
+            ?.manualReason,
+          shortfall: cmd.shortfall,
+          validated: true,
+        },
+      );
     }
     if (cmd.type === "reward.request") {
       this.allow(ledger, "sell");

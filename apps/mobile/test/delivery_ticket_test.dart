@@ -121,30 +121,27 @@ void main() {
   });
 
   testWidgets(
-    'a scanned parcel pre-fills its lots and sends the QR code as proof',
+    'a scanned parcel shows the ticket read-only and sends only the QR code',
     (tester) async {
       final vm = await pump(tester, scannedCode: code);
       expect(find.text('Bon BL-2026-000123 vérifié'), findsOneWidget);
-      // The announced lots are the starting point, each unit count editable.
-      expect(find.textContaining('6 unités'), findsOneWidget);
-      expect(find.textContaining('Lot A1'), findsOneWidget);
-      expect(find.textContaining('Lot B2'), findsOneWidget);
+      // The ticket is the truth: its lots are shown, nothing to type.
+      expect(find.textContaining('6 × lot A1'), findsOneWidget);
+      expect(find.textContaining('4 × lot B2'), findsOneWidget);
+      expect(find.text('Saisir le lot reçu'), findsNothing);
       await tester.ensureVisible(find.text('Confirmer la réception'));
       await tester.tap(find.text('Confirmer la réception'));
       await tester.pumpAndSettle();
       expect(vm.submitted!['type'], 'delivery.receive');
       expect(vm.submitted!['ticketCode'], code);
       expect(vm.submitted!.containsKey('manualReason'), isFalse);
-      expect(objects(vm.submitted!['lines']).map((l) => l['batch']), [
-        'A1',
-        'B2',
-      ]);
+      expect(objects(vm.submitted!['lines']), isEmpty);
       expect(tester.takeException(), isNull);
     },
   );
 
   testWidgets(
-    'without a scan the receiver must say why, and BioBalance is told',
+    'without a scan the receiver says why, and BioBalance validates the claim',
     (tester) async {
       final vm = await pump(tester);
       expect(find.text('Scanner le QR du bon BL-2026-000123'), findsOneWidget);
@@ -152,12 +149,13 @@ void main() {
       await tester.pumpAndSettle();
       expect(
         find.text(
-          'Cette réception sera signalée à BioBalance comme faite sans scan.',
+          'BioBalance comparera avec ce qui a été expédié, puis validera. Le stock n’augmente qu’à ce moment.',
         ),
         findsOneWidget,
       );
       // Nothing is pre-filled without the scan: the receiver enters what he counts.
       expect(find.textContaining('Lot A1'), findsNothing);
+      expect(find.text('Envoyer à BioBalance pour validation'), findsOneWidget);
       expect(vm.submitted, isNull);
       expect(tester.takeException(), isNull);
     },

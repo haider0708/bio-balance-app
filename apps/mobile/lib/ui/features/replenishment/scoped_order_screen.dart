@@ -19,6 +19,7 @@ import 'order_screens.dart';
 import 'order_sections.dart';
 import 'order_actions.dart';
 import 'order_creation_screen.dart';
+import 'reception_validation_screen.dart';
 import '../../core/forms.dart';
 import '../inventory/inventory_screens.dart';
 import '../../../domain/models/tunis_dates.dart';
@@ -582,9 +583,14 @@ class _ExactOrderScreenState extends State<ExactOrderScreen> {
   }
 
   Widget deliveryRow(Json delivery, bool disabled) {
+    // The store confirms its own parcel; BioBalance validates what has no scan.
     final canReceive =
         delivery['status'] == 'dispatched' &&
-        (widget.store.canManage || vm.user.admin);
+        widget.store.canManage &&
+        !vm.user.admin;
+    final canValidate =
+        vm.user.admin &&
+        ['pending_review', 'dispatched'].contains(delivery['status']);
     final hasIssue = objects(data?['issues'])
         .any((issue) => issue['deliveryId'] == delivery['id']);
     return CompactRow(
@@ -608,6 +614,31 @@ class _ExactOrderScreenState extends State<ExactOrderScreen> {
               ),
               icon: const Icon(AppIcons.qrCode, size: 18),
               label: const Text('Bon et QR'),
+            ),
+          if (canValidate)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: FilledButton.tonal(
+                onPressed: busy || loading
+                    ? null
+                    : () async {
+                        await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => ReceptionValidationScreen(
+                              vm: vm,
+                              delivery: delivery,
+                            ),
+                          ),
+                        );
+                        if (mounted) await load();
+                      },
+                child: Text(
+                  delivery['status'] == 'pending_review'
+                      ? 'Comparer et valider'
+                      : 'Réceptionner au nom du magasin',
+                ),
+              ),
             ),
           if (canReceive) ...[
             const SizedBox(height: 8),
@@ -796,6 +827,7 @@ class _ExactOrderScreenState extends State<ExactOrderScreen> {
         'order.assign': 'Fournisseur modifié',
         'delivery.dispatch': 'Livraison expédiée',
         'delivery.receive': 'Réception enregistrée',
+        'delivery.validate': 'Réception validée par BioBalance',
         'delivery.report': 'Livraison signalée',
         'delivery.resolve': 'Incident traité',
       }[action] ??

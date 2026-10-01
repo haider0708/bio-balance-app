@@ -1,3 +1,5 @@
+import 'domain/trusted_clock.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -20,8 +22,9 @@ import 'ui/features/authentication/account_links.dart';
 import 'ui/features/workspace/workspace_view_model.dart';
 import 'ui/features/workspace/workspace_navigator.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await TrustedClock.restore();
   LicenseRegistry.addLicense(() async* {
     yield LicenseEntryWithLineBreaks([
       'Lucide Icons',

@@ -14,6 +14,7 @@ String statusLabel(dynamic status) =>
       'requested': 'Demandée',
       'preparing': 'En préparation',
       'dispatched': 'Expédiée',
+      'pending_review': 'En attente de validation par BioBalance',
       'received': 'Réceptionnée',
       'partial': 'Partiellement livrée',
       'fulfilled': 'Remise confirmée',

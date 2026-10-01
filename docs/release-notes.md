@@ -1,3 +1,11 @@
+# BioBalance 1.4.0+18 — réception vérifiée et stock déclaré une fois
+
+Le QR fait foi : un colis scanné ajoute exactement ce que le bon liste. Sans QR, le récepteur déclare ce qu’il a reçu et rien ne bouge jusqu’à la validation de BioBalance, qui compare, corrige et tranche (le manque retourne au dépôt ou est perdu, l’excédent sort du dépôt). Perdu ou retourné : BioBalance seul. Le stock se déclare une seule fois, puis n’arrive que par livraison ; plus d’ajustement de stock. Les ventes sont datées par l’horloge du serveur.
+
+Migration additive `202610010001`. [Détails](reception-validation-2026-10-01.md).
+
+---
+
 # BioBalance 1.3.0+17 — prix, bons de livraison et non-conformités
 
 Trois niveaux de prix avec historique inaltérable et visibilité par rôle ; chaque commande, bon, vente et perte garde le prix de son jour. Chaque livraison est un bon numéroté avec lots, péremptions et QR : le responsable scanne le colis pour ajouter les quantités à son stock. Les produits abîmés ou périmés se signalent et BioBalance seul décide. Les points suivent le taux de la date de la vente. Les retours en transit sont décidés par BioBalance seul.

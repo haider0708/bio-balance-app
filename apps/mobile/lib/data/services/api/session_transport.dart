@@ -1,3 +1,7 @@
+import 'dart:io' show HttpDate;
+
+import '../../../domain/trusted_clock.dart';
+
 import 'dart:async';
 import 'dart:convert';
 
@@ -55,7 +59,31 @@ class SessionTransport {
     _security = TransportSecurity(baseUrl);
     http.options.baseUrl = baseUrl;
     http.interceptors.insert(0, _security);
+    // Every answer re-anchors the clock that dates sales to the server's time.
+    http.interceptors.add(
+      InterceptorsWrapper(
+        onResponse: (response, handler) {
+          _syncClock(response);
+          handler.next(response);
+        },
+        onError: (error, handler) {
+          final response = error.response;
+          if (response != null) _syncClock(response);
+          handler.next(error);
+        },
+      ),
+    );
   }
+  static void _syncClock(Response<dynamic> response) {
+    final date = response.headers.value('date');
+    if (date == null) return;
+    try {
+      TrustedClock.sync(HttpDate.parse(date));
+    } catch (_) {
+      /* A malformed header leaves the previous anchor in place. */
+    }
+  }
+
   String? get accountId => _accountId;
   int get generation => _generation;
   bool get accessBlocked => _accessBlocked;

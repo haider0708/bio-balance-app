@@ -26,6 +26,7 @@ import {
 } from "../src/modules/identity/identity.service";
 import { TrainingService } from "../src/modules/training/training.service";
 import { NotificationsService } from "../src/modules/notifications/notifications.service";
+import { ticketCode } from "../src/shared/domain/delivery-ticket";
 import { WorkspaceService } from "../src/modules/tenancy/workspace.service";
 import { GroupService } from "../src/modules/tenancy/group.service";
 import { DashboardService } from "../src/modules/reporting/dashboard.service";
@@ -863,7 +864,17 @@ describe.sequential(
       lotId = lots[0]!.id;
       const reused = {
         ...operation,
-        command: { ...operation.command, reason: "receipt" },
+        command: {
+          ...operation.command,
+          lines: [
+            {
+              productId: product,
+              batch: "T1",
+              expiry: "2027-12",
+              quantity: 11,
+            },
+          ],
+        },
       } as Operation;
       expect((await service.submit(actor, reused)).code).toBe(
         "OPERATION_REUSED",
@@ -1174,6 +1185,7 @@ describe.sequential(
           type: "delivery.receive",
           deliveryId,
           note: "Two missing",
+          manualReason: "QR unreadable",
           lines: [
             { productId: product, batch: "T1", expiry: "2027-12", quantity: 8 },
           ],
@@ -1185,6 +1197,27 @@ describe.sequential(
         service.submit(actor, { ...receipt, operationId: randomUUID() }),
       ]);
       expect(outcomes.filter((r) => r.status === "accepted")).toHaveLength(1);
+      // The claim books nothing: BioBalance validates it first.
+      expect(await owner.deliveryReceipt.count({ where: { deliveryId } })).toBe(
+        0,
+      );
+      expect(
+        (
+          await service.submit(
+            admin,
+            op(
+              {
+                type: "delivery.validate",
+                deliveryId,
+                note: "Two missing confirmed",
+                shortfall: "returned",
+                lines: (receipt.command as { lines: never[] }).lines,
+              },
+              2,
+            ),
+          )
+        ).status,
+      ).toBe("accepted");
       expect(await owner.deliveryReceipt.count({ where: { deliveryId } })).toBe(
         1,
       );
@@ -1200,34 +1233,18 @@ describe.sequential(
         (await workspace.fulfillment(admin, org, store, orderId)).lines[0],
       ).toMatchObject({
         received: 8,
-        inTransit: 2,
-        remainingToDispatch: 0,
+        inTransit: 0,
+        remainingToDispatch: 2,
         remainingToReceive: 2,
       });
       const snapshot = await workspace.snapshot(actor, org, store);
       expect(
         snapshot.orders.find((o) => o.id === orderId)?.fulfillment?.[0]
           .remainingToDispatch,
-      ).toBe(0);
+      ).toBe(2);
       await expect(
         workspace.fulfillment(foreign, org, store, orderId),
       ).rejects.toThrow();
-      expect(
-        (
-          await service.submit(
-            admin,
-            op(
-              {
-                type: "delivery.resolve",
-                deliveryId,
-                decision: "settled",
-                reason: "Remplacement des unités manquantes autorisé",
-              },
-              2,
-            ),
-          )
-        ).status,
-      ).toBe("accepted");
       const updated = await owner.replenishmentOrder.findUniqueOrThrow({
         where: { id: orderId },
       });
@@ -1265,14 +1282,8 @@ describe.sequential(
                 type: "delivery.receive",
                 deliveryId: followup,
                 note: "Complete",
-                lines: [
-                  {
-                    productId: product,
-                    batch: "T1",
-                    expiry: "2027-12",
-                    quantity: 2,
-                  },
-                ],
+                ticketCode: ticketCode(followup, 1),
+                lines: [],
               },
               1,
             ),
@@ -1289,7 +1300,7 @@ describe.sequential(
       expect(
         (await owner.inventoryLot.findUniqueOrThrow({ where: { id: lotId } }))
           .sellable,
-      ).toBe(before + 10);
+      ).toBe(before + 8);
     });
     it("records non-reception without consuming the receipt and requires resolution before replacement", async () => {
       const orderId = randomUUID(),
@@ -1751,11 +1762,15 @@ describe.sequential(
     it("synchronizes changed lots and invalidates a changed global catalog", async () => {
       const snapshot = await workspace.snapshot(actor, org, store);
       expect(snapshot.mode).toBe("snapshot");
+      await owner.store.update({
+        where: { id: store },
+        data: { openingClosedAt: null },
+      });
       await service.submit(
         actor,
         op({
           type: "stock.receive",
-          reason: "receipt",
+          reason: "opening",
           lines: [
             {
               productId: product,
@@ -1815,10 +1830,14 @@ describe.sequential(
           where: { storeId_productId: { storeId: store, productId: product } },
         })
       ).pointsPerUnit;
+      await owner.store.update({
+        where: { id: store },
+        data: { openingClosedAt: null },
+      });
       const receipt = {
         ...op({
           type: "stock.receive",
-          reason: "receipt",
+          reason: "opening",
           lines: [
             {
               productId: product,
@@ -1972,18 +1991,11 @@ describe.sequential(
         token,
       )) as any;
       const target = before.items[0];
-      await service.submit(
-        actor,
-        op(
-          {
-            type: "stock.adjust",
-            lotId: target.id,
-            quantity: 9,
-            reason: "Comptage",
-          },
-          target.version,
-        ),
-      );
+      // No command can change a count any more; move the lot as a delivery would.
+      await owner.inventoryLot.update({
+        where: { id: target.id },
+        data: { sellable: 9, version: { increment: 1 } },
+      });
       expect(await workspace.snapshotPage(actor, org, store, token)).toEqual(
         before,
       );
@@ -2054,7 +2066,7 @@ describe.sequential(
         { ...actor, sessionId: session.id },
         op({
           type: "stock.receive",
-          reason: "receipt",
+          reason: "opening",
           lines: [
             {
               productId: product,

@@ -484,10 +484,23 @@ export class DashboardService {
           orderBy: { key: "asc" },
           take: 51,
         });
+        // Receipts without a scan wait for BioBalance and belong here too.
+        const reviews = await tx.delivery.groupBy({
+          by: ["orderId"],
+          where: {
+            ...(q.organizationId ? { organizationId: q.organizationId } : {}),
+            ...(q.storeId ? { storeId: q.storeId } : {}),
+            status: "pending_review",
+            ...(after ? { orderId: { gt: after } } : {}),
+          },
+          orderBy: { orderId: "asc" },
+          take: 51,
+        });
         selectedOrders = [
           ...new Set([
             ...(selectedOrders ?? []),
             ...problems.map((p) => p.key.slice(6)),
+            ...reviews.map((r) => r.orderId),
           ]),
         ]
           .sort()

@@ -467,11 +467,22 @@ export class WorkspaceService {
           "Le magasin a été modifié.",
           409,
         );
+        // "I have no stock" is the same one-time choice as declaring it: it cannot
+        // be taken back to enter stock later.
+        requireRule(
+          !(input.noOpeningStock === false && old.openingClosedAt),
+          "OPENING_CLOSED",
+          "Le stock de départ est déjà déclaré. Passez une commande pour recevoir des produits.",
+          409,
+        );
         await tx.store.update({
           where: { id: store },
           data: {
             workingAlone: input.workingAlone,
             noOpeningStock: input.noOpeningStock,
+            ...(input.noOpeningStock && !old.openingClosedAt
+              ? { openingClosedAt: new Date() }
+              : {}),
             version: { increment: 1 },
           },
         });

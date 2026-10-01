@@ -266,6 +266,12 @@ const Map<String, Map<String, dynamic>> _schemas = {
       "onboardingStep": {"type": "integer"},
       "workingAlone": {"type": "boolean"},
       "noOpeningStock": {"type": "boolean"},
+      "openingClosedAt": {
+        "anyOf": [
+          {"type": "string", "format": "date-time"},
+          {"type": "null"},
+        ],
+      },
       "version": {"type": "integer"},
       "createdAt": {"type": "string", "format": "date-time"},
       "status": {"type": "string"},
@@ -301,6 +307,7 @@ const Map<String, Map<String, dynamic>> _schemas = {
       "onboardingStep",
       "workingAlone",
       "noOpeningStock",
+      "openingClosedAt",
       "version",
       "createdAt",
     ],
@@ -339,6 +346,12 @@ const Map<String, Map<String, dynamic>> _schemas = {
       "onboardingStep": {"type": "integer"},
       "workingAlone": {"type": "boolean"},
       "noOpeningStock": {"type": "boolean"},
+      "openingClosedAt": {
+        "anyOf": [
+          {"type": "string", "format": "date-time"},
+          {"type": "null"},
+        ],
+      },
       "version": {"type": "integer"},
       "createdAt": {"type": "string", "format": "date-time"},
       "organizationName": {"type": "string"},
@@ -386,6 +399,7 @@ const Map<String, Map<String, dynamic>> _schemas = {
       "onboardingStep",
       "workingAlone",
       "noOpeningStock",
+      "openingClosedAt",
       "version",
       "createdAt",
       "permissions",
@@ -963,6 +977,7 @@ const Map<String, Map<String, dynamic>> _schemas = {
         ],
       },
       "openIssues": {"type": "integer"},
+      "pendingReviews": {"type": "integer"},
       "requestedLines": {
         "type": "array",
         "items": {"\$ref": "#/components/schemas/OrderLine"},
@@ -1053,6 +1068,12 @@ const Map<String, Map<String, dynamic>> _schemas = {
       },
       "ticketNumber": {"type": "string"},
       "ticketVersion": {"type": "integer"},
+      "claim": {
+        "anyOf": [
+          {"\$ref": "#/components/schemas/DeliveryClaim"},
+          {"type": "null"},
+        ],
+      },
       "status": {"type": "string"},
       "version": {"type": "integer"},
       "dispatchedAt": {"type": "string", "format": "date-time"},
@@ -1073,11 +1094,27 @@ const Map<String, Map<String, dynamic>> _schemas = {
       "sourceStoreId",
       "ticketNumber",
       "ticketVersion",
+      "claim",
       "status",
       "version",
       "dispatchedAt",
       "receivedAt",
     ],
+    "additionalProperties": false,
+  },
+  "DeliveryClaim": {
+    "type": "object",
+    "properties": {
+      "lines": {
+        "type": "array",
+        "items": {"\$ref": "#/components/schemas/ReceiptLine"},
+      },
+      "note": {"type": "string"},
+      "manualReason": {"type": "string"},
+      "claimedBy": {"type": "string", "format": "uuid"},
+      "claimedAt": {"type": "string"},
+    },
+    "required": ["lines", "note", "manualReason", "claimedBy", "claimedAt"],
     "additionalProperties": false,
   },
   "ReceiptLine": {
@@ -1104,6 +1141,7 @@ const Map<String, Map<String, dynamic>> _schemas = {
       "damaged": {"type": "integer"},
       "refused": {"type": "integer"},
       "surplus": {"type": "integer"},
+      "missing": {"type": "integer"},
     },
     "required": ["productId", "expected", "actual"],
     "additionalProperties": false,
@@ -2736,7 +2774,6 @@ const Map<String, Map<String, dynamic>> _schemas = {
       {"\$ref": "#/components/schemas/CommandSaleCorrect"},
       {"\$ref": "#/components/schemas/CommandSaleReturn"},
       {"\$ref": "#/components/schemas/CommandStockReceive"},
-      {"\$ref": "#/components/schemas/CommandStockAdjust"},
       {"\$ref": "#/components/schemas/CommandQualityFlag"},
       {"\$ref": "#/components/schemas/CommandQualityResolve"},
       {"\$ref": "#/components/schemas/CommandStockDamage"},
@@ -2752,6 +2789,7 @@ const Map<String, Map<String, dynamic>> _schemas = {
       {"\$ref": "#/components/schemas/CommandDeliveryDispatch"},
       {"\$ref": "#/components/schemas/CommandDeliveryReissue"},
       {"\$ref": "#/components/schemas/CommandDeliveryReceive"},
+      {"\$ref": "#/components/schemas/CommandDeliveryValidate"},
       {"\$ref": "#/components/schemas/CommandRewardRequest"},
       {"\$ref": "#/components/schemas/CommandRewardResolve"},
     ],
@@ -4262,27 +4300,9 @@ const Map<String, Map<String, dynamic>> _schemas = {
         "type": "array",
         "items": {"\$ref": "#/components/schemas/CommandStockReceiveLinesItem"},
       },
-      "reason": {
-        "type": "string",
-        "enum": ["opening", "receipt"],
-      },
+      "reason": {"type": "string", "const": "opening"},
     },
     "required": ["type", "lines", "reason"],
-    "additionalProperties": false,
-  },
-  "CommandStockAdjust": {
-    "type": "object",
-    "properties": {
-      "type": {"type": "string", "const": "stock.adjust"},
-      "lotId": {
-        "type": "string",
-        "format": "uuid",
-        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)\$",
-      },
-      "quantity": {"type": "integer", "minimum": 0, "maximum": 1000000},
-      "reason": {"type": "string", "minLength": 3, "maxLength": 300},
-    },
-    "required": ["type", "lotId", "quantity", "reason"],
     "additionalProperties": false,
   },
   "CommandQualityFlag": {
@@ -4551,6 +4571,32 @@ const Map<String, Map<String, dynamic>> _schemas = {
       "note": {"default": "", "type": "string", "maxLength": 500},
     },
     "required": ["type", "deliveryId", "lines"],
+    "additionalProperties": false,
+  },
+  "CommandDeliveryValidate": {
+    "type": "object",
+    "properties": {
+      "type": {"type": "string", "const": "delivery.validate"},
+      "deliveryId": {
+        "type": "string",
+        "format": "uuid",
+        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)\$",
+      },
+      "lines": {
+        "maxItems": 200,
+        "type": "array",
+        "items": {
+          "\$ref": "#/components/schemas/CommandDeliveryValidateLinesItem",
+        },
+      },
+      "shortfall": {
+        "default": "returned",
+        "type": "string",
+        "enum": ["returned", "lost"],
+      },
+      "note": {"type": "string", "minLength": 3, "maxLength": 500},
+    },
+    "required": ["type", "deliveryId", "lines", "note"],
     "additionalProperties": false,
   },
   "CommandRewardRequest": {
@@ -4846,6 +4892,25 @@ const Map<String, Map<String, dynamic>> _schemas = {
     "additionalProperties": false,
   },
   "CommandDeliveryReceiveLinesItem": {
+    "type": "object",
+    "properties": {
+      "productId": {
+        "type": "string",
+        "format": "uuid",
+        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)\$",
+      },
+      "batch": {"type": "string", "minLength": 1, "maxLength": 100},
+      "expiry": {"type": "string", "maxLength": 10},
+      "quantity": {"type": "integer", "minimum": 1, "maximum": 1000000},
+      "condition": {
+        "type": "string",
+        "enum": ["sellable", "damaged", "refused"],
+      },
+    },
+    "required": ["productId", "batch", "expiry", "quantity"],
+    "additionalProperties": false,
+  },
+  "CommandDeliveryValidateLinesItem": {
     "type": "object",
     "properties": {
       "productId": {

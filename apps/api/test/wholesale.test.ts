@@ -19,6 +19,7 @@ import { PasswordHasher } from "../src/modules/identity/password-hasher";
 import { WorkspaceService } from "../src/modules/tenancy/workspace.service";
 import { GroupService } from "../src/modules/tenancy/group.service";
 import { WholesaleService } from "../src/modules/wholesale/wholesale.service";
+import { ticketCode } from "../src/shared/domain/delivery-ticket";
 
 process.env.DATABASE_URL =
   process.env.TEST_APP_DATABASE_URL ??
@@ -272,7 +273,7 @@ describe("grossiste foundation", () => {
     ).resolves.toMatchObject({ status: "rejected" });
   });
 
-  it("lets the grossiste and BioBalance enter the depot's opening stock", async () => {
+  it("lets the grossiste declare the depot's opening stock once", async () => {
     await accepted(
       grossiste,
       atDepot({
@@ -288,16 +289,27 @@ describe("grossiste foundation", () => {
         ],
       }),
     );
-    await accepted(
-      admin,
-      atDepot({
-        type: "stock.receive",
-        reason: "opening",
-        lines: [
-          { productId: second, batch: "S", expiry: "2031-06-30", quantity: 5 },
-        ],
-      }),
-    );
+    // The declaration is one-time: neither the grossiste nor BioBalance can add more.
+    for (const who of [grossiste, admin])
+      expect(
+        (
+          await service.submit(
+            who,
+            atDepot({
+              type: "stock.receive",
+              reason: "opening",
+              lines: [
+                {
+                  productId: second,
+                  batch: "S",
+                  expiry: "2031-06-30",
+                  quantity: 5,
+                },
+              ],
+            }),
+          )
+        ).code,
+      ).toBe("OPENING_CLOSED");
     expect(await stock(depot, lot(depot, product, "A"))).toBe(40);
   });
 });
@@ -382,14 +394,8 @@ describe("grossiste orders from BioBalance", () => {
           type: "delivery.receive",
           deliveryId,
           note: "",
-          lines: [
-            {
-              productId: product,
-              batch: "B",
-              expiry: "2031-06-30",
-              quantity: 20,
-            },
-          ],
+          ticketCode: ticketCode(deliveryId, 1),
+          lines: [],
         },
         1,
       ),
@@ -646,6 +652,7 @@ describe("store orders handled by a grossiste", () => {
           type: "delivery.receive",
           deliveryId: delivery.id,
           note: "Deux unités manquantes",
+          manualReason: "QR illisible",
           lines: [
             {
               productId: product,
@@ -656,6 +663,37 @@ describe("store orders handled by a grossiste", () => {
           ],
         },
         delivery.version,
+      ),
+    );
+    // Without the QR nothing moves and no points are earned until BioBalance validates.
+    expect(
+      await owner.inventoryLot.count({ where: { storeId: retailStore } }),
+    ).toBe(0);
+    expect(await owner.pointsEntry.count({ where: { storeId: depot } })).toBe(
+      0,
+    );
+    await accepted(
+      admin,
+      retail(
+        {
+          type: "delivery.validate",
+          deliveryId: delivery.id,
+          note: "Deux unités manquantes confirmées",
+          shortfall: "returned",
+          lines: [
+            {
+              productId: product,
+              batch: "A",
+              expiry: "2031-06-30",
+              quantity: 10,
+            },
+          ],
+        },
+        (
+          await owner.delivery.findUniqueOrThrow({
+            where: { id: delivery.id },
+          })
+        ).version,
       ),
     );
     // Store stock rises by what was physically received.
@@ -744,13 +782,11 @@ describe("store orders handled by a grossiste", () => {
           current.version,
           supplier,
         );
-      if (resolution === "returned") {
-        // A return is decided by BioBalance alone, after inspection.
-        expect(
-          (await service.submit(grossiste, resolve(grossiste, depot))).code,
-        ).toBe("FORBIDDEN");
-        await accepted(admin, resolve(admin));
-      } else await accepted(grossiste, resolve(grossiste, depot));
+      // Lost or returned is decided by BioBalance alone, never by the shipper.
+      expect(
+        (await service.submit(grossiste, resolve(grossiste, depot))).code,
+      ).toBe("FORBIDDEN");
+      await accepted(admin, resolve(admin));
       return { before, after: await stock(depot, lot(depot, product, "A")) };
     };
     const back = await run(returnedOrder, returned, "returned");
@@ -928,14 +964,8 @@ describe("a suspended grossiste", () => {
           type: "delivery.receive",
           deliveryId,
           note: "",
-          lines: [
-            {
-              productId: product,
-              batch: "A",
-              expiry: "2031-06-30",
-              quantity: 2,
-            },
-          ],
+          ticketCode: ticketCode(deliveryId, 1),
+          lines: [],
         },
         1,
       ),

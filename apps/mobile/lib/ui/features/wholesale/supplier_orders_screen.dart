@@ -398,7 +398,7 @@ class _SupplierOrderScreenState extends State<SupplierOrderScreen> {
     footer: issue['status'] != 'resolved'
         ? TextButton(
             onPressed: disabled ? null : () => action(() => settle(issue)),
-            child: const Text('Traiter cet incident'),
+            child: const Text('Ajouter une note de suivi'),
           )
         : null,
   );
@@ -413,25 +413,18 @@ class _SupplierOrderScreenState extends State<SupplierOrderScreen> {
         'Actualisez la commande pour retrouver la livraison.',
       );
     }
-    final received = delivery['status'] == 'received';
     await openEditor(
       context,
-      title: 'Traiter l’incident',
-      description: received ? null : 'Une livraison retournée remet ses lots dans votre stock. Une livraison perdue ne le remet pas.',
-      fields: [
+      title: 'Suivre l’incident',
+      description: 'BioBalance décide seul si la livraison est perdue ou retournée. Vous pouvez indiquer où vous en êtes.',
+      fields: const [
         FieldSpec(
           'decision',
           'Suite à donner',
-          initial: received ? 'settled' : 'tracing',
-          options: received
-              ? const {'settled': 'Écarts vérifiés et réglés'}
-              : const {
-                  'tracing': 'Recherche en cours',
-                  'lost': 'Livraison perdue',
-                  'returned': 'Livraison retournée au dépôt',
-                },
+          initial: 'tracing',
+          options: {'tracing': 'Recherche en cours'},
         ),
-        const FieldSpec('reason', 'Décision et explication'),
+        FieldSpec('reason', 'Votre note de suivi'),
       ],
       submit: (values) => command({
         'type': 'delivery.resolve',

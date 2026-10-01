@@ -18,7 +18,7 @@ String operationLabel(String type) =>
       'sale.correct': 'Correction de vente',
       'sale.return': 'Retour client',
       'stock.receive': 'Entrée de stock',
-      'stock.adjust': 'Inventaire',
+      'delivery.validate': 'Validation de réception',
       'stock.damage': 'Produits endommagés',
       'quality.flag': 'Produit non conforme',
       'delivery.receive': 'Réception de livraison',

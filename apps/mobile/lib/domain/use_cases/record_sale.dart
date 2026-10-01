@@ -1,3 +1,5 @@
+import '../trusted_clock.dart';
+
 import 'package:uuid/uuid.dart';
 
 import '../models/models.dart';
@@ -56,7 +58,7 @@ class RecordSale {
     final date =
         original?['occurredAt'] ??
         recoveredDate ??
-        DateTime.now().toUtc().toIso8601String();
+        TrustedClock.now().toIso8601String();
     final command = <String, dynamic>{
       'type': original == null ? 'sale.create' : 'sale.correct',
       'saleId': id,

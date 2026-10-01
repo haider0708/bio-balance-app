@@ -110,9 +110,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               contentPadding: EdgeInsets.zero,
               title: const Text('Je n’ai pas de stock de départ'),
               subtitle: const Text(
-                'Vous saisirez les lots lors de la première réception.',
+                'Choix définitif : le stock arrivera par commande et livraison.',
               ),
-              onChanged: saving
+              onChanged:
+                  saving ||
+                      progress['noOpeningStock'] == true ||
+                      store.openingClosed
                   ? null
                   : (value) => choice({'noOpeningStock': value}),
             ),

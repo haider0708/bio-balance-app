@@ -91,18 +91,11 @@ class _WholesaleHomeState extends State<WholesaleHome> {
             },
           ),
           const SizedBox(height: 12),
+          OpeningStockCard(vm: vm),
           Wrap(
             spacing: 12,
             runSpacing: 8,
             children: [
-              FilledButton.icon(
-                onPressed: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => ReceiptScreen(vm: vm)),
-                ),
-                icon: const Icon(AppIcons.add),
-                label: const Text('Entrer du stock'),
-              ),
               OutlinedButton.icon(
                 onPressed: () => OrdersPage(vm: vm).create(context),
                 icon: const Icon(AppIcons.package),

@@ -243,6 +243,8 @@ export function extendLegacySchemas(schemas: Record<string, Schema>) {
     supplierStoreId: nullable(uuid),
     supplierName: nullable(str),
     openIssues: integer,
+    // Deliveries received without the QR, waiting for BioBalance to validate.
+    pendingReviews: integer,
     requestedLines: arr(ref("OrderLine")),
     cancelledLines: arr(ref("OrderLine")),
   });

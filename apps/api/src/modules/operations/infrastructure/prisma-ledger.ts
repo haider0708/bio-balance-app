@@ -400,12 +400,13 @@ export class PrismaLedger implements Ledger {
     });
     return config?.pointsPerUnit ?? 0;
   }
-  /** A sale earns the rate in force on its date. A sale reaching the server more
-   * than 14 days late earns the rate in force at acceptance. A store or product
-   * with no rate history uses its current rate. */
+  /** A sale earns the rate in force on its date, but never an older rate than the
+   * one in force three days before it reached the server: a phone clock set back
+   * cannot buy a better rate. A store or product with no rate history uses its
+   * current rate. */
   async rateAt(productId: string, at: Date) {
     const current = await this.rate(productId);
-    if (Date.now() - at.getTime() > 14 * 86_400_000) return current;
+    at = new Date(Math.max(at.getTime(), Date.now() - 3 * 86_400_000));
     const version = await this.tx.pointsRateVersion.findFirst({
       where: {
         storeId: this.scope.storeId,
@@ -602,7 +603,12 @@ export class PrismaLedger implements Ledger {
     return result.get(order.id)!;
   }
   async saveDelivery(value: DeliveryRecord) {
-    const data = { ...value, lines: json(value.lines) };
+    const data = {
+      ...value,
+      lines: json(value.lines),
+      // A claim is written once; undefined leaves the stored one untouched.
+      claim: value.claim == null ? undefined : json(value.claim),
+    };
     if (value.version === 1)
       await this.tx.delivery.create({
         data: {
@@ -792,6 +798,19 @@ export class PrismaLedger implements Ledger {
             productIds,
           ),
     );
+  }
+  async openingClosed() {
+    const store = await this.tx.store.findUniqueOrThrow({
+      where: { id: this.scope.storeId },
+      select: { openingClosedAt: true },
+    });
+    return store.openingClosedAt !== null;
+  }
+  async closeOpening() {
+    await this.tx.store.update({
+      where: { id: this.scope.storeId },
+      data: { openingClosedAt: new Date() },
+    });
   }
   async nextTicketNumber() {
     const [row] = await this.tx.$queryRaw<

@@ -81,6 +81,8 @@ def main(a):
     op(admin,s,'dispatch',lambda:{'type':'delivery.dispatch','orderId':order,'deliveryId':delivery,'lines':[{'productId':product,'quantity':12,'allocations':[{'batch':'DEMO-DELIVERY-202609','expiry':valid,'quantity':12}]}]},2)
     received=12 if store_index==0 else 8 if store_index==1 else 0
     op(seller,s,'receive',lambda:{'type':'delivery.receive','deliveryId':delivery,'lines':[{'productId':product,'batch':'DEMO-DELIVERY-202609','expiry':valid,'quantity':received}] if received else [],'manualReason':'DÉMO : réception sans scan','note':'DÉMO : livraison complète' if received==12 else 'DÉMO : colis incomplet' if received else 'DÉMO : colis non reçu'},1)
+    # Without the QR, the receipt waits for BioBalance to compare and validate it.
+    if received:op(admin,s,'validate',lambda:{'type':'delivery.validate','deliveryId':delivery,'lines':[{'productId':product,'batch':'DEMO-DELIVERY-202609','expiry':valid,'quantity':received}],'shortfall':'lost','note':'DÉMO : réception comparée et validée'},2)
     fulfillment=manager.call('GET',route(s,'/orders/'+order+'/fulfillment'))
     if store_index==1:
      remaining=fulfillment['lines'][0]['remainingToDispatch']

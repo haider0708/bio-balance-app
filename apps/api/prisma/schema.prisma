@@ -128,6 +128,7 @@ model Store {
   onboardingStep Int @default(1)
   workingAlone Boolean @default(false)
   noOpeningStock Boolean @default(false)
+  openingClosedAt DateTime?
   version Int @default(1)
   createdAt DateTime @default(now())
   @@unique([organizationId,id])
@@ -348,6 +349,7 @@ model Delivery {
   sourceStoreId String? @db.Uuid
   ticketNumber String @unique
   ticketVersion Int @default(1)
+  claim Json?
   id String @id @db.Uuid
   organizationId String @db.Uuid
   storeId String @db.Uuid
