@@ -105,7 +105,7 @@ describe("the opening stock is declared once", () => {
     ).toBe(1);
   });
 
-  it("closes the door for a store that says it has no stock", async () => {
+  it("lets a store say it has no stock, and take it back until stock exists", async () => {
     const store = await owner.store.findUniqueOrThrow({
       where: { id: stores.empty },
     });
@@ -116,7 +116,28 @@ describe("the opening stock is declared once", () => {
     expect(
       (await service.submit(manager, op(stores.empty, opening("C")))).code,
     ).toBe("OPENING_CLOSED");
-    // The choice cannot be taken back to enter stock later.
+    // Until stock exists, the choice can be taken back and stock entered once.
+    await workspace.onboarding(manager, org, stores.empty, {
+      noOpeningStock: false,
+      expectedVersion: (
+        await owner.store.findUniqueOrThrow({ where: { id: stores.empty } })
+      ).version,
+    });
+    expect(
+      (await service.submit(manager, op(stores.empty, opening("C")))).status,
+    ).toBe("accepted");
+    // Once a lot exists, "no stock" cannot be ticked back, nor the stock re-declared.
+    await expect(
+      workspace.onboarding(manager, org, stores.empty, {
+        noOpeningStock: true,
+        expectedVersion: (
+          await owner.store.findUniqueOrThrow({ where: { id: stores.empty } })
+        ).version,
+      }),
+    ).resolves.toBeDefined();
+    expect(
+      (await service.submit(manager, op(stores.empty, opening("D")))).code,
+    ).toBe("OPENING_CLOSED");
     await expect(
       workspace.onboarding(manager, org, stores.empty, {
         noOpeningStock: false,

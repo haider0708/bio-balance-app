@@ -25,11 +25,14 @@ class StoreSettingsRepository {
       body: WorkspaceUpdateStoreRequestDto.fromJson(input),
     );
   });
-  Future<void> onboarding(Store store, Json input) => context.run(() async {
-    await context.api.workspaceOnboarding(
+
+  /// Returns the store and its onboarding progress as the server now sees them.
+  Future<Json> onboarding(Store store, Json input) => context.run(() async {
+    final result = await context.api.workspaceOnboarding(
       store: store.id,
       organizationId: store.organizationId,
       body: WorkspaceOnboardingRequestDto.fromJson(input),
     );
+    return result.toJson();
   });
 }

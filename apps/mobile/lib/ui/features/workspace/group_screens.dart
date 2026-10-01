@@ -345,11 +345,7 @@ Future<void> createGroup(BuildContext context, ScopeViewModel vm) async {
 }
 
 Future<void> createScopedStore(BuildContext context, ScopeViewModel vm) async {
-  // Switching scope replaces the originating group page. Retain the navigator,
-  // whose lifetime is independent of that page, for the next setup route.
-  final navigator = Navigator.of(context);
   final group = vm.scope.group!;
-  String? id;
   if (await openEditor(
     context,
     title: 'Ajouter un magasin',
@@ -376,22 +372,14 @@ Future<void> createScopedStore(BuildContext context, ScopeViewModel vm) async {
           'Choisissez la nature du magasin : pharmacie ou parapharmacie.',
         );
       }
-      id = (await vm.workspace.stores.create({
+      await vm.workspace.stores.create({
         ...v,
         'nature': v['nature'],
         'organizationId': group.id,
-      })).id;
+      });
     },
   )) {
+    // The new store appears in the list; the guide (or the group page) carries on.
     await vm.refresh();
-    final store = vm.stores.where((s) => s.id == id).firstOrNull;
-    if (store != null) {
-      await vm.selectStore(store);
-      if (navigator.mounted && !vm.closed) {
-        await navigator.push(
-          MaterialPageRoute(builder: (_) => OnboardingScreen(vm: vm.workspace)),
-        );
-      }
-    }
   }
 }

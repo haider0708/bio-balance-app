@@ -24,6 +24,13 @@ Candidate Android **1.4.0+18**, après 1.3.0+17. Migration additive `20261001000
 - L’écran de validation part de l’expédition quand le magasin n’a rien déclaré, refuse zéro lot, et le tableau de bord compte les réceptions à valider avec les livraisons à réceptionner.
 - Textes d’aide, du brouillon de commande et de la synchronisation mis en accord avec les nouvelles règles.
 
+## Premier démarrage du responsable (non déployé)
+
+- Un guide pas à pas s’ouvre à la première utilisation : bienvenue, groupe, magasins, équipe, stock de départ, prix, fin. Le groupe et les magasins sont obligatoires pour avancer ; l’équipe, le stock et les prix se passent ou se font à l’étape. La progression est conservée ; « Passer le guide » ferme, et le guide se rouvre depuis le résumé du groupe.
+- Créer un magasin ne renvoie plus vers l’écran « Préparer votre magasin » : on reste dans le guide ou le groupe.
+- Les cases « Je travaille seul » et « Je n’ai pas de stock de départ » s’affichent à l’instant (plus de synchronisation complète à chaque case), les demandes partent dans l’ordre avec la version renvoyée par le serveur, et « pas de stock » se décoche tant qu’aucun lot n’existe (`OPENING_CLOSED` ensuite).
+- Un vendeur invité dans un groupe qui n’a qu’un magasin reçoit ce magasin, affiché en ligne fixe au lieu d’un choix impossible à décocher.
+
 ## Validation locale
 
 - 107 tests d’intégration PostgreSQL (nouveaux : scan exact, déclaration en attente, correction dépôt/magasin, stock déclaré une fois, commande inconnue), 71 contrats HTTP décodés par le client Dart régénéré, tests Flutter (écran de validation, reçu par scan en lecture seule, projection hors ligne, horloge de confiance).

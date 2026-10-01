@@ -245,34 +245,42 @@ class _GroupMemberEditorState extends State<GroupMemberEditor> {
                   'Ce brouillon contient plusieurs magasins. Choisissez le seul magasin à attribuer.',
                   error: true,
                 ),
-              RadioGroup<String>(
-                groupValue: selected.length == 1 ? selected.single : null,
-                onChanged: (value) {
-                  if (!ready || busy || value == null) return;
-                  setState(() {
-                    selected
-                      ..clear()
-                      ..add(value);
-                  });
-                  persist();
-                },
-                child: Column(
-                  children: [
-                    for (final store in stores.where(
-                      (s) =>
-                          '${s.name} ${s.city}'.toLowerCase().contains(query),
-                    ))
-                      RadioListTile<String>(
-                        contentPadding: EdgeInsets.zero,
-                        controlAffinity: ListTileControlAffinity.leading,
-                        title: Text(store.name),
-                        subtitle: Text(store.city),
-                        value: store.id,
-                        enabled: ready && !busy,
-                      ),
-                  ],
+              if (stores.length == 1)
+                // The only store is the seller's store: shown as fixed, not as a choice.
+                CompactRow(
+                  title: stores.single.name,
+                  subtitle: '${stores.single.city} · Magasin attribué',
+                  icon: AppIcons.storefrontOutlined,
+                )
+              else
+                RadioGroup<String>(
+                  groupValue: selected.length == 1 ? selected.single : null,
+                  onChanged: (value) {
+                    if (!ready || busy || value == null) return;
+                    setState(() {
+                      selected
+                        ..clear()
+                        ..add(value);
+                    });
+                    persist();
+                  },
+                  child: Column(
+                    children: [
+                      for (final store in stores.where(
+                        (s) =>
+                            '${s.name} ${s.city}'.toLowerCase().contains(query),
+                      ))
+                        RadioListTile<String>(
+                          contentPadding: EdgeInsets.zero,
+                          controlAffinity: ListTileControlAffinity.leading,
+                          title: Text(store.name),
+                          subtitle: Text(store.city),
+                          value: store.id,
+                          enabled: ready && !busy,
+                        ),
+                    ],
+                  ),
                 ),
-              ),
               if (stores.isEmpty)
                 const Notice('Créez un magasin avant d’inviter un vendeur.'),
             ],
@@ -323,6 +331,9 @@ class _GroupMemberEditorState extends State<GroupMemberEditor> {
       }
       final ids = role == 'responsible'
           ? <String>[]
+          // A group with a single store: that store, without asking.
+          : stores.length == 1
+          ? [stores.single.id]
           : selected.where((id) => stores.any((s) => s.id == id)).toList();
       if (role == 'salesperson' && active && ids.length != 1) {
         throw const FormatException(

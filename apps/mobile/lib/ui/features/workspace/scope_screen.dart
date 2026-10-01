@@ -24,6 +24,10 @@ import '../sales/sale_screen.dart';
 import '../sales/sales_history_screen.dart';
 import '../reporting/scoped_sales_screen.dart';
 import '../stores/stores_screen.dart';
+import '../stores/product_settings_screen.dart';
+import '../../../data/repositories/store_settings_repository.dart';
+import '../team/group_member_editor.dart';
+import 'setup_guide.dart';
 import '../synchronization/sync_screen.dart';
 import '../training/training_screen.dart';
 import 'group_screens.dart';
@@ -51,10 +55,103 @@ class _ScopeScreenState extends State<ScopeScreen> with WidgetsBindingObserver {
   final dashboards = <String, DashboardViewModel>{};
   final periods = <String, DashboardPeriod>{};
   final buckets = <String, PageStorageBucket>{};
+
+  // The guided setup of a new responsable: where they are, and whether it is done.
+  late final guide = SetupGuideModel(
+    save: (values) => _saveGuide(values),
+    describe: SessionViewModel.message,
+  );
+  bool guideLoaded = false, guideFinished = false, guideSeen = false;
+  Future<void> _saveGuide(Map<String, dynamic> values) async {
+    guideSeen = true;
+    await workspace.repository.saveDraft(workspace.user.id, '', 'setup-guide', {
+      'step': guide.step.name,
+      'finished': guideFinished,
+      ...values,
+    });
+  }
+
+  Future<void> _loadGuide() async {
+    try {
+      final saved = await workspace.repository.draft(
+        workspace.user.id,
+        '',
+        'setup-guide',
+      );
+      guideSeen = saved != null && saved.isNotEmpty;
+      guideFinished = saved?['finished'] == true;
+      guide.step = SetupGuideModel.fromName(saved?['step'] as String?);
+    } catch (_) {
+      /* No saved progress: the guide starts at its welcome. */
+    }
+    if (mounted) setState(() => guideLoaded = true);
+  }
+
+  Future<void> _finishGuide() async {
+    setState(() => guideFinished = true);
+    await _saveGuide({'finished': true, 'step': GuideStep.done.name})
+        .catchError((Object _) {});
+  }
+
+  /// A new responsable (or one who reopened it) is guided; one who already has
+  /// stores when the guide first appears is not interrupted.
+  bool get guideActive {
+    if (workspace.user.admin || !guideLoaded || guideFinished) return false;
+    if (!guideSeen && scope.stores.isNotEmpty) return false;
+    return true;
+  }
+
+  SetupGuideActions guideActions(BuildContext context) => SetupGuideActions(
+    hasGroup: () => scope.retailGroups.isNotEmpty,
+    groupName: () =>
+        scope.scope.group?.name ?? scope.retailGroups.firstOrNull?.name,
+    stores: () => scope.stores,
+    createGroup: () => createGroup(context, scope),
+    addStore: () => createScopedStore(context, scope),
+    inviteTeam: () => Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) =>
+            GroupMemberEditor(workspace: workspace, group: scope.scope.group!),
+      ),
+    ),
+    enterStock: (store) async {
+      await scope.selectStore(store);
+      if (!context.mounted) return;
+      await Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => ReceiptScreen(vm: workspace)),
+      );
+      await scope.back();
+    },
+    noStock: (store) async {
+      await StoreSettingsRepository(workspace.api).onboarding(store, {
+        'noOpeningStock': true,
+        'expectedVersion': store.version,
+      });
+      await scope.refresh();
+    },
+    setPrices: (store) async {
+      await scope.selectStore(store);
+      if (!context.mounted) return;
+      await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => Scaffold(
+            appBar: AppBar(title: const Text('Prix et seuils')),
+            body: ProductSettingsPage(vm: workspace),
+          ),
+        ),
+      );
+      await scope.back();
+    },
+  );
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    unawaited(_loadGuide());
   }
 
   @override
@@ -162,6 +259,12 @@ class _ScopeScreenState extends State<ScopeScreen> with WidgetsBindingObserver {
             ),
           ],
         );
+      } else if (needsSetup && scope.grants.isNotEmpty && guideActive) {
+        page = SetupGuidePage(
+          model: guide,
+          actions: guideActions(context),
+          onFinish: _finishGuide,
+        );
       } else if (needsSetup) {
         page = AccessSetupPage(
           email: workspace.user.email,
@@ -189,6 +292,12 @@ class _ScopeScreenState extends State<ScopeScreen> with WidgetsBindingObserver {
                 child: const Text('Télécharger le magasin'),
               ),
           ],
+        );
+      } else if (guideActive && s.kind == ScopeKind.group && scope.tab == 0) {
+        page = SetupGuidePage(
+          model: guide,
+          actions: guideActions(context),
+          onFinish: _finishGuide,
         );
       } else if (scope.tab == 0 && store != null && store.wholesale) {
         page = WholesaleHome(vm: workspace, scope: scope);
@@ -245,7 +354,24 @@ class _ScopeScreenState extends State<ScopeScreen> with WidgetsBindingObserver {
                 )
               : null,
           setup: s.kind == ScopeKind.group
-              ? GroupOverviewLinks(scope: scope)
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    if (!workspace.user.admin)
+                      CompactRow(
+                        title: 'Guide de démarrage',
+                        subtitle:
+                            'Groupe, magasins, équipe, stock et prix pas à pas',
+                        icon: AppIcons.checklistOutlined,
+                        onTap: () {
+                          guide.go(GuideStep.welcome);
+                          setState(() => guideFinished = false);
+                          unawaited(_saveGuide({'finished': false}));
+                        },
+                      ),
+                    GroupOverviewLinks(scope: scope),
+                  ],
+                )
               : store != null &&
                     store.canManage &&
                     workspace.state.data?.raw['onboarding']?['complete'] != true

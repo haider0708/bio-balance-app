@@ -43,7 +43,7 @@ void main() {
         .load();
   });
 
-  testWidgets('responsible setup has a clear primary action and access help', (
+  testWidgets('a new responsible is guided, starting with the group', (
     t,
   ) async {
     t.view.physicalSize = const Size(390, 844);
@@ -58,10 +58,15 @@ void main() {
     final capture = GlobalKey();
     await t.pumpWidget(f.app(capture: capture));
     await t.pumpAndSettle();
-    expect(find.byKey(const ValueKey('access.create-group')), findsOneWidget);
-    expect(find.byKey(const ValueKey('access.refresh')), findsOneWidget);
+    // A new responsable is guided step by step, starting with a welcome.
+    expect(find.text('Bienvenue'), findsWidgets);
+    expect(find.text('Étape 1 sur 7'), findsOneWidget);
+    expect(find.text('Commencer'), findsOneWidget);
     expect(find.text('Catalogue'), findsNothing);
     await screenshot(t, capture, 'responsible-access-setup');
+    await t.tap(find.text('Commencer'));
+    await t.pumpAndSettle();
+    expect(find.text('Créer mon groupe'), findsOneWidget);
     expect(t.takeException(), isNull);
     await t.pumpWidget(const SizedBox());
   });
@@ -220,6 +225,43 @@ void main() {
         'hayder.boudhrioua@example.test',
       );
       expect(t.takeException(), isNull);
+      await t.pumpWidget(const SizedBox());
+    },
+  );
+
+  testWidgets(
+    'a group with a single store gives the seller that store, with nothing to untick',
+    (t) async {
+      final f = ScopeFixture();
+      addTearDown(f.close);
+      final only = f.workspace.state.stores.firstWhere((s) => s.id == 's1');
+      f.workspace.state = f.workspace.state.copy(stores: [only]);
+      await t.pumpWidget(
+        MaterialApp(
+          theme: appTheme(),
+          home: GroupMemberEditor(
+            workspace: f.workspace,
+            group: f.scope.groups.first,
+          ),
+        ),
+      );
+      await t.pumpAndSettle();
+      await t.ensureVisible(find.text('Magasin Tunis'));
+      // A fixed, read-only row: no radio button that cannot be unticked.
+      expect(find.text('Magasin Tunis'), findsOneWidget);
+      expect(find.byType(RadioListTile<String>), findsNothing);
+      expect(find.textContaining('Magasin attribué'), findsWidgets);
+      await t.enterText(
+        find.byKey(const ValueKey('field.email')),
+        'seller@example.test',
+      );
+      await t.tap(find.byKey(const ValueKey('editor.save')));
+      await t.pumpAndSettle();
+      // The seller is given the only store without being asked to choose it.
+      expect(find.text('Vérifier l’invitation'), findsOneWidget);
+      expect(find.text('Vendeur · Magasin Tunis'), findsOneWidget);
+      await t.tap(find.text('Revenir'));
+      await t.pumpAndSettle();
       await t.pumpWidget(const SizedBox());
     },
   );

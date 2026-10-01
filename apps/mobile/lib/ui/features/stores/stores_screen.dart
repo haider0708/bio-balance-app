@@ -14,6 +14,7 @@ import 'package:flutter/material.dart';
 import '../../../domain/models/models.dart';
 import '../../core/design.dart';
 import '../../core/forms.dart';
+import '../authentication/session_view_model.dart';
 import '../workspace/workspace_view_model.dart';
 
 Future<void> inviteManager(BuildContext context, WorkspaceViewModel vm) async {
@@ -43,14 +44,26 @@ class OnboardingScreen extends StatefulWidget {
 class _OnboardingScreenState extends State<OnboardingScreen> {
   bool saving = false;
   late final store = widget.vm.state.store!;
+  // What the server last said, so a tick shows at once and never waits for a full sync.
+  Map<String, dynamic>? latest;
+  int? latestVersion;
+  int pending = 0;
+  Future<void> _queue = Future.value();
   @override
   Widget build(BuildContext context) => ListenableBuilder(
     listenable: widget.vm,
     builder: (context, _) {
-      final vm = widget.vm,
-          progress = Map<String, dynamic>.from(
-            vm.state.data?.raw['onboarding'] ?? {},
-          );
+      final vm = widget.vm;
+      // Once the synchronized workspace has caught up, it is the source again.
+      final seen = integer((vm.state.data?.raw['store'] as Map?)?['version']);
+      if (pending == 0 &&
+          latest != null &&
+          seen >= (latestVersion ?? 1 << 30)) {
+        latest = null;
+      }
+      final progress =
+          latest ??
+          Map<String, dynamic>.from(vm.state.data?.raw['onboarding'] ?? {});
       final complete = progress['complete'] == true;
       return Scaffold(
         appBar: AppBar(title: const Text('Préparer votre magasin')),
@@ -101,23 +114,16 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               subtitle: const Text(
                 'Vous pourrez inviter votre équipe plus tard.',
               ),
-              onChanged: saving
-                  ? null
-                  : (value) => choice({'workingAlone': value}),
+              onChanged: (value) => choice('workingAlone', value ?? false),
             ),
             CheckboxListTile(
               value: progress['noOpeningStock'] == true,
               contentPadding: EdgeInsets.zero,
               title: const Text('Je n’ai pas de stock de départ'),
               subtitle: const Text(
-                'Choix définitif : le stock arrivera par commande et livraison.',
+                'Vos produits arriveront par commande et livraison. Vous pouvez changer d’avis tant que vous n’avez pas de stock.',
               ),
-              onChanged:
-                  saving ||
-                      progress['noOpeningStock'] == true ||
-                      store.openingClosed
-                  ? null
-                  : (value) => choice({'noOpeningStock': value}),
+              onChanged: (value) => choice('noOpeningStock', value ?? false),
             ),
             if ((progress['incompleteProducts'] as List? ?? []).isNotEmpty)
               Notice(
@@ -137,19 +143,42 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       );
     },
   );
-  Future<void> choice(Json values) async {
-    setState(() => saving = true);
-    await run(context, () async {
-      widget.vm.requireAccess(store, 'manage');
-      await StoreSettingsRepository(widget.vm.api).onboarding(store, {
-        ...values,
-        'expectedVersion':
-            (widget.vm.state.data!.raw['store'] as Map)['version'],
-      });
-      await widget.vm.synchronize();
+
+  /// The box flips immediately; the server is told in order, one request at a time,
+  /// and the answer (not a full synchronization) refreshes the progress.
+  Future<void> choice(String key, bool value) {
+    pending++;
+    setState(() => latest = {...(latest ?? _progress), key: value});
+    return _queue = _queue.catchError((Object _) {}).then((_) async {
+      try {
+        widget.vm.requireAccess(store, 'manage');
+        final result = await StoreSettingsRepository(widget.vm.api)
+            .onboarding(store, {
+              key: value,
+              'expectedVersion':
+                  latestVersion ??
+                  (widget.vm.state.data!.raw['store'] as Map)['version'],
+            });
+        latestVersion = integer((result['store'] as Map)['version']);
+        if (mounted && pending == 1) {
+          setState(
+            () => latest = Map<String, dynamic>.from(result['onboarding']),
+          );
+        }
+        // The rest of the workspace catches up in the background.
+        unawaited(widget.vm.synchronize().catchError((Object _) {}));
+      } catch (e) {
+        if (!mounted) return;
+        setState(() => latest = null);
+        latestVersion = null;
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(SessionViewModel.message(e))));
+      }
     });
-    if (mounted) setState(() => saving = false);
   }
+
+  Map<String, dynamic> get _progress =>
+      Map<String, dynamic>.from(widget.vm.state.data?.raw['onboarding'] ?? {});
 
   Future<void> finish() async {
     setState(() => saving = true);

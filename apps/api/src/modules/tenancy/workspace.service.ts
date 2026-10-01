@@ -467,14 +467,17 @@ export class WorkspaceService {
           "Le magasin a été modifié.",
           409,
         );
-        // "I have no stock" is the same one-time choice as declaring it: it cannot
-        // be taken back to enter stock later.
-        requireRule(
-          !(input.noOpeningStock === false && old.openingClosedAt),
-          "OPENING_CLOSED",
-          "Le stock de départ est déjà déclaré. Passez une commande pour recevoir des produits.",
-          409,
-        );
+        // "I have no stock" can be taken back until stock really exists: once a lot
+        // was entered or a delivery received, the declaration is closed for good.
+        const takeBack =
+          input.noOpeningStock === false && !!old.openingClosedAt;
+        if (takeBack)
+          requireRule(
+            (await tx.inventoryLot.count({ where: { storeId: store } })) === 0,
+            "OPENING_CLOSED",
+            "Du stock existe déjà : le stock de départ ne peut plus être modifié.",
+            409,
+          );
         await tx.store.update({
           where: { id: store },
           data: {
@@ -483,6 +486,7 @@ export class WorkspaceService {
             ...(input.noOpeningStock && !old.openingClosedAt
               ? { openingClosedAt: new Date() }
               : {}),
+            ...(takeBack ? { openingClosedAt: null } : {}),
             version: { increment: 1 },
           },
         });

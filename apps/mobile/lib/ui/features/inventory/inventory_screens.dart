@@ -982,7 +982,7 @@ class OpeningStockCard extends StatelessWidget {
     if (!await confirmAction(
       context,
       'Je n’ai pas de stock',
-      'Ce choix est définitif : vous ne pourrez plus entrer de stock à la main. Vos produits arriveront par commande et livraison.',
+      'Vos produits arriveront par commande et livraison. Vous pouvez changer d’avis tant que vous n’avez ni saisi de stock ni reçu de livraison.',
       label: 'Confirmer',
     )) {
       return;
