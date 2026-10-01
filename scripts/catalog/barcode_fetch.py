@@ -130,7 +130,7 @@ def run(args):
                 else:
                     image = bool(info['image']) and save_image(ean, info['image'])
                     capture['products'][ean] = {'title': info['title'], 'brand': info['brand'], 'image': info['image'],
-                                                'description': (info['description'] or '')[:2000]}
+                                                'description': (info['description'] or '')[:8000]}
                     print(f"  ✓ {info['title'][:70]} | photo : {'oui' if image else 'non'}")
                     found += 1
                     capture['capturedAt'] = time.strftime('%Y-%m-%d')
