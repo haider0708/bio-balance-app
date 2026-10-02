@@ -263,11 +263,25 @@ const owner = new PrismaClient({
       as: null,
       body: { token: activation, name: "Invited seller", password },
     });
-    await call("POST", `/v1/identity/invitations/${invitation.id}/actions`, {
+    // An accepted invitation is locked; a pending one can be removed.
+    const pending = await call("POST", "/v1/identity/invitations", {
+      body: {
+        email: `invite-${randomUUID()}@example.test`,
+        organizationId: org,
+        storeId: store,
+        permissions: ["sell"],
+      },
+    });
+    const listed = await call(
+      "GET",
+      `/v1/identity/invitations?organizationId=${org}`,
+      { as: adminToken },
+    );
+    await call("POST", `/v1/identity/invitations/${pending.id}/actions`, {
       as: adminToken,
       body: {
         action: "archive",
-        expectedVersion: 2,
+        expectedVersion: listed.items.find((i) => i.id === pending.id).version,
         operationId: randomUUID(),
       },
     });
@@ -668,6 +682,16 @@ const owner = new PrismaClient({
       wholesalers.some((w) => w.id === wholesaler.id),
       "listed wholesaler",
     );
+    // The grossiste prices what he sells to stores before an order is assigned to him.
+    await owner.priceVersion.create({
+      data: {
+        id: randomUUID(),
+        level: "store_supply",
+        productId: product.id,
+        supplierOrganizationId: wholesaler.id,
+        priceMillimes: 45000n,
+      },
+    });
     const assignedOrder = randomUUID();
     await owner.replenishmentOrder.create({
       data: {

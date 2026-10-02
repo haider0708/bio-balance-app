@@ -419,10 +419,9 @@ void main() {
     await j.login(manager);
     await j.nav('Stock');
     await j.tap(product);
-    await j.tap('Prix, seuil et points');
+    await j.tap('Prix et seuil');
     await j.fill('field.price', '49,900');
     await j.fill('field.threshold', '5');
-    await j.fill('field.points', '10');
     await j.editorSave();
     await j.back();
     await j.tap('Entrée de stock');

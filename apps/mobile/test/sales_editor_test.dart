@@ -44,7 +44,7 @@ void main() {
         ],
         'lots': [],
         'config': [
-          {'productId': 'p', 'priceMillimes': '2000'},
+          {'productId': 'p', 'priceMillimes': '2000', 'priceConfigured': true},
         ],
       }),
     );

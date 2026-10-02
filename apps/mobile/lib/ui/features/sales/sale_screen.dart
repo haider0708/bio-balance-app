@@ -379,9 +379,11 @@ class _LineEditorState extends State<LineEditor> {
   void initState() {
     super.initState();
     final config = widget.workspace.state.data?.config(widget.productId);
+    // A seller can only use a price the responsable has really set: the server
+    // knows no other. A responsable may still start from the stored amount.
     final configured =
         config?['priceConfigured'] == true ||
-        integer(config?['priceMillimes']) > 0;
+        (canSetPrice && integer(config?['priceMillimes']) > 0);
     price = TextEditingController(
       text:
           widget.line?.price.input ??

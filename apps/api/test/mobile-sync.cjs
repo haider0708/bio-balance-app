@@ -107,6 +107,21 @@ const owner = new PrismaClient({
         pointsConfigured: true,
       },
     });
+    // A seller sells at the store's price: record it for both stores.
+    for (const [place, price] of [
+      [storeId, 1000n],
+      [emptyStore, 14990n],
+    ])
+      await owner.priceVersion.create({
+        data: {
+          id: randomUUID(),
+          level: "retail",
+          productId,
+          organizationId: org,
+          storeId: place,
+          priceMillimes: price,
+        },
+      });
     session = await owner.session.create({
       data: {
         userId,
