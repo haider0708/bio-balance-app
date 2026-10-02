@@ -246,8 +246,15 @@ const owner = new PrismaClient({
         permissions: ["sell"],
       },
     });
-    const invitePage = await call("GET", `/v1/identity/invitations?organizationId=${org}`, {as: adminToken});
-    assert.equal(invitePage.items.find((i) => i.id === invitation.id).status, 'pending');
+    const invitePage = await call(
+      "GET",
+      `/v1/identity/invitations?organizationId=${org}`,
+      { as: adminToken },
+    );
+    assert.equal(
+      invitePage.items.find((i) => i.id === invitation.id).status,
+      "pending",
+    );
     const mail = await owner.job.findUniqueOrThrow({
       where: { key: `invite:${invitation.id}` },
     });
@@ -257,7 +264,12 @@ const owner = new PrismaClient({
       body: { token: activation, name: "Invited seller", password },
     });
     await call("POST", `/v1/identity/invitations/${invitation.id}/actions`, {
-      as: adminToken, body: { action: 'archive', expectedVersion: 2, operationId: randomUUID() },
+      as: adminToken,
+      body: {
+        action: "archive",
+        expectedVersion: 2,
+        operationId: randomUUID(),
+      },
     });
     await call("POST", "/v1/identity/forgot-password", {
       as: null,
@@ -409,7 +421,15 @@ const owner = new PrismaClient({
           type: "delivery.dispatch",
           orderId,
           deliveryId,
-          lines: [{ productId: product.id, quantity: 5, allocations: [{ batch: "SHIP", expiry: "2031-06-30", quantity: 5 }] }],
+          lines: [
+            {
+              productId: product.id,
+              quantity: 5,
+              allocations: [
+                { batch: "SHIP", expiry: "2031-06-30", quantity: 5 },
+              ],
+            },
+          ],
         },
         2,
       ),
@@ -535,30 +555,80 @@ const owner = new PrismaClient({
     await call("GET", "/v1/groups");
     await call("GET", `/v1/groups/${org}/stores`);
     await call("GET", `/v1/groups/${org}/team`);
-    await call("PATCH", `/v1/groups/${org}/team/${staffId}`, {body:{role:'salesperson',active:true,storeIds:[store]}});
-    await call("PATCH", `/v1/groups/${org}`, {body:{name:'Contract fixtures renamed',expectedVersion:1}});
-    const grant=await owner.groupCreationGrant.create({data:{id:randomUUID(),userId:managerId,createdBy:adminId}});
-    await call("POST", "/v1/groups", {body:{grantId:grant.id,operationId:randomUUID(),name:'Second partner group'}});
+    await call("PATCH", `/v1/groups/${org}/team/${staffId}`, {
+      body: { role: "salesperson", active: true, storeIds: [store] },
+    });
+    await call("PATCH", `/v1/groups/${org}`, {
+      body: { name: "Contract fixtures renamed", expectedVersion: 1 },
+    });
+    const grant = await owner.groupCreationGrant.create({
+      data: { id: randomUUID(), userId: managerId, createdBy: adminId },
+    });
+    await call("POST", "/v1/groups", {
+      body: {
+        grantId: grant.id,
+        operationId: randomUUID(),
+        name: "Second partner group",
+      },
+    });
     await call("GET", "/v1/catalog/products");
-    const query={scope:'group',organizationId:org,from:'2020-01-01',to:'2020-12-31'};
-    const params=new URLSearchParams(query).toString();
+    const query = {
+      scope: "group",
+      organizationId: org,
+      from: "2020-01-01",
+      to: "2020-12-31",
+    };
+    const params = new URLSearchParams(query).toString();
     await call("GET", `/v1/dashboards?${params}`);
     await call("GET", `/v1/dashboards/sales?${params}`);
     await call("GET", `/v1/dashboards/attention?${params}&kind=deliveries`);
-    const orderPage=await call("GET", `/v1/dashboards/orders?${params}`);
-    await call("GET", `/v1/dashboards/groups/${org}/stores/${store}/orders/${orderPage.items[0].id}`);
-    const report=await call("POST", '/v1/report-exports', {body:{id:randomUUID(),query}});
-    const {ExportService}=require('../dist/modules/reporting/export.service');
-    await app.get(ExportService).process(report.id,randomUUID(),async()=>true);
-    await owner.job.update({where:{key:`export:${report.id}`},data:{status:"done"}});
+    const orderPage = await call("GET", `/v1/dashboards/orders?${params}`);
+    await call(
+      "GET",
+      `/v1/dashboards/groups/${org}/stores/${store}/orders/${orderPage.items[0].id}`,
+    );
+    const report = await call("POST", "/v1/report-exports", {
+      body: { id: randomUUID(), query },
+    });
+    const {
+      ExportService,
+    } = require("../dist/modules/reporting/export.service");
+    await app
+      .get(ExportService)
+      .process(report.id, randomUUID(), async () => true);
+    await owner.job.update({
+      where: { key: `export:${report.id}` },
+      data: { status: "done" },
+    });
     await call("GET", `/v1/report-exports/${report.id}`);
     await call("GET", `/v1/report-exports/${report.id}/file`);
     await call("GET", "/v1/notification-inbox");
-    const exactAlert=await owner.alert.findFirstOrThrow({where:{organizationId:org,storeId:store}});
-    await call("GET", `/v1/dashboards/groups/${org}/stores/${store}/alerts/${exactAlert.id}`);
-    await call("GET", `/v1/groups/${org}/lifecycle`,{as:adminToken});
-    await call("POST", `/v1/groups/${org}/lifecycle`,{as:adminToken,body:{operationId:randomUUID(),expectedVersion:2,status:'suspended',reason:'Contract lifecycle check'}});
-    await call("POST", `/v1/groups/${org}/lifecycle`,{as:adminToken,body:{operationId:randomUUID(),expectedVersion:3,status:'active',reason:'Contract lifecycle restored'}});
+    const exactAlert = await owner.alert.findFirstOrThrow({
+      where: { organizationId: org, storeId: store },
+    });
+    await call(
+      "GET",
+      `/v1/dashboards/groups/${org}/stores/${store}/alerts/${exactAlert.id}`,
+    );
+    await call("GET", `/v1/groups/${org}/lifecycle`, { as: adminToken });
+    await call("POST", `/v1/groups/${org}/lifecycle`, {
+      as: adminToken,
+      body: {
+        operationId: randomUUID(),
+        expectedVersion: 2,
+        status: "suspended",
+        reason: "Contract lifecycle check",
+      },
+    });
+    await call("POST", `/v1/groups/${org}/lifecycle`, {
+      as: adminToken,
+      body: {
+        operationId: randomUUID(),
+        expectedVersion: 3,
+        status: "active",
+        reason: "Contract lifecycle restored",
+      },
+    });
     await call("POST", "/v1/prices", {
       as: adminToken,
       body: {
@@ -569,11 +639,17 @@ const owner = new PrismaClient({
         reason: "Contract supply price",
       },
     });
-    await call("GET", `/v1/prices/current?organizationId=${org}&storeId=${store}`);
+    await call(
+      "GET",
+      `/v1/prices/current?organizationId=${org}&storeId=${store}`,
+    );
     await call("GET", `/v1/prices/history?productId=${product.id}`, {
       as: adminToken,
     });
-    await call("GET", `/v1/quality-flags?organizationId=${org}&storeId=${store}&status=all`);
+    await call(
+      "GET",
+      `/v1/quality-flags?organizationId=${org}&storeId=${store}&status=all`,
+    );
     await call("GET", "/v1/quality-flags?status=all", { as: adminToken });
     const wholesaler = await call("POST", "/v1/wholesalers", {
       as: adminToken,
@@ -585,8 +661,13 @@ const owner = new PrismaClient({
         city: "Sfax",
       },
     });
-    const wholesalers = await call("GET", "/v1/wholesalers", { as: adminToken });
-    assert(wholesalers.some((w) => w.id === wholesaler.id), "listed wholesaler");
+    const wholesalers = await call("GET", "/v1/wholesalers", {
+      as: adminToken,
+    });
+    assert(
+      wholesalers.some((w) => w.id === wholesaler.id),
+      "listed wholesaler",
+    );
     const assignedOrder = randomUUID();
     await owner.replenishmentOrder.create({
       data: {

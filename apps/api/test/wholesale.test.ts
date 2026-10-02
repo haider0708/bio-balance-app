@@ -167,6 +167,18 @@ beforeAll(async () => {
   otherGrossiste = other.actor;
   otherDepotOrg = other.created.id;
   otherDepot = other.created.storeId;
+  // Each grossiste sets what stores pay him; an assigned order is priced with it.
+  for (const supplierOrganizationId of [depotOrg, otherDepotOrg])
+    for (const productId of [product, second])
+      await owner.priceVersion.create({
+        data: {
+          id: randomUUID(),
+          level: "store_supply",
+          productId,
+          supplierOrganizationId,
+          priceMillimes: 30000n,
+        },
+      });
 }, 60000);
 afterAll(async () => {
   await db.$disconnect();
@@ -554,7 +566,7 @@ describe("store orders handled by a grossiste", () => {
       {
         productId: product,
         quantity: 12,
-        unitPriceMillimes: null,
+        unitPriceMillimes: "30000",
         allocations: [
           {
             lotId: lot(depot, product, "A"),

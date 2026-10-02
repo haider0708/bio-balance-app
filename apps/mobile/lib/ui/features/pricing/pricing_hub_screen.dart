@@ -93,8 +93,8 @@ class _PricingHubScreenState extends State<PricingHubScreen> {
           const SizedBox(height: 8),
           Text(
             wholesale
-                ? 'Prix de gros : ce que paie chaque grossiste à BioBalance.'
-                : 'Prix d’approvisionnement : ce que paie chaque magasin. Le prix de vente au public, fixé par le responsable, est affiché pour information.',
+                ? 'Prix de gros : ce que paie chaque grossiste à BioBalance. Chaque grossiste fixe ensuite ses propres prix aux magasins (affichés pour information).'
+                : 'Prix d’approvisionnement : ce que paie un magasin quand BioBalance le livre. Quand un grossiste livre, c’est son prix à lui. Le prix de vente au public est fixé par le responsable.',
             style: const TextStyle(fontSize: 14, color: muted),
           ),
           const SizedBox(height: 12),
@@ -153,11 +153,15 @@ class PartyPricesScreen extends StatefulWidget {
 
   /// True for a store (supply price), false for a grossiste (wholesale price).
   final bool wholesale;
+
+  /// A grossiste setting what stores pay him: his own list, for every store.
+  final bool selling;
   const PartyPricesScreen({
     super.key,
     required this.vm,
     required this.store,
     required this.wholesale,
+    this.selling = false,
   });
   @override
   State<PartyPricesScreen> createState() => _PartyPricesScreenState();
@@ -173,7 +177,8 @@ class _PartyPricesScreenState extends State<PartyPricesScreen> {
   String query = '';
 
   bool get supply => widget.wholesale;
-  String get key => supply ? 'supplyMillimes' : 'wholesaleMillimes';
+  String get key =>
+      supply || widget.selling ? 'supplyMillimes' : 'wholesaleMillimes';
 
   @override
   void initState() {
@@ -212,7 +217,7 @@ class _PartyPricesScreenState extends State<PartyPricesScreen> {
 
   Future<void> change(Json product) async {
     final operationId = const Uuid().v4();
-    final level = supply ? 'store_supply' : 'wholesale';
+    final level = supply || widget.selling ? 'store_supply' : 'wholesale';
     final current = prices[product['id']]?[key];
     final name = widget.store.wholesale
         ? widget.store.organizationName
@@ -228,23 +233,24 @@ class _PartyPricesScreenState extends State<PartyPricesScreen> {
           initial: current == null ? '' : Money(integer(current)).input,
           numeric: true,
         ),
-        FieldSpec(
-          'scope',
-          'Pour qui ?',
-          options: {
-            'one': 'Seulement $name',
-            'all': supply
-                ? 'Tous les magasins (prix par défaut)'
-                : 'Tous les grossistes (prix par défaut)',
-          },
-          choice: true,
-          initial: 'one',
-        ),
+        if (!widget.selling)
+          FieldSpec(
+            'scope',
+            'Pour qui ?',
+            options: {
+              'one': 'Seulement $name',
+              'all': supply
+                  ? 'Tous les magasins (prix par défaut)'
+                  : 'Tous les grossistes (prix par défaut)',
+            },
+            choice: true,
+            initial: 'one',
+          ),
         const FieldSpec('reason', 'Motif du changement', required: false),
       ],
       submit: (values) async {
         final reason = (values['reason'] ?? '').trim();
-        final everyone = values['scope'] == 'all';
+        final everyone = widget.selling || values['scope'] == 'all';
         await repository.set({
           'level': level,
           'productId': product['id'],
@@ -299,6 +305,11 @@ class _PartyPricesScreenState extends State<PartyPricesScreen> {
               if (row?[key] == null) 'Prix à définir',
               if (supply && retail != null)
                 'Vente au public : ${millimesLabel(retail)}',
+              // BioBalance sees what the grossiste charges the stores; the grossiste what he pays.
+              if (!supply && !widget.selling && row?['supplyMillimes'] != null)
+                'Vend aux magasins : ${millimesLabel(row!['supplyMillimes'])}',
+              if (widget.selling && row?['wholesaleMillimes'] != null)
+                'Vous payez : ${millimesLabel(row!['wholesaleMillimes'])}',
             ].join(' · '),
             value: row?[key] == null ? null : millimesLabel(row![key]),
             icon: AppIcons.tuneOutlined,
@@ -307,13 +318,22 @@ class _PartyPricesScreenState extends State<PartyPricesScreen> {
         },
         children: [
           SectionTitle(
-            supply ? 'Prix d’approvisionnement' : 'Prix de gros',
+            widget.selling
+                ? 'Mes prix de vente aux magasins'
+                : supply
+                ? 'Prix d’approvisionnement'
+                : 'Prix de gros',
             subtitle: widget.store.wholesale
                 ? title
                 : '${widget.store.organizationName} · $title',
           ),
           if (loading) const LinearProgressIndicator(),
           if (error != null) Notice(error!, retry: load),
+          if (widget.selling)
+            const Text(
+              'Ce que les magasins vous paient. Une commande qui vous est attribuée est facturée à ce prix.',
+              style: TextStyle(fontSize: 14, color: muted),
+            ),
           if (!loading && undefined > 0)
             Notice(
               '$undefined produit(s) sans prix : touchez-les pour le définir.',

@@ -154,7 +154,7 @@ describe("price book", () => {
     ).rejects.toThrow("BioBalance");
     await expect(
       set(grossiste, { level: "wholesale", priceMillimes: "30000" }),
-    ).rejects.toThrow("BioBalance");
+    ).rejects.toThrow("prix d’achat");
     const operationId = randomUUID();
     const first = await set(admin, {
       level: "store_supply",
@@ -381,11 +381,41 @@ describe("who sees which price", () => {
       organizationId: depotOrg,
       storeId: depot,
     });
+    // Until he fixes his own price, stores pay him nothing in particular.
     expect(mine(view)).toMatchObject({
       wholesaleMillimes: 28000n,
-      supplyMillimes: 43000n,
+      supplyMillimes: null,
       retailMillimes: null,
     });
+    // He sets what stores pay him; BioBalance's own list is untouched.
+    await set(grossiste, { level: "store_supply", priceMillimes: "52000" });
+    expect(
+      mine(
+        await pricing.current(grossiste, {
+          organizationId: depotOrg,
+          storeId: depot,
+        }),
+      ),
+    ).toMatchObject({ wholesaleMillimes: 28000n, supplyMillimes: 52000n });
+    expect(mine(await pricing.current(admin, scope()))).toMatchObject({
+      supplyMillimes: 43000n,
+    });
+    // He cannot touch what he pays, nor another grossiste's list.
+    await expect(
+      set(grossiste, { level: "wholesale", priceMillimes: "1000" }),
+    ).rejects.toThrow("prix d’achat");
+    expect(
+      mine(
+        await pricing.current(otherGrossiste, {
+          organizationId: otherDepotOrg,
+          storeId: (
+            await owner.store.findFirstOrThrow({
+              where: { organizationId: otherDepotOrg },
+            })
+          ).id,
+        }),
+      ).supplyMillimes,
+    ).toBeNull();
     // Another grossiste gets the default wholesale price, not this exception.
     const other = await pricing.current(otherGrossiste, {
       organizationId: otherDepotOrg,

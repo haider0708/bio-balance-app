@@ -121,7 +121,10 @@ export interface Ledger {
     lotId: string,
   ): Promise<{ deliveryId: string; ticketNumber: string } | null>;
   /** The price each product is ordered at: wholesale for a depot, else supply. */
-  supplyPrices(productIds: string[]): Promise<Map<string, bigint>>;
+  supplyPrices(
+    productIds: string[],
+    supplierOrganizationId?: string | null,
+  ): Promise<Map<string, bigint>>;
   /** The next delivery ticket number, BL-YYYY-NNNNNN. */
   nextTicketNumber(): Promise<string>;
   alerts(productIds: string[]): Promise<void>;

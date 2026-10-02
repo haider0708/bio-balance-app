@@ -234,6 +234,21 @@ beforeAll(async () => {
     await owner.product.create({
       data: { id, reference: id, name: `Produit ${id.slice(0, 4)}` },
     });
+  // Each grossiste prices what he sells to stores; assigned orders use it.
+  for (const supplierOrganizationId of [depotOrg, otherDepotOrg])
+    for (const [productId, price] of [
+      [product, 40000n],
+      [second, 10000n],
+    ] as const)
+      await owner.priceVersion.create({
+        data: {
+          id: randomUUID(),
+          level: "store_supply",
+          productId,
+          supplierOrganizationId,
+          priceMillimes: price,
+        },
+      });
   // Opening stock of the grossiste's depot.
   await accepted(
     grossiste,

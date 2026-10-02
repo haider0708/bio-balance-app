@@ -58,7 +58,9 @@ it("does not apply general authenticated quotas across sessions; preserves no-st
   });
   expect(rejected.status).toBe(200);
   expect(rejected.headers.get("retry-after")).toBeNull();
-  await db.requestBudget.create({data:{key:`${prefix(user.id)}:all`,count:1200}});
+  await db.requestBudget.create({
+    data: { key: `${prefix(user.id)}:all`, count: 1200 },
+  });
   const logout = await fetch(`${origin}/v1/identity/logout`, {
     method: "POST",
     headers: { authorization: `Bearer ${tokens[0]}` },

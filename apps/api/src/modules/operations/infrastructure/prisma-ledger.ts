@@ -781,7 +781,12 @@ export class PrismaLedger implements Ledger {
       ? { deliveryId: delivery.id, ticketNumber: delivery.ticketNumber }
       : null;
   }
-  async supplyPrices(productIds: string[]) {
+  /** What this store pays for each product: the list of its supplier (a grossiste
+   * if one is given, BioBalance otherwise). A depot's own prices are its wholesale ones. */
+  async supplyPrices(
+    productIds: string[],
+    supplierOrganizationId?: string | null,
+  ) {
     if (!productIds.length) return new Map<string, bigint>();
     return withPriceAccess(this.tx, () =>
       this.scope.wholesale
@@ -794,7 +799,10 @@ export class PrismaLedger implements Ledger {
         : latestPrices(
             this.tx,
             "store_supply",
-            { storeId: this.scope.storeId },
+            {
+              storeId: this.scope.storeId,
+              supplierId: supplierOrganizationId ?? null,
+            },
             productIds,
           ),
     );

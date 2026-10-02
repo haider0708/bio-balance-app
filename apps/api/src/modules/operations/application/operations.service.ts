@@ -1035,6 +1035,7 @@ export class OperationsService {
               (l) => !order.lines.some((o) => o.productId === l.productId),
             )
             .map((l) => l.productId),
+          order.supplierOrganizationId,
         );
         Order.amend(
           order,
@@ -1212,6 +1213,7 @@ export class OperationsService {
         "Une livraison a déjà commencé : la commande ne peut plus changer de fournisseur.",
         409,
       );
+      const supplierBefore = order.supplierOrganizationId ?? null;
       if (cmd.supplierStoreId) {
         const organizationId = await ledger.inDepot(
           cmd.supplierStoreId,
@@ -1229,6 +1231,25 @@ export class OperationsService {
       } else {
         order.supplierStoreId = null;
         order.supplierOrganizationId = null;
+      }
+      // The price follows the supplier: a grossiste's own list, or BioBalance's.
+      // Nothing has shipped yet, so repricing the lines rewrites no history.
+      const changed = supplierBefore !== (order.supplierOrganizationId ?? null);
+      const list = changed
+        ? await ledger.supplyPrices(
+            order.lines.map((l) => l.productId),
+            order.supplierOrganizationId,
+          )
+        : new Map<string, bigint>();
+      for (const line of changed ? order.lines : []) {
+        const price = list.get(line.productId);
+        requireRule(
+          price !== undefined || !order.supplierOrganizationId,
+          "SUPPLIER_PRICE_MISSING",
+          "Ce grossiste n’a pas encore fixé son prix pour un des produits de la commande.",
+          409,
+        );
+        line.unitPriceMillimes = price?.toString() ?? null;
       }
       // The new handler starts from the beginning of the preparation step.
       order.status = "requested";

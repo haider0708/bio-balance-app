@@ -151,6 +151,20 @@ class MorePage extends StatelessWidget {
             AppIcons.tuneOutlined,
             ProductSettingsPage(vm: vm),
           ),
+          if (wholesale && !vm.user.admin)
+            link(
+              context,
+              'Prix aux magasins',
+              AppIcons.tuneOutlined,
+              PartyPricesScreen(
+                vm: vm,
+                store: store,
+                wholesale: false,
+                selling: true,
+              ),
+              fullScreen: true,
+              subtitle: 'Ce que les magasins vous paient',
+            ),
           if (!wholesale) ...[
             link(
               context,

@@ -584,6 +584,8 @@ model PriceVersion {
   productId String @db.Uuid
   organizationId String? @db.Uuid
   storeId String? @db.Uuid
+  // A store-supply price set by a grossiste; null is BioBalance's own list.
+  supplierOrganizationId String? @db.Uuid
   priceMillimes BigInt
   reason String?
   operationId String? @unique @db.Uuid

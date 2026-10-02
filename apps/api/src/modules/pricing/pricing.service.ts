@@ -26,7 +26,12 @@ export async function withPriceAccess<T>(tx: Tx, work: () => Promise<T>) {
 export async function latestPrices(
   tx: Tx,
   level: PriceLevel,
-  scope: { organizationId?: string | null; storeId?: string | null },
+  scope: {
+    organizationId?: string | null;
+    storeId?: string | null;
+    // store_supply only: whose list. Null or absent is BioBalance's.
+    supplierId?: string | null;
+  },
   productIds?: string[],
   // The price in force at that moment; omitted means now.
   at?: Date,
@@ -45,9 +50,13 @@ export async function latestPrices(
     level === "wholesale"
       ? Prisma.sql`("organizationId" IS NULL)`
       : Prisma.sql`("storeId" IS NULL)`;
+  const supplier =
+    level === "store_supply"
+      ? Prisma.sql`AND "supplierOrganizationId" IS NOT DISTINCT FROM ${scope.supplierId ?? null}::uuid`
+      : Prisma.empty;
   const rows = await tx.$queryRaw<Row[]>(
     Prisma.sql`SELECT DISTINCT ON ("productId") "productId","priceMillimes","createdAt"
-      FROM "PriceVersion" WHERE level=${level} AND ${match} ${products} ${until}
+      FROM "PriceVersion" WHERE level=${level} AND ${match} ${supplier} ${products} ${until}
       ORDER BY "productId",${specific} ASC,"createdAt" DESC,id DESC`,
   );
   return new Map(rows.map((r) => [r.productId, r.priceMillimes]));
@@ -57,132 +66,160 @@ export async function latestPrices(
 export class PricingService {
   constructor(private readonly db: Database) {}
 
-  /** BioBalance alone sets wholesale and store-supply prices. */
+  /** BioBalance sets wholesale prices and its own store-supply list; a grossiste
+   * sets the store-supply list for what he sells to stores. */
   set(actor: Actor, input: z.infer<typeof PricingRequests.Set>) {
-    return this.db.authenticated(
-      actor,
-      async (tx, current) => {
-        const payload = JSON.stringify([
-          input.level,
-          input.productId,
-          input.organizationId ?? null,
-          input.storeId ?? null,
-          input.priceMillimes,
-        ]);
-        await tx.$executeRaw`SELECT set_config('app.price_access','true',true)`;
-        const prior = await tx.priceVersion.findUnique({
-          where: { operationId: input.operationId },
+    return this.db.authenticated(actor, async (tx, current) => {
+      let supplierId: string | null = null;
+      if (!current.platformAdmin) {
+        const seats = await tx.organizationMembership.findMany({
+          where: { userId: current.id, active: true },
         });
-        if (prior) {
-          requireRule(
-            prior.createdBy === current.id &&
-              JSON.stringify([
-                prior.level,
-                prior.productId,
-                prior.organizationId,
-                prior.storeId,
-                prior.priceMillimes.toString(),
-              ]) === payload,
-            "OPERATION_REUSED",
-            "Identifiant d’opération déjà utilisé.",
-            409,
-          );
-          return this.entry(prior, await this.authors(tx, [prior], true));
-        }
+        const seat = (
+          await tx.organization.findMany({
+            where: {
+              id: { in: seats.map((m) => m.organizationId) },
+              kind: "wholesale",
+              status: "active",
+            },
+          })
+        )[0];
         requireRule(
-          await tx.product.findUnique({ where: { id: input.productId } }),
-          "PRODUCT_NOT_FOUND",
-          "Produit introuvable.",
-          404,
+          seat,
+          "FORBIDDEN",
+          "Seuls BioBalance et les grossistes fixent des prix.",
+          403,
         );
-        if (input.level === "wholesale") {
-          requireRule(
-            !input.storeId,
-            "VALIDATION",
-            "Un prix de gros se définit par grossiste, pas par magasin.",
-          );
-          if (input.organizationId)
-            requireRule(
-              (
-                await tx.organization.findUnique({
-                  where: { id: input.organizationId },
-                })
-              )?.kind === "wholesale",
-              "VALIDATION",
-              "Ce prix de gros vise un grossiste existant.",
-            );
-        } else {
-          requireRule(
-            !!input.organizationId === !!input.storeId,
-            "VALIDATION",
-            "Indiquez le magasin de l’exception, ou aucun pour le prix par défaut.",
-          );
-          if (input.storeId) {
-            const store = await tx.store.findFirst({
-              where: {
-                id: input.storeId,
-                organizationId: input.organizationId,
-              },
-            });
-            requireRule(store, "NOT_FOUND", "Magasin introuvable.", 404);
-            requireRule(
-              (
-                await tx.organization.findUnique({
-                  where: { id: store.organizationId },
-                })
-              )?.kind === "retail",
-              "VALIDATION",
-              "Un dépôt de grossiste n’a pas de prix d’approvisionnement.",
-            );
-          }
-        }
-        const scope =
-          input.level === "store_supply"
-            ? { storeId: input.storeId ?? null }
-            : { organizationId: input.organizationId ?? null };
-        const existing = await latestPrices(tx, input.level, scope, [
-          input.productId,
-        ]);
         requireRule(
-          existing.get(input.productId) !== BigInt(input.priceMillimes),
-          "PRICE_UNCHANGED",
-          "Ce prix est déjà en vigueur.",
+          input.level === "store_supply",
+          "FORBIDDEN",
+          "Un grossiste fixe le prix de vente aux magasins, pas son prix d’achat.",
+          403,
+        );
+        supplierId = seat.id;
+      }
+      const payload = JSON.stringify([
+        input.level,
+        input.productId,
+        input.organizationId ?? null,
+        input.storeId ?? null,
+        input.priceMillimes,
+        supplierId,
+      ]);
+      await tx.$executeRaw`SELECT set_config('app.price_access','true',true)`;
+      const prior = await tx.priceVersion.findUnique({
+        where: { operationId: input.operationId },
+      });
+      if (prior) {
+        requireRule(
+          prior.createdBy === current.id &&
+            JSON.stringify([
+              prior.level,
+              prior.productId,
+              prior.organizationId,
+              prior.storeId,
+              prior.priceMillimes.toString(),
+              prior.supplierOrganizationId,
+            ]) === payload,
+          "OPERATION_REUSED",
+          "Identifiant d’opération déjà utilisé.",
           409,
         );
-        const row = await tx.priceVersion.create({
-          data: {
-            id: crypto.randomUUID(),
+        return this.entry(prior, await this.authors(tx, [prior], true));
+      }
+      requireRule(
+        await tx.product.findUnique({ where: { id: input.productId } }),
+        "PRODUCT_NOT_FOUND",
+        "Produit introuvable.",
+        404,
+      );
+      if (input.level === "wholesale") {
+        requireRule(
+          !input.storeId,
+          "VALIDATION",
+          "Un prix de gros se définit par grossiste, pas par magasin.",
+        );
+        if (input.organizationId)
+          requireRule(
+            (
+              await tx.organization.findUnique({
+                where: { id: input.organizationId },
+              })
+            )?.kind === "wholesale",
+            "VALIDATION",
+            "Ce prix de gros vise un grossiste existant.",
+          );
+      } else {
+        requireRule(
+          !!input.organizationId === !!input.storeId,
+          "VALIDATION",
+          "Indiquez le magasin de l’exception, ou aucun pour le prix par défaut.",
+        );
+        if (input.storeId) {
+          const store = await tx.store.findFirst({
+            where: {
+              id: input.storeId,
+              organizationId: input.organizationId,
+            },
+          });
+          requireRule(store, "NOT_FOUND", "Magasin introuvable.", 404);
+          requireRule(
+            (
+              await tx.organization.findUnique({
+                where: { id: store.organizationId },
+              })
+            )?.kind === "retail",
+            "VALIDATION",
+            "Un dépôt de grossiste n’a pas de prix d’approvisionnement.",
+          );
+        }
+      }
+      const scope =
+        input.level === "store_supply"
+          ? { storeId: input.storeId ?? null, supplierId }
+          : { organizationId: input.organizationId ?? null };
+      const existing = await latestPrices(tx, input.level, scope, [
+        input.productId,
+      ]);
+      requireRule(
+        existing.get(input.productId) !== BigInt(input.priceMillimes),
+        "PRICE_UNCHANGED",
+        "Ce prix est déjà en vigueur.",
+        409,
+      );
+      const row = await tx.priceVersion.create({
+        data: {
+          id: crypto.randomUUID(),
+          level: input.level,
+          productId: input.productId,
+          organizationId: input.organizationId ?? null,
+          storeId: input.storeId ?? null,
+          supplierOrganizationId: supplierId,
+          priceMillimes: BigInt(input.priceMillimes),
+          reason: input.reason ?? null,
+          operationId: input.operationId,
+          createdBy: current.id,
+        },
+      });
+      await tx.auditEntry.create({
+        data: {
+          organizationId: input.organizationId ?? null,
+          storeId: input.storeId ?? null,
+          actorId: current.id,
+          action: "price.set",
+          targetId: row.id,
+          operationId: input.operationId,
+          details: json({
             level: input.level,
             productId: input.productId,
-            organizationId: input.organizationId ?? null,
-            storeId: input.storeId ?? null,
-            priceMillimes: BigInt(input.priceMillimes),
+            priceMillimes: input.priceMillimes,
+            previous: existing.get(input.productId)?.toString() ?? null,
             reason: input.reason ?? null,
-            operationId: input.operationId,
-            createdBy: current.id,
-          },
-        });
-        await tx.auditEntry.create({
-          data: {
-            organizationId: input.organizationId ?? null,
-            storeId: input.storeId ?? null,
-            actorId: current.id,
-            action: "price.set",
-            targetId: row.id,
-            operationId: input.operationId,
-            details: json({
-              level: input.level,
-              productId: input.productId,
-              priceMillimes: input.priceMillimes,
-              previous: existing.get(input.productId)?.toString() ?? null,
-              reason: input.reason ?? null,
-            }),
-          },
-        });
-        return this.entry(row, await this.authors(tx, [row], true));
-      },
-      true,
-    );
+          }),
+        },
+      });
+      return this.entry(row, await this.authors(tx, [row], true));
+    });
   }
 
   /** Who the caller is for a store: decides which price levels are visible. */
@@ -236,10 +273,16 @@ export class PricingService {
       const retail = v.retail
         ? await latestPrices(tx, "retail", { storeId: q.storeId })
         : new Map<string, bigint>();
-      const supply = v.supply
-        ? await latestPrices(tx, "store_supply", { storeId: q.storeId })
-        : v.wholesalePrice
-          ? await latestPrices(tx, "store_supply", {})
+      // A store reads the list of its supplier (BioBalance's); a grossiste reads
+      // his own: what stores pay him.
+      const supply = v.wholesale
+        ? v.wholesalePrice
+          ? await latestPrices(tx, "store_supply", {
+              supplierId: q.organizationId,
+            })
+          : new Map<string, bigint>()
+        : v.supply
+          ? await latestPrices(tx, "store_supply", { storeId: q.storeId })
           : new Map<string, bigint>();
       const wholesale = v.wholesalePrice
         ? await latestPrices(tx, "wholesale", {
@@ -289,10 +332,14 @@ export class PricingService {
         if (v.supply) {
           where.push({
             level: "store_supply",
+            supplierOrganizationId: null,
             OR: [{ storeId: null }, { storeId: q.storeId }],
           });
         } else if (v.wholesalePrice) {
-          where.push({ level: "store_supply", storeId: null });
+          where.push({
+            level: "store_supply",
+            supplierOrganizationId: q.organizationId,
+          });
         }
         if (v.wholesalePrice) {
           where.push({
@@ -310,9 +357,11 @@ export class PricingService {
           "Indiquez le groupe et le magasin.",
           403,
         );
-        for (const level of ["wholesale", "store_supply", "retail"] as const) {
+        for (const level of ["wholesale", "retail"] as const) {
           where.push({ level });
         }
+        // BioBalance's own list; a grossiste's list is read through his depot.
+        where.push({ level: "store_supply", supplierOrganizationId: null });
       }
       await tx.$executeRaw`SELECT set_config('app.price_access','true',true)`;
       const rows = await tx.priceVersion.findMany({
