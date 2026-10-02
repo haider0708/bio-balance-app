@@ -20,6 +20,14 @@ class Money {
           int.parse(parts.length == 2 ? parts[1].padRight(3, '0') : '0'),
     );
   }
+  static Money? tryParse(String text) {
+    try {
+      return Money.parse(text);
+    } on FormatException {
+      return null;
+    }
+  }
+
   String get formatted =>
       '${millimes ~/ 1000},${(millimes % 1000).toString().padLeft(3, '0')} TND';
   String get input => formatted.replaceAll(' TND', '');

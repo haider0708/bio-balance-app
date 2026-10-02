@@ -81,10 +81,11 @@ async function sell(
   at: Date,
   unitPriceMillimes: string,
   quantity = 2,
+  by: Actor = manager,
 ) {
   const saleId = randomUUID();
   await accepted(
-    seller,
+    by,
     op({
       type: "sale.create",
       saleId,
@@ -202,7 +203,7 @@ describe("the price list beside the price charged", () => {
     });
     // A correction keeps the original list price.
     await accepted(
-      seller,
+      manager,
       op(
         {
           type: "sale.correct",
@@ -246,6 +247,76 @@ describe("the price list beside the price charged", () => {
     expect(
       first(await sell(legacy, lotId, ago(20), "30000")).listPriceMillimes,
     ).toBeNull();
+  });
+});
+
+describe("a seller cannot set the price", () => {
+  it("sells at the store price, with a note, and nothing else", async () => {
+    const product = randomUUID(),
+      unpriced = randomUUID();
+    for (const id of [product, unpriced])
+      await owner.product.create({
+        data: { id, reference: id, name: `Produit ${id.slice(0, 4)}` },
+      });
+    const lotId = await stock(product, "FIX");
+    const created = await workspace.configureProduct(
+      manager,
+      org,
+      store,
+      product,
+      { priceMillimes: "20000", threshold: 5, pointsPerUnit: 0 },
+    );
+    const line = (price: string, note?: string) => ({
+      id: randomUUID(),
+      productId: product,
+      quantity: 1,
+      unitPriceMillimes: price,
+      ...(note ? { note } : {}),
+      allocations: [{ lotId, quantity: 1 }],
+    });
+    const create = (l: ReturnType<typeof line>) =>
+      service.submit(
+        seller,
+        op({
+          type: "sale.create",
+          saleId: randomUUID(),
+          occurredAt: new Date().toISOString(),
+          lines: [l],
+        }),
+      );
+    // Neither a discount nor a surcharge is accepted from a seller.
+    expect((await create(line("15000"))).code).toBe("PRICE_FIXED");
+    expect((await create(line("25000"))).code).toBe("PRICE_FIXED");
+    expect(await create(line("20000", "Client fidèle"))).toMatchObject({
+      status: "accepted",
+    });
+    // The responsable may still charge something else.
+    expect(
+      first(await sell(product, lotId, new Date(), "15000")),
+    ).toMatchObject({
+      unitPriceMillimes: "15000",
+    });
+    // No price set, no sale by a seller.
+    const other = await stock(unpriced, "NOP");
+    const refused = await service.submit(
+      seller,
+      op({
+        type: "sale.create",
+        saleId: randomUUID(),
+        occurredAt: new Date().toISOString(),
+        lines: [
+          {
+            id: randomUUID(),
+            productId: unpriced,
+            quantity: 1,
+            unitPriceMillimes: "1000",
+            allocations: [{ lotId: other, quantity: 1 }],
+          },
+        ],
+      }),
+    );
+    expect(refused.code).toBe("PRICE_NOT_SET");
+    expect(created.version).toBeGreaterThan(0);
   });
 });
 

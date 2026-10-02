@@ -120,6 +120,65 @@ void main() {
     vm.dispose();
     await db.close();
   });
+  testWidgets(
+    'a seller sees the store price, cannot edit it, and may add a note',
+    (tester) async {
+      final db = AppDatabase(NativeDatabase.memory()),
+          api = ApiClient(baseUrl: 'http://test')
+            ..authenticate('token', accountId: 'a');
+      final repository = MemoryDraftRepository(db, api),
+          vm = WorkspaceViewModel(user, repository, api);
+      vm.state = WorkspaceState(
+        store: store,
+        stores: [store],
+        data: StoreData({
+          'products': [
+            {'id': 'p', 'name': 'Sérum', 'reference': 'SERUM'},
+          ],
+          'lots': [
+            {
+              'id': 'lot',
+              'productId': 'p',
+              'batch': 'B1',
+              'expiry': '2031-01-01',
+              'sellable': 5,
+              'damaged': 0,
+              'version': 1,
+            },
+          ],
+          'config': [
+            {
+              'productId': 'p',
+              'priceMillimes': '2000',
+              'priceConfigured': true,
+            },
+          ],
+        }),
+      );
+      await tester.pumpWidget(
+        ChangeNotifierProvider.value(
+          value: vm,
+          child: MaterialApp(
+            home: LineEditor(workspace: vm, productId: 'p'),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Fixé par le responsable du magasin'), findsOneWidget);
+      expect(find.text('2,000 TND'), findsOneWidget);
+      expect(
+        find.widgetWithText(TextField, 'Prix unitaire réel (TND)'),
+        findsNothing,
+      );
+      expect(
+        find.widgetWithText(TextField, 'Remarque (facultatif)'),
+        findsOneWidget,
+      );
+      await tester.pumpWidget(const SizedBox());
+      vm.dispose();
+      await db.close();
+    },
+  );
   test(
     'offline correction rejects quantities already returned before enqueuing',
     () async {

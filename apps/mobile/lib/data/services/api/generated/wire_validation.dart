@@ -631,6 +631,7 @@ const Map<String, Map<String, dynamic>> _schemas = {
       "productId": {"type": "string", "format": "uuid"},
       "quantity": {"type": "integer"},
       "unitPriceMillimes": {"type": "string", "pattern": "^-?[0-9]+\$"},
+      "note": {"type": "string"},
       "listPriceMillimes": {
         "anyOf": [
           {"type": "string", "pattern": "^-?[0-9]+\$"},
@@ -4743,6 +4744,7 @@ const Map<String, Map<String, dynamic>> _schemas = {
         "type": "string",
         "pattern": "^(0|[1-9]\\d{0,14})\$",
       },
+      "note": {"type": "string", "maxLength": 200},
       "allocations": {
         "minItems": 1,
         "maxItems": 50,
@@ -4799,6 +4801,7 @@ const Map<String, Map<String, dynamic>> _schemas = {
         "type": "string",
         "pattern": "^(0|[1-9]\\d{0,14})\$",
       },
+      "note": {"type": "string", "maxLength": 200},
       "allocations": {
         "minItems": 1,
         "maxItems": 50,

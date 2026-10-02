@@ -959,6 +959,7 @@ final class AcceptedSaleLineDto {
   final String productId;
   final int quantity;
   final String unitPriceMillimes;
+  final String? note;
   final String? listPriceMillimes;
   final List<SaleAllocationDto> allocations;
   final int pointsPerUnit;
@@ -968,6 +969,7 @@ final class AcceptedSaleLineDto {
     required this.productId,
     required this.quantity,
     required this.unitPriceMillimes,
+    this.note,
     this.listPriceMillimes,
     required List<SaleAllocationDto> allocations,
     required this.pointsPerUnit,
@@ -980,6 +982,7 @@ final class AcceptedSaleLineDto {
       productId: json["productId"] as String,
       quantity: wireInteger(json["quantity"]),
       unitPriceMillimes: json["unitPriceMillimes"] as String,
+      note: json["note"] == null ? null : json["note"] as String,
       listPriceMillimes: json["listPriceMillimes"] == null
           ? null
           : json["listPriceMillimes"] as String,
@@ -998,6 +1001,7 @@ final class AcceptedSaleLineDto {
     "productId": productId,
     "quantity": quantity,
     "unitPriceMillimes": unitPriceMillimes,
+    if (note != null || _presentFields.contains("note")) "note": note,
     if (listPriceMillimes != null ||
         _presentFields.contains("listPriceMillimes"))
       "listPriceMillimes": listPriceMillimes,
@@ -8405,6 +8409,7 @@ final class CommandSaleCreateLinesItemDto {
   final String productId;
   final int quantity;
   final String unitPriceMillimes;
+  final String? note;
   final List<CommandSaleCreateLinesItemAllocationsItemDto> allocations;
   CommandSaleCreateLinesItemDto({
     Set<String> presentFields = const {},
@@ -8412,6 +8417,7 @@ final class CommandSaleCreateLinesItemDto {
     required this.productId,
     required this.quantity,
     required this.unitPriceMillimes,
+    this.note,
     required List<CommandSaleCreateLinesItemAllocationsItemDto> allocations,
   }) : _presentFields = Set.unmodifiable(presentFields),
        allocations = List.unmodifiable(allocations);
@@ -8422,6 +8428,7 @@ final class CommandSaleCreateLinesItemDto {
       productId: json["productId"] as String,
       quantity: wireInteger(json["quantity"]),
       unitPriceMillimes: json["unitPriceMillimes"] as String,
+      note: json["note"] == null ? null : json["note"] as String,
       allocations: List.unmodifiable(
         (json["allocations"] as List).map(
           (item) => CommandSaleCreateLinesItemAllocationsItemDto.fromJson(
@@ -8436,6 +8443,7 @@ final class CommandSaleCreateLinesItemDto {
     "productId": productId,
     "quantity": quantity,
     "unitPriceMillimes": unitPriceMillimes,
+    if (note != null || _presentFields.contains("note")) "note": note,
     "allocations": allocations.map((item) => item.toJson()).toList(),
   };
 }
@@ -8480,6 +8488,7 @@ final class CommandSaleCorrectLinesItemDto {
   final String productId;
   final int quantity;
   final String unitPriceMillimes;
+  final String? note;
   final List<CommandSaleCorrectLinesItemAllocationsItemDto> allocations;
   CommandSaleCorrectLinesItemDto({
     Set<String> presentFields = const {},
@@ -8487,6 +8496,7 @@ final class CommandSaleCorrectLinesItemDto {
     required this.productId,
     required this.quantity,
     required this.unitPriceMillimes,
+    this.note,
     required List<CommandSaleCorrectLinesItemAllocationsItemDto> allocations,
   }) : _presentFields = Set.unmodifiable(presentFields),
        allocations = List.unmodifiable(allocations);
@@ -8497,6 +8507,7 @@ final class CommandSaleCorrectLinesItemDto {
       productId: json["productId"] as String,
       quantity: wireInteger(json["quantity"]),
       unitPriceMillimes: json["unitPriceMillimes"] as String,
+      note: json["note"] == null ? null : json["note"] as String,
       allocations: List.unmodifiable(
         (json["allocations"] as List).map(
           (item) => CommandSaleCorrectLinesItemAllocationsItemDto.fromJson(
@@ -8511,6 +8522,7 @@ final class CommandSaleCorrectLinesItemDto {
     "productId": productId,
     "quantity": quantity,
     "unitPriceMillimes": unitPriceMillimes,
+    if (note != null || _presentFields.contains("note")) "note": note,
     "allocations": allocations.map((item) => item.toJson()).toList(),
   };
 }

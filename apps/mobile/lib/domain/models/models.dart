@@ -129,6 +129,9 @@ class SaleLine {
   final String id, productId;
   final int quantity;
   final Money price;
+
+  /// A remark on the line; the price itself is the store's, never the seller's.
+  final String note;
   final List<Json> allocations;
   final List<BatchDeclaration> batchDeclarations;
   SaleLine({
@@ -136,6 +139,7 @@ class SaleLine {
     required this.productId,
     required this.quantity,
     required this.price,
+    this.note = '',
     required List<Json> allocations,
     List<BatchDeclaration> batchDeclarations = const [],
   }) : batchDeclarations = List.unmodifiable(batchDeclarations),
@@ -147,6 +151,7 @@ class SaleLine {
     productId: v['productId'],
     quantity: integer(v['quantity']),
     price: Money(integer(v['unitPriceMillimes'])),
+    note: (v['note'] as String?) ?? '',
     allocations: objects(v['allocations']),
     batchDeclarations: objects(v['batchDeclarations'])
         .map(BatchDeclaration.fromJson)
@@ -157,6 +162,7 @@ class SaleLine {
     'productId': productId,
     'quantity': quantity,
     'unitPriceMillimes': price.millimes.toString(),
+    if (note.trim().isNotEmpty) 'note': note.trim(),
     'allocations': allocations,
     if (!transport && batchDeclarations.isNotEmpty)
       'batchDeclarations': batchDeclarations.map((b) => b.toJson()).toList(),

@@ -301,7 +301,8 @@ describe.sequential("group redesign and reporting projections", () => {
         organizationId: groupId,
         storeId: newStore,
         userId: seller.id,
-        permissions: ["sell", "receive"],
+        // Reports are checked against sales at odd prices: only a responsable may charge them.
+        permissions: ["sell", "receive", "manage"],
       },
     });
   });
@@ -1073,7 +1074,7 @@ describe.sequential(
                   id: randomUUID(),
                   productId: product,
                   quantity: 1,
-                  unitPriceMillimes: "1000",
+                  unitPriceMillimes: "49900",
                   allocations: [{ lotId, quantity: 1 }],
                 },
               ],
@@ -1102,7 +1103,7 @@ describe.sequential(
                     id: randomUUID(),
                     productId: product,
                     quantity: 20,
-                    unitPriceMillimes: "1000",
+                    unitPriceMillimes: "49900",
                     allocations: [{ lotId, quantity: 20 }],
                   },
                 ],
@@ -2087,6 +2088,13 @@ describe.sequential(
     it("lets sellers declare a missing batch atomically without incoming stock", async () => {
       const id = lotIdentity(store, product, "MISSING", "2029-12-31"),
         saleId = randomUUID();
+      // A seller sells at the store's current price.
+      const price = (
+        await owner.priceVersion.findFirstOrThrow({
+          where: { level: "retail", productId: product, storeId: store },
+          orderBy: { createdAt: "desc" },
+        })
+      ).priceMillimes.toString();
       const command: Command = {
         type: "sale.create",
         saleId,
@@ -2104,14 +2112,16 @@ describe.sequential(
             id: randomUUID(),
             productId: product,
             quantity: 2,
-            unitPriceMillimes: "14990",
+            unitPriceMillimes: price,
             allocations: [{ lotId: id, quantity: 2 }],
           },
         ],
       };
       const operation = op(command);
       const accepted = await service.submit(seller, operation);
-      expect(accepted.status).toBe("accepted");
+      expect(accepted, JSON.stringify(accepted)).toMatchObject({
+        status: "accepted",
+      });
       expect(await service.submit(seller, operation)).toEqual(accepted);
       expect(
         await owner.inventoryLot.findUniqueOrThrow({ where: { id } }),

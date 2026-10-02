@@ -9,6 +9,8 @@ export const saleLine = z
     productId: id,
     quantity,
     unitPriceMillimes: millimes,
+    // A seller cannot change the price, only leave a note on the line.
+    note: z.string().trim().max(200).optional(),
     allocations: z.array(allocation).min(1).max(50),
   })
   .strict();

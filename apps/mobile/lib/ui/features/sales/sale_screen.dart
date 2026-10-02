@@ -158,7 +158,7 @@ class _SaleEditorState extends State<_SaleEditor> {
                 '${line.quantity} unité${line.quantity > 1 ? 's' : ''} × ${line.price.formatted}\n${line.allocations.map((a) {
                   final lot = vm.workspace.state.data?.lots.where((l) => l.id == a['lotId']).firstOrNull;
                   return 'Lot ${lot?.batch ?? '—'} · ${a['quantity']} u.';
-                }).join(' / ')}',
+                }).join(' / ')}${line.note.isEmpty ? '' : '\nRemarque : ${line.note}'}',
             footer: Wrap(
               spacing: 8,
               children: [
@@ -361,6 +361,7 @@ class LineEditor extends StatefulWidget {
 
 class _LineEditorState extends State<LineEditor> {
   late final TextEditingController price;
+  final note = TextEditingController();
   late final FormDraftController draft;
   bool restoringDraft = false;
   final allocations = <String, TextEditingController>{};
@@ -368,6 +369,9 @@ class _LineEditorState extends State<LineEditor> {
   late final List<InventoryLot> lots;
   final declarations = <BatchDeclaration>[];
   late final Store store = widget.workspace.state.store!;
+  // Only the responsable (and BioBalance) may charge a price other than the store's.
+  bool get canSetPrice => widget.workspace.user.admin || store.canManage;
+  bool get priceKnown => Money.tryParse(price.text) != null;
   String get saleDate => TunisDates.today(
     DateTime.tryParse(widget.occurredAt ?? '') ?? DateTime.now(),
   );
@@ -383,6 +387,7 @@ class _LineEditorState extends State<LineEditor> {
           widget.line?.price.input ??
           (configured ? Money(integer(config?['priceMillimes'])).input : ''),
     );
+    note.text = widget.line?.note ?? '';
     lots = InventorySelection.forSale(
       widget.workspace.state.data?.lots.where(
             (l) => l.productId == widget.productId,
@@ -418,6 +423,7 @@ class _LineEditorState extends State<LineEditor> {
       draftValues(),
     );
     price.addListener(persistDraft);
+    note.addListener(persistDraft);
     for (final c in allocations.values) {
       c.addListener(persistDraft);
     }
@@ -426,6 +432,7 @@ class _LineEditorState extends State<LineEditor> {
 
   Map<String, String> draftValues() => {
     'price': price.text,
+    'note': note.text,
     'declarations': jsonEncode(declarations.map((b) => b.toJson()).toList()),
     for (final e in allocations.entries) e.key: e.value.text,
   };
@@ -468,7 +475,9 @@ class _LineEditorState extends State<LineEditor> {
           () => TextEditingController(text: '0')..addListener(persistDraft),
         );
       }
-      price.text = values['price'] ?? price.text;
+      // A seller's price is the store's: a draft can never change it.
+      if (canSetPrice) price.text = values['price'] ?? price.text;
+      note.text = values['note'] ?? note.text;
       for (final entry in allocations.entries) {
         entry.value.text = values[entry.key] ?? entry.value.text;
       }
@@ -553,6 +562,7 @@ class _LineEditorState extends State<LineEditor> {
   void dispose() {
     draft.dispose();
     price.dispose();
+    note.dispose();
     for (final c in allocations.values) {
       c.dispose();
     }
@@ -585,12 +595,34 @@ class _LineEditorState extends State<LineEditor> {
         Notice(error!, error: true),
         const SizedBox(height: 16),
       ],
+      if (canSetPrice)
+        TextField(
+          controller: price,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          decoration: const InputDecoration(
+            labelText: 'Prix unitaire réel (TND)',
+            helperText: 'Exemple : 49,900',
+          ),
+        )
+      else if (priceKnown)
+        CompactRow(
+          title: 'Prix unitaire',
+          subtitle: 'Fixé par le responsable du magasin',
+          value: Money.parse(price.text).formatted,
+          icon: AppIcons.tuneOutlined,
+        )
+      else
+        const Notice(
+          'Le prix de ce produit n’est pas encore défini. Demandez au responsable de le fixer pour pouvoir le vendre.',
+          error: true,
+        ),
+      const SizedBox(height: 12),
       TextField(
-        controller: price,
-        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+        controller: note,
+        maxLength: 200,
         decoration: const InputDecoration(
-          labelText: 'Prix unitaire réel (TND)',
-          helperText: 'Exemple : 49,900',
+          labelText: 'Remarque (facultatif)',
+          helperText: 'Par exemple : client fidèle, produit offert…',
         ),
       ),
       const SizedBox(height: 24),
@@ -671,11 +703,17 @@ class _LineEditorState extends State<LineEditor> {
       if (quantity < 1) {
         throw const FormatException('Choisissez au moins une unité.');
       }
+      if (!canSetPrice && !priceKnown) {
+        throw const FormatException(
+          'Le prix de ce produit n’est pas défini : le responsable doit le fixer.',
+        );
+      }
       final line = SaleLine(
         id: widget.line?.id ?? const Uuid().v4(),
         productId: widget.productId,
         quantity: quantity,
         price: Money.parse(price.text),
+        note: note.text.trim(),
         allocations: selected,
         batchDeclarations: declarations
             .where((d) => selected.any((a) => a['lotId'] == d.lotId))

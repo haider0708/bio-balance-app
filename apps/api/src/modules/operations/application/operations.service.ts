@@ -632,6 +632,40 @@ export class OperationsService {
           expiryDate(declaration.expiry),
         );
       }
+      // A seller sells at the store's price: the one in force on the sale date
+      // (or today's, if the price changed before the phone synchronised), or the
+      // price already on the line being corrected. Only the responsable and
+      // BioBalance may charge something else.
+      if (
+        !actor.platformAdmin &&
+        !ledger.scope.permissions.includes("manage")
+      ) {
+        const ids = cmd.lines.map((l) => l.productId);
+        const onDate = await ledger.listPrices(ids, new Date(cmd.occurredAt));
+        const today = await ledger.listPrices(ids, new Date());
+        for (const line of cmd.lines) {
+          const same = previous?.lines.find((old) => old.id === line.id);
+          const allowed = [
+            onDate.get(line.productId),
+            today.get(line.productId),
+          ]
+            .filter((v): v is bigint => v !== undefined)
+            .map((v) => v.toString());
+          if (same) allowed.push(same.unitPriceMillimes);
+          requireRule(
+            allowed.length > 0,
+            "PRICE_NOT_SET",
+            "Le prix de ce produit n’est pas défini. Demandez au responsable de le fixer.",
+            409,
+          );
+          requireRule(
+            allowed.includes(line.unitPriceMillimes),
+            "PRICE_FIXED",
+            "Le prix est fixé par le responsable du magasin : un vendeur ne peut pas le modifier.",
+            409,
+          );
+        }
+      }
       const lots = new Map();
       const rates = new Map<string, number>();
       for (const line of cmd.lines) {

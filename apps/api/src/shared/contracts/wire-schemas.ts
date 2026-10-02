@@ -151,8 +151,9 @@ export const wireSchemas: Record<string, Schema> = {
       id: uuid,
       productId: uuid,
       quantity: integer,
-      // What the customer paid, which the seller may set.
+      // What the customer paid: the store's price, fixed by its responsable.
       unitPriceMillimes: decimal,
+      note: str,
       // The store's retail price on the sale date; absent on older sales.
       listPriceMillimes: nullable(decimal),
       allocations: arr(ref("SaleAllocation")),
