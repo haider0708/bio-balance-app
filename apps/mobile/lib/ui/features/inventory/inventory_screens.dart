@@ -1124,17 +1124,36 @@ Future<void> configureStoreProduct(
       const FieldSpec('reason', 'Motif du changement', required: false),
     ],
     submit: (v) async {
+      // Selling below what the store pays is allowed, but never by accident.
+      final paid = prices?['supplyMillimes'];
+      if (!store.wholesale && paid != null) {
+        final entered = Money.tryParse(v['price'] ?? '');
+        if (entered != null &&
+            entered.millimes < integer(paid) &&
+            (!context.mounted ||
+                !await confirmAction(
+                  context,
+                  'Prix inférieur au prix d’achat',
+                  'Vous achetez ${product.name} ${Money(integer(paid)).formatted} et vous le vendriez ${entered.formatted} : vous perdriez de l’argent sur chaque vente.',
+                  label: 'Garder ce prix',
+                ))) {
+          throw const FormatException(
+            'Prix non enregistré. Corrigez-le ou confirmez-le.',
+          );
+        }
+      }
       final points = vm.user.admin
           ? whole(v['points']!, allowZero: true)
           : integer(config['pointsPerUnit']);
       if (vm.user.admin &&
           points == 0 &&
-          !await confirmAction(
-            context,
-            'Confirmer : zéro point',
-            'Les ventes de ${product.name} ne rapporteront aucun point dans ${store.name}.',
-            label: 'Confirmer zéro point',
-          )) {
+          (!context.mounted ||
+              !await confirmAction(
+                context,
+                'Confirmer : zéro point',
+                'Les ventes de ${product.name} ne rapporteront aucun point dans ${store.name}.',
+                label: 'Confirmer zéro point',
+              ))) {
         throw const FormatException(
           'Configuration non enregistrée. Confirmez le choix de zéro point.',
         );
