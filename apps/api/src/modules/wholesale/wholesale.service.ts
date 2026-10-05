@@ -1,3 +1,4 @@
+import { copyDefaults } from "../tenancy/gamification.service";
 import { Injectable } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
 import { z } from "zod";
@@ -87,6 +88,14 @@ export class WholesaleService {
           kind: "wholesaler",
           storeIds: [],
           permissions: ["manage", "receive"],
+        });
+        // The depot starts with BioBalance's default points and rewards.
+        await tx.$executeRaw`SELECT set_config('app.organization_id',${organization.id},true), set_config('app.store_id',${store.id},true)`;
+        await copyDefaults(tx, {
+          organizationId: organization.id,
+          storeId: store.id,
+          audience: "wholesale",
+          actorId: current.id,
         });
         const result = { organizationId: organization.id, storeId: store.id };
         await tx.auditEntry.create({

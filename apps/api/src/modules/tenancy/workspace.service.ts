@@ -1,3 +1,4 @@
+import { copyDefaults } from "./gamification.service";
 import { randomUUID } from "node:crypto";
 import { monthlyRanking } from "../reporting/monthly-ranking";
 import { SnapshotPages } from "./infrastructure/snapshot-pages";
@@ -186,6 +187,15 @@ export class WorkspaceService {
           userId: actor.id,
           permissions: ["manage", "sell", "receive"],
         },
+      });
+      // The store starts with BioBalance's default points and rewards, in the
+      // same transaction: a store never exists without them.
+      await tx.$executeRaw`SELECT set_config('app.store_id',${store.id},true)`;
+      await copyDefaults(tx, {
+        organizationId: store.organizationId,
+        storeId: store.id,
+        audience: "retail",
+        actorId: actor.id,
       });
       await tx.auditEntry.create({
         data: {

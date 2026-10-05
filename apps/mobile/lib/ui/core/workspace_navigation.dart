@@ -54,6 +54,8 @@ class WorkspaceNavigation extends StatelessWidget {
               label: switch (labels[i]) {
                 'Vue d’ensemble' => 'Accueil',
                 'Mes ventes' => 'Ventes',
+                // Fits a phone's bar without breaking the word.
+                'Récompenses' => 'Points',
                 final label => label,
               },
               tooltip: labels[i],

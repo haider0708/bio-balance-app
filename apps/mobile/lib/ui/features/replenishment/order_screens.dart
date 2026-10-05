@@ -1,7 +1,7 @@
+import '../inventory/receipt_screen.dart';
 import '../catalog/product_information.dart';
 import '../workspace/operation_helpers.dart';
 import '../../../domain/models/delivery_ticket.dart';
-import '../inventory/inventory_screens.dart';
 import 'declared_dispatch_screen.dart';
 import 'delivery_ticket_screen.dart';
 import 'order_sections.dart';

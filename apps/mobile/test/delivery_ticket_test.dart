@@ -1,10 +1,16 @@
+import 'package:biobalance/ui/features/inventory/receipt_screen.dart';
+
+import 'ui_test.dart' show screenshot;
+
+import 'package:biobalance/ui/core/design.dart';
+import 'package:flutter/services.dart';
+
 import 'pick_date.dart';
 
 import 'package:biobalance/data/services/api/generated/api_client.dart';
 import 'package:biobalance/data/services/local_database/database.dart';
 import 'package:biobalance/domain/models/delivery_ticket.dart';
 import 'package:biobalance/domain/models/models.dart';
-import 'package:biobalance/ui/features/inventory/inventory_screens.dart';
 import 'package:biobalance/ui/features/replenishment/declared_dispatch_screen.dart';
 import 'package:biobalance/ui/features/workspace/workspace_view_model.dart';
 import 'package:drift/native.dart';
@@ -62,6 +68,7 @@ class RecordingWorkspace extends WorkspaceViewModel {
   }
 }
 
+final capture = GlobalKey();
 Future<RecordingWorkspace> pump(
   WidgetTester tester, {
   String? scannedCode,
@@ -83,11 +90,16 @@ Future<RecordingWorkspace> pump(
   await tester.pumpWidget(
     ChangeNotifierProvider.value(
       value: vm,
-      child: MaterialApp(
-        home: ReceiptScreen(
-          vm: vm,
-          delivery: delivery,
-          scannedCode: scannedCode,
+      child: RepaintBoundary(
+        key: capture,
+        child: MaterialApp(
+          debugShowCheckedModeBanner: false,
+          theme: appTheme(),
+          home: ReceiptScreen(
+            vm: vm,
+            delivery: delivery,
+            scannedCode: scannedCode,
+          ),
         ),
       ),
     ),
@@ -102,6 +114,15 @@ Future<RecordingWorkspace> pump(
 }
 
 void main() {
+  setUpAll(() async {
+    await (FontLoader(
+      'Inter',
+    )..addFont(rootBundle.load('assets/fonts/Inter.ttf'))).load();
+    await (FontLoader('packages/lucide_icons_flutter/Lucide')..addFont(
+          rootBundle.load('packages/lucide_icons_flutter/assets/lucide.ttf'),
+        ))
+        .load();
+  });
   test('only a BioBalance delivery QR is understood', () {
     final scan = TicketScan.parse('BB1.$deliveryId.$code');
     expect(scan?.deliveryId, deliveryId);
@@ -160,6 +181,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(vm.submitted, isNull);
     expect(find.textContaining('Expliquez'), findsOneWidget);
+    await screenshot(tester, capture, 'receipt-scanned-states');
     await tester.enterText(
       find.widgetWithText(
         TextField,
@@ -184,6 +206,9 @@ void main() {
     (tester) async {
       final vm = await pump(tester);
       expect(find.text('Scanner le QR du bon BL-2026-000123'), findsOneWidget);
+      // Before the scan, the store sees what the ticket announces and may refuse it.
+      expect(find.text('Refuser le colis'), findsOneWidget);
+      await screenshot(tester, capture, 'receipt-announced');
       await tester.tap(find.text('Je ne peux pas scanner'));
       await tester.pumpAndSettle();
       expect(

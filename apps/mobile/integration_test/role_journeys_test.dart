@@ -1,9 +1,10 @@
+import 'package:biobalance/ui/features/inventory/receipt_screen.dart';
+
 import '../test/support/test_origin.dart';
 
 import 'package:biobalance/main.dart';
 import 'package:biobalance/data/services/api/generated/api_client.dart';
 import 'package:biobalance/data/services/local_database/database.dart';
-import 'package:biobalance/ui/features/inventory/inventory_screens.dart';
 import 'package:biobalance/ui/features/replenishment/order_screens.dart';
 import 'package:biobalance/ui/features/workspace/scope_screen.dart';
 import 'package:biobalance/ui/features/workspace/workspace_view_model.dart';

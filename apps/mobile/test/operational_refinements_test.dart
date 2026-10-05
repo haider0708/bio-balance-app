@@ -1,3 +1,4 @@
+import 'package:biobalance/ui/features/inventory/receipt_screen.dart';
 import 'package:biobalance/data/repositories/group_repository.dart';
 import 'package:biobalance/data/repositories/notifications_repository.dart';
 import 'package:biobalance/data/repositories/repository_context.dart';
@@ -6,7 +7,6 @@ import 'package:biobalance/ui/features/notifications/notifications_view_model.da
 import 'package:biobalance/ui/features/workspace/lifecycle_view_model.dart';
 import 'package:biobalance/ui/features/workspace/lifecycle_screen.dart';
 import 'package:flutter/material.dart';
-import 'package:biobalance/ui/features/inventory/inventory_screens.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 

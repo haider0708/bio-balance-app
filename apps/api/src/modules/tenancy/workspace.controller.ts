@@ -15,34 +15,20 @@ import { z } from "zod";
 const uuid = z.uuid();
 import { AuthRequest } from "../../shared/infrastructure/http";
 import { WorkspaceService } from "./workspace.service";
-import { GamificationService } from "./gamification.service";
 
 @ApiTags("stores")
 @ApiBearerAuth()
 @Controller("v1")
 export class WorkspaceController {
-  constructor(
-    private readonly service: WorkspaceService,
-    private readonly gamification: GamificationService,
-  ) {}
+  constructor(private readonly service: WorkspaceService) {}
   @Get("organizations") organizations(@Req() r: AuthRequest) {
     return this.service.organizations(r.actor);
   }
   @Get("stores") stores(@Req() r: AuthRequest) {
     return this.service.stores(r.actor);
   }
-  @Post("stores") async create(@Req() r: AuthRequest, @Body() b: unknown) {
-    const store = await this.service.createStore(
-      r.actor,
-      WorkspaceRequests.Create.parse(b),
-    );
-    // A new store starts with BioBalance's default points and rewards.
-    await this.gamification.applyDefaults(
-      r.actor,
-      store.organizationId,
-      store.id,
-    );
-    return store;
+  @Post("stores") create(@Req() r: AuthRequest, @Body() b: unknown) {
+    return this.service.createStore(r.actor, WorkspaceRequests.Create.parse(b));
   }
   @Patch("stores/:store") updateStore(
     @Req() r: AuthRequest,

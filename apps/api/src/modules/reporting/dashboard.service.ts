@@ -201,7 +201,12 @@ export class DashboardService {
         : await tx.delivery.count({
             where: {
               ...operational,
-              status: { in: ["dispatched", "pending_review"] },
+              // A refused parcel waits for BioBalance's decision, not the store's.
+              status: {
+                in: current.platformAdmin
+                  ? ["dispatched", "pending_review", "refused"]
+                  : ["dispatched", "pending_review"],
+              },
             },
           });
       const claims = await tx.rewardClaim.count({

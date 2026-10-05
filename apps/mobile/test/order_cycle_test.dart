@@ -1,3 +1,5 @@
+import 'package:biobalance/ui/features/inventory/receipt_screen.dart';
+
 import 'pick_date.dart';
 
 import 'package:biobalance/data/services/api/generated/models.dart';
@@ -8,7 +10,6 @@ import 'package:biobalance/domain/models/order_workflow.dart';
 import 'package:biobalance/domain/models/receipt_plan.dart';
 import 'package:biobalance/domain/models/workspace_scope.dart';
 import 'package:biobalance/ui/core/design.dart';
-import 'package:biobalance/ui/features/inventory/inventory_screens.dart';
 import 'package:biobalance/ui/features/replenishment/order_creation_screen.dart';
 import 'package:biobalance/ui/features/replenishment/scoped_order_screen.dart';
 import 'package:biobalance/ui/features/team/team_screen.dart';

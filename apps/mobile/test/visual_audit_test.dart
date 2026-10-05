@@ -1,3 +1,4 @@
+import 'package:biobalance/ui/features/inventory/receipt_screen.dart';
 import 'package:biobalance/ui/features/team/invitations_screen.dart';
 
 import 'dart:io';

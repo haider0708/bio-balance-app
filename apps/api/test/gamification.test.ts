@@ -196,7 +196,6 @@ describe("default points and rewards, with exceptions per place", () => {
       address: "Adresse",
       city: "Sousse",
     });
-    await gamification.applyDefaults(manager, org, created.id);
     expect((await config(created.id))?.pointsPerUnit).toBe(7);
     expect(
       await owner.reward.count({

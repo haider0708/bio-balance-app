@@ -514,6 +514,34 @@ describe("delivery tickets", () => {
     expect(lot.damaged).toBe(2);
   });
 
+  it("returns units refused at a scanned reception to the depot's lot", async () => {
+    const depotLot = async () =>
+      (
+        await owner.inventoryLot.findUniqueOrThrow({
+          where: { id: lotIdentity(depot, product, "D1", "2031-06-30") },
+        })
+      ).sellable;
+    const { deliveryId } = await shipment(5, { supplier: true });
+    const code = codeOf(
+      (
+        await tickets.ticket(grossiste, deliveryId, {
+          organizationId: depotOrg,
+          supplierStoreId: depot,
+        })
+      ).qr,
+    );
+    const before = await depotLot();
+    await accepted(
+      manager,
+      receive(deliveryId, 1, {
+        ticketCode: code,
+        note: "Deux boîtes écrasées refusées",
+        flags: [{ productId: product, batch: "D1", damaged: 0, refused: 2 }],
+      }),
+    );
+    expect(await depotLot()).toBe(before + 2);
+  });
+
   it("lets the store refuse a parcel, and BioBalance approve or reject it", async () => {
     const depotLot = () =>
       owner.inventoryLot.findUniqueOrThrow({

@@ -1,3 +1,5 @@
+import 'package:biobalance/ui/features/inventory/receipt_screen.dart';
+
 import 'dart:convert';
 
 import 'package:biobalance/data/repositories/offline_repository.dart';
@@ -5,7 +7,6 @@ import 'package:biobalance/data/services/api/generated/api_client.dart';
 import 'package:biobalance/data/services/local_database/database.dart';
 import 'package:biobalance/domain/models/models.dart';
 import 'package:biobalance/domain/models/order_fulfillment.dart';
-import 'package:biobalance/ui/features/inventory/inventory_screens.dart';
 import 'package:biobalance/ui/features/replenishment/order_screens.dart';
 import 'package:biobalance/ui/features/workspace/workspace_view_model.dart';
 import 'package:drift/native.dart';

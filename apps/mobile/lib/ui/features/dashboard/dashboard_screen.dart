@@ -310,79 +310,85 @@ class DashboardScreen extends StatelessWidget {
       );
     },
   );
-  Widget _metrics(List<(String, String, DashboardDestination)> items) =>
-      LayoutBuilder(
-        builder: (context, c) {
-          final columns =
-              MediaQuery.textScalerOf(context).scale(16) > 23 ||
-                  c.maxWidth < 280
-              ? 1
-              : c.maxWidth < 650
-              ? 2
-              : 3;
-          Widget tile((String, String, DashboardDestination) item) => Material(
-            color: const Color(0xFFF1F8F4),
-            borderRadius: BorderRadius.circular(12),
-            child: InkWell(
-              onTap: () => onOpen(item.$3, vm.period),
-              borderRadius: BorderRadius.circular(12),
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      item.$1,
-                      style: const TextStyle(fontSize: 14, color: muted),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      item.$2,
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w700,
-                        color: ink,
-                      ),
-                    ),
-                  ],
+  Widget _metrics(
+    List<(String, String, DashboardDestination)> items,
+  ) => LayoutBuilder(
+    builder: (context, c) {
+      final columns =
+          MediaQuery.textScalerOf(context).scale(16) > 23 || c.maxWidth < 280
+          ? 1
+          : c.maxWidth < 650
+          ? 2
+          : 3;
+      Widget tile((String, String, DashboardDestination) item) => Material(
+        color: const Color(0xFFF1F8F4),
+        borderRadius: BorderRadius.circular(12),
+        child: InkWell(
+          onTap: () => onOpen(item.$3, vm.period),
+          borderRadius: BorderRadius.circular(12),
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  item.$1,
+                  style: const TextStyle(fontSize: 14, color: muted),
                 ),
-              ),
-            ),
-          );
-          final rows = <Widget>[];
-          var offset = 0;
-          if (items.length.isOdd && columns > 1) {
-            rows.add(tile(items.first));
-            offset = 1;
-          }
-          while (offset < items.length) {
-            final end = (offset + columns).clamp(0, items.length);
-            rows.add(
-              IntrinsicHeight(
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    for (var i = offset; i < end; i++) ...[
-                      if (i > offset) const SizedBox(width: 8),
-                      Expanded(child: tile(items[i])),
-                    ],
-                  ],
+                const SizedBox(height: 6),
+                // An amount stays on one line, shrinking if the tile is narrow.
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    item.$2,
+                    maxLines: 1,
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w700,
+                      color: ink,
+                    ),
+                  ),
                 ),
-              ),
-            );
-            offset = end;
-          }
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              for (var i = 0; i < rows.length; i++) ...[
-                if (i > 0) const SizedBox(height: 8),
-                rows[i],
               ],
-            ],
-          );
-        },
+            ),
+          ),
+        ),
       );
+      final rows = <Widget>[];
+      var offset = 0;
+      if (items.length.isOdd && columns > 1) {
+        rows.add(tile(items.first));
+        offset = 1;
+      }
+      while (offset < items.length) {
+        final end = (offset + columns).clamp(0, items.length);
+        rows.add(
+          IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                for (var i = offset; i < end; i++) ...[
+                  if (i > offset) const SizedBox(width: 8),
+                  Expanded(child: tile(items[i])),
+                ],
+              ],
+            ),
+          ),
+        );
+        offset = end;
+      }
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          for (var i = 0; i < rows.length; i++) ...[
+            if (i > 0) const SizedBox(height: 8),
+            rows[i],
+          ],
+        ],
+      );
+    },
+  );
   Future<void> chooseDates(BuildContext context) async {
     final range = await showDateRangePicker(
       context: context,

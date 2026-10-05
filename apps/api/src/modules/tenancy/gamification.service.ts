@@ -8,8 +8,156 @@ import { Actor } from "../operations/domain/contracts";
 import { GamificationRequests, defaultsQuery } from "./gamification.contracts";
 
 type Tx = Prisma.TransactionClient;
-type Audience = "retail" | "wholesale";
+export type Audience = "retail" | "wholesale";
 type Place = { organizationId: string; storeId: string };
+
+/** The default rate in force for each product of an audience. */
+export async function pointsDefaults(
+  tx: Tx,
+  audience: Audience,
+  productIds?: string[],
+) {
+  const rows = await tx.$queryRaw<
+    { productId: string; pointsPerUnit: number }[]
+  >(
+    Prisma.sql`SELECT DISTINCT ON ("productId") "productId","pointsPerUnit"
+      FROM "PointsDefault" WHERE audience=${audience}
+      ${productIds?.length ? Prisma.sql`AND "productId" IN (${Prisma.join(productIds.map((id) => Prisma.sql`${id}::uuid`))})` : Prisma.empty}
+      ORDER BY "productId","createdAt" DESC,id DESC`,
+  );
+  return new Map(rows.map((r) => [r.productId, r.pointsPerUnit]));
+}
+
+/** Writes a rate into a place and its history, as a sale will read it. */
+export async function writeRate(
+  tx: Tx,
+  organizationId: string,
+  storeId: string,
+  productId: string,
+  points: number,
+  meta: { exception: boolean; reason: string; actorId: string },
+) {
+  const data = {
+    pointsPerUnit: points,
+    pointsConfigured: true,
+    zeroPointsConfirmed: points === 0,
+    pointsException: meta.exception,
+  };
+  await tx.storeProduct.upsert({
+    where: { storeId_productId: { storeId, productId } },
+    create: { organizationId, storeId, productId, ...data },
+    update: { ...data, version: { increment: 1 } },
+  });
+  await tx.pointsRateVersion.create({
+    data: {
+      id: randomUUID(),
+      organizationId,
+      storeId,
+      productId,
+      pointsPerUnit: points,
+      reason: meta.reason,
+      createdBy: meta.actorId,
+    },
+  });
+}
+
+/**
+ * Copies the defaults into one place, inside the caller's transaction (whose
+ * row-level context is that place): rates for products without an exception,
+ * and the default rewards. Used when a store or depot is created and after a
+ * default changes. Idempotent.
+ */
+export async function copyDefaults(
+  tx: Tx,
+  place: {
+    organizationId: string;
+    storeId: string;
+    audience: Audience;
+    actorId: string;
+  },
+  only: { productIds?: string[]; rewards?: boolean; templateId?: string } = {},
+) {
+  const { organizationId, storeId, audience } = place;
+  await tx.storeCursor.upsert({
+    where: { storeId },
+    create: { storeId, organizationId },
+    update: {},
+  });
+  await tx.$queryRaw`SELECT "storeId" FROM "StoreCursor" WHERE "storeId"=${storeId}::uuid FOR UPDATE`;
+  const changed = async (entity: string, entityId: string) => {
+    const cursor = await tx.storeCursor.update({
+      where: { storeId },
+      data: { value: { increment: 1 } },
+    });
+    await tx.change.create({
+      data: {
+        storeId,
+        organizationId,
+        cursor: cursor.value,
+        entity,
+        entityId,
+      },
+    });
+  };
+  let rates = 0,
+    rewards = 0;
+  if (only.productIds === undefined || only.productIds.length) {
+    const defaults = await pointsDefaults(tx, audience, only.productIds);
+    for (const [productId, points] of defaults) {
+      const old = await tx.storeProduct.findUnique({
+        where: { storeId_productId: { storeId, productId } },
+      });
+      if (old?.pointsException) continue;
+      if (old?.pointsConfigured && old.pointsPerUnit === points) continue;
+      await writeRate(tx, organizationId, storeId, productId, points, {
+        exception: false,
+        reason: "Barème par défaut",
+        actorId: place.actorId,
+      });
+      await changed("product.configure", productId);
+      rates++;
+    }
+  }
+  if (only.rewards !== false) {
+    const templates = await tx.rewardTemplate.findMany({
+      where: {
+        audience,
+        ...(only.templateId ? { id: only.templateId } : {}),
+      },
+    });
+    for (const t of templates) {
+      const copy = await tx.reward.findFirst({
+        where: { storeId, templateId: t.id },
+      });
+      const fields = {
+        title: t.title,
+        description: t.description,
+        cost: t.cost,
+        productId: t.productId,
+        quantity: t.quantity,
+        active: t.active,
+      };
+      if (copy) {
+        if (
+          Object.entries(fields).every(
+            ([k, v]) => copy[k as keyof typeof fields] === v,
+          )
+        )
+          continue;
+        await tx.reward.update({
+          where: { id: copy.id },
+          data: { ...fields, version: { increment: 1 } },
+        });
+      } else
+        await tx.reward.create({
+          data: { organizationId, storeId, templateId: t.id, ...fields },
+        });
+      await changed("reward.configure", t.id);
+      rewards++;
+    }
+  }
+  return { rates, rewards };
+}
 
 /**
  * Points and rewards have one default, set by BioBalance, for every store
@@ -29,23 +177,6 @@ export class GamificationService {
       "Les points et les récompenses sont gérés par BioBalance.",
       403,
     );
-  }
-
-  /** The default rate in force for each product of an audience. */
-  private async pointsDefaults(
-    tx: Tx,
-    audience: Audience,
-    productIds?: string[],
-  ) {
-    const rows = await tx.$queryRaw<
-      { productId: string; pointsPerUnit: number }[]
-    >(
-      Prisma.sql`SELECT DISTINCT ON ("productId") "productId","pointsPerUnit"
-        FROM "PointsDefault" WHERE audience=${audience}
-        ${productIds?.length ? Prisma.sql`AND "productId" IN (${Prisma.join(productIds.map((id) => Prisma.sql`${id}::uuid`))})` : Prisma.empty}
-        ORDER BY "productId","createdAt" DESC,id DESC`,
-    );
-    return new Map(rows.map((r) => [r.productId, r.pointsPerUnit]));
   }
 
   /** Every active store or depot of an audience. */
@@ -79,7 +210,7 @@ export class GamificationService {
     return this.db.authenticated(
       actor,
       async (tx) => {
-        const points = await this.pointsDefaults(tx, q.audience);
+        const points = await pointsDefaults(tx, q.audience);
         const rewards = await tx.rewardTemplate.findMany({
           where: { audience: q.audience },
           orderBy: [{ active: "desc" }, { cost: "asc" }],
@@ -219,132 +350,25 @@ export class GamificationService {
       templateId?: string;
     } = {},
   ) {
-    return this.db.scoped(actor, organizationId, storeId, async (tx, scope) => {
-      const audience: Audience = scope.wholesale ? "wholesale" : "retail";
-      await tx.storeCursor.upsert({
-        where: { storeId },
-        create: { storeId, organizationId },
-        update: {},
-      });
-      await tx.$queryRaw`SELECT "storeId" FROM "StoreCursor" WHERE "storeId"=${storeId}::uuid FOR UPDATE`;
-      const changed = async (entity: string, entityId: string) => {
-        const cursor = await tx.storeCursor.update({
-          where: { storeId },
-          data: { value: { increment: 1 } },
-        });
-        await tx.change.create({
-          data: {
-            storeId,
-            organizationId,
-            cursor: cursor.value,
-            entity,
-            entityId,
-          },
-        });
-      };
-      let rates = 0,
-        rewards = 0;
-      if (only.productIds === undefined || only.productIds.length) {
-        const defaults = await this.pointsDefaults(
-          tx,
-          audience,
-          only.productIds,
-        );
-        for (const [productId, points] of defaults) {
-          const old = await tx.storeProduct.findUnique({
-            where: { storeId_productId: { storeId, productId } },
-          });
-          if (old?.pointsException) continue;
-          if (old?.pointsConfigured && old.pointsPerUnit === points) continue;
-          await this.writeRate(tx, organizationId, storeId, productId, points, {
-            exception: false,
-            reason: "Barème par défaut",
-            actorId: actor.id,
-          });
-          await changed("product.configure", productId);
-          rates++;
-        }
-      }
-      if (only.rewards !== false) {
-        const templates = await tx.rewardTemplate.findMany({
-          where: {
-            audience,
-            ...(only.templateId ? { id: only.templateId } : {}),
-          },
-        });
-        for (const t of templates) {
-          const copy = await tx.reward.findFirst({
-            where: { storeId, templateId: t.id },
-          });
-          const fields = {
-            title: t.title,
-            description: t.description,
-            cost: t.cost,
-            productId: t.productId,
-            quantity: t.quantity,
-            active: t.active,
-          };
-          if (copy) {
-            if (
-              Object.entries(fields).every(
-                ([k, v]) => copy[k as keyof typeof fields] === v,
-              )
-            )
-              continue;
-            await tx.reward.update({
-              where: { id: copy.id },
-              data: { ...fields, version: { increment: 1 } },
-            });
-          } else
-            await tx.reward.create({
-              data: { organizationId, storeId, templateId: t.id, ...fields },
-            });
-          await changed("reward.configure", t.id);
-          rewards++;
-        }
-      }
-      return { rates, rewards };
-    });
-  }
-
-  /** Writes a rate into a place and its history, as a sale will read it. */
-  private async writeRate(
-    tx: Tx,
-    organizationId: string,
-    storeId: string,
-    productId: string,
-    points: number,
-    meta: { exception: boolean; reason: string; actorId: string },
-  ) {
-    const data = {
-      pointsPerUnit: points,
-      pointsConfigured: true,
-      zeroPointsConfirmed: points === 0,
-      pointsException: meta.exception,
-    };
-    await tx.storeProduct.upsert({
-      where: { storeId_productId: { storeId, productId } },
-      create: { organizationId, storeId, productId, ...data },
-      update: { ...data, version: { increment: 1 } },
-    });
-    await tx.pointsRateVersion.create({
-      data: {
-        id: randomUUID(),
-        organizationId,
-        storeId,
-        productId,
-        pointsPerUnit: points,
-        reason: meta.reason,
-        createdBy: meta.actorId,
-      },
-    });
+    return this.db.scoped(actor, organizationId, storeId, (tx, scope) =>
+      copyDefaults(
+        tx,
+        {
+          organizationId,
+          storeId,
+          audience: scope.wholesale ? "wholesale" : "retail",
+          actorId: actor.id,
+        },
+        only,
+      ),
+    );
   }
 
   /** A place's rates beside the defaults, for BioBalance. */
   storePoints(actor: Actor, organizationId: string, storeId: string) {
     this.admin(actor);
     return this.db.scoped(actor, organizationId, storeId, async (tx, scope) => {
-      const defaults = await this.pointsDefaults(
+      const defaults = await pointsDefaults(
         tx,
         scope.wholesale ? "wholesale" : "retail",
       );
@@ -379,11 +403,9 @@ export class GamificationService {
     this.admin(actor);
     return this.db.scoped(actor, organizationId, storeId, async (tx, scope) => {
       const fallback = (
-        await this.pointsDefaults(
-          tx,
-          scope.wholesale ? "wholesale" : "retail",
-          [input.productId],
-        )
+        await pointsDefaults(tx, scope.wholesale ? "wholesale" : "retail", [
+          input.productId,
+        ])
       ).get(input.productId);
       if (input.reset)
         requireRule(
@@ -398,20 +420,13 @@ export class GamificationService {
         create: { storeId, organizationId },
         update: {},
       });
-      await this.writeRate(
-        tx,
-        organizationId,
-        storeId,
-        input.productId,
-        points,
-        {
-          exception: !input.reset,
-          reason: input.reset
-            ? "Retour au barème par défaut"
-            : "Barème particulier",
-          actorId: actor.id,
-        },
-      );
+      await writeRate(tx, organizationId, storeId, input.productId, points, {
+        exception: !input.reset,
+        reason: input.reset
+          ? "Retour au barème par défaut"
+          : "Barème particulier",
+        actorId: actor.id,
+      });
       const cursor = await tx.storeCursor.update({
         where: { storeId },
         data: { value: { increment: 1 } },

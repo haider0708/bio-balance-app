@@ -1,3 +1,7 @@
+import 'ui_test.dart' show screenshot;
+
+import 'package:biobalance/ui/core/design.dart';
+import 'package:flutter/services.dart';
 import 'package:biobalance/data/services/api/generated/api_client.dart';
 import 'package:biobalance/data/services/local_database/database.dart';
 import 'package:biobalance/domain/models/models.dart';
@@ -68,7 +72,17 @@ class RecordingWorkspace extends WorkspaceViewModel {
   }
 }
 
+final capture = GlobalKey();
 void main() {
+  setUpAll(() async {
+    await (FontLoader(
+      'Inter',
+    )..addFont(rootBundle.load('assets/fonts/Inter.ttf'))).load();
+    await (FontLoader('packages/lucide_icons_flutter/Lucide')..addFont(
+          rootBundle.load('packages/lucide_icons_flutter/assets/lucide.ttf'),
+        ))
+        .load();
+  });
   testWidgets(
     'BioBalance sees the shipment beside the claim, corrects it and validates',
     (tester) async {
@@ -88,8 +102,13 @@ void main() {
       await tester.pumpWidget(
         ChangeNotifierProvider.value(
           value: vm,
-          child: MaterialApp(
-            home: ReceptionValidationScreen(vm: vm, delivery: delivery),
+          child: RepaintBoundary(
+            key: capture,
+            child: MaterialApp(
+              debugShowCheckedModeBanner: false,
+              theme: appTheme(),
+              home: ReceptionValidationScreen(vm: vm, delivery: delivery),
+            ),
           ),
         ),
       );
@@ -104,6 +123,7 @@ void main() {
       expect(find.textContaining('Déclaré par le magasin : 6'), findsOneWidget);
       final total = find.byKey(const ValueKey('validate.total.p.A1'));
       expect(tester.widget<TextField>(total).controller!.text, '6');
+      await screenshot(tester, capture, 'reception-arbitration');
       // The store lied: 9 really arrived.
       await tester.enterText(total, '9');
       await tester.enterText(

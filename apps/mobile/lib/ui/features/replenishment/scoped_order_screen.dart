@@ -1,3 +1,5 @@
+import '../inventory/receipt_screen.dart';
+
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -21,7 +23,6 @@ import 'order_actions.dart';
 import 'order_creation_screen.dart';
 import 'reception_validation_screen.dart';
 import '../../core/forms.dart';
-import '../inventory/inventory_screens.dart';
 import '../../../domain/models/tunis_dates.dart';
 
 class ScopedOrdersViewModel extends ChangeNotifier {
