@@ -8121,12 +8121,14 @@ final class CommandDeliveryValidateDto implements CommandDto {
   final String deliveryId;
   final List<CommandDeliveryValidateLinesItemDto> lines;
   final String? shortfall;
+  final String? responsibility;
   final String note;
   CommandDeliveryValidateDto({
     Set<String> presentFields = const {},
     required this.deliveryId,
     required List<CommandDeliveryValidateLinesItemDto> lines,
     this.shortfall,
+    this.responsibility,
     required this.note,
   }) : _presentFields = Set.unmodifiable(presentFields),
        lines = List.unmodifiable(lines);
@@ -8145,6 +8147,9 @@ final class CommandDeliveryValidateDto implements CommandDto {
         ),
       ),
       shortfall: json["shortfall"] == null ? null : json["shortfall"] as String,
+      responsibility: json["responsibility"] == null
+          ? null
+          : json["responsibility"] as String,
       note: json["note"] as String,
     );
   }
@@ -8155,6 +8160,8 @@ final class CommandDeliveryValidateDto implements CommandDto {
     "lines": lines.map((item) => item.toJson()).toList(),
     if (shortfall != null || _presentFields.contains("shortfall"))
       "shortfall": shortfall,
+    if (responsibility != null || _presentFields.contains("responsibility"))
+      "responsibility": responsibility,
     "note": note,
   };
 }

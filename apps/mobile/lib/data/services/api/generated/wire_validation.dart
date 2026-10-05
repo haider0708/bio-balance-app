@@ -4618,6 +4618,10 @@ const Map<String, Map<String, dynamic>> _schemas = {
         "type": "string",
         "enum": ["returned", "lost"],
       },
+      "responsibility": {
+        "type": "string",
+        "enum": ["shipper", "store", "carrier", "none"],
+      },
       "note": {"type": "string", "minLength": 3, "maxLength": 500},
     },
     "required": ["type", "deliveryId", "lines", "note"],

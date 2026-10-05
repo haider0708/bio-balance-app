@@ -96,20 +96,40 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('Réception sans scan'), findsOneWidget);
       expect(find.textContaining('Pas de caméra'), findsOneWidget);
-      // Shipped 10, the store claims 6: 4 are missing and BioBalance decides.
-      expect(find.textContaining('Expédié : 10'), findsOneWidget);
-      expect(find.textContaining('manque 4'), findsOneWidget);
-      expect(find.textContaining('retournent au dépôt'), findsOneWidget);
-      // A decision needs its explanation.
+      // Lot by lot: shipped 10, the store claims 6; BioBalance retains one figure.
+      expect(
+        find.textContaining('Expédié par le grossiste : 10'),
+        findsOneWidget,
+      );
+      expect(find.textContaining('Déclaré par le magasin : 6'), findsOneWidget);
+      final total = find.byKey(const ValueKey('validate.total.p.A1'));
+      expect(tester.widget<TextField>(total).controller!.text, '6');
+      // The store lied: 9 really arrived.
+      await tester.enterText(total, '9');
+      await tester.enterText(
+        find.byKey(const ValueKey('validate.damaged.p.A1')),
+        '1',
+      );
+      await tester.enterText(
+        find.byType(TextField).last,
+        'Vérifié avec le dépôt',
+      );
+      // Who caused the gap must be stated.
+      await tester.ensureVisible(
+        find.widgetWithText(FilledButton, 'Valider la réception'),
+      );
       await tester.tap(
         find.widgetWithText(FilledButton, 'Valider la réception'),
       );
       await tester.pumpAndSettle();
       expect(vm.submitted, isNull);
-      await tester.enterText(
-        find.byType(TextField).last,
-        'Vérifié avec le dépôt',
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('validate.responsibility.store')),
       );
+      await tester.tap(
+        find.byKey(const ValueKey('validate.responsibility.store')),
+      );
+      await tester.pumpAndSettle();
       await tester.tap(
         find.widgetWithText(FilledButton, 'Valider la réception'),
       );
@@ -118,8 +138,23 @@ void main() {
       await tester.pumpAndSettle();
       expect(vm.submitted!['type'], 'delivery.validate');
       expect(vm.submitted!['deliveryId'], 'delivery');
-      expect(vm.submitted!['shortfall'], 'returned');
-      expect(objects(vm.submitted!['lines']).single['quantity'], 6);
+      expect(vm.submitted!['responsibility'], 'store');
+      expect(objects(vm.submitted!['lines']), [
+        {
+          'productId': 'p',
+          'batch': 'A1',
+          'expiry': '2030-05-31',
+          'quantity': 8,
+          'condition': 'sellable',
+        },
+        {
+          'productId': 'p',
+          'batch': 'A1',
+          'expiry': '2030-05-31',
+          'quantity': 1,
+          'condition': 'damaged',
+        },
+      ]);
       expect(vm.version, 3);
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox());

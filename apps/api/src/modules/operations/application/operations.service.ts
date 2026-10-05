@@ -359,6 +359,7 @@ export class OperationsService {
       manualReason?: string;
       shortfall?: "returned" | "lost";
       validated?: boolean;
+      responsibility?: "shipper" | "store" | "carrier" | "none";
     },
   ) {
     const affected = new Set<string>();
@@ -410,7 +411,14 @@ export class OperationsService {
     await ledger.receipt(
       delivery.id,
       lines,
-      { lines: differences, note: proof.note, outsideTicket },
+      {
+        lines: differences,
+        note: proof.note,
+        outsideTicket,
+        ...(proof.responsibility
+          ? { responsibility: proof.responsibility }
+          : {}),
+      },
       op.operationId,
       { scanned: proof.scanned, manualReason: proof.manualReason },
     );
@@ -436,9 +444,10 @@ export class OperationsService {
       await this.reconcileDepot(
         ledger,
         delivery,
-        differences,
+        lines,
         proof.shortfall ?? "returned",
         op.operationId,
+        proof.responsibility,
       );
     const prior = await ledger.issue(delivery.id);
     if (prior && prior.status !== "resolved")
@@ -475,7 +484,18 @@ export class OperationsService {
     await ledger.notify(
       op.operationId,
       proof.validated ? "Réception validée" : "Livraison réceptionnée",
-      "Les quantités reçues ont été ajoutées au stock.",
+      proof.validated
+        ? `BioBalance a retenu les quantités de chaque lot ; elles ont été ajoutées au stock.${
+            proof.responsibility
+              ? {
+                  shipper: " L’écart est imputé à l’expéditeur.",
+                  store: " L’écart est imputé au magasin.",
+                  carrier: " L’écart est imputé au transport.",
+                  none: "",
+                }[proof.responsibility]
+              : ""
+          }${proof.note ? ` « ${proof.note} »` : ""}`
+        : "Les quantités reçues ont été ajoutées au stock.",
     );
     return {
       id: delivery.id,
@@ -484,88 +504,94 @@ export class OperationsService {
       differences,
     };
   }
+  /** The quantity BioBalance retains for each shipped lot is the truth for both
+   * sides: the store keeps it, and the depot is settled lot by lot — what did not
+   * stay at the store goes back to that lot, what stayed beyond it comes out. */
   private async reconcileDepot(
     ledger: Ledger,
     delivery: DeliveryRecord,
-    differences: {
+    lines: {
       productId: string;
-      expected: number;
-      actual: number;
-      damaged: number;
+      batch: string;
+      expiry: string;
+      quantity: number;
+      condition: "sellable" | "damaged" | "refused";
     }[],
     shortfall: "returned" | "lost",
     operationId: string,
+    responsibility?: "shipper" | "store" | "carrier" | "none",
   ) {
-    // Only the units that stay at the store (sellable or damaged) are settled;
-    // refused units go back with the carrier and count as missing here.
-    const moves = differences
-      .map((d) => {
-        const kept = d.actual + d.damaged;
-        return {
-          productId: d.productId,
-          surplus: Math.max(0, kept - d.expected),
-          missing: Math.max(0, d.expected - kept),
-        };
-      })
-      .filter((d) => d.surplus > 0 || d.missing > 0);
-    if (!moves.length) return;
+    const moves = delivery.lines.flatMap((l) =>
+      (l.allocations ?? [])
+        .filter((a) => a.lotId)
+        .map((a) => {
+          // Refused units stay with the carrier: they are not kept by the store.
+          const kept = lines
+            .filter(
+              (x) =>
+                x.productId === l.productId &&
+                x.batch === a.batch &&
+                expiryDate(x.expiry) === a.expiry &&
+                x.condition !== "refused",
+            )
+            .reduce((n, x) => n + x.quantity, 0);
+          return {
+            productId: l.productId,
+            lotId: a.lotId!,
+            missing: Math.max(0, a.quantity - kept),
+            surplus: Math.max(0, kept - a.quantity),
+          };
+        })
+        .filter((m) => m.missing > 0 || m.surplus > 0),
+    );
+    const who = {
+      shipper: "l’écart vous est imputé",
+      store: "l’écart est imputé au magasin",
+      carrier: "l’écart est imputé au transport",
+      none: "aucune responsabilité retenue",
+    };
     await ledger.inDepot(
       delivery.sourceStoreId!,
       async (depot) => {
         const changeId = randomUUID();
         const touched: string[] = [];
-        for (const d of moves) {
-          const lots = (
-            delivery.lines.find((l) => l.productId === d.productId)
-              ?.allocations ?? []
-          ).filter((a) => a.lotId);
-          if (d.missing > 0 && shortfall === "returned") {
-            let left = d.missing;
-            for (const a of lots) {
-              const back = Math.min(left, a.quantity);
-              if (back <= 0) continue;
-              await depot.move(
-                a.lotId!,
-                back,
-                delivery.id,
-                changeId,
-                "delivery.return",
-              );
-              left -= back;
-              touched.push(d.productId);
-            }
+        for (const m of moves) {
+          if (m.missing > 0 && shortfall === "returned") {
+            await depot.move(
+              m.lotId,
+              m.missing,
+              delivery.id,
+              changeId,
+              "delivery.return",
+            );
+            touched.push(m.productId);
           }
-          if (d.surplus > 0) {
-            let left = d.surplus;
-            for (const a of lots) {
-              if (left <= 0) break;
-              const lot = await depot.lot(a.lotId!);
-              const take = Math.min(left, lot.sellable);
-              if (take <= 0) continue;
-              await depot.move(
-                a.lotId!,
-                -take,
-                delivery.id,
-                changeId,
-                "delivery.correction",
-              );
-              left -= take;
-              touched.push(d.productId);
-            }
+          if (m.surplus > 0) {
+            const lot = await depot.lot(m.lotId);
             requireRule(
-              left === 0,
+              lot.sellable >= m.surplus,
               "INSUFFICIENT_STOCK",
-              "Le dépôt n’a pas assez de stock pour ce complément. Corrigez les quantités.",
+              "Le dépôt n’a pas assez de stock dans ce lot pour ce complément. Corrigez les quantités.",
               409,
             );
+            await depot.move(
+              m.lotId,
+              -m.surplus,
+              delivery.id,
+              changeId,
+              "delivery.correction",
+            );
+            touched.push(m.productId);
           }
         }
-        await depot.alerts(touched);
-        await depot.touch("delivery.correction", delivery.id, changeId);
+        if (touched.length) {
+          await depot.alerts(touched);
+          await depot.touch("delivery.correction", delivery.id, changeId);
+        }
         await depot.notify(
           `${operationId}:depot`,
-          "Réception corrigée",
-          "BioBalance a corrigé les quantités reçues : votre stock a été ajusté.",
+          "Réception validée par BioBalance",
+          `Bon ${delivery.ticketNumber} : les quantités retenues s’appliquent à vous et au magasin${touched.length ? ", votre stock a été ajusté" : ""}${responsibility ? ` ; ${who[responsibility]}` : ""}.`,
         );
       },
       { allowInactive: true },
@@ -1610,6 +1636,23 @@ export class OperationsService {
         409,
       );
       this.checkProducts(delivery, cmd.lines);
+      // A grossiste's shipment is settled on its own lots: the retained lots are
+      // the ones on the ticket, corrected if the store named another.
+      if (delivery.sourceStoreId)
+        for (const line of cmd.lines)
+          requireRule(
+            delivery.lines.some(
+              (l) =>
+                l.productId === line.productId &&
+                (l.allocations ?? []).some(
+                  (a) =>
+                    a.batch === line.batch &&
+                    a.expiry === expiryDate(line.expiry),
+                ),
+            ),
+            "LOT_NOT_SHIPPED",
+            `Le lot ${line.batch} n’est pas sur le bon : retenez les quantités sur les lots expédiés.`,
+          );
       return this.settleReceipt(
         ledger,
         op,
@@ -1618,6 +1661,7 @@ export class OperationsService {
         {
           scanned: false,
           note: cmd.note,
+          responsibility: cmd.responsibility,
           manualReason: (delivery.claim as { manualReason?: string } | null)
             ?.manualReason,
           shortfall: cmd.shortfall,

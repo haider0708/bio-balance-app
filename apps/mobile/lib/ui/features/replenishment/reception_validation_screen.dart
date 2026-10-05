@@ -31,6 +31,55 @@ class _ReceptionValidationScreenState extends State<ReceptionValidationScreen> {
   late List<Json> lines;
   final note = TextEditingController();
   String shortfall = 'returned';
+  String? responsibility;
+
+  /// A grossiste's shipment is settled lot by lot: one retained quantity per
+  /// shipped lot, the truth for both the depot and the store.
+  final retained = <String, TextEditingController>{};
+  String lotKey(Json line, Json a) =>
+      '${line['productId']}|${a['batch']}|${a['expiry']}';
+  List<Json> claimFor(Json line, Json a) => objects(claim?['lines'])
+      .where(
+        (c) =>
+            c['productId'] == line['productId'] &&
+            c['batch'] == a['batch'] &&
+            c['expiry'] == a['expiry'],
+      )
+      .toList();
+  int claimed(List<Json> rows, [String? condition]) => rows
+      .where(
+        (c) => condition == null || (c['condition'] ?? 'sellable') == condition,
+      )
+      .fold(0, (n, c) => n + integer(c['quantity']));
+  TextEditingController field(Json line, Json a, String kind) =>
+      retained.putIfAbsent('${lotKey(line, a)}|$kind', () {
+        final rows = claimFor(line, a);
+        final start = switch (kind) {
+          'total' =>
+            claim == null || rows.isEmpty
+                ? integer(a['quantity'])
+                : claimed(rows),
+          'damaged' => claimed(rows, 'damaged'),
+          _ => claimed(rows, 'refused'),
+        };
+        return TextEditingController(text: '$start')
+          ..addListener(() => setState(() {}));
+      });
+  int read(Json line, Json a, String kind) =>
+      int.tryParse(field(line, a, kind).text.trim()) ?? -1;
+
+  /// Claimed lots that are not on the ticket: shown so BioBalance can decide.
+  List<Json> get claimedElsewhere => objects(claim?['lines'])
+      .where(
+        (c) => !shipped.any(
+          (l) =>
+              l['productId'] == c['productId'] &&
+              objects(l['allocations']).any(
+                (a) => a['batch'] == c['batch'] && a['expiry'] == c['expiry'],
+              ),
+        ),
+      )
+      .toList();
   String? error;
   bool busy = false;
 
@@ -65,7 +114,51 @@ class _ReceptionValidationScreenState extends State<ReceptionValidationScreen> {
   @override
   void dispose() {
     note.dispose();
+    for (final c in retained.values) {
+      c.dispose();
+    }
     super.dispose();
+  }
+
+  /// The validated lines of a grossiste shipment, built from the lot fields.
+  List<Json> depotLines() {
+    final out = <Json>[];
+    for (final line in shipped) {
+      for (final a in objects(line['allocations'])) {
+        final total = read(line, a, 'total'),
+            damaged = read(line, a, 'damaged'),
+            refused = read(line, a, 'refused');
+        if (total < 0 || damaged < 0 || refused < 0) {
+          throw FormatException(
+            'Lot ${a['batch']} : saisissez des nombres entiers.',
+          );
+        }
+        if (damaged + refused > total) {
+          throw FormatException(
+            'Lot ${a['batch']} : abîmées et refusées dépassent la quantité retenue.',
+          );
+        }
+        final base = {
+          'productId': line['productId'],
+          'batch': a['batch'],
+          'expiry': a['expiry'],
+        };
+        if (total - damaged - refused > 0) {
+          out.add({
+            ...base,
+            'quantity': total - damaged - refused,
+            'condition': 'sellable',
+          });
+        }
+        if (damaged > 0) {
+          out.add({...base, 'quantity': damaged, 'condition': 'damaged'});
+        }
+        if (refused > 0) {
+          out.add({...base, 'quantity': refused, 'condition': 'refused'});
+        }
+      }
+    }
+    return out;
   }
 
   /// Units shipped but not counted, and units counted beyond the shipment.
@@ -143,6 +236,12 @@ class _ReceptionValidationScreenState extends State<ReceptionValidationScreen> {
       error = null;
     });
     try {
+      if (fromDepot) lines = depotLines();
+      if (fromDepot && responsibility == null) {
+        throw const FormatException(
+          'Indiquez qui est à l’origine de l’écart (ou « Aucun écart »).',
+        );
+      }
       if (lines.isEmpty) {
         throw const FormatException(
           'Ajoutez au moins un lot reçu. Si rien n’est arrivé, signalez la livraison comme non reçue.',
@@ -157,11 +256,9 @@ class _ReceptionValidationScreenState extends State<ReceptionValidationScreen> {
           !await confirmAction(
             context,
             'Valider cette réception',
-            'Le stock du magasin augmentera de ${plan.sellable + plan.damaged} unité(s)${anyMissing && fromDepot
-                ? shortfall == 'returned'
-                      ? ' et les unités manquantes retourneront au dépôt'
-                      : ' ; les unités manquantes seront passées en perte'
-                : ''}. Cette décision est définitive.',
+            fromDepot
+                ? 'Les quantités retenues s’appliquent aux deux : le magasin reçoit ${plan.sellable + plan.damaged} unité(s) et le stock du grossiste est ajusté lot par lot. Cette décision est définitive.'
+                : 'Le stock du magasin augmentera de ${plan.sellable + plan.damaged} unité(s). Cette décision est définitive.',
             label: 'Valider',
           )) {
         return;
@@ -171,6 +268,7 @@ class _ReceptionValidationScreenState extends State<ReceptionValidationScreen> {
         'deliveryId': widget.delivery['id'],
         'lines': lines,
         'shortfall': shortfall,
+        'responsibility': ?responsibility,
         'note': note.text.trim(),
       }, expectedVersion: integer(widget.delivery['version']));
       if (mounted) {
@@ -223,85 +321,122 @@ class _ReceptionValidationScreenState extends State<ReceptionValidationScreen> {
           tone: AppTone.info,
         ),
       const SizedBox(height: 16),
-      const SectionTitle(
-        'Expédié et validé',
-        subtitle: 'Pour chaque produit : ce que l’expéditeur a déclaré, puis, en dessous, ce que vous validez.',
-      ),
-      for (final expected in shipped) ...[
-        CompactRow(
-          title: widget.vm.productName(expected['productId']),
-          leading: ProductPhoto(
-            vm: widget.vm,
-            productId: expected['productId'],
-          ),
-          subtitle:
-              'Expédié : ${expected['quantity']}${lotsOf(expected).isEmpty ? '' : '\n${lotsOf(expected)}'}\nValidé : ${plan.enteredUnits(expected['productId'])}${missing(expected['productId']) > 0 ? ' · manque ${missing(expected['productId'])}' : ''}${surplus(expected['productId']) > 0 ? ' · ${surplus(expected['productId'])} en plus' : ''}',
-          tone:
-              missing(expected['productId']) > 0 ||
-                  surplus(expected['productId']) > 0
-              ? AppTone.warning
-              : AppTone.success,
-          footer: TextButton.icon(
-            onPressed: busy ? null : () => editLot(expected['productId']),
-            icon: const Icon(AppIcons.add, size: 18),
-            label: const Text('Ajouter un lot validé'),
-          ),
+      if (fromDepot) ...[
+        const SectionTitle(
+          'Lot par lot',
+          subtitle: 'La quantité retenue s’applique au grossiste et au magasin : ce qui n’est pas retenu retourne dans son lot, ce qui est retenu en plus en sort.',
         ),
-        for (final entry in lines.asMap().entries)
-          if (entry.value['productId'] == expected['productId'])
+        for (final line in shipped)
+          for (final a in objects(line['allocations']))
             CompactRow(
-              title:
-                  '${entry.value['quantity']} unités · ${receiptCondition(entry.value)}',
+              title: widget.vm.productName(line['productId']),
+              leading: ProductPhoto(
+                vm: widget.vm,
+                productId: line['productId'],
+              ),
               subtitle:
-                  'Lot ${entry.value['batch']} · ${TunisDates.dateOnlyLabel(entry.value['expiry'])}',
-              onTap: busy
-                  ? null
-                  : () => editLot(expected['productId'], index: entry.key),
-              trailing: IconButton(
-                tooltip: 'Retirer ce lot',
-                onPressed: busy
-                    ? null
-                    : () => setState(() => lines.removeAt(entry.key)),
-                icon: const Icon(AppIcons.close),
+                  'Lot ${a['batch']} · exp. ${TunisDates.dateOnlyLabel(a['expiry'])}\nExpédié par le grossiste : ${a['quantity']}\nDéclaré par le magasin : ${claim == null ? '—' : '${claimed(claimFor(line, a))}${claimed(claimFor(line, a), 'damaged') > 0 ? ' (dont ${claimed(claimFor(line, a), 'damaged')} abîmées)' : ''}${claimed(claimFor(line, a), 'refused') > 0 ? ' (dont ${claimed(claimFor(line, a), 'refused')} refusées)' : ''}'}',
+              tone: read(line, a, 'total') == integer(a['quantity'])
+                  ? AppTone.success
+                  : AppTone.warning,
+              footer: Row(
+                children: [
+                  for (final kind in const ['total', 'damaged', 'refused']) ...[
+                    Expanded(
+                      child: TextField(
+                        key: ValueKey(
+                          'validate.$kind.${line['productId']}.${a['batch']}',
+                        ),
+                        controller: field(line, a, kind),
+                        enabled: !busy,
+                        keyboardType: TextInputType.number,
+                        decoration: InputDecoration(
+                          isDense: true,
+                          labelText: switch (kind) {
+                            'total' => 'Retenu',
+                            'damaged' => 'dont abîmées',
+                            _ => 'dont refusées',
+                          },
+                        ),
+                      ),
+                    ),
+                    if (kind != 'refused') const SizedBox(width: 8),
+                  ],
+                ],
               ),
             ),
-      ],
-      const SizedBox(height: 12),
-      if (anyMissing && fromDepot) ...[
+        if (claimedElsewhere.isNotEmpty)
+          Notice(
+            'Le magasin a déclaré des lots absents du bon : ${claimedElsewhere.map((c) => '${widget.vm.productName(c['productId'])} lot ${c['batch']} × ${c['quantity']}').join(', ')}. Retenez les quantités sur les lots expédiés.',
+          ),
+        const SizedBox(height: 12),
+        const SectionTitle('Qui est à l’origine de l’écart ?'),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            for (final e in const {
+              'shipper': 'Le grossiste',
+              'store': 'Le magasin',
+              'carrier': 'Le transport',
+              'none': 'Aucun écart',
+            }.entries)
+              ChoiceChip(
+                key: ValueKey('validate.responsibility.${e.key}'),
+                label: Text(e.value),
+                selected: responsibility == e.key,
+                onSelected: busy
+                    ? null
+                    : (_) => setState(() => responsibility = e.key),
+              ),
+          ],
+        ),
+      ] else ...[
         const SectionTitle(
-          'Unités manquantes',
-          subtitle:
-              'Elles ont déjà quitté le stock du grossiste. Que décidez-vous ?',
+          'Expédié et validé',
+          subtitle: 'Pour chaque produit : ce que l’expéditeur a déclaré, puis, en dessous, ce que vous validez.',
         ),
-        RadioGroup<String>(
-          groupValue: shortfall,
-          onChanged: (value) => setState(() => shortfall = value ?? shortfall),
-          child: const Column(
-            children: [
-              RadioListTile<String>(
-                value: 'returned',
-                title: Text('Le grossiste a menti : elles retournent au dépôt'),
-              ),
-              RadioListTile<String>(
-                value: 'lost',
-                title: Text('Perdues : elles sont passées en perte'),
-              ),
-            ],
+        for (final expected in shipped) ...[
+          CompactRow(
+            title: widget.vm.productName(expected['productId']),
+            leading: ProductPhoto(
+              vm: widget.vm,
+              productId: expected['productId'],
+            ),
+            subtitle:
+                'Expédié : ${expected['quantity']}${lotsOf(expected).isEmpty ? '' : '\n${lotsOf(expected)}'}\nValidé : ${plan.enteredUnits(expected['productId'])}${missing(expected['productId']) > 0 ? ' · manque ${missing(expected['productId'])}' : ''}${surplus(expected['productId']) > 0 ? ' · ${surplus(expected['productId'])} en plus' : ''}',
+            tone:
+                missing(expected['productId']) > 0 ||
+                    surplus(expected['productId']) > 0
+                ? AppTone.warning
+                : AppTone.success,
+            footer: TextButton.icon(
+              onPressed: busy ? null : () => editLot(expected['productId']),
+              icon: const Icon(AppIcons.add, size: 18),
+              label: const Text('Ajouter un lot validé'),
+            ),
           ),
-        ),
-        const Text(
-          'Si le magasin a menti, ajoutez simplement les quantités manquantes ci-dessus : le magasin les reçoit, rien ne retourne au dépôt.',
-          style: TextStyle(fontSize: 14, color: muted),
-        ),
+          for (final entry in lines.asMap().entries)
+            if (entry.value['productId'] == expected['productId'])
+              CompactRow(
+                title:
+                    '${entry.value['quantity']} unités · ${receiptCondition(entry.value)}',
+                subtitle:
+                    'Lot ${entry.value['batch']} · ${TunisDates.dateOnlyLabel(entry.value['expiry'])}',
+                onTap: busy
+                    ? null
+                    : () => editLot(expected['productId'], index: entry.key),
+                trailing: IconButton(
+                  tooltip: 'Retirer ce lot',
+                  onPressed: busy
+                      ? null
+                      : () => setState(() => lines.removeAt(entry.key)),
+                  icon: const Icon(AppIcons.close),
+                ),
+              ),
+        ],
+        const SizedBox(height: 12),
       ],
-      if (fromDepot && shipped.any((l) => surplus(l['productId']) > 0))
-        const Padding(
-          padding: EdgeInsets.only(top: 8),
-          child: Text(
-            'Les unités en plus sont retirées du stock du grossiste.',
-            style: TextStyle(fontSize: 14, color: muted),
-          ),
-        ),
       const SizedBox(height: 12),
       TextField(
         controller: note,

@@ -20567,6 +20567,15 @@
                   "lost"
                 ]
               },
+              "responsibility": {
+                "type": "string",
+                "enum": [
+                  "shipper",
+                  "store",
+                  "carrier",
+                  "none"
+                ]
+              },
               "note": {
                 "type": "string",
                 "minLength": 3,

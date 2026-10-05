@@ -783,6 +783,38 @@ describe("delivery tickets", () => {
     expect(await depotLot()).toBe(before + 2);
   }, 30000);
 
+  it("settles a grossiste shipment lot by lot and records who was wrong", async () => {
+    const { deliveryId } = await shipment(6, { supplier: true });
+    await accepted(
+      manager,
+      receive(deliveryId, 1, { manualReason: "QR déchiré" }, "XX", 4),
+    );
+    const validate = (batch: string) =>
+      retail(
+        {
+          type: "delivery.validate",
+          deliveryId,
+          note: "Comptage refait avec le grossiste",
+          responsibility: "store",
+          lines: [
+            { productId: product, batch, expiry: "2031-06-30", quantity: 6 },
+          ],
+        },
+        2,
+      );
+    // The store named a lot that was never shipped: BioBalance keeps the ticket's lot.
+    expect((await service.submit(admin, validate("XX"))).code).toBe(
+      "LOT_NOT_SHIPPED",
+    );
+    await accepted(admin, validate("D1"));
+    const receipt = await owner.deliveryReceipt.findFirstOrThrow({
+      where: { deliveryId },
+    });
+    expect(
+      (receipt.differences as { responsibility?: string }).responsibility,
+    ).toBe("store");
+  });
+
   it("lists a lot the ticket does not carry in the validated receipt", async () => {
     const { deliveryId } = await shipment(5);
     await accepted(

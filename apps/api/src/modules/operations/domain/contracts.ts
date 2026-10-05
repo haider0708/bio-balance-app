@@ -240,6 +240,10 @@ export const commandSchema = z.discriminatedUnion("type", [
       // What happens to units shipped but not received: back to the depot's
       // lots, or written off. BioBalance's own shipments have no depot.
       shortfall: z.enum(["returned", "lost"]).default("returned"),
+      // Who caused the gap between the shipment and the store's claim.
+      responsibility: z
+        .enum(["shipper", "store", "carrier", "none"])
+        .optional(),
       note: z.string().trim().min(3).max(500),
     })
     .strict(),
