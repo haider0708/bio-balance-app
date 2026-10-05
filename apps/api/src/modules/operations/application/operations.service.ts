@@ -905,6 +905,23 @@ export class OperationsService {
         409,
       );
       let value: bigint | null = null;
+      // BioBalance may confirm only part of what was flagged.
+      const confirmed = cmd.quantity ?? flag.quantity;
+      requireRule(
+        cmd.decision !== "confirm" || confirmed <= flag.quantity,
+        "VALIDATION",
+        "Vous ne pouvez pas retenir plus d’unités que celles signalées.",
+      );
+      const releasable =
+        flag.kind === "damaged" &&
+        lot.expiry.toISOString().slice(0, 10) >=
+          localDate(new Date(), ledger.scope.timezone);
+      requireRule(
+        cmd.decision !== "confirm" || confirmed === flag.quantity || releasable,
+        "EXPIRED_NOT_RELEASABLE",
+        "Un produit périmé ne peut pas être remis en vente : retenez toutes les unités.",
+        409,
+      );
       if (cmd.decision === "confirm") {
         // The loss is valued at the price fixed on the delivery the goods came with.
         const source = flag.sourceDeliveryId
@@ -917,15 +934,45 @@ export class OperationsService {
           fixed != null
             ? BigInt(fixed)
             : (await ledger.supplyPrices([flag.productId])).get(flag.productId);
-        value = price === undefined ? null : price * BigInt(flag.quantity);
+        value = price === undefined ? null : price * BigInt(confirmed);
         await ledger.move(
           lot.id,
-          -flag.quantity,
+          -confirmed,
           flag.id,
           op.operationId,
           "quality.writeoff",
           "damaged",
         );
+        // The units not retained are sellable again.
+        const rest = flag.quantity - confirmed;
+        if (rest > 0) {
+          await ledger.move(
+            lot.id,
+            -rest,
+            flag.id,
+            op.operationId,
+            "quality.release",
+            "damaged",
+          );
+          await ledger.move(
+            lot.id,
+            rest,
+            flag.id,
+            op.operationId,
+            "quality.release",
+          );
+        }
+        if (cmd.responsibility === "shipper" && source?.sourceStoreId)
+          await ledger.inDepot(
+            source.sourceStoreId,
+            (depot) =>
+              depot.notify(
+                `${op.operationId}:depot`,
+                "Non-conformité imputée",
+                `${confirmed} unité(s) du lot ${flag.batch} (bon ${source.ticketNumber}) vous sont imputées : ${cmd.note}`,
+              ),
+            { allowInactive: true },
+          );
       } else {
         // An expired product is never put back on sale.
         requireRule(
@@ -959,6 +1006,8 @@ export class OperationsService {
         decidedAt: new Date(),
         decisionNote: cmd.note,
         valueMillimes: value,
+        confirmedQuantity: cmd.decision === "confirm" ? confirmed : null,
+        responsibility: cmd.responsibility ?? null,
         version: flag.version + 1,
       });
       await ledger.alerts([flag.productId]);

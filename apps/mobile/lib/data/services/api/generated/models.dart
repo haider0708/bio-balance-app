@@ -3102,6 +3102,8 @@ final class QualityFlagDto {
   final String? sourceDeliveryId;
   final String? sourceTicket;
   final String? supplierName;
+  final int? confirmedQuantity;
+  final String? responsibility;
   final String? valueMillimes;
   final int version;
   QualityFlagDto({
@@ -3130,6 +3132,8 @@ final class QualityFlagDto {
     required this.sourceDeliveryId,
     required this.sourceTicket,
     required this.supplierName,
+    required this.confirmedQuantity,
+    required this.responsibility,
     required this.valueMillimes,
     required this.version,
   }) : _presentFields = Set.unmodifiable(presentFields);
@@ -3172,6 +3176,12 @@ final class QualityFlagDto {
       supplierName: json["supplierName"] == null
           ? null
           : json["supplierName"] as String,
+      confirmedQuantity: json["confirmedQuantity"] == null
+          ? null
+          : wireInteger(json["confirmedQuantity"]),
+      responsibility: json["responsibility"] == null
+          ? null
+          : json["responsibility"] as String,
       valueMillimes: json["valueMillimes"] == null
           ? null
           : json["valueMillimes"] as String,
@@ -3203,6 +3213,8 @@ final class QualityFlagDto {
     "sourceDeliveryId": sourceDeliveryId,
     "sourceTicket": sourceTicket,
     "supplierName": supplierName,
+    "confirmedQuantity": confirmedQuantity,
+    "responsibility": responsibility,
     "valueMillimes": valueMillimes,
     "version": version,
   };
@@ -7611,11 +7623,15 @@ final class CommandQualityResolveDto implements CommandDto {
   String get type => "quality.resolve";
   final String flagId;
   final String decision;
+  final int? quantity;
+  final String? responsibility;
   final String note;
   CommandQualityResolveDto({
     Set<String> presentFields = const {},
     required this.flagId,
     required this.decision,
+    this.quantity,
+    this.responsibility,
     required this.note,
   }) : _presentFields = Set.unmodifiable(presentFields);
   factory CommandQualityResolveDto.fromJson(Map<String, dynamic> json) {
@@ -7626,6 +7642,10 @@ final class CommandQualityResolveDto implements CommandDto {
       presentFields: json.keys.toSet(),
       flagId: json["flagId"] as String,
       decision: json["decision"] as String,
+      quantity: json["quantity"] == null ? null : wireInteger(json["quantity"]),
+      responsibility: json["responsibility"] == null
+          ? null
+          : json["responsibility"] as String,
       note: json["note"] as String,
     );
   }
@@ -7634,6 +7654,10 @@ final class CommandQualityResolveDto implements CommandDto {
     "type": "quality.resolve",
     "flagId": flagId,
     "decision": decision,
+    if (quantity != null || _presentFields.contains("quantity"))
+      "quantity": quantity,
+    if (responsibility != null || _presentFields.contains("responsibility"))
+      "responsibility": responsibility,
     "note": note,
   };
 }

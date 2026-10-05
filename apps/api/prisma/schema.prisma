@@ -629,6 +629,10 @@ model QualityFlag {
   sourceDeliveryId String? @db.Uuid
   sourceTicket String?
   valueMillimes BigInt?
+  // Part of the flag BioBalance confirms; the rest went back on sale.
+  confirmedQuantity Int?
+  // shipper | store | carrier | none
+  responsibility String?
   operationId String @db.Uuid
   version Int @default(1)
   @@index([storeId,status,flaggedAt(sort: Desc)], map: "QualityFlag_store_status")

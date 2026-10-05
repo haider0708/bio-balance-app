@@ -81,12 +81,49 @@ class _QualityFlagsScreenState extends State<QualityFlagsScreen> {
       description: confirm
           ? '${flag['quantity']} unité(s) de ${flag['productName']} seront retirées du stock pour de bon. La perte est enregistrée au prix de la livraison.'
           : '${flag['quantity']} unité(s) de ${flag['productName']} redeviendront vendables. Le signalement était injustifié.',
-      fields: const [FieldSpec('note', 'Décision et explication')],
+      fields: [
+        if (confirm) ...[
+          FieldSpec(
+            'quantity',
+            'Unités retenues (le reste est remis en vente)',
+            initial: '${flag['quantity']}',
+            numeric: true,
+          ),
+          FieldSpec(
+            'responsibility',
+            'Qui est responsable ?',
+            choice: true,
+            initial: 'none',
+            options: {
+              if (flag['sourceTicket'] != null)
+                'shipper': flag['supplierName'] == null
+                    ? 'L’expéditeur'
+                    : 'L’expéditeur (${flag['supplierName']})',
+              'store': 'Le magasin',
+              'carrier': 'Le transport',
+              'none': 'Personne',
+            },
+          ),
+        ],
+        const FieldSpec('note', 'Décision et explication'),
+      ],
       submit: (values) => widget.vm.online(
         {
           'type': 'quality.resolve',
           'flagId': flag['id'],
           'decision': decision,
+          if (confirm) ...{
+            'quantity': () {
+              final q = int.tryParse(values['quantity']!.trim());
+              if (q == null || q < 1 || q > integer(flag['quantity'])) {
+                throw FormatException(
+                  'Retenez entre 1 et ${flag['quantity']} unité(s).',
+                );
+              }
+              return q;
+            }(),
+            'responsibility': values['responsibility'],
+          },
           'note': values['note'],
         },
         expectedVersion: integer(flag['version']),
@@ -167,6 +204,12 @@ class _QualityFlagsScreenState extends State<QualityFlagsScreen> {
                   'Livré avec le bon ${flag['sourceTicket']}${flag['supplierName'] == null ? '' : ' · ${flag['supplierName']}'}',
                 if (flag['status'] != 'open')
                   '${flagStatusLabel(flag)} par ${flag['deciderName'] ?? '—'}${flag['decisionNote'] == null ? '' : ' : ${flag['decisionNote']}'}',
+                if (flag['confirmedQuantity'] != null &&
+                    flag['confirmedQuantity'] != flag['quantity'])
+                  '${flag['confirmedQuantity']} retenue(s) sur ${flag['quantity']}, le reste remis en vente',
+                if (flag['responsibility'] != null &&
+                    flag['responsibility'] != 'none')
+                  'Responsable : ${const {'shipper': 'l’expéditeur', 'store': 'le magasin', 'carrier': 'le transport'}[flag['responsibility']]}',
                 if (flag['valueMillimes'] != null)
                   'Perte : ${Money(integer(flag['valueMillimes'])).formatted}',
               ].join('\n'),

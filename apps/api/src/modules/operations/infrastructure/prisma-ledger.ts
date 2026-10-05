@@ -764,6 +764,8 @@ export class PrismaLedger implements Ledger {
         decidedAt: flag.decidedAt,
         decisionNote: flag.decisionNote,
         valueMillimes: flag.valueMillimes,
+        confirmedQuantity: flag.confirmedQuantity ?? null,
+        responsibility: flag.responsibility ?? null,
         version: flag.version,
       },
     });

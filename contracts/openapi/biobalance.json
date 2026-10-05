@@ -16952,6 +16952,26 @@
               }
             ]
           },
+          "confirmedQuantity": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "responsibility": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "valueMillimes": {
             "anyOf": [
               {
@@ -16992,6 +17012,8 @@
           "sourceDeliveryId",
           "sourceTicket",
           "supplierName",
+          "confirmedQuantity",
+          "responsibility",
           "valueMillimes",
           "version"
         ],
@@ -19932,6 +19954,20 @@
                 "enum": [
                   "confirm",
                   "reject"
+                ]
+              },
+              "quantity": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 1000000
+              },
+              "responsibility": {
+                "type": "string",
+                "enum": [
+                  "shipper",
+                  "store",
+                  "carrier",
+                  "none"
                 ]
               },
               "note": {

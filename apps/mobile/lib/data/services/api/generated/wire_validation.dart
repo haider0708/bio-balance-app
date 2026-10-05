@@ -1820,6 +1820,18 @@ const Map<String, Map<String, dynamic>> _schemas = {
           {"type": "null"},
         ],
       },
+      "confirmedQuantity": {
+        "anyOf": [
+          {"type": "integer"},
+          {"type": "null"},
+        ],
+      },
+      "responsibility": {
+        "anyOf": [
+          {"type": "string"},
+          {"type": "null"},
+        ],
+      },
       "valueMillimes": {
         "anyOf": [
           {"type": "string", "pattern": "^-?[0-9]+\$"},
@@ -1853,6 +1865,8 @@ const Map<String, Map<String, dynamic>> _schemas = {
       "sourceDeliveryId",
       "sourceTicket",
       "supplierName",
+      "confirmedQuantity",
+      "responsibility",
       "valueMillimes",
       "version",
     ],
@@ -4343,6 +4357,11 @@ const Map<String, Map<String, dynamic>> _schemas = {
       "decision": {
         "type": "string",
         "enum": ["confirm", "reject"],
+      },
+      "quantity": {"type": "integer", "minimum": 1, "maximum": 1000000},
+      "responsibility": {
+        "type": "string",
+        "enum": ["shipper", "store", "carrier", "none"],
       },
       "note": {"type": "string", "minLength": 3, "maxLength": 500},
     },

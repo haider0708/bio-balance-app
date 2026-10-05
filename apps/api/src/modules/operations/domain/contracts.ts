@@ -99,6 +99,11 @@ export const commandSchema = z.discriminatedUnion("type", [
       type: z.literal("quality.resolve"),
       flagId: id,
       decision: z.enum(["confirm", "reject"]),
+      // Confirm only part of the flag: the rest goes back on sale.
+      quantity: quantity.optional(),
+      responsibility: z
+        .enum(["shipper", "store", "carrier", "none"])
+        .optional(),
       note: z.string().trim().min(3).max(500),
     })
     .strict(),
@@ -355,6 +360,8 @@ export interface FlagRecord {
   sourceDeliveryId: string | null;
   sourceTicket: string | null;
   valueMillimes: bigint | null;
+  confirmedQuantity?: number | null;
+  responsibility?: string | null;
   operationId: string;
   version: number;
 }

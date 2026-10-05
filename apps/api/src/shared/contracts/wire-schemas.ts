@@ -599,6 +599,8 @@ wireSchemas.QualityFlag = obj({
   sourceTicket: nullable(str),
   supplierName: nullable(str),
   // The loss, valued at the price fixed on the delivery; set once decided.
+  confirmedQuantity: nullable(integer),
+  responsibility: nullable(str),
   valueMillimes: nullable(decimal),
   version: integer,
 });

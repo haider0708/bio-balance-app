@@ -376,6 +376,50 @@ describe("flagging damaged or expired goods", () => {
     expect(await row(old)).toMatchObject({ sellable: 0, damaged: 0 });
   });
 
+  it("lets BioBalance retain part of a flag and record who is responsible", async () => {
+    const id = await receive("P1", "2031-06-30", 10);
+    const { flagId } = await flag(id, 4, "damaged", "Boîtes écrasées");
+    // More than flagged is refused.
+    expect(
+      (
+        await service.submit(
+          admin,
+          op(
+            {
+              type: "quality.resolve",
+              flagId,
+              decision: "confirm",
+              quantity: 5,
+              note: "Trop",
+            },
+            1,
+          ),
+        )
+      ).code,
+    ).toBe("VALIDATION");
+    await accepted(
+      admin,
+      op(
+        {
+          type: "quality.resolve",
+          flagId,
+          decision: "confirm",
+          quantity: 3,
+          responsibility: "store",
+          note: "Une boîte était intacte",
+        },
+        1,
+      ),
+    );
+    // 3 written off, 1 back on sale.
+    expect(await row(id)).toMatchObject({ sellable: 7, damaged: 0 });
+    expect(await flagRow(flagId)).toMatchObject({
+      status: "confirmed",
+      confirmedQuantity: 3,
+      responsibility: "store",
+    });
+  });
+
   it("keeps a legacy damage report as a flag BioBalance can decide", async () => {
     const id = await receive("L1", "2031-06-30", 4);
     const operation = op(

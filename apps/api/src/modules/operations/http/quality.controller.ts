@@ -139,6 +139,8 @@ export class QualityService {
           sourceTicket: f.sourceTicket,
           supplierName: name(stores, source?.sourceStoreId),
           valueMillimes: f.valueMillimes,
+          confirmedQuantity: f.confirmedQuantity,
+          responsibility: f.responsibility,
           version: f.version,
         };
       }),
