@@ -1112,6 +1112,73 @@ export class OperationsService {
       await ledger.notify(op.operationId, "Livraison non reçue", reason);
       return { id: delivery.id, version: delivery.version, status: "reported" };
     }
+    if (cmd.type === "delivery.refuse") {
+      this.allow(ledger, "manage");
+      const delivery = await ledger.delivery(cmd.deliveryId);
+      this.version(delivery.version, op.expectedVersion);
+      requireRule(
+        delivery.status === "dispatched",
+        "DELIVERY_CLOSED",
+        "Cette livraison n’est plus en transit.",
+        409,
+      );
+      const prior = await ledger.issue(delivery.id);
+      requireRule(
+        !prior || prior.status === "resolved",
+        "ISSUE_EXISTS",
+        "Un incident est déjà ouvert pour cette livraison. Consultez son suivi.",
+        409,
+      );
+      const reason = `Colis refusé : ${cmd.reason.trim()}`;
+      // One issue per delivery: a refusal after an earlier, closed incident reuses it.
+      await ledger.saveIssue(
+        prior
+          ? {
+              ...prior,
+              status: "open",
+              reason,
+              heldLines: [],
+              resolution: null,
+              resolutionNote: null,
+              version: prior.version + 1,
+            }
+          : {
+              id: randomUUID(),
+              deliveryId: delivery.id,
+              orderId: delivery.orderId,
+              status: "open",
+              reason,
+              heldLines: [],
+              version: 1,
+            },
+      );
+      // Nothing enters the store; the parcel waits for BioBalance's decision.
+      delivery.status = "refused";
+      delivery.version++;
+      await ledger.saveDelivery(delivery);
+      const order = await ledger.order(delivery.orderId);
+      order.status = Order.status(await ledger.fulfillment(order), true);
+      order.version++;
+      await ledger.saveOrder(order);
+      await ledger.notify(op.operationId, "Colis refusé à valider", reason);
+      if (delivery.sourceStoreId)
+        await ledger.inDepot(
+          delivery.sourceStoreId,
+          (depot) =>
+            depot.notify(
+              `${op.operationId}:depot`,
+              "Colis refusé par le magasin",
+              `${reason}. BioBalance va décider de son retour.`,
+            ),
+          { allowInactive: true },
+        );
+      return {
+        id: delivery.id,
+        version: delivery.version,
+        orderVersion: order.version,
+        status: delivery.status,
+      };
+    }
     if (cmd.type === "delivery.resolve") {
       const delivery = await ledger.delivery(cmd.deliveryId);
       // BioBalance settles any delivery; a grossiste settles only its own.
@@ -1139,7 +1206,19 @@ export class OperationsService {
         409,
       );
       if (cmd.decision === "tracing") issue.status = "in_progress";
-      else {
+      else if (cmd.decision === "reopen") {
+        // BioBalance rejects the refusal: the parcel is back in transit and the
+        // store must receive it.
+        requireRule(
+          actor.platformAdmin && delivery.status === "refused",
+          "NOT_REFUSED",
+          "Seul un colis refusé peut être remis en réception.",
+          409,
+        );
+        delivery.status = "dispatched";
+        issue.status = "resolved";
+        issue.heldLines = [];
+      } else {
         requireRule(
           cmd.decision !== "settled" || delivery.status === "received",
           "RECEIPT_REQUIRED",
@@ -1147,8 +1226,14 @@ export class OperationsService {
           409,
         );
         requireRule(
-          !["lost", "returned"].includes(cmd.decision) ||
-            delivery.status === "dispatched",
+          cmd.decision !== "lost" || delivery.status === "dispatched",
+          "DELIVERY_RECEIVED",
+          "Un colis refusé est retourné à l’expéditeur, pas déclaré perdu.",
+          409,
+        );
+        requireRule(
+          cmd.decision !== "returned" ||
+            ["dispatched", "refused"].includes(delivery.status),
           "DELIVERY_RECEIVED",
           "La réception physique existe déjà. Réglez les écarts sans effacer cette réception.",
           409,

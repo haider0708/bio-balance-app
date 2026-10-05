@@ -2786,6 +2786,7 @@ const Map<String, Map<String, dynamic>> _schemas = {
       {"\$ref": "#/components/schemas/CommandOrderReport"},
       {"\$ref": "#/components/schemas/CommandOrderResolve"},
       {"\$ref": "#/components/schemas/CommandDeliveryReport"},
+      {"\$ref": "#/components/schemas/CommandDeliveryRefuse"},
       {"\$ref": "#/components/schemas/CommandDeliveryResolve"},
       {"\$ref": "#/components/schemas/CommandDeliveryDispatch"},
       {"\$ref": "#/components/schemas/CommandDeliveryReissue"},
@@ -4494,6 +4495,20 @@ const Map<String, Map<String, dynamic>> _schemas = {
     "required": ["type", "deliveryId", "reason"],
     "additionalProperties": false,
   },
+  "CommandDeliveryRefuse": {
+    "type": "object",
+    "properties": {
+      "type": {"type": "string", "const": "delivery.refuse"},
+      "deliveryId": {
+        "type": "string",
+        "format": "uuid",
+        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)\$",
+      },
+      "reason": {"type": "string", "minLength": 3, "maxLength": 500},
+    },
+    "required": ["type", "deliveryId", "reason"],
+    "additionalProperties": false,
+  },
   "CommandDeliveryResolve": {
     "type": "object",
     "properties": {
@@ -4505,7 +4520,7 @@ const Map<String, Map<String, dynamic>> _schemas = {
       },
       "decision": {
         "type": "string",
-        "enum": ["tracing", "lost", "returned", "settled"],
+        "enum": ["tracing", "lost", "returned", "settled", "reopen"],
       },
       "reason": {"type": "string", "minLength": 3, "maxLength": 500},
     },

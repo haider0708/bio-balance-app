@@ -31,7 +31,10 @@ CREATE TEMP TABLE reset_accounts ON COMMIT DROP AS SELECT * FROM "User";
 CREATE TEMP TABLE reset_responsibles ON COMMIT DROP AS
 SELECT DISTINCT u.id FROM "User" u WHERE NOT u."platformAdmin" AND (
  EXISTS (SELECT 1 FROM "OrganizationMembership" m WHERE m."userId"=u.id AND m.active)
- OR EXISTS (SELECT 1 FROM "GroupCreationGrant" g WHERE g."userId"=u.id));
+ OR EXISTS (SELECT 1 FROM "GroupCreationGrant" g WHERE g."userId"=u.id))
+ -- A grossiste runs his single depot alone: he never creates a group.
+ AND NOT EXISTS (SELECT 1 FROM "OrganizationMembership" m JOIN "Organization" o ON o.id=m."organizationId"
+   WHERE m."userId"=u.id AND o.kind='wholesale');
 CREATE TEMP TABLE reset_catalog ON COMMIT DROP AS SELECT * FROM "Product";
 CREATE TEMP TABLE reset_media ON COMMIT DROP AS SELECT * FROM "MediaAsset"
   WHERE id IN (SELECT "imageId" FROM "Product" WHERE "imageId" IS NOT NULL);

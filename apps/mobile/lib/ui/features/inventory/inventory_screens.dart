@@ -455,6 +455,9 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
     unregister();
     note.dispose();
     manualReason.dispose();
+    for (final c in stateInputs.values) {
+      c.dispose();
+    }
     super.dispose();
   }
 
@@ -465,7 +468,11 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
         : 'Réceptionner la livraison',
     maxWidth: 760,
     action: FilledButton(
-      onPressed: busy || !restored || !(scanned || lines.isNotEmpty || missing)
+      onPressed:
+          busy ||
+              !restored ||
+              !(scanned || lines.isNotEmpty || missing) ||
+              (widget.delivery != null && !scanned && !manualEntry)
           ? null
           : save,
       child: Text(
@@ -498,53 +505,10 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
         ticketPanel(),
         const SizedBox(height: 16),
         const Text(
-          'Voici ce que contient le colis d’après son bon. Confirmez si c’est bien ce que vous recevez ; sinon, reprenez sans scanner et BioBalance tranchera.',
+          'Le QR confirme les quantités, les lots et les dates. Indiquez seulement les unités abîmées ou refusées, s’il y en a.',
         ),
-        const SizedBox(height: 16),
-        for (final expected in objects(widget.delivery!['lines']))
-          CompactRow(
-            title: widget.vm.productName(expected['productId']),
-            leading: ProductPhoto(
-              vm: widget.vm,
-              productId: expected['productId'],
-            ),
-            subtitle: objects(expected['allocations'])
-                .map(
-                  (a) =>
-                      '${a['quantity']} × lot ${a['batch']} (exp. ${TunisDates.dateOnlyLabel(a['expiry'])})',
-                )
-                .join('\n'),
-            value: '${expected['quantity']} u.',
-          ),
-        const SizedBox(height: 8),
-        Text(
-          'Le QR confirme les quantités, les lots et les dates. Il ne dit rien de l’état : signalez ici les unités abîmées ou refusées.',
-          style: const TextStyle(fontSize: 14, color: muted),
-        ),
-        for (final entry in flags.asMap().entries)
-          CompactRow(
-            title: widget.vm.productName(entry.value['productId']),
-            subtitle:
-                'Lot ${entry.value['batch']} · ${[if (integer(entry.value['damaged']) > 0) '${entry.value['damaged']} abîmées', if (integer(entry.value['refused']) > 0) '${entry.value['refused']} refusées'].join(' · ')}',
-            icon: AppIcons.errorOutline,
-            tone: AppTone.warning,
-            onTap: busy ? null : () => flagUnits(index: entry.key),
-            trailing: IconButton(
-              onPressed: busy
-                  ? null
-                  : () {
-                      setState(() => flags.removeAt(entry.key));
-                      changed();
-                    },
-              icon: const Icon(AppIcons.close),
-              tooltip: 'Retirer ce signalement',
-            ),
-          ),
-        OutlinedButton.icon(
-          onPressed: busy || !restored ? null : flagUnits,
-          icon: const Icon(AppIcons.errorOutline),
-          label: const Text('Signaler des unités abîmées ou refusées'),
-        ),
+        const SizedBox(height: 12),
+        ...ticketLots(editable: true),
         if (flags.isNotEmpty) ...[
           const SizedBox(height: 12),
           TextField(
@@ -553,25 +517,23 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
             maxLength: 500,
             maxLines: 3,
             decoration: const InputDecoration(
-              labelText: 'Explication (obligatoire)',
+              labelText: 'Raison des unités abîmées ou refusées (obligatoire)',
             ),
           ),
         ],
-        TextButton(
-          onPressed: busy
-              ? null
-              : () {
-                  setState(() {
-                    ticketCode = null;
-                    manualEntry = true;
-                    flags = [];
-                  });
-                  changed();
-                },
-          child: const Text('Ce n’est pas ce que je reçois'),
-        ),
+        refuseButton(),
       ],
-      if (widget.delivery != null && !scanned) ...[
+      if (widget.delivery != null && !scanned && !manualEntry) ...[
+        ticketPanel(),
+        const SizedBox(height: 20),
+        const SectionTitle(
+          'Contenu annoncé',
+          subtitle: 'Vérifiez le colis : s’il correspond, scannez son QR ; sinon, refusez-le.',
+        ),
+        ...ticketLots(editable: false),
+        refuseButton(),
+      ],
+      if (widget.delivery != null && !scanned && manualEntry) ...[
         ticketPanel(),
         const SizedBox(height: 16),
         const Text(
@@ -811,75 +773,124 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
     return groups.values.toList();
   }
 
-  /// Units of a lot whose ticket is scanned: how many arrived damaged or were refused.
-  Future<void> flagUnits({int? index}) async {
-    final lots = <String, String>{};
-    final sources = <String, Json>{};
-    for (final line in objects(widget.delivery!['lines'])) {
-      for (final a in objects(line['allocations'])) {
-        final key = '${line['productId']}|${a['batch']}';
-        lots[key] =
-            '${widget.vm.productName(line['productId'])} · lot ${a['batch']} (${a['quantity']} u.)';
-        sources[key] = {...a, 'productId': line['productId']};
+  /// One input per lot and state, created once the draft is restored.
+  final stateInputs = <String, TextEditingController>{};
+  TextEditingController stateInput(String lot, String kind) =>
+      stateInputs.putIfAbsent('$lot|$kind', () {
+        final saved = flags
+            .where((f) => '${f['productId']}|${f['batch']}' == lot)
+            .firstOrNull;
+        final controller = TextEditingController(
+          text: '${integer(saved?[kind])}',
+        )..addListener(syncFlags);
+        return controller;
+      });
+
+  /// The lots of the ticket, with damaged/refused fields once it is scanned.
+  List<Widget> ticketLots({required bool editable}) => [
+    for (final expected in objects(widget.delivery!['lines']))
+      for (final a in objects(expected['allocations']))
+        CompactRow(
+          title: widget.vm.productName(expected['productId']),
+          leading: ProductPhoto(
+            vm: widget.vm,
+            productId: expected['productId'],
+          ),
+          subtitle:
+              'Lot ${a['batch']} · exp. ${TunisDates.dateOnlyLabel(a['expiry'])}',
+          value: '${a['quantity']} u.',
+          footer: !editable || !restored
+              ? null
+              : Row(
+                  children: [
+                    for (final kind in const ['damaged', 'refused']) ...[
+                      Expanded(
+                        child: TextField(
+                          key: ValueKey(
+                            'receipt.$kind.${expected['productId']}.${a['batch']}',
+                          ),
+                          controller: stateInput(
+                            '${expected['productId']}|${a['batch']}',
+                            kind,
+                          ),
+                          enabled: !busy,
+                          keyboardType: TextInputType.number,
+                          decoration: InputDecoration(
+                            labelText: kind == 'damaged'
+                                ? 'Abîmées'
+                                : 'Refusées',
+                            isDense: true,
+                          ),
+                        ),
+                      ),
+                      if (kind == 'damaged') const SizedBox(width: 12),
+                    ],
+                  ],
+                ),
+        ),
+  ];
+
+  /// Rebuilds the reports from the fields, keeping only lots with a problem.
+  void syncFlags() {
+    final next = <Json>[];
+    for (final expected in objects(widget.delivery?['lines'])) {
+      for (final a in objects(expected['allocations'])) {
+        final lot = '${expected['productId']}|${a['batch']}';
+        final damaged =
+            int.tryParse(stateInputs['$lot|damaged']?.text.trim() ?? '') ?? 0;
+        final refused =
+            int.tryParse(stateInputs['$lot|refused']?.text.trim() ?? '') ?? 0;
+        if (damaged > 0 || refused > 0) {
+          next.add({
+            'productId': expected['productId'],
+            'batch': a['batch'],
+            'damaged': damaged,
+            'refused': refused,
+          });
+        }
       }
     }
-    final original = index == null ? null : flags[index];
-    await openEditor(
+    setState(() => flags = next);
+    changed();
+  }
+
+  Widget refuseButton() => Padding(
+    padding: const EdgeInsets.only(top: 12),
+    child: OutlinedButton.icon(
+      key: const ValueKey('receipt.refuse'),
+      onPressed: busy || !restored ? null : refuse,
+      icon: const Icon(AppIcons.close),
+      label: const Text('Refuser le colis'),
+    ),
+  );
+
+  /// The whole parcel is turned away; BioBalance approves its return.
+  Future<void> refuse() async {
+    final done = await openEditor(
       context,
-      title: 'Signaler des unités',
-      description: 'Indiquez combien d’unités de ce lot sont abîmées (elles entrent en stock non vendable) ou refusées (laissées au transporteur).',
-      fields: [
-        FieldSpec(
-          'lot',
-          'Produit et lot',
-          options: lots,
-          initial: original == null
-              ? ''
-              : '${original['productId']}|${original['batch']}',
-        ),
-        FieldSpec(
-          'damaged',
-          'Unités abîmées',
-          initial: '${original?['damaged'] ?? 0}',
-          numeric: true,
-        ),
-        FieldSpec(
-          'refused',
-          'Unités refusées',
-          initial: '${original?['refused'] ?? 0}',
-          numeric: true,
-        ),
-      ],
+      title: 'Refuser le colis',
+      description: 'Rien n’entre dans votre stock. BioBalance vérifiera puis validera le retour du colis à l’expéditeur.',
+      fields: const [FieldSpec('reason', 'Pourquoi refusez-vous ce colis ?')],
+      submitLabel: 'Refuser le colis',
       submit: (values) async {
-        final source = sources[values['lot']]!;
-        final damaged = whole(values['damaged']!, allowZero: true);
-        final refused = whole(values['refused']!, allowZero: true);
-        if (damaged + refused == 0) {
-          throw const FormatException(
-            'Indiquez au moins une unité abîmée ou refusée.',
-          );
-        }
-        if (damaged + refused > integer(source['quantity'])) {
-          throw FormatException(
-            'Ce lot ne contient que ${source['quantity']} unités.',
-          );
-        }
-        final value = {
-          'productId': source['productId'],
-          'batch': source['batch'],
-          'damaged': damaged,
-          'refused': refused,
-        };
-        setState(() {
-          flags.removeWhere(
-            (f) =>
-                f['productId'] == value['productId'] &&
-                f['batch'] == value['batch'],
-          );
-          flags.add(value);
-        });
-        await persist();
+        await widget.vm.online({
+          'type': 'delivery.refuse',
+          'deliveryId': widget.delivery!['id'],
+          'reason': values['reason']!.trim(),
+        }, expectedVersion: integer(widget.delivery!['version']));
       },
+    );
+    if (!done || !mounted) return;
+    completed = true;
+    await widget.vm.repository
+        .saveDraft(widget.vm.user.id, store.id, key, {})
+        .catchError((Object _) {});
+    if (!mounted) return;
+    completeRoute(context);
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Colis refusé. BioBalance va valider son retour.'),
+      ),
     );
   }
 

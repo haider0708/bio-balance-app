@@ -4829,6 +4829,9 @@ sealed class CommandDto {
     if (matchesWire(json, "CommandDeliveryReport")) {
       return CommandDeliveryReportDto.fromJson(json as Map<String, dynamic>);
     }
+    if (matchesWire(json, "CommandDeliveryRefuse")) {
+      return CommandDeliveryRefuseDto.fromJson(json as Map<String, dynamic>);
+    }
     if (matchesWire(json, "CommandDeliveryResolve")) {
       return CommandDeliveryResolveDto.fromJson(json as Map<String, dynamic>);
     }
@@ -7911,6 +7914,35 @@ final class CommandDeliveryReportDto implements CommandDto {
   @override
   Map<String, dynamic> toJson() => {
     "type": "delivery.report",
+    "deliveryId": deliveryId,
+    "reason": reason,
+  };
+}
+
+final class CommandDeliveryRefuseDto implements CommandDto {
+  final Set<String> _presentFields;
+  Set<String> get presentFields => _presentFields;
+  String get type => "delivery.refuse";
+  final String deliveryId;
+  final String reason;
+  CommandDeliveryRefuseDto({
+    Set<String> presentFields = const {},
+    required this.deliveryId,
+    required this.reason,
+  }) : _presentFields = Set.unmodifiable(presentFields);
+  factory CommandDeliveryRefuseDto.fromJson(Map<String, dynamic> json) {
+    if (json["type"] != "delivery.refuse") {
+      throw const FormatException("Invalid CommandDeliveryRefuse type");
+    }
+    return CommandDeliveryRefuseDto(
+      presentFields: json.keys.toSet(),
+      deliveryId: json["deliveryId"] as String,
+      reason: json["reason"] as String,
+    );
+  }
+  @override
+  Map<String, dynamic> toJson() => {
+    "type": "delivery.refuse",
     "deliveryId": deliveryId,
     "reason": reason,
   };

@@ -173,6 +173,9 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
+      // Without the QR, the receiver declares what he got.
+      await tester.tap(find.text('Je ne peux pas scanner'));
+      await tester.pumpAndSettle();
       await tester.ensureVisible(find.text('Aucune unité reçue'));
       await tester.tap(find.text('Aucune unité reçue'));
       await tester.pumpAndSettle();
@@ -184,8 +187,8 @@ void main() {
         find.text('Expliquez pourquoi aucune unité n’a été reçue.'),
         findsOneWidget,
       );
-      await tester.ensureVisible(find.byType(TextField));
-      await tester.enterText(find.byType(TextField), 'Colis non arrivé');
+      await tester.ensureVisible(find.byType(TextField).last);
+      await tester.enterText(find.byType(TextField).last, 'Colis non arrivé');
       await tester.ensureVisible(find.text('Signaler non reçue'));
       await tester.tap(find.text('Signaler non reçue'));
       await tester.pumpAndSettle();

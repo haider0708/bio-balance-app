@@ -22,6 +22,7 @@ String operationLabel(String type) =>
       'stock.damage': 'Produits endommagés',
       'quality.flag': 'Produit non conforme',
       'delivery.receive': 'Réception de livraison',
+      'delivery.refuse': 'Colis refusé',
     }[type] ??
     'Opération du magasin';
 

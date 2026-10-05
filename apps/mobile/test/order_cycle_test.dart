@@ -355,6 +355,9 @@ void main() {
         EnginePhase.sendSemanticsUpdate,
         const Duration(seconds: 5),
       );
+      await t.tap(find.text('Je ne peux pas scanner'));
+      await t.pumpAndSettle();
+      await t.ensureVisible(find.text('Saisir le lot reçu'));
       await t.tap(find.text('Saisir le lot reçu'));
       await t.pumpAndSettle(
         const Duration(milliseconds: 100),

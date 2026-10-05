@@ -162,11 +162,21 @@ export const commandSchema = z.discriminatedUnion("type", [
       reason: z.string().trim().min(3).max(500),
     })
     .strict(),
+  // The store sees what the ticket lists and turns the whole parcel away;
+  // BioBalance then approves the return or asks the store to receive it.
+  z
+    .object({
+      type: z.literal("delivery.refuse"),
+      deliveryId: id,
+      reason: z.string().trim().min(3).max(500),
+    })
+    .strict(),
   z
     .object({
       type: z.literal("delivery.resolve"),
       deliveryId: id,
-      decision: z.enum(["tracing", "lost", "returned", "settled"]),
+      // "returned" also approves a store's refusal; "reopen" rejects it.
+      decision: z.enum(["tracing", "lost", "returned", "settled", "reopen"]),
       reason: z.string().trim().min(3).max(500),
     })
     .strict(),

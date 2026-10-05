@@ -223,9 +223,12 @@ class MorePage extends StatelessWidget {
         ],
         if (groupManage && scope != null) ...[
           const SizedBox(height: 20),
-          SectionTitle('Paramètres du groupe', subtitle: group.name),
-          // The guide stays available after it was finished.
-          if (!vm.user.admin && scope!.openGuide != null)
+          SectionTitle(
+            group.wholesale ? 'Mon entreprise' : 'Paramètres du groupe',
+            subtitle: group.name,
+          ),
+          // The guide stays available after it was finished; a grossiste has none.
+          if (!vm.user.admin && !group.wholesale && scope!.openGuide != null)
             CompactRow(
               title: 'Guide de configuration',
               subtitle: 'Groupe, magasins, équipe, stock et prix pas à pas',
@@ -251,7 +254,9 @@ class MorePage extends StatelessWidget {
               }),
             ),
           CompactRow(
-            title: 'Informations du groupe',
+            title: group.wholesale
+                ? 'Informations du grossiste'
+                : 'Informations du groupe',
             subtitle: 'Nom, téléphone et image',
             icon: AppIcons.settingsOutlined,
             onTap: () => run(context, () => editGroup(context, scope!)),

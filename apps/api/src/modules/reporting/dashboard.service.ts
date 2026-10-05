@@ -383,7 +383,7 @@ export class DashboardService {
           await tx.delivery.findMany({
             where: {
               ...where,
-              status: { in: ["dispatched", "pending_review"] },
+              status: { in: ["dispatched", "pending_review", "refused"] },
             },
             orderBy: { id: "asc" },
             take: 51,
@@ -395,7 +395,9 @@ export class DashboardService {
           detail:
             d.status === "pending_review"
               ? "Réception sans scan à valider"
-              : "À réceptionner",
+              : d.status === "refused"
+                ? "Colis refusé à valider"
+                : "À réceptionner",
         }));
       if (kind === "rewards")
         rows = (

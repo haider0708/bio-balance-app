@@ -128,9 +128,12 @@ void main() {
       final vm = await pump(tester, scannedCode: code);
       expect(find.text('Bon BL-2026-000123 vérifié'), findsOneWidget);
       // The ticket is the truth: its lots are shown, nothing to type.
-      expect(find.textContaining('6 × lot A1'), findsOneWidget);
-      expect(find.textContaining('4 × lot B2'), findsOneWidget);
+      expect(find.textContaining('Lot A1'), findsOneWidget);
+      expect(find.textContaining('Lot B2'), findsOneWidget);
       expect(find.text('Saisir le lot reçu'), findsNothing);
+      // Only the state of the units can be reported, lot by lot.
+      expect(find.widgetWithText(TextField, 'Abîmées'), findsNWidgets(2));
+      expect(find.widgetWithText(TextField, 'Refusées'), findsNWidgets(2));
       await tester.ensureVisible(find.text('Confirmer la réception'));
       await tester.tap(find.text('Confirmer la réception'));
       await tester.pumpAndSettle();
@@ -138,9 +141,43 @@ void main() {
       expect(vm.submitted!['ticketCode'], code);
       expect(vm.submitted!.containsKey('manualReason'), isFalse);
       expect(objects(vm.submitted!['lines']), isEmpty);
+      expect(objects(vm.submitted!['flags']), isEmpty);
       expect(tester.takeException(), isNull);
     },
   );
+
+  testWidgets('damaged units on a scanned parcel need a reason', (
+    tester,
+  ) async {
+    final vm = await pump(tester, scannedCode: code);
+    await tester.enterText(
+      find.byKey(const ValueKey('receipt.damaged.p.A1')),
+      '2',
+    );
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Confirmer la réception'));
+    await tester.tap(find.text('Confirmer la réception'));
+    await tester.pumpAndSettle();
+    expect(vm.submitted, isNull);
+    expect(find.textContaining('Expliquez'), findsOneWidget);
+    await tester.enterText(
+      find.widgetWithText(
+        TextField,
+        'Raison des unités abîmées ou refusées (obligatoire)',
+      ),
+      'Flacons cassés',
+    );
+    await tester.ensureVisible(find.text('Confirmer la réception'));
+    await tester.tap(find.text('Confirmer la réception'));
+    await tester.pumpAndSettle();
+    expect(objects(vm.submitted!['flags']).single, {
+      'productId': 'p',
+      'batch': 'A1',
+      'damaged': 2,
+      'refused': 0,
+    });
+    expect(vm.submitted!['note'], 'Flacons cassés');
+  });
 
   testWidgets(
     'without a scan the receiver says why, and BioBalance validates the claim',

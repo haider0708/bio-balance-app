@@ -23,6 +23,7 @@ String statusLabel(dynamic status) =>
       'closed_partial': 'Terminée · reliquat annulé',
       'lost': 'Perdue',
       'returned': 'Retournée',
+      'refused': 'Refusée par le magasin · validation BioBalance',
       'open': 'À traiter',
       'in_progress': 'Recherche en cours',
       'resolved': 'Résolu',

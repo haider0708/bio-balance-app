@@ -514,6 +514,60 @@ describe("delivery tickets", () => {
     expect(lot.damaged).toBe(2);
   });
 
+  it("lets the store refuse a parcel, and BioBalance approve or reject it", async () => {
+    const depotLot = () =>
+      owner.inventoryLot.findUniqueOrThrow({
+        where: { id: lotIdentity(depot, product, "D1", "2031-06-30") },
+      });
+    const { orderId, deliveryId } = await shipment(3, { supplier: true });
+    const before = (await depotLot()).sellable;
+    const refuse = async () =>
+      accepted(
+        manager,
+        retail(
+          { type: "delivery.refuse", deliveryId, reason: "Cartons ouverts" },
+          (await delivery(deliveryId)).version,
+        ),
+      );
+    await refuse();
+    expect((await delivery(deliveryId)).status).toBe("refused");
+    // Nothing moves until BioBalance decides; the store cannot receive it either.
+    expect((await depotLot()).sellable).toBe(before);
+    expect(
+      (
+        await service.submit(
+          manager,
+          retail(
+            { type: "delivery.refuse", deliveryId, reason: "Encore" },
+            (await delivery(deliveryId)).version,
+          ),
+        )
+      ).code,
+    ).toBe("DELIVERY_CLOSED");
+    const resolve = async (decision: "reopen" | "returned") =>
+      accepted(
+        admin,
+        retail(
+          {
+            type: "delivery.resolve",
+            deliveryId,
+            decision,
+            reason: "Décision après vérification",
+          },
+          (await delivery(deliveryId)).version,
+        ),
+      );
+    // Rejected: the parcel is back in transit for the store to receive.
+    await resolve("reopen");
+    expect((await delivery(deliveryId)).status).toBe("dispatched");
+    // Refused again and approved: the goods go back to the depot's lot.
+    await refuse();
+    await resolve("returned");
+    expect((await delivery(deliveryId)).status).toBe("returned");
+    expect((await depotLot()).sellable).toBe(before + 3);
+    expect((await order(orderId)).status).not.toBe("received");
+  });
+
   it("closes the opening stock once a store has been supplied", async () => {
     const { deliveryId } = await shipment(3, { batch: "SUPPLIED" });
     const code = codeOf((await tickets.ticket(admin, deliveryId, {})).qr);

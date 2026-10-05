@@ -602,6 +602,16 @@ class _ExactOrderScreenState extends State<ExactOrderScreen> {
       footer: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          if (delivery['status'] == 'refused')
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text(
+                vm.user.admin
+                    ? 'Le magasin a refusé ce colis. Traitez l’incident ci-dessous pour approuver ou rejeter le refus.'
+                    : 'Vous avez refusé ce colis. BioBalance va valider son retour.',
+                style: const TextStyle(fontSize: 14, color: muted),
+              ),
+            ),
           if (delivery['status'] == 'pending_review' && !vm.user.admin)
             const Padding(
               padding: EdgeInsets.only(top: 4),
@@ -763,9 +773,19 @@ class _ExactOrderScreenState extends State<ExactOrderScreen> {
         FieldSpec(
           'decision',
           'Suite à donner',
-          initial: delivery['status'] == 'received' ? 'settled' : 'tracing',
+          initial: delivery['status'] == 'received'
+              ? 'settled'
+              : delivery['status'] == 'refused'
+              ? 'returned'
+              : 'tracing',
           options: delivery['status'] == 'received'
               ? const {'settled': 'Écarts vérifiés et réglés'}
+              : delivery['status'] == 'refused'
+              ? const {
+                  'returned':
+                      'Approuver le refus : le colis retourne à l’expéditeur',
+                  'reopen': 'Rejeter le refus : le magasin doit réceptionner',
+                }
               : const {
                   'tracing': 'Recherche en cours',
                   'lost': 'Livraison perdue — libérer le remplacement',
@@ -839,6 +859,7 @@ class _ExactOrderScreenState extends State<ExactOrderScreen> {
         'delivery.validate': 'Réception validée par BioBalance',
         'delivery.report': 'Livraison signalée',
         'delivery.resolve': 'Incident traité',
+        'delivery.refuse': 'Colis refusé',
       }[action] ??
       action;
 

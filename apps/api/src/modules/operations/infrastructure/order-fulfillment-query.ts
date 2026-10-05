@@ -19,7 +19,7 @@ export async function orderFulfillment(
   >(Prisma.sql`
     SELECT d."orderId", expected->>'productId' AS "productId",
       COALESCE(SUM(LEAST((expected->>'quantity')::bigint, COALESCE(actual.quantity,0))) FILTER (WHERE d.status='received'), 0)::bigint AS received,
-      COALESCE(SUM((expected->>'quantity')::bigint) FILTER (WHERE d.status IN ('dispatched','pending_review')), 0)::bigint AS "inTransit"
+      COALESCE(SUM((expected->>'quantity')::bigint) FILTER (WHERE d.status IN ('dispatched','pending_review','refused')), 0)::bigint AS "inTransit"
     FROM "Delivery" d LEFT JOIN "DeliveryReceipt" r ON r."deliveryId"=d.id
       AND r."storeId"=d."storeId" AND r."organizationId"=d."organizationId"
     CROSS JOIN LATERAL jsonb_array_elements(d.lines) expected
