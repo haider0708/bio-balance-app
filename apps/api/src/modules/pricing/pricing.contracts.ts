@@ -12,11 +12,20 @@ export const PricingRequests = {
       organizationId: z.uuid().optional(),
       // store_supply only: an exception for one store. Without it, the default price.
       storeId: z.uuid().optional(),
-      priceMillimes: millimes,
+      // Omitted only when an exception is withdrawn.
+      priceMillimes: millimes.optional(),
+      // Withdraw the exception of that grossiste or store: it follows the default.
+      clear: z.boolean().optional(),
       reason: z.string().trim().min(3).max(300).optional(),
     })
-    .strict(),
+    .strict()
+    .refine((v) => v.clear === true || v.priceMillimes !== undefined, {
+      message: "Indiquez le prix.",
+    }),
 };
+export const defaultPricesQuery = z.object({
+  level: z.enum(["wholesale", "store_supply"]),
+});
 export const currentPricesQuery = z.object({
   organizationId: z.uuid(),
   storeId: z.uuid(),

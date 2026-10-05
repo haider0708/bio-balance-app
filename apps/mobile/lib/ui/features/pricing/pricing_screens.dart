@@ -98,8 +98,9 @@ class _PriceHistoryScreenState extends State<PriceHistoryScreen> {
           ),
         for (final entry in items)
           CompactRow(
-            title:
-                '${millimesLabel(entry['priceMillimes'])} · ${priceLevelLabel(entry['level'])}',
+            title: entry['cleared'] == true
+                ? 'Prix particulier retiré · ${priceLevelLabel(entry['level'])}'
+                : '${millimesLabel(entry['priceMillimes'])} · ${priceLevelLabel(entry['level'])}',
             subtitle: [
               place(entry),
               TunisDates.timestampLabel(entry['createdAt']),
@@ -162,15 +163,18 @@ class _ProductPricesScreenState extends State<ProductPricesScreen> {
   }
 
   /// The newest entry of one level and scope; history is newest first.
-  Json? latest(String level, {String? organizationId, String? storeId}) =>
-      entries
-          .where(
-            (e) =>
-                e['level'] == level &&
-                e['organizationId'] == organizationId &&
-                e['storeId'] == storeId,
-          )
-          .firstOrNull;
+  /// A withdrawn exception counts as no exception.
+  Json? latest(String level, {String? organizationId, String? storeId}) {
+    final entry = entries
+        .where(
+          (e) =>
+              e['level'] == level &&
+              e['organizationId'] == organizationId &&
+              e['storeId'] == storeId,
+        )
+        .firstOrNull;
+    return entry?['cleared'] == true ? null : entry;
+  }
 
   Future<void> change(
     String level,
@@ -243,6 +247,19 @@ class _ProductPricesScreenState extends State<ProductPricesScreen> {
     final exceptions = entries
         .where((e) => e['level'] == 'store_supply' && e['storeId'] != null)
         .map((e) => e['storeId'])
+        .toSet()
+        .where(
+          (id) =>
+              latest(
+                'store_supply',
+                organizationId: widget.vm.state.stores
+                    .where((s) => s.id == id)
+                    .firstOrNull
+                    ?.organizationId,
+                storeId: id,
+              ) !=
+              null,
+        )
         .toSet();
     return Scaffold(
       appBar: AppBar(

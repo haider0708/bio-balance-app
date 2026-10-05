@@ -19,6 +19,12 @@ class PricingRepository {
     return {for (final item in page.items) item.productId: item.toJson()};
   });
 
+  /// BioBalance's default list of one level, by product id.
+  Future<Map<String, Json>> defaults(String level) => context.run(() async {
+    final page = await context.api.pricingDefaults(level: level);
+    return {for (final item in page.items) item.productId: item.toJson()};
+  });
+
   Future<List<Json>> history(String productId, {Store? store, String? level}) =>
       context.run(
         () async => (await context.api.pricingHistory(

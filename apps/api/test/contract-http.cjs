@@ -660,6 +660,9 @@ const owner = new PrismaClient({
     await call("GET", `/v1/prices/history?productId=${product.id}`, {
       as: adminToken,
     });
+    await call("GET", "/v1/prices/defaults?level=store_supply", {
+      as: adminToken,
+    });
     await call(
       "GET",
       `/v1/quality-flags?organizationId=${org}&storeId=${store}&status=all`,

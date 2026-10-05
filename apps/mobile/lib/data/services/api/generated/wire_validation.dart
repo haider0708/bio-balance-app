@@ -1655,6 +1655,7 @@ const Map<String, Map<String, dynamic>> _schemas = {
         ],
       },
       "seeded": {"type": "boolean"},
+      "cleared": {"type": "boolean"},
       "createdAt": {"type": "string", "format": "date-time"},
     },
     "required": [
@@ -1667,6 +1668,7 @@ const Map<String, Map<String, dynamic>> _schemas = {
       "reason",
       "author",
       "seeded",
+      "cleared",
       "createdAt",
     ],
     "additionalProperties": false,
@@ -1688,6 +1690,17 @@ const Map<String, Map<String, dynamic>> _schemas = {
       "items": {
         "type": "array",
         "items": {"\$ref": "#/components/schemas/CurrentPricesItemsItem"},
+      },
+    },
+    "required": ["items"],
+    "additionalProperties": false,
+  },
+  "DefaultPrices": {
+    "type": "object",
+    "properties": {
+      "items": {
+        "type": "array",
+        "items": {"\$ref": "#/components/schemas/DefaultPricesItemsItem"},
       },
     },
     "required": ["items"],
@@ -2884,6 +2897,7 @@ const Map<String, Map<String, dynamic>> _schemas = {
   "QualityListResponse": {"\$ref": "#/components/schemas/QualityFlagPage"},
   "TicketGetResponse": {"\$ref": "#/components/schemas/DeliveryTicket"},
   "PricingCurrentResponse": {"\$ref": "#/components/schemas/CurrentPrices"},
+  "PricingDefaultsResponse": {"\$ref": "#/components/schemas/DefaultPrices"},
   "PricingHistoryResponse": {"\$ref": "#/components/schemas/PriceHistory"},
   "PricingSetResponse": {"\$ref": "#/components/schemas/PriceEntry"},
   "PricingSetRequest": {
@@ -2914,9 +2928,10 @@ const Map<String, Map<String, dynamic>> _schemas = {
         "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)\$",
       },
       "priceMillimes": {"type": "string", "pattern": "^(0|[1-9]\\d{0,14})\$"},
+      "clear": {"type": "boolean"},
       "reason": {"type": "string", "minLength": 3, "maxLength": 300},
     },
-    "required": ["operationId", "level", "productId", "priceMillimes"],
+    "required": ["operationId", "level", "productId"],
     "additionalProperties": false,
   },
   "WholesaleListResponse": {
@@ -3665,13 +3680,26 @@ const Map<String, Map<String, dynamic>> _schemas = {
           {"type": "null"},
         ],
       },
+      "supplyException": {"type": "boolean"},
+      "wholesaleException": {"type": "boolean"},
     },
     "required": [
       "productId",
       "retailMillimes",
       "supplyMillimes",
       "wholesaleMillimes",
+      "supplyException",
+      "wholesaleException",
     ],
+    "additionalProperties": false,
+  },
+  "DefaultPricesItemsItem": {
+    "type": "object",
+    "properties": {
+      "productId": {"type": "string", "format": "uuid"},
+      "priceMillimes": {"type": "string", "pattern": "^-?[0-9]+\$"},
+    },
+    "required": ["productId", "priceMillimes"],
     "additionalProperties": false,
   },
   "DeliveryTicketLinesItem": {

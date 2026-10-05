@@ -2897,6 +2897,7 @@ final class PriceEntryDto {
   final String? reason;
   final String? author;
   final bool seeded;
+  final bool cleared;
   final String createdAt;
   PriceEntryDto({
     Set<String> presentFields = const {},
@@ -2909,6 +2910,7 @@ final class PriceEntryDto {
     required this.reason,
     required this.author,
     required this.seeded,
+    required this.cleared,
     required this.createdAt,
   }) : _presentFields = Set.unmodifiable(presentFields);
   factory PriceEntryDto.fromJson(Map<String, dynamic> json) {
@@ -2925,6 +2927,7 @@ final class PriceEntryDto {
       reason: json["reason"] == null ? null : json["reason"] as String,
       author: json["author"] == null ? null : json["author"] as String,
       seeded: json["seeded"] as bool,
+      cleared: json["cleared"] as bool,
       createdAt: json["createdAt"] as String,
     );
   }
@@ -2938,6 +2941,7 @@ final class PriceEntryDto {
     "reason": reason,
     "author": author,
     "seeded": seeded,
+    "cleared": cleared,
     "createdAt": createdAt,
   };
 }
@@ -2982,6 +2986,32 @@ final class CurrentPricesDto {
       items: List.unmodifiable(
         (json["items"] as List).map(
           (item) => CurrentPricesItemsItemDto.fromJson(
+            Map<String, dynamic>.from(item as Map),
+          ),
+        ),
+      ),
+    );
+  }
+  Map<String, dynamic> toJson() => {
+    "items": items.map((item) => item.toJson()).toList(),
+  };
+}
+
+final class DefaultPricesDto {
+  final Set<String> _presentFields;
+  Set<String> get presentFields => _presentFields;
+  final List<DefaultPricesItemsItemDto> items;
+  DefaultPricesDto({
+    Set<String> presentFields = const {},
+    required List<DefaultPricesItemsItemDto> items,
+  }) : _presentFields = Set.unmodifiable(presentFields),
+       items = List.unmodifiable(items);
+  factory DefaultPricesDto.fromJson(Map<String, dynamic> json) {
+    return DefaultPricesDto(
+      presentFields: json.keys.toSet(),
+      items: List.unmodifiable(
+        (json["items"] as List).map(
+          (item) => DefaultPricesItemsItemDto.fromJson(
             Map<String, dynamic>.from(item as Map),
           ),
         ),
@@ -4973,6 +5003,7 @@ sealed class CatalogImportResultDto {
 typedef QualityListResponseDto = QualityFlagPageDto;
 typedef TicketGetResponseDto = DeliveryTicketDto;
 typedef PricingCurrentResponseDto = CurrentPricesDto;
+typedef PricingDefaultsResponseDto = DefaultPricesDto;
 typedef PricingHistoryResponseDto = PriceHistoryDto;
 typedef PricingSetResponseDto = PriceEntryDto;
 
@@ -4984,7 +5015,8 @@ final class PricingSetRequestDto {
   final String productId;
   final String? organizationId;
   final String? storeId;
-  final String priceMillimes;
+  final String? priceMillimes;
+  final bool? clear;
   final String? reason;
   PricingSetRequestDto({
     Set<String> presentFields = const {},
@@ -4993,7 +5025,8 @@ final class PricingSetRequestDto {
     required this.productId,
     this.organizationId,
     this.storeId,
-    required this.priceMillimes,
+    this.priceMillimes,
+    this.clear,
     this.reason,
   }) : _presentFields = Set.unmodifiable(presentFields);
   factory PricingSetRequestDto.fromJson(Map<String, dynamic> json) {
@@ -5006,7 +5039,10 @@ final class PricingSetRequestDto {
           ? null
           : json["organizationId"] as String,
       storeId: json["storeId"] == null ? null : json["storeId"] as String,
-      priceMillimes: json["priceMillimes"] as String,
+      priceMillimes: json["priceMillimes"] == null
+          ? null
+          : json["priceMillimes"] as String,
+      clear: json["clear"] == null ? null : json["clear"] as bool,
       reason: json["reason"] == null ? null : json["reason"] as String,
     );
   }
@@ -5018,7 +5054,9 @@ final class PricingSetRequestDto {
       "organizationId": organizationId,
     if (storeId != null || _presentFields.contains("storeId"))
       "storeId": storeId,
-    "priceMillimes": priceMillimes,
+    if (priceMillimes != null || _presentFields.contains("priceMillimes"))
+      "priceMillimes": priceMillimes,
+    if (clear != null || _presentFields.contains("clear")) "clear": clear,
     if (reason != null || _presentFields.contains("reason")) "reason": reason,
   };
 }
@@ -6216,12 +6254,16 @@ final class CurrentPricesItemsItemDto {
   final String? retailMillimes;
   final String? supplyMillimes;
   final String? wholesaleMillimes;
+  final bool supplyException;
+  final bool wholesaleException;
   CurrentPricesItemsItemDto({
     Set<String> presentFields = const {},
     required this.productId,
     required this.retailMillimes,
     required this.supplyMillimes,
     required this.wholesaleMillimes,
+    required this.supplyException,
+    required this.wholesaleException,
   }) : _presentFields = Set.unmodifiable(presentFields);
   factory CurrentPricesItemsItemDto.fromJson(Map<String, dynamic> json) {
     return CurrentPricesItemsItemDto(
@@ -6236,6 +6278,8 @@ final class CurrentPricesItemsItemDto {
       wholesaleMillimes: json["wholesaleMillimes"] == null
           ? null
           : json["wholesaleMillimes"] as String,
+      supplyException: json["supplyException"] as bool,
+      wholesaleException: json["wholesaleException"] as bool,
     );
   }
   Map<String, dynamic> toJson() => {
@@ -6243,6 +6287,31 @@ final class CurrentPricesItemsItemDto {
     "retailMillimes": retailMillimes,
     "supplyMillimes": supplyMillimes,
     "wholesaleMillimes": wholesaleMillimes,
+    "supplyException": supplyException,
+    "wholesaleException": wholesaleException,
+  };
+}
+
+final class DefaultPricesItemsItemDto {
+  final Set<String> _presentFields;
+  Set<String> get presentFields => _presentFields;
+  final String productId;
+  final String priceMillimes;
+  DefaultPricesItemsItemDto({
+    Set<String> presentFields = const {},
+    required this.productId,
+    required this.priceMillimes,
+  }) : _presentFields = Set.unmodifiable(presentFields);
+  factory DefaultPricesItemsItemDto.fromJson(Map<String, dynamic> json) {
+    return DefaultPricesItemsItemDto(
+      presentFields: json.keys.toSet(),
+      productId: json["productId"] as String,
+      priceMillimes: json["priceMillimes"] as String,
+    );
+  }
+  Map<String, dynamic> toJson() => {
+    "productId": productId,
+    "priceMillimes": priceMillimes,
   };
 }
 

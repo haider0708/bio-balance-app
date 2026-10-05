@@ -12,6 +12,9 @@ export class PricingController {
   @Get("current") current(@Req() r: AuthRequest, @Query() q: unknown) {
     return this.service.current(r.actor, q);
   }
+  @Get("defaults") defaults(@Req() r: AuthRequest, @Query() q: unknown) {
+    return this.service.defaults(r.actor, q);
+  }
   @Get("history") history(@Req() r: AuthRequest, @Query() q: unknown) {
     return this.service.history(r.actor, q);
   }

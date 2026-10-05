@@ -23,6 +23,12 @@ Object? decodeResponse(
     );
     return decoded.toJson();
   })(),
+  "PricingDefaults" => (() {
+    final decoded = PricingDefaultsResponseDto.fromJson(
+      Map<String, dynamic>.from(value as Map),
+    );
+    return decoded.toJson();
+  })(),
   "PricingHistory" => (() {
     final decoded = PricingHistoryResponseDto.fromJson(
       Map<String, dynamic>.from(value as Map),

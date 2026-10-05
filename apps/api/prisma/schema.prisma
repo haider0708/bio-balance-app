@@ -591,6 +591,8 @@ model PriceVersion {
   operationId String? @unique @db.Uuid
   createdBy String? @db.Uuid
   seeded Boolean @default(false)
+  // Withdraws an exception: the party follows the default again.
+  cleared Boolean @default(false)
   createdAt DateTime @default(now())
   @@index([level,productId,storeId,organizationId,createdAt(sort: Desc)], map: "PriceVersion_lookup")
 }

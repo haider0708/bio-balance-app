@@ -534,6 +534,8 @@ wireSchemas.PriceEntry = obj({
   // Only BioBalance sees who changed a price.
   author: nullable(str),
   seeded: bool,
+  // A withdrawn exception: the party follows the default again.
+  cleared: bool,
   createdAt: timestamp,
 });
 wireSchemas.PriceHistory = obj({ items: arr(ref("PriceEntry")) });
@@ -545,8 +547,14 @@ wireSchemas.CurrentPrices = obj({
       retailMillimes: nullable(decimal),
       supplyMillimes: nullable(decimal),
       wholesaleMillimes: nullable(decimal),
+      // For BioBalance: the price is an exception, not the default.
+      supplyException: bool,
+      wholesaleException: bool,
     }),
   ),
+});
+wireSchemas.DefaultPrices = obj({
+  items: arr(obj({ productId: uuid, priceMillimes: decimal })),
 });
 wireSchemas.DeliveryTicket = obj({
   deliveryId: uuid,

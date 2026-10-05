@@ -136,6 +136,7 @@ const responses: Record<string, Schema> = {
   QualityController_list: ref("QualityFlagPage"),
   PricingController_current: ref("CurrentPrices"),
   PricingController_history: ref("PriceHistory"),
+  PricingController_defaults: ref("DefaultPrices"),
   PricingController_set: ref("PriceEntry"),
   WholesaleController_list: arr(ref("Wholesaler")),
   WholesaleController_create: ref("Wholesaler"),
@@ -316,6 +317,15 @@ export function applyContract(document: OpenAPIObject): OpenAPIObject {
         params.push(
           parameter("organizationId", "query", uuid, true),
           parameter("storeId", "query", uuid, true),
+        );
+      if (original === "PricingController_defaults")
+        params.push(
+          parameter(
+            "level",
+            "query",
+            { type: "string", enum: ["wholesale", "store_supply"] },
+            true,
+          ),
         );
       if (original === "PricingController_history")
         params.push(

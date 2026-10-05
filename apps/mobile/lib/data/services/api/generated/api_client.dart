@@ -78,6 +78,19 @@ class ApiClient extends SessionTransport {
     );
   }
 
+  Future<PricingDefaultsResponseDto> pricingDefaults({
+    required String level,
+  }) async {
+    final value = await request(
+      'GET',
+      '/v1/prices/defaults',
+      query: {"level": level},
+    );
+    return PricingDefaultsResponseDto.fromJson(
+      Map<String, dynamic>.from(value as Map),
+    );
+  }
+
   Future<PricingHistoryResponseDto> pricingHistory({
     required String productId,
     String? organizationId,

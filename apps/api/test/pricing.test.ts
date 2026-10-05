@@ -51,7 +51,8 @@ const set = (
     level: "wholesale" | "store_supply";
     organizationId?: string;
     storeId?: string;
-    priceMillimes: string;
+    priceMillimes?: string;
+    clear?: boolean;
     reason?: string;
     operationId?: string;
   },
@@ -253,6 +254,51 @@ describe("price book", () => {
         await pricing.current(admin, { organizationId: org, storeId: store }),
       ).supplyMillimes,
     ).toBe(43000n);
+    // BioBalance sees it is an exception, and the default list on its own.
+    expect(
+      mine(
+        await pricing.current(admin, {
+          organizationId: org,
+          storeId: otherStore,
+        }),
+      ),
+    ).toMatchObject({ supplyException: true });
+    expect(
+      (await pricing.defaults(admin, { level: "store_supply" })).items.find(
+        (i) => i.productId === product,
+      )?.priceMillimes,
+    ).toBe(43000n);
+    await expect(
+      pricing.defaults(responsable, { level: "store_supply" }),
+    ).rejects.toThrow();
+  });
+
+  it("withdraws an exception: the store follows the default again", async () => {
+    const exception = { organizationId: org, storeId: otherStore };
+    // A default is replaced, never withdrawn.
+    await expect(
+      set(admin, { level: "store_supply", clear: true }),
+    ).rejects.toThrow("défaut");
+    await set(admin, { level: "store_supply", ...exception, clear: true });
+    expect(mine(await pricing.current(admin, exception))).toMatchObject({
+      supplyMillimes: 43000n,
+      supplyException: false,
+    });
+    await expect(
+      set(admin, { level: "store_supply", ...exception, clear: true }),
+    ).rejects.toThrow("pas de prix particulier");
+    // The history keeps the exception and its withdrawal.
+    const history = await pricing.history(admin, { productId: product });
+    expect(history.items.some((e) => e.cleared)).toBe(true);
+    // A new exception applies again.
+    await set(admin, {
+      level: "store_supply",
+      ...exception,
+      priceMillimes: "39000",
+    });
+    expect(mine(await pricing.current(admin, exception)).supplyMillimes).toBe(
+      39000n,
+    );
   });
 
   it("records every retail price and points rate change, and leaves the rest alone", async () => {

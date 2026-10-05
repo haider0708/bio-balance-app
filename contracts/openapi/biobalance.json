@@ -591,6 +591,189 @@
         ]
       }
     },
+    "/v1/prices/defaults": {
+      "get": {
+        "operationId": "PricingDefaults",
+        "parameters": [
+          {
+            "name": "level",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "wholesale",
+                "store_supply"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Réponse autorisée. Les entiers monétaires sont des chaînes décimales exactes.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PricingDefaultsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Erreur stable à traduire pour l’utilisateur",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Erreur stable à traduire pour l’utilisateur",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Erreur stable à traduire pour l’utilisateur",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Erreur stable à traduire pour l’utilisateur",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Erreur stable à traduire pour l’utilisateur",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Erreur stable à traduire pour l’utilisateur",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Erreur stable à traduire pour l’utilisateur",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Erreur stable à traduire pour l’utilisateur",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "416": {
+            "description": "Erreur stable à traduire pour l’utilisateur",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Erreur stable à traduire pour l’utilisateur",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Erreur stable à traduire pour l’utilisateur",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Erreur stable à traduire pour l’utilisateur",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Erreur stable à traduire pour l’utilisateur",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "pricing"
+        ]
+      }
+    },
     "/v1/prices/history": {
       "get": {
         "operationId": "PricingHistory",
@@ -16564,6 +16747,9 @@
           "seeded": {
             "type": "boolean"
           },
+          "cleared": {
+            "type": "boolean"
+          },
           "createdAt": {
             "type": "string",
             "format": "date-time"
@@ -16579,6 +16765,7 @@
           "reason",
           "author",
           "seeded",
+          "cleared",
           "createdAt"
         ],
         "additionalProperties": false
@@ -16642,13 +16829,51 @@
                       "type": "null"
                     }
                   ]
+                },
+                "supplyException": {
+                  "type": "boolean"
+                },
+                "wholesaleException": {
+                  "type": "boolean"
                 }
               },
               "required": [
                 "productId",
                 "retailMillimes",
                 "supplyMillimes",
-                "wholesaleMillimes"
+                "wholesaleMillimes",
+                "supplyException",
+                "wholesaleException"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "additionalProperties": false
+      },
+      "DefaultPrices": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "productId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "priceMillimes": {
+                  "type": "string",
+                  "pattern": "^-?[0-9]+$"
+                }
+              },
+              "required": [
+                "productId",
+                "priceMillimes"
               ],
               "additionalProperties": false
             }
@@ -20879,6 +21104,9 @@
       "PricingCurrentResponse": {
         "$ref": "#/components/schemas/CurrentPrices"
       },
+      "PricingDefaultsResponse": {
+        "$ref": "#/components/schemas/DefaultPrices"
+      },
       "PricingHistoryResponse": {
         "$ref": "#/components/schemas/PriceHistory"
       },
@@ -20919,6 +21147,9 @@
             "type": "string",
             "pattern": "^(0|[1-9]\\d{0,14})$"
           },
+          "clear": {
+            "type": "boolean"
+          },
           "reason": {
             "type": "string",
             "minLength": 3,
@@ -20928,8 +21159,7 @@
         "required": [
           "operationId",
           "level",
-          "productId",
-          "priceMillimes"
+          "productId"
         ],
         "additionalProperties": false
       },

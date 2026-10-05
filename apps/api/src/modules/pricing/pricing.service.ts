@@ -7,6 +7,7 @@ import { Actor } from "../operations/domain/contracts";
 import {
   PricingRequests,
   currentPricesQuery,
+  defaultPricesQuery,
   priceHistoryQuery,
 } from "./pricing.contracts";
 
@@ -54,12 +55,35 @@ export async function latestPrices(
     level === "store_supply"
       ? Prisma.sql`AND "supplierOrganizationId" IS NOT DISTINCT FROM ${scope.supplierId ?? null}::uuid`
       : Prisma.empty;
+  // The latest default and the latest exception of each product; a withdrawn
+  // exception leaves the default in force.
   const rows = await tx.$queryRaw<Row[]>(
-    Prisma.sql`SELECT DISTINCT ON ("productId") "productId","priceMillimes","createdAt"
+    Prisma.sql`SELECT DISTINCT ON ("productId") "productId","priceMillimes","createdAt" FROM (
+      SELECT DISTINCT ON ("productId",${specific}) "productId","priceMillimes","createdAt",cleared,${specific} AS "isDefault"
       FROM "PriceVersion" WHERE level=${level} AND ${match} ${supplier} ${products} ${until}
-      ORDER BY "productId",${specific} ASC,"createdAt" DESC,id DESC`,
+      ORDER BY "productId",${specific},"createdAt" DESC,id DESC) latest
+      WHERE NOT cleared ORDER BY "productId","isDefault" ASC`,
   );
   return new Map(rows.map((r) => [r.productId, r.priceMillimes]));
+}
+
+/** Products whose price for this grossiste or store is an exception in force. */
+export async function exceptionProducts(
+  tx: Tx,
+  level: "wholesale" | "store_supply",
+  scope: { organizationId?: string | null; storeId?: string | null },
+): Promise<Set<string>> {
+  const match =
+    level === "wholesale"
+      ? Prisma.sql`"organizationId"=${scope.organizationId ?? null}::uuid AND "storeId" IS NULL`
+      : Prisma.sql`"storeId"=${scope.storeId ?? null}::uuid AND "supplierOrganizationId" IS NULL`;
+  const rows = await tx.$queryRaw<{ productId: string }[]>(
+    Prisma.sql`SELECT "productId" FROM (
+      SELECT DISTINCT ON ("productId") "productId",cleared FROM "PriceVersion"
+      WHERE level=${level} AND ${match} ORDER BY "productId","createdAt" DESC,id DESC) latest
+      WHERE NOT cleared`,
+  );
+  return new Set(rows.map((r) => r.productId));
 }
 
 @Injectable()
@@ -103,7 +127,7 @@ export class PricingService {
         input.productId,
         input.organizationId ?? null,
         input.storeId ?? null,
-        input.priceMillimes,
+        input.priceMillimes ?? null,
         supplierId,
       ]);
       await tx.$executeRaw`SELECT set_config('app.price_access','true',true)`;
@@ -118,7 +142,7 @@ export class PricingService {
               prior.productId,
               prior.organizationId,
               prior.storeId,
-              prior.priceMillimes.toString(),
+              prior.cleared ? null : prior.priceMillimes.toString(),
               prior.supplierOrganizationId,
             ]) === payload,
           "OPERATION_REUSED",
@@ -181,12 +205,38 @@ export class PricingService {
       const existing = await latestPrices(tx, input.level, scope, [
         input.productId,
       ]);
-      requireRule(
-        existing.get(input.productId) !== BigInt(input.priceMillimes),
-        "PRICE_UNCHANGED",
-        "Ce prix est déjà en vigueur.",
-        409,
-      );
+      if (input.clear) {
+        requireRule(
+          current.platformAdmin,
+          "FORBIDDEN",
+          "Seul BioBalance retire un prix particulier.",
+          403,
+        );
+        requireRule(
+          input.level === "wholesale"
+            ? !!input.organizationId
+            : !!input.storeId,
+          "VALIDATION",
+          "Un prix par défaut se remplace, il ne se retire pas.",
+        );
+        requireRule(
+          (
+            await exceptionProducts(tx, input.level, {
+              organizationId: input.organizationId,
+              storeId: input.storeId,
+            })
+          ).has(input.productId),
+          "NO_EXCEPTION",
+          "Il n’y a pas de prix particulier à retirer.",
+          409,
+        );
+      } else
+        requireRule(
+          existing.get(input.productId) !== BigInt(input.priceMillimes!),
+          "PRICE_UNCHANGED",
+          "Ce prix est déjà en vigueur.",
+          409,
+        );
       const row = await tx.priceVersion.create({
         data: {
           id: crypto.randomUUID(),
@@ -195,7 +245,8 @@ export class PricingService {
           organizationId: input.organizationId ?? null,
           storeId: input.storeId ?? null,
           supplierOrganizationId: supplierId,
-          priceMillimes: BigInt(input.priceMillimes),
+          priceMillimes: BigInt(input.priceMillimes ?? "0"),
+          cleared: input.clear === true,
           reason: input.reason ?? null,
           operationId: input.operationId,
           createdBy: current.id,
@@ -206,13 +257,14 @@ export class PricingService {
           organizationId: input.organizationId ?? null,
           storeId: input.storeId ?? null,
           actorId: current.id,
-          action: "price.set",
+          action: input.clear ? "price.clear" : "price.set",
           targetId: row.id,
           operationId: input.operationId,
           details: json({
             level: input.level,
             productId: input.productId,
-            priceMillimes: input.priceMillimes,
+            priceMillimes: input.priceMillimes ?? null,
+            cleared: input.clear === true,
             previous: existing.get(input.productId)?.toString() ?? null,
             reason: input.reason ?? null,
           }),
@@ -289,6 +341,17 @@ export class PricingService {
             organizationId: q.organizationId,
           })
         : new Map<string, bigint>();
+      // BioBalance sees which prices are exceptions rather than the default.
+      const supplyExceptions =
+        v.admin && !v.wholesale
+          ? await exceptionProducts(tx, "store_supply", { storeId: q.storeId })
+          : new Set<string>();
+      const wholesaleExceptions =
+        v.admin && v.wholesale
+          ? await exceptionProducts(tx, "wholesale", {
+              organizationId: q.organizationId,
+            })
+          : new Set<string>();
       const ids = new Set([
         ...retail.keys(),
         ...supply.keys(),
@@ -300,9 +363,33 @@ export class PricingService {
           retailMillimes: retail.get(productId) ?? null,
           supplyMillimes: supply.get(productId) ?? null,
           wholesaleMillimes: wholesale.get(productId) ?? null,
+          supplyException: supplyExceptions.has(productId),
+          wholesaleException: wholesaleExceptions.has(productId),
         })),
       };
     });
+  }
+
+  /** BioBalance's default lists: what every grossiste, or every store it
+   * supplies, pays unless it has an exception. */
+  defaults(actor: Actor, raw: unknown) {
+    const q = defaultPricesQuery.parse(raw);
+    return this.db.authenticated(
+      actor,
+      async (tx) => {
+        await tx.$executeRaw`SELECT set_config('app.price_access','true',true)`;
+        const prices = await latestPrices(tx, q.level, {});
+        return {
+          items: [...prices.entries()]
+            .sort(([a], [b]) => a.localeCompare(b))
+            .map(([productId, priceMillimes]) => ({
+              productId,
+              priceMillimes,
+            })),
+        };
+      },
+      true,
+    );
   }
 
   /** Price history, limited to the levels and scopes this caller may see. */
@@ -409,6 +496,7 @@ export class PricingService {
       reason: string | null;
       createdBy: string | null;
       seeded: boolean;
+      cleared: boolean;
       createdAt: Date;
     },
     authors: Map<string, string>,
@@ -423,6 +511,7 @@ export class PricingService {
       reason: row.reason,
       author: row.createdBy ? (authors.get(row.createdBy) ?? null) : null,
       seeded: row.seeded,
+      cleared: row.cleared,
       createdAt: row.createdAt,
     };
   }
