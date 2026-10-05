@@ -317,6 +317,10 @@ export class WorkspaceService {
                   input.zeroPointsConfirmed === true,
                 pointsPerUnit: input.pointsPerUnit,
                 pointsConfigured: true,
+                // A rate set for this place only: later defaults leave it alone.
+                ...(input.pointsPerUnit !== (old?.pointsPerUnit ?? -1)
+                  ? { pointsException: true }
+                  : {}),
               }
             : {}),
         };
@@ -553,6 +557,12 @@ export class WorkspaceService {
             old && old.version === expectedVersion,
             "VERSION_CONFLICT",
             "La récompense a changé.",
+            409,
+          );
+          requireRule(
+            !old.templateId,
+            "DEFAULT_REWARD",
+            "Récompense par défaut : modifiez-la dans les récompenses par défaut.",
             409,
           );
           return tx.reward.update({

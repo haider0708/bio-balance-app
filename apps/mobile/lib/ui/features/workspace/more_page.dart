@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import '../../core/design.dart';
 import '../catalog/catalog_screen.dart';
 import '../pricing/pricing_hub_screen.dart';
+import '../rewards/gamification_hub_screen.dart';
 import '../sales/sales_history_screen.dart';
 import '../rewards/rewards_screen.dart';
 import '../training/training_screen.dart';
@@ -316,6 +317,14 @@ class MorePage extends StatelessWidget {
             PricingHubScreen(vm: vm),
             fullScreen: true,
             subtitle: 'Prix des grossistes et des magasins, prix de vente',
+          ),
+          link(
+            context,
+            'Points et récompenses',
+            AppIcons.redeemOutlined,
+            GamificationHubScreen(vm: vm),
+            fullScreen: true,
+            subtitle: 'Barème et récompenses par défaut, exceptions par magasin ou grossiste',
           ),
           link(context, 'Catalogue', AppIcons.spaOutlined, CatalogPage(vm: vm)),
           link(

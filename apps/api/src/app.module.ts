@@ -38,6 +38,8 @@ import { PricingService } from "./modules/pricing/pricing.service";
 import { PricingController } from "./modules/pricing/pricing.controller";
 import { WholesaleService } from "./modules/wholesale/wholesale.service";
 import { WholesaleController } from "./modules/wholesale/wholesale.controller";
+import { GamificationService } from "./modules/tenancy/gamification.service";
+import { GamificationController } from "./modules/tenancy/gamification.controller";
 @Controller("health")
 class HealthController {
   constructor(private readonly db: Database) {}
@@ -48,6 +50,7 @@ class HealthController {
 }
 @Module({
   controllers: [
+    GamificationController,
     QualityController,
     TicketController,
     PricingController,
@@ -65,6 +68,7 @@ class HealthController {
     TrainingController,
   ],
   providers: [
+    GamificationService,
     QualityService,
     TicketService,
     PricingService,

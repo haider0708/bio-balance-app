@@ -225,6 +225,8 @@ export const wireSchemas: Record<string, Schema> = {
     quantity: integer,
     active: bool,
     version: integer,
+    // A copy of a default reward (null for the place's own reward).
+    templateId: nullable(uuid),
   }),
   RewardClaim: obj({
     ...scoped,
@@ -556,6 +558,30 @@ wireSchemas.CurrentPrices = obj({
 wireSchemas.DefaultPrices = obj({
   items: arr(obj({ productId: uuid, priceMillimes: decimal })),
 });
+wireSchemas.RewardTemplate = obj({
+  id: uuid,
+  audience: { type: "string", enum: ["retail", "wholesale"] },
+  title: str,
+  description: str,
+  cost: integer,
+  productId: nullable(uuid),
+  quantity: integer,
+  active: bool,
+  version: integer,
+  createdBy: nullable(uuid),
+  createdAt: timestamp,
+});
+wireSchemas.GamificationDefaults = obj({
+  points: arr(obj({ productId: uuid, pointsPerUnit: integer })),
+  rewards: arr(ref("RewardTemplate")),
+});
+wireSchemas.StorePoints = obj({
+  productId: uuid,
+  pointsPerUnit: nullable(integer),
+  defaultPointsPerUnit: nullable(integer),
+  exception: bool,
+});
+wireSchemas.StorePointsList = obj({ items: arr(ref("StorePoints")) });
 wireSchemas.DeliveryTicket = obj({
   deliveryId: uuid,
   // Needed to act on the delivery: its version and the receiving store.

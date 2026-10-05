@@ -771,6 +771,7 @@ final class StoreProductDto implements CollectionItemDto {
   final bool zeroPointsConfirmed;
   final int version;
   final bool? priceConfigured;
+  final bool? pointsException;
   StoreProductDto({
     Set<String> presentFields = const {},
     required this.id,
@@ -784,6 +785,7 @@ final class StoreProductDto implements CollectionItemDto {
     required this.zeroPointsConfirmed,
     required this.version,
     this.priceConfigured,
+    this.pointsException,
   }) : _presentFields = Set.unmodifiable(presentFields);
   factory StoreProductDto.fromJson(Map<String, dynamic> json) {
     return StoreProductDto(
@@ -801,6 +803,9 @@ final class StoreProductDto implements CollectionItemDto {
       priceConfigured: json["priceConfigured"] == null
           ? null
           : json["priceConfigured"] as bool,
+      pointsException: json["pointsException"] == null
+          ? null
+          : json["pointsException"] as bool,
     );
   }
   @override
@@ -817,6 +822,8 @@ final class StoreProductDto implements CollectionItemDto {
     "version": version,
     if (priceConfigured != null || _presentFields.contains("priceConfigured"))
       "priceConfigured": priceConfigured,
+    if (pointsException != null || _presentFields.contains("pointsException"))
+      "pointsException": pointsException,
   };
 }
 
@@ -1353,6 +1360,7 @@ final class RewardDto {
   final int quantity;
   final bool active;
   final int version;
+  final String? templateId;
   RewardDto({
     Set<String> presentFields = const {},
     required this.id,
@@ -1366,6 +1374,7 @@ final class RewardDto {
     required this.quantity,
     required this.active,
     required this.version,
+    required this.templateId,
   }) : _presentFields = Set.unmodifiable(presentFields);
   factory RewardDto.fromJson(Map<String, dynamic> json) {
     return RewardDto(
@@ -1381,6 +1390,9 @@ final class RewardDto {
       quantity: wireInteger(json["quantity"]),
       active: json["active"] as bool,
       version: wireInteger(json["version"]),
+      templateId: json["templateId"] == null
+          ? null
+          : json["templateId"] as String,
     );
   }
   Map<String, dynamic> toJson() => {
@@ -1395,6 +1407,7 @@ final class RewardDto {
     "quantity": quantity,
     "active": active,
     "version": version,
+    "templateId": templateId,
   };
 }
 
@@ -3014,6 +3027,162 @@ final class DefaultPricesDto {
           (item) => DefaultPricesItemsItemDto.fromJson(
             Map<String, dynamic>.from(item as Map),
           ),
+        ),
+      ),
+    );
+  }
+  Map<String, dynamic> toJson() => {
+    "items": items.map((item) => item.toJson()).toList(),
+  };
+}
+
+final class RewardTemplateDto {
+  final Set<String> _presentFields;
+  Set<String> get presentFields => _presentFields;
+  final String id;
+  final String audience;
+  final String title;
+  final String description;
+  final int cost;
+  final String? productId;
+  final int quantity;
+  final bool active;
+  final int version;
+  final String? createdBy;
+  final String createdAt;
+  RewardTemplateDto({
+    Set<String> presentFields = const {},
+    required this.id,
+    required this.audience,
+    required this.title,
+    required this.description,
+    required this.cost,
+    required this.productId,
+    required this.quantity,
+    required this.active,
+    required this.version,
+    required this.createdBy,
+    required this.createdAt,
+  }) : _presentFields = Set.unmodifiable(presentFields);
+  factory RewardTemplateDto.fromJson(Map<String, dynamic> json) {
+    return RewardTemplateDto(
+      presentFields: json.keys.toSet(),
+      id: json["id"] as String,
+      audience: json["audience"] as String,
+      title: json["title"] as String,
+      description: json["description"] as String,
+      cost: wireInteger(json["cost"]),
+      productId: json["productId"] == null ? null : json["productId"] as String,
+      quantity: wireInteger(json["quantity"]),
+      active: json["active"] as bool,
+      version: wireInteger(json["version"]),
+      createdBy: json["createdBy"] == null ? null : json["createdBy"] as String,
+      createdAt: json["createdAt"] as String,
+    );
+  }
+  Map<String, dynamic> toJson() => {
+    "id": id,
+    "audience": audience,
+    "title": title,
+    "description": description,
+    "cost": cost,
+    "productId": productId,
+    "quantity": quantity,
+    "active": active,
+    "version": version,
+    "createdBy": createdBy,
+    "createdAt": createdAt,
+  };
+}
+
+final class GamificationDefaultsDto {
+  final Set<String> _presentFields;
+  Set<String> get presentFields => _presentFields;
+  final List<GamificationDefaultsPointsItemDto> points;
+  final List<RewardTemplateDto> rewards;
+  GamificationDefaultsDto({
+    Set<String> presentFields = const {},
+    required List<GamificationDefaultsPointsItemDto> points,
+    required List<RewardTemplateDto> rewards,
+  }) : _presentFields = Set.unmodifiable(presentFields),
+       points = List.unmodifiable(points),
+       rewards = List.unmodifiable(rewards);
+  factory GamificationDefaultsDto.fromJson(Map<String, dynamic> json) {
+    return GamificationDefaultsDto(
+      presentFields: json.keys.toSet(),
+      points: List.unmodifiable(
+        (json["points"] as List).map(
+          (item) => GamificationDefaultsPointsItemDto.fromJson(
+            Map<String, dynamic>.from(item as Map),
+          ),
+        ),
+      ),
+      rewards: List.unmodifiable(
+        (json["rewards"] as List).map(
+          (item) => RewardTemplateDto.fromJson(
+            Map<String, dynamic>.from(item as Map),
+          ),
+        ),
+      ),
+    );
+  }
+  Map<String, dynamic> toJson() => {
+    "points": points.map((item) => item.toJson()).toList(),
+    "rewards": rewards.map((item) => item.toJson()).toList(),
+  };
+}
+
+final class StorePointsDto {
+  final Set<String> _presentFields;
+  Set<String> get presentFields => _presentFields;
+  final String productId;
+  final int? pointsPerUnit;
+  final int? defaultPointsPerUnit;
+  final bool exception;
+  StorePointsDto({
+    Set<String> presentFields = const {},
+    required this.productId,
+    required this.pointsPerUnit,
+    required this.defaultPointsPerUnit,
+    required this.exception,
+  }) : _presentFields = Set.unmodifiable(presentFields);
+  factory StorePointsDto.fromJson(Map<String, dynamic> json) {
+    return StorePointsDto(
+      presentFields: json.keys.toSet(),
+      productId: json["productId"] as String,
+      pointsPerUnit: json["pointsPerUnit"] == null
+          ? null
+          : wireInteger(json["pointsPerUnit"]),
+      defaultPointsPerUnit: json["defaultPointsPerUnit"] == null
+          ? null
+          : wireInteger(json["defaultPointsPerUnit"]),
+      exception: json["exception"] as bool,
+    );
+  }
+  Map<String, dynamic> toJson() => {
+    "productId": productId,
+    "pointsPerUnit": pointsPerUnit,
+    "defaultPointsPerUnit": defaultPointsPerUnit,
+    "exception": exception,
+  };
+}
+
+final class StorePointsListDto {
+  final Set<String> _presentFields;
+  Set<String> get presentFields => _presentFields;
+  final List<StorePointsDto> items;
+  StorePointsListDto({
+    Set<String> presentFields = const {},
+    required List<StorePointsDto> items,
+  }) : _presentFields = Set.unmodifiable(presentFields),
+       items = List.unmodifiable(items);
+  factory StorePointsListDto.fromJson(Map<String, dynamic> json) {
+    return StorePointsListDto(
+      presentFields: json.keys.toSet(),
+      items: List.unmodifiable(
+        (json["items"] as List).map(
+          (item) =>
+              StorePointsDto.fromJson(Map<String, dynamic>.from(item as Map)),
         ),
       ),
     );
@@ -5000,6 +5169,176 @@ sealed class CatalogImportResultDto {
   Object? toJson();
 }
 
+typedef GamificationDefaultsResponseDto = GamificationDefaultsDto;
+
+final class GamificationPointsDefaultResponseDto {
+  final Set<String> _presentFields;
+  Set<String> get presentFields => _presentFields;
+  final String audience;
+  final String productId;
+  final int pointsPerUnit;
+  final String? reason;
+  final int places;
+  GamificationPointsDefaultResponseDto({
+    Set<String> presentFields = const {},
+    required this.audience,
+    required this.productId,
+    required this.pointsPerUnit,
+    this.reason,
+    required this.places,
+  }) : _presentFields = Set.unmodifiable(presentFields);
+  factory GamificationPointsDefaultResponseDto.fromJson(
+    Map<String, dynamic> json,
+  ) {
+    return GamificationPointsDefaultResponseDto(
+      presentFields: json.keys.toSet(),
+      audience: json["audience"] as String,
+      productId: json["productId"] as String,
+      pointsPerUnit: wireInteger(json["pointsPerUnit"]),
+      reason: json["reason"] == null ? null : json["reason"] as String,
+      places: wireInteger(json["places"]),
+    );
+  }
+  Map<String, dynamic> toJson() => {
+    "audience": audience,
+    "productId": productId,
+    "pointsPerUnit": pointsPerUnit,
+    if (reason != null || _presentFields.contains("reason")) "reason": reason,
+    "places": places,
+  };
+}
+
+final class GamificationPointsDefaultRequestDto {
+  final Set<String> _presentFields;
+  Set<String> get presentFields => _presentFields;
+  final String audience;
+  final String productId;
+  final int pointsPerUnit;
+  final String? reason;
+  GamificationPointsDefaultRequestDto({
+    Set<String> presentFields = const {},
+    required this.audience,
+    required this.productId,
+    required this.pointsPerUnit,
+    this.reason,
+  }) : _presentFields = Set.unmodifiable(presentFields);
+  factory GamificationPointsDefaultRequestDto.fromJson(
+    Map<String, dynamic> json,
+  ) {
+    return GamificationPointsDefaultRequestDto(
+      presentFields: json.keys.toSet(),
+      audience: json["audience"] as String,
+      productId: json["productId"] as String,
+      pointsPerUnit: wireInteger(json["pointsPerUnit"]),
+      reason: json["reason"] == null ? null : json["reason"] as String,
+    );
+  }
+  Map<String, dynamic> toJson() => {
+    "audience": audience,
+    "productId": productId,
+    "pointsPerUnit": pointsPerUnit,
+    if (reason != null || _presentFields.contains("reason")) "reason": reason,
+  };
+}
+
+typedef GamificationRewardTemplateResponseDto = RewardTemplateDto;
+
+final class GamificationRewardTemplateRequestDto {
+  final Set<String> _presentFields;
+  Set<String> get presentFields => _presentFields;
+  final String? id;
+  final String audience;
+  final String title;
+  final String? description;
+  final int cost;
+  final String? productId;
+  final int? quantity;
+  final bool? active;
+  final int? expectedVersion;
+  GamificationRewardTemplateRequestDto({
+    Set<String> presentFields = const {},
+    this.id,
+    required this.audience,
+    required this.title,
+    this.description,
+    required this.cost,
+    this.productId,
+    this.quantity,
+    this.active,
+    this.expectedVersion,
+  }) : _presentFields = Set.unmodifiable(presentFields);
+  factory GamificationRewardTemplateRequestDto.fromJson(
+    Map<String, dynamic> json,
+  ) {
+    return GamificationRewardTemplateRequestDto(
+      presentFields: json.keys.toSet(),
+      id: json["id"] == null ? null : json["id"] as String,
+      audience: json["audience"] as String,
+      title: json["title"] as String,
+      description: json["description"] == null
+          ? null
+          : json["description"] as String,
+      cost: wireInteger(json["cost"]),
+      productId: json["productId"] == null ? null : json["productId"] as String,
+      quantity: json["quantity"] == null ? null : wireInteger(json["quantity"]),
+      active: json["active"] == null ? null : json["active"] as bool,
+      expectedVersion: json["expectedVersion"] == null
+          ? null
+          : wireInteger(json["expectedVersion"]),
+    );
+  }
+  Map<String, dynamic> toJson() => {
+    if (id != null || _presentFields.contains("id")) "id": id,
+    "audience": audience,
+    "title": title,
+    if (description != null || _presentFields.contains("description"))
+      "description": description,
+    "cost": cost,
+    if (productId != null || _presentFields.contains("productId"))
+      "productId": productId,
+    if (quantity != null || _presentFields.contains("quantity"))
+      "quantity": quantity,
+    if (active != null || _presentFields.contains("active")) "active": active,
+    if (expectedVersion != null || _presentFields.contains("expectedVersion"))
+      "expectedVersion": expectedVersion,
+  };
+}
+
+typedef GamificationStorePointsResponseDto = StorePointsListDto;
+typedef GamificationSetStorePointsResponseDto = StorePointsDto;
+
+final class GamificationSetStorePointsRequestDto {
+  final Set<String> _presentFields;
+  Set<String> get presentFields => _presentFields;
+  final String productId;
+  final int? pointsPerUnit;
+  final bool? reset;
+  GamificationSetStorePointsRequestDto({
+    Set<String> presentFields = const {},
+    required this.productId,
+    this.pointsPerUnit,
+    this.reset,
+  }) : _presentFields = Set.unmodifiable(presentFields);
+  factory GamificationSetStorePointsRequestDto.fromJson(
+    Map<String, dynamic> json,
+  ) {
+    return GamificationSetStorePointsRequestDto(
+      presentFields: json.keys.toSet(),
+      productId: json["productId"] as String,
+      pointsPerUnit: json["pointsPerUnit"] == null
+          ? null
+          : wireInteger(json["pointsPerUnit"]),
+      reset: json["reset"] == null ? null : json["reset"] as bool,
+    );
+  }
+  Map<String, dynamic> toJson() => {
+    "productId": productId,
+    if (pointsPerUnit != null || _presentFields.contains("pointsPerUnit"))
+      "pointsPerUnit": pointsPerUnit,
+    if (reset != null || _presentFields.contains("reset")) "reset": reset,
+  };
+}
+
 typedef QualityListResponseDto = QualityFlagPageDto;
 typedef TicketGetResponseDto = DeliveryTicketDto;
 typedef PricingCurrentResponseDto = CurrentPricesDto;
@@ -6312,6 +6651,31 @@ final class DefaultPricesItemsItemDto {
   Map<String, dynamic> toJson() => {
     "productId": productId,
     "priceMillimes": priceMillimes,
+  };
+}
+
+final class GamificationDefaultsPointsItemDto {
+  final Set<String> _presentFields;
+  Set<String> get presentFields => _presentFields;
+  final String productId;
+  final int pointsPerUnit;
+  GamificationDefaultsPointsItemDto({
+    Set<String> presentFields = const {},
+    required this.productId,
+    required this.pointsPerUnit,
+  }) : _presentFields = Set.unmodifiable(presentFields);
+  factory GamificationDefaultsPointsItemDto.fromJson(
+    Map<String, dynamic> json,
+  ) {
+    return GamificationDefaultsPointsItemDto(
+      presentFields: json.keys.toSet(),
+      productId: json["productId"] as String,
+      pointsPerUnit: wireInteger(json["pointsPerUnit"]),
+    );
+  }
+  Map<String, dynamic> toJson() => {
+    "productId": productId,
+    "pointsPerUnit": pointsPerUnit,
   };
 }
 

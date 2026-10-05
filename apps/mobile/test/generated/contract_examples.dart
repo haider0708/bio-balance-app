@@ -5,6 +5,36 @@ Object? decodeResponse(
   String operationId,
   Object? value,
 ) => switch (operationId) {
+  "GamificationDefaults" => (() {
+    final decoded = GamificationDefaultsResponseDto.fromJson(
+      Map<String, dynamic>.from(value as Map),
+    );
+    return decoded.toJson();
+  })(),
+  "GamificationPointsDefault" => (() {
+    final decoded = GamificationPointsDefaultResponseDto.fromJson(
+      Map<String, dynamic>.from(value as Map),
+    );
+    return decoded.toJson();
+  })(),
+  "GamificationRewardTemplate" => (() {
+    final decoded = GamificationRewardTemplateResponseDto.fromJson(
+      Map<String, dynamic>.from(value as Map),
+    );
+    return decoded.toJson();
+  })(),
+  "GamificationStorePoints" => (() {
+    final decoded = GamificationStorePointsResponseDto.fromJson(
+      Map<String, dynamic>.from(value as Map),
+    );
+    return decoded.toJson();
+  })(),
+  "GamificationSetStorePoints" => (() {
+    final decoded = GamificationSetStorePointsResponseDto.fromJson(
+      Map<String, dynamic>.from(value as Map),
+    );
+    return decoded.toJson();
+  })(),
   "QualityList" => (() {
     final decoded = QualityListResponseDto.fromJson(
       Map<String, dynamic>.from(value as Map),

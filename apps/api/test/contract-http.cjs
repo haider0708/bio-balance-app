@@ -663,6 +663,27 @@ const owner = new PrismaClient({
     await call("GET", "/v1/prices/defaults?level=store_supply", {
       as: adminToken,
     });
+    await call("POST", "/v1/gamification/points-defaults", {
+      as: adminToken,
+      body: { audience: "retail", productId: product.id, pointsPerUnit: 4 },
+    });
+    await call("POST", "/v1/gamification/reward-templates", {
+      as: adminToken,
+      body: { audience: "retail", title: "Contract reward", cost: 50 },
+    });
+    await call("GET", "/v1/gamification/defaults?audience=retail", {
+      as: adminToken,
+    });
+    await call(
+      "POST",
+      `/v1/gamification/stores/${store}/points?organizationId=${org}`,
+      { as: adminToken, body: { productId: product.id, pointsPerUnit: 6 } },
+    );
+    await call(
+      "GET",
+      `/v1/gamification/stores/${store}/points?organizationId=${org}`,
+      { as: adminToken },
+    );
     await call(
       "GET",
       `/v1/quality-flags?organizationId=${org}&storeId=${store}&status=all`,

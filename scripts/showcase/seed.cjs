@@ -5,6 +5,7 @@ const { OperationsService } = require(D + "/modules/operations/application/opera
 const { WorkspaceService } = require(D + "/modules/tenancy/workspace.service.js");
 const { PricingService } = require(D + "/modules/pricing/pricing.service.js");
 const { TicketService } = require(D + "/modules/operations/http/ticket.controller.js");
+const { GamificationService } = require(D + "/modules/tenancy/gamification.service.js");
 const { randomUUID } = require("crypto");
 
 const db = new Database();
@@ -12,6 +13,7 @@ const ops = new OperationsService(new PrismaUnitOfWork(db));
 const workspace = new WorkspaceService(db);
 const pricing = new PricingService(db);
 const tickets = new TicketService(db);
+const gamification = new GamificationService(db);
 const DAY = 86400000;
 let seed = 20261002;
 const rnd = () => { seed |= 0; seed = (seed + 0x6d2b79f5) | 0; let t = Math.imul(seed ^ (seed >>> 15), 1 | seed); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
@@ -188,15 +190,13 @@ const dateOnly = (ms) => new Date(ms).toISOString().slice(0, 10);
   console.log("orders", stats.orders, "deliveries", stats.deliveries, "receipts", stats.receipts);
 
   // ---------- rewards ----------
-  const rewardsOf = {};
-  for (const place of [PARA, PHARMA]) {
-    rewardsOf[place.id] = [];
-    for (const r of [
-      { title: "Coffret soin visage", description: "Un coffret de soins visage au choix", cost: 250, quantity: 12 },
-      { title: "Bon d’achat 50 TND", description: "Bon d’achat utilisable en magasin", cost: 600, quantity: 8 },
-      { title: "Trousse de voyage", description: "Trousse avec miniatures de la gamme", cost: 120, quantity: 20 },
-    ]) await attempt(async () => rewardsOf[place.id].push(await workspace.reward(admin, place.organizationId, place.id, { ...r, active: true })), "reward");
-  }
+  // Default rewards: offered in every store, and one for the grossistes.
+  for (const r of [
+    { audience: "retail", title: "Coffret soin visage", description: "Un coffret de soins visage au choix", cost: 250, quantity: 1 },
+    { audience: "retail", title: "Bon d’achat 50 TND", description: "Bon d’achat utilisable en magasin", cost: 600, quantity: 1 },
+    { audience: "retail", title: "Trousse de voyage", description: "Trousse avec miniatures de la gamme", cost: 120, quantity: 1 },
+    { audience: "wholesale", title: "Remise de 2 % sur la prochaine commande", description: "Appliquée par BioBalance à la facturation", cost: 1500, quantity: 1 },
+  ]) await attempt(() => gamification.saveRewardTemplate(admin, { ...r, active: true }), "reward");
   for (const [place, seller] of [[PARA, imed], [PHARMA, samir]]) {
     await attempt(async () => {
       const list = await asAdmin((tx) => tx.reward.findMany({ where: { storeId: place.id }, orderBy: { cost: "asc" } }), place);

@@ -272,5 +272,9 @@ export function extendLegacySchemas(schemas: Record<string, Schema>) {
     priceStatus: str,
     sourceUrls: arr(str),
   });
-  Object.assign(schemas.StoreProduct!.properties, { priceConfigured: bool });
+  Object.assign(schemas.StoreProduct!.properties, {
+    priceConfigured: bool,
+    // A rate of this place only, kept when BioBalance changes the default.
+    pointsException: bool,
+  });
 }

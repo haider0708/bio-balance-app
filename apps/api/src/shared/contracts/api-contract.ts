@@ -6,6 +6,7 @@ import { OpenAPIObject } from "@nestjs/swagger";
 import { GroupRequests } from "../../modules/tenancy/group.contracts";
 import { redesignSchemas, extendLegacySchemas } from "./redesign-schemas";
 import { PricingRequests } from "../../modules/pricing/pricing.contracts";
+import { GamificationRequests } from "../../modules/tenancy/gamification.contracts";
 import { WholesaleRequests } from "../../modules/wholesale/wholesale.contracts";
 import {
   IdentityRequests,
@@ -59,6 +60,9 @@ const requests: Record<string, z.ZodType> = {
   TrainingController_start: TrainingRequests.Start,
   WholesaleController_create: WholesaleRequests.Create,
   PricingController_set: PricingRequests.Set,
+  GamificationController_pointsDefault: GamificationRequests.PointsDefault,
+  GamificationController_rewardTemplate: GamificationRequests.RewardTemplate,
+  GamificationController_setStorePoints: GamificationRequests.StorePoints,
   OperationsController_push: syncBatchSchema,
   OperationsController_status: syncBatchSchema,
 };
@@ -137,6 +141,20 @@ const responses: Record<string, Schema> = {
   PricingController_current: ref("CurrentPrices"),
   PricingController_history: ref("PriceHistory"),
   PricingController_defaults: ref("DefaultPrices"),
+  GamificationController_defaults: ref("GamificationDefaults"),
+  GamificationController_pointsDefault: obj(
+    {
+      audience: { type: "string", enum: ["retail", "wholesale"] },
+      productId: uuid,
+      pointsPerUnit: integer,
+      reason: str,
+      places: integer,
+    },
+    ["audience", "productId", "pointsPerUnit", "places"],
+  ),
+  GamificationController_rewardTemplate: ref("RewardTemplate"),
+  GamificationController_storePoints: ref("StorePointsList"),
+  GamificationController_setStorePoints: ref("StorePoints"),
   PricingController_set: ref("PriceEntry"),
   WholesaleController_list: arr(ref("Wholesaler")),
   WholesaleController_create: ref("Wholesaler"),
@@ -317,6 +335,15 @@ export function applyContract(document: OpenAPIObject): OpenAPIObject {
         params.push(
           parameter("organizationId", "query", uuid, true),
           parameter("storeId", "query", uuid, true),
+        );
+      if (original === "GamificationController_defaults")
+        params.push(
+          parameter(
+            "audience",
+            "query",
+            { type: "string", enum: ["retail", "wholesale"] },
+            true,
+          ),
         );
       if (original === "PricingController_defaults")
         params.push(

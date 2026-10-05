@@ -18,3 +18,23 @@ Quantité reçue par lot, dont abîmées et refusées. Avec le QR, quantités, l
 
 ## Écrans
 Stock et notifications par segments avec compteurs ; alertes du tableau de bord par segment (Stock, Péremption, Livraisons, Écarts) ; sélecteur de date partout où une péremption est saisie.
+
+## Mise à jour 2026-10-05
+
+### Prix : défaut puis exceptions
+Chaque niveau a une liste **par défaut** (tous les grossistes ; tous les magasins livrés par BioBalance) et des **prix particuliers** par grossiste ou par magasin. Un prix particulier se **retire** (`clear`, migration `202610050002`) : le grossiste ou le magasin suit de nouveau le défaut ; l’historique garde les deux. Écran Admin › Prix : la liste par défaut d’abord, puis chaque partie avec le badge « Prix par défaut » / « Prix particulier ».
+
+### Points et récompenses : défaut puis exceptions
+`PointsDefault` (barème par défaut, magasins ou grossistes) et `RewardTemplate` (récompenses par défaut), migration `202610050003`. Les défauts sont **copiés** dans chaque magasin ou dépôt (et dans tout nouveau magasin ou dépôt) : ventes, demandes, historique et sécurité par ligne restent inchangés. Un barème particulier (`StoreProduct.pointsException`) n’est pas touché par un changement du défaut et peut revenir au défaut. Une récompense par défaut est visible de tous et ne se modifie qu’à un endroit. Écran Admin › Points et récompenses.
+
+### Réception avec QR
+Le magasin voit le contenu du bon ; s’il correspond, il scanne et indique lot par lot les unités abîmées et refusées (raison obligatoire). Sinon il **refuse le colis** (`delivery.refuse`) : rien n’entre en stock, BioBalance **approuve** le retour (`delivery.resolve` « returned » : le stock du grossiste revient dans ses lots, la commande peut être réexpédiée) ou **rejette** le refus (« reopen » : le magasin doit réceptionner).
+
+### Réception sans QR
+BioBalance retient **une quantité par lot, valable pour les deux** : le magasin la reçoit, l’écart revient dans le lot du grossiste ou en sort. Les lots retenus sont ceux du bon (`LOT_NOT_SHIPPED` sinon). BioBalance indique qui est à l’origine de l’écart (`responsibility` : grossiste, magasin, transport, aucun), enregistré et notifié aux deux.
+
+### Qualité
+BioBalance peut retenir une partie d’un signalement (le reste redevient vendable, jamais pour un produit périmé) et indiquer le responsable ; l’expéditeur est notifié s’il est mis en cause (migration `202610050001`).
+
+### Grossiste
+Un grossiste travaille seul : ni équipe, ni guide, ni droit de créer un groupe (le script de remise à zéro ne lui en redonne plus).

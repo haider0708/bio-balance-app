@@ -27,6 +27,77 @@ class ApiClient extends SessionTransport {
   Future<Map<String, dynamic>> push(
     List<Map<String, dynamic>> operations,
   ) async => (await pushRaw(operations)).toJson();
+  Future<GamificationDefaultsResponseDto> gamificationDefaults({
+    required String audience,
+  }) async {
+    final value = await request(
+      'GET',
+      '/v1/gamification/defaults',
+      query: {"audience": audience},
+    );
+    return GamificationDefaultsResponseDto.fromJson(
+      Map<String, dynamic>.from(value as Map),
+    );
+  }
+
+  Future<GamificationPointsDefaultResponseDto> gamificationPointsDefault({
+    required GamificationPointsDefaultRequestDto body,
+  }) async {
+    final value = await request(
+      'POST',
+      '/v1/gamification/points-defaults',
+      body: body.toJson(),
+      query: {},
+    );
+    return GamificationPointsDefaultResponseDto.fromJson(
+      Map<String, dynamic>.from(value as Map),
+    );
+  }
+
+  Future<GamificationRewardTemplateResponseDto> gamificationRewardTemplate({
+    required GamificationRewardTemplateRequestDto body,
+  }) async {
+    final value = await request(
+      'POST',
+      '/v1/gamification/reward-templates',
+      body: body.toJson(),
+      query: {},
+    );
+    return GamificationRewardTemplateResponseDto.fromJson(
+      Map<String, dynamic>.from(value as Map),
+    );
+  }
+
+  Future<GamificationStorePointsResponseDto> gamificationStorePoints({
+    required String store,
+    required String organizationId,
+  }) async {
+    final value = await request(
+      'GET',
+      '/v1/gamification/stores/${Uri.encodeComponent(store)}/points',
+      query: {"organizationId": organizationId},
+    );
+    return GamificationStorePointsResponseDto.fromJson(
+      Map<String, dynamic>.from(value as Map),
+    );
+  }
+
+  Future<GamificationSetStorePointsResponseDto> gamificationSetStorePoints({
+    required String store,
+    required String organizationId,
+    required GamificationSetStorePointsRequestDto body,
+  }) async {
+    final value = await request(
+      'POST',
+      '/v1/gamification/stores/${Uri.encodeComponent(store)}/points',
+      body: body.toJson(),
+      query: {"organizationId": organizationId},
+    );
+    return GamificationSetStorePointsResponseDto.fromJson(
+      Map<String, dynamic>.from(value as Map),
+    );
+  }
+
   Future<QualityListResponseDto> qualityList({
     String? organizationId,
     String? storeId,

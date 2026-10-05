@@ -45,6 +45,11 @@ INSERT INTO "StoreProduct"(id,"organizationId","storeId","productId","priceMilli
   SELECT gen_random_uuid(),grp,s,pid,retail,true,(ARRAY[5,8,10,12])[1+idx%4],greatest(1,round(retail/10000.0))::int,true FROM pr, ids, unnest(ARRAY[sp,sph]) s;
 INSERT INTO "StoreProduct"(id,"organizationId","storeId","productId","priceMillimes","priceConfigured",threshold,"pointsPerUnit","pointsConfigured")
   SELECT gen_random_uuid(),wh,depot,pid,0,false,20,1,true FROM pr, ids;
+-- BioBalance's default rates: the stores' and the depot's values above.
+INSERT INTO "PointsDefault"(id,audience,"productId","pointsPerUnit",reason,"createdAt")
+  SELECT gen_random_uuid(),'retail',pid,greatest(1,round(retail/10000.0))::int,'Barème initial',now()-interval '20 days' FROM pr;
+INSERT INTO "PointsDefault"(id,audience,"productId","pointsPerUnit",reason,"createdAt")
+  SELECT gen_random_uuid(),'wholesale',pid,1,'Barème initial',now()-interval '20 days' FROM pr;
 INSERT INTO "PointsRateVersion"(id,"organizationId","storeId","productId","pointsPerUnit",reason,"createdAt")
   SELECT gen_random_uuid(),organizationId,"storeId","productId","pointsPerUnit",'Barème initial',now()-interval '20 days'
   FROM (SELECT "organizationId" organizationId,"storeId","productId","pointsPerUnit" FROM "StoreProduct") x;

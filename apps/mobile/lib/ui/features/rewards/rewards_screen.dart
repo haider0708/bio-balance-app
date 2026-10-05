@@ -93,7 +93,10 @@ class _RewardsPageState extends State<RewardsPage> {
           return CompactRow(
             title: reward['title'],
             value: '${reward['cost']} pts',
-            subtitle: reward['active'] == false ? 'Archivée' : 'Disponible',
+            subtitle: [
+              reward['active'] == false ? 'Archivée' : 'Disponible',
+              if (reward['templateId'] != null) 'Récompense par défaut',
+            ].join(' · '),
             tone: AppTone.reward,
             icon: imageId == null ? AppIcons.redeemOutlined : null,
             leading: imageId == null
@@ -115,7 +118,8 @@ class _RewardsPageState extends State<RewardsPage> {
                       : () => requestReward(context, reward),
                   child: const Text('Demander cette récompense'),
                 ),
-                if (manage)
+                // A default reward is changed for everyone, in Points et récompenses.
+                if (manage && reward['templateId'] == null)
                   TextButton(
                     onPressed: () => configure(context, reward),
                     child: const Text('Modifier la récompense'),

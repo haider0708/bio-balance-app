@@ -544,6 +544,7 @@ const Map<String, Map<String, dynamic>> _schemas = {
       "zeroPointsConfirmed": {"type": "boolean"},
       "version": {"type": "integer"},
       "priceConfigured": {"type": "boolean"},
+      "pointsException": {"type": "boolean"},
     },
     "required": [
       "id",
@@ -834,6 +835,12 @@ const Map<String, Map<String, dynamic>> _schemas = {
       "quantity": {"type": "integer"},
       "active": {"type": "boolean"},
       "version": {"type": "integer"},
+      "templateId": {
+        "anyOf": [
+          {"type": "string", "format": "uuid"},
+          {"type": "null"},
+        ],
+      },
     },
     "required": [
       "id",
@@ -847,6 +854,7 @@ const Map<String, Map<String, dynamic>> _schemas = {
       "quantity",
       "active",
       "version",
+      "templateId",
     ],
     "additionalProperties": false,
   },
@@ -1701,6 +1709,103 @@ const Map<String, Map<String, dynamic>> _schemas = {
       "items": {
         "type": "array",
         "items": {"\$ref": "#/components/schemas/DefaultPricesItemsItem"},
+      },
+    },
+    "required": ["items"],
+    "additionalProperties": false,
+  },
+  "RewardTemplate": {
+    "type": "object",
+    "properties": {
+      "id": {"type": "string", "format": "uuid"},
+      "audience": {
+        "type": "string",
+        "enum": ["retail", "wholesale"],
+      },
+      "title": {"type": "string"},
+      "description": {"type": "string"},
+      "cost": {"type": "integer"},
+      "productId": {
+        "anyOf": [
+          {"type": "string", "format": "uuid"},
+          {"type": "null"},
+        ],
+      },
+      "quantity": {"type": "integer"},
+      "active": {"type": "boolean"},
+      "version": {"type": "integer"},
+      "createdBy": {
+        "anyOf": [
+          {"type": "string", "format": "uuid"},
+          {"type": "null"},
+        ],
+      },
+      "createdAt": {"type": "string", "format": "date-time"},
+    },
+    "required": [
+      "id",
+      "audience",
+      "title",
+      "description",
+      "cost",
+      "productId",
+      "quantity",
+      "active",
+      "version",
+      "createdBy",
+      "createdAt",
+    ],
+    "additionalProperties": false,
+  },
+  "GamificationDefaults": {
+    "type": "object",
+    "properties": {
+      "points": {
+        "type": "array",
+        "items": {
+          "\$ref": "#/components/schemas/GamificationDefaultsPointsItem",
+        },
+      },
+      "rewards": {
+        "type": "array",
+        "items": {"\$ref": "#/components/schemas/RewardTemplate"},
+      },
+    },
+    "required": ["points", "rewards"],
+    "additionalProperties": false,
+  },
+  "StorePoints": {
+    "type": "object",
+    "properties": {
+      "productId": {"type": "string", "format": "uuid"},
+      "pointsPerUnit": {
+        "anyOf": [
+          {"type": "integer"},
+          {"type": "null"},
+        ],
+      },
+      "defaultPointsPerUnit": {
+        "anyOf": [
+          {"type": "integer"},
+          {"type": "null"},
+        ],
+      },
+      "exception": {"type": "boolean"},
+    },
+    "required": [
+      "productId",
+      "pointsPerUnit",
+      "defaultPointsPerUnit",
+      "exception",
+    ],
+    "additionalProperties": false,
+  },
+  "StorePointsList": {
+    "type": "object",
+    "properties": {
+      "items": {
+        "type": "array",
+        "items": {"\$ref": "#/components/schemas/StorePoints"},
       },
     },
     "required": ["items"],
@@ -2894,6 +2999,106 @@ const Map<String, Map<String, dynamic>> _schemas = {
       {"\$ref": "#/components/schemas/Count"},
     ],
   },
+  "GamificationDefaultsResponse": {
+    "\$ref": "#/components/schemas/GamificationDefaults",
+  },
+  "GamificationPointsDefaultResponse": {
+    "type": "object",
+    "properties": {
+      "audience": {
+        "type": "string",
+        "enum": ["retail", "wholesale"],
+      },
+      "productId": {"type": "string", "format": "uuid"},
+      "pointsPerUnit": {"type": "integer"},
+      "reason": {"type": "string"},
+      "places": {"type": "integer"},
+    },
+    "required": ["audience", "productId", "pointsPerUnit", "places"],
+    "additionalProperties": false,
+  },
+  "GamificationPointsDefaultRequest": {
+    "type": "object",
+    "properties": {
+      "audience": {
+        "type": "string",
+        "enum": ["retail", "wholesale"],
+      },
+      "productId": {
+        "type": "string",
+        "format": "uuid",
+        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)\$",
+      },
+      "pointsPerUnit": {"type": "integer", "minimum": 0, "maximum": 1000000},
+      "reason": {"type": "string", "minLength": 3, "maxLength": 300},
+    },
+    "required": ["audience", "productId", "pointsPerUnit"],
+    "additionalProperties": false,
+  },
+  "GamificationRewardTemplateResponse": {
+    "\$ref": "#/components/schemas/RewardTemplate",
+  },
+  "GamificationRewardTemplateRequest": {
+    "type": "object",
+    "properties": {
+      "id": {
+        "type": "string",
+        "format": "uuid",
+        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)\$",
+      },
+      "audience": {
+        "type": "string",
+        "enum": ["retail", "wholesale"],
+      },
+      "title": {"type": "string", "minLength": 2, "maxLength": 120},
+      "description": {"default": "", "type": "string", "maxLength": 1000},
+      "cost": {"type": "integer", "minimum": 1, "maximum": 10000000},
+      "productId": {
+        "anyOf": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)\$",
+          },
+          {"type": "null"},
+        ],
+      },
+      "quantity": {
+        "default": 1,
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 1000,
+      },
+      "active": {"default": true, "type": "boolean"},
+      "expectedVersion": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 9007199254740991,
+      },
+    },
+    "required": ["audience", "title", "cost"],
+    "additionalProperties": false,
+  },
+  "GamificationStorePointsResponse": {
+    "\$ref": "#/components/schemas/StorePointsList",
+  },
+  "GamificationSetStorePointsResponse": {
+    "\$ref": "#/components/schemas/StorePoints",
+  },
+  "GamificationSetStorePointsRequest": {
+    "type": "object",
+    "properties": {
+      "productId": {
+        "type": "string",
+        "format": "uuid",
+        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)\$",
+      },
+      "pointsPerUnit": {"type": "integer", "minimum": 0, "maximum": 1000000},
+      "reset": {"type": "boolean"},
+    },
+    "required": ["productId"],
+    "additionalProperties": false,
+  },
   "QualityListResponse": {"\$ref": "#/components/schemas/QualityFlagPage"},
   "TicketGetResponse": {"\$ref": "#/components/schemas/DeliveryTicket"},
   "PricingCurrentResponse": {"\$ref": "#/components/schemas/CurrentPrices"},
@@ -3700,6 +3905,15 @@ const Map<String, Map<String, dynamic>> _schemas = {
       "priceMillimes": {"type": "string", "pattern": "^-?[0-9]+\$"},
     },
     "required": ["productId", "priceMillimes"],
+    "additionalProperties": false,
+  },
+  "GamificationDefaultsPointsItem": {
+    "type": "object",
+    "properties": {
+      "productId": {"type": "string", "format": "uuid"},
+      "pointsPerUnit": {"type": "integer"},
+    },
+    "required": ["productId", "pointsPerUnit"],
     "additionalProperties": false,
   },
   "DeliveryTicketLinesItem": {
