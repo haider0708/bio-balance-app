@@ -30,9 +30,13 @@ beforeEach(async () => {
 });
 
 /** A point of sale with 20 of each product and one team member who can sell. */
-async function shop() {
-  const pdv = await approvedPdv(w);
-  await stockPlace(w, pdv.id, w.nord, [20, 20, 20]);
+async function shop(region: "n" | "s" = "n") {
+  const pdv = await approvedPdv(
+    w,
+    region,
+    region === "n" ? "Para" : "Para Sud",
+  );
+  await stockPlace(w, pdv.id, region === "n" ? w.nord : w.sud, [20, 20, 20]);
   const member = await teamMember(w, pdv.id);
   return { pdv, member, m: client(api, member.token) };
 }
@@ -522,5 +526,80 @@ describe("wallet and payouts", () => {
     );
     expect((await other.get("/v1/wallet")).body.balanceMillimes).toBe(0);
     expect((await other.get("/v1/wallet/entries")).body.items).toHaveLength(0);
+  });
+});
+
+describe("sale notifications", () => {
+  it("tell the responsable of the region about every sale, and nobody else", async () => {
+    await w.a.post("/v1/reward-rules", family(500));
+    const { m } = await shop();
+    const sale = await m.post("/v1/sales", {
+      id: randomUUID(),
+      lines: [{ productId: w.products[0]!.id, quantity: 2 }],
+    });
+    expect(sale.status).toBe(201);
+    const inbox = (await w.n.get("/v1/notifications")).body.items;
+    const notice = inbox.find((n: any) => n.key === "sale.recorded");
+    expect(notice.params).toMatchObject({ units: 2, amountMillimes: 1000 });
+    const other = (await w.s.get("/v1/notifications")).body.items;
+    expect(other.some((n: any) => n.key === "sale.recorded")).toBe(false);
+  });
+});
+
+describe("reading the history", () => {
+  it("gives one line per day, filters by product and date, and never mixes in other people's days", async () => {
+    await w.a.post("/v1/reward-rules", family(500));
+    const { m } = await shop();
+    for (const [product, quantity] of [
+      [0, 2],
+      [1, 1],
+    ] as const)
+      await m.post("/v1/sales", {
+        id: randomUUID(),
+        lines: [{ productId: w.products[product]!.id, quantity }],
+      });
+    const days = (
+      await m.get(`/v1/sales/days?from=${addDays(today(), -30)}&to=${today()}`)
+    ).body;
+    expect(days).toEqual([
+      { day: today(), sales: 2, units: 3, rewardMillimes: 1500 },
+    ]);
+    const onlyVitaminC = (
+      await m.get(
+        `/v1/sales?productId=${w.products[0]!.id}&from=${today()}&to=${today()}`,
+      )
+    ).body.items;
+    expect(onlyVitaminC).toHaveLength(1);
+    const { m: other } = await shop("s");
+    expect(
+      (await other.get(`/v1/sales/days?from=${today()}&to=${today()}`)).body,
+    ).toEqual([]);
+  });
+
+  it("compares a report with the period before and returns a daily trend", async () => {
+    await w.a.post("/v1/reward-rules", family(500));
+    const { m } = await shop();
+    await m.post("/v1/sales", {
+      id: randomUUID(),
+      lines: [{ productId: w.products[0]!.id, quantity: 2 }],
+    });
+    const report = (
+      await w.a.get(
+        `/v1/reports/sales?groupBy=product&from=${addDays(today(), -6)}&to=${today()}`,
+      )
+    ).body;
+    expect(report.totals.units).toBe(2);
+    expect(report.previous).toEqual({
+      sales: 0,
+      units: 0,
+      rewardMillimes: 0,
+    });
+    expect(report.trend).toHaveLength(7);
+    expect(report.trend.at(-1)).toEqual({
+      day: today(),
+      units: 2,
+      sales: 1,
+    });
+    expect(report.rows[0]).toHaveProperty("imageId");
   });
 });

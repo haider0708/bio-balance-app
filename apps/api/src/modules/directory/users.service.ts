@@ -50,7 +50,7 @@ export class UsersService {
     actor: Actor,
     input:
       | ({ role: "RESPONSABLE"; regionId: string } & NewMember)
-      | ({ role: "GROSSISTE"; depot: DepotInput } & NewMember)
+      | ({ role: "GROSSISTE"; regionId: string; depot: DepotInput } & NewMember)
       | ({ role: "VENDEUR"; pdvId: string } & NewMember),
   ) {
     requireRule(
@@ -63,6 +63,13 @@ export class UsersService {
       await this.assertEmailFree(tx, input.email);
       let regionId: string | null = null;
       let pdvId: string | null = null;
+      if (input.role === "GROSSISTE")
+        requireRule(
+          await tx.region.findUnique({ where: { id: input.regionId } }),
+          "REGION_NOT_FOUND",
+          "Unknown region.",
+          404,
+        );
       if (input.role === "RESPONSABLE") {
         regionId = input.regionId;
         requireRule(
@@ -108,6 +115,7 @@ export class UsersService {
         await tx.depot.create({
           data: {
             userId: user.id,
+            regionId: input.regionId,
             name: input.depot.name,
             address: input.depot.address,
             city: input.depot.city,
@@ -122,7 +130,7 @@ export class UsersService {
         "User",
         user.id,
         { role: input.role, email: input.email },
-        regionId,
+        regionId ?? (input.role === "GROSSISTE" ? input.regionId : null),
       );
       return present(user);
     });
@@ -427,8 +435,12 @@ export class UsersService {
         },
       });
       const byId = new Map(owners.map((o) => [o.id, o]));
+      const regions = new Map(
+        (await tx.region.findMany()).map((r) => [r.id, r.name]),
+      );
       return depots.map((d) => ({
         ...d,
+        region: { id: d.regionId, name: regions.get(d.regionId) ?? "" },
         grossiste: byId.get(d.userId) ?? null,
       }));
     });

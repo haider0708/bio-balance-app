@@ -182,8 +182,12 @@ describe("team members", () => {
   });
 
   it("creates a grossiste with a depot that responsables can see", async () => {
+    const regions = (await w.a.get("/v1/regions")).body;
+    const nord = regions.find((r: any) => r.code === "NORD");
+    const sud = regions.find((r: any) => r.code === "SUD");
     const created = await w.a.post("/v1/users", {
       role: "GROSSISTE",
+      regionId: nord.id,
       name: "Mounir",
       email: "mounir@example.test",
       depot: { name: "Depot Sfax", address: "Zone industrielle", city: "Sfax" },
@@ -191,6 +195,21 @@ describe("team members", () => {
     expect(created.status).toBe(201);
     const depots = await w.n.get("/v1/depots");
     expect(depots.body.map((d: any) => d.name)).toContain("Depot Sfax");
+    // A responsable sees only the grossistes of their own region.
+    const other = await w.a.post("/v1/users", {
+      role: "GROSSISTE",
+      regionId: sud.id,
+      name: "Slim",
+      email: "slim@example.test",
+      depot: { name: "Depot Sud", address: "Route de Gabes", city: "Gabes" },
+    });
+    expect(other.status).toBe(201);
+    expect(
+      (await w.n.get("/v1/depots")).body.map((d: any) => d.name),
+    ).not.toContain("Depot Sud");
+    expect(
+      (await w.a.get("/v1/depots")).body.map((d: any) => d.name),
+    ).toContain("Depot Sud");
     // A grossiste sees only their own depot.
     const own = await w.g.get("/v1/depots");
     expect(own.body).toHaveLength(1);

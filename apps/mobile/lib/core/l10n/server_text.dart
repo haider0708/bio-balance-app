@@ -331,6 +331,10 @@ class ServerText {
       '{name} is active again.',
       '{name} est de nouveau actif(ve).',
     ),
+    'sale.recorded': (
+      '{seller} sold {units} units at {place} · {amount} earned.',
+      '{seller} a vendu {units} unités à {place} · {amount} gagnés.',
+    ),
     'stock.submitted': (
       '{by} declared stock for {place}: waiting for approval.',
       '{by} a déclaré le stock de {place} : en attente d’approbation.',

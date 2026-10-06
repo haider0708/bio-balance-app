@@ -440,7 +440,7 @@ class _RestockDetailScreenState extends ConsumerState<RestockDetailScreen> {
                     () => repo.sendDirect(o.id, lines: _adjusted),
                     t.restockRouted,
                   );
-                final depot = await _pickDepot(context);
+                final depot = await _pickDepot(context, o.regionId);
                 if (depot == null) return;
                 await _act(
                   () => repo.assign(o.id, depotId: depot.id, lines: _adjusted),
@@ -669,8 +669,11 @@ class _RestockDetailScreenState extends ConsumerState<RestockDetailScreen> {
     return w;
   }
 
-  Future<Depot?> _pickDepot(BuildContext context) async {
-    final depots = await ref.read(networkRepositoryProvider).depots();
+  /// Only the grossistes of the order's own region can take it.
+  Future<Depot?> _pickDepot(BuildContext context, String? regionId) async {
+    final depots = (await ref.read(networkRepositoryProvider).depots())
+        .where((d) => regionId == null || d.regionId == regionId)
+        .toList();
     if (!context.mounted) return null;
     return showModalBottomSheet<Depot>(
       context: context,

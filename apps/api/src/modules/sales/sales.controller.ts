@@ -42,6 +42,23 @@ export class SalesController {
           pdvId: id.optional(),
           sellerId: id.optional(),
           regionId: id.optional(),
+          productId: id.optional(),
+        }),
+        q,
+      ),
+    );
+  }
+  @Roles("VENDEUR", "RESPONSABLE", "ADMIN")
+  @Get("days")
+  days(@Req() r: AuthRequest, @Query() q: Record<string, string>) {
+    return this.sales.days(
+      r.actor,
+      parse(
+        z.object({
+          from: day,
+          to: day,
+          pdvId: id.optional(),
+          sellerId: id.optional(),
         }),
         q,
       ),

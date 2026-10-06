@@ -586,7 +586,8 @@ class _CreateAccountScreenState extends ConsumerState<CreateAccountScreen> {
       'name': _name.text.trim(),
       'email': _email.text.trim().toLowerCase(),
       if (_phone.text.trim().isNotEmpty) 'phone': _phone.text.trim(),
-      if (_role == Role.responsable) 'regionId': _regionId,
+      if (_role == Role.responsable || _role == Role.grossiste)
+        'regionId': _regionId,
       if (_role == Role.vendeur) 'pdvId': _pdvId,
       if (_role == Role.grossiste)
         'depot': {
@@ -678,7 +679,7 @@ class _CreateAccountScreenState extends ConsumerState<CreateAccountScreen> {
               ),
             ),
             const Gap(12),
-            if (_role == Role.responsable)
+            if (_role == Role.responsable || _role == Role.grossiste)
               DropdownButtonFormField<String>(
                 initialValue: _regionId,
                 decoration: InputDecoration(labelText: t.region),

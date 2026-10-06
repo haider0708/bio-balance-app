@@ -48,29 +48,39 @@ export class DashboardService {
         regions,
         pdvs,
         payouts,
+        topGroups,
+        lowStock,
+        region,
       ] = await Promise.all([
         window(tx, addDays(today, -6), today, sale),
         window(tx, addDays(today, -29), today, sale),
         this.trend(tx, addDays(today, -13), today, sale),
         tx.$queryRaw<
-          { productId: string; name: string; family: string; units: number }[]
+          {
+            productId: string;
+            name: string;
+            family: string;
+            imageId: string | null;
+            units: number;
+          }[]
         >`
-          SELECT l."productId", p.name, p.family, SUM(l.quantity)::int AS units
+          SELECT l."productId", p.name, p.family, p."imageId", SUM(l.quantity)::int AS units
           FROM "Sale" s JOIN "SaleLine" l ON l."saleId" = s.id JOIN "Product" p ON p.id = l."productId"
           WHERE s.status='ACTIVE' AND s.day >= ${dayToDate(addDays(today, -29))} ${sale}
-          GROUP BY l."productId", p.name, p.family ORDER BY units DESC LIMIT 5`,
+          GROUP BY l."productId", p.name, p.family, p."imageId" ORDER BY units DESC LIMIT 5`,
         tx.$queryRaw<
           {
             pdvId: string;
             name: string;
+            city: string;
             units: number;
             rewardMillimes: bigint;
           }[]
         >`
-          SELECT s."pdvId", pd.name, SUM(s.units)::int AS units, SUM(s."rewardMillimes")::bigint AS "rewardMillimes"
+          SELECT s."pdvId", pd.name, pd.city, SUM(s.units)::int AS units, SUM(s."rewardMillimes")::bigint AS "rewardMillimes"
           FROM "Sale" s JOIN "Pdv" pd ON pd.id = s."pdvId"
           WHERE s.status='ACTIVE' AND s.day >= ${dayToDate(addDays(today, -29))} ${sale}
-          GROUP BY s."pdvId", pd.name ORDER BY units DESC LIMIT 5`,
+          GROUP BY s."pdvId", pd.name, pd.city ORDER BY units DESC LIMIT 5`,
         tx.$queryRaw<{ negative: number; low: number }[]>`
           SELECT COUNT(*) FILTER (WHERE quantity < 0)::int AS negative,
                  COUNT(*) FILTER (WHERE quantity >= 0 AND quantity <= ${LOW_STOCK})::int AS low
@@ -94,6 +104,29 @@ export class DashboardService {
               _count: { _all: true },
             })
           : null,
+        tx.$queryRaw<{ groupId: string; name: string; units: number }[]>`
+          SELECT g.id AS "groupId", g.name, SUM(s.units)::int AS units
+          FROM "Sale" s JOIN "Pdv" pd ON pd.id = s."pdvId" JOIN "Group" g ON g.id = pd."groupId"
+          WHERE s.status='ACTIVE' AND s.day >= ${dayToDate(addDays(today, -29))} ${sale}
+          GROUP BY g.id, g.name ORDER BY units DESC LIMIT 3`,
+        // What is running out, ready to be reordered from the dashboard.
+        actor.role === "RESPONSABLE"
+          ? tx.$queryRaw<
+              {
+                pdvId: string;
+                place: string;
+                productId: string;
+                product: string;
+                imageId: string | null;
+                quantity: number;
+              }[]
+            >`
+              SELECT st."locationId" AS "pdvId", pd.name AS place, st."productId", p.name AS product, p."imageId", st.quantity
+              FROM "Stock" st JOIN "Pdv" pd ON pd.id = st."locationId" JOIN "Product" p ON p.id = st."productId"
+              WHERE st."locationKind" = 'PDV' AND pd.status = 'ACTIVE' AND st.quantity <= ${LOW_STOCK} AND p.active
+              ORDER BY st.quantity ASC, pd.name, p.name LIMIT 12`
+          : Promise.resolve([]),
+        scope ? this.regionCard(tx, scope) : Promise.resolve(null),
       ]);
       const day = trend.at(-1);
       return {
@@ -113,6 +146,9 @@ export class DashboardService {
         trend,
         topProducts,
         topPdvs,
+        topGroups,
+        lowStock,
+        region,
         attention: {
           negativeStock: attention[0]?.negative ?? 0,
           lowStock: attention[0]?.low ?? 0,
@@ -130,6 +166,33 @@ export class DashboardService {
           : null,
       };
     });
+  }
+
+  /** Who runs a region and what it holds, for the admin's page about one region. */
+  private async regionCard(tx: Tx, regionId: string) {
+    const [region, responsable, counts, depots] = await Promise.all([
+      tx.region.findUnique({ where: { id: regionId } }),
+      tx.user.findFirst({
+        where: { role: "RESPONSABLE", regionId, status: "ACTIVE" },
+        select: { id: true, name: true, phone: true, email: true },
+      }),
+      tx.$queryRaw<{ groups: number; pdvs: number; members: number }[]>`
+        SELECT (SELECT COUNT(*) FROM "Group" WHERE "regionId"=${regionId}::uuid AND status='ACTIVE')::int AS groups,
+               (SELECT COUNT(*) FROM "Pdv" WHERE "regionId"=${regionId}::uuid AND status='ACTIVE')::int AS pdvs,
+               (SELECT COUNT(*) FROM "User" WHERE "regionId"=${regionId}::uuid AND role='VENDEUR' AND status='ACTIVE')::int AS members`,
+      tx.depot.count({ where: { regionId, status: "ACTIVE" } }),
+    ]);
+    return region
+      ? {
+          id: region.id,
+          name: region.name,
+          responsable,
+          groups: counts[0]?.groups ?? 0,
+          pdvs: counts[0]?.pdvs ?? 0,
+          members: counts[0]?.members ?? 0,
+          grossistes: depots,
+        }
+      : null;
   }
 
   /** The admin's view across the three regions, side by side. */

@@ -149,6 +149,8 @@ class Depot {
     required this.address,
     required this.city,
     this.phone,
+    this.regionId,
+    this.regionName,
     this.grossisteName,
     this.grossistePhone,
     this.grossisteEmail,
@@ -160,6 +162,8 @@ class Depot {
     address: j.str('address'),
     city: j.str('city'),
     phone: j.strOrNull('phone'),
+    regionId: j.objOrNull('region')?.str('id'),
+    regionName: j.objOrNull('region')?.str('name'),
     grossisteName: j.objOrNull('grossiste')?.str('name'),
     grossistePhone: j.objOrNull('grossiste')?.strOrNull('phone'),
     grossisteEmail: j.objOrNull('grossiste')?.str('email'),
@@ -170,6 +174,8 @@ class Depot {
   final String address;
   final String city;
   final String? phone;
+  final String? regionId;
+  final String? regionName;
   final String? grossisteName;
   final String? grossistePhone;
   final String? grossisteEmail;

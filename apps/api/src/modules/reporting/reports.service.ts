@@ -1,8 +1,8 @@
 import { Injectable } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
 import type { Actor } from "../../core/actor";
-import { dayToDate } from "../../core/dates";
-import { Database } from "../../core/database";
+import { addDays, dayToDate } from "../../core/dates";
+import { Database, type Tx } from "../../core/database";
 import { requireRule } from "../../core/errors";
 import { decodeCursor, page } from "../../core/pagination";
 
@@ -34,59 +34,102 @@ export class ReportsService {
       403,
     );
     return this.db.run(actor, async (tx) => {
-      const byLine =
-        f.groupBy === "product" ||
-        f.groupBy === "family" ||
-        !!f.productId ||
-        !!f.family;
-      const where = Prisma.sql`s.status = 'ACTIVE' AND s.day BETWEEN ${dayToDate(f.from)} AND ${dayToDate(f.to)}
-        ${f.regionId ? Prisma.sql`AND s."regionId" = ${f.regionId}::uuid` : Prisma.empty}
-        ${f.pdvId ? Prisma.sql`AND s."pdvId" = ${f.pdvId}::uuid` : Prisma.empty}
-        ${f.sellerId ? Prisma.sql`AND s."sellerId" = ${f.sellerId}::uuid` : Prisma.empty}
-        ${f.productId ? Prisma.sql`AND l."productId" = ${f.productId}::uuid` : Prisma.empty}
-        ${f.family ? Prisma.sql`AND p.family = ${f.family}` : Prisma.empty}`;
-      const key = {
-        day: Prisma.sql`to_char(s.day,'YYYY-MM-DD')`,
-        region: Prisma.sql`r.id::text`,
-        pdv: Prisma.sql`s."pdvId"::text`,
-        seller: Prisma.sql`s."sellerId"::text`,
-        product: Prisma.sql`l."productId"::text`,
-        family: Prisma.sql`p.family`,
-      }[f.groupBy];
-      const label = {
-        day: Prisma.sql`to_char(s.day,'YYYY-MM-DD')`,
-        region: Prisma.sql`r.name`,
-        pdv: Prisma.sql`pd.name`,
-        seller: Prisma.sql`u.name`,
-        product: Prisma.sql`p.name`,
-        family: Prisma.sql`p.family`,
-      }[f.groupBy];
-      const joins = Prisma.sql`JOIN "Region" r ON r.id = s."regionId" JOIN "Pdv" pd ON pd.id = s."pdvId" JOIN "User" u ON u.id = s."sellerId"`;
-      const rows = byLine
-        ? await tx.$queryRaw<
-            Row[]
-          >`SELECT ${key} AS key, ${label} AS label, COUNT(DISTINCT s.id)::int AS sales,
-            COALESCE(SUM(l.quantity),0)::int AS units, COALESCE(SUM(l.quantity * l."unitRewardMillimes"),0)::bigint AS "rewardMillimes"
-          FROM "Sale" s JOIN "SaleLine" l ON l."saleId" = s.id JOIN "Product" p ON p.id = l."productId" ${joins}
-          WHERE ${where} GROUP BY 1, 2 ORDER BY ${f.groupBy === "day" ? Prisma.sql`1` : Prisma.sql`units DESC, 2`}`
-        : await tx.$queryRaw<
-            Row[]
-          >`SELECT ${key} AS key, ${label} AS label, COUNT(*)::int AS sales,
-            COALESCE(SUM(s.units),0)::int AS units, COALESCE(SUM(s."rewardMillimes"),0)::bigint AS "rewardMillimes"
-          FROM "Sale" s ${joins}
-          WHERE ${where} GROUP BY 1, 2 ORDER BY ${f.groupBy === "day" ? Prisma.sql`1` : Prisma.sql`units DESC, 2`}`;
-      return {
-        rows,
-        totals: rows.reduce(
+      const rows = await this.rows(tx, f);
+      const sum = (list: Row[]) =>
+        list.reduce(
           (t, r) => ({
             sales: t.sales + r.sales,
             units: t.units + r.units,
             rewardMillimes: t.rewardMillimes + r.rewardMillimes,
           }),
           { sales: 0, units: 0, rewardMillimes: 0n },
-        ),
+        );
+      // The period just before, as long as this one, to show whether things go up or down.
+      const length = daysBetween(f.from, f.to) + 1;
+      const previous = sum(
+        await this.rows(tx, {
+          ...f,
+          groupBy: "day",
+          from: addDays(f.from, -length),
+          to: addDays(f.from, -1),
+        }),
+      );
+      const perDay = new Map(
+        (f.groupBy === "day"
+          ? rows
+          : await this.rows(tx, { ...f, groupBy: "day" })
+        ).map((r) => [r.key, r]),
+      );
+      const trend: { day: string; units: number; sales: number }[] = [];
+      for (let d = f.from; d <= f.to && trend.length < 400; d = addDays(d, 1))
+        trend.push({
+          day: d,
+          units: perDay.get(d)?.units ?? 0,
+          sales: perDay.get(d)?.sales ?? 0,
+        });
+      // Product rows carry the picture, so the app can show what was sold.
+      const images =
+        f.groupBy === "product"
+          ? new Map(
+              (
+                await tx.product.findMany({
+                  where: { id: { in: rows.map((r) => r.key) } },
+                  select: { id: true, imageId: true },
+                })
+              ).map((p) => [p.id, p.imageId]),
+            )
+          : null;
+      return {
+        rows: rows.map((r) => ({ ...r, imageId: images?.get(r.key) ?? null })),
+        totals: sum(rows),
+        previous,
+        trend,
       };
     });
+  }
+
+  private async rows(tx: Tx, f: SalesFilter): Promise<Row[]> {
+    const byLine =
+      f.groupBy === "product" ||
+      f.groupBy === "family" ||
+      !!f.productId ||
+      !!f.family;
+    const where = Prisma.sql`s.status = 'ACTIVE' AND s.day BETWEEN ${dayToDate(f.from)} AND ${dayToDate(f.to)}
+        ${f.regionId ? Prisma.sql`AND s."regionId" = ${f.regionId}::uuid` : Prisma.empty}
+        ${f.pdvId ? Prisma.sql`AND s."pdvId" = ${f.pdvId}::uuid` : Prisma.empty}
+        ${f.sellerId ? Prisma.sql`AND s."sellerId" = ${f.sellerId}::uuid` : Prisma.empty}
+        ${f.productId ? Prisma.sql`AND l."productId" = ${f.productId}::uuid` : Prisma.empty}
+        ${f.family ? Prisma.sql`AND p.family = ${f.family}` : Prisma.empty}`;
+    const key = {
+      day: Prisma.sql`to_char(s.day,'YYYY-MM-DD')`,
+      region: Prisma.sql`r.id::text`,
+      pdv: Prisma.sql`s."pdvId"::text`,
+      seller: Prisma.sql`s."sellerId"::text`,
+      product: Prisma.sql`l."productId"::text`,
+      family: Prisma.sql`p.family`,
+    }[f.groupBy];
+    const label = {
+      day: Prisma.sql`to_char(s.day,'YYYY-MM-DD')`,
+      region: Prisma.sql`r.name`,
+      pdv: Prisma.sql`pd.name`,
+      seller: Prisma.sql`u.name`,
+      product: Prisma.sql`p.name`,
+      family: Prisma.sql`p.family`,
+    }[f.groupBy];
+    const joins = Prisma.sql`JOIN "Region" r ON r.id = s."regionId" JOIN "Pdv" pd ON pd.id = s."pdvId" JOIN "User" u ON u.id = s."sellerId"`;
+    return byLine
+      ? await tx.$queryRaw<
+          Row[]
+        >`SELECT ${key} AS key, ${label} AS label, COUNT(DISTINCT s.id)::int AS sales,
+            COALESCE(SUM(l.quantity),0)::int AS units, COALESCE(SUM(l.quantity * l."unitRewardMillimes"),0)::bigint AS "rewardMillimes"
+          FROM "Sale" s JOIN "SaleLine" l ON l."saleId" = s.id JOIN "Product" p ON p.id = l."productId" ${joins}
+          WHERE ${where} GROUP BY 1, 2 ORDER BY ${f.groupBy === "day" ? Prisma.sql`1` : Prisma.sql`units DESC, 2`}`
+      : await tx.$queryRaw<
+          Row[]
+        >`SELECT ${key} AS key, ${label} AS label, COUNT(*)::int AS sales,
+            COALESCE(SUM(s.units),0)::int AS units, COALESCE(SUM(s."rewardMillimes"),0)::bigint AS "rewardMillimes"
+          FROM "Sale" s ${joins}
+          WHERE ${where} GROUP BY 1, 2 ORDER BY ${f.groupBy === "day" ? Prisma.sql`1` : Prisma.sql`units DESC, 2`}`;
   }
 
   /** One line per product sold, for spreadsheets. */
@@ -281,3 +324,6 @@ interface Row {
   units: number;
   rewardMillimes: bigint;
 }
+
+const daysBetween = (from: string, to: string) =>
+  Math.round((Date.parse(to) - Date.parse(from)) / 86400_000);

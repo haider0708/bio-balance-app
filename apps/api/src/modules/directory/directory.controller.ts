@@ -39,6 +39,7 @@ const AdminUser = z.discriminatedUnion("role", [
   }),
   z.object({
     role: z.literal("GROSSISTE"),
+    regionId: id,
     name: text(100),
     email,
     phone,

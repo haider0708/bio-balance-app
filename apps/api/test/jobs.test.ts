@@ -8,6 +8,7 @@ import {
   client,
   createAccount,
   owner,
+  regionId,
   resetDatabase,
   startApi,
   type Api,
@@ -49,6 +50,7 @@ describe("emails", () => {
   it("send the activation code in the person's language and then forget it", async () => {
     await w.a.post("/v1/users", {
       role: "GROSSISTE",
+      regionId: await regionId("NORD"),
       name: "Mounir",
       email: "mounir@example.test",
       depot: { name: "Depot Sfax", address: "ZI", city: "Sfax" },
@@ -67,6 +69,7 @@ describe("emails", () => {
   it("use English when the person chose it", async () => {
     await w.a.post("/v1/users", {
       role: "GROSSISTE",
+      regionId: await regionId("NORD"),
       name: "Mounir",
       email: "mounir@example.test",
       depot: { name: "Depot Sfax", address: "ZI", city: "Sfax" },
@@ -85,6 +88,7 @@ describe("emails", () => {
   it("are not sent for a code that was already used", async () => {
     await w.a.post("/v1/users", {
       role: "GROSSISTE",
+      regionId: await regionId("NORD"),
       name: "Mounir",
       email: "mounir@example.test",
       depot: { name: "Depot Sfax", address: "ZI", city: "Sfax" },
@@ -111,6 +115,7 @@ describe("emails", () => {
   it("do not reach people who are no longer active", async () => {
     await w.a.post("/v1/users", {
       role: "GROSSISTE",
+      regionId: await regionId("NORD"),
       name: "Mounir",
       email: "mounir@example.test",
       depot: { name: "Depot Sfax", address: "ZI", city: "Sfax" },

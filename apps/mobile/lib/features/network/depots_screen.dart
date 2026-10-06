@@ -66,7 +66,11 @@ class DepotsScreen extends ConsumerWidget {
                         children: [
                           Text(d.name, style: context.text.titleSmall),
                           Text(
-                            [?d.grossisteName, d.city].join(' · '),
+                            [
+                              ?d.grossisteName,
+                              d.city,
+                              ?d.regionName,
+                            ].join(' · '),
                             style: context.text.bodySmall?.copyWith(
                               color: context.status.muted,
                             ),

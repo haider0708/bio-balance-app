@@ -1,11 +1,11 @@
 import { Injectable } from "@nestjs/common";
-import type { Prisma } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 import type { Actor } from "../../core/actor";
 import { audit } from "../../core/audit";
 import { dateToDay, dayToDate, tunisDay } from "../../core/dates";
 import { Database, json, type Tx } from "../../core/database";
 import { notFound, requireRule } from "../../core/errors";
-import { notify } from "../../core/notifier";
+import { notify, responsableIds } from "../../core/notifier";
 import { decodeCursor, page } from "../../core/pagination";
 import { adjustStock, type Location } from "../stock/ledger";
 import { unitRewards } from "../rewards/rules";
@@ -115,6 +115,18 @@ export class SalesService {
             },
           ],
         });
+      // The responsable of the region hears about every sale of their stores.
+      await notify(tx, await responsableIds(tx, pdv.regionId), {
+        key: "sale.recorded",
+        params: {
+          seller: actor.name,
+          place: pdv.name,
+          units,
+          amountMillimes: total,
+        },
+        entityType: "Sale",
+        entityId: input.id,
+      });
       await audit(
         tx,
         actor,
@@ -275,6 +287,7 @@ export class SalesService {
       pdvId?: string;
       sellerId?: string;
       regionId?: string;
+      productId?: string;
       limit: number;
       cursor?: string;
     },
@@ -289,8 +302,15 @@ export class SalesService {
       const after = decodeCursor(filter.cursor);
       const rows = await tx.sale.findMany({
         where: {
-          ...(filter.from && { day: { gte: dayToDate(filter.from) } }),
-          ...(filter.to && { day: { lte: dayToDate(filter.to) } }),
+          ...((filter.from || filter.to) && {
+            day: {
+              ...(filter.from && { gte: dayToDate(filter.from) }),
+              ...(filter.to && { lte: dayToDate(filter.to) }),
+            },
+          }),
+          ...(filter.productId && {
+            lines: { some: { productId: filter.productId } },
+          }),
           ...(filter.pdvId && { pdvId: filter.pdvId }),
           ...(filter.sellerId && { sellerId: filter.sellerId }),
           ...(actor.role === "ADMIN" &&
@@ -311,6 +331,39 @@ export class SalesService {
         items: await this.present(tx, result.items),
         nextCursor: result.nextCursor,
       };
+    });
+  }
+
+  /**
+   * One row per day with its totals: the overview of a long history. A team
+   * member sees their own days, a responsable their region's, the admin all.
+   */
+  days(
+    actor: Actor,
+    filter: { from: string; to: string; pdvId?: string; sellerId?: string },
+  ) {
+    requireRule(
+      ["VENDEUR", "RESPONSABLE", "ADMIN"].includes(actor.role),
+      "FORBIDDEN",
+      "Not allowed.",
+      403,
+    );
+    return this.db.run(actor, async (tx) => {
+      const rows = await tx.$queryRaw<
+        {
+          day: string;
+          sales: number;
+          units: number;
+          rewardMillimes: bigint;
+        }[]
+      >`
+        SELECT to_char(s.day,'YYYY-MM-DD') AS day, COUNT(*)::int AS sales, SUM(s.units)::int AS units, SUM(s."rewardMillimes")::bigint AS "rewardMillimes"
+        FROM "Sale" s
+        WHERE s.status='ACTIVE' AND s.day BETWEEN ${dayToDate(filter.from)} AND ${dayToDate(filter.to)}
+          ${filter.pdvId ? Prisma.sql`AND s."pdvId" = ${filter.pdvId}::uuid` : Prisma.empty}
+          ${filter.sellerId ? Prisma.sql`AND s."sellerId" = ${filter.sellerId}::uuid` : Prisma.empty}
+        GROUP BY 1 ORDER BY 1 DESC LIMIT 400`;
+      return rows;
     });
   }
 

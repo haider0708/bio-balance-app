@@ -77,11 +77,16 @@ describe("a month of activity", () => {
         .filter((l) => l.quantity > 0);
 
     // Two grossistes with a depot each.
-    const grossistes: { acc: Account; depotId: string }[] = [];
-    for (const name of ["Hedi", "Mounir"]) {
+    const grossistes: { acc: Account; depotId: string; code: string }[] = [];
+    for (const [name, code] of [
+      ["Hedi", "NORD"],
+      ["Mounir", "CENTRE"],
+      ["Slim", "SUD"],
+    ] as const) {
       const acc = await createAccount({
         role: "GROSSISTE",
         name,
+        regionCode: code,
         depot: { name: `Depot ${name}` },
       });
       const depotId = (await client(api, acc.token).get("/v1/depots")).body[0]
@@ -94,12 +99,13 @@ describe("a month of activity", () => {
         })
       ).body;
       await a.post(`/v1/stock/declarations/${decl.id}/approve`, {});
-      grossistes.push({ acc, depotId });
+      grossistes.push({ acc, depotId, code });
     }
 
     // Three regions, two points of sale each, three vendeurs per point of sale.
     interface Shop {
       pdvId: string;
+      code: string;
       resp: Account;
       vendeurs: Account[];
     }
@@ -137,7 +143,7 @@ describe("a month of activity", () => {
               name: `${code}-${p}-${v}`,
             }),
           );
-        shops.push({ pdvId: pdv.id, resp, vendeurs });
+        shops.push({ pdvId: pdv.id, code, resp, vendeurs });
       }
     }
 
@@ -191,7 +197,7 @@ describe("a month of activity", () => {
         ).body;
         const viaGrossiste = rnd() < 0.6;
         if (viaGrossiste) {
-          const g = pick(grossistes);
+          const g = grossistes.find((x) => x.code === shop.code)!;
           await a.post(`/v1/restocks/${order.id}/assign`, {
             depotId: g.depotId,
           });

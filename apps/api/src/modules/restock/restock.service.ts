@@ -124,6 +124,12 @@ export class RestockService {
         "Choose an active grossiste.",
         404,
       );
+      requireRule(
+        depot.regionId === order.regionId,
+        "DEPOT_OTHER_REGION",
+        "This grossiste works for another region.",
+        409,
+      );
       if (input.lines) await this.reshape(tx, order, input.lines);
       const updated = await tx.restockOrder.update({
         where: { id },

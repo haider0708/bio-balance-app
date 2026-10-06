@@ -307,6 +307,22 @@ describe("restock through a grossiste", () => {
     expect(res.body.code).toBe("INSUFFICIENT_STOCK");
   });
 
+  it("assigns only a grossiste of the same region", async () => {
+    const pdv = await approvedPdv(w, "s", "Para Sud");
+    const order = (
+      await w.s.post("/v1/restocks", {
+        destId: pdv.id,
+        lines: [{ productId: w.products[0]!.id, quantity: 4 }],
+      })
+    ).body;
+    const refused = await w.a.post(`/v1/restocks/${order.id}/assign`, {
+      depotId: w.depotId,
+    }); // the world's grossiste works for Nord
+    expect(refused.status).toBe(409);
+    expect(refused.body.code).toBe("DEPOT_OTHER_REGION");
+    expect((await w.s.get("/v1/depots")).body).toEqual([]);
+  });
+
   it("only the assigned grossiste can ship", async () => {
     const pdv = await approvedPdv(w);
     const order = (
