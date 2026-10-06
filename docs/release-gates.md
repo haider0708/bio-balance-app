@@ -1,6 +1,6 @@
 # Conditions de diffusion
 
-Ce registre distingue l’implémentation, les preuves locales et l’acceptation réelle. Mise à jour de la refonte : 23 septembre 2026. Une case en attente ne devient jamais réussie par la seule compilation. Les références de commits sont dans `implementation-status.md`.
+Ce registre distingue l’implémentation, les preuves locales et l’acceptation réelle. Mise à jour de la refonte : 23 septembre 2026. Une case en attente ne devient jamais réussie par la seule compilation. Les références de commits sont dans l’historique Git.
 
 | Porte de sortie | Vérifications réalisées | Validation restante |
 |---|---|---|

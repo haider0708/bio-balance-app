@@ -282,8 +282,9 @@ Future<void> screenshot(WidgetTester t, GlobalKey boundary, String name) async {
             .toImage(pixelRatio: 2);
     try {
       final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
-      await File('../../docs/screenshots/$name.png')
-          .writeAsBytes(bytes!.buffer.asUint8List());
+      final file = File('build/screenshots/$name.png')
+        ..createSync(recursive: true);
+      await file.writeAsBytes(bytes!.buffer.asUint8List());
     } finally {
       image.dispose();
     }

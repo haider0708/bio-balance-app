@@ -30,7 +30,7 @@ La migration `202609240004_invitation_management` ajoute les métadonnées d’h
 
 Le retour direct vers l’administration attend la persistance des brouillons avant de vider l’historique de navigation. Les informations et contrôles du groupe sont regroupés dans les paramètres, sans changer les autorisations de l’administrateur.
 
-Référence : plans approuvés les 21 et 23 septembre 2026. Voir [spécification](specification-fonctionnelle.md), [contrat OpenAPI](../contracts/openapi/biobalance.json), [état de réalisation](implementation-status.md) et [exploitation](runbook.md).
+Référence : plans approuvés les 21 et 23 septembre 2026. Voir [spécification](specification-fonctionnelle.md), [contrat OpenAPI](../contracts/openapi/biobalance.json) et [exploitation](runbook.md).
 
 ## Structure
 

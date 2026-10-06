@@ -40,7 +40,7 @@ Dans un groupe ou magasin, l’administrateur dispose d’un retour direct à l�
 
 Les formulaires partagés s’étirent sur la largeur disponible, avec sections lisibles et action principale fixe. Les formations séparent contenu, produits associés, vidéo et publication ; l’aperçu fait partie de la publication.
 
-Référence : plans d’implémentation du 21 septembre et de refonte du 23 septembre 2026. L’état réel du logiciel et les validations se trouvent dans [implementation-status.md](implementation-status.md).
+Référence : plans d’implémentation du 21 septembre et de refonte du 23 septembre 2026.
 
 ## Périmètre
 
@@ -90,7 +90,7 @@ Les abonnements payants, le web admin, WhatsApp, les classements régionaux/nati
 - Quantités demandées, prévues, reçues, en transit, retenues pour écart, annulées et restant à expédier restent distinguées. Le reste déduit les unités reçues et encore engagées ; la résolution d’un écart peut libérer le reliquat. Les livraisons complémentaires ont de nouveaux identifiants.
 - Les détails affichent groupe, magasin, étape suivante, produits, livraisons et historique. Les signalements et résolutions conservent auteur et motif ; les responsables et l’administrateur sont notifiés dans l’application.
 
-Voir [les règles et preuves 1.1.9](orders-reception-2026-09-24.md).
+
 
 ## Formation et communication
 
@@ -136,7 +136,7 @@ Les tableaux de bord affichent leur périmètre, période et fraîcheur. Les dat
 
 Les photos produit conservent l’emballage entier. Catégorie, gamme, format, description, conseils, ingrédients, précautions, sources et état de complétude appartiennent au catalogue global. Prix de référence manquant, zéro explicitement configuré et tarif de démonstration sont distincts. Une modification globale ne remplace pas les prix fixés par un magasin. Les informations non vérifiées restent absentes.
 
-Le thème central est blanc #FFFFFF, menthe #F1F8F4, émeraude #146C43, accent #6ABE4E et texte #17231C, police Inter locale, icônes Lucide. Navigation défilante si texte agrandi, cibles 48 dp, animations courtes désactivées selon les préférences d’accessibilité. Les captures et limites de qualification sont dans [le registre de refonte](redesign-2026-09-23.md).
+Le thème central est blanc #FFFFFF, menthe #F1F8F4, émeraude #146C43, accent #6ABE4E et texte #17231C, police Inter locale, icônes Lucide. Navigation défilante si texte agrandi, cibles 48 dp, animations courtes désactivées selon les préférences d’accessibilité.
 
 
 ## Retour Samsung — 1.1.1
