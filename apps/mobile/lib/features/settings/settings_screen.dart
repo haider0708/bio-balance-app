@@ -14,11 +14,11 @@ import '../auth/auth_repository.dart';
 import '../auth/auth_widgets.dart';
 
 String roleLabel(AppLocalizations t, Role role) => switch (role) {
-      Role.admin => t.roleAdmin,
-      Role.responsable => t.roleResponsable,
-      Role.grossiste => t.roleGrossiste,
-      Role.vendeur => t.roleVendeur,
-    };
+  Role.admin => t.roleAdmin,
+  Role.responsable => t.roleResponsable,
+  Role.grossiste => t.roleGrossiste,
+  Role.vendeur => t.roleVendeur,
+};
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -43,9 +43,21 @@ class SettingsScreen extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(me.name, style: context.text.titleMedium),
-                      Text(me.email, style: context.text.bodySmall?.copyWith(color: context.status.muted)),
+                      Text(
+                        me.email,
+                        style: context.text.bodySmall?.copyWith(
+                          color: context.status.muted,
+                        ),
+                      ),
                       const Gap(6),
-                      Wrap(spacing: 6, children: [StatusChip(roleLabel(t, me.role), tone: Tone.success), if (where != null) StatusChip(where, tone: Tone.muted)]),
+                      Wrap(
+                        spacing: 6,
+                        children: [
+                          StatusChip(roleLabel(t, me.role), tone: Tone.success),
+                          if (where != null)
+                            StatusChip(where, tone: Tone.muted),
+                        ],
+                      ),
                     ],
                   ),
                 ),
@@ -53,29 +65,52 @@ class SettingsScreen extends ConsumerWidget {
             ),
           ),
           SectionHeader(t.account),
-          _Item(icon: LucideIcons.userPen, label: t.editProfile, onTap: () => _editProfile(context, ref, me)),
-          _Item(icon: LucideIcons.keyRound, label: t.changePassword, onTap: () => _changePassword(context, ref)),
+          _Item(
+            icon: LucideIcons.userPen,
+            label: t.editProfile,
+            onTap: () => _editProfile(context, ref, me),
+          ),
+          _Item(
+            icon: LucideIcons.keyRound,
+            label: t.changePassword,
+            onTap: () => _changePassword(context, ref),
+          ),
           SectionHeader(t.language),
           AppCard(
             child: Row(
               children: [
                 const Icon(LucideIcons.languages),
                 const SizedBox(width: 12),
-                Expanded(child: Text(t.language, style: context.text.titleSmall)),
+                Expanded(
+                  child: Text(t.language, style: context.text.titleSmall),
+                ),
                 const LanguageToggle(),
               ],
             ),
           ),
           SectionHeader(t.about),
-          AppCard(child: Column(children: [InfoRow(t.appVersion, AppConfig.version), InfoRow(t.server, Uri.parse(AppConfig.apiBaseUrl).host)])),
+          AppCard(
+            child: Column(
+              children: [
+                InfoRow(t.appVersion, AppConfig.version),
+                InfoRow(t.server, Uri.parse(AppConfig.apiBaseUrl).host),
+              ],
+            ),
+          ),
           const Gap(24),
           OutlinedButton.icon(
             onPressed: () async {
-              if (await confirm(context, title: t.signOutTitle, confirmLabel: t.signOut)) {
+              if (await confirm(
+                context,
+                title: t.signOutTitle,
+                confirmLabel: t.signOut,
+              )) {
                 await ref.read(sessionProvider.notifier).logout();
               }
             },
-            style: OutlinedButton.styleFrom(foregroundColor: context.status.danger),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: context.status.danger,
+            ),
             icon: const Icon(LucideIcons.logOut),
             label: Text(t.signOut),
           ),
@@ -92,28 +127,42 @@ class SettingsScreen extends ConsumerWidget {
       context: context,
       isScrollControlled: true,
       builder: (context) => Padding(
-        padding: EdgeInsets.fromLTRB(20, 0, 20, 20 + MediaQuery.viewInsetsOf(context).bottom),
+        padding: EdgeInsets.fromLTRB(
+          20,
+          0,
+          20,
+          20 + MediaQuery.viewInsetsOf(context).bottom,
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(t.editProfile, style: context.text.titleLarge),
             const Gap(16),
-            TextField(controller: name, textCapitalization: TextCapitalization.words, decoration: InputDecoration(labelText: t.fullName)),
+            TextField(
+              controller: name,
+              textCapitalization: TextCapitalization.words,
+              decoration: InputDecoration(labelText: t.fullName),
+            ),
             const Gap(12),
-            TextField(controller: phone, keyboardType: TextInputType.phone, decoration: InputDecoration(labelText: t.phone)),
+            TextField(
+              controller: phone,
+              keyboardType: TextInputType.phone,
+              decoration: InputDecoration(labelText: t.phone),
+            ),
             const Gap(16),
             AsyncButton(
               label: t.save,
               onPressed: () async {
-                final ok = await perform(
-                  context,
-                  () async {
-                    await ref.read(authRepositoryProvider).updateProfile(name: name.text.trim(), phone: phone.text.trim());
-                    await ref.read(sessionProvider.notifier).refresh();
-                  },
-                  success: t.saved,
-                );
+                final ok = await perform(context, () async {
+                  await ref
+                      .read(authRepositoryProvider)
+                      .updateProfile(
+                        name: name.text.trim(),
+                        phone: phone.text.trim(),
+                      );
+                  await ref.read(sessionProvider.notifier).refresh();
+                }, success: t.saved);
                 if (ok && context.mounted) Navigator.pop(context, true);
               },
             ),
@@ -134,7 +183,12 @@ class SettingsScreen extends ConsumerWidget {
       context: context,
       isScrollControlled: true,
       builder: (context) => Padding(
-        padding: EdgeInsets.fromLTRB(20, 0, 20, 20 + MediaQuery.viewInsetsOf(context).bottom),
+        padding: EdgeInsets.fromLTRB(
+          20,
+          0,
+          20,
+          20 + MediaQuery.viewInsetsOf(context).bottom,
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -143,9 +197,18 @@ class SettingsScreen extends ConsumerWidget {
             const Gap(16),
             PasswordField(controller: current, label: t.currentPassword),
             const Gap(12),
-            PasswordField(controller: next, label: t.newPassword, textInputAction: TextInputAction.done),
+            PasswordField(
+              controller: next,
+              label: t.newPassword,
+              textInputAction: TextInputAction.done,
+            ),
             const Gap(6),
-            Text(t.passwordRule, style: context.text.bodySmall?.copyWith(color: context.status.muted)),
+            Text(
+              t.passwordRule,
+              style: context.text.bodySmall?.copyWith(
+                color: context.status.muted,
+              ),
+            ),
             const Gap(16),
             AsyncButton(
               label: t.changePassword,
@@ -154,7 +217,13 @@ class SettingsScreen extends ConsumerWidget {
                   showMessage(context, t.passwordTooShort, error: true);
                   return;
                 }
-                final ok = await perform(context, () => ref.read(authRepositoryProvider).changePassword(current: current.text, next: next.text), success: t.passwordChangedShort);
+                final ok = await perform(
+                  context,
+                  () => ref
+                      .read(authRepositoryProvider)
+                      .changePassword(current: current.text, next: next.text),
+                  success: t.passwordChangedShort,
+                );
                 if (ok && context.mounted) Navigator.pop(context);
               },
             ),
@@ -180,7 +249,18 @@ class _Item extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 8),
       child: AppCard(
         onTap: onTap,
-        child: Row(children: [Icon(icon, size: 22), const SizedBox(width: 12), Expanded(child: Text(label, style: context.text.titleSmall)), Icon(LucideIcons.chevronRight, size: 18, color: context.status.muted)]),
+        child: Row(
+          children: [
+            Icon(icon, size: 22),
+            const SizedBox(width: 12),
+            Expanded(child: Text(label, style: context.text.titleSmall)),
+            Icon(
+              LucideIcons.chevronRight,
+              size: 18,
+              color: context.status.muted,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -209,7 +289,12 @@ class MoreScreen extends ConsumerWidget {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          for (final e in entries) _Item(icon: e.icon, label: e.label, onTap: () => context.push(e.route)),
+          for (final e in entries)
+            _Item(
+              icon: e.icon,
+              label: e.label,
+              onTap: () => context.push(e.route),
+            ),
         ],
       ),
     );

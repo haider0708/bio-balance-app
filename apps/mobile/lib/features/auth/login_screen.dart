@@ -38,13 +38,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     if (!_form.currentState!.validate()) return;
     final t = AppLocalizations.of(context);
     try {
-      await ref.read(sessionProvider.notifier).login(email: _email.text, password: _password.text, otp: _otp.text);
+      await ref
+          .read(sessionProvider.notifier)
+          .login(email: _email.text, password: _password.text, otp: _otp.text);
       // The router moves on by itself once the session exists.
     } on ApiException catch (error) {
       if (!mounted) return;
       if (error.code == 'MFA_REQUIRED') {
         setState(() => _needsCode = true);
-        if (_otp.text.isNotEmpty) showMessage(context, t.codeInvalid, error: true);
+        if (_otp.text.isNotEmpty)
+          showMessage(context, t.codeInvalid, error: true);
         return;
       }
       showError(context, error);
@@ -70,18 +73,25 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   controller: _email,
                   keyboardType: TextInputType.emailAddress,
                   textInputAction: TextInputAction.next,
-                  autofillHints: const [AutofillHints.username, AutofillHints.email],
+                  autofillHints: const [
+                    AutofillHints.username,
+                    AutofillHints.email,
+                  ],
                   decoration: InputDecoration(labelText: t.email),
-                  validator: (v) => (v == null || !v.contains('@')) ? t.emailInvalid : null,
+                  validator: (v) =>
+                      (v == null || !v.contains('@')) ? t.emailInvalid : null,
                 ),
                 const Gap(14),
                 PasswordField(
                   controller: _password,
                   label: t.password,
                   autofillHints: const [AutofillHints.password],
-                  textInputAction: _needsCode ? TextInputAction.next : TextInputAction.done,
+                  textInputAction: _needsCode
+                      ? TextInputAction.next
+                      : TextInputAction.done,
                   onSubmitted: (_) => _needsCode ? null : _submit(),
-                  validator: (v) => (v == null || v.isEmpty) ? t.passwordRequired : null,
+                  validator: (v) =>
+                      (v == null || v.isEmpty) ? t.passwordRequired : null,
                 ),
                 if (_needsCode) ...[
                   const Gap(14),
@@ -89,12 +99,19 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     controller: _otp,
                     autofocus: true,
                     keyboardType: TextInputType.number,
-                    inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(6)],
+                    inputFormatters: [
+                      FilteringTextInputFormatter.digitsOnly,
+                      LengthLimitingTextInputFormatter(6),
+                    ],
                     textInputAction: TextInputAction.done,
                     autofillHints: const [AutofillHints.oneTimeCode],
-                    decoration: InputDecoration(labelText: t.authenticatorCode, helperText: t.authenticatorCodeHelp),
+                    decoration: InputDecoration(
+                      labelText: t.authenticatorCode,
+                      helperText: t.authenticatorCodeHelp,
+                    ),
                     onFieldSubmitted: (_) => _submit(),
-                    validator: (v) => (v == null || v.length != 6) ? t.codeInvalid : null,
+                    validator: (v) =>
+                        (v == null || v.length != 6) ? t.codeInvalid : null,
                   ),
                 ],
                 const Gap(24),
@@ -104,11 +121,21 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           ),
         ),
         const Gap(8),
-        TextButton(onPressed: () => context.push('/forgot'), child: Text(t.forgotPassword)),
+        TextButton(
+          onPressed: () => context.push('/forgot'),
+          child: Text(t.forgotPassword),
+        ),
         const Divider(height: 32),
-        Text(t.invitedHint, textAlign: TextAlign.center, style: Theme.of(context).textTheme.bodyMedium),
+        Text(
+          t.invitedHint,
+          textAlign: TextAlign.center,
+          style: Theme.of(context).textTheme.bodyMedium,
+        ),
         const Gap(8),
-        OutlinedButton(onPressed: () => context.push('/activate'), child: Text(t.activateAccount)),
+        OutlinedButton(
+          onPressed: () => context.push('/activate'),
+          child: Text(t.activateAccount),
+        ),
       ],
     );
   }

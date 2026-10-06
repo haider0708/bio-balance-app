@@ -33,7 +33,9 @@ class SaleDetailScreen extends ConsumerWidget {
         value: sale,
         onRetry: () => ref.invalidate(saleProvider(saleId)),
         builder: (sale) {
-          final canCorrect = !sale.voided && (me.role != Role.vendeur || sale.sellerCanCorrect);
+          final canCorrect =
+              !sale.voided &&
+              (me.role != Role.vendeur || sale.sellerCanCorrect);
           return ListView(
             padding: const EdgeInsets.all(16),
             children: [
@@ -43,14 +45,30 @@ class SaleDetailScreen extends ConsumerWidget {
                   children: [
                     Row(
                       children: [
-                        Expanded(child: Text(Dates.dateTime(sale.occurredAt, t.localeName), style: context.text.titleMedium)),
-                        if (sale.voided) StatusChip(t.saleVoided, tone: Tone.muted) else if (sale.version > 1) StatusChip(t.corrected, tone: Tone.info),
+                        Expanded(
+                          child: Text(
+                            Dates.dateTime(sale.occurredAt, t.localeName),
+                            style: context.text.titleMedium,
+                          ),
+                        ),
+                        if (sale.voided)
+                          StatusChip(t.saleVoided, tone: Tone.muted)
+                        else if (sale.version > 1)
+                          StatusChip(t.corrected, tone: Tone.info),
                       ],
                     ),
                     const Gap(12),
-                    if (me.role != Role.vendeur) ...[InfoRow(t.seller, sale.seller.name), InfoRow(t.pointOfSale, sale.pdv.name)],
+                    if (me.role != Role.vendeur) ...[
+                      InfoRow(t.seller, sale.seller.name),
+                      InfoRow(t.pointOfSale, sale.pdv.name),
+                    ],
                     InfoRow(t.totalUnits, t.units(sale.units)),
-                    InfoRow(t.reward, sale.voided ? '—' : Money.format(sale.rewardMillimes, t.localeName)),
+                    InfoRow(
+                      t.reward,
+                      sale.voided
+                          ? '—'
+                          : Money.format(sale.rewardMillimes, t.localeName),
+                    ),
                   ],
                 ),
               ),
@@ -62,14 +80,34 @@ class SaleDetailScreen extends ConsumerWidget {
                     padding: const EdgeInsets.all(12),
                     child: Row(
                       children: [
-                        AuthImage(line.imageId, width: 48, height: 48, radius: 10, placeholderIcon: LucideIcons.package),
+                        AuthImage(
+                          line.imageId,
+                          width: 48,
+                          height: 48,
+                          radius: 10,
+                          placeholderIcon: LucideIcons.package,
+                        ),
                         const SizedBox(width: 12),
-                        Expanded(child: Text(line.name, style: context.text.titleSmall)),
+                        Expanded(
+                          child: Text(
+                            line.name,
+                            style: context.text.titleSmall,
+                          ),
+                        ),
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.end,
                           children: [
-                            Text('× ${line.quantity}', style: context.text.titleSmall),
-                            if (line.rewardMillimes > 0) Text('+ ${Money.format(line.rewardMillimes, t.localeName)}', style: context.text.bodySmall?.copyWith(color: context.colors.primary)),
+                            Text(
+                              '× ${line.quantity}',
+                              style: context.text.titleSmall,
+                            ),
+                            if (line.rewardMillimes > 0)
+                              Text(
+                                '+ ${Money.format(line.rewardMillimes, t.localeName)}',
+                                style: context.text.bodySmall?.copyWith(
+                                  color: context.colors.primary,
+                                ),
+                              ),
                           ],
                         ),
                       ],
@@ -81,14 +119,32 @@ class SaleDetailScreen extends ConsumerWidget {
                 for (final r in sale.revisions)
                   ListTile(
                     contentPadding: EdgeInsets.zero,
-                    leading: Icon(LucideIcons.pencilLine, color: context.status.info),
+                    leading: Icon(
+                      LucideIcons.pencilLine,
+                      color: context.status.info,
+                    ),
                     title: Text(r.reason),
                     subtitle: Text(Dates.dateTime(r.createdAt, t.localeName)),
                   ),
               ],
               const Gap(24),
-              if (canCorrect) OutlinedButton.icon(onPressed: () => context.push('/sales/${sale.id}/correct', extra: sale), icon: const Icon(LucideIcons.pencil), label: Text(t.correctSale)),
-              if (me.role == Role.vendeur && !sale.voided && !sale.sellerCanCorrect) Text(t.correctionWindowClosed, style: context.text.bodySmall?.copyWith(color: context.status.muted), textAlign: TextAlign.center),
+              if (canCorrect)
+                OutlinedButton.icon(
+                  onPressed: () =>
+                      context.push('/sales/${sale.id}/correct', extra: sale),
+                  icon: const Icon(LucideIcons.pencil),
+                  label: Text(t.correctSale),
+                ),
+              if (me.role == Role.vendeur &&
+                  !sale.voided &&
+                  !sale.sellerCanCorrect)
+                Text(
+                  t.correctionWindowClosed,
+                  style: context.text.bodySmall?.copyWith(
+                    color: context.status.muted,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
             ],
           );
         },
@@ -109,7 +165,14 @@ class CorrectSaleScreen extends ConsumerStatefulWidget {
 
 class _CorrectSaleScreenState extends ConsumerState<CorrectSaleScreen> {
   late final QuantityController _quantities = QuantityController([
-    for (final l in widget.sale.lines) QuantityItem(productId: l.productId, name: l.name, family: '', quantity: l.quantity, imageId: l.imageId),
+    for (final l in widget.sale.lines)
+      QuantityItem(
+        productId: l.productId,
+        name: l.name,
+        family: '',
+        quantity: l.quantity,
+        imageId: l.imageId,
+      ),
   ]);
   final _reason = TextEditingController();
 
@@ -124,11 +187,21 @@ class _CorrectSaleScreenState extends ConsumerState<CorrectSaleScreen> {
     final t = AppLocalizations.of(context);
     final lines = _quantities.lines(skipZero: true);
     final cancelling = lines.isEmpty;
-    if (cancelling && !await confirm(context, title: t.cancelSaleTitle, message: t.cancelSaleBody, confirmLabel: t.cancelSale, destructive: true)) return;
+    if (cancelling &&
+        !await confirm(
+          context,
+          title: t.cancelSaleTitle,
+          message: t.cancelSaleBody,
+          confirmLabel: t.cancelSale,
+          destructive: true,
+        ))
+      return;
     if (!mounted) return;
     final ok = await perform(
       context,
-      () => ref.read(salesRepositoryProvider).correct(widget.sale.id, reason: _reason.text.trim(), lines: lines),
+      () => ref
+          .read(salesRepositoryProvider)
+          .correct(widget.sale.id, reason: _reason.text.trim(), lines: lines),
       success: cancelling ? t.saleCancelled : t.saleCorrected,
     );
     if (ok && mounted) {
@@ -145,9 +218,18 @@ class _CorrectSaleScreenState extends ConsumerState<CorrectSaleScreen> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          Text(t.correctSaleHint, style: context.text.bodyMedium?.copyWith(color: context.status.muted)),
+          Text(
+            t.correctSaleHint,
+            style: context.text.bodyMedium?.copyWith(
+              color: context.status.muted,
+            ),
+          ),
           const Gap(16),
-          QuantityEditor(controller: _quantities, allowAdd: false, allowRemove: false),
+          QuantityEditor(
+            controller: _quantities,
+            allowAdd: false,
+            allowRemove: false,
+          ),
           const Gap(16),
           TextField(
             controller: _reason,
@@ -163,7 +245,9 @@ class _CorrectSaleScreenState extends ConsumerState<CorrectSaleScreen> {
             listenable: _quantities,
             builder: (context, _) => AsyncButton(
               label: _quantities.total == 0 ? t.cancelSale : t.saveCorrection,
-              style: _quantities.total == 0 ? AsyncButtonStyle.danger : AsyncButtonStyle.filled,
+              style: _quantities.total == 0
+                  ? AsyncButtonStyle.danger
+                  : AsyncButtonStyle.filled,
               onPressed: _reason.text.trim().length < 2 ? null : _save,
             ),
           ),

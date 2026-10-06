@@ -9,7 +9,13 @@ import '../notifications/notifications_repository.dart';
 
 /// The top of every home tab: greeting, notification bell with its badge, and settings.
 class HomeScaffold extends ConsumerWidget {
-  const HomeScaffold({required this.title, required this.body, required this.onRefresh, this.subtitle, super.key});
+  const HomeScaffold({
+    required this.title,
+    required this.body,
+    required this.onRefresh,
+    this.subtitle,
+    super.key,
+  });
 
   final String title;
   final String? subtitle;
@@ -28,16 +34,30 @@ class HomeScaffold extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(title, style: context.text.headlineSmall),
-            if (subtitle != null) Text(subtitle!, style: context.text.bodyMedium?.copyWith(color: context.status.muted)),
+            if (subtitle != null)
+              Text(
+                subtitle!,
+                style: context.text.bodyMedium?.copyWith(
+                  color: context.status.muted,
+                ),
+              ),
           ],
         ),
         actions: [
           IconButton(
             tooltip: t.notificationsTitle,
             onPressed: () => context.push('/notifications'),
-            icon: Badge(isLabelVisible: unread > 0, label: Text(unread > 99 ? '99+' : '$unread'), child: const Icon(LucideIcons.bell)),
+            icon: Badge(
+              isLabelVisible: unread > 0,
+              label: Text(unread > 99 ? '99+' : '$unread'),
+              child: const Icon(LucideIcons.bell),
+            ),
           ),
-          IconButton(tooltip: t.settingsTitle, onPressed: () => context.push('/settings'), icon: const Icon(LucideIcons.settings)),
+          IconButton(
+            tooltip: t.settingsTitle,
+            onPressed: () => context.push('/settings'),
+            icon: const Icon(LucideIcons.settings),
+          ),
           const SizedBox(width: 4),
         ],
       ),

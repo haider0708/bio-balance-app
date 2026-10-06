@@ -18,7 +18,9 @@ final secureStorageProvider = Provider<FlutterSecureStorage>(
   (_) => const FlutterSecureStorage(aOptions: AndroidOptions()),
 );
 
-final preferencesProvider = FutureProvider<SharedPreferences>((_) => SharedPreferences.getInstance());
+final preferencesProvider = FutureProvider<SharedPreferences>(
+  (_) => SharedPreferences.getInstance(),
+);
 
 /// The bearer token, kept in memory so the API client can read it synchronously.
 class TokenNotifier extends Notifier<String?> {
@@ -29,7 +31,9 @@ class TokenNotifier extends Notifier<String?> {
   void set(String? token) => state = token;
 }
 
-final tokenProvider = NotifierProvider<TokenNotifier, String?>(TokenNotifier.new);
+final tokenProvider = NotifierProvider<TokenNotifier, String?>(
+  TokenNotifier.new,
+);
 
 /// The chosen language; null follows the phone.
 class LocaleNotifier extends Notifier<String?> {
@@ -44,11 +48,14 @@ class LocaleNotifier extends Notifier<String?> {
 
   Future<void> choose(String code) async {
     state = code;
-    await (await ref.read(preferencesProvider.future)).setString(_localeKey, code);
+    await (await ref.read(preferencesProvider.future))
+        .setString(_localeKey, code);
   }
 }
 
-final localeProvider = NotifierProvider<LocaleNotifier, String?>(LocaleNotifier.new);
+final localeProvider = NotifierProvider<LocaleNotifier, String?>(
+  LocaleNotifier.new,
+);
 
 final apiClientProvider = Provider<ApiClient>((ref) {
   return ApiClient(
@@ -75,7 +82,9 @@ class SessionNotifier extends AsyncNotifier<Session?> {
     ref.read(tokenProvider.notifier).set(token);
     final cached = await storage.read(key: _meKey);
     try {
-      final me = Me.fromJson(await ref.read(apiClientProvider).get('/v1/me') as Json);
+      final me = Me.fromJson(
+        await ref.read(apiClientProvider).get('/v1/me') as Json,
+      );
       await storage.write(key: _meKey, value: jsonEncode(_meJson(me)));
       _adoptLocale(me);
       return Session(token: token, me: me);
@@ -86,13 +95,20 @@ class SessionNotifier extends AsyncNotifier<Session?> {
       }
       // Offline or the server is down: carry on with what we knew.
       if (cached != null) {
-        return Session(token: token, me: Me.fromJson(jsonDecode(cached) as Json));
+        return Session(
+          token: token,
+          me: Me.fromJson(jsonDecode(cached) as Json),
+        );
       }
       rethrow;
     }
   }
 
-  Future<void> login({required String email, required String password, String? otp}) async {
+  Future<void> login({
+    required String email,
+    required String password,
+    String? otp,
+  }) async {
     final response = await ref.read(apiClientProvider).post('/v1/auth/login', {
       'email': email.trim(),
       'password': password,
@@ -111,8 +127,12 @@ class SessionNotifier extends AsyncNotifier<Session?> {
   Future<void> refresh() async {
     final current = state.value;
     if (current == null) return;
-    final me = Me.fromJson(await ref.read(apiClientProvider).get('/v1/me') as Json);
-    await ref.read(secureStorageProvider).write(key: _meKey, value: jsonEncode(_meJson(me)));
+    final me = Me.fromJson(
+      await ref.read(apiClientProvider).get('/v1/me') as Json,
+    );
+    await ref
+        .read(secureStorageProvider)
+        .write(key: _meKey, value: jsonEncode(_meJson(me)));
     state = AsyncData(Session(token: current.token, me: me));
   }
 
@@ -142,23 +162,34 @@ class SessionNotifier extends AsyncNotifier<Session?> {
 
   /// A person's saved language wins on a new phone, until they pick one here.
   void _adoptLocale(Me me) {
-    if (ref.read(localeProvider) == null) unawaited(ref.read(localeProvider.notifier).choose(me.locale));
+    if (ref.read(localeProvider) == null)
+      unawaited(ref.read(localeProvider.notifier).choose(me.locale));
   }
 
   Json _meJson(Me me) => {
-        'id': me.id,
-        'name': me.name,
-        'email': me.email,
-        'phone': me.phone,
-        'role': me.role.wire,
-        'locale': me.locale,
-        'region': me.region == null ? null : {'id': me.region!.id, 'code': me.region!.code, 'name': me.region!.name},
-        'pdv': me.pdv == null ? null : {'id': me.pdv!.id, 'name': me.pdv!.name},
-        'depot': me.depot == null ? null : {'id': me.depot!.id, 'name': me.depot!.name},
-      };
+    'id': me.id,
+    'name': me.name,
+    'email': me.email,
+    'phone': me.phone,
+    'role': me.role.wire,
+    'locale': me.locale,
+    'region': me.region == null
+        ? null
+        : {
+            'id': me.region!.id,
+            'code': me.region!.code,
+            'name': me.region!.name,
+          },
+    'pdv': me.pdv == null ? null : {'id': me.pdv!.id, 'name': me.pdv!.name},
+    'depot': me.depot == null
+        ? null
+        : {'id': me.depot!.id, 'name': me.depot!.name},
+  };
 }
 
-final sessionProvider = AsyncNotifierProvider<SessionNotifier, Session?>(SessionNotifier.new);
+final sessionProvider = AsyncNotifierProvider<SessionNotifier, Session?>(
+  SessionNotifier.new,
+);
 
 /// The signed-in person (only valid below the sign-in gate).
 final meProvider = Provider<Me>((ref) {

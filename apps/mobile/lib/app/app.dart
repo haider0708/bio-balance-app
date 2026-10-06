@@ -16,7 +16,10 @@ class BioBalanceApp extends ConsumerStatefulWidget {
 }
 
 class _BioBalanceAppState extends ConsumerState<BioBalanceApp> {
-  late final Future<void> _ready = Future.wait([initializeDateFormatting('fr'), initializeDateFormatting('en')]);
+  late final Future<void> _ready = Future.wait([
+    initializeDateFormatting('fr'),
+    initializeDateFormatting('en'),
+  ]);
 
   @override
   Widget build(BuildContext context) {
@@ -32,8 +35,10 @@ class _BioBalanceAppState extends ConsumerState<BioBalanceApp> {
         locale: choice == null ? null : Locale(choice),
         supportedLocales: AppLocalizations.supportedLocales,
         // French is the default unless the phone itself is set to English.
-        localeResolutionCallback: (device, supported) =>
-            supported.firstWhere((l) => l.languageCode == device?.languageCode, orElse: () => const Locale('fr')),
+        localeResolutionCallback: (device, supported) => supported.firstWhere(
+          (l) => l.languageCode == device?.languageCode,
+          orElse: () => const Locale('fr'),
+        ),
         localizationsDelegates: const [
           AppLocalizations.delegate,
           GlobalMaterialLocalizations.delegate,

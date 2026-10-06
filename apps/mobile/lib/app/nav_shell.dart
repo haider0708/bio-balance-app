@@ -2,7 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 class NavDestination {
-  const NavDestination({required this.icon, required this.label, this.selectedIcon, this.badge});
+  const NavDestination({
+    required this.icon,
+    required this.label,
+    this.selectedIcon,
+    this.badge,
+  });
 
   final IconData icon;
   final IconData? selectedIcon;
@@ -23,12 +28,21 @@ class NavShell extends StatelessWidget {
       body: shell,
       bottomNavigationBar: NavigationBar(
         selectedIndex: shell.currentIndex,
-        onDestinationSelected: (i) => shell.goBranch(i, initialLocation: i == shell.currentIndex),
+        onDestinationSelected: (i) =>
+            shell.goBranch(i, initialLocation: i == shell.currentIndex),
         destinations: [
           for (final d in destinations)
             NavigationDestination(
-              icon: Badge(isLabelVisible: (d.badge ?? 0) > 0, label: Text('${d.badge}'), child: Icon(d.icon)),
-              selectedIcon: Badge(isLabelVisible: (d.badge ?? 0) > 0, label: Text('${d.badge}'), child: Icon(d.selectedIcon ?? d.icon)),
+              icon: Badge(
+                isLabelVisible: (d.badge ?? 0) > 0,
+                label: Text('${d.badge}'),
+                child: Icon(d.icon),
+              ),
+              selectedIcon: Badge(
+                isLabelVisible: (d.badge ?? 0) > 0,
+                label: Text('${d.badge}'),
+                child: Icon(d.selectedIcon ?? d.icon),
+              ),
               label: d.label,
             ),
         ],

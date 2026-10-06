@@ -43,13 +43,21 @@ class SalesRepository {
     final id = _uuid.v4();
     final now = DateTime.now();
     final lines = [
-      for (final l in cart) PendingLine(productId: l.product.id, name: l.product.name, quantity: l.quantity),
+      for (final l in cart)
+        PendingLine(
+          productId: l.product.id,
+          name: l.product.name,
+          quantity: l.quantity,
+        ),
     ];
     try {
       final data = await _ref.read(apiClientProvider).post('/v1/sales', {
         'id': id,
         'occurredAt': now.toUtc().toIso8601String(),
-        'lines': [for (final l in lines) {'productId': l.productId, 'quantity': l.quantity}],
+        'lines': [
+          for (final l in lines)
+            {'productId': l.productId, 'quantity': l.quantity},
+        ],
       }) as Json;
       return SaleRecorded(Sale.fromJson(data));
     } on ApiException catch (error) {
@@ -63,19 +71,54 @@ class SalesRepository {
     }
   }
 
-  Future<SalesPage> list({String? cursor, String? from, String? to, String? pdvId, String? sellerId, String? regionId}) async {
-    final data = await _ref.read(apiClientProvider).get('/v1/sales', query: {
-      'cursor': cursor, 'limit': 30, 'from': from, 'to': to, 'pdvId': pdvId, 'sellerId': sellerId, 'regionId': regionId,
-    }) as Json;
-    return SalesPage(data.list('items').map(Sale.fromJson).toList(), data.strOrNull('nextCursor'));
+  Future<SalesPage> list({
+    String? cursor,
+    String? from,
+    String? to,
+    String? pdvId,
+    String? sellerId,
+    String? regionId,
+  }) async {
+    final data =
+        await _ref
+                .read(apiClientProvider)
+                .get(
+                  '/v1/sales',
+                  query: {
+                    'cursor': cursor,
+                    'limit': 30,
+                    'from': from,
+                    'to': to,
+                    'pdvId': pdvId,
+                    'sellerId': sellerId,
+                    'regionId': regionId,
+                  },
+                )
+            as Json;
+    return SalesPage(
+      data.list('items').map(Sale.fromJson).toList(),
+      data.strOrNull('nextCursor'),
+    );
   }
 
-  Future<Sale> get(String id) async => Sale.fromJson(await _ref.read(apiClientProvider).get('/v1/sales/$id') as Json);
+  Future<Sale> get(String id) async => Sale.fromJson(
+    await _ref.read(apiClientProvider).get('/v1/sales/$id') as Json,
+  );
 
-  Future<Sale> correct(String id, {required String reason, required List<Map<String, Object>> lines}) async =>
-      Sale.fromJson(await _ref.read(apiClientProvider).post('/v1/sales/$id/correct', {'reason': reason, 'lines': lines}) as Json);
+  Future<Sale> correct(
+    String id, {
+    required String reason,
+    required List<Map<String, Object>> lines,
+  }) async => Sale.fromJson(
+    await _ref.read(apiClientProvider).post('/v1/sales/$id/correct', {
+      'reason': reason,
+      'lines': lines,
+    }) as Json,
+  );
 }
 
 final salesRepositoryProvider = Provider<SalesRepository>(SalesRepository.new);
 
-final saleProvider = FutureProvider.autoDispose.family<Sale, String>((ref, id) => ref.watch(salesRepositoryProvider).get(id));
+final saleProvider = FutureProvider.autoDispose.family<Sale, String>(
+  (ref, id) => ref.watch(salesRepositoryProvider).get(id),
+);

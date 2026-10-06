@@ -17,18 +17,18 @@ class AppNotification {
   });
 
   factory AppNotification.fromJson(Json j) => AppNotification(
-        id: j.str('id'),
-        kind: j.str('kind'),
-        key: j.strOrNull('key'),
-        params: j.obj('params'),
-        title: j.strOrNull('title'),
-        body: j.strOrNull('body'),
-        pinned: j.flag('pinned'),
-        entityType: j.strOrNull('entityType'),
-        entityId: j.strOrNull('entityId'),
-        readAt: j.dateOrNull('readAt'),
-        createdAt: j.date('createdAt'),
-      );
+    id: j.str('id'),
+    kind: j.str('kind'),
+    key: j.strOrNull('key'),
+    params: j.obj('params'),
+    title: j.strOrNull('title'),
+    body: j.strOrNull('body'),
+    pinned: j.flag('pinned'),
+    entityType: j.strOrNull('entityType'),
+    entityId: j.strOrNull('entityId'),
+    readAt: j.dateOrNull('readAt'),
+    createdAt: j.date('createdAt'),
+  );
 
   final String id;
 
@@ -48,18 +48,25 @@ class AppNotification {
   bool get unread => readAt == null;
 
   /// The headline in the person's language.
-  String headline(String locale) => isMessage ? (title ?? '') : ServerText.notification(locale, key ?? '', params, fallback: title);
+  String headline(String locale) => isMessage
+      ? (title ?? '')
+      : ServerText.notification(locale, key ?? '', params, fallback: title);
 }
 
 class NotificationsPage {
-  const NotificationsPage({required this.items, required this.pinned, required this.unread, this.nextCursor});
+  const NotificationsPage({
+    required this.items,
+    required this.pinned,
+    required this.unread,
+    this.nextCursor,
+  });
 
   factory NotificationsPage.fromJson(Json j) => NotificationsPage(
-        items: j.list('items').map(AppNotification.fromJson).toList(),
-        pinned: j.list('pinned').map(AppNotification.fromJson).toList(),
-        unread: j.integer('unread'),
-        nextCursor: j.strOrNull('nextCursor'),
-      );
+    items: j.list('items').map(AppNotification.fromJson).toList(),
+    pinned: j.list('pinned').map(AppNotification.fromJson).toList(),
+    unread: j.integer('unread'),
+    nextCursor: j.strOrNull('nextCursor'),
+  );
 
   final List<AppNotification> items;
   final List<AppNotification> pinned;

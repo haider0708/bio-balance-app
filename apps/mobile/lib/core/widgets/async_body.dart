@@ -30,7 +30,9 @@ class AsyncBody<T> extends StatelessWidget {
       skipLoadingOnReload: true,
       loading: () => const LoadingState(),
       error: (error, _) => ErrorState(error: error, onRetry: onRetry),
-      data: (data) => isEmpty?.call(data) == true ? (empty ?? const SizedBox.shrink()) : builder(data),
+      data: (data) => isEmpty?.call(data) == true
+          ? (empty ?? const SizedBox.shrink())
+          : builder(data),
     );
   }
 }

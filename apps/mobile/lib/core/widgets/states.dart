@@ -9,8 +9,12 @@ class LoadingState extends StatelessWidget {
   const LoadingState({super.key});
 
   @override
-  Widget build(BuildContext context) =>
-      const Center(child: Padding(padding: EdgeInsets.all(32), child: CircularProgressIndicator()));
+  Widget build(BuildContext context) => const Center(
+    child: Padding(
+      padding: EdgeInsets.all(32),
+      child: CircularProgressIndicator(),
+    ),
+  );
 }
 
 class EmptyState extends StatelessWidget {
@@ -38,16 +42,25 @@ class EmptyState extends StatelessWidget {
             Container(
               width: 72,
               height: 72,
-              decoration: BoxDecoration(color: context.colors.primaryContainer, shape: BoxShape.circle),
+              decoration: BoxDecoration(
+                color: context.colors.primaryContainer,
+                shape: BoxShape.circle,
+              ),
               child: Icon(icon, size: 32, color: context.colors.primary),
             ),
             const SizedBox(height: 20),
-            Text(title, style: context.text.titleMedium, textAlign: TextAlign.center),
+            Text(
+              title,
+              style: context.text.titleMedium,
+              textAlign: TextAlign.center,
+            ),
             if (message != null) ...[
               const SizedBox(height: 8),
               Text(
                 message!,
-                style: context.text.bodyMedium?.copyWith(color: context.status.muted),
+                style: context.text.bodyMedium?.copyWith(
+                  color: context.status.muted,
+                ),
                 textAlign: TextAlign.center,
               ),
             ],

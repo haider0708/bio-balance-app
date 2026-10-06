@@ -18,10 +18,12 @@ class CatalogRepository {
   Future<List<Product>> products({bool includeInactive = false}) async {
     final prefs = await _ref.read(preferencesProvider.future);
     try {
-      final data = await _ref.read(apiClientProvider).get(
-        '/v1/products',
-        query: {'includeInactive': includeInactive ? 'true' : null},
-      );
+      final data = await _ref
+          .read(apiClientProvider)
+          .get(
+            '/v1/products',
+            query: {'includeInactive': includeInactive ? 'true' : null},
+          );
       if (!includeInactive) await prefs.setString(_cacheKey, jsonEncode(data));
       return jsonList(data).map(Product.fromJson).toList();
     } on ApiException catch (error) {
@@ -33,17 +35,23 @@ class CatalogRepository {
     }
   }
 
-  Future<Product> create(Json body) async =>
-      Product.fromJson(await _ref.read(apiClientProvider).post('/v1/products', body) as Json);
+  Future<Product> create(Json body) async => Product.fromJson(
+    await _ref.read(apiClientProvider).post('/v1/products', body) as Json,
+  );
 
-  Future<Product> update(String id, Json body) async =>
-      Product.fromJson(await _ref.read(apiClientProvider).patch('/v1/products/$id', body) as Json);
+  Future<Product> update(String id, Json body) async => Product.fromJson(
+    await _ref.read(apiClientProvider).patch('/v1/products/$id', body) as Json,
+  );
 
-  Future<Product> byBarcode(String code) async =>
-      Product.fromJson(await _ref.read(apiClientProvider).get('/v1/products/barcode/$code') as Json);
+  Future<Product> byBarcode(String code) async => Product.fromJson(
+    await _ref.read(apiClientProvider).get('/v1/products/barcode/$code')
+        as Json,
+  );
 }
 
-final catalogRepositoryProvider = Provider<CatalogRepository>(CatalogRepository.new);
+final catalogRepositoryProvider = Provider<CatalogRepository>(
+  CatalogRepository.new,
+);
 
 final productsProvider = FutureProvider<List<Product>>(
   (ref) => ref.watch(catalogRepositoryProvider).products(),

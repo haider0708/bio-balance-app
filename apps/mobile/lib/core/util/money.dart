@@ -4,7 +4,12 @@ import 'package:intl/intl.dart';
 class Money {
   const Money._();
 
-  static String format(int millimes, String locale, {bool unit = true, bool sign = false}) {
+  static String format(
+    int millimes,
+    String locale, {
+    bool unit = true,
+    bool sign = false,
+  }) {
     final formatter = NumberFormat('#,##0.000', locale);
     final text = formatter.format(millimes.abs() / 1000);
     final prefix = millimes < 0 ? '−' : (sign && millimes > 0 ? '+' : '');

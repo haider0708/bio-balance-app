@@ -31,13 +31,24 @@ class CoursesScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text(t.trainingTitle),
-        actions: [if (me.role == Role.admin) IconButton(tooltip: t.manageTraining, onPressed: () => context.push('/training/manage'), icon: const Icon(LucideIcons.settings2))],
+        actions: [
+          if (me.role == Role.admin)
+            IconButton(
+              tooltip: t.manageTraining,
+              onPressed: () => context.push('/training/manage'),
+              icon: const Icon(LucideIcons.settings2),
+            ),
+        ],
       ),
       body: AsyncBody(
         value: courses,
         onRetry: () => ref.invalidate(coursesProvider),
         isEmpty: (list) => list.where((c) => c.published).isEmpty,
-        empty: EmptyState(icon: LucideIcons.graduationCap, title: t.noCourses, message: t.noCoursesHint),
+        empty: EmptyState(
+          icon: LucideIcons.graduationCap,
+          title: t.noCourses,
+          message: t.noCoursesHint,
+        ),
         builder: (list) => RefreshIndicator(
           onRefresh: () async {
             ref.invalidate(coursesProvider);
@@ -46,7 +57,14 @@ class CoursesScreen extends ConsumerWidget {
           child: ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              for (final c in list.where((c) => c.published)) Padding(padding: const EdgeInsets.only(bottom: 12), child: CourseCard(course: c, onTap: () => context.push('/training/${c.id}'))),
+              for (final c in list.where((c) => c.published))
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: CourseCard(
+                    course: c,
+                    onTap: () => context.push('/training/${c.id}'),
+                  ),
+                ),
             ],
           ),
         ),
@@ -56,7 +74,12 @@ class CoursesScreen extends ConsumerWidget {
 }
 
 class CourseCard extends StatelessWidget {
-  const CourseCard({required this.course, required this.onTap, this.showStatus = false, super.key});
+  const CourseCard({
+    required this.course,
+    required this.onTap,
+    this.showStatus = false,
+    super.key,
+  });
 
   final Course course;
   final VoidCallback onTap;
@@ -71,7 +94,13 @@ class CourseCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (course.coverId != null) AuthImage(course.coverId, height: 130, width: double.infinity, radius: 14),
+          if (course.coverId != null)
+            AuthImage(
+              course.coverId,
+              height: 130,
+              width: double.infinity,
+              radius: 14,
+            ),
           Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
@@ -79,16 +108,52 @@ class CourseCard extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    Expanded(child: Text(course.title, style: context.text.titleMedium)),
-                    if (showStatus) StatusChip(course.published ? t.published : t.draft, tone: course.published ? Tone.success : Tone.muted),
-                    if (!showStatus && course.done) StatusChip(t.completed, tone: Tone.success, icon: LucideIcons.check),
+                    Expanded(
+                      child: Text(
+                        course.title,
+                        style: context.text.titleMedium,
+                      ),
+                    ),
+                    if (showStatus)
+                      StatusChip(
+                        course.published ? t.published : t.draft,
+                        tone: course.published ? Tone.success : Tone.muted,
+                      ),
+                    if (!showStatus && course.done)
+                      StatusChip(
+                        t.completed,
+                        tone: Tone.success,
+                        icon: LucideIcons.check,
+                      ),
                   ],
                 ),
-                if (course.summary.isNotEmpty) ...[const Gap(4), Text(course.summary, style: context.text.bodyMedium?.copyWith(color: context.status.muted), maxLines: 2, overflow: TextOverflow.ellipsis)],
+                if (course.summary.isNotEmpty) ...[
+                  const Gap(4),
+                  Text(
+                    course.summary,
+                    style: context.text.bodyMedium?.copyWith(
+                      color: context.status.muted,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
                 const Gap(12),
-                ClipRRect(borderRadius: BorderRadius.circular(6), child: LinearProgressIndicator(value: course.progress, minHeight: 6, backgroundColor: context.status.mutedSoft)),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(6),
+                  child: LinearProgressIndicator(
+                    value: course.progress,
+                    minHeight: 6,
+                    backgroundColor: context.status.mutedSoft,
+                  ),
+                ),
                 const Gap(8),
-                Text('${t.lessonsDone(course.completedCount, course.lessonCount)}${course.minutes > 0 ? ' · ${t.minutes(course.minutes)}' : ''}', style: context.text.bodySmall?.copyWith(color: context.status.muted)),
+                Text(
+                  '${t.lessonsDone(course.completedCount, course.lessonCount)}${course.minutes > 0 ? ' · ${t.minutes(course.minutes)}' : ''}',
+                  style: context.text.bodySmall?.copyWith(
+                    color: context.status.muted,
+                  ),
+                ),
               ],
             ),
           ),
@@ -108,21 +173,26 @@ class CourseScreen extends ConsumerWidget {
     final t = AppLocalizations.of(context);
     final detail = ref.watch(courseProvider(courseId));
     return Scaffold(
-      appBar: AppBar(title: Text(detail.value?.course.title ?? t.trainingTitle)),
+      appBar: AppBar(
+        title: Text(detail.value?.course.title ?? t.trainingTitle),
+      ),
       body: AsyncBody(
         value: detail,
         onRetry: () => ref.invalidate(courseProvider(courseId)),
         builder: (d) => ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            if (d.course.summary.isNotEmpty) Text(d.course.summary, style: context.text.bodyLarge),
+            if (d.course.summary.isNotEmpty)
+              Text(d.course.summary, style: context.text.bodyLarge),
             const Gap(8),
             for (final lesson in d.lessons)
               Padding(
                 padding: const EdgeInsets.only(top: 8),
                 child: AppCard(
                   onTap: () async {
-                    await context.push('/training/$courseId/lessons/${lesson.id}');
+                    await context.push(
+                      '/training/$courseId/lessons/${lesson.id}',
+                    );
                     ref.invalidate(courseProvider(courseId));
                     ref.invalidate(coursesProvider);
                   },
@@ -131,8 +201,17 @@ class CourseScreen extends ConsumerWidget {
                       Container(
                         width: 40,
                         height: 40,
-                        decoration: BoxDecoration(color: lesson.done ? context.status.successSoft : context.colors.primaryContainer, borderRadius: BorderRadius.circular(12)),
-                        child: Icon(lesson.done ? LucideIcons.check : _icon(lesson.kind), size: 20, color: context.colors.primary),
+                        decoration: BoxDecoration(
+                          color: lesson.done
+                              ? context.status.successSoft
+                              : context.colors.primaryContainer,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Icon(
+                          lesson.done ? LucideIcons.check : _icon(lesson.kind),
+                          size: 20,
+                          color: context.colors.primary,
+                        ),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
@@ -140,11 +219,24 @@ class CourseScreen extends ConsumerWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(lesson.title, style: context.text.titleSmall),
-                            Text([_kind(t, lesson.kind), if (lesson.minutes != null) t.minutes(lesson.minutes!)].join(' · '), style: context.text.bodySmall?.copyWith(color: context.status.muted)),
+                            Text(
+                              [
+                                _kind(t, lesson.kind),
+                                if (lesson.minutes != null)
+                                  t.minutes(lesson.minutes!),
+                              ].join(' · '),
+                              style: context.text.bodySmall?.copyWith(
+                                color: context.status.muted,
+                              ),
+                            ),
                           ],
                         ),
                       ),
-                      Icon(LucideIcons.chevronRight, size: 18, color: context.status.muted),
+                      Icon(
+                        LucideIcons.chevronRight,
+                        size: 18,
+                        color: context.status.muted,
+                      ),
                     ],
                   ),
                 ),
@@ -157,19 +249,23 @@ class CourseScreen extends ConsumerWidget {
 }
 
 IconData _icon(LessonKind k) => switch (k) {
-      LessonKind.article => LucideIcons.fileText,
-      LessonKind.video => LucideIcons.circlePlay,
-      LessonKind.pdf => LucideIcons.fileDown,
-    };
+  LessonKind.article => LucideIcons.fileText,
+  LessonKind.video => LucideIcons.circlePlay,
+  LessonKind.pdf => LucideIcons.fileDown,
+};
 
 String _kind(AppLocalizations t, LessonKind k) => switch (k) {
-      LessonKind.article => t.lessonArticle,
-      LessonKind.video => t.lessonVideo,
-      LessonKind.pdf => t.lessonPdf,
-    };
+  LessonKind.article => t.lessonArticle,
+  LessonKind.video => t.lessonVideo,
+  LessonKind.pdf => t.lessonPdf,
+};
 
 class LessonScreen extends ConsumerWidget {
-  const LessonScreen({required this.courseId, required this.lessonId, super.key});
+  const LessonScreen({
+    required this.courseId,
+    required this.lessonId,
+    super.key,
+  });
 
   final String courseId;
   final String lessonId;
@@ -186,16 +282,25 @@ class LessonScreen extends ConsumerWidget {
         onRetry: () => ref.invalidate(courseProvider(courseId)),
         builder: (d) {
           final index = d.lessons.indexWhere((l) => l.id == lessonId);
-          if (index < 0) return EmptyState(icon: LucideIcons.fileQuestionMark, title: t.errorGeneric);
+          if (index < 0)
+            return EmptyState(
+              icon: LucideIcons.fileQuestionMark,
+              title: t.errorGeneric,
+            );
           final lesson = d.lessons[index];
-          final next = index + 1 < d.lessons.length ? d.lessons[index + 1] : null;
+          final next = index + 1 < d.lessons.length
+              ? d.lessons[index + 1]
+              : null;
           return ListView(
             padding: const EdgeInsets.all(16),
             children: [
               Text(lesson.title, style: context.text.headlineSmall),
               const Gap(16),
               switch (lesson.kind) {
-                LessonKind.article => SelectableText(lesson.body, style: context.text.bodyLarge?.copyWith(height: 1.6)),
+                LessonKind.article => SelectableText(
+                  lesson.body,
+                  style: context.text.bodyLarge?.copyWith(height: 1.6),
+                ),
                 LessonKind.video => _Video(lesson: lesson),
                 LessonKind.pdf => _Pdf(lesson: lesson),
               },
@@ -204,12 +309,22 @@ class LessonScreen extends ConsumerWidget {
                 AsyncButton(
                   label: lesson.done ? t.markNotDone : t.markDone,
                   icon: lesson.done ? LucideIcons.undo2 : LucideIcons.check,
-                  style: lesson.done ? AsyncButtonStyle.outlined : AsyncButtonStyle.filled,
+                  style: lesson.done
+                      ? AsyncButtonStyle.outlined
+                      : AsyncButtonStyle.filled,
                   onPressed: () async {
-                    final ok = await perform(context, () => ref.read(trainingRepositoryProvider).setLessonDone(lesson.id, !lesson.done));
+                    final ok = await perform(
+                      context,
+                      () => ref
+                          .read(trainingRepositoryProvider)
+                          .setLessonDone(lesson.id, !lesson.done),
+                    );
                     if (!ok) return;
                     ref.invalidate(courseProvider(courseId));
-                    if (!lesson.done && next != null && context.mounted) context.pushReplacement('/training/$courseId/lessons/${next.id}');
+                    if (!lesson.done && next != null && context.mounted)
+                      context.pushReplacement(
+                        '/training/$courseId/lessons/${next.id}',
+                      );
                   },
                 ),
             ],
@@ -243,11 +358,14 @@ class _VideoState extends ConsumerState<_Video> {
         httpHeaders: {'Authorization': 'Bearer ${ref.read(tokenProvider)}'},
       );
       _controller = controller;
-      controller.initialize().then((_) {
-        if (mounted) setState(() {});
-      }).catchError((Object e) {
-        if (mounted) setState(() => _error = e);
-      });
+      controller
+          .initialize()
+          .then((_) {
+            if (mounted) setState(() {});
+          })
+          .catchError((Object e) {
+            if (mounted) setState(() => _error = e);
+          });
     }
   }
 
@@ -263,19 +381,28 @@ class _VideoState extends ConsumerState<_Video> {
     final url = widget.lesson.videoUrl;
     if (_controller == null) {
       return FilledButton.icon(
-        onPressed: url == null ? null : () => launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication),
+        onPressed: url == null
+            ? null
+            : () => launchUrl(
+                Uri.parse(url),
+                mode: LaunchMode.externalApplication,
+              ),
         icon: const Icon(LucideIcons.externalLink),
         label: Text(t.openVideo),
       );
     }
     final c = _controller!;
     if (_error != null) return Text(t.videoUnavailable);
-    if (!c.value.isInitialized) return const AspectRatio(aspectRatio: 16 / 9, child: LoadingState());
+    if (!c.value.isInitialized)
+      return const AspectRatio(aspectRatio: 16 / 9, child: LoadingState());
     return Column(
       children: [
         ClipRRect(
           borderRadius: BorderRadius.circular(14),
-          child: AspectRatio(aspectRatio: c.value.aspectRatio, child: VideoPlayer(c)),
+          child: AspectRatio(
+            aspectRatio: c.value.aspectRatio,
+            child: VideoPlayer(c),
+          ),
         ),
         const Gap(8),
         VideoProgressIndicator(c, allowScrubbing: true),
@@ -309,9 +436,12 @@ class _Pdf extends ConsumerWidget {
               await perform(context, () async {
                 final dir = await getTemporaryDirectory();
                 final path = '${dir.path}/${lesson.id}.pdf';
-                await ref.read(mediaRepositoryProvider).download(lesson.mediaId!, path);
+                await ref
+                    .read(mediaRepositoryProvider)
+                    .download(lesson.mediaId!, path);
                 final result = await OpenFilex.open(path);
-                if (result.type != ResultType.done) throw StateError('no viewer');
+                if (result.type != ResultType.done)
+                  throw StateError('no viewer');
               });
             },
     );

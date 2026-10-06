@@ -34,7 +34,11 @@ class AppCard extends StatelessWidget {
     if (onTap == null) return card;
     return Material(
       color: Colors.transparent,
-      child: InkWell(borderRadius: BorderRadius.circular(14), onTap: onTap, child: card),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(14),
+        onTap: onTap,
+        child: card,
+      ),
     );
   }
 }
@@ -94,7 +98,10 @@ class StatTile extends StatelessWidget {
               if (icon != null) ...[
                 Container(
                   padding: const EdgeInsets.all(6),
-                  decoration: BoxDecoration(color: colors.soft, borderRadius: BorderRadius.circular(8)),
+                  decoration: BoxDecoration(
+                    color: colors.soft,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                   child: Icon(icon, size: 16, color: colors.strong),
                 ),
                 const SizedBox(width: 8),
@@ -102,7 +109,9 @@ class StatTile extends StatelessWidget {
               Expanded(
                 child: Text(
                   label,
-                  style: context.text.bodySmall?.copyWith(color: context.status.muted),
+                  style: context.text.bodySmall?.copyWith(
+                    color: context.status.muted,
+                  ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -113,11 +122,23 @@ class StatTile extends StatelessWidget {
           FittedBox(
             fit: BoxFit.scaleDown,
             alignment: AlignmentDirectional.centerStart,
-            child: Text(value, style: context.text.headlineSmall?.copyWith(color: tone == Tone.neutral ? null : colors.strong)),
+            child: Text(
+              value,
+              style: context.text.headlineSmall?.copyWith(
+                color: tone == Tone.neutral ? null : colors.strong,
+              ),
+            ),
           ),
           if (hint != null) ...[
             const SizedBox(height: 2),
-            Text(hint!, style: context.text.bodySmall?.copyWith(color: context.status.muted), maxLines: 1, overflow: TextOverflow.ellipsis),
+            Text(
+              hint!,
+              style: context.text.bodySmall?.copyWith(
+                color: context.status.muted,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
           ],
         ],
       ),
@@ -141,7 +162,10 @@ enum Tone {
       Tone.danger => (strong: s.danger, soft: s.dangerSoft),
       Tone.info => (strong: s.info, soft: s.infoSoft),
       Tone.muted => (strong: s.muted, soft: s.mutedSoft),
-      Tone.neutral => (strong: context.colors.primary, soft: context.colors.primaryContainer),
+      Tone.neutral => (
+        strong: context.colors.primary,
+        soft: context.colors.primaryContainer,
+      ),
     };
   }
 }
@@ -159,15 +183,24 @@ class StatusChip extends StatelessWidget {
     final c = tone.colors(context);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(color: c.soft, borderRadius: BorderRadius.circular(999)),
+      decoration: BoxDecoration(
+        color: c.soft,
+        borderRadius: BorderRadius.circular(999),
+      ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (icon != null) ...[Icon(icon, size: 13, color: c.strong), const SizedBox(width: 4)],
+          if (icon != null) ...[
+            Icon(icon, size: 13, color: c.strong),
+            const SizedBox(width: 4),
+          ],
           Flexible(
             child: Text(
               label,
-              style: context.text.labelSmall?.copyWith(color: c.strong, fontWeight: FontWeight.w700),
+              style: context.text.labelSmall?.copyWith(
+                color: c.strong,
+                fontWeight: FontWeight.w700,
+              ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
@@ -179,7 +212,12 @@ class StatusChip extends StatelessWidget {
 }
 
 class Avatar extends StatelessWidget {
-  const Avatar(this.initials, {this.size = 44, this.tone = Tone.neutral, super.key});
+  const Avatar(
+    this.initials, {
+    this.size = 44,
+    this.tone = Tone.neutral,
+    super.key,
+  });
 
   final String initials;
   final double size;
@@ -193,7 +231,14 @@ class Avatar extends StatelessWidget {
       height: size,
       alignment: Alignment.center,
       decoration: BoxDecoration(color: c.soft, shape: BoxShape.circle),
-      child: Text(initials, style: TextStyle(color: c.strong, fontWeight: FontWeight.w700, fontSize: size * 0.36)),
+      child: Text(
+        initials,
+        style: TextStyle(
+          color: c.strong,
+          fontWeight: FontWeight.w700,
+          fontSize: size * 0.36,
+        ),
+      ),
     );
   }
 }
@@ -212,8 +257,25 @@ class InfoRow extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(flex: 4, child: Text(label, style: context.text.bodyMedium?.copyWith(color: context.status.muted))),
-          Expanded(flex: 6, child: Text(value, style: context.text.bodyMedium?.copyWith(fontWeight: FontWeight.w600), textAlign: TextAlign.end)),
+          Expanded(
+            flex: 4,
+            child: Text(
+              label,
+              style: context.text.bodyMedium?.copyWith(
+                color: context.status.muted,
+              ),
+            ),
+          ),
+          Expanded(
+            flex: 6,
+            child: Text(
+              value,
+              style: context.text.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+              textAlign: TextAlign.end,
+            ),
+          ),
         ],
       ),
     );
@@ -260,29 +322,46 @@ class _AsyncButtonState extends State<AsyncButton> {
   Widget build(BuildContext context) {
     final onPressed = widget.onPressed == null || _busy ? null : _run;
     final child = _busy
-        ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2.5))
+        ? const SizedBox(
+            width: 22,
+            height: 22,
+            child: CircularProgressIndicator(strokeWidth: 2.5),
+          )
         : Row(
             mainAxisSize: MainAxisSize.min,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              if (widget.icon != null) ...[Icon(widget.icon, size: 20), const SizedBox(width: 8)],
-              Flexible(child: Text(widget.label, overflow: TextOverflow.ellipsis)),
+              if (widget.icon != null) ...[
+                Icon(widget.icon, size: 20),
+                const SizedBox(width: 8),
+              ],
+              Flexible(
+                child: Text(widget.label, overflow: TextOverflow.ellipsis),
+              ),
             ],
           );
     final button = switch (widget.style) {
-      AsyncButtonStyle.filled => FilledButton(onPressed: onPressed, child: child),
-      AsyncButtonStyle.outlined => OutlinedButton(onPressed: onPressed, child: child),
+      AsyncButtonStyle.filled => FilledButton(
+        onPressed: onPressed,
+        child: child,
+      ),
+      AsyncButtonStyle.outlined => OutlinedButton(
+        onPressed: onPressed,
+        child: child,
+      ),
       AsyncButtonStyle.text => TextButton(onPressed: onPressed, child: child),
       AsyncButtonStyle.danger => FilledButton(
-          onPressed: onPressed,
-          style: FilledButton.styleFrom(
-            backgroundColor: context.status.danger,
-            foregroundColor: context.colors.surface,
-          ),
-          child: child,
+        onPressed: onPressed,
+        style: FilledButton.styleFrom(
+          backgroundColor: context.status.danger,
+          foregroundColor: context.colors.surface,
         ),
+        child: child,
+      ),
     };
-    return widget.expanded ? SizedBox(width: double.infinity, child: button) : button;
+    return widget.expanded
+        ? SizedBox(width: double.infinity, child: button)
+        : button;
   }
 }
 

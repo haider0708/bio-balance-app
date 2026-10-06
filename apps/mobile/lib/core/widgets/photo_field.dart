@@ -52,7 +52,9 @@ class _PhotoFieldState extends ConsumerState<PhotoField> {
     });
     widget.onChanged(null);
     try {
-      final id = await ref.read(mediaRepositoryProvider).upload(bytes, purpose: widget.purpose);
+      final id = await ref
+          .read(mediaRepositoryProvider)
+          .upload(bytes, purpose: widget.purpose);
       if (!mounted) return;
       setState(() => _id = id);
       widget.onChanged(id);
@@ -107,23 +109,38 @@ class _PhotoFieldState extends ConsumerState<PhotoField> {
           decoration: BoxDecoration(
             color: context.colors.surfaceContainerLow,
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: _id != null ? context.status.success : context.colors.outlineVariant, width: _id != null ? 2 : 1),
+            border: Border.all(
+              color: _id != null
+                  ? context.status.success
+                  : context.colors.outlineVariant,
+              width: _id != null ? 2 : 1,
+            ),
           ),
           clipBehavior: Clip.antiAlias,
           child: Stack(
             fit: StackFit.expand,
             children: [
               if (_preview != null) Image.memory(_preview!, fit: BoxFit.cover),
-              if (_preview == null && widget.initialId != null) AuthImage(widget.initialId, radius: 0),
+              if (_preview == null && widget.initialId != null)
+                AuthImage(widget.initialId, radius: 0),
               if (!hasPhoto)
                 Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(LucideIcons.camera, size: 36, color: context.colors.primary),
+                    Icon(
+                      LucideIcons.camera,
+                      size: 36,
+                      color: context.colors.primary,
+                    ),
                     const Gap(10),
                     Text(widget.label, style: context.text.titleSmall),
                     const Gap(2),
-                    Text(t.photoHint, style: context.text.bodySmall?.copyWith(color: context.status.muted)),
+                    Text(
+                      t.photoHint,
+                      style: context.text.bodySmall?.copyWith(
+                        color: context.status.muted,
+                      ),
+                    ),
                   ],
                 ),
               if (_uploading)
@@ -135,7 +152,10 @@ class _PhotoFieldState extends ConsumerState<PhotoField> {
                       children: [
                         const CircularProgressIndicator(color: Colors.white),
                         const Gap(10),
-                        Text(t.photoUploading, style: const TextStyle(color: Colors.white)),
+                        Text(
+                          t.photoUploading,
+                          style: const TextStyle(color: Colors.white),
+                        ),
                       ],
                     ),
                   ),
@@ -144,7 +164,13 @@ class _PhotoFieldState extends ConsumerState<PhotoField> {
                 Positioned(
                   right: 10,
                   bottom: 10,
-                  child: StatusChip(_id != null ? t.photoReady : t.photoRetake, tone: _id != null ? Tone.success : Tone.muted, icon: _id != null ? LucideIcons.check : LucideIcons.refreshCw),
+                  child: StatusChip(
+                    _id != null ? t.photoReady : t.photoRetake,
+                    tone: _id != null ? Tone.success : Tone.muted,
+                    icon: _id != null
+                        ? LucideIcons.check
+                        : LucideIcons.refreshCw,
+                  ),
                 ),
             ],
           ),

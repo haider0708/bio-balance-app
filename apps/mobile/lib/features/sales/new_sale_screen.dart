@@ -30,7 +30,9 @@ class _NewSaleScreenState extends ConsumerState<NewSaleScreen> {
 
   int get _units => _cart.values.fold(0, (a, b) => a + b);
 
-  void _set(Product p, int quantity) => setState(() => quantity <= 0 ? _cart.remove(p.id) : _cart[p.id] = quantity);
+  void _set(Product p, int quantity) => setState(
+    () => quantity <= 0 ? _cart.remove(p.id) : _cart[p.id] = quantity,
+  );
 
   Future<void> _scan(List<Product> products) async {
     final t = AppLocalizations.of(context);
@@ -46,14 +48,18 @@ class _NewSaleScreenState extends ConsumerState<NewSaleScreen> {
   }
 
   Future<void> _review(List<Product> products) async {
-    final lines = [for (final e in _cart.entries) CartLine(products.firstWhere((p) => p.id == e.key), e.value)];
+    final lines = [
+      for (final e in _cart.entries)
+        CartLine(products.firstWhere((p) => p.id == e.key), e.value),
+    ];
     final outcome = await showModalBottomSheet<SaleOutcome>(
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
       builder: (_) => _ReviewSheet(lines: lines, onChanged: _set),
     );
-    if (outcome != null && mounted) context.pushReplacement('/sale-done', extra: outcome);
+    if (outcome != null && mounted)
+      context.pushReplacement('/sale-done', extra: outcome);
   }
 
   @override
@@ -78,15 +84,24 @@ class _NewSaleScreenState extends ConsumerState<NewSaleScreen> {
           final families = {for (final p in all) p.family}.toList()..sort();
           final shown = all
               .where((p) => _family == null || p.family == _family)
-              .where((p) => _query.isEmpty || p.name.toLowerCase().contains(_query) || (p.barcode ?? '').contains(_query))
+              .where(
+                (p) =>
+                    _query.isEmpty ||
+                    p.name.toLowerCase().contains(_query) ||
+                    (p.barcode ?? '').contains(_query),
+              )
               .toList();
           return Column(
             children: [
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
                 child: TextField(
-                  decoration: InputDecoration(hintText: t.searchProducts, prefixIcon: const Icon(LucideIcons.search, size: 20)),
-                  onChanged: (v) => setState(() => _query = v.trim().toLowerCase()),
+                  decoration: InputDecoration(
+                    hintText: t.searchProducts,
+                    prefixIcon: const Icon(LucideIcons.search, size: 20),
+                  ),
+                  onChanged: (v) =>
+                      setState(() => _query = v.trim().toLowerCase()),
                 ),
               ),
               SizedBox(
@@ -97,24 +112,40 @@ class _NewSaleScreenState extends ConsumerState<NewSaleScreen> {
                   children: [
                     Padding(
                       padding: const EdgeInsetsDirectional.only(end: 8),
-                      child: ChoiceChip(label: Text(t.all), selected: _family == null, onSelected: (_) => setState(() => _family = null)),
+                      child: ChoiceChip(
+                        label: Text(t.all),
+                        selected: _family == null,
+                        onSelected: (_) => setState(() => _family = null),
+                      ),
                     ),
                     for (final f in families)
                       Padding(
                         padding: const EdgeInsetsDirectional.only(end: 8),
-                        child: ChoiceChip(label: Text(f), selected: _family == f, onSelected: (_) => setState(() => _family = _family == f ? null : f)),
+                        child: ChoiceChip(
+                          label: Text(f),
+                          selected: _family == f,
+                          onSelected: (_) =>
+                              setState(() => _family = _family == f ? null : f),
+                        ),
                       ),
                   ],
                 ),
               ),
               Expanded(
                 child: shown.isEmpty
-                    ? EmptyState(icon: LucideIcons.packageSearch, title: t.noProductsFound)
+                    ? EmptyState(
+                        icon: LucideIcons.packageSearch,
+                        title: t.noProductsFound,
+                      )
                     : ListView.separated(
                         padding: const EdgeInsets.fromLTRB(16, 8, 16, 120),
                         itemCount: shown.length,
                         separatorBuilder: (_, _) => const Gap(8),
-                        itemBuilder: (context, i) => _ProductTile(product: shown[i], quantity: _cart[shown[i].id] ?? 0, onChanged: (q) => _set(shown[i], q)),
+                        itemBuilder: (context, i) => _ProductTile(
+                          product: shown[i],
+                          quantity: _cart[shown[i].id] ?? 0,
+                          onChanged: (q) => _set(shown[i], q),
+                        ),
                       ),
               ),
               if (_cart.isNotEmpty)
@@ -138,7 +169,11 @@ class _NewSaleScreenState extends ConsumerState<NewSaleScreen> {
 }
 
 class _ProductTile extends StatelessWidget {
-  const _ProductTile({required this.product, required this.quantity, required this.onChanged});
+  const _ProductTile({
+    required this.product,
+    required this.quantity,
+    required this.onChanged,
+  });
 
   final Product product;
   final int quantity;
@@ -154,15 +189,31 @@ class _ProductTile extends StatelessWidget {
       onTap: picked ? null : () => onChanged(1),
       child: Row(
         children: [
-          AuthImage(product.imageId, width: 56, height: 56, radius: 12, placeholderIcon: LucideIcons.package),
+          AuthImage(
+            product.imageId,
+            width: 56,
+            height: 56,
+            radius: 12,
+            placeholderIcon: LucideIcons.package,
+          ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(product.name, style: context.text.titleSmall, maxLines: 2, overflow: TextOverflow.ellipsis),
+                Text(
+                  product.name,
+                  style: context.text.titleSmall,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
                 const SizedBox(height: 2),
-                Text(product.family, style: context.text.bodySmall?.copyWith(color: context.status.muted)),
+                Text(
+                  product.family,
+                  style: context.text.bodySmall?.copyWith(
+                    color: context.status.muted,
+                  ),
+                ),
               ],
             ),
           ),
@@ -176,7 +227,10 @@ class _ProductTile extends StatelessWidget {
               child: Container(
                 width: 44,
                 height: 44,
-                decoration: BoxDecoration(color: context.colors.primary, borderRadius: BorderRadius.circular(14)),
+                decoration: BoxDecoration(
+                  color: context.colors.primary,
+                  borderRadius: BorderRadius.circular(14),
+                ),
                 child: Icon(LucideIcons.plus, color: context.colors.onPrimary),
               ),
             ),
@@ -197,10 +251,16 @@ class _ReviewSheet extends ConsumerStatefulWidget {
 }
 
 class _ReviewSheetState extends ConsumerState<_ReviewSheet> {
-  late final Map<String, int> _quantities = {for (final l in widget.lines) l.product.id: l.quantity};
+  late final Map<String, int> _quantities = {
+    for (final l in widget.lines) l.product.id: l.quantity,
+  };
 
   Future<void> _confirm() async {
-    final lines = [for (final l in widget.lines) if ((_quantities[l.product.id] ?? 0) > 0) CartLine(l.product, _quantities[l.product.id]!)];
+    final lines = [
+      for (final l in widget.lines)
+        if ((_quantities[l.product.id] ?? 0) > 0)
+          CartLine(l.product, _quantities[l.product.id]!),
+    ];
     try {
       final outcome = await ref.read(salesRepositoryProvider).record(lines);
       if (mounted) Navigator.pop(context, outcome);
@@ -214,7 +274,12 @@ class _ReviewSheetState extends ConsumerState<_ReviewSheet> {
     final t = AppLocalizations.of(context);
     final units = _quantities.values.fold(0, (a, b) => a + b);
     return Padding(
-      padding: EdgeInsets.fromLTRB(16, 0, 16, 12 + MediaQuery.viewInsetsOf(context).bottom),
+      padding: EdgeInsets.fromLTRB(
+        16,
+        0,
+        16,
+        12 + MediaQuery.viewInsetsOf(context).bottom,
+      ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -230,7 +295,14 @@ class _ReviewSheetState extends ConsumerState<_ReviewSheet> {
                     padding: const EdgeInsets.symmetric(vertical: 6),
                     child: Row(
                       children: [
-                        Expanded(child: Text(l.product.name, style: context.text.bodyLarge, maxLines: 2, overflow: TextOverflow.ellipsis)),
+                        Expanded(
+                          child: Text(
+                            l.product.name,
+                            style: context.text.bodyLarge,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
                         QtyStepper(
                           value: _quantities[l.product.id] ?? 0,
                           onChanged: (q) {
@@ -245,9 +317,20 @@ class _ReviewSheetState extends ConsumerState<_ReviewSheet> {
             ),
           ),
           const Divider(height: 24),
-          Row(children: [Expanded(child: Text(t.totalUnits, style: context.text.titleMedium)), Text(t.units(units), style: context.text.titleMedium)]),
+          Row(
+            children: [
+              Expanded(
+                child: Text(t.totalUnits, style: context.text.titleMedium),
+              ),
+              Text(t.units(units), style: context.text.titleMedium),
+            ],
+          ),
           const Gap(16),
-          AsyncButton(label: t.recordSale, icon: LucideIcons.check, onPressed: units == 0 ? null : _confirm),
+          AsyncButton(
+            label: t.recordSale,
+            icon: LucideIcons.check,
+            onPressed: units == 0 ? null : _confirm,
+          ),
         ],
       ),
     );

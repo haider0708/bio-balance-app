@@ -15,17 +15,20 @@ class Course {
   });
 
   factory Course.fromJson(Json j) => Course(
-        id: j.str('id'),
-        title: j.str('title'),
-        summary: j.str('summary'),
-        coverId: j.strOrNull('coverId'),
-        published: j.str('status') == 'PUBLISHED',
-        lessonCount: j.integer('lessonCount'),
-        completedCount: j.integer('completedCount'),
-        minutes: j.integer('minutes'),
-        audienceRoles: ((j.obj('audience')['roles'] as List<dynamic>?) ?? const []).cast<String>(),
-        audienceRegions: ((j.obj('audience')['regionIds'] as List<dynamic>?) ?? const []).cast<String>(),
-      );
+    id: j.str('id'),
+    title: j.str('title'),
+    summary: j.str('summary'),
+    coverId: j.strOrNull('coverId'),
+    published: j.str('status') == 'PUBLISHED',
+    lessonCount: j.integer('lessonCount'),
+    completedCount: j.integer('completedCount'),
+    minutes: j.integer('minutes'),
+    audienceRoles: ((j.obj('audience')['roles'] as List<dynamic>?) ?? const [])
+        .cast<String>(),
+    audienceRegions:
+        ((j.obj('audience')['regionIds'] as List<dynamic>?) ?? const [])
+            .cast<String>(),
+  );
 
   final String id;
   final String title;
@@ -47,7 +50,10 @@ enum LessonKind {
   video,
   pdf;
 
-  static LessonKind parse(String v) => LessonKind.values.firstWhere((k) => k.name.toUpperCase() == v, orElse: () => LessonKind.article);
+  static LessonKind parse(String v) => LessonKind.values.firstWhere(
+    (k) => k.name.toUpperCase() == v,
+    orElse: () => LessonKind.article,
+  );
   String get wire => name.toUpperCase();
 }
 
@@ -65,16 +71,16 @@ class Lesson {
   });
 
   factory Lesson.fromJson(Json j) => Lesson(
-        id: j.str('id'),
-        position: j.integer('position'),
-        title: j.str('title'),
-        kind: LessonKind.parse(j.str('kind')),
-        body: j.str('body'),
-        mediaId: j.strOrNull('mediaId'),
-        videoUrl: j.strOrNull('videoUrl'),
-        minutes: j.integerOrNull('minutes'),
-        completedAt: j.dateOrNull('completedAt'),
-      );
+    id: j.str('id'),
+    position: j.integer('position'),
+    title: j.str('title'),
+    kind: LessonKind.parse(j.str('kind')),
+    body: j.str('body'),
+    mediaId: j.strOrNull('mediaId'),
+    videoUrl: j.strOrNull('videoUrl'),
+    minutes: j.integerOrNull('minutes'),
+    completedAt: j.dateOrNull('completedAt'),
+  );
 
   final String id;
   final int position;
@@ -105,8 +111,12 @@ class CourseDetail {
         lessonCount: lessons.length,
         completedCount: lessons.where((l) => l.done).length,
         minutes: lessons.fold(0, (s, l) => s + (l.minutes ?? 0)),
-        audienceRoles: ((j.obj('audience')['roles'] as List<dynamic>?) ?? const []).cast<String>(),
-        audienceRegions: ((j.obj('audience')['regionIds'] as List<dynamic>?) ?? const []).cast<String>(),
+        audienceRoles:
+            ((j.obj('audience')['roles'] as List<dynamic>?) ?? const [])
+                .cast<String>(),
+        audienceRegions:
+            ((j.obj('audience')['regionIds'] as List<dynamic>?) ?? const [])
+                .cast<String>(),
       ),
     );
   }
@@ -116,15 +126,21 @@ class CourseDetail {
 }
 
 class CourseProgressRow {
-  const CourseProgressRow({required this.userId, required this.name, required this.role, required this.completed, required this.total});
+  const CourseProgressRow({
+    required this.userId,
+    required this.name,
+    required this.role,
+    required this.completed,
+    required this.total,
+  });
 
   factory CourseProgressRow.fromJson(Json j) => CourseProgressRow(
-        userId: j.str('userId'),
-        name: j.str('name'),
-        role: j.str('role'),
-        completed: j.integer('completed'),
-        total: j.integer('total'),
-      );
+    userId: j.str('userId'),
+    name: j.str('name'),
+    role: j.str('role'),
+    completed: j.integer('completed'),
+    total: j.integer('total'),
+  );
 
   final String userId;
   final String name;
@@ -134,14 +150,19 @@ class CourseProgressRow {
 }
 
 class CourseProgress {
-  const CourseProgress({required this.total, required this.people, required this.finished, required this.rows});
+  const CourseProgress({
+    required this.total,
+    required this.people,
+    required this.finished,
+    required this.rows,
+  });
 
   factory CourseProgress.fromJson(Json j) => CourseProgress(
-        total: j.integer('total'),
-        people: j.integer('people'),
-        finished: j.integer('finished'),
-        rows: j.list('rows').map(CourseProgressRow.fromJson).toList(),
-      );
+    total: j.integer('total'),
+    people: j.integer('people'),
+    finished: j.integer('finished'),
+    rows: j.list('rows').map(CourseProgressRow.fromJson).toList(),
+  );
 
   final int total;
   final int people;

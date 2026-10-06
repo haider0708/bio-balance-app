@@ -13,12 +13,19 @@ const _storageKey = 'outbox.sales';
 
 /// Codes meaning "the server understood and said no": retrying would not help.
 const _final = {
-  'PDV_INACTIVE', 'PRODUCT_NOT_FOUND', 'INVALID_DATE', 'NO_LINES', 'VALIDATION', 'FORBIDDEN', 'DUPLICATE_PRODUCT',
+  'PDV_INACTIVE',
+  'PRODUCT_NOT_FOUND',
+  'INVALID_DATE',
+  'NO_LINES',
+  'VALIDATION',
+  'FORBIDDEN',
+  'DUPLICATE_PRODUCT',
 };
 
 /// Sales made without a connection. They wait here, on the phone, and are sent
 /// again (with the same id, so never twice) as soon as the server answers.
-class SalesOutbox extends Notifier<List<PendingSale>> with WidgetsBindingObserver {
+class SalesOutbox extends Notifier<List<PendingSale>>
+    with WidgetsBindingObserver {
   Timer? _timer;
   bool _flushing = false;
 
@@ -43,7 +50,10 @@ class SalesOutbox extends Notifier<List<PendingSale>> with WidgetsBindingObserve
 
   Future<void> _save() async {
     final prefs = await ref.read(preferencesProvider.future);
-    await prefs.setString(_storageKey, jsonEncode([for (final s in state) s.toJson()]));
+    await prefs.setString(
+      _storageKey,
+      jsonEncode([for (final s in state) s.toJson()]),
+    );
   }
 
   Future<void> add(PendingSale sale) async {
@@ -65,7 +75,11 @@ class SalesOutbox extends Notifier<List<PendingSale>> with WidgetsBindingObserve
 
   void _schedule() {
     _timer?.cancel();
-    if (state.any((s) => s.error == null)) _timer = Timer.periodic(const Duration(seconds: 30), (_) => unawaited(flush()));
+    if (state.any((s) => s.error == null))
+      _timer = Timer.periodic(
+        const Duration(seconds: 30),
+        (_) => unawaited(flush()),
+      );
   }
 
   /// Try to send everything waiting. Stops at the first connection problem.
@@ -78,13 +92,25 @@ class SalesOutbox extends Notifier<List<PendingSale>> with WidgetsBindingObserve
           await ref.read(apiClientProvider).post('/v1/sales', {
             'id': sale.id,
             'occurredAt': sale.occurredAt.toUtc().toIso8601String(),
-            'lines': [for (final l in sale.lines) {'productId': l.productId, 'quantity': l.quantity}],
+            'lines': [
+              for (final l in sale.lines)
+                {'productId': l.productId, 'quantity': l.quantity},
+            ],
           });
           state = state.where((s) => s.id != sale.id).toList();
         } on ApiException catch (error) {
-          if (error.isOffline || error.code == 'TIMEOUT' || (error.status ?? 0) >= 500 || error.isUnauthorized) break;
-          if (_final.contains(error.code) || error.status == 400 || error.status == 403) {
-            state = [for (final s in state) s.id == sale.id ? s.withError(error.code) : s];
+          if (error.isOffline ||
+              error.code == 'TIMEOUT' ||
+              (error.status ?? 0) >= 500 ||
+              error.isUnauthorized)
+            break;
+          if (_final.contains(error.code) ||
+              error.status == 400 ||
+              error.status == 403) {
+            state = [
+              for (final s in state)
+                s.id == sale.id ? s.withError(error.code) : s,
+            ];
           }
         }
       }
@@ -96,4 +122,6 @@ class SalesOutbox extends Notifier<List<PendingSale>> with WidgetsBindingObserve
   }
 }
 
-final salesOutboxProvider = NotifierProvider<SalesOutbox, List<PendingSale>>(SalesOutbox.new);
+final salesOutboxProvider = NotifierProvider<SalesOutbox, List<PendingSale>>(
+  SalesOutbox.new,
+);

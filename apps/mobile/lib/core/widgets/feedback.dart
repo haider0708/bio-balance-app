@@ -52,10 +52,15 @@ Future<bool> confirm(
       title: Text(title),
       content: message == null ? null : Text(message),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(context, false), child: Text(t.cancel)),
+        TextButton(
+          onPressed: () => Navigator.pop(context, false),
+          child: Text(t.cancel),
+        ),
         TextButton(
           onPressed: () => Navigator.pop(context, true),
-          style: destructive ? TextButton.styleFrom(foregroundColor: context.status.danger) : null,
+          style: destructive
+              ? TextButton.styleFrom(foregroundColor: context.status.danger)
+              : null,
           child: Text(confirmLabel ?? t.confirm),
         ),
       ],
@@ -75,12 +80,22 @@ Future<String?> askNote(
   return showModalBottomSheet<String>(
     context: context,
     isScrollControlled: true,
-    builder: (context) => _NoteSheet(title: title, confirmLabel: confirmLabel, hint: hint, required: required),
+    builder: (context) => _NoteSheet(
+      title: title,
+      confirmLabel: confirmLabel,
+      hint: hint,
+      required: required,
+    ),
   );
 }
 
 class _NoteSheet extends StatefulWidget {
-  const _NoteSheet({required this.title, required this.confirmLabel, required this.required, this.hint});
+  const _NoteSheet({
+    required this.title,
+    required this.confirmLabel,
+    required this.required,
+    this.hint,
+  });
 
   final String title;
   final String confirmLabel;
@@ -104,7 +119,12 @@ class _NoteSheetState extends State<_NoteSheet> {
   Widget build(BuildContext context) {
     final valid = !widget.required || _controller.text.trim().length >= 2;
     return Padding(
-      padding: EdgeInsets.fromLTRB(20, 0, 20, 20 + MediaQuery.viewInsetsOf(context).bottom),
+      padding: EdgeInsets.fromLTRB(
+        20,
+        0,
+        20,
+        20 + MediaQuery.viewInsetsOf(context).bottom,
+      ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -123,7 +143,9 @@ class _NoteSheetState extends State<_NoteSheet> {
           ),
           const Gap(12),
           FilledButton(
-            onPressed: valid ? () => Navigator.pop(context, _controller.text.trim()) : null,
+            onPressed: valid
+                ? () => Navigator.pop(context, _controller.text.trim())
+                : null,
             child: Text(widget.confirmLabel),
           ),
         ],

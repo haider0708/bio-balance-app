@@ -90,7 +90,8 @@ class _PagedListState<T> extends State<PagedList<T>> {
       builder: (context, _) {
         final c = widget.controller;
         if (c.initialLoading) return const LoadingState();
-        if (c.error != null && c.items.isEmpty) return ErrorState(error: c.error!, onRetry: c.refresh);
+        if (c.error != null && c.items.isEmpty)
+          return ErrorState(error: c.error!, onRetry: c.refresh);
         final header = widget.header;
         if (c.items.isEmpty && header == null) return widget.empty;
         return RefreshIndicator(
@@ -103,7 +104,11 @@ class _PagedListState<T> extends State<PagedList<T>> {
             child: ListView.builder(
               physics: const AlwaysScrollableScrollPhysics(),
               padding: widget.padding,
-              itemCount: c.items.length + (header == null ? 0 : 1) + (c.items.isEmpty ? 1 : 0) + (c.hasMore ? 1 : 0),
+              itemCount:
+                  c.items.length +
+                  (header == null ? 0 : 1) +
+                  (c.items.isEmpty ? 1 : 0) +
+                  (c.hasMore ? 1 : 0),
               itemBuilder: (context, index) {
                 if (header != null) {
                   if (index == 0) return header;
@@ -116,7 +121,13 @@ class _PagedListState<T> extends State<PagedList<T>> {
                     child: Center(
                       child: c.error != null
                           ? ErrorState(error: c.error!, onRetry: c.load)
-                          : const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2.5)),
+                          : const SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2.5,
+                              ),
+                            ),
                     ),
                   );
                 }

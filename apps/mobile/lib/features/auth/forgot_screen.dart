@@ -34,7 +34,11 @@ class _ForgotScreenState extends ConsumerState<ForgotScreen> {
   Future<void> _request() async {
     if (!_email.text.contains('@')) return;
     final t = AppLocalizations.of(context);
-    final ok = await perform(context, () => ref.read(authRepositoryProvider).forgot(_email.text), success: t.resetCodeSent);
+    final ok = await perform(
+      context,
+      () => ref.read(authRepositoryProvider).forgot(_email.text),
+      success: t.resetCodeSent,
+    );
     if (ok && mounted) setState(() => _haveCode = true);
   }
 
@@ -44,10 +48,13 @@ class _ForgotScreenState extends ConsumerState<ForgotScreen> {
     final email = _email.text.trim();
     final ok = await perform(
       context,
-      () => ref.read(authRepositoryProvider).reset(email: email, code: _code.text, password: _password.text),
+      () => ref
+          .read(authRepositoryProvider)
+          .reset(email: email, code: _code.text, password: _password.text),
       success: t.passwordChanged,
     );
-    if (ok && mounted) context.go('/login?email=${Uri.encodeQueryComponent(email)}');
+    if (ok && mounted)
+      context.go('/login?email=${Uri.encodeQueryComponent(email)}');
   }
 
   @override
@@ -68,7 +75,8 @@ class _ForgotScreenState extends ConsumerState<ForgotScreen> {
                 keyboardType: TextInputType.emailAddress,
                 textInputAction: TextInputAction.next,
                 decoration: InputDecoration(labelText: t.email),
-                validator: (v) => (v == null || !v.contains('@')) ? t.emailInvalid : null,
+                validator: (v) =>
+                    (v == null || !v.contains('@')) ? t.emailInvalid : null,
               ),
               if (_haveCode) ...[
                 const Gap(14),
@@ -76,8 +84,15 @@ class _ForgotScreenState extends ConsumerState<ForgotScreen> {
                   controller: _code,
                   textCapitalization: TextCapitalization.characters,
                   textInputAction: TextInputAction.next,
-                  decoration: InputDecoration(labelText: t.recoveryCode, hintText: 'ABCD-2345'),
-                  validator: (v) => (v == null || v.replaceAll(RegExp(r'[\s-]'), '').length != 8) ? t.codeInvalid : null,
+                  decoration: InputDecoration(
+                    labelText: t.recoveryCode,
+                    hintText: 'ABCD-2345',
+                  ),
+                  validator: (v) =>
+                      (v == null ||
+                          v.replaceAll(RegExp(r'[\s-]'), '').length != 8)
+                      ? t.codeInvalid
+                      : null,
                 ),
                 const Gap(14),
                 PasswordField(
@@ -85,14 +100,21 @@ class _ForgotScreenState extends ConsumerState<ForgotScreen> {
                   label: t.newPassword,
                   textInputAction: TextInputAction.done,
                   onSubmitted: (_) => _reset(),
-                  validator: (v) => (v == null || v.length < 10) ? t.passwordTooShort : null,
+                  validator: (v) =>
+                      (v == null || v.length < 10) ? t.passwordTooShort : null,
                 ),
               ],
               const Gap(24),
-              AsyncButton(label: _haveCode ? t.changePassword : t.sendCode, onPressed: _haveCode ? _reset : _request),
+              AsyncButton(
+                label: _haveCode ? t.changePassword : t.sendCode,
+                onPressed: _haveCode ? _reset : _request,
+              ),
               if (!_haveCode) ...[
                 const Gap(8),
-                TextButton(onPressed: () => setState(() => _haveCode = true), child: Text(t.haveCode)),
+                TextButton(
+                  onPressed: () => setState(() => _haveCode = true),
+                  child: Text(t.haveCode),
+                ),
               ],
             ],
           ),

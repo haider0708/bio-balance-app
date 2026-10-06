@@ -8,14 +8,17 @@ class Dates {
 
   static DateTime parseDay(String day) => DateTime.parse(day);
 
-  static String short(DateTime date, String locale) => DateFormat.MMMd(locale).format(date);
+  static String short(DateTime date, String locale) =>
+      DateFormat.MMMd(locale).format(date);
 
-  static String full(DateTime date, String locale) => DateFormat.yMMMd(locale).format(date);
+  static String full(DateTime date, String locale) =>
+      DateFormat.yMMMd(locale).format(date);
 
   static String dateTime(DateTime date, String locale) =>
       DateFormat.yMMMd(locale).add_Hm().format(date);
 
-  static String time(DateTime date, String locale) => DateFormat.Hm(locale).format(date);
+  static String time(DateTime date, String locale) =>
+      DateFormat.Hm(locale).format(date);
 
   /// "Today", "Yesterday", or the date: callers pass the localised words.
   static String relativeDay(

@@ -3,12 +3,18 @@
   "about": "About",
   "account": "Account",
   "accountActivated": "Account activated. You can sign in.",
+  "accountCreated": "Account created and invitation sent",
   "activateAccount": "Activate my account",
   "activateSubtitle": "Enter the email and the code you received, then choose a password.",
   "activateTitle": "Activate your account",
   "activationCode": "Activation code",
+  "activePdvs": "Active points of sale",
   "activity": "Activity",
   "add": "Add",
+  "addLesson": "Add a lesson",
+  "addMember": "Add a member",
+  "addMemberFromPdv": "Open a point of sale to add a team member.",
+  "addMemberHint": "They can sign in once BioBalance approves them. They receive an email with a code.",
   "addProduct": "Add a product",
   "addSelected": "{count, plural, =0{Choose products} =1{Add 1 product} other{Add {count} products}}",
   "@addSelected": {
@@ -34,10 +40,96 @@
       }
     }
   },
+  "address": "Address",
+  "adjustQuantities": "Adjust quantities",
+  "adjustQuantitiesHint": "Change what will be sent before choosing who sends it.",
   "all": "All",
+  "allCaughtUp": "Everything is up to date.",
+  "allRegions": "All regions",
+  "amendAndApprove": "Correct and approve",
+  "amendReceiptHint": "Compare with the photo of the paper and correct a quantity if needed.",
+  "amendStockHint": "Change a quantity if the photo shows something different.",
+  "amountPerUnit": "Amount per unit sold",
+  "amountPerUnitHint": "Example: 0.500",
   "amountTnd": "Amount",
+  "announcement": "Announcement",
+  "announcementScheduled": "Announcement scheduled",
+  "announcementSent": "Announcement sent",
+  "announcementsTitle": "Announcements",
   "appName": "BioBalance",
   "appVersion": "Version",
+  "approvalGroups": "{count, plural, =1{1 group} other{{count} groups}}",
+  "@approvalGroups": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "approvalMembers": "{count, plural, =1{1 team member} other{{count} team members}}",
+  "@approvalMembers": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "approvalPayouts": "{count, plural, =1{1 payout} other{{count} payouts}}",
+  "@approvalPayouts": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "approvalPdvs": "{count, plural, =1{1 point of sale} other{{count} points of sale}}",
+  "@approvalPdvs": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "approvalReceipts": "{count, plural, =1{1 delivery} other{{count} deliveries}}",
+  "@approvalReceipts": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "approvalRequests": "{count, plural, =1{1 restock request} other{{count} restock requests}}",
+  "@approvalRequests": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "approvalStock": "{count, plural, =1{1 stock} other{{count} stocks}}",
+  "@approvalStock": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "approvalsTitle": "Approvals",
+  "approve": "Approve",
+  "approveAndInvite": "Approve and send invitation",
+  "approveAsCounted": "Approve as counted",
+  "approveGroupTitle": "Approve the group “{name}”?",
+  "@approveGroupTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "approved": "Approved",
+  "askRecount": "Ask to count again",
+  "assignToGrossiste": "Assign to a grossiste",
+  "auditTitle": "History of changes",
   "authenticatorCode": "Authenticator code",
   "authenticatorCodeHelp": "The 6 digits from your authenticator app.",
   "availableBalance": "Available balance",
@@ -50,13 +142,36 @@
     }
   },
   "back": "Back",
+  "barcode": "Barcode",
   "barcodeUnknown": "This barcode is not in the catalog.",
+  "byDay": "day",
+  "byFamily": "By family",
+  "byName": "by {name}",
+  "@byName": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "byPdv": "point of sale",
+  "byProduct": "By product",
+  "byProductShort": "product",
+  "byRegion": "region",
+  "bySeller": "seller",
   "cameraUnavailable": "The camera is not available. Check the permission in your phone settings.",
   "cancel": "Cancel",
+  "cancelReason": "Reason for cancelling",
+  "cancelReasonHint": "Why is it cancelled?",
   "cancelRequest": "Cancel request",
+  "cancelRestock": "Cancel the restock",
+  "cancelRule": "Cancel this value",
+  "cancelRuleBody": "Sales already made keep what they earned. Future sales will not earn it.",
+  "cancelRuleTitle": "Cancel this value?",
   "cancelSale": "Cancel the sale",
   "cancelSaleBody": "The stock is put back and the reward is taken off your wallet.",
   "cancelSaleTitle": "Cancel this sale?",
+  "catalogTitle": "Catalog",
   "celebrateSubtitle": "{count, plural, =1{1 unit sold} other{{count} units sold}}",
   "@celebrateSubtitle": {
     "placeholders": {
@@ -68,40 +183,157 @@
   "celebrateTitle": "Great sale!",
   "celebrateToday": "Today so far",
   "changePassword": "Change password",
+  "changeReceiver": "Change who counts the goods",
+  "chooseAudience": "Choose who receives it",
+  "chooseGrossiste": "Choose a grossiste",
+  "choosePdvs": "Choose points of sale",
+  "chooseProduct": "Choose a product",
+  "chooseReceiver": "Choose who counts the goods",
+  "city": "City",
   "close": "Close",
   "codeInvalid": "Enter a valid code.",
+  "colApproved": "Final",
+  "colReceived": "Counted",
+  "colRequested": "Asked",
+  "colShipped": "Sent",
   "completed": "Completed",
   "confirm": "Confirm",
+  "confirmDelivery": "Confirm the delivery",
   "confirmPassword": "Confirm password",
   "correctSale": "Correct this sale",
   "correctSaleHint": "Change the quantities. Set a product to 0 to remove it, or all to 0 to cancel the sale.",
   "corrected": "Corrected",
   "correctionWindowClosed": "A sale can be corrected for 48 hours. Ask your responsable for later corrections.",
   "corrections": "Corrections",
+  "countedProducts": "Counted products",
+  "counting": "Counting…",
+  "courseAudienceHint": "Leave empty to show it to everyone.",
+  "courseDeleted": "Course deleted",
+  "courseIsDraft": "Course unpublished",
+  "courseIsPublished": "Course published",
+  "courseSummary": "Short description",
+  "courseTitle": "Course title",
   "create": "Create",
+  "createAndInvite": "Create and send invitation",
+  "createPdv": "Create the point of sale",
+  "current": "Current",
   "currentPassword": "Current password",
+  "customPeriod": "Choose dates",
+  "date": "Date",
+  "dateRange": "{from} → {to}",
+  "@dateRange": {
+    "placeholders": {
+      "from": {
+        "type": "String"
+      },
+      "to": {
+        "type": "String"
+      }
+    }
+  },
+  "deactivate": "Deactivate",
+  "deactivateBody": "They will be signed out and will no longer have access.",
+  "deactivateTitle": "Deactivate {name}?",
+  "@deactivateTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "deactivated": "Deactivated",
+  "decision": "Decision",
+  "declaration": "Stock declaration",
+  "declarationRejectedRetry": "Your last stock declaration was rejected. Declare it again.",
+  "declarationSent": "Sent to BioBalance for approval",
+  "declarationWaiting": "A stock declaration is waiting for approval.",
+  "declarations": "Declarations",
+  "declareFirstHint": "Count every product you hold, add the quantities and take a photo of the stock. BioBalance checks it, then the stock becomes official.",
+  "declareStock": "Declare the stock",
+  "declaredQuantity": "Declared: {count}",
+  "@declaredQuantity": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "decline": "Decline",
+  "declinePayoutTitle": "Why decline this payout?",
   "decrease": "Decrease",
   "delete": "Delete",
+  "deleteCourse": "Delete the course",
+  "deleteCourseBody": "Its lessons and everyone’s progress are deleted.",
+  "deleteCourseTitle": "Delete this course?",
+  "deleteLessonTitle": "Delete this lesson?",
+  "deliverTo": "Deliver to",
+  "deliveriesToConfirm": "{count, plural, =1{1 delivery to confirm} other{{count} deliveries to confirm}}",
+  "@deliveriesToConfirm": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "deliveriesToConfirmHint": "Photograph the paper and count the goods.",
+  "deliveryPaper": "Delivery paper",
+  "deliverySent": "Sent to BioBalance for approval",
+  "depotName": "Depot name",
+  "description": "Description",
   "discard": "Discard",
   "done": "Done",
   "draft": "Draft",
+  "durationMinutes": "Minutes",
   "earnedToday": "Earned today",
   "edit": "Edit",
+  "editCourse": "Edit course",
+  "editLesson": "Edit lesson",
+  "editPdv": "Edit point of sale",
+  "editProduct": "Edit product",
   "editProfile": "Edit my profile",
   "email": "Email",
   "emailInvalid": "Enter a valid email address.",
+  "endsOn": "Ends {date}",
+  "@endsOn": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
   "entryCorrection": "Correction",
   "entryPayout": "Payout",
   "entrySale": "Sale reward",
   "errorGeneric": "Something went wrong. Please try again.",
   "errorOffline": "No connection. Check your internet and try again.",
   "errorServer": "The service is temporarily unavailable. Try again shortly.",
+  "everyone": "Everyone",
+  "exportCsv": "Export to a spreadsheet",
+  "family": "Family",
+  "familyHint": "Rewards can be set per family.",
+  "fieldRequired": "Required",
+  "fileAttached": "File attached",
+  "filterDone": "Completed",
+  "filterOpen": "In progress",
   "forgotCodeSubtitle": "Enter the code from the email and your new password.",
   "forgotPassword": "Forgot your password?",
   "forgotSubtitle": "We will email you a code, valid for 30 minutes.",
   "forgotTitle": "Reset your password",
+  "fromDate": "From {date}",
+  "@fromDate": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
   "fullName": "Full name",
   "fullNameOptional": "Your name (optional)",
+  "grossisteDeclareFirst": "Declare your depot stock with a photo so BioBalance can approve it.",
+  "group": "Group",
+  "groupCreated": "Group created. It is waiting for approval.",
+  "groupName": "Group name",
+  "groupedBy": "By",
   "haveCode": "I already have a code",
   "helloName": "Hello, {name}",
   "@helloName": {
@@ -111,13 +343,27 @@
       }
     }
   },
+  "history": "History",
+  "howToUse": "How to use",
+  "inRegions": "In these regions",
+  "inactive": "Inactive",
   "increase": "Increase",
+  "ingredients": "Ingredients",
+  "initialStock": "Opening stock",
+  "invitationResent": "Invitation sent again",
+  "invitationSent": "Invitation sent",
   "invitedHint": "Your account was approved and you received a code by email?",
+  "kind": "Type",
   "language": "Language",
+  "last7Days": "Last 7 days",
+  "lastMonth": "Last month",
   "latestSales": "Latest sales",
   "lessonArticle": "Reading",
   "lessonPdf": "Document",
+  "lessonText": "Text of the lesson",
+  "lessonTitle": "Lesson title",
   "lessonVideo": "Video",
+  "lessons": "Lessons",
   "lessonsDone": "{done} of {total} lessons",
   "@lessonsDone": {
     "placeholders": {
@@ -129,10 +375,24 @@
       }
     }
   },
+  "lowStock": "Products almost out",
   "manageTraining": "Manage courses",
   "markAllRead": "Mark all read",
+  "markAsPaid": "Mark as paid",
+  "markAsPaidHint": "Confirm you paid {amount}. It leaves their wallet.",
+  "@markAsPaidHint": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
   "markDone": "Mark as done",
   "markNotDone": "Mark as not done",
+  "markShipped": "Mark as shipped",
+  "me": "Me",
+  "memberAdded": "Member added. Waiting for approval.",
+  "message": "Message",
   "minutes": "{count} min",
   "@minutes": {
     "placeholders": {
@@ -143,22 +403,108 @@
   },
   "more": "More",
   "moreTitle": "More",
+  "myRegion": "Region {name}",
+  "@myRegion": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "myRestockRequests": "{count, plural, =0{No restock request in progress} =1{1 of your restock requests is in progress} other{{count} of your restock requests are in progress}}",
+  "@myRestockRequests": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "needsAttention": "Needs attention",
+  "negativeStock": "Products below zero",
+  "networkTitle": "Network",
+  "newAccount": "New account",
+  "newAccountHint": "The person receives an email with a code to choose their password.",
+  "newAnnouncement": "New announcement",
+  "newCourse": "New course",
+  "newGroup": "New group",
   "newPassword": "New password",
+  "newPdv": "New point of sale",
+  "newPdvHint": "It can be used right away for setup. BioBalance approves it before it sells.",
+  "newProduct": "New product",
   "newSale": "New sale",
   "next": "Next",
+  "noActivePdv": "You need an approved point of sale to request a restock.",
   "noActivityYet": "No activity yet",
+  "noAnnouncements": "No announcement yet",
+  "noAnnouncementsHint": "Write to responsables, grossistes or teams.",
   "noCourses": "No course yet",
+  "noCoursesAdminHint": "Create a course, add lessons, then publish it.",
   "noCoursesHint": "New courses will appear here.",
+  "noEndDate": "No end date",
+  "noGrossisteYet": "No grossiste yet. Create an account for one first.",
+  "noGroup": "No group",
+  "noGroups": "No group yet",
+  "noGroupsHint": "A group gathers several points of sale of the same owner.",
+  "noHistoryYet": "Nothing recorded yet",
+  "noLessonsYet": "No lesson yet. Add one to publish the course.",
   "noNotifications": "Nothing new",
   "noNotificationsHint": "Announcements and updates will appear here.",
+  "noOrdersToPrepare": "No order to prepare",
+  "noPayoutRequests": "No payout request",
+  "noPayoutsYet": "No payout yet",
+  "noPdvs": "No point of sale yet",
+  "noPdvsHint": "Add your first point of sale with the button below.",
+  "noPeople": "Nobody here yet",
   "noProductsFound": "No product found",
+  "noRestocks": "No restock",
+  "noRestocksHint": "Request products for a point of sale when it runs low.",
+  "noRewardsYet": "No reward set yet",
+  "noRewardsYetHint": "Choose a family or a product and an amount per unit sold.",
+  "noRulesHere": "Nothing here",
+  "noSalesInPeriod": "No sales in this period",
   "noSalesYet": "No sales yet",
   "noSalesYetHint": "Your sales and what they earned will appear here.",
+  "noStockYet": "No stock yet",
+  "noStockYetHint": "Count what you have, take a photo and send it to BioBalance.",
+  "noTeamYet": "No team member yet.",
+  "noWalletsYet": "No wallet yet",
   "none": "None",
+  "notReadYet": "Not read yet",
+  "note": "Note",
+  "nothingToApprove": "Nothing to approve",
   "notificationsTitle": "Notifications",
   "openDocument": "Open the document",
+  "openRestocks": "Restocks in progress",
   "openVideo": "Watch the video",
   "optional": "optional",
+  "orVideoLink": "Or a video link",
+  "ordersTitle": "Orders",
+  "ordersToPrepare": "{count, plural, =1{1 order to prepare} other{{count} orders to prepare}}",
+  "@ordersToPrepare": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "overlapBody": "These days are already covered:\n{details}\n\nReplace it with the new value?",
+  "@overlapBody": {
+    "placeholders": {
+      "details": {
+        "type": "String"
+      }
+    }
+  },
+  "overlapTitle": "Another value already applies",
+  "packageSize": "Size",
+  "paidOn": "Paid on {date}",
+  "@paidOn": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
   "password": "Password",
   "passwordChanged": "Password changed. You can sign in.",
   "passwordChangedShort": "Password changed",
@@ -166,11 +512,44 @@
   "passwordRule": "At least 10 characters.",
   "passwordTooShort": "Use at least 10 characters.",
   "passwordsDiffer": "The passwords do not match.",
+  "past": "Past",
+  "payoutApproved": "Payout recorded",
   "payoutExplain": "The admin will pay you and confirm. The amount leaves your wallet once approved.",
   "payoutPaid": "Paid",
   "payoutRequested": "Payout requested",
+  "payoutRequests": "Payout requests",
   "payouts": "Payouts",
+  "payoutsTitle": "Payouts",
+  "paysToday": "Pays today",
+  "paysTodayHint": "What one unit sold pays today, product by product.",
+  "pdvCount": "{count, plural, =0{No point of sale} =1{1 point of sale} other{{count} points of sale}}",
+  "@pdvCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "pdvCreated": "Point of sale created. It is waiting for approval.",
+  "pdvName": "Name of the point of sale",
   "pdvNotActive": "Your point of sale is waiting for approval. You can sell as soon as it is active.",
+  "pdvWaitingNotice": "Waiting for BioBalance to approve. You can already add the team and declare the stock.",
+  "pdvsChosen": "{count, plural, =1{1 point of sale chosen} other{{count} points of sale chosen}}",
+  "@pdvsChosen": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "pendingCount": "{count} waiting",
+  "@pendingCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "pendingPayout": "{amount} already requested",
   "@pendingPayout": {
     "placeholders": {
@@ -179,17 +558,38 @@
       }
     }
   },
+  "people": "People",
+  "perUnit": "per unit",
+  "periods": "Periods",
   "phone": "Phone",
+  "photo": "Photo",
   "photoChoose": "Choose from gallery",
   "photoHint": "Tap to take a photo",
+  "photoOfPaper": "Photo of the delivery paper",
+  "photoOfStock": "Photo of the stock",
   "photoReady": "Photo ready",
+  "photoRequiredHint": "Take the photo to send.",
   "photoRetake": "Retake",
   "photoTake": "Take a photo",
   "photoUploading": "Sending…",
+  "pinAnnouncement": "Pin to the top",
+  "pinAnnouncementHint": "It stays at the top of their notifications.",
   "pinned": "Pinned",
   "pointOfSale": "Point of sale",
+  "precautions": "Precautions",
+  "prepareAndShip": "Prepare and ship",
+  "productActive": "Available",
+  "productActiveHint": "Hidden from sales and orders when off.",
+  "productName": "Product name",
+  "productPhoto": "Product photo",
   "products": "Products",
+  "productsNeeded": "Products needed",
+  "progress": "Progress",
+  "progressByPerson": "Progress by person",
+  "publish": "Publish",
   "published": "Published",
+  "quantitiesAdjusted": "Quantities adjusted",
+  "quantitiesReceived": "Quantities received",
   "quantity": "Quantity",
   "quantityMax": "Up to {max}",
   "@quantityMax": {
@@ -199,14 +599,97 @@
       }
     }
   },
+  "reactivate": "Reactivate",
+  "reactivated": "Reactivated",
+  "readAt": "Read {date}",
+  "@readAt": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "readOf": "{read} of {total} read",
+  "@readOf": {
+    "placeholders": {
+      "read": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
   "reasonRequired": "Reason (required)",
+  "receiveHint": "Photograph the signed delivery paper and enter what you really received for each product.",
+  "receivedBy": "Counted by",
+  "receiverSaved": "Saved",
   "recent": "Recent",
+  "recipients": "Recipients",
   "recordSale": "Record the sale",
+  "recount": "Recount",
+  "recountAsked": "Sent back for a new count",
+  "recountHint": "The quantities below are what the system holds. Correct them to what you count, add a photo, and send.",
+  "recountReasonHint": "What does not match the paper?",
+  "recountStock": "Recount the stock",
   "recoveryCode": "Recovery code",
+  "reference": "Reference",
   "refresh": "Refresh",
+  "region": "Region",
+  "regionOf": "Region {name}",
+  "@regionOf": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "regions": "Regions",
+  "reject": "Reject",
+  "rejectReasonHint": "Explain what to fix so it can be sent again.",
+  "rejectReasonTitle": "Why is it rejected?",
+  "rejected": "Rejected",
   "remove": "Remove",
+  "replaceValue": "Replace",
+  "reportsTitle": "Reports",
   "requestPayout": "Request a payout",
+  "requestRestock": "Request a restock",
+  "requestedBy": "Requested by",
+  "requestedInStock": "Asked {requested} · in stock {stock}",
+  "@requestedInStock": {
+    "placeholders": {
+      "requested": {
+        "type": "int"
+      },
+      "stock": {
+        "type": "int"
+      }
+    }
+  },
+  "requestedQuantity": "Requested: {count}",
+  "@requestedQuantity": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "resendInvitation": "Send the invitation again",
   "resetCodeSent": "If the account exists, a code was sent.",
+  "restock": "Restock",
+  "restockApproved": "Restock approved. The stock is updated.",
+  "restockAssigned": "With the grossiste",
+  "restockCancelled": "Restock cancelled",
+  "restockCompleted": "Completed",
+  "restockReceived": "To approve",
+  "restockRequested": "Requested",
+  "restockRouted": "The order was sent on",
+  "restockSent": "Request sent",
+  "restockShipped": "On its way",
+  "restockShippedMessage": "Marked as shipped",
+  "restocksTitle": "Restocks",
+  "resubmit": "Submit again",
+  "resubmitted": "Submitted again",
   "retry": "Try again",
   "reviewSale": "{count, plural, =1{Review sale · 1 unit} other{Review sale · {count} units}}",
   "@reviewSale": {
@@ -218,10 +701,18 @@
   },
   "reviewTitle": "Review the sale",
   "reward": "Reward",
+  "rewardSaved": "Reward saved",
+  "rewardsMonth": "Rewards, 30 days",
+  "rewardsTitle": "Rewards",
   "roleAdmin": "Administrator",
   "roleGrossiste": "Grossiste",
+  "roleGrossistePlural": "Grossistes",
   "roleResponsable": "Responsable",
+  "roleResponsablePlural": "Responsables",
   "roleVendeur": "Team member",
+  "roleVendeurPlural": "Team members",
+  "roleVendeurShort": "Team member",
+  "ruleCancelled": "Value cancelled",
   "saleCancelled": "Sale cancelled",
   "saleCorrected": "Sale corrected",
   "saleDetailTitle": "Sale",
@@ -236,7 +727,9 @@
       }
     }
   },
+  "salesLast14Days": "Units sold, last 14 days",
   "salesTitle": "My sales",
+  "salesTitleShort": "Sales",
   "salesWaiting": "{count, plural, =1{1 sale is waiting to be sent} other{{count} sales are waiting to be sent}}",
   "@salesWaiting": {
     "placeholders": {
@@ -247,6 +740,7 @@
   },
   "save": "Save",
   "saveCorrection": "Save the correction",
+  "saveReward": "Save the reward",
   "saved": "Saved",
   "savedOnPhoneBody": "{count, plural, =1{1 unit} other{{count} units}} will be sent as soon as you are back online. Your reward will then appear.",
   "@savedOnPhoneBody": {
@@ -259,33 +753,152 @@
   "savedOnPhoneTitle": "Saved on your phone",
   "scanHint": "Point the camera at the barcode",
   "scanTitle": "Scan a product",
+  "schedule": "Schedule",
+  "scheduleTitle": "Schedule this announcement?",
+  "scheduled": "Scheduled",
+  "scheduledFor": "Scheduled for {date}",
+  "@scheduledFor": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
   "search": "Search",
   "searchProducts": "Search a product",
   "seeAll": "See all",
   "seller": "Seller",
   "send": "Send",
   "sendCode": "Send me a code",
+  "sendForApproval": "Send for approval",
+  "sendFromBiobalance": "Send from BioBalance",
   "sendNow": "Send now",
+  "sendNowOption": "Send now",
+  "sendNowTitle": "Send to {count, plural, =1{1 person} other{{count} people}}?",
+  "@sendNowTitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "sendRequest": "Send the request",
+  "sendToAdmin": "Send to BioBalance",
+  "sentBy": "Sent by",
+  "sentFrom": "Sent from",
   "server": "Server",
+  "setReward": "Set a reward",
   "settingsTitle": "Settings",
+  "shipHint": "Enter what leaves your depot for {destination}.",
+  "@shipHint": {
+    "placeholders": {
+      "destination": {
+        "type": "String"
+      }
+    }
+  },
+  "shippedReceived": "Sent {shipped} · counted {received}",
+  "@shippedReceived": {
+    "placeholders": {
+      "shipped": {
+        "type": "int"
+      },
+      "received": {
+        "type": "int"
+      }
+    }
+  },
   "signIn": "Sign in",
   "signInSubtitle": "Sign in to your BioBalance account.",
   "signInTitle": "Welcome back",
   "signOut": "Sign out",
   "signOutTitle": "Sign out of BioBalance?",
+  "startsOn": "Starts {date}",
+  "@startsOn": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "statusActive": "Active",
+  "statusApproved": "Approved",
   "statusCancelled": "Cancelled",
   "statusPending": "Pending",
   "statusRejected": "Rejected",
+  "statusSuspended": "Suspended",
+  "statusWaitingApproval": "Waiting for approval",
+  "stockAllGood": "All stock levels are fine",
+  "stockApproved": "Stock approved",
+  "stockApprovedLong": "Stock approved: see quantities",
+  "stockLevels": "Quantities",
+  "stockLow": "Low",
+  "stockMissing": "No stock yet",
+  "stockMissingLong": "Declare the opening stock with a photo",
+  "stockNegative": "Below zero",
+  "stockRejected": "Stock rejected",
+  "stockRejectedLong": "Stock rejected: declare it again",
+  "stockTitle": "Stock",
+  "stockWaiting": "Stock waiting",
+  "stockWaitingLong": "Stock waiting for approval",
+  "suspend": "Suspend",
+  "suspendPdvBody": "Its team can no longer sell until it is reactivated.",
+  "suspendTitle": "Suspend {name}?",
+  "@suspendTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "suspended": "Suspended",
+  "system": "System",
+  "tabApprovals": "Approvals",
+  "tabGroups": "Groups",
   "tabHome": "Home",
   "tabLearn": "Learn",
+  "tabNetwork": "Network",
+  "tabOrders": "Orders",
+  "tabPdvs": "Points of sale",
+  "tabPeople": "People",
+  "tabReports": "Reports",
+  "tabRestocks": "Restocks",
   "tabSales": "Sales",
   "tabWallet": "Wallet",
+  "team": "Team",
+  "teamCount": "{count, plural, =0{No team} =1{1 member} other{{count} members}}",
+  "@teamCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "thisMonth": "This month",
   "thisWeek": "This week",
+  "title": "Title",
+  "toPay": "To pay",
   "today": "Today",
+  "topPdvs": "Top points of sale, 30 days",
+  "topProducts": "Top products, 30 days",
   "torch": "Flashlight",
   "totalUnits": "Total units",
   "trainingTitle": "Training",
+  "trendSemantics": "Chart: {total} units sold over the last 14 days",
+  "@trendSemantics": {
+    "placeholders": {
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "typeGroup": "Group",
+  "typeMember": "Team member",
+  "typePayout": "Payout",
+  "typePdv": "Point of sale",
+  "typeReceipt": "Delivery",
+  "typeRestockRequest": "Restock request",
+  "typeStock": "Stock",
   "units": "{count, plural, =1{1 unit} other{{count} units}}",
   "@units": {
     "placeholders": {
@@ -294,10 +907,59 @@
       }
     }
   },
+  "unpublish": "Unpublish",
+  "upcoming": "Upcoming",
+  "uploadPdf": "Upload a PDF",
+  "uploadVideo": "Upload a video (MP4)",
   "videoUnavailable": "This video cannot be played.",
+  "viewSales": "View sales",
+  "waitingAdmin": "{count, plural, =1{1 item is waiting for BioBalance to approve} other{{count} items are waiting for BioBalance to approve}}",
+  "@waitingAdmin": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "waitingForYou": "{count, plural, =1{1 item is waiting for you} other{{count} items are waiting for you}}",
+  "@waitingForYou": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "waitingToSend": "Waiting to be sent",
   "walletBalance": "Wallet balance",
+  "walletSummaryLine": "Earned {earned} · paid {paid}",
+  "@walletSummaryLine": {
+    "placeholders": {
+      "earned": {
+        "type": "String"
+      },
+      "paid": {
+        "type": "String"
+      }
+    }
+  },
   "walletTitle": "Wallet",
+  "wallets": "Wallets",
+  "whoCountsHint": "They will photograph the paper and enter the quantities.",
+  "whoCountsTheGoods": "Who counts the goods?",
+  "whoIsItFor": "Who is it for?",
+  "wholeNetwork": "Whole network",
+  "willReach": "{count, plural, =0{Nobody would receive it} =1{1 person will receive it} other{{count} people will receive it}}",
+  "@willReach": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "withdrawAnnouncement": "Withdraw the announcement",
+  "withdrawBody": "It has not been sent yet and will not go out.",
+  "withdrawTitle": "Withdraw this announcement?",
+  "withdrawn": "Announcement withdrawn",
   "yesterday": "Yesterday",
   "youEarned": "You earned"
 }

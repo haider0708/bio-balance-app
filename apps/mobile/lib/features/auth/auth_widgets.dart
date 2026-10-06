@@ -8,7 +8,13 @@ import '../../core/widgets/components.dart';
 
 /// The BioBalance logo above a screen title: shared by every signed-out screen.
 class AuthScaffold extends StatelessWidget {
-  const AuthScaffold({required this.title, required this.children, this.subtitle, this.showBack = false, super.key});
+  const AuthScaffold({
+    required this.title,
+    required this.children,
+    this.subtitle,
+    this.showBack = false,
+    super.key,
+  });
 
   final String title;
   final String? subtitle;
@@ -20,7 +26,9 @@ class AuthScaffold extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         leading: showBack ? const BackButton() : null,
-        actions: const [Padding(padding: EdgeInsets.only(right: 12), child: LanguageToggle())],
+        actions: const [
+          Padding(padding: EdgeInsets.only(right: 12), child: LanguageToggle()),
+        ],
       ),
       body: SafeArea(
         child: Center(
@@ -34,14 +42,23 @@ class AuthScaffold extends StatelessWidget {
                   Center(
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(18),
-                      child: Image.asset('assets/brand/biobalance-logo.jpg', height: 76, fit: BoxFit.contain),
+                      child: Image.asset(
+                        'assets/brand/biobalance-logo.jpg',
+                        height: 76,
+                        fit: BoxFit.contain,
+                      ),
                     ),
                   ),
                   const Gap(28),
                   Text(title, style: context.text.headlineMedium),
                   if (subtitle != null) ...[
                     const Gap(8),
-                    Text(subtitle!, style: context.text.bodyLarge?.copyWith(color: context.status.muted)),
+                    Text(
+                      subtitle!,
+                      style: context.text.bodyLarge?.copyWith(
+                        color: context.status.muted,
+                      ),
+                    ),
                   ],
                   const Gap(28),
                   ...children,
@@ -79,7 +96,9 @@ class LanguageToggle extends ConsumerWidget {
             ),
             child: Text(
               code.toUpperCase(),
-              style: context.text.labelLarge?.copyWith(color: on ? context.colors.primary : context.status.muted),
+              style: context.text.labelLarge?.copyWith(
+                color: on ? context.colors.primary : context.status.muted,
+              ),
             ),
           ),
         ),

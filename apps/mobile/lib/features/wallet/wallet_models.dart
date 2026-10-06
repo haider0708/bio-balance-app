@@ -1,13 +1,17 @@
 import '../../core/api/json.dart';
 
 class EarningsWindow {
-  const EarningsWindow({required this.sales, required this.units, required this.rewardMillimes});
+  const EarningsWindow({
+    required this.sales,
+    required this.units,
+    required this.rewardMillimes,
+  });
 
   factory EarningsWindow.fromJson(Json j) => EarningsWindow(
-        sales: j.integer('sales'),
-        units: j.integer('units'),
-        rewardMillimes: j.integer('rewardMillimes'),
-      );
+    sales: j.integer('sales'),
+    units: j.integer('units'),
+    rewardMillimes: j.integer('rewardMillimes'),
+  );
 
   static const zero = EarningsWindow(sales: 0, units: 0, rewardMillimes: 0);
 
@@ -28,13 +32,13 @@ class WalletSummary {
   });
 
   factory WalletSummary.fromJson(Json j) => WalletSummary(
-        balanceMillimes: j.integer('balanceMillimes'),
-        pendingMillimes: j.integer('pendingPayoutMillimes'),
-        availableMillimes: j.integer('availableMillimes'),
-        today: EarningsWindow.fromJson(j.obj('today')),
-        week: EarningsWindow.fromJson(j.obj('week')),
-        month: EarningsWindow.fromJson(j.obj('month')),
-      );
+    balanceMillimes: j.integer('balanceMillimes'),
+    pendingMillimes: j.integer('pendingPayoutMillimes'),
+    availableMillimes: j.integer('availableMillimes'),
+    today: EarningsWindow.fromJson(j.obj('today')),
+    week: EarningsWindow.fromJson(j.obj('week')),
+    month: EarningsWindow.fromJson(j.obj('month')),
+  );
 
   final int balanceMillimes;
   final int pendingMillimes;
@@ -47,20 +51,27 @@ class WalletSummary {
 enum WalletKind { sale, correction, payout }
 
 class WalletEntry {
-  const WalletEntry({required this.id, required this.kind, required this.amountMillimes, required this.createdAt, this.saleId, this.note});
+  const WalletEntry({
+    required this.id,
+    required this.kind,
+    required this.amountMillimes,
+    required this.createdAt,
+    this.saleId,
+    this.note,
+  });
 
   factory WalletEntry.fromJson(Json j) => WalletEntry(
-        id: j.str('id'),
-        kind: switch (j.str('kind')) {
-          'SALE' => WalletKind.sale,
-          'PAYOUT' => WalletKind.payout,
-          _ => WalletKind.correction,
-        },
-        amountMillimes: j.integer('amountMillimes'),
-        createdAt: j.date('createdAt'),
-        saleId: j.strOrNull('saleId'),
-        note: j.strOrNull('note'),
-      );
+    id: j.str('id'),
+    kind: switch (j.str('kind')) {
+      'SALE' => WalletKind.sale,
+      'PAYOUT' => WalletKind.payout,
+      _ => WalletKind.correction,
+    },
+    amountMillimes: j.integer('amountMillimes'),
+    createdAt: j.date('createdAt'),
+    saleId: j.strOrNull('saleId'),
+    note: j.strOrNull('note'),
+  );
 
   final String id;
   final WalletKind kind;
@@ -76,7 +87,10 @@ enum PayoutStatus {
   rejected,
   cancelled;
 
-  static PayoutStatus parse(String v) => PayoutStatus.values.firstWhere((s) => s.name.toUpperCase() == v, orElse: () => PayoutStatus.pending);
+  static PayoutStatus parse(String v) => PayoutStatus.values.firstWhere(
+    (s) => s.name.toUpperCase() == v,
+    orElse: () => PayoutStatus.pending,
+  );
 }
 
 class Payout {
@@ -96,19 +110,19 @@ class Payout {
   });
 
   factory Payout.fromJson(Json j) => Payout(
-        id: j.str('id'),
-        amountMillimes: j.integer('amountMillimes'),
-        status: PayoutStatus.parse(j.str('status')),
-        createdAt: j.date('createdAt'),
-        userName: j.objOrNull('user')?.str('name'),
-        userPdv: j.objOrNull('user')?.strOrNull('pdv'),
-        userPhone: j.objOrNull('user')?.strOrNull('phone'),
-        regionId: j.strOrNull('regionId'),
-        decidedAt: j.dateOrNull('decidedAt'),
-        decisionNote: j.strOrNull('decisionNote'),
-        paidAt: j.dateOrNull('paidAt'),
-        reference: j.strOrNull('reference'),
-      );
+    id: j.str('id'),
+    amountMillimes: j.integer('amountMillimes'),
+    status: PayoutStatus.parse(j.str('status')),
+    createdAt: j.date('createdAt'),
+    userName: j.objOrNull('user')?.str('name'),
+    userPdv: j.objOrNull('user')?.strOrNull('pdv'),
+    userPhone: j.objOrNull('user')?.strOrNull('phone'),
+    regionId: j.strOrNull('regionId'),
+    decidedAt: j.dateOrNull('decidedAt'),
+    decisionNote: j.strOrNull('decisionNote'),
+    paidAt: j.dateOrNull('paidAt'),
+    reference: j.strOrNull('reference'),
+  );
 
   final String id;
   final int amountMillimes;
@@ -139,16 +153,16 @@ class WalletOverview {
   });
 
   factory WalletOverview.fromJson(Json j) => WalletOverview(
-        userId: j.str('userId'),
-        name: j.str('name'),
-        pdv: j.str('pdv'),
-        region: j.str('region'),
-        earned: j.integer('earned'),
-        paid: j.integer('paid'),
-        balance: j.integer('balance'),
-        pending: j.integer('pending'),
-        available: j.integer('availableMillimes'),
-      );
+    userId: j.str('userId'),
+    name: j.str('name'),
+    pdv: j.str('pdv'),
+    region: j.str('region'),
+    earned: j.integer('earned'),
+    paid: j.integer('paid'),
+    balance: j.integer('balance'),
+    pending: j.integer('pending'),
+    available: j.integer('availableMillimes'),
+  );
 
   final String userId;
   final String name;

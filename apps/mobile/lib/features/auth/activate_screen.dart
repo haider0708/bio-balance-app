@@ -38,7 +38,9 @@ class _ActivateScreenState extends ConsumerState<ActivateScreen> {
     final email = _email.text.trim();
     final ok = await perform(
       context,
-      () => ref.read(authRepositoryProvider).activate(
+      () => ref
+          .read(authRepositoryProvider)
+          .activate(
             email: email,
             code: _code.text,
             password: _password.text,
@@ -46,7 +48,8 @@ class _ActivateScreenState extends ConsumerState<ActivateScreen> {
           ),
       success: t.accountActivated,
     );
-    if (ok && mounted) context.go('/login?email=${Uri.encodeQueryComponent(email)}');
+    if (ok && mounted)
+      context.go('/login?email=${Uri.encodeQueryComponent(email)}');
   }
 
   @override
@@ -67,15 +70,23 @@ class _ActivateScreenState extends ConsumerState<ActivateScreen> {
                 keyboardType: TextInputType.emailAddress,
                 textInputAction: TextInputAction.next,
                 decoration: InputDecoration(labelText: t.email),
-                validator: (v) => (v == null || !v.contains('@')) ? t.emailInvalid : null,
+                validator: (v) =>
+                    (v == null || !v.contains('@')) ? t.emailInvalid : null,
               ),
               const Gap(14),
               TextFormField(
                 controller: _code,
                 textCapitalization: TextCapitalization.characters,
                 textInputAction: TextInputAction.next,
-                decoration: InputDecoration(labelText: t.activationCode, hintText: 'ABCD-2345'),
-                validator: (v) => (v == null || v.replaceAll(RegExp(r'[\s-]'), '').length != 8) ? t.codeInvalid : null,
+                decoration: InputDecoration(
+                  labelText: t.activationCode,
+                  hintText: 'ABCD-2345',
+                ),
+                validator: (v) =>
+                    (v == null ||
+                        v.replaceAll(RegExp(r'[\s-]'), '').length != 8)
+                    ? t.codeInvalid
+                    : null,
               ),
               const Gap(14),
               TextFormField(
@@ -88,7 +99,8 @@ class _ActivateScreenState extends ConsumerState<ActivateScreen> {
               PasswordField(
                 controller: _password,
                 label: t.newPassword,
-                validator: (v) => (v == null || v.length < 10) ? t.passwordTooShort : null,
+                validator: (v) =>
+                    (v == null || v.length < 10) ? t.passwordTooShort : null,
               ),
               const Gap(14),
               PasswordField(
@@ -96,7 +108,8 @@ class _ActivateScreenState extends ConsumerState<ActivateScreen> {
                 label: t.confirmPassword,
                 textInputAction: TextInputAction.done,
                 onSubmitted: (_) => _submit(),
-                validator: (v) => v != _password.text ? t.passwordsDiffer : null,
+                validator: (v) =>
+                    v != _password.text ? t.passwordsDiffer : null,
               ),
               const Gap(24),
               AsyncButton(label: t.activateAccount, onPressed: _submit),

@@ -38,13 +38,18 @@ class NotificationsScreen extends ConsumerStatefulWidget {
   const NotificationsScreen({super.key});
 
   @override
-  ConsumerState<NotificationsScreen> createState() => _NotificationsScreenState();
+  ConsumerState<NotificationsScreen> createState() =>
+      _NotificationsScreenState();
 }
 
 class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
   List<AppNotification> _pinned = const [];
-  late final PagedController<AppNotification> _paged = PagedController((cursor) async {
-    final page = await ref.read(notificationsRepositoryProvider).page(cursor: cursor);
+  late final PagedController<AppNotification> _paged = PagedController((
+    cursor,
+  ) async {
+    final page = await ref
+        .read(notificationsRepositoryProvider)
+        .page(cursor: cursor);
     if (cursor == null && mounted) setState(() => _pinned = page.pinned);
     return PageResult(page.items, page.nextCursor);
   });
@@ -58,7 +63,10 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
   Future<void> _open(AppNotification n) async {
     final me = ref.read(meProvider);
     if (n.unread) {
-      await ref.read(notificationsRepositoryProvider).markRead(n.id).catchError((Object _) {});
+      await ref
+          .read(notificationsRepositoryProvider)
+          .markRead(n.id)
+          .catchError((Object _) {});
       unawaited(ref.read(unreadCountProvider.notifier).refresh());
       await _paged.refresh();
     }
@@ -84,7 +92,10 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
         actions: [
           TextButton(
             onPressed: () async {
-              final ok = await perform(context, () => ref.read(notificationsRepositoryProvider).markAllRead());
+              final ok = await perform(
+                context,
+                () => ref.read(notificationsRepositoryProvider).markAllRead(),
+              );
               if (ok) {
                 unawaited(ref.read(unreadCountProvider.notifier).refresh());
                 await _paged.refresh();
@@ -96,18 +107,35 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
       ),
       body: PagedList<AppNotification>(
         controller: _paged,
-        empty: EmptyState(icon: LucideIcons.bellOff, title: t.noNotifications, message: t.noNotificationsHint),
+        empty: EmptyState(
+          icon: LucideIcons.bellOff,
+          title: t.noNotifications,
+          message: t.noNotificationsHint,
+        ),
         header: _pinned.isEmpty
             ? null
             : Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  SectionHeader(t.pinned, padding: const EdgeInsets.fromLTRB(4, 8, 4, 8)),
-                  for (final n in _pinned) Padding(padding: const EdgeInsets.only(bottom: 8), child: _Tile(notification: n, onTap: () => _open(n))),
-                  SectionHeader(t.recent, padding: const EdgeInsets.fromLTRB(4, 12, 4, 8)),
+                  SectionHeader(
+                    t.pinned,
+                    padding: const EdgeInsets.fromLTRB(4, 8, 4, 8),
+                  ),
+                  for (final n in _pinned)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: _Tile(notification: n, onTap: () => _open(n)),
+                    ),
+                  SectionHeader(
+                    t.recent,
+                    padding: const EdgeInsets.fromLTRB(4, 12, 4, 8),
+                  ),
                 ],
               ),
-        itemBuilder: (context, n, _) => Padding(padding: const EdgeInsets.only(bottom: 8), child: _Tile(notification: n, onTap: () => _open(n))),
+        itemBuilder: (context, n, _) => Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: _Tile(notification: n, onTap: () => _open(n)),
+        ),
       ),
     );
   }
@@ -136,32 +164,69 @@ class _Tile extends StatelessWidget {
           };
     return AppCard(
       onTap: onTap,
-      color: n.unread ? context.colors.primaryContainer.withValues(alpha: 0.45) : null,
+      color: n.unread
+          ? context.colors.primaryContainer.withValues(alpha: 0.45)
+          : null,
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
             width: 40,
             height: 40,
-            decoration: BoxDecoration(color: n.isMessage ? context.status.infoSoft : context.colors.primaryContainer, borderRadius: BorderRadius.circular(12)),
-            child: Icon(icon, size: 20, color: n.isMessage ? context.status.info : context.colors.primary),
+            decoration: BoxDecoration(
+              color: n.isMessage
+                  ? context.status.infoSoft
+                  : context.colors.primaryContainer,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(
+              icon,
+              size: 20,
+              color: n.isMessage ? context.status.info : context.colors.primary,
+            ),
           ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(n.headline(t.localeName), style: context.text.titleSmall?.copyWith(fontWeight: n.unread ? FontWeight.w700 : FontWeight.w500)),
+                Text(
+                  n.headline(t.localeName),
+                  style: context.text.titleSmall?.copyWith(
+                    fontWeight: n.unread ? FontWeight.w700 : FontWeight.w500,
+                  ),
+                ),
                 if (n.isMessage && (n.body ?? '').isNotEmpty) ...[
                   const SizedBox(height: 2),
-                  Text(n.body!, maxLines: 2, overflow: TextOverflow.ellipsis, style: context.text.bodySmall?.copyWith(color: context.status.muted)),
+                  Text(
+                    n.body!,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: context.text.bodySmall?.copyWith(
+                      color: context.status.muted,
+                    ),
+                  ),
                 ],
                 const SizedBox(height: 4),
-                Text(Dates.dateTime(n.createdAt, t.localeName), style: context.text.bodySmall?.copyWith(color: context.status.muted)),
+                Text(
+                  Dates.dateTime(n.createdAt, t.localeName),
+                  style: context.text.bodySmall?.copyWith(
+                    color: context.status.muted,
+                  ),
+                ),
               ],
             ),
           ),
-          if (n.unread) Container(margin: const EdgeInsets.only(top: 6, left: 8), width: 10, height: 10, decoration: BoxDecoration(color: context.colors.primary, shape: BoxShape.circle)),
+          if (n.unread)
+            Container(
+              margin: const EdgeInsets.only(top: 6, left: 8),
+              width: 10,
+              height: 10,
+              decoration: BoxDecoration(
+                color: context.colors.primary,
+                shape: BoxShape.circle,
+              ),
+            ),
         ],
       ),
     );
@@ -185,9 +250,21 @@ class _MessageSheet extends StatelessWidget {
           children: [
             Text(notification.title ?? '', style: context.text.titleLarge),
             const Gap(4),
-            Text(Dates.dateTime(notification.createdAt, t.localeName), style: context.text.bodySmall?.copyWith(color: context.status.muted)),
+            Text(
+              Dates.dateTime(notification.createdAt, t.localeName),
+              style: context.text.bodySmall?.copyWith(
+                color: context.status.muted,
+              ),
+            ),
             const Gap(16),
-            Flexible(child: SingleChildScrollView(child: SelectableText(notification.body ?? '', style: context.text.bodyLarge))),
+            Flexible(
+              child: SingleChildScrollView(
+                child: SelectableText(
+                  notification.body ?? '',
+                  style: context.text.bodyLarge,
+                ),
+              ),
+            ),
           ],
         ),
       ),

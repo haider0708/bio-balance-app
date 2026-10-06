@@ -31,7 +31,10 @@ class VendeurHome extends ConsumerWidget {
     final data = ref.watch(dashboardProvider(null));
     // Keep the catalog fresh on the phone: it is what lets a sale be recorded without a connection.
     ref.watch(productsProvider);
-    final pending = ref.watch(salesOutboxProvider).where((s) => s.error == null).length;
+    final pending = ref
+        .watch(salesOutboxProvider)
+        .where((s) => s.error == null)
+        .length;
     return HomeScaffold(
       title: t.helloName(me.name.split(' ').first),
       subtitle: me.pdv?.name,
@@ -53,26 +56,65 @@ class VendeurHome extends ConsumerWidget {
           return ListView(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 100),
             children: [
-              if (inactive) _Banner(icon: LucideIcons.clock, tone: Tone.warning, text: t.pdvNotActive),
-              if (pending > 0) _Banner(icon: LucideIcons.cloudUpload, tone: Tone.info, text: t.salesWaiting(pending), onTap: () => context.go('/sales')),
+              if (inactive)
+                _Banner(
+                  icon: LucideIcons.clock,
+                  tone: Tone.warning,
+                  text: t.pdvNotActive,
+                ),
+              if (pending > 0)
+                _Banner(
+                  icon: LucideIcons.cloudUpload,
+                  tone: Tone.info,
+                  text: t.salesWaiting(pending),
+                  onTap: () => context.go('/sales'),
+                ),
               _TodayCard(wallet: wallet),
               const Gap(12),
               FilledButton.icon(
                 onPressed: inactive ? null : () => context.push('/sell'),
-                style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(64), textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700, fontFamily: 'Inter')),
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size.fromHeight(64),
+                  textStyle: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    fontFamily: 'Inter',
+                  ),
+                ),
                 icon: const Icon(LucideIcons.plus, size: 26),
                 label: Text(t.newSale),
               ),
               const Gap(12),
               Row(
                 children: [
-                  Expanded(child: StatTile(icon: LucideIcons.wallet, label: t.walletBalance, value: Money.format(wallet.balanceMillimes, locale), tone: Tone.success, onTap: () => context.go('/wallet'))),
+                  Expanded(
+                    child: StatTile(
+                      icon: LucideIcons.wallet,
+                      label: t.walletBalance,
+                      value: Money.format(wallet.balanceMillimes, locale),
+                      tone: Tone.success,
+                      onTap: () => context.go('/wallet'),
+                    ),
+                  ),
                   const SizedBox(width: 12),
-                  Expanded(child: StatTile(icon: LucideIcons.calendarDays, label: t.thisWeek, value: Money.format(week.rewardMillimes, locale), hint: t.units(week.units))),
+                  Expanded(
+                    child: StatTile(
+                      icon: LucideIcons.calendarDays,
+                      label: t.thisWeek,
+                      value: Money.format(week.rewardMillimes, locale),
+                      hint: t.units(week.units),
+                    ),
+                  ),
                 ],
               ),
               if (latest.isNotEmpty) ...[
-                SectionHeader(t.latestSales, trailing: TextButton(onPressed: () => context.go('/sales'), child: Text(t.seeAll))),
+                SectionHeader(
+                  t.latestSales,
+                  trailing: TextButton(
+                    onPressed: () => context.go('/sales'),
+                    child: Text(t.seeAll),
+                  ),
+                ),
                 for (final s in latest)
                   Padding(
                     padding: const EdgeInsets.only(bottom: 8),
@@ -80,12 +122,30 @@ class VendeurHome extends ConsumerWidget {
                       onTap: () => context.push('/sales/${s.str('id')}'),
                       child: Row(
                         children: [
-                          Icon(LucideIcons.receipt, color: context.colors.primary),
+                          Icon(
+                            LucideIcons.receipt,
+                            color: context.colors.primary,
+                          ),
                           const SizedBox(width: 12),
-                          Expanded(child: Text('${Dates.relativeDay(s.date('occurredAt'), locale, today: t.today, yesterday: t.yesterday)} · ${Dates.time(s.date('occurredAt'), locale)}', style: context.text.titleSmall)),
-                          Text(t.units(s.integer('units')), style: context.text.bodySmall?.copyWith(color: context.status.muted)),
+                          Expanded(
+                            child: Text(
+                              '${Dates.relativeDay(s.date('occurredAt'), locale, today: t.today, yesterday: t.yesterday)} · ${Dates.time(s.date('occurredAt'), locale)}',
+                              style: context.text.titleSmall,
+                            ),
+                          ),
+                          Text(
+                            t.units(s.integer('units')),
+                            style: context.text.bodySmall?.copyWith(
+                              color: context.status.muted,
+                            ),
+                          ),
                           const SizedBox(width: 12),
-                          Text('+ ${Money.format(s.integer('rewardMillimes'), locale)}', style: context.text.titleSmall?.copyWith(color: context.colors.primary)),
+                          Text(
+                            '+ ${Money.format(s.integer('rewardMillimes'), locale)}',
+                            style: context.text.titleSmall?.copyWith(
+                              color: context.colors.primary,
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -110,17 +170,45 @@ class _TodayCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        gradient: LinearGradient(colors: [context.colors.primary, Color.lerp(context.colors.primary, Palette.leaf, 0.5)!], begin: Alignment.topLeft, end: Alignment.bottomRight),
+        gradient: LinearGradient(
+          colors: [
+            context.colors.primary,
+            Color.lerp(context.colors.primary, Palette.leaf, 0.5)!,
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(t.earnedToday, style: TextStyle(color: context.colors.onPrimary.withValues(alpha: 0.85), fontWeight: FontWeight.w600)),
+          Text(
+            t.earnedToday,
+            style: TextStyle(
+              color: context.colors.onPrimary.withValues(alpha: 0.85),
+              fontWeight: FontWeight.w600,
+            ),
+          ),
           const Gap(6),
-          FittedBox(fit: BoxFit.scaleDown, child: Text(Money.format(wallet.today.rewardMillimes, t.localeName), style: context.text.displaySmall?.copyWith(color: context.colors.onPrimary, fontWeight: FontWeight.w800, letterSpacing: -0.5))),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              Money.format(wallet.today.rewardMillimes, t.localeName),
+              style: context.text.displaySmall?.copyWith(
+                color: context.colors.onPrimary,
+                fontWeight: FontWeight.w800,
+                letterSpacing: -0.5,
+              ),
+            ),
+          ),
           const Gap(6),
-          Text('${t.salesCount(wallet.today.sales)} · ${t.units(wallet.today.units)}', style: TextStyle(color: context.colors.onPrimary.withValues(alpha: 0.9))),
+          Text(
+            '${t.salesCount(wallet.today.sales)} · ${t.units(wallet.today.units)}',
+            style: TextStyle(
+              color: context.colors.onPrimary.withValues(alpha: 0.9),
+            ),
+          ),
         ],
       ),
     );
@@ -128,7 +216,12 @@ class _TodayCard extends StatelessWidget {
 }
 
 class _Banner extends StatelessWidget {
-  const _Banner({required this.icon, required this.tone, required this.text, this.onTap});
+  const _Banner({
+    required this.icon,
+    required this.tone,
+    required this.text,
+    this.onTap,
+  });
 
   final IconData icon;
   final Tone tone;
@@ -144,7 +237,21 @@ class _Banner extends StatelessWidget {
         onTap: onTap,
         color: c.soft,
         borderColor: Colors.transparent,
-        child: Row(children: [Icon(icon, color: c.strong, size: 20), const SizedBox(width: 12), Expanded(child: Text(text, style: context.text.bodyMedium?.copyWith(color: c.strong, fontWeight: FontWeight.w600)))]),
+        child: Row(
+          children: [
+            Icon(icon, color: c.strong, size: 20),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                text,
+                style: context.text.bodyMedium?.copyWith(
+                  color: c.strong,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

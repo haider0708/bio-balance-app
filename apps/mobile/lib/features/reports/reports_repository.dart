@@ -1,0 +1,177 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../core/api/json.dart';
+import '../../core/auth/session.dart';
+
+class ReportRow {
+  const ReportRow({
+    required this.key,
+    required this.label,
+    required this.sales,
+    required this.units,
+    required this.rewardMillimes,
+  });
+
+  factory ReportRow.fromJson(Json j) => ReportRow(
+    key: j.str('key'),
+    label: j.str('label'),
+    sales: j.integer('sales'),
+    units: j.integer('units'),
+    rewardMillimes: j.integer('rewardMillimes'),
+  );
+
+  final String key;
+  final String label;
+  final int sales;
+  final int units;
+  final int rewardMillimes;
+}
+
+class SalesReport {
+  const SalesReport({
+    required this.rows,
+    required this.sales,
+    required this.units,
+    required this.rewardMillimes,
+  });
+
+  factory SalesReport.fromJson(Json j) => SalesReport(
+    rows: j.list('rows').map(ReportRow.fromJson).toList(),
+    sales: j.obj('totals').integer('sales'),
+    units: j.obj('totals').integer('units'),
+    rewardMillimes: j.obj('totals').integer('rewardMillimes'),
+  );
+
+  final List<ReportRow> rows;
+  final int sales;
+  final int units;
+  final int rewardMillimes;
+}
+
+class AttentionRow {
+  const AttentionRow({
+    required this.locationId,
+    required this.place,
+    required this.kind,
+    required this.product,
+    required this.family,
+    required this.quantity,
+  });
+
+  factory AttentionRow.fromJson(Json j) => AttentionRow(
+    locationId: j.str('locationId'),
+    place: j.str('place'),
+    kind: j.str('kind'),
+    product: j.str('product'),
+    family: j.str('family'),
+    quantity: j.integer('quantity'),
+  );
+
+  final String locationId;
+  final String place;
+  final String kind;
+  final String product;
+  final String family;
+  final int quantity;
+}
+
+class AuditItem {
+  const AuditItem({
+    required this.action,
+    required this.entity,
+    required this.createdAt,
+    this.actorName,
+    this.actorRole,
+    this.details = const {},
+  });
+
+  factory AuditItem.fromJson(Json j) => AuditItem(
+    action: j.str('action'),
+    entity: j.str('entity'),
+    createdAt: j.date('createdAt'),
+    actorName: j.objOrNull('actor')?.str('name'),
+    actorRole: j.objOrNull('actor')?.str('role'),
+    details: j.obj('details'),
+  );
+
+  final String action;
+  final String entity;
+  final DateTime createdAt;
+  final String? actorName;
+  final String? actorRole;
+  final Json details;
+}
+
+typedef ReportQuery = ({
+  String from,
+  String to,
+  String groupBy,
+  String? regionId,
+});
+
+class ReportsRepository {
+  ReportsRepository(this._ref);
+
+  final Ref _ref;
+
+  Future<SalesReport> sales(ReportQuery q) async => SalesReport.fromJson(
+    await _ref
+            .read(apiClientProvider)
+            .get(
+              '/v1/reports/sales',
+              query: {
+                'from': q.from,
+                'to': q.to,
+                'groupBy': q.groupBy,
+                'regionId': q.regionId,
+              },
+            )
+        as Json,
+  );
+
+  Future<void> downloadCsv({
+    required String from,
+    required String to,
+    String? regionId,
+    required String path,
+  }) => _ref
+      .read(apiClientProvider)
+      .download(
+        '/v1/reports/sales.csv',
+        path,
+        query: {'from': from, 'to': to, 'regionId': regionId},
+      );
+
+  Future<List<AttentionRow>> attention({String? regionId}) async => jsonList(
+    await _ref
+        .read(apiClientProvider)
+        .get('/v1/reports/stock/attention', query: {'regionId': regionId}),
+  ).map(AttentionRow.fromJson).toList();
+
+  Future<({List<AuditItem> items, String? next})> audit({
+    String? cursor,
+  }) async {
+    final data =
+        await _ref
+                .read(apiClientProvider)
+                .get('/v1/audit', query: {'cursor': cursor, 'limit': 50})
+            as Json;
+    return (
+      items: data.list('items').map(AuditItem.fromJson).toList(),
+      next: data.strOrNull('nextCursor'),
+    );
+  }
+}
+
+final reportsRepositoryProvider = Provider<ReportsRepository>(
+  ReportsRepository.new,
+);
+
+final salesReportProvider = FutureProvider.autoDispose
+    .family<SalesReport, ReportQuery>(
+      (ref, q) => ref.watch(reportsRepositoryProvider).sales(q),
+    );
+
+final stockAttentionProvider = FutureProvider.autoDispose<List<AttentionRow>>(
+  (ref) => ref.watch(reportsRepositoryProvider).attention(),
+);

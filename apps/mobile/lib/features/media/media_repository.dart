@@ -14,17 +14,26 @@ class MediaRepository {
   final Ref _ref;
 
   /// Upload a file. `purpose` is PROOF (photos of stock and delivery papers), PRODUCT or TRAINING.
-  Future<String> upload(Uint8List bytes, {required String purpose, String filename = 'photo.jpg'}) async {
-    final response = await _ref.read(apiClientProvider).upload(
-      '/v1/media',
-      bytes,
-      query: {'purpose': purpose, 'filename': filename},
-    ) as Json;
+  Future<String> upload(
+    Uint8List bytes, {
+    required String purpose,
+    String filename = 'photo.jpg',
+  }) async {
+    final response =
+        await _ref
+                .read(apiClientProvider)
+                .upload(
+                  '/v1/media',
+                  bytes,
+                  query: {'purpose': purpose, 'filename': filename},
+                )
+            as Json;
     return response.str('id');
   }
 
-  Future<Uint8List> bytes(String id) async =>
-      Uint8List.fromList(await _ref.read(apiClientProvider).bytes('/v1/media/$id'));
+  Future<Uint8List> bytes(String id) async => Uint8List.fromList(
+    await _ref.read(apiClientProvider).bytes('/v1/media/$id'),
+  );
 
   Future<void> download(String id, String path) =>
       _ref.read(apiClientProvider).download('/v1/media/$id', path);
@@ -65,14 +74,26 @@ class AuthImage extends ConsumerWidget {
         color: context.colors.surfaceContainerLow,
         borderRadius: BorderRadius.circular(radius),
       ),
-      child: Icon(placeholderIcon, color: context.status.muted, size: (width ?? 48) * 0.4),
+      child: Icon(
+        placeholderIcon,
+        color: context.status.muted,
+        size: (width ?? 48) * 0.4,
+      ),
     );
     final id = mediaId;
     if (id == null) return placeholder;
     return ClipRRect(
       borderRadius: BorderRadius.circular(radius),
-      child: ref.watch(mediaBytesProvider(id)).when(
-            data: (bytes) => Image.memory(bytes, width: width, height: height, fit: fit, gaplessPlayback: true),
+      child: ref
+          .watch(mediaBytesProvider(id))
+          .when(
+            data: (bytes) => Image.memory(
+              bytes,
+              width: width,
+              height: height,
+              fit: fit,
+              gaplessPlayback: true,
+            ),
             loading: () => placeholder,
             error: (_, _) => placeholder,
           ),

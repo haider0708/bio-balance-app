@@ -7,9 +7,9 @@ enum Role {
   vendeur;
 
   static Role parse(String value) => Role.values.firstWhere(
-        (r) => r.name.toUpperCase() == value.toUpperCase(),
-        orElse: () => Role.vendeur,
-      );
+    (r) => r.name.toUpperCase() == value.toUpperCase(),
+    orElse: () => Role.vendeur,
+  );
 
   String get wire => name.toUpperCase();
 }
@@ -49,16 +49,18 @@ class Me {
   });
 
   factory Me.fromJson(Json j) => Me(
-        id: j.str('id'),
-        name: j.str('name'),
-        email: j.str('email'),
-        phone: j.strOrNull('phone'),
-        role: Role.parse(j.str('role')),
-        locale: j.str('locale', 'fr'),
-        region: j.objOrNull('region') == null ? null : Region.fromJson(j.obj('region')),
-        pdv: j.objOrNull('pdv') == null ? null : Place.fromJson(j.obj('pdv')),
-        depot: j.objOrNull('depot') == null ? null : Place.fromJson(j.obj('depot')),
-      );
+    id: j.str('id'),
+    name: j.str('name'),
+    email: j.str('email'),
+    phone: j.strOrNull('phone'),
+    role: Role.parse(j.str('role')),
+    locale: j.str('locale', 'fr'),
+    region: j.objOrNull('region') == null
+        ? null
+        : Region.fromJson(j.obj('region')),
+    pdv: j.objOrNull('pdv') == null ? null : Place.fromJson(j.obj('pdv')),
+    depot: j.objOrNull('depot') == null ? null : Place.fromJson(j.obj('depot')),
+  );
 
   final String id;
   final String name;
@@ -72,7 +74,11 @@ class Me {
 
   /// The first letters of the name, for avatars.
   String get initials {
-    final parts = name.trim().split(RegExp(r'\s+')).where((p) => p.isNotEmpty).toList();
+    final parts = name
+        .trim()
+        .split(RegExp(r'\s+'))
+        .where((p) => p.isNotEmpty)
+        .toList();
     if (parts.isEmpty) return '?';
     return parts.take(2).map((p) => p[0].toUpperCase()).join();
   }
