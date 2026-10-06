@@ -45,3 +45,4 @@ apps/mobile/ios/Flutter/AccountLinks.xcconfig
 # Admin setup file created by the bootstrap command (password and authenticator link).
 infrastructure/production/setup/
 .volumes/
+.local-credentials-v2/
