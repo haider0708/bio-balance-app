@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/json.dart';
+import '../../core/alerts/background_alerts.dart';
 import '../../core/auth/session.dart';
 import 'notification_models.dart';
 
@@ -59,6 +60,7 @@ class UnreadCount extends Notifier<int> {
     }
 
     unawaited(check());
+    unawaited(BackgroundAlerts.askPermission());
     final every = ref.watch(unreadPollIntervalProvider);
     if (every != null) {
       final timer = Timer.periodic(every, (_) => unawaited(check()));

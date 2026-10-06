@@ -288,30 +288,6 @@ class RunningLow extends ConsumerWidget {
   final List<Json> items;
   final VoidCallback onOrdered;
 
-  Future<void> _order(BuildContext context, WidgetRef ref, Json row) async {
-    final t = AppLocalizations.of(context);
-    final quantity = await showModalBottomSheet<int>(
-      context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
-      builder: (_) => _OrderSheet(row: row),
-    );
-    if (quantity == null || !context.mounted) return;
-    final ok = await perform(
-      context,
-      () => ref
-          .read(restockRepositoryProvider)
-          .create(
-            destId: row.str('pdvId'),
-            lines: [
-              {'productId': row.str('productId'), 'quantity': quantity},
-            ],
-          ),
-      success: t.orderSent,
-    );
-    if (ok) onOrdered();
-  }
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final t = AppLocalizations.of(context);
@@ -355,7 +331,18 @@ class RunningLow extends ConsumerWidget {
                   ),
                   const SizedBox(width: 8),
                   FilledButton.tonal(
-                    onPressed: () => _order(context, ref, row),
+                    onPressed: () async {
+                      if (await orderProduct(
+                        context,
+                        ref,
+                        pdvId: row.str('pdvId'),
+                        productId: row.str('productId'),
+                        product: row.str('product'),
+                        place: row.str('place'),
+                      )) {
+                        onOrdered();
+                      }
+                    },
                     style: FilledButton.styleFrom(
                       minimumSize: const Size(72, 44),
                       padding: const EdgeInsets.symmetric(horizontal: 14),
@@ -371,10 +358,42 @@ class RunningLow extends ConsumerWidget {
   }
 }
 
-class _OrderSheet extends StatefulWidget {
-  const _OrderSheet({required this.row});
+/// Ask how many, then send the restock request. True when it was sent.
+Future<bool> orderProduct(
+  BuildContext context,
+  WidgetRef ref, {
+  required String pdvId,
+  required String productId,
+  required String product,
+  required String place,
+}) async {
+  final t = AppLocalizations.of(context);
+  final quantity = await showModalBottomSheet<int>(
+    context: context,
+    isScrollControlled: true,
+    showDragHandle: true,
+    builder: (_) => _OrderSheet(product: product, place: place),
+  );
+  if (quantity == null || !context.mounted) return false;
+  return perform(
+    context,
+    () => ref
+        .read(restockRepositoryProvider)
+        .create(
+          destId: pdvId,
+          lines: [
+            {'productId': productId, 'quantity': quantity},
+          ],
+        ),
+    success: t.orderSent,
+  );
+}
 
-  final Json row;
+class _OrderSheet extends StatefulWidget {
+  const _OrderSheet({required this.product, required this.place});
+
+  final String product;
+  final String place;
 
   @override
   State<_OrderSheet> createState() => _OrderSheetState();
@@ -397,9 +416,9 @@ class _OrderSheetState extends State<_OrderSheet> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(widget.row.str('product'), style: context.text.titleMedium),
+          Text(widget.product, style: context.text.titleMedium),
           Text(
-            widget.row.str('place'),
+            widget.place,
             style: context.text.bodyMedium?.copyWith(
               color: context.status.muted,
             ),

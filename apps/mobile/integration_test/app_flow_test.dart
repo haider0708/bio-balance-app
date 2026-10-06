@@ -110,11 +110,18 @@ void main() {
     await pumpUntil(tester, find.text('New sale'), reason: 'the New sale button');
     await tester.tap(find.text('New sale').first);
     await pumpUntil(tester, find.byType(TextField));
+    // A product the store does not hold cannot be sold; one it holds can.
+    await pumpUntil(tester, find.textContaining('in stock'), reason: 'products in stock');
+    final soldOut = find.text('Out of stock');
+    if (soldOut.evaluate().isNotEmpty) {
+      await tester.tap(soldOut.first, warnIfMissed: false);
+      await settleFor(tester, 300);
+      expect(find.textContaining('Review sale'), findsNothing);
+    }
     await tester.enterText(find.byType(TextField).first, 'SERUM');
     await settleFor(tester);
-    final products = find.textContaining('BIOBALANCE');
-    await pumpUntil(tester, products);
-    await tester.tap(products.first);
+    await pumpUntil(tester, find.textContaining('in stock'), reason: 'serums in stock');
+    await tester.tap(find.textContaining('in stock').first);
     await settleFor(tester, 300);
     await tester.tap(find.textContaining('Review sale'));
     await pumpUntil(tester, find.text('Record the sale'));

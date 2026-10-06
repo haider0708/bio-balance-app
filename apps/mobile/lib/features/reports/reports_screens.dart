@@ -15,6 +15,7 @@ import '../../core/widgets/components.dart';
 import '../../core/widgets/feedback.dart';
 import '../../core/widgets/states.dart';
 import '../../l10n/app_localizations.dart';
+import '../dashboard/dashboard_widgets.dart' show orderProduct;
 import '../dashboard/trend_chart.dart';
 import '../media/media_repository.dart';
 import '../network/network_repository.dart';
@@ -565,6 +566,29 @@ class StockAttentionScreen extends ConsumerWidget {
                       '${r.quantity}',
                       tone: negative ? Tone.danger : Tone.warning,
                     ),
+                    if (ref.watch(meProvider).role == Role.responsable &&
+                        r.kind == 'PDV') ...[
+                      const SizedBox(width: 8),
+                      FilledButton.tonal(
+                        onPressed: () async {
+                          if (await orderProduct(
+                            context,
+                            ref,
+                            pdvId: r.locationId,
+                            productId: r.productId,
+                            product: r.product,
+                            place: r.place,
+                          )) {
+                            ref.invalidate(stockAttentionProvider);
+                          }
+                        },
+                        style: FilledButton.styleFrom(
+                          minimumSize: const Size(64, 40),
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                        ),
+                        child: Text(t.orderNow),
+                      ),
+                    ],
                   ],
                 ),
               );

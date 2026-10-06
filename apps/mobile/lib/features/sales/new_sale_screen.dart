@@ -19,6 +19,9 @@ import '../stock/stock_repository.dart';
 import 'sales_repository.dart';
 
 /// Pick products, adjust quantities, record the sale. Built to be done with one hand at the till.
+/// Stands for "no limit known" while the phone cannot read the stock.
+const _unknownStock = 9999;
+
 class NewSaleScreen extends ConsumerStatefulWidget {
   const NewSaleScreen({super.key});
 
@@ -39,7 +42,8 @@ class _NewSaleScreenState extends ConsumerState<NewSaleScreen> {
   Map<String, int> _stock = const {};
   bool _stockKnown = false;
 
-  int _most(String productId) => _stockKnown ? (_stock[productId] ?? 0) : 9999;
+  int _most(String productId) =>
+      _stockKnown ? (_stock[productId] ?? 0) : _unknownStock;
 
   void _set(Product p, int quantity) {
     final most = _most(p.id);
@@ -102,7 +106,10 @@ class _NewSaleScreenState extends ConsumerState<NewSaleScreen> {
         ],
       ),
       body: AsyncBody(
-        value: products,
+        // Wait for the stock too, so nothing looks sellable before we know what the store holds.
+        value: levels != null && levels.isLoading && !levels.hasValue
+            ? const AsyncLoading<List<Product>>()
+            : products,
         onRetry: () => ref.invalidate(productsProvider),
         builder: (all) {
           final families = {for (final p in all) p.family}.toList()..sort();
@@ -236,7 +243,9 @@ class _ProductTile extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  stock > 0
+                  stock >= _unknownStock
+                      ? product.family
+                      : stock > 0
                       ? '${product.family} · ${t.inStockCount(stock)}'
                       : '${product.family} · ${t.outOfStock}',
                   style: context.text.bodySmall?.copyWith(

@@ -8,7 +8,7 @@ BioBalance runs the network of BioBalance parapharmacies: who sells where, what 
 |---|---|---|
 | **Admin** | few | Sees everything, approves everything, sets rewards, pays out, writes announcements and training. Signs in with a password and an authenticator code. |
 | **Responsable** | 3, one per region (Nord, Centre, Sud) | Creates the group(s) and points of sale (PDV) of their region, adds teams, declares stock, requests restocks, receives deliveries. Sees only their own region. |
-| **Grossiste** | any | A wholesaler with one depot. Declares the depot stock, prepares and ships the orders assigned to them, can request stock from BioBalance. |
+| **Grossiste** | any | A wholesaler with one depot, working for **one region** and handled by that region's responsable (a restock can only be assigned to a grossiste of its own region). Declares the depot stock, prepares and ships the orders assigned to them, can request stock from BioBalance. |
 | **Team member** (vendeur) | any | Works in one point of sale. Records sales, sees the reward each sale earned, keeps a wallet. |
 
 Regions are separate: a responsable never sees another region's points of sale, people, stock, sales or deliveries (enforced in the database, not only in the app).
@@ -22,9 +22,10 @@ Everything a responsable or grossiste creates **works immediately but stays inac
 
 ## Stock
 
-One quantity per product per place (point of sale or depot). **No lots, no expiry dates, no prices.** Every change is kept in an append-only history. Stock below zero is allowed (a sale can happen before a delivery is approved) and is flagged to managers.
+One quantity per product per place (point of sale or depot). **No lots, no expiry dates, no prices.** Every change is kept in an append-only history. **A sale can never take a store below zero:** the server refuses it (`OUT_OF_STOCK`), and the sale screen shows what is in stock and caps the quantity. While the phone is offline the sale is kept and checked when it is sent. A team member can read the stock of their own store only.
 
-- **Opening stock / recount:** the responsable (or grossiste) counts, enters quantities and takes a photo. The admin sees the photo next to the numbers and approves, corrects some quantities, or rejects.
+- **Opening stock, counted once:** the responsable (or grossiste) counts, enters quantities and takes a photo. The admin sees the photo next to the numbers and approves, corrects some quantities, or rejects. There is no recount: a place whose count is waiting or approved cannot declare again (`ALREADY_COUNTED`); only a rejected count can be sent again. A place with nothing on its shelves declares "no stock" (no photo needed). Later stock moves only through restocks and sales.
+- **Quick restock:** a low-stock product on the responsable's dashboard (or on the stock-attention list) has an Order button that sends the request in two taps.
 
 ## Restock
 
@@ -52,4 +53,6 @@ Rewards credit the team member's wallet. They can **request a payout** up to wha
 
 ## Reports and history
 
-Dashboards per role, sales reports grouped by day, region, point of sale, seller, product or family with a spreadsheet export, a stock-attention list (below zero / nearly out), and an audit log of who changed what.
+Dashboards per role, sales reports grouped by day, region, point of sale, seller, product or family with a spreadsheet export, a stock-attention list (nearly out, each with an Order button for the responsable). Reports compare with the previous period, draw a daily chart and let you tap a row to narrow it (store → seller → product). The admin's home splits "needs attention" by kind and opens a page per region (responsable, numbers, groups, stores, grossistes, top products and stores). The audit log of who changed what is kept for the developer only; it is not in the app.
+
+**Sales history** is read by month and day (totals per day, open a day for its sales, search by product), so a list of hundreds stays readable. **Rewards:** a product's own rate always overrides its family's rate. **Notifications:** the responsable is told about every sale of their stores; phones check for new notifications about every 15 minutes even when the app is closed (no push service needed).

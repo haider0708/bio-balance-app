@@ -32,7 +32,11 @@ export class StockService {
         location.regionId === actor.regionId) ||
       (actor.role === "GROSSISTE" &&
         location.kind === "DEPOT" &&
-        location.id === actor.depotId);
+        location.id === actor.depotId) ||
+      // A team member reads their own store's stock (to see what can be sold), nothing else.
+      (actor.role === "VENDEUR" &&
+        location.kind === "PDV" &&
+        location.id === actor.pdvId);
     if (!ok) throw notFound("Location");
     return location;
   }

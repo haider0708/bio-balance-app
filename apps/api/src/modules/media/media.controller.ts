@@ -1,3 +1,4 @@
+import path from "node:path";
 import { Controller, Get, Param, Post, Query, Req, Res } from "@nestjs/common";
 import type { Response } from "express";
 import { z } from "zod";
@@ -32,6 +33,11 @@ export class MediaController {
     res.setHeader("X-Content-Type-Options", "nosniff");
     res
       .type(file.mime)
-      .sendFile(file.file, { acceptRanges: true, dotfiles: "deny" });
+      // The folder is the root, so only the file name is checked for dot-files, not the folders above it.
+      .sendFile(path.basename(file.file), {
+        root: path.resolve(path.dirname(file.file)),
+        acceptRanges: true,
+        dotfiles: "deny",
+      });
   }
 }

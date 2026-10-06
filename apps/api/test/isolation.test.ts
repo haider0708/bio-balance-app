@@ -149,3 +149,32 @@ describe("regions never see each other's data", () => {
     );
   });
 });
+
+describe("what a team member may read of the stock", () => {
+  it("their own store's levels, but not another store's, and they cannot declare or read movements", async () => {
+    const nord = await nordWorld();
+    const sud = await approvedPdv(w, "s", "Magasin Sud");
+    await stockPlace(w, sud.id, w.sud, [7, 7, 7]);
+    const own = await nord.m.get(`/v1/stock/locations/${nord.pdv.id}`);
+    expect(own.status).toBe(200);
+    expect(own.body.items.length).toBe(3);
+    expect([403, 404]).toContain(
+      (await nord.m.get(`/v1/stock/locations/${sud.id}`)).status,
+    );
+    expect(
+      (
+        await nord.m.get(
+          `/v1/stock/locations/${nord.pdv.id}/products/${w.products[0]!.id}/movements`,
+        )
+      ).status,
+    ).toBe(403);
+    expect(
+      (
+        await nord.m.post("/v1/stock/declarations", {
+          locationId: nord.pdv.id,
+          lines: [],
+        })
+      ).status,
+    ).toBe(403);
+  });
+});

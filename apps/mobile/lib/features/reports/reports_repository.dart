@@ -70,6 +70,7 @@ class SalesReport {
 class AttentionRow {
   const AttentionRow({
     required this.locationId,
+    required this.productId,
     required this.place,
     required this.kind,
     required this.product,
@@ -79,6 +80,7 @@ class AttentionRow {
 
   factory AttentionRow.fromJson(Json j) => AttentionRow(
     locationId: j.str('locationId'),
+    productId: j.str('productId'),
     place: j.str('place'),
     kind: j.str('kind'),
     product: j.str('product'),
@@ -87,6 +89,7 @@ class AttentionRow {
   );
 
   final String locationId;
+  final String productId;
   final String place;
   final String kind;
   final String product;

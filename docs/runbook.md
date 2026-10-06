@@ -42,6 +42,9 @@ This ends their sessions and touches no business data.
 
 ## Environment keys
 
+`API_PUBLIC_URL` (for example `https://api.galylio.com`) is used by the API and the worker to put the "copy your code" link in emails.
+
+
 `API_IMAGE` (set by the deploy script), `DATABASE_URL` (restricted application role), `MIGRATION_DATABASE_URL` (owner), `POSTGRES_USER`/`POSTGRES_PASSWORD`/`POSTGRES_DB`, `MFA_ENCRYPTION_KEY` (32 random bytes, base64 — losing it locks the admin's authenticator), `SMTP_HOST`/`SMTP_PORT`/`SMTP_SECURE`/`SMTP_REQUIRE_TLS`/`SMTP_FROM`/`SMTP_USER`/`SMTP_PASSWORD`, `WORKER_CONCURRENCY`.
 
 ## Backups and restore

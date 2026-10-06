@@ -138,6 +138,7 @@ Every route is under `https://api.galylio.com`, JSON in and out, `Authorization:
 
 | Method | Path | Who |
 |---|---|---|
+| GET | `/v1/sales/days` | vendeur, responsable, admin |
 | GET | `/v1/sales/:id` | vendeur, responsable, admin |
 | POST | `/v1/sales/:id/correct` | vendeur, responsable, admin |
 
@@ -172,3 +173,5 @@ Every route is under `https://api.galylio.com`, JSON in and out, `Authorization:
 | PATCH | `/v1/lessons/:id` | admin |
 | DELETE | `/v1/lessons/:id/complete` | any signed-in role |
 | POST | `/v1/lessons/:id/complete` | any signed-in role |
+
+Other changes: `GET /c` (public) is the page the code emails link to, with a Copy button; `GET /v1/stock/locations/:id` also serves a team member for their own store; grossistes carry a `regionId` (`POST /v1/users` needs it); `GET /v1/sales` accepts `productId`; `GET /v1/reports/sales` returns `previous` and `trend`; `GET /v1/reward-rules/effective` returns `source`.

@@ -351,79 +351,86 @@ class _PeriodsState extends ConsumerState<_Periods> {
               separatorBuilder: (_, _) => const Gap(8),
               itemBuilder: (context, i) {
                 final r = list[i];
+                final range = r.endsOn == null
+                    ? t.fromDate(Dates.full(r.startsOn, t.localeName))
+                    : t.dateRange(
+                        Dates.full(r.startsOn, t.localeName),
+                        Dates.full(r.endsOn!, t.localeName),
+                      );
                 return AppCard(
-                  child: Row(
+                  padding: const EdgeInsets.all(14),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Container(
-                        width: 44,
-                        height: 44,
-                        decoration: BoxDecoration(
-                          color: context.colors.primaryContainer,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Icon(
-                          r.byProduct
-                              ? LucideIcons.package
-                              : LucideIcons.layers,
-                          color: context.colors.primary,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(r.targetName, style: context.text.titleSmall),
-                            Text(
-                              r.byProduct ? t.byProduct : t.byFamily,
-                              style: context.text.bodySmall?.copyWith(
-                                color: context.status.muted,
-                              ),
+                      Row(
+                        children: [
+                          Container(
+                            width: 44,
+                            height: 44,
+                            decoration: BoxDecoration(
+                              color: context.colors.primaryContainer,
+                              borderRadius: BorderRadius.circular(12),
                             ),
-                            Text(
-                              r.endsOn == null
-                                  ? t.fromDate(
-                                      Dates.full(r.startsOn, t.localeName),
-                                    )
-                                  : t.dateRange(
-                                      Dates.full(r.startsOn, t.localeName),
-                                      Dates.full(r.endsOn!, t.localeName),
-                                    ),
-                              style: context.text.bodySmall,
+                            child: Icon(
+                              r.byProduct
+                                  ? LucideIcons.package
+                                  : LucideIcons.layers,
+                              color: context.colors.primary,
                             ),
-                            if (r.note != null)
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  r.targetName,
+                                  style: context.text.titleSmall,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                const SizedBox(height: 4),
+                                StatusChip(
+                                  r.byProduct ? t.byProduct : t.byFamily,
+                                  tone: r.byProduct ? Tone.success : Tone.muted,
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
                               Text(
-                                r.note!,
+                                Money.format(r.amountMillimes, t.localeName),
+                                style: context.text.titleLarge?.copyWith(
+                                  color: context.colors.primary,
+                                ),
+                              ),
+                              Text(
+                                t.perUnit,
                                 style: context.text.bodySmall?.copyWith(
                                   color: context.status.muted,
                                 ),
                               ),
-                          ],
-                        ),
-                      ),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Text(
-                            Money.format(r.amountMillimes, t.localeName),
-                            style: context.text.titleSmall?.copyWith(
-                              color: context.colors.primary,
-                            ),
+                            ],
                           ),
-                          Text(
-                            t.perUnit,
-                            style: context.text.bodySmall?.copyWith(
-                              color: context.status.muted,
-                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Icon(
+                            LucideIcons.calendarRange,
+                            size: 16,
+                            color: context.status.muted,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(range, style: context.text.bodyMedium),
                           ),
                           if (_when != 'past')
-                            IconButton(
-                              tooltip: t.cancelRule,
-                              icon: Icon(
-                                LucideIcons.trash2,
-                                size: 18,
-                                color: context.status.danger,
-                              ),
+                            TextButton.icon(
                               onPressed: () async {
                                 if (await confirm(
                                       context,
@@ -445,9 +452,27 @@ class _PeriodsState extends ConsumerState<_Periods> {
                                   }
                                 }
                               },
+                              icon: Icon(
+                                LucideIcons.trash2,
+                                size: 16,
+                                color: context.status.danger,
+                              ),
+                              label: Text(
+                                t.cancelRule,
+                                style: TextStyle(color: context.status.danger),
+                              ),
                             ),
                         ],
                       ),
+                      if (r.note != null) ...[
+                        const SizedBox(height: 6),
+                        Text(
+                          r.note!,
+                          style: context.text.bodySmall?.copyWith(
+                            color: context.status.muted,
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 );

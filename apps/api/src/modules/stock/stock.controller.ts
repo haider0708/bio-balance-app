@@ -25,7 +25,7 @@ const Reject = z.object({ note: z.string().trim().min(2).max(500) });
 export class StockController {
   constructor(private readonly stock: StockService) {}
 
-  @Roles("ADMIN", "RESPONSABLE", "GROSSISTE")
+  @Roles("ADMIN", "RESPONSABLE", "GROSSISTE", "VENDEUR")
   @Get("locations/:id")
   levels(@Req() r: AuthRequest, @Param("id") i: string) {
     return this.stock.levels(r.actor, parse(id, i));
