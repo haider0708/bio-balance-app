@@ -111,6 +111,17 @@ services:
       ADMIN_SETUP_FILE: /setup/admin-setup.json
     healthcheck: {disable: true}
     volumes: [./setup:/setup]
+  reset-admin:
+    <<: *app
+    profiles: [maintenance]
+    restart: 'no'
+    command: [node,dist/reset-admin.js]
+    environment:
+      <<: *api-env
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-}
+      ADMIN_SETUP_FILE: /setup/admin-reset.json
+    healthcheck: {disable: true}
+    volumes: [./setup:/setup]
 networks:
   private:
     driver: bridge

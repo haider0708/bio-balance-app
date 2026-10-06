@@ -31,6 +31,15 @@ API_URL=https://api.galylio.com ADMIN_EMAIL=… ADMIN_PASSWORD=… ADMIN_OTP=123
 
 Create the three responsables (one per region) and the grossistes from the app: **Network → New account**. They receive an email with an activation code.
 
+### An administrator lost their phone or password
+
+```bash
+sudo ADMIN_EMAIL=admin@example.com biobalance-compose run --rm reset-admin
+sudo cat /opt/biobalance/infrastructure/production/setup/admin-reset.json   # new password + new authenticator link; then delete it
+```
+
+This ends their sessions and touches no business data.
+
 ## Environment keys
 
 `API_IMAGE` (set by the deploy script), `DATABASE_URL` (restricted application role), `MIGRATION_DATABASE_URL` (owner), `POSTGRES_USER`/`POSTGRES_PASSWORD`/`POSTGRES_DB`, `MFA_ENCRYPTION_KEY` (32 random bytes, base64 — losing it locks the admin's authenticator), `SMTP_HOST`/`SMTP_PORT`/`SMTP_SECURE`/`SMTP_REQUIRE_TLS`/`SMTP_FROM`/`SMTP_USER`/`SMTP_PASSWORD`, `WORKER_CONCURRENCY`.

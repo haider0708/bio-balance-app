@@ -46,6 +46,12 @@ cd apps/api && FIXTURE_OUT=/tmp/fixture.json npx vitest run test/serve-fixture.t
 cd apps/mobile && CONTRACT_FIXTURE=/tmp/fixture.json flutter test test/contract
 ```
 
+The **on-device flow** drives the real app on an emulator or phone against a real server (sign-in, selling and the Bravo screen, a responsable's region, a grossiste shipping, the admin approving). A seeding script builds the world through the server's public routes and passes it in:
+
+```sh
+flutter test integration_test -d <device> --dart-define=WORLD=<base64 json of the seeded world>
+```
+
 ## Ship it
 
 [Deploy and operate](docs/runbook.md) · [Build and sign the apps](docs/mobile-release.md) · [Architecture](docs/architecture.md) · [API reference](docs/api.md) · [Security](docs/security.md)
