@@ -1,86 +1,51 @@
 # BioBalance
 
-Application Flutter en français pour les vendeurs, responsables de groupes et l’administration BioBalance. API NestJS, PostgreSQL et stockage local Drift ; architecture objet avec MVVM, injection par constructeur et règles métier séparées des interfaces.
+The app that runs the BioBalance network of parapharmacies: points of sale and their teams, stock, restocks through grossistes, sales and the rewards salespeople earn. French and English. Android and iOS (Flutter), NestJS and PostgreSQL behind it.
 
-**État : version 1.6.1+22 ; backend déployé sur https://api.galylio.com (base de production vide, aucun compte : créer l’administrateur avec `apps/api/src/bootstrap-admin.ts`).** Voir la [spécification](docs/specification-fonctionnelle.md), l’[architecture](docs/architecture-technique.md), le [runbook](docs/runbook.md) et les [notes de version](docs/release-notes.md).
+**Who uses it:** the *admin* approves and supervises everything; three *responsables* (Nord, Centre, Sud) run their region; *grossistes* supply stock; *team members* record sales and see what each sale earns them. See the [functional specification](docs/functional-specification.md).
 
-## Organisation
-
-```text
-apps/mobile/lib/
-  domain/             Objets, contrats de repositories, cas d’utilisation
-  data/               SQLite, synchronisation, client API généré, notifications
-  ui/core/            Thème BioBalance, formulaires et composants
-  ui/features/        Écrans et view models par fonctionnalité
-apps/api/src/
-  shared/             Money, erreurs, transactions et sécurité HTTP
-  modules/            Identity, tenancy, catalog, operations, training, reporting
-apps/api/prisma/       Schéma et migrations PostgreSQL
-contracts/openapi/     Contrat REST versionné
-infrastructure/        Docker Compose développement et VPS
-scripts/               Génération, sauvegarde et restauration
+```
+apps/api      server: NestJS 12, Prisma 7, PostgreSQL 17 (row-level security keeps regions apart)
+apps/mobile   Flutter app (Riverpod, go_router, French/English)
+infrastructure/production   Docker image, compose, Nginx, Apache/Cloudflare notes, systemd timers
+scripts       deploy, backup, restore check, monitoring, TLS, catalog import
+data          the initial catalog: 51 products with photos
+docs          specification, architecture, API reference, runbook, release notes
 ```
 
-## Démarrage local
+## Run it locally
 
-Installer Flutter **3.47.5**, Node.js **24.21.0**, Docker Compose, Python 3 et les outils Android. Les dépendances exactes sont verrouillées. Utiliser un hôte macOS avec Xcode pour iOS.
+Needs Node 24, Docker, and Flutter 3.47.5.
 
 ```sh
-docker compose -f infrastructure/development/compose.yml up -d
+docker compose -f infrastructure/development/compose.yml up -d    # PostgreSQL and Mailpit
 bash scripts/install-dependencies.sh
-cp apps/api/.env.example apps/api/.env
+cp apps/api/.env.example apps/api/.env                            # set MFA_ENCRYPTION_KEY: 32 random bytes, base64
 npm run db:generate
-```
-
-Renseigner `MFA_ENCRYPTION_KEY` dans `.env` avec 32 octets aléatoires encodés en base64. Ne pas versionner ce fichier. Migrer avec le compte propriétaire, puis provisionner le compte applicatif restreint :
-
-```sh
 DATABASE_URL=postgresql://biobalance:local-development-only@localhost:54329/biobalance npm run db:migrate
 docker compose -f infrastructure/development/compose.yml exec -T postgres psql -U biobalance -d biobalance -v app_password=local-app-only < scripts/provision-role.sql
-npm run db:seed -w apps/api
-npm run dev
+npm run dev                                                       # API on :3000
+ADMIN_EMAIL=you@example.com ADMIN_SETUP_FILE=/tmp/admin.json node --env-file=apps/api/.env apps/api/dist/bootstrap-admin.js
+cd apps/mobile && flutter pub get && flutter run --dart-define=API_BASE_URL=http://10.0.2.2:3000
 ```
 
-Les identifiants de démonstration générés sont dans `.local-credentials.json` (0600, ignoré par Git). Le compte administrateur utilise aussi un code TOTP. Le seed est réservé au développement. Mailpit affiche les invitations sur `http://localhost:8029`.
+Mailpit shows the emails on `http://localhost:8029`. Load the catalog with `node scripts/import-catalog.mjs`.
 
-Dans un autre terminal :
+## Check it
 
 ```sh
-cd apps/mobile
-flutter pub get --enforce-lockfile
-flutter run --dart-define=API_BASE_URL=http://10.0.2.2:3000
+bash scripts/setup-test-db.sh      # isolated test database (name ends in _test)
+npm run format:check && npm run build && npm test          # server: 80+ tests incl. region isolation and a month-long simulation
+cd apps/mobile && flutter analyze && flutter test           # app: widget tests with a fake server
 ```
 
-L’adresse `10.0.2.2` désigne l’hôte depuis l’émulateur Android. Pour un téléphone physique, choisir l’URL HTTPS du serveur de développement. Le mode debug Android accepte le HTTP ; les builds de diffusion doivent utiliser HTTPS.
-
-## Vérification
+The **contract test** runs the app's real repositories against a real API with a realistic world:
 
 ```sh
-npm run build
-npm test
-scripts/setup-test-db.sh
-npm run test:integration
-# ffmpeg et ffprobe doivent être disponibles dans PATH
-npm run test:media
-npm run test:notifications
-# Flutter/Dart également disponibles dans PATH
-npm run test:contracts
-npm run test:mobile-sync
-bash scripts/check-contract-drift.sh
-cd apps/mobile
-flutter analyze
-flutter test --concurrency=1
-flutter build apk --debug
+cd apps/api && FIXTURE_OUT=/tmp/fixture.json npx vitest run test/serve-fixture.test.ts &    # serves until /tmp/fixture.json.stop exists
+cd apps/mobile && CONTRACT_FIXTURE=/tmp/fixture.json flutter test test/contract
 ```
 
-Les tests PostgreSQL utilisent **biobalance_test** et un rôle sans privilège de contournement RLS. Ne pas les pointer vers une base de production. Le contrat génère les types de transport Dart ; les objets du domaine restent distincts.
+## Ship it
 
-Pour les workers : `npm run worker -w apps/api` ; définir `WORKER_KIND=media` et installer ffmpeg pour le worker média. Les services de production utilisent des conteneurs séparés.
-
-Les icônes et écrans de lancement sont générés depuis le logo fourni par `python3 scripts/generate-brand-assets.py` (Pillow requis). Les images générées sont versionnées.
-
-## Livraison
-
-Voir [la release v1.0.0](docs/releases/v1.0.0.md), [le runbook](docs/runbook.md), [les builds mobiles](docs/mobile-release.md), [les portes de diffusion](docs/release-gates.md) et [le pilote](docs/pilot-plan.md). Le VPS, HTTPS, SMTP authentifié et la restauration locale sont vérifiés. La réception email, la charge du VPS et la restauration de médias sont désormais vérifiées ; Gmail a classé le message dans le spam malgré SPF/DKIM/DMARC valides. Restent l’inscription Play, la signature Apple, les mesures physiques et le pilote. [GitHub Actions](https://github.com/haider0708/bio-balance-app/actions) fournit les résultats CI distants. Les sauvegardes hors VPS et la haute disponibilité sont hors du périmètre convenu.
-
-La [configuration de sécurité et de signature](docs/security-hardening.md) documente les protections, clés privées hors dépôt, certificats publics et validations restantes. Firebase a été retiré ; les notifications sont disponibles dans la boîte interne du VPS.
+[Deploy and operate](docs/runbook.md) · [Build and sign the apps](docs/mobile-release.md) · [Architecture](docs/architecture.md) · [API reference](docs/api.md) · [Security](docs/security.md)

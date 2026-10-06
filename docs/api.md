@@ -1,0 +1,174 @@
+# API reference
+
+Every route is under `https://api.galylio.com`, JSON in and out, `Authorization: Bearer <token>` except where marked *anyone*. Errors have the shape `{ "code", "message", "fields?", "correlationId" }`; `code` is stable and is what the app translates. Amounts are whole millimes (1 TND = 1000). The "Who" column is enforced by the server; row-level security in the database additionally keeps each region apart.
+
+
+## auth
+
+| Method | Path | Who |
+|---|---|---|
+| POST | `/v1/auth/activate` | anyone |
+| POST | `/v1/auth/activate` | anyone |
+| POST | `/v1/auth/forgot-password` | anyone |
+| POST | `/v1/auth/forgot-password` | anyone |
+| POST | `/v1/auth/login` | anyone |
+| POST | `/v1/auth/login` | anyone |
+| POST | `/v1/auth/logout` | any signed-in role |
+| POST | `/v1/auth/logout` | any signed-in role |
+| POST | `/v1/auth/reset-password` | anyone |
+| POST | `/v1/auth/reset-password` | anyone |
+| GET | `/v1/me` | any signed-in role |
+| GET | `/v1/me` | any signed-in role |
+| PATCH | `/v1/me` | any signed-in role |
+| PATCH | `/v1/me` | any signed-in role |
+| POST | `/v1/me/password` | any signed-in role |
+| POST | `/v1/me/password` | any signed-in role |
+
+## catalog
+
+| Method | Path | Who |
+|---|---|---|
+| GET | `/v1/products` | any signed-in role |
+| POST | `/v1/products` | admin |
+| GET | `/v1/products/:id` | any signed-in role |
+| PATCH | `/v1/products/:id` | admin |
+| GET | `/v1/products/barcode/:code` | any signed-in role |
+| GET | `/v1/products/families` | any signed-in role |
+| POST | `/v1/products/import` | admin |
+
+## directory
+
+| Method | Path | Who |
+|---|---|---|
+| GET | `/v1/depots` | admin, responsable, grossiste |
+| PATCH | `/v1/depots/:id` | admin, grossiste |
+| GET | `/v1/groups` | admin, responsable |
+| POST | `/v1/groups` | responsable |
+| PATCH | `/v1/groups/:id` | admin, responsable |
+| POST | `/v1/groups/:id/approve` | admin |
+| POST | `/v1/groups/:id/reactivate` | admin |
+| POST | `/v1/groups/:id/reject` | admin |
+| POST | `/v1/groups/:id/resubmit` | responsable |
+| POST | `/v1/groups/:id/suspend` | admin |
+| GET | `/v1/pdvs` | admin, responsable, vendeur |
+| POST | `/v1/pdvs` | responsable |
+| GET | `/v1/pdvs/:id` | admin, responsable, vendeur |
+| PATCH | `/v1/pdvs/:id` | admin, responsable |
+| POST | `/v1/pdvs/:id/approve` | admin |
+| POST | `/v1/pdvs/:id/members` | responsable |
+| POST | `/v1/pdvs/:id/reactivate` | admin |
+| POST | `/v1/pdvs/:id/reject` | admin |
+| POST | `/v1/pdvs/:id/resubmit` | responsable |
+| POST | `/v1/pdvs/:id/suspend` | admin |
+| GET | `/v1/regions` | any signed-in role |
+| GET | `/v1/users` | admin, responsable |
+| POST | `/v1/users` | admin |
+| GET | `/v1/users/:id` | admin, responsable |
+| PATCH | `/v1/users/:id` | admin, responsable |
+| POST | `/v1/users/:id/approve` | admin |
+| POST | `/v1/users/:id/reactivate` | admin |
+| POST | `/v1/users/:id/reject` | admin |
+| POST | `/v1/users/:id/resend-invite` | admin, responsable |
+| POST | `/v1/users/:id/suspend` | admin, responsable |
+
+## media
+
+| Method | Path | Who |
+|---|---|---|
+| GET | `/v1/media/:id` | any signed-in role |
+
+## messaging
+
+| Method | Path | Who |
+|---|---|---|
+| GET | `/v1/messages` | admin |
+| POST | `/v1/messages` | admin |
+| DELETE | `/v1/messages/:id` | admin |
+| GET | `/v1/messages/:id/recipients` | admin |
+| POST | `/v1/messages/preview` | admin |
+| GET | `/v1/notifications` | any signed-in role |
+| POST | `/v1/notifications/:id/read` | any signed-in role |
+| POST | `/v1/notifications/read-all` | any signed-in role |
+| GET | `/v1/notifications/unread-count` | any signed-in role |
+
+## reporting
+
+| Method | Path | Who |
+|---|---|---|
+| GET | `/v1/approvals` | admin |
+| GET | `/v1/audit` | admin |
+| GET | `/v1/dashboard` | any signed-in role |
+| GET | `/v1/reports/sales` | admin, responsable |
+| GET | `/v1/reports/sales.csv` | admin, responsable |
+| GET | `/v1/reports/stock` | admin, responsable |
+| GET | `/v1/reports/stock/attention` | admin, responsable |
+
+## restock
+
+| Method | Path | Who |
+|---|---|---|
+| GET | `/v1/restocks/:id` | any signed-in role |
+| POST | `/v1/restocks/:id/approve` | admin |
+| POST | `/v1/restocks/:id/assign` | admin |
+| POST | `/v1/restocks/:id/cancel` | admin, responsable |
+| POST | `/v1/restocks/:id/receipt` | responsable, grossiste, vendeur |
+| PUT | `/v1/restocks/:id/receiver` | responsable |
+| POST | `/v1/restocks/:id/reject-receipt` | admin |
+| POST | `/v1/restocks/:id/send-direct` | admin |
+| POST | `/v1/restocks/:id/ship` | grossiste |
+
+## rewards
+
+| Method | Path | Who |
+|---|---|---|
+| GET | `/v1/payouts` | vendeur, admin |
+| POST | `/v1/payouts` | vendeur |
+| POST | `/v1/payouts/:id/approve` | admin |
+| POST | `/v1/payouts/:id/cancel` | vendeur |
+| POST | `/v1/payouts/:id/reject` | admin |
+| GET | `/v1/reward-rules` | admin |
+| POST | `/v1/reward-rules` | admin |
+| DELETE | `/v1/reward-rules/:id` | admin |
+| GET | `/v1/reward-rules/effective` | admin |
+| GET | `/v1/wallet` | vendeur |
+| GET | `/v1/wallet/entries` | vendeur |
+| GET | `/v1/wallets` | admin |
+
+## sales
+
+| Method | Path | Who |
+|---|---|---|
+| GET | `/v1/sales/:id` | vendeur, responsable, admin |
+| POST | `/v1/sales/:id/correct` | vendeur, responsable, admin |
+
+## stock
+
+| Method | Path | Who |
+|---|---|---|
+| GET | `/v1/stock/declarations` | admin, responsable, grossiste |
+| POST | `/v1/stock/declarations` | responsable, grossiste |
+| GET | `/v1/stock/declarations/:id` | admin, responsable, grossiste |
+| POST | `/v1/stock/declarations/:id/approve` | admin |
+| POST | `/v1/stock/declarations/:id/reject` | admin |
+| GET | `/v1/stock/locations/:id` | admin, responsable, grossiste |
+| GET | `/v1/stock/locations/:id/products/:productId/movements` | admin, responsable, grossiste |
+
+## training
+
+| Method | Path | Who |
+|---|---|---|
+| GET | `/v1/courses` | any signed-in role |
+| POST | `/v1/courses` | admin |
+| DELETE | `/v1/courses/:id` | admin |
+| GET | `/v1/courses/:id` | any signed-in role |
+| PATCH | `/v1/courses/:id` | admin |
+| POST | `/v1/courses/:id/lessons` | admin |
+| PUT | `/v1/courses/:id/lessons/order` | admin |
+| GET | `/v1/courses/:id/progress` | admin |
+| POST | `/v1/courses/:id/publish` | admin |
+| POST | `/v1/courses/:id/unpublish` | admin |
+| PUT | `/v1/courses/order` | admin |
+| DELETE | `/v1/lessons/:id` | admin |
+| PATCH | `/v1/lessons/:id` | admin |
+| DELETE | `/v1/lessons/:id/complete` | any signed-in role |
+| POST | `/v1/lessons/:id/complete` | any signed-in role |
