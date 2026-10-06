@@ -63,6 +63,7 @@ class _RestocksScreenState extends ConsumerState<RestocksScreen> {
       floatingActionButton:
           me.role == Role.responsable || me.role == Role.grossiste
           ? FloatingActionButton.extended(
+              heroTag: null,
               onPressed: () async {
                 await context.push('/restocks/new');
                 ref.invalidate(restocksProvider);

@@ -70,6 +70,7 @@ class _SalesHistoryScreenState extends ConsumerState<SalesHistoryScreen> {
       appBar: AppBar(title: Text(t.salesTitle)),
       floatingActionButton: me.role == Role.vendeur
           ? FloatingActionButton.extended(
+              heroTag: null,
               onPressed: () => context.push('/sell'),
               icon: const Icon(LucideIcons.plus),
               label: Text(t.newSale),

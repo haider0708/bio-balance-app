@@ -77,6 +77,7 @@ class _NetworkScreenState extends ConsumerState<NetworkScreen> {
     if (me.role == Role.responsable) {
       return Builder(
         builder: (context) => FloatingActionButton.extended(
+          heroTag: null,
           onPressed: () =>
               _addForTab(context, DefaultTabController.of(context).index),
           icon: const Icon(LucideIcons.plus),
@@ -87,6 +88,7 @@ class _NetworkScreenState extends ConsumerState<NetworkScreen> {
     if (me.role == Role.admin) {
       return Builder(
         builder: (context) => FloatingActionButton.extended(
+          heroTag: null,
           onPressed: () async {
             await context.push('/people/new');
             ref.invalidate(peopleProvider);

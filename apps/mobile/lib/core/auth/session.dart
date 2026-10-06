@@ -50,6 +50,17 @@ class LocaleNotifier extends Notifier<String?> {
     state = code;
     await (await ref.read(preferencesProvider.future))
         .setString(_localeKey, code);
+    // Signed in: keep the account's language in step, so emails come in the language chosen here.
+    if (ref.read(tokenProvider) != null) await syncAccountLanguage(ref, code);
+  }
+}
+
+/// Tell the server which language this person uses (emails follow it). Never blocks the app.
+Future<void> syncAccountLanguage(Ref ref, String code) async {
+  try {
+    await ref.read(apiClientProvider).patch('/v1/me', {'locale': code});
+  } on ApiException {
+    // Offline: the phone keeps the choice; the account catches up next time.
   }
 }
 
@@ -86,7 +97,6 @@ class SessionNotifier extends AsyncNotifier<Session?> {
         await ref.read(apiClientProvider).get('/v1/me') as Json,
       );
       await storage.write(key: _meKey, value: jsonEncode(_meJson(me)));
-      _adoptLocale(me);
       return Session(token: token, me: me);
     } on ApiException catch (error) {
       if (error.isUnauthorized) {
@@ -120,7 +130,9 @@ class SessionNotifier extends AsyncNotifier<Session?> {
     await storage.write(key: _tokenKey, value: token);
     await storage.write(key: _meKey, value: jsonEncode(_meJson(me)));
     ref.read(tokenProvider.notifier).set(token);
-    _adoptLocale(me);
+    final chosen = ref.read(localeProvider);
+    if (chosen != null && chosen != me.locale)
+      unawaited(syncAccountLanguage(ref, chosen));
     state = AsyncData(Session(token: token, me: me));
   }
 
@@ -160,12 +172,6 @@ class SessionNotifier extends AsyncNotifier<Session?> {
     await storage.delete(key: _meKey);
   }
 
-  /// A person's saved language wins on a new phone, until they pick one here.
-  void _adoptLocale(Me me) {
-    if (ref.read(localeProvider) == null)
-      unawaited(ref.read(localeProvider.notifier).choose(me.locale));
-  }
-
   Json _meJson(Me me) => {
     'id': me.id,
     'name': me.name,
@@ -191,9 +197,15 @@ final sessionProvider = AsyncNotifierProvider<SessionNotifier, Session?>(
   SessionNotifier.new,
 );
 
-/// The signed-in person (only valid below the sign-in gate).
-final meProvider = Provider<Me>((ref) {
-  final session = ref.watch(sessionProvider).value;
-  if (session == null) throw StateError('No session');
-  return session.me;
-});
+/// The signed-in person. While signing out, screens that are still on display for a moment keep
+/// seeing the last known person until the sign-in screen replaces them.
+final meProvider = (() {
+  Me? lastKnown;
+  return Provider<Me>((ref) {
+    final session = ref.watch(sessionProvider).value;
+    if (session != null) return lastKnown = session.me;
+    final previous = lastKnown;
+    if (previous != null) return previous;
+    throw StateError('No session');
+  });
+})();

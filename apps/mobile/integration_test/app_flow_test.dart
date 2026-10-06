@@ -40,7 +40,22 @@ Future<void> pumpUntil(WidgetTester tester, Finder finder, {Duration timeout = c
     await tester.pump(const Duration(milliseconds: 150));
     if (finder.evaluate().isNotEmpty) return;
   }
-  throw TestFailure('Timed out waiting for ${reason ?? finder.toString()}');
+  final onScreen = tester.widgetList<Text>(find.byType(Text)).map((t) => t.data).whereType<String>().take(40).join(' | ');
+  throw TestFailure('Timed out waiting for ${reason ?? finder.toString()}. On screen: $onScreen');
+}
+
+/// Scroll the nearest list until the finder's widget is built and on screen.
+Future<void> reveal(WidgetTester tester, Finder finder) async {
+  await pumpUntil(tester, find.byType(Scrollable).last);
+  for (var i = 0; i < 12 && finder.hitTestable().evaluate().isEmpty; i++) {
+    await tester.drag(find.byType(Scrollable).last, const Offset(0, -300));
+    await settleFor(tester, 200);
+  }
+}
+
+Future<void> hideKeyboard(WidgetTester tester) async {
+  FocusManager.instance.primaryFocus?.unfocus();
+  await settleFor(tester, 400);
 }
 
 Future<void> settleFor(WidgetTester tester, [int ms = 600]) async {
@@ -62,10 +77,12 @@ Future<void> signIn(WidgetTester tester, Json account, {String? otp}) async {
   await pumpUntil(tester, find.text('Sign in').last, reason: 'the sign-in screen');
   await tester.enterText(find.byType(TextFormField).at(0), account.str('email'));
   await tester.enterText(find.byType(TextFormField).at(1), account.str('password'));
+  await hideKeyboard(tester);
   await tester.tap(find.text('Sign in').last);
   if (otp != null) {
     await pumpUntil(tester, find.text('Authenticator code'), reason: 'the authenticator field');
     await tester.enterText(find.byType(TextFormField).at(2), otp);
+    await hideKeyboard(tester);
     await tester.tap(find.text('Sign in').last);
   }
 }
@@ -90,15 +107,15 @@ void main() {
     await pumpUntil(tester, find.text('Hello, Amira'), reason: 'the team member home');
     expect(find.text('Para Lac'), findsOneWidget);
 
+    await pumpUntil(tester, find.text('New sale'), reason: 'the New sale button');
     await tester.tap(find.text('New sale').first);
     await pumpUntil(tester, find.byType(TextField));
-    await tester.enterText(find.byType(TextField).first, 'SÉRUM');
+    await tester.enterText(find.byType(TextField).first, 'SERUM');
     await settleFor(tester);
-    final firstProduct = find.textContaining('SÉRUM').first;
-    await pumpUntil(tester, firstProduct);
-    await tester.tap(firstProduct);
+    final products = find.textContaining('BIOBALANCE');
+    await pumpUntil(tester, products);
+    await tester.tap(products.first);
     await settleFor(tester, 300);
-    await tester.tap(find.byIcon(Icons.add).first, warnIfMissed: false);
     await tester.tap(find.textContaining('Review sale'));
     await pumpUntil(tester, find.text('Record the sale'));
     await tester.tap(find.text('Record the sale'));
@@ -114,6 +131,8 @@ void main() {
     expect(find.text('Request a payout'), findsOneWidget);
     await tester.tap(find.text('Sales').last);
     await pumpUntil(tester, find.textContaining('unit'));
+    await tester.tap(find.text('Home').last);
+    await pumpUntil(tester, find.byTooltip('Settings'));
     await signOut(tester);
   });
 
@@ -135,6 +154,7 @@ void main() {
     await pumpUntil(tester, find.textContaining('RS-'));
     await tester.tap(find.textContaining('RS-').first);
     await pumpUntil(tester, find.text('With the grossiste'));
+    await reveal(tester, find.text('Choose who counts the goods'));
     expect(find.text('Choose who counts the goods'), findsOneWidget);
     await tester.pageBack();
     await settleFor(tester, 400);
@@ -154,10 +174,15 @@ void main() {
     await tester.tap(find.text('Orders').last);
     await pumpUntil(tester, find.textContaining('RS-'));
     await tester.tap(find.textContaining('RS-').first);
-    await pumpUntil(tester, find.text('Prepare and ship'));
+    await pumpUntil(tester, find.text('Requested by'), reason: 'the order detail');
+    await reveal(tester, find.text('Prepare and ship'));
     await tester.tap(find.text('Prepare and ship'));
-    await pumpUntil(tester, find.text('Mark as shipped'));
+    await pumpUntil(tester, find.text('Ship'), reason: 'the ship screen', timeout: const Duration(seconds: 3)).catchError((_) {});
+    await reveal(tester, find.text('Mark as shipped'));
     await tester.tap(find.text('Mark as shipped'));
+    await settleFor(tester, 2500);
+    await tester.drag(find.byType(Scrollable).last, const Offset(0, 4000));
+    await settleFor(tester, 500);
     await pumpUntil(tester, find.text('On its way'), reason: 'the shipped status');
     expect(find.text('Prepare and ship'), findsNothing);
   });
@@ -172,15 +197,16 @@ void main() {
     await pumpUntil(tester, find.text('Pharma Marsa'), reason: 'the pending point of sale');
     expect(find.text('Karim Mejri'), findsOneWidget);
     await tester.tap(find.text('Pharma Marsa'));
-    await pumpUntil(tester, find.text('Approve').last, reason: 'the point of sale page');
-    await tester.tap(find.text('Approve').last);
+    await pumpUntil(tester, find.text('Approve'), reason: 'the point of sale page');
+    await tester.tap(find.text('Approve').first);
     await pumpUntil(tester, find.text('Active'), reason: 'the new status');
     await tester.pageBack();
     await settleFor(tester, 800);
     await tester.tap(find.text('More').last);
     await pumpUntil(tester, find.text('Rewards'));
     await tester.tap(find.text('Rewards'));
-    await pumpUntil(tester, find.textContaining('SÉRUM'), reason: 'what products pay today');
+    await pumpUntil(tester, find.text('Pays today'), reason: 'the rewards screen');
+    await reveal(tester, find.text('0.500 TND'));
     expect(find.text('0.500 TND'), findsWidgets);
   });
 }

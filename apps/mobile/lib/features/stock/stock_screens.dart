@@ -50,6 +50,7 @@ class StockScreen extends ConsumerWidget {
       ),
       floatingActionButton: canDeclare && pending == null
           ? FloatingActionButton.extended(
+              heroTag: null,
               onPressed: () async {
                 await context.push(
                   '/stock/$locationId/declare',

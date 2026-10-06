@@ -39,6 +39,7 @@ class _CatalogScreenState extends ConsumerState<CatalogScreen> {
       appBar: AppBar(title: Text(t.catalogTitle)),
       floatingActionButton: widget.editable
           ? FloatingActionButton.extended(
+              heroTag: null,
               onPressed: () async {
                 await context.push('/catalog/new');
                 ref.invalidate(allProductsProvider);

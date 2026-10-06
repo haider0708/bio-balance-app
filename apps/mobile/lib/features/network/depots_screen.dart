@@ -29,7 +29,14 @@ class DepotsScreen extends ConsumerWidget {
           value: depots,
           onRetry: () => ref.invalidate(depotsProvider),
           isEmpty: (l) => l.isEmpty,
-          empty: ListView(children: [EmptyState(icon: LucideIcons.warehouse, title: t.noGrossisteShort)]),
+          empty: ListView(
+            children: [
+              EmptyState(
+                icon: LucideIcons.warehouse,
+                title: t.noGrossisteShort,
+              ),
+            ],
+          ),
           builder: (list) => ListView.separated(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
             itemCount: list.length,
@@ -43,8 +50,14 @@ class DepotsScreen extends ConsumerWidget {
                     Container(
                       width: 44,
                       height: 44,
-                      decoration: BoxDecoration(color: context.colors.primaryContainer, borderRadius: BorderRadius.circular(12)),
-                      child: Icon(LucideIcons.warehouse, color: context.colors.primary),
+                      decoration: BoxDecoration(
+                        color: context.colors.primaryContainer,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(
+                        LucideIcons.warehouse,
+                        color: context.colors.primary,
+                      ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
@@ -52,15 +65,23 @@ class DepotsScreen extends ConsumerWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(d.name, style: context.text.titleSmall),
-                          Text([?d.grossisteName, d.city].join(' · '), style: context.text.bodySmall?.copyWith(color: context.status.muted)),
-                          if (phone != null) Text(phone, style: context.text.bodySmall),
+                          Text(
+                            [?d.grossisteName, d.city].join(' · '),
+                            style: context.text.bodySmall?.copyWith(
+                              color: context.status.muted,
+                            ),
+                          ),
+                          if (phone != null)
+                            Text(phone, style: context.text.bodySmall),
                         ],
                       ),
                     ),
                     if (phone != null)
                       IconButton.filledTonal(
                         tooltip: t.call,
-                        onPressed: () => launchUrl(Uri(scheme: 'tel', path: phone.replaceAll(' ', ''))),
+                        onPressed: () => launchUrl(
+                          Uri(scheme: 'tel', path: phone.replaceAll(' ', '')),
+                        ),
                         icon: const Icon(LucideIcons.phone),
                       ),
                   ],

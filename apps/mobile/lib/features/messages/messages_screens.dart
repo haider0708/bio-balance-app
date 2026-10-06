@@ -26,6 +26,7 @@ class MessagesScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(title: Text(t.announcementsTitle)),
       floatingActionButton: FloatingActionButton.extended(
+        heroTag: null,
         onPressed: () async {
           await context.push('/messages/new');
           ref.invalidate(announcementsProvider);

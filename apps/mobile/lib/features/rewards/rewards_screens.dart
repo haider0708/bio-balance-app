@@ -38,6 +38,7 @@ class RewardsScreen extends ConsumerWidget {
           ),
         ),
         floatingActionButton: FloatingActionButton.extended(
+          heroTag: null,
           onPressed: () async {
             await context.push('/rewards/new');
             ref.invalidate(rewardRulesProvider);

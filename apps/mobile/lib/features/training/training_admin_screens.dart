@@ -30,6 +30,7 @@ class ManageCoursesScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(title: Text(t.manageTraining)),
       floatingActionButton: FloatingActionButton.extended(
+        heroTag: null,
         onPressed: () async {
           final title = await _askTitle(context);
           if (title == null || !context.mounted) return;
