@@ -10,7 +10,9 @@ import 'auth_widgets.dart';
 
 /// Ask for a code by email, then choose a new password with it.
 class ForgotScreen extends ConsumerStatefulWidget {
-  const ForgotScreen({super.key});
+  const ForgotScreen({this.code, super.key});
+
+  final String? code;
 
   @override
   ConsumerState<ForgotScreen> createState() => _ForgotScreenState();
@@ -19,9 +21,9 @@ class ForgotScreen extends ConsumerStatefulWidget {
 class _ForgotScreenState extends ConsumerState<ForgotScreen> {
   final _form = GlobalKey<FormState>();
   final _email = TextEditingController();
-  final _code = TextEditingController();
+  late final _code = TextEditingController(text: CodeField.pretty(widget.code));
   final _password = TextEditingController();
-  bool _haveCode = false;
+  late bool _haveCode = widget.code != null;
 
   @override
   void dispose() {

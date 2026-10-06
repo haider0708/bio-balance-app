@@ -44,7 +44,7 @@ import '../features/wallet/wallet_screen.dart';
 import '../l10n/app_localizations.dart';
 import 'nav_shell.dart';
 
-const _publicPaths = {'/login', '/activate', '/forgot'};
+const _publicPaths = {'/login', '/activate', '/forgot', '/code'};
 
 /// The app's routes. They depend on who is signed in, so a new router is built at sign-in and sign-out.
 final routerProvider = Provider<GoRouter>((ref) {
@@ -61,6 +61,14 @@ final routerProvider = Provider<GoRouter>((ref) {
       final path = state.uri.path;
       if (session.isLoading) return path == '/splash' ? null : '/splash';
       final signedIn = session.value != null;
+      // A code opened from the email: straight to the screen that uses it.
+      if (path == '/code') {
+        final code = state.uri.queryParameters['c'] ?? '';
+        if (signedIn) return '/home';
+        return state.uri.queryParameters['k'] == 'r'
+            ? '/forgot?code=$code'
+            : '/activate?code=$code';
+      }
       if (!signedIn) return _publicPaths.contains(path) ? null : '/login';
       if (_publicPaths.contains(path) || path == '/splash') return '/home';
       return null;
@@ -75,8 +83,17 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (_, state) =>
             LoginScreen(email: state.uri.queryParameters['email']),
       ),
-      GoRoute(path: '/activate', builder: (_, _) => const ActivateScreen()),
-      GoRoute(path: '/forgot', builder: (_, _) => const ForgotScreen()),
+      GoRoute(
+        path: '/activate',
+        builder: (_, state) =>
+            ActivateScreen(code: state.uri.queryParameters['code']),
+      ),
+      GoRoute(
+        path: '/forgot',
+        builder: (_, state) =>
+            ForgotScreen(code: state.uri.queryParameters['code']),
+      ),
+      GoRoute(path: '/code', builder: (_, _) => const SizedBox.shrink()),
       if (role != null) ...[..._roleRoutes(role), ..._shared()],
     ],
   );
@@ -264,6 +281,7 @@ List<RouteBase> _admin() => [
     ),
   ]),
   GoRoute(path: '/payouts', builder: (_, _) => const PayoutsScreen()),
+  GoRoute(path: '/reports', builder: (_, _) => const ReportsScreen()),
   GoRoute(path: '/rewards', builder: (_, _) => const RewardsScreen()),
   GoRoute(path: '/rewards/new', builder: (_, _) => const RewardFormScreen()),
   GoRoute(path: '/messages', builder: (_, _) => const MessagesScreen()),
@@ -276,7 +294,6 @@ List<RouteBase> _admin() => [
     builder: (_, state) =>
         MessageDetailScreen(messageId: state.pathParameters['id']!),
   ),
-  GoRoute(path: '/audit', builder: (_, _) => const AuditScreen()),
   GoRoute(path: '/people/new', builder: (_, _) => const CreateAccountScreen()),
   GoRoute(
     path: '/people/:id',
@@ -422,7 +439,6 @@ Widget _more(Role role) => Builder(
         ),
         MoreEntry(LucideIcons.package, t.catalogTitle, '/catalog'),
         MoreEntry(LucideIcons.chartNoAxesColumn, t.reportsTitle, '/reports'),
-        MoreEntry(LucideIcons.history, t.auditTitle, '/audit'),
         MoreEntry(LucideIcons.bell, t.notificationsTitle, '/notifications'),
         MoreEntry(LucideIcons.settings, t.settingsTitle, '/settings'),
       ],

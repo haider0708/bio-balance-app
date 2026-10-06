@@ -102,17 +102,59 @@ class _NetworkScreenState extends ConsumerState<NetworkScreen> {
   }
 
   Future<void> _addForTab(BuildContext context, int tab) async {
-    final t = AppLocalizations.of(context);
     switch (tab) {
       case 1:
         await _newGroup(context);
       case 2:
-        showMessage(context, t.addMemberFromPdv);
+        await _addMember(context);
       default:
         await context.push<void>('/pdvs/new');
     }
     ref.invalidate(pdvsProvider);
     ref.invalidate(groupsProvider);
+  }
+
+  /// Add a team member from the People tab: pick the store first, then fill in the person.
+  Future<void> _addMember(BuildContext context) async {
+    final t = AppLocalizations.of(context);
+    final pdvs = await ref.read(pdvsProvider(null).future);
+    if (!context.mounted) return;
+    final usable = pdvs.where((p) => p.status != ItemStatus.rejected).toList();
+    if (usable.isEmpty) {
+      showMessage(context, t.noPdvsHint);
+      return;
+    }
+    final chosen = usable.length == 1
+        ? usable.first
+        : await showModalBottomSheet<Pdv>(
+            context: context,
+            showDragHandle: true,
+            builder: (context) => SafeArea(
+              child: ListView(
+                shrinkWrap: true,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+                    child: Text(
+                      t.chooseStoreForMember,
+                      style: context.text.titleMedium,
+                    ),
+                  ),
+                  for (final p in usable)
+                    ListTile(
+                      leading: const Icon(LucideIcons.store),
+                      title: Text(p.name),
+                      subtitle: Text(p.city),
+                      onTap: () => Navigator.pop(context, p),
+                    ),
+                ],
+              ),
+            ),
+          );
+    if (chosen == null || !context.mounted) return;
+    await context.push<void>('/pdvs/${chosen.id}/members/new');
+    ref.invalidate(peopleProvider);
+    ref.invalidate(pdvsProvider);
   }
 
   Future<void> _newGroup(BuildContext context) async {

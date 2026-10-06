@@ -110,7 +110,7 @@ class StockDeclaration {
     required this.initial,
     required this.status,
     required this.location,
-    required this.photoId,
+    this.photoId,
     required this.createdBy,
     required this.createdAt,
     required this.lines,
@@ -130,7 +130,7 @@ class StockDeclaration {
       name: j.obj('location').str('name'),
       status: '',
     ),
-    photoId: j.str('photoId'),
+    photoId: j.strOrNull('photoId'),
     note: j.strOrNull('note'),
     createdBy: j.obj('createdBy').str('name'),
     createdAt: j.date('createdAt'),
@@ -146,7 +146,7 @@ class StockDeclaration {
   final bool initial;
   final DeclarationStatus status;
   final StockLocation location;
-  final String photoId;
+  final String? photoId;
   final String? note;
   final String createdBy;
   final DateTime createdAt;

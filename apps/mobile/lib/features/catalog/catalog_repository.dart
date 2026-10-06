@@ -53,7 +53,7 @@ final catalogRepositoryProvider = Provider<CatalogRepository>(
   CatalogRepository.new,
 );
 
-final productsProvider = FutureProvider<List<Product>>(
+final productsProvider = FutureProvider.autoDispose<List<Product>>(
   (ref) => ref.watch(catalogRepositoryProvider).products(),
 );
 

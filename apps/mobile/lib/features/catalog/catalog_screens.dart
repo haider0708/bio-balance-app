@@ -51,7 +51,10 @@ class _CatalogScreenState extends ConsumerState<CatalogScreen> {
           : null,
       body: AsyncBody(
         value: products,
-        onRetry: () => ref.invalidate(allProductsProvider),
+        onRetry: () {
+          ref.invalidate(allProductsProvider);
+          ref.invalidate(productsProvider);
+        },
         builder: (all) {
           final families = {for (final p in all) p.family}.toList()..sort();
           final shown = all
@@ -109,59 +112,74 @@ class _CatalogScreenState extends ConsumerState<CatalogScreen> {
                         icon: LucideIcons.packageSearch,
                         title: t.noProductsFound,
                       )
-                    : ListView.separated(
-                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
-                        itemCount: shown.length,
-                        separatorBuilder: (_, _) => const Gap(8),
-                        itemBuilder: (context, i) {
-                          final p = shown[i];
-                          return AppCard(
-                            padding: const EdgeInsets.all(10),
-                            onTap: () async {
-                              await context.push('/catalog/${p.id}', extra: p);
-                              ref.invalidate(allProductsProvider);
-                              ref.invalidate(productsProvider);
-                            },
-                            child: Row(
-                              children: [
-                                AuthImage(
-                                  p.imageId,
-                                  width: 56,
-                                  height: 56,
-                                  radius: 12,
-                                  placeholderIcon: LucideIcons.package,
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        p.name,
-                                        style: context.text.titleSmall,
-                                        maxLines: 2,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                      Text(
-                                        [
-                                          p.family,
-                                          if (p.packageSize.isNotEmpty)
-                                            p.packageSize,
-                                        ].join(' · '),
-                                        style: context.text.bodySmall?.copyWith(
-                                          color: context.status.muted,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                if (!p.active)
-                                  StatusChip(t.inactive, tone: Tone.muted),
-                              ],
-                            ),
+                    : RefreshIndicator(
+                        onRefresh: () async {
+                          ref.invalidate(allProductsProvider);
+                          ref.invalidate(productsProvider);
+                          await ref.read(
+                            widget.editable
+                                ? allProductsProvider.future
+                                : productsProvider.future,
                           );
                         },
+                        child: ListView.separated(
+                          padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
+                          itemCount: shown.length,
+                          separatorBuilder: (_, _) => const Gap(8),
+                          itemBuilder: (context, i) {
+                            final p = shown[i];
+                            return AppCard(
+                              padding: const EdgeInsets.all(10),
+                              onTap: () async {
+                                await context.push(
+                                  '/catalog/${p.id}',
+                                  extra: p,
+                                );
+                                ref.invalidate(allProductsProvider);
+                                ref.invalidate(productsProvider);
+                              },
+                              child: Row(
+                                children: [
+                                  AuthImage(
+                                    p.imageId,
+                                    width: 56,
+                                    height: 56,
+                                    radius: 12,
+                                    placeholderIcon: LucideIcons.package,
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          p.name,
+                                          style: context.text.titleSmall,
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                        Text(
+                                          [
+                                            p.family,
+                                            if (p.packageSize.isNotEmpty)
+                                              p.packageSize,
+                                          ].join(' · '),
+                                          style: context.text.bodySmall
+                                              ?.copyWith(
+                                                color: context.status.muted,
+                                              ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  if (!p.active)
+                                    StatusChip(t.inactive, tone: Tone.muted),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
                       ),
               ),
             ],

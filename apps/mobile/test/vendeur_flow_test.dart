@@ -10,6 +10,7 @@ FakeServer vendeurServer() {
   final server = FakeServer()
     ..on('GET /v1/me', meJson())
     ..on('GET /v1/products', <Object>[productJson('a', 'Serum Vitamin C'), productJson('b', 'Shampoo Argan', family: 'Hair')])
+    ..on('GET /v1/stock/locations/p1', stockJson(['a', 'b']))
     ..on('GET /v1/notifications/unread-count', {'unread': 0})
     ..on('GET /v1/dashboard', {
       'role': 'VENDEUR',

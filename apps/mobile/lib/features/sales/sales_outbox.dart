@@ -14,6 +14,7 @@ const _storageKey = 'outbox.sales';
 /// Codes meaning "the server understood and said no": retrying would not help.
 const _final = {
   'PDV_INACTIVE',
+  'OUT_OF_STOCK',
   'PRODUCT_NOT_FOUND',
   'INVALID_DATE',
   'NO_LINES',

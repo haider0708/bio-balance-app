@@ -1993,4 +1993,26 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get paste => 'Coller';
+
+  @override
+  String get chooseStoreForMember =>
+      'Dans quel magasin cette personne arrive-t-elle ?';
+
+  @override
+  String inStockCount(int count) {
+    return '$count en stock';
+  }
+
+  @override
+  String get outOfStock => 'Rupture de stock';
+
+  @override
+  String get noStockHere => 'Ce magasin n’a pas encore de stock';
+
+  @override
+  String get noStockTitle => 'Déclarer aucun stock ?';
+
+  @override
+  String get noStockBody =>
+      'BioBalance notera que ce lieu démarre vide. Le stock arrivera avec les réapprovisionnements.';
 }

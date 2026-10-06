@@ -966,5 +966,18 @@
   "withdrawn": "Announcement withdrawn",
   "yesterday": "Yesterday",
   "youEarned": "You earned",
-  "paste": "Paste"
+  "paste": "Paste",
+  "chooseStoreForMember": "Which store is this person joining?",
+  "inStockCount": "{count} in stock",
+  "@inStockCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "outOfStock": "Out of stock",
+  "noStockHere": "This store has no stock yet",
+  "noStockTitle": "Declare no stock?",
+  "noStockBody": "BioBalance will record that this place starts empty. Stock arrives with restocks."
 }

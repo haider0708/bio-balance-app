@@ -180,6 +180,17 @@ class CodeField extends StatelessWidget {
   final String invalidMessage;
   final TextInputAction textInputAction;
 
+  /// `abcd2345` becomes `ABCD-2345`; anything incomplete stays as typed so far.
+  static String pretty(String? raw) {
+    final clean = (raw ?? '')
+        .replaceAll(RegExp(r'[^A-Za-z0-9]'), '')
+        .toUpperCase();
+    final capped = clean.length > 8 ? clean.substring(0, 8) : clean;
+    return capped.length > 4
+        ? '${capped.substring(0, 4)}-${capped.substring(4)}'
+        : capped;
+  }
+
   /// The code inside whatever was copied (it may include spaces, a dash or the sentence around it).
   static String? extract(String? copied) {
     final match = RegExp(r'\b([A-Za-z0-9]{4})[-\s]?([A-Za-z0-9]{4})\b')
@@ -195,6 +206,7 @@ class CodeField extends StatelessWidget {
     return TextFormField(
       controller: controller,
       textCapitalization: TextCapitalization.characters,
+      inputFormatters: [_CodeFormatter()],
       textInputAction: textInputAction,
       autocorrect: false,
       enableSuggestions: false,
@@ -215,6 +227,21 @@ class CodeField extends StatelessWidget {
           (v == null || v.replaceAll(RegExp(r'[\s-]'), '').length != 8)
           ? invalidMessage
           : null,
+    );
+  }
+}
+
+/// Puts the dash in by itself: typing ABCD2345 shows ABCD-2345.
+class _CodeFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    final text = CodeField.pretty(newValue.text);
+    return TextEditingValue(
+      text: text,
+      selection: TextSelection.collapsed(offset: text.length),
     );
   }
 }

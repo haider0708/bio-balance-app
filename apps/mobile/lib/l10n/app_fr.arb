@@ -966,5 +966,18 @@
   "withdrawn": "Annonce retirée",
   "yesterday": "Hier",
   "youEarned": "Vous avez gagné",
-  "paste": "Coller"
+  "paste": "Coller",
+  "chooseStoreForMember": "Dans quel magasin cette personne arrive-t-elle ?",
+  "inStockCount": "{count} en stock",
+  "@inStockCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "outOfStock": "Rupture de stock",
+  "noStockHere": "Ce magasin n’a pas encore de stock",
+  "noStockTitle": "Déclarer aucun stock ?",
+  "noStockBody": "BioBalance notera que ce lieu démarre vide. Le stock arrivera avec les réapprovisionnements."
 }

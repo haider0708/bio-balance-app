@@ -1986,4 +1986,25 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get paste => 'Paste';
+
+  @override
+  String get chooseStoreForMember => 'Which store is this person joining?';
+
+  @override
+  String inStockCount(int count) {
+    return '$count in stock';
+  }
+
+  @override
+  String get outOfStock => 'Out of stock';
+
+  @override
+  String get noStockHere => 'This store has no stock yet';
+
+  @override
+  String get noStockTitle => 'Declare no stock?';
+
+  @override
+  String get noStockBody =>
+      'BioBalance will record that this place starts empty. Stock arrives with restocks.';
 }

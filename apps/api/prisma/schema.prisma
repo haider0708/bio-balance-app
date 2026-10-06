@@ -275,7 +275,7 @@ model StockDeclaration {
   locationKind LocationKind
   regionId     String?         @db.Uuid
   status       Approval        @default(PENDING)
-  photoId      String          @db.Uuid
+  photoId      String?         @db.Uuid
   note         String?
   createdById  String          @db.Uuid
   createdAt    DateTime        @default(now())

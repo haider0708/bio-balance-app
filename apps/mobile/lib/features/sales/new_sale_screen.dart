@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
+import '../../core/auth/session.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/async_body.dart';
 import '../../core/widgets/components.dart';
@@ -13,6 +14,8 @@ import '../../l10n/app_localizations.dart';
 import '../catalog/catalog_repository.dart';
 import '../catalog/product.dart';
 import '../media/media_repository.dart';
+import '../stock/stock_models.dart';
+import '../stock/stock_repository.dart';
 import 'sales_repository.dart';
 
 /// Pick products, adjust quantities, record the sale. Built to be done with one hand at the till.
@@ -30,9 +33,19 @@ class _NewSaleScreenState extends ConsumerState<NewSaleScreen> {
 
   int get _units => _cart.values.fold(0, (a, b) => a + b);
 
-  void _set(Product p, int quantity) => setState(
-    () => quantity <= 0 ? _cart.remove(p.id) : _cart[p.id] = quantity,
-  );
+  /// What the store holds right now; a sale can never go beyond it.
+  /// When the phone cannot reach the server the stock is unknown: the sale is kept
+  /// and the server checks it when it is sent.
+  Map<String, int> _stock = const {};
+  bool _stockKnown = false;
+
+  int _most(String productId) => _stockKnown ? (_stock[productId] ?? 0) : 9999;
+
+  void _set(Product p, int quantity) {
+    final most = _most(p.id);
+    final next = quantity > most ? most : quantity;
+    setState(() => next <= 0 ? _cart.remove(p.id) : _cart[p.id] = next);
+  }
 
   Future<void> _scan(List<Product> products) async {
     final t = AppLocalizations.of(context);
@@ -56,7 +69,11 @@ class _NewSaleScreenState extends ConsumerState<NewSaleScreen> {
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
-      builder: (_) => _ReviewSheet(lines: lines, onChanged: _set),
+      builder: (_) => _ReviewSheet(
+        lines: lines,
+        stock: {for (final l in lines) l.product.id: _most(l.product.id)},
+        onChanged: _set,
+      ),
     );
     if (outcome != null && mounted)
       context.pushReplacement('/sale-done', extra: outcome);
@@ -66,6 +83,13 @@ class _NewSaleScreenState extends ConsumerState<NewSaleScreen> {
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
     final products = ref.watch(productsProvider);
+    final pdvId = ref.watch(meProvider).pdv?.id;
+    final levels = pdvId == null ? null : ref.watch(stockLevelsProvider(pdvId));
+    _stockKnown = levels?.hasValue ?? false;
+    _stock = {
+      for (final i in levels?.value?.items ?? const <StockItem>[])
+        i.productId: i.quantity,
+    };
     return Scaffold(
       appBar: AppBar(
         title: Text(t.newSale),
@@ -143,6 +167,7 @@ class _NewSaleScreenState extends ConsumerState<NewSaleScreen> {
                         separatorBuilder: (_, _) => const Gap(8),
                         itemBuilder: (context, i) => _ProductTile(
                           product: shown[i],
+                          stock: _most(shown[i].id),
                           quantity: _cart[shown[i].id] ?? 0,
                           onChanged: (q) => _set(shown[i], q),
                         ),
@@ -171,11 +196,13 @@ class _NewSaleScreenState extends ConsumerState<NewSaleScreen> {
 class _ProductTile extends StatelessWidget {
   const _ProductTile({
     required this.product,
+    required this.stock,
     required this.quantity,
     required this.onChanged,
   });
 
   final Product product;
+  final int stock;
   final int quantity;
   final ValueChanged<int> onChanged;
 
@@ -186,7 +213,7 @@ class _ProductTile extends StatelessWidget {
     return AppCard(
       padding: const EdgeInsets.all(10),
       borderColor: picked ? context.colors.primary : null,
-      onTap: picked ? null : () => onChanged(1),
+      onTap: picked || stock <= 0 ? null : () => onChanged(1),
       child: Row(
         children: [
           AuthImage(
@@ -209,9 +236,13 @@ class _ProductTile extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  product.family,
+                  stock > 0
+                      ? '${product.family} · ${t.inStockCount(stock)}'
+                      : '${product.family} · ${t.outOfStock}',
                   style: context.text.bodySmall?.copyWith(
-                    color: context.status.muted,
+                    color: stock > 0
+                        ? context.status.muted
+                        : context.status.danger,
                   ),
                 ),
               ],
@@ -219,7 +250,9 @@ class _ProductTile extends StatelessWidget {
           ),
           const SizedBox(width: 8),
           if (picked)
-            QtyStepper(value: quantity, onChanged: onChanged)
+            QtyStepper(value: quantity, max: stock, onChanged: onChanged)
+          else if (stock <= 0)
+            Icon(LucideIcons.ban, color: context.status.muted)
           else
             Semantics(
               button: true,
@@ -241,9 +274,14 @@ class _ProductTile extends StatelessWidget {
 }
 
 class _ReviewSheet extends ConsumerStatefulWidget {
-  const _ReviewSheet({required this.lines, required this.onChanged});
+  const _ReviewSheet({
+    required this.lines,
+    required this.stock,
+    required this.onChanged,
+  });
 
   final List<CartLine> lines;
+  final Map<String, int> stock;
   final void Function(Product product, int quantity) onChanged;
 
   @override
@@ -305,6 +343,7 @@ class _ReviewSheetState extends ConsumerState<_ReviewSheet> {
                         ),
                         QtyStepper(
                           value: _quantities[l.product.id] ?? 0,
+                          max: widget.stock[l.product.id],
                           onChanged: (q) {
                             setState(() => _quantities[l.product.id] = q);
                             widget.onChanged(l.product, q);

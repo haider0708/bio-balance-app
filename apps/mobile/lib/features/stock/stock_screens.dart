@@ -44,11 +44,17 @@ class StockScreen extends ConsumerWidget {
     final pending = declarations.value
         ?.where((d) => d.status == DeclarationStatus.pending)
         .firstOrNull;
+    // The stock is counted once: only a place with no count waiting or approved can declare.
+    final counted =
+        declarations.value?.any(
+          (d) => d.status != DeclarationStatus.rejected,
+        ) ??
+        true;
     return Scaffold(
       appBar: AppBar(
         title: Text(title ?? levels.value?.location.name ?? t.stockTitle),
       ),
-      floatingActionButton: canDeclare && pending == null
+      floatingActionButton: canDeclare && !counted
           ? FloatingActionButton.extended(
               heroTag: null,
               onPressed: () async {
@@ -60,11 +66,7 @@ class StockScreen extends ConsumerWidget {
                 ref.invalidate(declarationsProvider(locationId));
               },
               icon: const Icon(LucideIcons.camera),
-              label: Text(
-                levels.value?.items.isEmpty ?? true
-                    ? t.declareStock
-                    : t.recountStock,
-              ),
+              label: Text(t.declareStock),
             )
           : null,
       body: RefreshIndicator(
@@ -294,7 +296,19 @@ class _DeclareStockScreenState extends ConsumerState<DeclareStockScreen> {
     }
   }
 
-  Future<void> _submit() async {
+  Future<void> _declareEmpty() async {
+    final t = AppLocalizations.of(context);
+    final yes = await confirm(
+      context,
+      title: t.noStockTitle,
+      message: t.noStockBody,
+      confirmLabel: t.sendToAdmin,
+    );
+    if (!yes || !mounted) return;
+    await _submit(empty: true);
+  }
+
+  Future<void> _submit({bool empty = false}) async {
     final t = AppLocalizations.of(context);
     final ok = await perform(
       context,
@@ -302,8 +316,8 @@ class _DeclareStockScreenState extends ConsumerState<DeclareStockScreen> {
           .read(stockRepositoryProvider)
           .declare(
             locationId: widget.locationId,
-            photoId: _photoId!,
-            lines: _quantities.lines(),
+            photoId: empty ? null : _photoId,
+            lines: empty ? const [] : _quantities.lines(),
             note: _note.text.trim(),
           ),
       success: t.declarationSent,
@@ -371,6 +385,12 @@ class _DeclareStockScreenState extends ConsumerState<DeclareStockScreen> {
                     ),
                   ),
                 ),
+              const Gap(8),
+              TextButton.icon(
+                onPressed: _declareEmpty,
+                icon: const Icon(LucideIcons.packageOpen),
+                label: Text(t.noStockHere),
+              ),
             ],
           );
         },
@@ -425,10 +445,15 @@ class DeclarationScreen extends ConsumerWidget {
               ),
             ),
             const Gap(12),
-            GestureDetector(
-              onTap: () => context.push('/photo/${d.photoId}'),
-              child: AuthImage(d.photoId, height: 220, width: double.infinity),
-            ),
+            if (d.photoId != null)
+              GestureDetector(
+                onTap: () => context.push('/photo/${d.photoId}'),
+                child: AuthImage(
+                  d.photoId,
+                  height: 220,
+                  width: double.infinity,
+                ),
+              ),
             SectionHeader(t.countedProducts),
             for (final l in d.lines)
               Padding(

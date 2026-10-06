@@ -30,6 +30,7 @@ FakeServer server(String role) {
   final trend = [for (var i = 0; i < 14; i++) {'day': '2026-09-${23 + i % 8}'.padRight(10, '0').substring(0, 10), 'sales': i % 5, 'units': [4, 7, 5, 9, 12, 6, 3, 8, 11, 14, 9, 10, 13, 17][i], 'rewardMillimes': 0}];
   switch (role) {
     case 'VENDEUR':
+      s.on('GET /v1/stock/locations/p1', stockJson(['a', 'b', 'c', 'd']));
       s.on('GET /v1/dashboard', {
         'role': 'VENDEUR', 'pdv': {'id': 'p1', 'name': 'Para Lac', 'status': 'ACTIVE'},
         'wallet': walletJson(balance: 48500, todayReward: 5200, todaySales: 3),

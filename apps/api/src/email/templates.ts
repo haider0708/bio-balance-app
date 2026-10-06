@@ -6,8 +6,20 @@ export interface EmailContent {
 export type Locale = "fr" | "en";
 
 export type EmailTemplate =
-  | { kind: "invite"; code: string; expiresAt: Date; name: string }
-  | { kind: "reset"; code: string; expiresAt: Date; name: string }
+  | {
+      kind: "invite";
+      code: string;
+      expiresAt: Date;
+      name: string;
+      link?: string;
+    }
+  | {
+      kind: "reset";
+      code: string;
+      expiresAt: Date;
+      name: string;
+      link?: string;
+    }
   | { kind: "password-changed"; changedAt: Date; name: string };
 
 const escape = (value: string) =>
@@ -39,6 +51,7 @@ const words = {
       codeLabel: "Code d’activation",
       copyHint:
         "Maintenez le doigt sur le code pour le copier, puis touchez « Coller » dans l’application.",
+      copyLink: "Copier le code en un toucher",
       note: "Ce code est personnel et à usage unique. Si vous ne reconnaissez pas cette invitation, ignorez cet email.",
     },
     reset: {
@@ -51,6 +64,7 @@ const words = {
       codeLabel: "Code de récupération",
       copyHint:
         "Maintenez le doigt sur le code pour le copier, puis touchez « Coller » dans l’application.",
+      copyLink: "Copier le code en un toucher",
       note: "Si vous n’avez pas fait cette demande, ignorez cet email : votre mot de passe reste inchangé.",
     },
     changed: {
@@ -75,6 +89,7 @@ const words = {
       codeLabel: "Activation code",
       copyHint:
         "Touch and hold the code to copy it, then tap “Paste” in the app.",
+      copyLink: "Copy the code with one tap",
       note: "This code is personal and single-use. If you do not recognise this invitation, ignore this email.",
     },
     reset: {
@@ -87,6 +102,7 @@ const words = {
       codeLabel: "Recovery code",
       copyHint:
         "Touch and hold the code to copy it, then tap “Paste” in the app.",
+      copyLink: "Copy the code with one tap",
       note: "If you did not ask for this, ignore this email: your password stays unchanged.",
     },
     changed: {
@@ -114,14 +130,17 @@ export function renderEmail(
     codeLabel: string | undefined,
     code: string | undefined,
     detail: string | undefined,
-    copyHint: string | undefined;
+    copyHint: string | undefined,
+    copyLink: string | undefined,
+    link: string | undefined;
   if (input.kind === "password-changed") {
     ({ subject, heading, note } = t.changed);
     intro = t.changed.intro(input.name);
     detail = t.at(when(locale, input.changedAt));
   } else {
     const copy = t[input.kind];
-    ({ subject, heading, note, steps, codeLabel, copyHint } = copy);
+    ({ subject, heading, note, steps, codeLabel, copyHint, copyLink } = copy);
+    link = input.link;
     intro = copy.intro(input.name);
     code = shown(input.code);
     detail = t.valid(when(locale, input.expiresAt));
@@ -132,7 +151,11 @@ export function renderEmail(
     intro,
     ...(steps ? [steps] : []),
     ...(code
-      ? [`${codeLabel} : ${code}`, ...(copyHint ? [copyHint] : [])]
+      ? [
+          `${codeLabel} : ${code}`,
+          ...(link ? [`${copyLink} : ${link}`] : []),
+          ...(copyHint ? [copyHint] : []),
+        ]
       : []),
     ...(detail ? [detail] : []),
     note,
@@ -146,7 +169,7 @@ export function renderEmail(
 <tr><td><h1 style="margin:0 0 16px;font-size:22px;line-height:1.35">${escape(heading)}</h1>
 <p style="margin:0 0 16px;font-size:16px;line-height:1.6">${escape(intro)}</p>
 ${steps ? `<p style="margin:0 0 20px;font-size:16px;line-height:1.6">${escape(steps)}</p>` : ""}
-${code ? `<p style="margin:0 0 6px;font-size:14px;color:#5d665f">${escape(codeLabel!)}</p><p style="margin:0 0 8px;padding:14px;border:1px solid #dfe6e1;border-radius:6px;font-family:Consolas,monospace;font-size:30px;letter-spacing:5px;font-weight:700;-webkit-user-select:all;user-select:all">${escape(code)}</p>${copyHint ? `<p style="margin:0 0 8px;font-size:13px;color:#5d665f">${escape(copyHint)}</p>` : ""}` : ""}
+${code ? `<p style="margin:0 0 6px;font-size:14px;color:#5d665f">${escape(codeLabel!)}</p><p style="margin:0 0 8px;padding:14px;border:1px solid #dfe6e1;border-radius:6px;font-family:Consolas,monospace;font-size:30px;letter-spacing:5px;font-weight:700;-webkit-user-select:all;user-select:all">${escape(code)}</p>${link ? `<p style="margin:0 0 12px"><a href="${escape(link)}" style="display:inline-block;padding:12px 18px;background:#146c43;color:#ffffff;text-decoration:none;border-radius:6px;font-size:15px;font-weight:700">${escape(copyLink!)}</a></p>` : ""}${copyHint ? `<p style="margin:0 0 8px;font-size:13px;color:#5d665f">${escape(copyHint)}</p>` : ""}` : ""}
 ${detail ? `<p style="margin:0 0 20px;font-size:14px;line-height:1.5;color:#5d665f">${escape(detail)}</p>` : ""}
 <p style="margin:24px 0 0;font-size:14px;line-height:1.6;color:#5d665f">${escape(note)}</p>
 </td></tr></table></td></tr></table></body></html>`;

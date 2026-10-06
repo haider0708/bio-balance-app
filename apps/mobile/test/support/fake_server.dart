@@ -92,3 +92,11 @@ Map<String, Object?> walletJson({int balance = 0, int todayReward = 0, int today
       'week': {'sales': todaySales, 'units': todaySales * 3, 'rewardMillimes': todayReward},
       'month': {'sales': todaySales, 'units': todaySales * 3, 'rewardMillimes': todayReward},
     };
+
+/// What the store holds: every product the tests sell is in stock.
+Map<String, Object?> stockJson(List<String> productIds, {int quantity = 50, String place = 'p1'}) => {
+      'location': {'id': place, 'kind': 'PDV', 'name': 'Para Lac', 'status': 'ACTIVE'},
+      'items': [
+        for (final id in productIds) {'productId': id, 'name': 'Product $id', 'family': 'Serums', 'imageId': null, 'quantity': quantity, 'level': 'OK'},
+      ],
+    };

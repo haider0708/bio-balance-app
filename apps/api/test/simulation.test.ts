@@ -124,7 +124,7 @@ describe("a month of activity", () => {
           await r.post("/v1/stock/declarations", {
             locationId: pdv.id,
             photoId: await photo(resp),
-            lines: lines(() => 15),
+            lines: lines(() => 400),
           })
         ).body;
         await a.post(`/v1/stock/declarations/${decl.id}/approve`, {});

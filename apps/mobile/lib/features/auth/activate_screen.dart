@@ -10,7 +10,9 @@ import 'auth_widgets.dart';
 
 /// First sign-in: the email and the code that arrived after the admin approved the account.
 class ActivateScreen extends ConsumerStatefulWidget {
-  const ActivateScreen({super.key});
+  const ActivateScreen({this.code, super.key});
+
+  final String? code;
 
   @override
   ConsumerState<ActivateScreen> createState() => _ActivateScreenState();
@@ -19,7 +21,7 @@ class ActivateScreen extends ConsumerStatefulWidget {
 class _ActivateScreenState extends ConsumerState<ActivateScreen> {
   final _form = GlobalKey<FormState>();
   final _email = TextEditingController();
-  final _code = TextEditingController();
+  late final _code = TextEditingController(text: CodeField.pretty(widget.code));
   final _name = TextEditingController();
   final _password = TextEditingController();
   final _confirm = TextEditingController();

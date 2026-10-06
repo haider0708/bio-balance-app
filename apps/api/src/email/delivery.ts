@@ -68,6 +68,9 @@ export class EmailDelivery {
         code: p.code,
         expiresAt: token.expiresAt,
         name: user.name,
+        link: process.env.API_PUBLIC_URL
+          ? `${process.env.API_PUBLIC_URL.replace(/\/$/, "")}/c#${p.template === "reset" ? "r" : "i"}.${p.code}`
+          : undefined,
       });
     }
     if (!(await stillOwned())) throw new Error("EMAIL_LEASE_LOST");

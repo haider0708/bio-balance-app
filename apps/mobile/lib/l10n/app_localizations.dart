@@ -3439,6 +3439,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Paste'**
   String get paste;
+
+  /// No description provided for @chooseStoreForMember.
+  ///
+  /// In en, this message translates to:
+  /// **'Which store is this person joining?'**
+  String get chooseStoreForMember;
+
+  /// No description provided for @inStockCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} in stock'**
+  String inStockCount(int count);
+
+  /// No description provided for @outOfStock.
+  ///
+  /// In en, this message translates to:
+  /// **'Out of stock'**
+  String get outOfStock;
+
+  /// No description provided for @noStockHere.
+  ///
+  /// In en, this message translates to:
+  /// **'This store has no stock yet'**
+  String get noStockHere;
+
+  /// No description provided for @noStockTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Declare no stock?'**
+  String get noStockTitle;
+
+  /// No description provided for @noStockBody.
+  ///
+  /// In en, this message translates to:
+  /// **'BioBalance will record that this place starts empty. Stock arrives with restocks.'**
+  String get noStockBody;
 }
 
 class _AppLocalizationsDelegate

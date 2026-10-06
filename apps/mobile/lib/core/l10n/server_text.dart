@@ -106,6 +106,14 @@ class ServerText {
       'Please explain your decision.',
       'Expliquez votre décision.',
     ),
+    'OUT_OF_STOCK': (
+      'Not enough stock for this sale.',
+      'Stock insuffisant pour cette vente.',
+    ),
+    'ALREADY_COUNTED': (
+      'The stock of this place was already declared.',
+      'Le stock de ce lieu a déjà été déclaré.',
+    ),
     'INVALID_STATE': (
       'This was already handled. Refresh to see the latest.',
       'C’est déjà traité. Actualisez pour voir la dernière version.',

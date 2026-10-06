@@ -38,7 +38,7 @@ async function twoRegionsWithSales() {
   });
   const north = await approvedPdv(w, "n", "Para Nord");
   const south = await approvedPdv(w, "s", "Para Sud");
-  await stockPlace(w, north.id, w.nord, [3, 30, 30]);
+  await stockPlace(w, north.id, w.nord, [10, 30, 30]);
   await stockPlace(w, south.id, w.sud, [30, 30, 30]);
   const a = client(api, (await teamMember(w, north.id, "Anis")).token);
   const c = client(api, (await teamMember(w, south.id, "Chiraz")).token);
@@ -141,7 +141,7 @@ describe("dashboards", () => {
       units: 6,
     });
     expect(d.trend).toHaveLength(14);
-    expect(d.attention).toEqual({ negativeStock: 1, lowStock: 0 });
+    expect(d.attention).toEqual({ negativeStock: 0, lowStock: 1 });
     expect(d.pdvs.active).toBe(2);
   });
 
@@ -246,21 +246,24 @@ describe("reports", () => {
     expect(text).toContain("2.500");
   });
 
-  it("flags stock that is low or below zero", async () => {
+  it("flags stock that is low, and never lets a sale take it below zero", async () => {
     const { a } = await twoRegionsWithSales();
-    await a.post("/v1/sales", {
+    const tooMany = await a.post("/v1/sales", {
       id: randomUUID(),
       lines: [{ productId: w.products[0]!.id, quantity: 9 }],
-    }); // 3 in stock − 5 − 9
+    }); // 10 in stock − 5 = 5 left
+    expect(tooMany.status).toBe(409);
+    expect(tooMany.body.code).toBe("OUT_OF_STOCK");
     const rows = (await w.a.get("/v1/reports/stock/attention")).body;
     expect(rows[0]).toMatchObject({
       place: "Para Nord",
       product: "Serum Vitamin C",
-      quantity: -11,
+      quantity: 5,
     });
     const overview = (await w.a.get("/v1/reports/stock")).body;
     expect(overview.find((r: any) => r.name === "Para Nord")).toMatchObject({
-      negative: 1,
+      low: 1,
+      negative: 0,
     });
     expect(
       (await w.s.get("/v1/reports/stock")).body.map((r: any) => r.name),

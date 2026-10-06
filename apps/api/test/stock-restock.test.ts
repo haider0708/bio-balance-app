@@ -76,7 +76,7 @@ describe("initial stock", () => {
       photoId: await photo(w, w.nord),
       lines: [{ productId: w.products[1]!.id, quantity: 1 }],
     });
-    expect(again.body.code).toBe("DECLARATION_PENDING");
+    expect(again.body.code).toBe("ALREADY_COUNTED");
 
     const approved = await w.a.post(
       `/v1/stock/declarations/${declared.body.id}/approve`,
@@ -96,18 +96,34 @@ describe("initial stock", () => {
         .status,
     ).toBe(409);
 
-    // Later declarations are counts that replace the quantities of the listed products.
-    const count = await w.n.post("/v1/stock/declarations", {
+    // The count happens once: a second declaration is refused.
+    const second = await w.n.post("/v1/stock/declarations", {
       locationId: pdv.id,
       photoId: await photo(w, w.nord),
       lines: [{ productId: w.products[0]!.id, quantity: 15 }],
     });
-    expect(count.body.kind).toBe("COUNT");
-    await w.a.post(`/v1/stock/declarations/${count.body.id}/approve`, {});
-    expect(await levels(w, pdv.id)).toEqual({
-      "Serum Vitamin C": 15,
-      "Shampoo Argan": 8,
+    expect(second.status).toBe(409);
+    expect(second.body.code).toBe("ALREADY_COUNTED");
+  });
+
+  it("lets a store with nothing on its shelves declare no stock, without a photo", async () => {
+    const pdv = await approvedPdv(w);
+    const empty = await w.n.post("/v1/stock/declarations", {
+      locationId: pdv.id,
+      lines: [],
     });
+    expect(empty.status).toBe(201);
+    expect(empty.body.lines).toEqual([]);
+    expect(
+      (await w.a.post(`/v1/stock/declarations/${empty.body.id}/approve`, {}))
+        .body.status,
+    ).toBe("APPROVED");
+    expect((await w.n.get("/v1/pdvs")).body[0].initialStock).toBe("APPROVED");
+    const withLines = await w.n.post("/v1/stock/declarations", {
+      locationId: pdv.id,
+      lines: [{ productId: w.products[0]!.id, quantity: 1 }],
+    });
+    expect(withLines.status).toBe(409);
   });
 
   it("can be rejected and declared again", async () => {

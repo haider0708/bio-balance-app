@@ -12,6 +12,7 @@ import { RewardsModule } from "./modules/rewards/rewards.module";
 import { SalesModule } from "./modules/sales/sales.module";
 import { TrainingModule } from "./modules/training/training.module";
 import { StockModule } from "./modules/stock/stock.module";
+import { CodePageController } from "./modules/auth/code-page.controller";
 
 @Controller("health")
 class HealthController {
@@ -36,6 +37,6 @@ class HealthController {
     TrainingModule,
     ReportingModule,
   ],
-  controllers: [HealthController],
+  controllers: [HealthController, CodePageController],
 })
 export class AppModule {}

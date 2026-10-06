@@ -13,7 +13,6 @@ import '../../core/util/money.dart';
 import '../../core/widgets/async_body.dart';
 import '../../core/widgets/components.dart';
 import '../../core/widgets/feedback.dart';
-import '../../core/widgets/paged_list.dart';
 import '../../core/widgets/states.dart';
 import '../../l10n/app_localizations.dart';
 import '../network/network_repository.dart';
@@ -349,67 +348,6 @@ class StockAttentionScreen extends ConsumerWidget {
                 ),
               );
             },
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Who did what, newest first. For the admin only.
-class AuditScreen extends ConsumerStatefulWidget {
-  const AuditScreen({super.key});
-
-  @override
-  ConsumerState<AuditScreen> createState() => _AuditScreenState();
-}
-
-class _AuditScreenState extends ConsumerState<AuditScreen> {
-  late final PagedController<AuditItem> _paged = PagedController((
-    cursor,
-  ) async {
-    final page = await ref
-        .read(reportsRepositoryProvider)
-        .audit(cursor: cursor);
-    return PageResult(page.items, page.next);
-  });
-
-  @override
-  void dispose() {
-    _paged.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final t = AppLocalizations.of(context);
-    return Scaffold(
-      appBar: AppBar(title: Text(t.auditTitle)),
-      body: PagedList<AuditItem>(
-        controller: _paged,
-        empty: EmptyState(icon: LucideIcons.history, title: t.noHistoryYet),
-        itemBuilder: (context, a, _) => Padding(
-          padding: const EdgeInsets.only(bottom: 8),
-          child: AppCard(
-            padding: const EdgeInsets.all(12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(a.action, style: context.text.titleSmall),
-                Text(
-                  '${a.actorName ?? t.system} · ${a.entity}',
-                  style: context.text.bodySmall?.copyWith(
-                    color: context.status.muted,
-                  ),
-                ),
-                Text(
-                  Dates.dateTime(a.createdAt, t.localeName),
-                  style: context.text.bodySmall?.copyWith(
-                    color: context.status.muted,
-                  ),
-                ),
-              ],
-            ),
           ),
         ),
       ),

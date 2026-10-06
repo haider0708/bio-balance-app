@@ -90,12 +90,7 @@ class SettingsScreen extends ConsumerWidget {
           ),
           SectionHeader(t.about),
           AppCard(
-            child: Column(
-              children: [
-                InfoRow(t.appVersion, AppConfig.version),
-                InfoRow(t.server, Uri.parse(AppConfig.apiBaseUrl).host),
-              ],
-            ),
+            child: Column(children: [InfoRow(t.appVersion, AppConfig.version)]),
           ),
           const Gap(24),
           OutlinedButton.icon(

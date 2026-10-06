@@ -94,7 +94,7 @@ export class StockService {
     actor: Actor,
     input: {
       locationId: string;
-      photoId: string;
+      photoId?: string;
       note?: string;
       lines: DeclarationLineInput[];
     },
@@ -113,15 +113,31 @@ export class StockService {
         "This place cannot receive stock now.",
         409,
       );
-      const photo = await tx.mediaAsset.findUnique({
-        where: { id: input.photoId },
-      });
+      // Counted once: a count waiting for approval or already approved is final.
+      // Only a rejected count can be sent again.
       requireRule(
-        photo?.purpose === "PROOF" && photo.ownerId === actor.id,
-        "PHOTO_REQUIRED",
-        "Add a photo of the stock.",
-        422,
+        !(await tx.stockDeclaration.findFirst({
+          where: {
+            locationId: location.id,
+            status: { in: ["APPROVED", "PENDING"] },
+          },
+        })),
+        "ALREADY_COUNTED",
+        "The stock of this place was already declared.",
+        409,
       );
+      // A photo proves what is on the shelves; a place with nothing needs none.
+      if (input.lines.length > 0) {
+        const photo = input.photoId
+          ? await tx.mediaAsset.findUnique({ where: { id: input.photoId } })
+          : null;
+        requireRule(
+          photo?.purpose === "PROOF" && photo.ownerId === actor.id,
+          "PHOTO_REQUIRED",
+          "Add a photo of the stock.",
+          422,
+        );
+      }
       const ids = input.lines.map((l) => l.productId);
       requireRule(
         new Set(ids).size === ids.length,
@@ -137,24 +153,13 @@ export class StockService {
         "Unknown or inactive product.",
         404,
       );
-      requireRule(
-        !(await tx.stockDeclaration.findFirst({
-          where: { locationId: location.id, status: "PENDING" },
-        })),
-        "DECLARATION_PENDING",
-        "A stock declaration is already waiting for approval.",
-        409,
-      );
-      const hasInitial = await tx.stockDeclaration.findFirst({
-        where: { locationId: location.id, kind: "INITIAL", status: "APPROVED" },
-      });
       const declaration = await tx.stockDeclaration.create({
         data: {
-          kind: hasInitial ? "COUNT" : "INITIAL",
+          kind: "INITIAL",
           locationId: location.id,
           locationKind: location.kind,
           regionId: location.regionId,
-          photoId: input.photoId,
+          photoId: input.lines.length > 0 ? input.photoId : null,
           note: input.note?.trim() || null,
           createdById: actor.id,
           lines: {

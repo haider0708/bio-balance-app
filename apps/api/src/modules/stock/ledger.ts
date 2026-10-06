@@ -1,6 +1,6 @@
 import type { LocationKind } from "@prisma/client";
 import type { Tx } from "../../core/database";
-import { notFound } from "../../core/errors";
+import { notFound, requireRule } from "../../core/errors";
 
 export interface Location {
   id: string;
@@ -44,8 +44,8 @@ export interface MovementRef {
 /**
  * Add `delta` to a product's quantity and record why. One atomic statement,
  * so two phones selling the same product at once never lose an update.
- * Stock may go below zero (a sale made before the delivery was approved);
- * the dashboards flag that.
+ * A sale can never take a point of sale below zero: the whole transaction
+ * is refused, so two phones selling the last unit cannot both succeed.
  */
 export async function adjustStock(
   tx: Tx,
@@ -61,6 +61,12 @@ export async function adjustStock(
     ON CONFLICT ("locationId","productId") DO UPDATE
       SET quantity = "Stock".quantity + ${delta}, "updatedAt" = now()
     RETURNING quantity`;
+  requireRule(
+    row!.quantity >= 0 || delta > 0 || !ref.reason.startsWith("SALE"),
+    "OUT_OF_STOCK",
+    "Not enough stock for this sale.",
+    409,
+  );
   await tx.stockMovement.createMany({
     data: [
       {
