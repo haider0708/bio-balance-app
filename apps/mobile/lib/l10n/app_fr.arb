@@ -1,0 +1,303 @@
+{
+  "@@locale": "fr",
+  "about": "À propos",
+  "account": "Compte",
+  "accountActivated": "Compte activé. Vous pouvez vous connecter.",
+  "activateAccount": "Activer mon compte",
+  "activateSubtitle": "Saisissez l’e-mail et le code reçus, puis choisissez un mot de passe.",
+  "activateTitle": "Activez votre compte",
+  "activationCode": "Code d’activation",
+  "activity": "Activité",
+  "add": "Ajouter",
+  "addProduct": "Ajouter un produit",
+  "addSelected": "{count, plural, =0{Choisissez des produits} =1{Ajouter 1 produit} other{Ajouter {count} produits}}",
+  "@addSelected": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "addToSale": "Ajouter {name}",
+  "@addToSale": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "addedToSale": "{name} ajouté",
+  "@addedToSale": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "all": "Tous",
+  "amountTnd": "Montant",
+  "appName": "BioBalance",
+  "appVersion": "Version",
+  "authenticatorCode": "Code d’authentification",
+  "authenticatorCodeHelp": "Les 6 chiffres de votre application d’authentification.",
+  "availableBalance": "Solde disponible",
+  "availableUpTo": "Jusqu’à {amount}",
+  "@availableUpTo": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "back": "Retour",
+  "barcodeUnknown": "Ce code-barres n’est pas dans le catalogue.",
+  "cameraUnavailable": "L’appareil photo n’est pas disponible. Vérifiez l’autorisation dans les réglages du téléphone.",
+  "cancel": "Annuler",
+  "cancelRequest": "Annuler la demande",
+  "cancelSale": "Annuler la vente",
+  "cancelSaleBody": "Le stock est remis et le gain est retiré de votre portefeuille.",
+  "cancelSaleTitle": "Annuler cette vente ?",
+  "celebrateSubtitle": "{count, plural, =1{1 unité vendue} other{{count} unités vendues}}",
+  "@celebrateSubtitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "celebrateTitle": "Belle vente !",
+  "celebrateToday": "Aujourd’hui jusqu’ici",
+  "changePassword": "Changer le mot de passe",
+  "close": "Fermer",
+  "codeInvalid": "Saisissez un code valide.",
+  "completed": "Terminé",
+  "confirm": "Confirmer",
+  "confirmPassword": "Confirmer le mot de passe",
+  "correctSale": "Corriger cette vente",
+  "correctSaleHint": "Modifiez les quantités. Mettez un produit à 0 pour le retirer, ou tout à 0 pour annuler la vente.",
+  "corrected": "Corrigée",
+  "correctionWindowClosed": "Une vente se corrige pendant 48 heures. Demandez à votre responsable pour les corrections plus tardives.",
+  "corrections": "Corrections",
+  "create": "Créer",
+  "currentPassword": "Mot de passe actuel",
+  "decrease": "Diminuer",
+  "delete": "Supprimer",
+  "discard": "Abandonner",
+  "done": "Terminé",
+  "draft": "Brouillon",
+  "earnedToday": "Gagné aujourd’hui",
+  "edit": "Modifier",
+  "editProfile": "Modifier mon profil",
+  "email": "E-mail",
+  "emailInvalid": "Saisissez une adresse e-mail valide.",
+  "entryCorrection": "Correction",
+  "entryPayout": "Paiement",
+  "entrySale": "Gain d’une vente",
+  "errorGeneric": "Une erreur est survenue. Veuillez réessayer.",
+  "errorOffline": "Pas de connexion. Vérifiez votre accès internet et réessayez.",
+  "errorServer": "Le service est momentanément indisponible. Réessayez bientôt.",
+  "forgotCodeSubtitle": "Saisissez le code reçu par e-mail et votre nouveau mot de passe.",
+  "forgotPassword": "Mot de passe oublié ?",
+  "forgotSubtitle": "Nous vous envoyons un code par e-mail, valable 30 minutes.",
+  "forgotTitle": "Réinitialiser le mot de passe",
+  "fullName": "Nom complet",
+  "fullNameOptional": "Votre nom (facultatif)",
+  "haveCode": "J’ai déjà un code",
+  "helloName": "Bonjour, {name}",
+  "@helloName": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "increase": "Augmenter",
+  "invitedHint": "Votre compte est approuvé et vous avez reçu un code par e-mail ?",
+  "language": "Langue",
+  "latestSales": "Dernières ventes",
+  "lessonArticle": "Lecture",
+  "lessonPdf": "Document",
+  "lessonVideo": "Vidéo",
+  "lessonsDone": "{done} leçons sur {total}",
+  "@lessonsDone": {
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "manageTraining": "Gérer les formations",
+  "markAllRead": "Tout marquer lu",
+  "markDone": "Marquer comme terminé",
+  "markNotDone": "Marquer comme non terminé",
+  "minutes": "{count} min",
+  "@minutes": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "more": "Plus",
+  "moreTitle": "Plus",
+  "newPassword": "Nouveau mot de passe",
+  "newSale": "Nouvelle vente",
+  "next": "Suivant",
+  "noActivityYet": "Aucune activité pour l’instant",
+  "noCourses": "Aucune formation pour l’instant",
+  "noCoursesHint": "Les nouvelles formations apparaîtront ici.",
+  "noNotifications": "Rien de nouveau",
+  "noNotificationsHint": "Les annonces et mises à jour apparaîtront ici.",
+  "noProductsFound": "Aucun produit trouvé",
+  "noSalesYet": "Aucune vente pour l’instant",
+  "noSalesYetHint": "Vos ventes et ce qu’elles ont rapporté apparaîtront ici.",
+  "none": "Aucun",
+  "notificationsTitle": "Notifications",
+  "openDocument": "Ouvrir le document",
+  "openVideo": "Voir la vidéo",
+  "optional": "facultatif",
+  "password": "Mot de passe",
+  "passwordChanged": "Mot de passe modifié. Vous pouvez vous connecter.",
+  "passwordChangedShort": "Mot de passe modifié",
+  "passwordRequired": "Saisissez votre mot de passe.",
+  "passwordRule": "Au moins 10 caractères.",
+  "passwordTooShort": "Utilisez au moins 10 caractères.",
+  "passwordsDiffer": "Les mots de passe ne correspondent pas.",
+  "payoutExplain": "L’administration vous paie puis confirme. Le montant quitte votre portefeuille une fois approuvé.",
+  "payoutPaid": "Payé",
+  "payoutRequested": "Paiement demandé",
+  "payouts": "Paiements",
+  "pdvNotActive": "Votre point de vente attend son approbation. Vous pourrez vendre dès qu’il sera actif.",
+  "pendingPayout": "{amount} déjà demandé",
+  "@pendingPayout": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "phone": "Téléphone",
+  "photoChoose": "Choisir dans la galerie",
+  "photoHint": "Touchez pour prendre une photo",
+  "photoReady": "Photo prête",
+  "photoRetake": "Reprendre",
+  "photoTake": "Prendre une photo",
+  "photoUploading": "Envoi en cours…",
+  "pinned": "Épinglées",
+  "pointOfSale": "Point de vente",
+  "products": "Produits",
+  "published": "Publié",
+  "quantity": "Quantité",
+  "quantityMax": "Jusqu’à {max}",
+  "@quantityMax": {
+    "placeholders": {
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "reasonRequired": "Motif (obligatoire)",
+  "recent": "Récentes",
+  "recordSale": "Enregistrer la vente",
+  "recoveryCode": "Code de récupération",
+  "refresh": "Actualiser",
+  "remove": "Retirer",
+  "requestPayout": "Demander un paiement",
+  "resetCodeSent": "Si le compte existe, un code a été envoyé.",
+  "retry": "Réessayer",
+  "reviewSale": "{count, plural, =1{Vérifier la vente · 1 unité} other{Vérifier la vente · {count} unités}}",
+  "@reviewSale": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "reviewTitle": "Vérifier la vente",
+  "reward": "Gain",
+  "roleAdmin": "Administrateur",
+  "roleGrossiste": "Grossiste",
+  "roleResponsable": "Responsable",
+  "roleVendeur": "Membre de l’équipe",
+  "saleCancelled": "Vente annulée",
+  "saleCorrected": "Vente corrigée",
+  "saleDetailTitle": "Vente",
+  "saleRecordedTitle": "Vente enregistrée",
+  "saleRefused": "Le serveur a refusé cette vente",
+  "saleVoided": "Annulée",
+  "salesCount": "{count, plural, =0{Aucune vente} =1{1 vente} other{{count} ventes}}",
+  "@salesCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "salesTitle": "Mes ventes",
+  "salesWaiting": "{count, plural, =1{1 vente attend d’être envoyée} other{{count} ventes attendent d’être envoyées}}",
+  "@salesWaiting": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "save": "Enregistrer",
+  "saveCorrection": "Enregistrer la correction",
+  "saved": "Enregistré",
+  "savedOnPhoneBody": "{count, plural, =1{1 unité sera envoyée} other{{count} unités seront envoyées}} dès que vous serez de nouveau connecté. Votre gain apparaîtra alors.",
+  "@savedOnPhoneBody": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "savedOnPhoneTitle": "Enregistrée sur votre téléphone",
+  "scanHint": "Visez le code-barres avec l’appareil photo",
+  "scanTitle": "Scanner un produit",
+  "search": "Rechercher",
+  "searchProducts": "Rechercher un produit",
+  "seeAll": "Tout voir",
+  "seller": "Vendeur",
+  "send": "Envoyer",
+  "sendCode": "Envoyer un code",
+  "sendNow": "Envoyer",
+  "server": "Serveur",
+  "settingsTitle": "Réglages",
+  "signIn": "Se connecter",
+  "signInSubtitle": "Connectez-vous à votre compte BioBalance.",
+  "signInTitle": "Bon retour",
+  "signOut": "Se déconnecter",
+  "signOutTitle": "Se déconnecter de BioBalance ?",
+  "statusCancelled": "Annulé",
+  "statusPending": "En attente",
+  "statusRejected": "Refusé",
+  "tabHome": "Accueil",
+  "tabLearn": "Formation",
+  "tabSales": "Ventes",
+  "tabWallet": "Portefeuille",
+  "thisMonth": "Ce mois-ci",
+  "thisWeek": "Cette semaine",
+  "today": "Aujourd’hui",
+  "torch": "Lampe",
+  "totalUnits": "Total d’unités",
+  "trainingTitle": "Formation",
+  "units": "{count, plural, =1{1 unité} other{{count} unités}}",
+  "@units": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "videoUnavailable": "Cette vidéo ne peut pas être lue.",
+  "waitingToSend": "En attente d’envoi",
+  "walletBalance": "Solde du portefeuille",
+  "walletTitle": "Portefeuille",
+  "yesterday": "Hier",
+  "youEarned": "Vous avez gagné"
+}

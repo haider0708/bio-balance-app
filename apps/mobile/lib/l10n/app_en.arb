@@ -1,0 +1,303 @@
+{
+  "@@locale": "en",
+  "about": "About",
+  "account": "Account",
+  "accountActivated": "Account activated. You can sign in.",
+  "activateAccount": "Activate my account",
+  "activateSubtitle": "Enter the email and the code you received, then choose a password.",
+  "activateTitle": "Activate your account",
+  "activationCode": "Activation code",
+  "activity": "Activity",
+  "add": "Add",
+  "addProduct": "Add a product",
+  "addSelected": "{count, plural, =0{Choose products} =1{Add 1 product} other{Add {count} products}}",
+  "@addSelected": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "addToSale": "Add {name}",
+  "@addToSale": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "addedToSale": "{name} added",
+  "@addedToSale": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "all": "All",
+  "amountTnd": "Amount",
+  "appName": "BioBalance",
+  "appVersion": "Version",
+  "authenticatorCode": "Authenticator code",
+  "authenticatorCodeHelp": "The 6 digits from your authenticator app.",
+  "availableBalance": "Available balance",
+  "availableUpTo": "Up to {amount}",
+  "@availableUpTo": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "back": "Back",
+  "barcodeUnknown": "This barcode is not in the catalog.",
+  "cameraUnavailable": "The camera is not available. Check the permission in your phone settings.",
+  "cancel": "Cancel",
+  "cancelRequest": "Cancel request",
+  "cancelSale": "Cancel the sale",
+  "cancelSaleBody": "The stock is put back and the reward is taken off your wallet.",
+  "cancelSaleTitle": "Cancel this sale?",
+  "celebrateSubtitle": "{count, plural, =1{1 unit sold} other{{count} units sold}}",
+  "@celebrateSubtitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "celebrateTitle": "Great sale!",
+  "celebrateToday": "Today so far",
+  "changePassword": "Change password",
+  "close": "Close",
+  "codeInvalid": "Enter a valid code.",
+  "completed": "Completed",
+  "confirm": "Confirm",
+  "confirmPassword": "Confirm password",
+  "correctSale": "Correct this sale",
+  "correctSaleHint": "Change the quantities. Set a product to 0 to remove it, or all to 0 to cancel the sale.",
+  "corrected": "Corrected",
+  "correctionWindowClosed": "A sale can be corrected for 48 hours. Ask your responsable for later corrections.",
+  "corrections": "Corrections",
+  "create": "Create",
+  "currentPassword": "Current password",
+  "decrease": "Decrease",
+  "delete": "Delete",
+  "discard": "Discard",
+  "done": "Done",
+  "draft": "Draft",
+  "earnedToday": "Earned today",
+  "edit": "Edit",
+  "editProfile": "Edit my profile",
+  "email": "Email",
+  "emailInvalid": "Enter a valid email address.",
+  "entryCorrection": "Correction",
+  "entryPayout": "Payout",
+  "entrySale": "Sale reward",
+  "errorGeneric": "Something went wrong. Please try again.",
+  "errorOffline": "No connection. Check your internet and try again.",
+  "errorServer": "The service is temporarily unavailable. Try again shortly.",
+  "forgotCodeSubtitle": "Enter the code from the email and your new password.",
+  "forgotPassword": "Forgot your password?",
+  "forgotSubtitle": "We will email you a code, valid for 30 minutes.",
+  "forgotTitle": "Reset your password",
+  "fullName": "Full name",
+  "fullNameOptional": "Your name (optional)",
+  "haveCode": "I already have a code",
+  "helloName": "Hello, {name}",
+  "@helloName": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "increase": "Increase",
+  "invitedHint": "Your account was approved and you received a code by email?",
+  "language": "Language",
+  "latestSales": "Latest sales",
+  "lessonArticle": "Reading",
+  "lessonPdf": "Document",
+  "lessonVideo": "Video",
+  "lessonsDone": "{done} of {total} lessons",
+  "@lessonsDone": {
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "manageTraining": "Manage courses",
+  "markAllRead": "Mark all read",
+  "markDone": "Mark as done",
+  "markNotDone": "Mark as not done",
+  "minutes": "{count} min",
+  "@minutes": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "more": "More",
+  "moreTitle": "More",
+  "newPassword": "New password",
+  "newSale": "New sale",
+  "next": "Next",
+  "noActivityYet": "No activity yet",
+  "noCourses": "No course yet",
+  "noCoursesHint": "New courses will appear here.",
+  "noNotifications": "Nothing new",
+  "noNotificationsHint": "Announcements and updates will appear here.",
+  "noProductsFound": "No product found",
+  "noSalesYet": "No sales yet",
+  "noSalesYetHint": "Your sales and what they earned will appear here.",
+  "none": "None",
+  "notificationsTitle": "Notifications",
+  "openDocument": "Open the document",
+  "openVideo": "Watch the video",
+  "optional": "optional",
+  "password": "Password",
+  "passwordChanged": "Password changed. You can sign in.",
+  "passwordChangedShort": "Password changed",
+  "passwordRequired": "Enter your password.",
+  "passwordRule": "At least 10 characters.",
+  "passwordTooShort": "Use at least 10 characters.",
+  "passwordsDiffer": "The passwords do not match.",
+  "payoutExplain": "The admin will pay you and confirm. The amount leaves your wallet once approved.",
+  "payoutPaid": "Paid",
+  "payoutRequested": "Payout requested",
+  "payouts": "Payouts",
+  "pdvNotActive": "Your point of sale is waiting for approval. You can sell as soon as it is active.",
+  "pendingPayout": "{amount} already requested",
+  "@pendingPayout": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "phone": "Phone",
+  "photoChoose": "Choose from gallery",
+  "photoHint": "Tap to take a photo",
+  "photoReady": "Photo ready",
+  "photoRetake": "Retake",
+  "photoTake": "Take a photo",
+  "photoUploading": "Sending…",
+  "pinned": "Pinned",
+  "pointOfSale": "Point of sale",
+  "products": "Products",
+  "published": "Published",
+  "quantity": "Quantity",
+  "quantityMax": "Up to {max}",
+  "@quantityMax": {
+    "placeholders": {
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "reasonRequired": "Reason (required)",
+  "recent": "Recent",
+  "recordSale": "Record the sale",
+  "recoveryCode": "Recovery code",
+  "refresh": "Refresh",
+  "remove": "Remove",
+  "requestPayout": "Request a payout",
+  "resetCodeSent": "If the account exists, a code was sent.",
+  "retry": "Try again",
+  "reviewSale": "{count, plural, =1{Review sale · 1 unit} other{Review sale · {count} units}}",
+  "@reviewSale": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "reviewTitle": "Review the sale",
+  "reward": "Reward",
+  "roleAdmin": "Administrator",
+  "roleGrossiste": "Grossiste",
+  "roleResponsable": "Responsable",
+  "roleVendeur": "Team member",
+  "saleCancelled": "Sale cancelled",
+  "saleCorrected": "Sale corrected",
+  "saleDetailTitle": "Sale",
+  "saleRecordedTitle": "Sale recorded",
+  "saleRefused": "The server refused this sale",
+  "saleVoided": "Cancelled",
+  "salesCount": "{count, plural, =0{No sales} =1{1 sale} other{{count} sales}}",
+  "@salesCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "salesTitle": "My sales",
+  "salesWaiting": "{count, plural, =1{1 sale is waiting to be sent} other{{count} sales are waiting to be sent}}",
+  "@salesWaiting": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "save": "Save",
+  "saveCorrection": "Save the correction",
+  "saved": "Saved",
+  "savedOnPhoneBody": "{count, plural, =1{1 unit} other{{count} units}} will be sent as soon as you are back online. Your reward will then appear.",
+  "@savedOnPhoneBody": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "savedOnPhoneTitle": "Saved on your phone",
+  "scanHint": "Point the camera at the barcode",
+  "scanTitle": "Scan a product",
+  "search": "Search",
+  "searchProducts": "Search a product",
+  "seeAll": "See all",
+  "seller": "Seller",
+  "send": "Send",
+  "sendCode": "Send me a code",
+  "sendNow": "Send now",
+  "server": "Server",
+  "settingsTitle": "Settings",
+  "signIn": "Sign in",
+  "signInSubtitle": "Sign in to your BioBalance account.",
+  "signInTitle": "Welcome back",
+  "signOut": "Sign out",
+  "signOutTitle": "Sign out of BioBalance?",
+  "statusCancelled": "Cancelled",
+  "statusPending": "Pending",
+  "statusRejected": "Rejected",
+  "tabHome": "Home",
+  "tabLearn": "Learn",
+  "tabSales": "Sales",
+  "tabWallet": "Wallet",
+  "thisMonth": "This month",
+  "thisWeek": "This week",
+  "today": "Today",
+  "torch": "Flashlight",
+  "totalUnits": "Total units",
+  "trainingTitle": "Training",
+  "units": "{count, plural, =1{1 unit} other{{count} units}}",
+  "@units": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "videoUnavailable": "This video cannot be played.",
+  "waitingToSend": "Waiting to be sent",
+  "walletBalance": "Wallet balance",
+  "walletTitle": "Wallet",
+  "yesterday": "Yesterday",
+  "youEarned": "You earned"
+}
