@@ -3,6 +3,7 @@ x-api-environment: &api-env
   NODE_ENV: production
   DATABASE_URL: ${DATABASE_URL:?Set the restricted application connection}
   MFA_ENCRYPTION_KEY: ${MFA_ENCRYPTION_KEY:?Set a 32-byte MFA encryption key}
+  API_PUBLIC_URL: ${API_PUBLIC_URL:-}
   MEDIA_ROOT: /var/lib/biobalance/media
 x-app: &app
   image: ${API_IMAGE:?Set an immutable API image tag or digest}
