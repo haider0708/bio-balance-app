@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
+# Creates (or recreates) the isolated test database and the restricted app role.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 compose=infrastructure/development/compose.yml
-if ! docker compose -f "$compose" exec -T postgres psql -U biobalance -tAc "SELECT 1 FROM pg_database WHERE datname='biobalance_test'" | rg -q '^1$'; then
-  docker compose -f "$compose" exec -T postgres createdb -U biobalance biobalance_test
-fi
+psql_admin=(docker compose -f "$compose" exec -T postgres psql -U biobalance -q)
+"${psql_admin[@]}" -d postgres -c 'DROP DATABASE IF EXISTS biobalance_test WITH (FORCE)' -c 'CREATE DATABASE biobalance_test'
 DATABASE_URL=postgresql://biobalance:local-development-only@localhost:54329/biobalance_test npm run db:migrate
-docker compose -f "$compose" exec -T postgres psql -U biobalance -d biobalance_test -v app_password=local-app-only -f /dev/stdin < scripts/provision-role.sql
+"${psql_admin[@]}" -d biobalance_test -v app_password=local-app-only < scripts/provision-role.sql

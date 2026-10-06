@@ -1,45 +1,15 @@
-import {
-  InvitationManagementController,
-  InvitationManagementService,
-} from "./modules/identity/invitation-management";
-import { PasswordHasher } from "./modules/identity/password-hasher";
-import { Module, Controller, Get } from "@nestjs/common";
-import { ExportController } from "./modules/reporting/export.controller";
-import { ExportService } from "./modules/reporting/export.service";
-import { GroupService } from "./modules/tenancy/group.service";
-import { GroupController } from "./modules/tenancy/group.controller";
-import { DashboardController } from "./modules/reporting/dashboard.controller";
-import { DashboardService } from "./modules/reporting/dashboard.service";
-import { APP_GUARD, APP_FILTER } from "@nestjs/core";
-import { Database } from "./shared/infrastructure/database";
-import { AuthGuard, ErrorFilter, Public } from "./shared/infrastructure/http";
-import { IdentityService } from "./modules/identity/identity.service";
-import { IdentityController } from "./modules/identity/identity.controller";
-import { WorkspaceService } from "./modules/tenancy/workspace.service";
-import { WorkspaceController } from "./modules/tenancy/workspace.controller";
-import { CatalogService } from "./modules/catalog/catalog.service";
-import { CatalogController } from "./modules/catalog/catalog.controller";
-import { OperationsService } from "./modules/operations/application/operations.service";
-import { PrismaUnitOfWork } from "./modules/operations/infrastructure/prisma-ledger";
-import { OperationsController } from "./modules/operations/http/operations.controller";
-import { NotificationsService } from "./modules/notifications/notifications.service";
-import { NotificationsController } from "./modules/notifications/notifications.controller";
-import { TrainingService } from "./modules/training/training.service";
-import { TrainingController } from "./modules/training/training.controller";
-import {
-  TicketController,
-  TicketService,
-} from "./modules/operations/http/ticket.controller";
-import {
-  QualityController,
-  QualityService,
-} from "./modules/operations/http/quality.controller";
-import { PricingService } from "./modules/pricing/pricing.service";
-import { PricingController } from "./modules/pricing/pricing.controller";
-import { WholesaleService } from "./modules/wholesale/wholesale.service";
-import { WholesaleController } from "./modules/wholesale/wholesale.controller";
-import { GamificationService } from "./modules/tenancy/gamification.service";
-import { GamificationController } from "./modules/tenancy/gamification.controller";
+import { Controller, Get, Module } from "@nestjs/common";
+import { CoreModule } from "./core/core.module";
+import { Database } from "./core/database";
+import { Public } from "./core/http";
+import { CatalogModule } from "./modules/catalog/catalog.module";
+import { DirectoryModule } from "./modules/directory/directory.module";
+import { MediaModule } from "./modules/media/media.module";
+import { RestockModule } from "./modules/restock/restock.module";
+import { RewardsModule } from "./modules/rewards/rewards.module";
+import { SalesModule } from "./modules/sales/sales.module";
+import { StockModule } from "./modules/stock/stock.module";
+
 @Controller("health")
 class HealthController {
   constructor(private readonly db: Database) {}
@@ -48,50 +18,9 @@ class HealthController {
     return { status: "ok" };
   }
 }
+
 @Module({
-  controllers: [
-    GamificationController,
-    QualityController,
-    TicketController,
-    PricingController,
-    WholesaleController,
-    InvitationManagementController,
-    ExportController,
-    DashboardController,
-    GroupController,
-    HealthController,
-    IdentityController,
-    WorkspaceController,
-    CatalogController,
-    OperationsController,
-    NotificationsController,
-    TrainingController,
-  ],
-  providers: [
-    GamificationService,
-    QualityService,
-    TicketService,
-    PricingService,
-    WholesaleService,
-    InvitationManagementService,
-    ExportService,
-    DashboardService,
-    GroupService,
-    Database,
-    { provide: PasswordHasher, useFactory: () => new PasswordHasher() },
-    IdentityService,
-    WorkspaceService,
-    CatalogService,
-    NotificationsService,
-    TrainingService,
-    {
-      provide: OperationsService,
-      useFactory: (db: Database) =>
-        new OperationsService(new PrismaUnitOfWork(db)),
-      inject: [Database],
-    },
-    { provide: APP_GUARD, useClass: AuthGuard },
-    { provide: APP_FILTER, useClass: ErrorFilter },
-  ],
+  imports: [CoreModule, DirectoryModule, CatalogModule, MediaModule, StockModule, RestockModule, RewardsModule, SalesModule],
+  controllers: [HealthController],
 })
 export class AppModule {}

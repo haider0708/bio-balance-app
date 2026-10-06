@@ -9,22 +9,11 @@
   },
   "scripts": {
     "build": "npm run build -w apps/api",
-    "test": "npm run test -w apps/api",
-    "test:integration": "npm run test:integration -w apps/api",
+    "test": "npm test -w apps/api",
     "dev": "npm run dev -w apps/api",
     "db:generate": "npm run db:generate -w apps/api",
     "db:migrate": "npm run db:migrate -w apps/api",
-    "api:contract": "npm run contract -w apps/api",
-    "test:mobile-sync": "npm run test:mobile-sync -w apps/api",
-    "test:media": "npm run test:media -w apps/api",
-    "test:contracts": "npm run test:contracts -w apps/api",
-    "test:notifications": "npm run test:notifications -w apps/api",
-    "test:journeys": "npm run test:journeys -w apps/api",
-    "test:android-restart": "npm run test:android-restart -w apps/api",
-    "test:audit": "npm run test:audit -w apps/api",
-    "format:check": "npm run format:check -w apps/api",
-    "test:security": "npm run test:security -w apps/api",
-    "test:email": "npm run test:email -w apps/api"
+    "format:check": "npm run format:check -w apps/api"
   },
   "overrides": {
     "@prisma/config": {

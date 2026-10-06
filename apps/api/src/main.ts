@@ -1,18 +1,11 @@
-import { accountTokenMessage } from "./modules/identity/account-links";
-import { uploadIngress } from "./modules/training/infrastructure/upload-ingress";
-import { IdentityService } from "./modules/identity/identity.service";
-import { TrainingService } from "./modules/training/training.service";
 import "reflect-metadata";
 import { NestFactory } from "@nestjs/core";
 import { randomUUID } from "node:crypto";
-import { json, Request, Response, NextFunction } from "express";
+import { json, type NextFunction, type Request, type Response } from "express";
 import helmet from "helmet";
 import { AppModule } from "./app.module";
-import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
-import { applyContract } from "./shared/contracts/api-contract";
+
 export async function bootstrap() {
-  accountTokenMessage("invite", "configuration-check");
-  accountTokenMessage("reset", "configuration-check");
   if (
     process.env.NODE_ENV === "production" &&
     (!process.env.DATABASE_URL ||
@@ -21,66 +14,55 @@ export async function bootstrap() {
     throw new Error(
       "DATABASE_URL and a 32-byte MFA_ENCRYPTION_KEY are required.",
     );
-  const app = await NestFactory.create(AppModule, { bodyParser: false });
+
+  // The body parser is applied below, except for file uploads, which stream to disk.
+  const app = await NestFactory.create(AppModule, {
+    bodyParser: false,
+    logger: process.env.NODE_ENV === "test" ? false : ["log", "warn", "error"],
+  });
   app.enableShutdownHooks();
   app.use(helmet());
   app.use((req: Request, res: Response, next: NextFunction) => {
-    const start = performance.now();
-    (req as Request & { correlationId: string }).correlationId = randomUUID();
-    res.setHeader(
-      "X-Correlation-Id",
-      (req as Request & { correlationId: string }).correlationId,
-    );
+    const started = performance.now();
+    const context = req as Request & { correlationId: string };
+    context.correlationId = randomUUID();
+    res.setHeader("X-Correlation-Id", context.correlationId);
     res.setHeader("Cache-Control", "no-store");
-    res.setHeader("Pragma", "no-cache");
-    res.on("finish", () =>
-      console.log(
-        JSON.stringify({
-          level: "info",
-          event: "http",
-          correlationId: (req as Request & { correlationId: string })
-            .correlationId,
-          method: req.method,
-          route: req.route?.path ?? "unmatched",
-          status: res.statusCode,
-          durationMs: Math.round(performance.now() - start),
-        }),
-      ),
-    );
+    if (process.env.NODE_ENV !== "test")
+      res.on("finish", () =>
+        console.log(
+          JSON.stringify({
+            level: "info",
+            event: "http",
+            correlationId: context.correlationId,
+            method: req.method,
+            route: req.route?.path ?? "unmatched",
+            status: res.statusCode,
+            durationMs: Math.round(performance.now() - started),
+          }),
+        ),
+      );
     next();
   });
-  app.use(
-    "/v1/media/uploads",
-    uploadIngress(app.get(IdentityService), app.get(TrainingService)),
+  const parseJson = json({ limit: "1mb", inflate: false });
+  app.use((req: Request, res: Response, next: NextFunction) =>
+    req.method === "POST" && req.path === "/v1/media"
+      ? next()
+      : parseJson(req, res, next),
   );
-  app.use(json({ limit: "1mb", inflate: false }));
-  app
-    .getHttpAdapter()
-    .getInstance()
-    .set("json replacer", (_k: string, v: unknown) =>
-      typeof v === "bigint" ? v.toString() : v,
-    );
-  app.getHttpAdapter().getInstance().disable("x-powered-by");
-  if (process.env.NODE_ENV === "production")
-    app.getHttpAdapter().getInstance().set("trust proxy", 1);
-  if (process.env.NODE_ENV !== "production") {
-    const doc = SwaggerModule.createDocument(
-      app,
-      new DocumentBuilder()
-        .setTitle("BioBalance API")
-        .setVersion("1.0")
-        .addBearerAuth()
-        .build(),
-    );
-    SwaggerModule.setup("docs", app, applyContract(doc));
-  }
+  const http = app.getHttpAdapter().getInstance();
+  http.set("json replacer", (_k: string, v: unknown) =>
+    typeof v === "bigint" ? Number(v) : v,
+  );
+  http.disable("x-powered-by");
+  if (process.env.NODE_ENV === "production") http.set("trust proxy", 1);
+
   await app.listen(Number(process.env.PORT ?? 3000), "0.0.0.0");
   const server = app.getHttpServer();
-  server.headersTimeout = 10000;
-  server.requestTimeout = 30000;
-  server.keepAliveTimeout = 5000;
-  server.maxHeadersCount = 100;
-  server.maxRequestsPerSocket = 1000;
+  server.headersTimeout = 10_000;
+  server.requestTimeout = 120_000; // large training videos
+  server.keepAliveTimeout = 5_000;
   return app;
 }
+
 if (require.main === module) void bootstrap();

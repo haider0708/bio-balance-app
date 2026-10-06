@@ -1,23 +1,53 @@
-import { CatalogRequests } from "../../shared/contracts/requests";
-import { Body, Controller, Post, Req, Get, Query } from "@nestjs/common";
+import { Body, Controller, Get, Param, Patch, Post, Query, Req } from "@nestjs/common";
 import { z } from "zod";
-import { ApiTags, ApiBearerAuth } from "@nestjs/swagger";
-import { AuthRequest } from "../../shared/infrastructure/http";
+import { type AuthRequest, Roles, parse } from "../../core/http";
 import { CatalogService } from "./catalog.service";
 
-@ApiTags("catalog")
-@ApiBearerAuth()
-@Controller("v1/catalog")
+const id = z.uuid();
+const str = (max: number) => z.string().trim().max(max);
+const Product = z.object({
+  reference: str(40).min(1),
+  name: str(160).min(1),
+  barcode: str(32).nullable().optional(),
+  family: str(80).min(1),
+  range: str(80).optional(),
+  packageSize: str(40).optional(),
+  description: str(8000).optional(),
+  instructions: str(4000).optional(),
+  ingredients: str(4000).optional(),
+  precautions: str(4000).optional(),
+  imageId: id.nullable().optional(),
+  active: z.boolean().optional(),
+});
+
+@Controller("v1")
 export class CatalogController {
-  constructor(private readonly service: CatalogService) {}
-  @Get("products") list(@Req() r: AuthRequest, @Query("after") after?: string) {
-    return this.service.list(r.actor, z.uuid().optional().parse(after));
+  constructor(private readonly catalog: CatalogService) {}
+
+  @Get("products")
+  list(@Req() r: AuthRequest, @Query() q: Record<string, string>) {
+    return this.catalog.list(r.actor, parse(
+      z.object({ q: str(80).optional(), family: str(80).optional(), includeInactive: z.stringbool().optional() }), q));
   }
-  @Post("products") save(@Req() r: AuthRequest, @Body() b: unknown) {
-    return this.service.save(r.actor, CatalogRequests.Save.parse(b));
+  @Get("products/families") families() {
+    return this.catalog.families();
   }
-  @Post("import") import(@Req() r: AuthRequest, @Body() b: unknown) {
-    const input = CatalogRequests.Import.parse(b);
-    return this.service.import(r.actor, input.rows, input.commit);
+  @Get("products/barcode/:code") barcode(@Param("code") code: string) {
+    return this.catalog.byBarcode(parse(str(32).min(4), code));
+  }
+  @Get("products/:id") get(@Param("id") i: string) {
+    return this.catalog.get(parse(id, i));
+  }
+  @Roles("ADMIN") @Post("products")
+  create(@Req() r: AuthRequest, @Body() b: unknown) {
+    return this.catalog.create(r.actor, parse(Product, b));
+  }
+  @Roles("ADMIN") @Post("products/import")
+  import(@Req() r: AuthRequest, @Body() b: unknown) {
+    return this.catalog.importMany(r.actor, parse(z.object({ items: z.array(Product).min(1).max(500) }), b).items);
+  }
+  @Roles("ADMIN") @Patch("products/:id")
+  update(@Req() r: AuthRequest, @Param("id") i: string, @Body() b: unknown) {
+    return this.catalog.update(r.actor, parse(id, i), parse(Product.partial(), b));
   }
 }

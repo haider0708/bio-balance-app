@@ -1,0 +1,82 @@
+import type { LocationKind } from "@prisma/client";
+import type { Tx } from "../../core/database";
+import { notFound } from "../../core/errors";
+
+export interface Location {
+  id: string;
+  kind: LocationKind;
+  /** Null for depots. */
+  regionId: string | null;
+  name: string;
+  status: string;
+}
+
+/** Find a point of sale or a depot by id (row-level security hides what the caller may not see). */
+export async function findLocation(tx: Tx, id: string): Promise<Location> {
+  const pdv = await tx.pdv.findUnique({ where: { id } });
+  if (pdv) return { id, kind: "PDV", regionId: pdv.regionId, name: pdv.name, status: pdv.status };
+  const depot = await tx.depot.findUnique({ where: { id } });
+  if (depot) return { id, kind: "DEPOT", regionId: null, name: depot.name, status: depot.status };
+  throw notFound("Location");
+}
+
+export interface MovementRef {
+  reason: "DECLARATION" | "RECEIPT" | "SHIPMENT" | "SALE" | "SALE_CORRECTION";
+  refType: string;
+  refId: string;
+  actorId: string | null;
+}
+
+/**
+ * Add `delta` to a product's quantity and record why. One atomic statement,
+ * so two phones selling the same product at once never lose an update.
+ * Stock may go below zero (a sale made before the delivery was approved);
+ * the dashboards flag that.
+ */
+export async function adjustStock(
+  tx: Tx,
+  location: Pick<Location, "id" | "kind" | "regionId">,
+  productId: string,
+  delta: number,
+  ref: MovementRef,
+): Promise<number> {
+  if (delta === 0) return currentQuantity(tx, location.id, productId);
+  const [row] = await tx.$queryRaw<{ quantity: number }[]>`
+    INSERT INTO "Stock" ("locationId","productId","locationKind","regionId",quantity,"updatedAt")
+    VALUES (${location.id}::uuid, ${productId}::uuid, ${location.kind}::"LocationKind", ${location.regionId}::uuid, ${delta}, now())
+    ON CONFLICT ("locationId","productId") DO UPDATE
+      SET quantity = "Stock".quantity + ${delta}, "updatedAt" = now()
+    RETURNING quantity`;
+  await tx.stockMovement.createMany({
+    data: [
+      {
+        locationId: location.id, productId, locationKind: location.kind,
+        regionId: location.regionId, delta, reason: ref.reason,
+        refType: ref.refType, refId: ref.refId, actorId: ref.actorId,
+      },
+    ],
+  });
+  return row!.quantity;
+}
+
+export async function currentQuantity(tx: Tx, locationId: string, productId: string) {
+  const row = await tx.stock.findUnique({
+    where: { locationId_productId: { locationId, productId } },
+    select: { quantity: true },
+  });
+  return row?.quantity ?? 0;
+}
+
+/** Make the quantity exactly `target`, recording the difference. */
+export async function setStock(
+  tx: Tx,
+  location: Pick<Location, "id" | "kind" | "regionId">,
+  productId: string,
+  target: number,
+  ref: MovementRef,
+) {
+  // Lock the row (if any) so the difference we compute is the difference we apply.
+  await tx.$queryRaw`SELECT 1 FROM "Stock" WHERE "locationId"=${location.id}::uuid AND "productId"=${productId}::uuid FOR UPDATE`;
+  const before = await currentQuantity(tx, location.id, productId);
+  await adjustStock(tx, location, productId, target - before, ref);
+}
