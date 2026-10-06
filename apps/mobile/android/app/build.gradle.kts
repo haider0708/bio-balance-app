@@ -15,8 +15,9 @@ android {
     }
 
     defaultConfig {
-        applicationId = "tn.biobalance.app"
-        manifestPlaceholders["appLabel"] = "BioBalance"
+        // BIOBALANCE_APP_ID_SUFFIX / BIOBALANCE_APP_LABEL let one phone hold several copies (one per test account).
+        applicationId = "tn.biobalance.app" + (System.getenv("BIOBALANCE_APP_ID_SUFFIX") ?: "")
+        manifestPlaceholders["appLabel"] = System.getenv("BIOBALANCE_APP_LABEL") ?: "BioBalance"
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
