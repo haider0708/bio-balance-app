@@ -1094,10 +1094,10 @@ class AppLocalizationsFr extends AppLocalizations {
   String get passwordRequired => 'Saisissez votre mot de passe.';
 
   @override
-  String get passwordRule => 'Au moins 10 caractères.';
+  String get passwordRule => 'Au moins 8 caractères.';
 
   @override
-  String get passwordTooShort => 'Utilisez au moins 10 caractères.';
+  String get passwordTooShort => 'Utilisez au moins 8 caractères.';
 
   @override
   String get passwordsDiffer => 'Les mots de passe ne correspondent pas.';
@@ -1990,4 +1990,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get youEarned => 'Vous avez gagné';
+
+  @override
+  String get paste => 'Coller';
 }

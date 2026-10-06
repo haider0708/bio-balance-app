@@ -4,7 +4,7 @@ import { type AuthRequest, Public, parse } from "../../core/http";
 import { AuthService } from "./auth.service";
 
 const email = z.string().trim().toLowerCase().pipe(z.email());
-const password = z.string().min(10).max(128);
+const password = z.string().min(8).max(128);
 
 const Login = z.object({
   email,

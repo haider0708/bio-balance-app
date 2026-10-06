@@ -80,19 +80,10 @@ class _ForgotScreenState extends ConsumerState<ForgotScreen> {
               ),
               if (_haveCode) ...[
                 const Gap(14),
-                TextFormField(
+                CodeField(
                   controller: _code,
-                  textCapitalization: TextCapitalization.characters,
-                  textInputAction: TextInputAction.next,
-                  decoration: InputDecoration(
-                    labelText: t.recoveryCode,
-                    hintText: 'ABCD-2345',
-                  ),
-                  validator: (v) =>
-                      (v == null ||
-                          v.replaceAll(RegExp(r'[\s-]'), '').length != 8)
-                      ? t.codeInvalid
-                      : null,
+                  label: t.recoveryCode,
+                  invalidMessage: t.codeInvalid,
                 ),
                 const Gap(14),
                 PasswordField(
@@ -101,7 +92,7 @@ class _ForgotScreenState extends ConsumerState<ForgotScreen> {
                   textInputAction: TextInputAction.done,
                   onSubmitted: (_) => _reset(),
                   validator: (v) =>
-                      (v == null || v.length < 10) ? t.passwordTooShort : null,
+                      (v == null || v.length < 8) ? t.passwordTooShort : null,
                 ),
               ],
               const Gap(24),

@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../core/auth/session.dart';
+import '../../l10n/app_localizations.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/components.dart';
 
@@ -159,6 +161,60 @@ class _PasswordFieldState extends State<PasswordField> {
           onPressed: () => setState(() => _hidden = !_hidden),
         ),
       ),
+    );
+  }
+}
+
+/// An 8-character code (activation or recovery) with a Paste button: copy it from the email, paste it here.
+class CodeField extends StatelessWidget {
+  const CodeField({
+    required this.controller,
+    required this.label,
+    required this.invalidMessage,
+    this.textInputAction = TextInputAction.next,
+    super.key,
+  });
+
+  final TextEditingController controller;
+  final String label;
+  final String invalidMessage;
+  final TextInputAction textInputAction;
+
+  /// The code inside whatever was copied (it may include spaces, a dash or the sentence around it).
+  static String? extract(String? copied) {
+    final match = RegExp(r'\b([A-Za-z0-9]{4})[-\s]?([A-Za-z0-9]{4})\b')
+        .firstMatch(copied ?? '');
+    return match == null
+        ? null
+        : '${match.group(1)}-${match.group(2)}'.toUpperCase();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    return TextFormField(
+      controller: controller,
+      textCapitalization: TextCapitalization.characters,
+      textInputAction: textInputAction,
+      autocorrect: false,
+      enableSuggestions: false,
+      decoration: InputDecoration(
+        labelText: label,
+        hintText: 'ABCD-2345',
+        suffixIcon: TextButton.icon(
+          onPressed: () async {
+            final data = await Clipboard.getData(Clipboard.kTextPlain);
+            final code = extract(data?.text);
+            if (code != null) controller.text = code;
+          },
+          icon: const Icon(LucideIcons.clipboardPaste, size: 18),
+          label: Text(t.paste),
+        ),
+      ),
+      validator: (v) =>
+          (v == null || v.replaceAll(RegExp(r'[\s-]'), '').length != 8)
+          ? invalidMessage
+          : null,
     );
   }
 }

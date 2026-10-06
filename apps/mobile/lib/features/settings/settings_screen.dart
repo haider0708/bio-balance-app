@@ -213,7 +213,7 @@ class SettingsScreen extends ConsumerWidget {
             AsyncButton(
               label: t.changePassword,
               onPressed: () async {
-                if (next.text.length < 10) {
+                if (next.text.length < 8) {
                   showMessage(context, t.passwordTooShort, error: true);
                   return;
                 }

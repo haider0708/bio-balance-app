@@ -74,19 +74,10 @@ class _ActivateScreenState extends ConsumerState<ActivateScreen> {
                     (v == null || !v.contains('@')) ? t.emailInvalid : null,
               ),
               const Gap(14),
-              TextFormField(
+              CodeField(
                 controller: _code,
-                textCapitalization: TextCapitalization.characters,
-                textInputAction: TextInputAction.next,
-                decoration: InputDecoration(
-                  labelText: t.activationCode,
-                  hintText: 'ABCD-2345',
-                ),
-                validator: (v) =>
-                    (v == null ||
-                        v.replaceAll(RegExp(r'[\s-]'), '').length != 8)
-                    ? t.codeInvalid
-                    : null,
+                label: t.activationCode,
+                invalidMessage: t.codeInvalid,
               ),
               const Gap(14),
               TextFormField(
@@ -100,7 +91,7 @@ class _ActivateScreenState extends ConsumerState<ActivateScreen> {
                 controller: _password,
                 label: t.newPassword,
                 validator: (v) =>
-                    (v == null || v.length < 10) ? t.passwordTooShort : null,
+                    (v == null || v.length < 8) ? t.passwordTooShort : null,
               ),
               const Gap(14),
               PasswordField(

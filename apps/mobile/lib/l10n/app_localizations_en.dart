@@ -1090,10 +1090,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get passwordRequired => 'Enter your password.';
 
   @override
-  String get passwordRule => 'At least 10 characters.';
+  String get passwordRule => 'At least 8 characters.';
 
   @override
-  String get passwordTooShort => 'Use at least 10 characters.';
+  String get passwordTooShort => 'Use at least 8 characters.';
 
   @override
   String get passwordsDiffer => 'The passwords do not match.';
@@ -1983,4 +1983,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get youEarned => 'You earned';
+
+  @override
+  String get paste => 'Paste';
 }

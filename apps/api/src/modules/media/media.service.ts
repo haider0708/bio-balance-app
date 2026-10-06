@@ -39,7 +39,10 @@ export class MediaService {
       "You cannot upload this kind of file.",
       403,
     );
-    await this.auth.throttle(`upload:${actor.id}`, actor.role === "ADMIN" ? 400 : 80);
+    await this.auth.throttle(
+      `upload:${actor.id}`,
+      actor.role === "ADMIN" ? 400 : 80,
+    );
     const rule = mediaRules[purpose];
     const dir = root();
     await mkdir(dir, { recursive: true });

@@ -151,10 +151,12 @@ describe("recording a sale", () => {
       status: "ACTIVE",
     });
     expect(
-      sale.body.lines.map((l: any) => [l.name, l.quantity, l.rewardMillimes]),
+      sale.body.lines
+        .map((l: any) => [l.name, l.quantity, l.rewardMillimes])
+        .sort((a: any[], b: any[]) => a[0].localeCompare(b[0])),
     ).toEqual([
-      ["Serum Vitamin C", 2, 1600],
       ["Serum Niacinamide", 1, 500],
+      ["Serum Vitamin C", 2, 1600],
     ]);
     expect(sale.body.wallet).toMatchObject({
       balanceMillimes: 2100,

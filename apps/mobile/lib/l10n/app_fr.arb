@@ -513,8 +513,8 @@
   "passwordChanged": "Mot de passe modifié. Vous pouvez vous connecter.",
   "passwordChangedShort": "Mot de passe modifié",
   "passwordRequired": "Saisissez votre mot de passe.",
-  "passwordRule": "Au moins 10 caractères.",
-  "passwordTooShort": "Utilisez au moins 10 caractères.",
+  "passwordRule": "Au moins 8 caractères.",
+  "passwordTooShort": "Utilisez au moins 8 caractères.",
   "passwordsDiffer": "Les mots de passe ne correspondent pas.",
   "past": "Passées",
   "payoutApproved": "Paiement enregistré",
@@ -965,5 +965,6 @@
   "withdrawTitle": "Retirer cette annonce ?",
   "withdrawn": "Annonce retirée",
   "yesterday": "Hier",
-  "youEarned": "Vous avez gagné"
+  "youEarned": "Vous avez gagné",
+  "paste": "Coller"
 }

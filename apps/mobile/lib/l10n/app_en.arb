@@ -513,8 +513,8 @@
   "passwordChanged": "Password changed. You can sign in.",
   "passwordChangedShort": "Password changed",
   "passwordRequired": "Enter your password.",
-  "passwordRule": "At least 10 characters.",
-  "passwordTooShort": "Use at least 10 characters.",
+  "passwordRule": "At least 8 characters.",
+  "passwordTooShort": "Use at least 8 characters.",
   "passwordsDiffer": "The passwords do not match.",
   "past": "Past",
   "payoutApproved": "Payout recorded",
@@ -965,5 +965,6 @@
   "withdrawTitle": "Withdraw this announcement?",
   "withdrawn": "Announcement withdrawn",
   "yesterday": "Yesterday",
-  "youEarned": "You earned"
+  "youEarned": "You earned",
+  "paste": "Paste"
 }

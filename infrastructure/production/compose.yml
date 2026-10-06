@@ -108,6 +108,7 @@ services:
     environment:
       <<: *api-env
       ADMIN_EMAIL: ${ADMIN_EMAIL:-}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
       ADMIN_SETUP_FILE: /setup/admin-setup.json
     healthcheck: {disable: true}
     volumes: [./setup:/setup]

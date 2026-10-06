@@ -19,7 +19,10 @@ async function main() {
   try {
     if (await db.user.findFirst({ where: { role: "ADMIN" } }))
       throw new Error("An administrator already exists. Use account recovery.");
-    const password = randomBytes(24).toString("base64url");
+    const chosen = process.env.ADMIN_PASSWORD?.trim();
+    if (chosen && chosen.length < 8)
+      throw new Error("ADMIN_PASSWORD needs at least 8 characters.");
+    const password = chosen || randomBytes(24).toString("base64url");
     const secret = new Secret({ size: 20 });
     const totpUri = new TOTP({
       issuer: "BioBalance",
@@ -32,7 +35,15 @@ async function main() {
     // Exclusive creation: never overwrite earlier recovery material.
     await writeFile(
       output,
-      JSON.stringify({ email, password, totpUri }, null, 2),
+      JSON.stringify(
+        {
+          email,
+          password: chosen ? "(the password you chose)" : password,
+          totpUri,
+        },
+        null,
+        2,
+      ),
       { mode: 0o600, flag: "wx" },
     );
     const id = randomUUID();

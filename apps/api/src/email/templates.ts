@@ -37,6 +37,8 @@ const words = {
       steps:
         "Dans l’application BioBalance, choisissez « Activer mon compte », saisissez votre adresse email et ce code, puis choisissez votre mot de passe.",
       codeLabel: "Code d’activation",
+      copyHint:
+        "Maintenez le doigt sur le code pour le copier, puis touchez « Coller » dans l’application.",
       note: "Ce code est personnel et à usage unique. Si vous ne reconnaissez pas cette invitation, ignorez cet email.",
     },
     reset: {
@@ -47,6 +49,8 @@ const words = {
       steps:
         "Dans l’application, ouvrez « Mot de passe oublié ? », puis « J’ai déjà un code » et saisissez ce code.",
       codeLabel: "Code de récupération",
+      copyHint:
+        "Maintenez le doigt sur le code pour le copier, puis touchez « Coller » dans l’application.",
       note: "Si vous n’avez pas fait cette demande, ignorez cet email : votre mot de passe reste inchangé.",
     },
     changed: {
@@ -69,6 +73,8 @@ const words = {
       steps:
         "In the BioBalance app choose “Activate my account”, enter your email address and this code, then choose your password.",
       codeLabel: "Activation code",
+      copyHint:
+        "Touch and hold the code to copy it, then tap “Paste” in the app.",
       note: "This code is personal and single-use. If you do not recognise this invitation, ignore this email.",
     },
     reset: {
@@ -79,6 +85,8 @@ const words = {
       steps:
         "In the app open “Forgot password?”, then “I already have a code” and enter this code.",
       codeLabel: "Recovery code",
+      copyHint:
+        "Touch and hold the code to copy it, then tap “Paste” in the app.",
       note: "If you did not ask for this, ignore this email: your password stays unchanged.",
     },
     changed: {
@@ -105,14 +113,15 @@ export function renderEmail(
   let steps: string | undefined,
     codeLabel: string | undefined,
     code: string | undefined,
-    detail: string | undefined;
+    detail: string | undefined,
+    copyHint: string | undefined;
   if (input.kind === "password-changed") {
     ({ subject, heading, note } = t.changed);
     intro = t.changed.intro(input.name);
     detail = t.at(when(locale, input.changedAt));
   } else {
     const copy = t[input.kind];
-    ({ subject, heading, note, steps, codeLabel } = copy);
+    ({ subject, heading, note, steps, codeLabel, copyHint } = copy);
     intro = copy.intro(input.name);
     code = shown(input.code);
     detail = t.valid(when(locale, input.expiresAt));
@@ -122,7 +131,9 @@ export function renderEmail(
     heading,
     intro,
     ...(steps ? [steps] : []),
-    ...(code ? [`${codeLabel} : ${code}`] : []),
+    ...(code
+      ? [`${codeLabel} : ${code}`, ...(copyHint ? [copyHint] : [])]
+      : []),
     ...(detail ? [detail] : []),
     note,
   ].join("\n\n");
@@ -135,7 +146,7 @@ export function renderEmail(
 <tr><td><h1 style="margin:0 0 16px;font-size:22px;line-height:1.35">${escape(heading)}</h1>
 <p style="margin:0 0 16px;font-size:16px;line-height:1.6">${escape(intro)}</p>
 ${steps ? `<p style="margin:0 0 20px;font-size:16px;line-height:1.6">${escape(steps)}</p>` : ""}
-${code ? `<p style="margin:0 0 6px;font-size:14px;color:#5d665f">${escape(codeLabel!)}</p><p style="margin:0 0 8px;padding:14px;border:1px solid #dfe6e1;border-radius:6px;font-family:Consolas,monospace;font-size:26px;letter-spacing:4px;font-weight:600">${escape(code)}</p>` : ""}
+${code ? `<p style="margin:0 0 6px;font-size:14px;color:#5d665f">${escape(codeLabel!)}</p><p style="margin:0 0 8px;padding:14px;border:1px solid #dfe6e1;border-radius:6px;font-family:Consolas,monospace;font-size:30px;letter-spacing:5px;font-weight:700;-webkit-user-select:all;user-select:all">${escape(code)}</p>${copyHint ? `<p style="margin:0 0 8px;font-size:13px;color:#5d665f">${escape(copyHint)}</p>` : ""}` : ""}
 ${detail ? `<p style="margin:0 0 20px;font-size:14px;line-height:1.5;color:#5d665f">${escape(detail)}</p>` : ""}
 <p style="margin:24px 0 0;font-size:14px;line-height:1.6;color:#5d665f">${escape(note)}</p>
 </td></tr></table></td></tr></table></body></html>`;

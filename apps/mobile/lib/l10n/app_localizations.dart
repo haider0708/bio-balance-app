@@ -1925,13 +1925,13 @@ abstract class AppLocalizations {
   /// No description provided for @passwordRule.
   ///
   /// In en, this message translates to:
-  /// **'At least 10 characters.'**
+  /// **'At least 8 characters.'**
   String get passwordRule;
 
   /// No description provided for @passwordTooShort.
   ///
   /// In en, this message translates to:
-  /// **'Use at least 10 characters.'**
+  /// **'Use at least 8 characters.'**
   String get passwordTooShort;
 
   /// No description provided for @passwordsDiffer.
@@ -3433,6 +3433,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'You earned'**
   String get youEarned;
+
+  /// No description provided for @paste.
+  ///
+  /// In en, this message translates to:
+  /// **'Paste'**
+  String get paste;
 }
 
 class _AppLocalizationsDelegate
