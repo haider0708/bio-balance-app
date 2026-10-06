@@ -298,6 +298,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get bySeller => 'seller';
 
   @override
+  String get call => 'Call';
+
+  @override
   String get cameraUnavailable =>
       'The camera is not available. Check the permission in your phone settings.';
 
@@ -697,6 +700,9 @@ class AppLocalizationsEn extends AppLocalizations {
       'Declare your depot stock with a photo so BioBalance can approve it.';
 
   @override
+  String get grossistesTitle => 'Grossistes';
+
+  @override
   String get group => 'Group';
 
   @override
@@ -918,6 +924,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get noEndDate => 'No end date';
+
+  @override
+  String get noGrossisteShort => 'No grossiste yet';
 
   @override
   String get noGrossisteYet =>

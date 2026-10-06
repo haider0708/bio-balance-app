@@ -18,7 +18,12 @@ export async function bootstrap() {
   // The body parser is applied below, except for file uploads, which stream to disk.
   const app = await NestFactory.create(AppModule, {
     bodyParser: false,
-    logger: process.env.NODE_ENV === "test" ? false : ["log", "warn", "error"],
+    logger:
+      process.env.NODE_ENV === "test"
+        ? false
+        : process.env.NODE_ENV === "production"
+          ? ["warn", "error"]
+          : ["log", "warn", "error"],
   });
   app.enableShutdownHooks();
   app.use(helmet());

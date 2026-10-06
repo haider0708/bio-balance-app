@@ -512,6 +512,12 @@ abstract class AppLocalizations {
   /// **'seller'**
   String get bySeller;
 
+  /// No description provided for @call.
+  ///
+  /// In en, this message translates to:
+  /// **'Call'**
+  String get call;
+
   /// No description provided for @cameraUnavailable.
   ///
   /// In en, this message translates to:
@@ -1226,6 +1232,12 @@ abstract class AppLocalizations {
   /// **'Declare your depot stock with a photo so BioBalance can approve it.'**
   String get grossisteDeclareFirst;
 
+  /// No description provided for @grossistesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Grossistes'**
+  String get grossistesTitle;
+
   /// No description provided for @group.
   ///
   /// In en, this message translates to:
@@ -1621,6 +1633,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No end date'**
   String get noEndDate;
+
+  /// No description provided for @noGrossisteShort.
+  ///
+  /// In en, this message translates to:
+  /// **'No grossiste yet'**
+  String get noGrossisteShort;
 
   /// No description provided for @noGrossisteYet.
   ///

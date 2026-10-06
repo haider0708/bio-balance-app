@@ -18,6 +18,7 @@ import '../features/dashboard/vendeur_home.dart';
 import '../features/media/photo_viewer.dart';
 import '../features/messages/messages_screens.dart';
 import '../features/network/network_models.dart';
+import '../features/network/depots_screen.dart';
 import '../features/network/network_screen.dart';
 import '../features/network/pdv_screens.dart';
 import '../features/network/people_widgets.dart';
@@ -330,6 +331,7 @@ List<RouteBase> _shared() => [
     path: '/stock-attention',
     builder: (_, _) => const StockAttentionScreen(),
   ),
+  GoRoute(path: '/depots', builder: (_, _) => const DepotsScreen()),
   GoRoute(path: '/training', builder: (_, _) => const CoursesScreen()),
   GoRoute(
     path: '/training/:id',
@@ -410,6 +412,7 @@ Widget _more(Role role) => Builder(
     final entries = switch (role) {
       Role.admin => [
         MoreEntry(LucideIcons.banknote, t.rewardsTitle, '/rewards'),
+        MoreEntry(LucideIcons.warehouse, t.grossistesTitle, '/depots'),
         MoreEntry(LucideIcons.wallet, t.payoutsTitle, '/payouts'),
         MoreEntry(LucideIcons.megaphone, t.announcementsTitle, '/messages'),
         MoreEntry(
@@ -424,6 +427,7 @@ Widget _more(Role role) => Builder(
         MoreEntry(LucideIcons.settings, t.settingsTitle, '/settings'),
       ],
       Role.responsable => [
+        MoreEntry(LucideIcons.warehouse, t.grossistesTitle, '/depots'),
         MoreEntry(LucideIcons.package, t.catalogTitle, '/catalog'),
         MoreEntry(LucideIcons.graduationCap, t.trainingTitle, '/training'),
         MoreEntry(LucideIcons.bell, t.notificationsTitle, '/notifications'),
