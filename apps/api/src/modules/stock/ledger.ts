@@ -14,9 +14,23 @@ export interface Location {
 /** Find a point of sale or a depot by id (row-level security hides what the caller may not see). */
 export async function findLocation(tx: Tx, id: string): Promise<Location> {
   const pdv = await tx.pdv.findUnique({ where: { id } });
-  if (pdv) return { id, kind: "PDV", regionId: pdv.regionId, name: pdv.name, status: pdv.status };
+  if (pdv)
+    return {
+      id,
+      kind: "PDV",
+      regionId: pdv.regionId,
+      name: pdv.name,
+      status: pdv.status,
+    };
   const depot = await tx.depot.findUnique({ where: { id } });
-  if (depot) return { id, kind: "DEPOT", regionId: null, name: depot.name, status: depot.status };
+  if (depot)
+    return {
+      id,
+      kind: "DEPOT",
+      regionId: null,
+      name: depot.name,
+      status: depot.status,
+    };
   throw notFound("Location");
 }
 
@@ -50,16 +64,26 @@ export async function adjustStock(
   await tx.stockMovement.createMany({
     data: [
       {
-        locationId: location.id, productId, locationKind: location.kind,
-        regionId: location.regionId, delta, reason: ref.reason,
-        refType: ref.refType, refId: ref.refId, actorId: ref.actorId,
+        locationId: location.id,
+        productId,
+        locationKind: location.kind,
+        regionId: location.regionId,
+        delta,
+        reason: ref.reason,
+        refType: ref.refType,
+        refId: ref.refId,
+        actorId: ref.actorId,
       },
     ],
   });
   return row!.quantity;
 }
 
-export async function currentQuantity(tx: Tx, locationId: string, productId: string) {
+export async function currentQuantity(
+  tx: Tx,
+  locationId: string,
+  productId: string,
+) {
   const row = await tx.stock.findUnique({
     where: { locationId_productId: { locationId, productId } },
     select: { quantity: true },

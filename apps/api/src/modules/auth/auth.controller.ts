@@ -6,7 +6,11 @@ import { AuthService } from "./auth.service";
 const email = z.string().trim().toLowerCase().pipe(z.email());
 const password = z.string().min(10).max(128);
 
-const Login = z.object({ email, password: z.string().min(1).max(128), otp: z.string().optional() });
+const Login = z.object({
+  email,
+  password: z.string().min(1).max(128),
+  otp: z.string().optional(),
+});
 const Activate = z.object({
   email,
   code: z.string().min(8).max(12),
@@ -20,13 +24,17 @@ const Profile = z.object({
   phone: z.string().trim().max(30).nullable().optional(),
   locale: z.enum(["fr", "en"]).optional(),
 });
-const ChangePassword = z.object({ current: z.string().min(1).max(128), next: password });
+const ChangePassword = z.object({
+  current: z.string().min(1).max(128),
+  next: password,
+});
 
 @Controller("v1")
 export class AuthController {
   constructor(private readonly auth: AuthService) {}
 
-  @Public() @Post("auth/login")
+  @Public()
+  @Post("auth/login")
   login(@Body() raw: unknown, @Req() req: AuthRequest) {
     const v = parse(Login, raw);
     return this.auth.login(v.email, v.password, v.otp, req.ip ?? "unknown");
@@ -37,18 +45,27 @@ export class AuthController {
     return this.auth.logout(req.bearer);
   }
 
-  @Public() @Post("auth/activate")
+  @Public()
+  @Post("auth/activate")
   activate(@Body() raw: unknown, @Req() req: AuthRequest) {
     const v = parse(Activate, raw);
-    return this.auth.activate(v.email, v.code, v.name, v.password, req.ip ?? "unknown");
+    return this.auth.activate(
+      v.email,
+      v.code,
+      v.name,
+      v.password,
+      req.ip ?? "unknown",
+    );
   }
 
-  @Public() @Post("auth/forgot-password")
+  @Public()
+  @Post("auth/forgot-password")
   forgot(@Body() raw: unknown, @Req() req: AuthRequest) {
     return this.auth.forgot(parse(Forgot, raw).email, req.ip ?? "unknown");
   }
 
-  @Public() @Post("auth/reset-password")
+  @Public()
+  @Post("auth/reset-password")
   reset(@Body() raw: unknown, @Req() req: AuthRequest) {
     const v = parse(Reset, raw);
     return this.auth.reset(v.email, v.code, v.password, req.ip ?? "unknown");

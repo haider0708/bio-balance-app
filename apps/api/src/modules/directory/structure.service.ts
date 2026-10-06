@@ -27,12 +27,29 @@ export class StructureService {
   // ───────────────────────── Groups ─────────────────────────
 
   async createGroup(actor: Actor, input: { name: string }) {
-    requireRule(actor.role === "RESPONSABLE" && actor.regionId, "FORBIDDEN", "Only a responsable creates groups.", 403);
+    requireRule(
+      actor.role === "RESPONSABLE" && actor.regionId,
+      "FORBIDDEN",
+      "Only a responsable creates groups.",
+      403,
+    );
     return this.db.run(actor, async (tx) => {
       const group = await tx.group.create({
-        data: { name: input.name, regionId: actor.regionId!, createdById: actor.id },
+        data: {
+          name: input.name,
+          regionId: actor.regionId!,
+          createdById: actor.id,
+        },
       });
-      await audit(tx, actor, "group.created", "Group", group.id, { name: group.name }, group.regionId);
+      await audit(
+        tx,
+        actor,
+        "group.created",
+        "Group",
+        group.id,
+        { name: group.name },
+        group.regionId,
+      );
       await notifyAdmins(tx, {
         key: "group.submitted",
         params: { name: group.name, by: actor.name },
@@ -48,7 +65,8 @@ export class StructureService {
       const groups = await tx.group.findMany({
         where: {
           ...(filter.status && { status: filter.status }),
-          ...(actor.role === "ADMIN" && filter.regionId && { regionId: filter.regionId }),
+          ...(actor.role === "ADMIN" &&
+            filter.regionId && { regionId: filter.regionId }),
         },
         orderBy: { name: "asc" },
       });
@@ -66,9 +84,25 @@ export class StructureService {
     return this.db.run(actor, async (tx) => {
       const group = await tx.group.findUnique({ where: { id } });
       if (!group) throw notFound("Group");
-      requireRule(["ADMIN", "RESPONSABLE"].includes(actor.role), "FORBIDDEN", "Not allowed.", 403);
-      const updated = await tx.group.update({ where: { id }, data: { name: input.name } });
-      await audit(tx, actor, "group.updated", "Group", id, { name: input.name }, group.regionId);
+      requireRule(
+        ["ADMIN", "RESPONSABLE"].includes(actor.role),
+        "FORBIDDEN",
+        "Not allowed.",
+        403,
+      );
+      const updated = await tx.group.update({
+        where: { id },
+        data: { name: input.name },
+      });
+      await audit(
+        tx,
+        actor,
+        "group.updated",
+        "Group",
+        id,
+        { name: input.name },
+        group.regionId,
+      );
       return updated;
     });
   }
@@ -83,20 +117,44 @@ export class StructureService {
   // ───────────────────────── Points of sale ─────────────────────────
 
   async createPdv(actor: Actor, input: PlaceInput) {
-    requireRule(actor.role === "RESPONSABLE" && actor.regionId, "FORBIDDEN", "Only a responsable creates points of sale.", 403);
+    requireRule(
+      actor.role === "RESPONSABLE" && actor.regionId,
+      "FORBIDDEN",
+      "Only a responsable creates points of sale.",
+      403,
+    );
     return this.db.run(actor, async (tx) => {
       if (input.groupId) {
-        const group = await tx.group.findUnique({ where: { id: input.groupId } });
-        requireRule(group && group.regionId === actor.regionId, "GROUP_NOT_FOUND", "Choose one of your groups.", 404);
+        const group = await tx.group.findUnique({
+          where: { id: input.groupId },
+        });
+        requireRule(
+          group && group.regionId === actor.regionId,
+          "GROUP_NOT_FOUND",
+          "Choose one of your groups.",
+          404,
+        );
       }
       const pdv = await tx.pdv.create({
         data: {
-          name: input.name, address: input.address, city: input.city,
-          phone: input.phone ?? null, groupId: input.groupId ?? null,
-          regionId: actor.regionId!, createdById: actor.id,
+          name: input.name,
+          address: input.address,
+          city: input.city,
+          phone: input.phone ?? null,
+          groupId: input.groupId ?? null,
+          regionId: actor.regionId!,
+          createdById: actor.id,
         },
       });
-      await audit(tx, actor, "pdv.created", "Pdv", pdv.id, { name: pdv.name }, pdv.regionId);
+      await audit(
+        tx,
+        actor,
+        "pdv.created",
+        "Pdv",
+        pdv.id,
+        { name: pdv.name },
+        pdv.regionId,
+      );
       await notifyAdmins(tx, {
         key: "pdv.submitted",
         params: { name: pdv.name, by: actor.name },
@@ -107,15 +165,31 @@ export class StructureService {
     });
   }
 
-  async listPdvs(actor: Actor, filter: { status?: Status; regionId?: string; groupId?: string; q?: string }) {
-    requireRule(["ADMIN", "RESPONSABLE", "VENDEUR"].includes(actor.role), "FORBIDDEN", "Not allowed.", 403);
+  async listPdvs(
+    actor: Actor,
+    filter: {
+      status?: Status;
+      regionId?: string;
+      groupId?: string;
+      q?: string;
+    },
+  ) {
+    requireRule(
+      ["ADMIN", "RESPONSABLE", "VENDEUR"].includes(actor.role),
+      "FORBIDDEN",
+      "Not allowed.",
+      403,
+    );
     return this.db.run(actor, async (tx) => {
       const pdvs = await tx.pdv.findMany({
         where: {
           ...(filter.status && { status: filter.status }),
           ...(filter.groupId && { groupId: filter.groupId }),
-          ...(actor.role === "ADMIN" && filter.regionId && { regionId: filter.regionId }),
-          ...(filter.q && { name: { contains: filter.q, mode: "insensitive" } }),
+          ...(actor.role === "ADMIN" &&
+            filter.regionId && { regionId: filter.regionId }),
+          ...(filter.q && {
+            name: { contains: filter.q, mode: "insensitive" },
+          }),
         },
         orderBy: { name: "asc" },
       });
@@ -132,13 +206,25 @@ export class StructureService {
   }
 
   updatePdv(actor: Actor, id: string, input: Partial<PlaceInput>) {
-    requireRule(["ADMIN", "RESPONSABLE"].includes(actor.role), "FORBIDDEN", "Not allowed.", 403);
+    requireRule(
+      ["ADMIN", "RESPONSABLE"].includes(actor.role),
+      "FORBIDDEN",
+      "Not allowed.",
+      403,
+    );
     return this.db.run(actor, async (tx) => {
       const pdv = await tx.pdv.findUnique({ where: { id } });
       if (!pdv) throw notFound("Point of sale");
       if (input.groupId) {
-        const group = await tx.group.findUnique({ where: { id: input.groupId } });
-        requireRule(group && group.regionId === pdv.regionId, "GROUP_NOT_FOUND", "Choose a group of this region.", 404);
+        const group = await tx.group.findUnique({
+          where: { id: input.groupId },
+        });
+        requireRule(
+          group && group.regionId === pdv.regionId,
+          "GROUP_NOT_FOUND",
+          "Choose a group of this region.",
+          404,
+        );
       }
       const updated = await tx.pdv.update({
         where: { id },
@@ -150,19 +236,36 @@ export class StructureService {
           ...(input.groupId !== undefined && { groupId: input.groupId }),
         },
       });
-      await audit(tx, actor, "pdv.updated", "Pdv", id, { ...input }, pdv.regionId);
+      await audit(
+        tx,
+        actor,
+        "pdv.updated",
+        "Pdv",
+        id,
+        { ...input },
+        pdv.regionId,
+      );
       return updated;
     });
   }
 
   decidePdv(actor: Actor, id: string, action: StatusAction, note?: string) {
-    return this.db.run(actor, (tx) => this.decide(tx, actor, "Pdv", id, action, note));
+    return this.db.run(actor, (tx) =>
+      this.decide(tx, actor, "Pdv", id, action, note),
+    );
   }
 
   // ───────────────────────── shared ─────────────────────────
 
   /** Admin decisions, plus a responsable re-submitting a rejected item. */
-  private async decide(tx: Tx, actor: Actor, entity: "Group" | "Pdv", id: string, action: StatusAction, note?: string) {
+  private async decide(
+    tx: Tx,
+    actor: Actor,
+    entity: "Group" | "Pdv",
+    id: string,
+    action: StatusAction,
+    note?: string,
+  ) {
     const isOwnerAction = action === "resubmit";
     requireRule(
       actor.role === "ADMIN" || (isOwnerAction && actor.role === "RESPONSABLE"),
@@ -170,7 +273,11 @@ export class StructureService {
       "Only the admin can decide.",
       403,
     );
-    requireRule(action !== "reject" || note?.trim(), "NOTE_REQUIRED", "Explain the rejection.");
+    requireRule(
+      action !== "reject" || note?.trim(),
+      "NOTE_REQUIRED",
+      "Explain the rejection.",
+    );
     await this.db.lock(tx, entity, id);
     const row =
       entity === "Group"
@@ -181,22 +288,48 @@ export class StructureService {
     const data = {
       status,
       decisionNote: note?.trim() || null,
-      ...(isOwnerAction ? {} : { decidedById: actor.id, decidedAt: new Date() }),
+      ...(isOwnerAction
+        ? {}
+        : { decidedById: actor.id, decidedAt: new Date() }),
     };
     const updated =
       entity === "Group"
         ? await tx.group.update({ where: { id }, data })
         : await tx.pdv.update({ where: { id }, data });
-    await audit(tx, actor, `${entity.toLowerCase()}.${action}`, entity, id, { note: note ?? null }, row.regionId);
+    await audit(
+      tx,
+      actor,
+      `${entity.toLowerCase()}.${action}`,
+      entity,
+      id,
+      { note: note ?? null },
+      row.regionId,
+    );
     const key = `${entity === "Group" ? "group" : "pdv"}.${action === "approve" ? "approved" : action === "reject" ? "rejected" : action === "suspend" ? "suspended" : action === "reactivate" ? "reactivated" : "submitted"}`;
-    const recipients = isOwnerAction ? [] : [row.createdById, ...(await responsableIds(tx, row.regionId))];
-    await notify(tx, recipients, { key, params: { name: row.name, note: note ?? null }, entityType: entity, entityId: id });
-    if (isOwnerAction) await notifyAdmins(tx, { key, params: { name: row.name, by: actor.name }, entityType: entity, entityId: id });
+    const recipients = isOwnerAction
+      ? []
+      : [row.createdById, ...(await responsableIds(tx, row.regionId))];
+    await notify(tx, recipients, {
+      key,
+      params: { name: row.name, note: note ?? null },
+      entityType: entity,
+      entityId: id,
+    });
+    if (isOwnerAction)
+      await notifyAdmins(tx, {
+        key,
+        params: { name: row.name, by: actor.name },
+        entityType: entity,
+        entityId: id,
+      });
     return updated;
   }
 
   /** Adds the group name, team size and stock state the screens need. */
-  private async decorate(tx: Tx, pdvs: Awaited<ReturnType<Tx["pdv"]["findMany"]>>) {
+  private async decorate(
+    tx: Tx,
+    pdvs: Awaited<ReturnType<Tx["pdv"]["findMany"]>>,
+  ) {
     if (!pdvs.length) return [];
     const ids = pdvs.map((p) => p.id);
     const [members, declarations, groups] = await Promise.all([
@@ -211,7 +344,11 @@ export class StructureService {
         orderBy: { createdAt: "asc" },
       }),
       tx.group.findMany({
-        where: { id: { in: pdvs.map((p) => p.groupId).filter((g): g is string => !!g) } },
+        where: {
+          id: {
+            in: pdvs.map((p) => p.groupId).filter((g): g is string => !!g),
+          },
+        },
         select: { id: true, name: true },
       }),
     ]);
@@ -219,10 +356,14 @@ export class StructureService {
     const groupName = new Map(groups.map((g) => [g.id, g.name]));
     // APPROVED beats PENDING beats REJECTED; NONE when nothing was declared.
     const rank = { APPROVED: 3, PENDING: 2, REJECTED: 1 } as const;
-    const stock = new Map<string, "NONE" | "PENDING" | "APPROVED" | "REJECTED">();
+    const stock = new Map<
+      string,
+      "NONE" | "PENDING" | "APPROVED" | "REJECTED"
+    >();
     for (const d of declarations) {
       const current = stock.get(d.locationId);
-      if (!current || current === "NONE" || rank[d.status] > rank[current]) stock.set(d.locationId, d.status);
+      if (!current || current === "NONE" || rank[d.status] > rank[current])
+        stock.set(d.locationId, d.status);
     }
     return pdvs.map((p) => ({
       ...p,

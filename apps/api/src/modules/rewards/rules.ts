@@ -18,5 +18,10 @@ export async function unitRewards(
   // At most one live rule covers a day per target (the database guarantees it).
   const byKey = new Map(rules.map((r) => [r.targetKey, r.amountMillimes]));
   // A rule for the product itself wins over the rule for its family.
-  return new Map(products.map((p) => [p.id, byKey.get(`P:${p.id}`) ?? byKey.get(`F:${p.family}`) ?? 0n]));
+  return new Map(
+    products.map((p) => [
+      p.id,
+      byKey.get(`P:${p.id}`) ?? byKey.get(`F:${p.family}`) ?? 0n,
+    ]),
+  );
 }

@@ -9,7 +9,12 @@ import { requireRule } from "../../core/errors";
 
 function key() {
   const k = Buffer.from(process.env.MFA_ENCRYPTION_KEY ?? "", "base64");
-  requireRule(k.length === 32, "MFA_CONFIGURATION", "MFA is not configured.", 503);
+  requireRule(
+    k.length === 32,
+    "MFA_CONFIGURATION",
+    "MFA is not configured.",
+    503,
+  );
   return k;
 }
 

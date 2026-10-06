@@ -1,7 +1,8 @@
 import type { Status } from "@prisma/client";
 import { DomainError } from "./errors";
 
-export type StatusAction = "approve" | "reject" | "suspend" | "reactivate" | "resubmit";
+export type StatusAction =
+  "approve" | "reject" | "suspend" | "reactivate" | "resubmit";
 
 const transitions: Record<StatusAction, { from: Status[]; to: Status }> = {
   approve: { from: ["PENDING"], to: "ACTIVE" },

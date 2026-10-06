@@ -25,9 +25,14 @@ export class CatalogService {
   constructor(private readonly db: Database) {}
 
   /** Products everyone can pick from. Inactive ones are hidden from non-admins. */
-  async list(actor: Actor, filter: { q?: string; family?: string; includeInactive?: boolean }) {
+  async list(
+    actor: Actor,
+    filter: { q?: string; family?: string; includeInactive?: boolean },
+  ) {
     const where: Prisma.ProductWhereInput = {
-      ...(actor.role === "ADMIN" && filter.includeInactive ? {} : { active: true }),
+      ...(actor.role === "ADMIN" && filter.includeInactive
+        ? {}
+        : { active: true }),
       ...(filter.family && { family: filter.family }),
       ...(filter.q && {
         OR: [
@@ -37,7 +42,11 @@ export class CatalogService {
         ],
       }),
     };
-    return this.db.product.findMany({ where, orderBy: [{ family: "asc" }, { name: "asc" }], take: 1000 });
+    return this.db.product.findMany({
+      where,
+      orderBy: [{ family: "asc" }, { name: "asc" }],
+      take: 1000,
+    });
   }
 
   async families() {
@@ -58,7 +67,9 @@ export class CatalogService {
 
   /** Barcode lookup used by the sale screen. */
   async byBarcode(barcode: string) {
-    const product = await this.db.product.findFirst({ where: { barcode, active: true } });
+    const product = await this.db.product.findFirst({
+      where: { barcode, active: true },
+    });
     if (!product) throw notFound("Product");
     return product;
   }
@@ -66,8 +77,12 @@ export class CatalogService {
   create(actor: Actor, input: ProductInput) {
     return this.db.run(actor, async (tx) => {
       await this.checkImage(tx, input.imageId);
-      const product = await tx.product.create({ data: this.data(input) as Prisma.ProductCreateInput });
-      await audit(tx, actor, "product.created", "Product", product.id, { reference: product.reference });
+      const product = await tx.product.create({
+        data: this.data(input) as Prisma.ProductCreateInput,
+      });
+      await audit(tx, actor, "product.created", "Product", product.id, {
+        reference: product.reference,
+      });
       return product;
     });
   }
@@ -77,8 +92,13 @@ export class CatalogService {
       await this.checkImage(tx, input.imageId);
       const existing = await tx.product.findUnique({ where: { id } });
       if (!existing) throw notFound("Product");
-      const product = await tx.product.update({ where: { id }, data: this.data(input) });
-      await audit(tx, actor, "product.updated", "Product", id, { fields: Object.keys(input) });
+      const product = await tx.product.update({
+        where: { id },
+        data: this.data(input),
+      });
+      await audit(tx, actor, "product.updated", "Product", id, {
+        fields: Object.keys(input),
+      });
       return product;
     });
   }
@@ -89,28 +109,64 @@ export class CatalogService {
       let created = 0;
       let updated = 0;
       for (const item of items) {
-        const existing = await tx.product.findUnique({ where: { reference: item.reference }, select: { id: true } });
+        const existing = await tx.product.findUnique({
+          where: { reference: item.reference },
+          select: { id: true },
+        });
         if (existing) {
-          await tx.product.update({ where: { id: existing.id }, data: this.data(item) });
+          await tx.product.update({
+            where: { id: existing.id },
+            data: this.data(item),
+          });
           updated++;
         } else {
-          await tx.product.create({ data: this.data(item) as Prisma.ProductCreateInput });
+          await tx.product.create({
+            data: this.data(item) as Prisma.ProductCreateInput,
+          });
           created++;
         }
       }
-      await audit(tx, actor, "product.imported", "Product", "00000000-0000-0000-0000-000000000000", { created, updated });
+      await audit(
+        tx,
+        actor,
+        "product.imported",
+        "Product",
+        "00000000-0000-0000-0000-000000000000",
+        { created, updated },
+      );
       return { created, updated };
     });
   }
 
-  private async checkImage(tx: Prisma.TransactionClient, imageId?: string | null) {
+  private async checkImage(
+    tx: Prisma.TransactionClient,
+    imageId?: string | null,
+  ) {
     if (!imageId) return;
     const media = await tx.mediaAsset.findUnique({ where: { id: imageId } });
-    requireRule(media?.purpose === "PRODUCT", "MEDIA_SCOPE", "Use an uploaded product image.", 422);
+    requireRule(
+      media?.purpose === "PRODUCT",
+      "MEDIA_SCOPE",
+      "Use an uploaded product image.",
+      422,
+    );
   }
 
   private data(input: Partial<ProductInput>): Prisma.ProductUpdateInput {
-    const { reference, name, barcode, family, range, packageSize, description, instructions, ingredients, precautions, imageId, active } = input;
+    const {
+      reference,
+      name,
+      barcode,
+      family,
+      range,
+      packageSize,
+      description,
+      instructions,
+      ingredients,
+      precautions,
+      imageId,
+      active,
+    } = input;
     return {
       ...(reference !== undefined && { reference }),
       ...(name !== undefined && { name }),
@@ -122,9 +178,10 @@ export class CatalogService {
       ...(instructions !== undefined && { instructions }),
       ...(ingredients !== undefined && { ingredients }),
       ...(precautions !== undefined && { precautions }),
-      ...(imageId !== undefined && { image: imageId ? { connect: { id: imageId } } : { disconnect: true } }),
+      ...(imageId !== undefined && {
+        image: imageId ? { connect: { id: imageId } } : { disconnect: true },
+      }),
       ...(active !== undefined && { active }),
     };
   }
 }
-

@@ -21,11 +21,17 @@ export class MediaController {
   }
 
   @Get(":id")
-  async get(@Req() req: AuthRequest, @Param("id") id: string, @Res() res: Response) {
+  async get(
+    @Req() req: AuthRequest,
+    @Param("id") id: string,
+    @Res() res: Response,
+  ) {
     const file = await this.media.open(req.actor, parse(z.uuid(), id));
     res.setHeader("Cache-Control", "private, max-age=3600");
     res.setHeader("ETag", `"${file.sha256}"`);
     res.setHeader("X-Content-Type-Options", "nosniff");
-    res.type(file.mime).sendFile(file.file, { acceptRanges: true, dotfiles: "deny" });
+    res
+      .type(file.mime)
+      .sendFile(file.file, { acceptRanges: true, dotfiles: "deny" });
   }
 }

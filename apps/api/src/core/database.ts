@@ -15,8 +15,7 @@ function retryable(error: unknown): boolean {
   if (!(error instanceof Prisma.PrismaClientKnownRequestError)) return false;
   if (error.code === "P2034") return true;
   const cause = error.meta?.driverAdapterError as
-    | { cause?: { originalCode?: string } }
-    | undefined;
+    { cause?: { originalCode?: string } } | undefined;
   return (
     error.code === "P2010" &&
     ["40001", "40P01"].includes(

@@ -33,6 +33,8 @@ export function page<T extends { id: string; createdAt: Date }>(
   return {
     items,
     nextCursor:
-      rows.length > limit && last ? encodeCursor(last.createdAt, last.id) : null,
+      rows.length > limit && last
+        ? encodeCursor(last.createdAt, last.id)
+        : null,
   };
 }
