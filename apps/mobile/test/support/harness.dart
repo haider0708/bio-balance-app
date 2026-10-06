@@ -1,10 +1,16 @@
 import 'package:biobalance/app/app.dart';
 import 'package:biobalance/core/auth/session.dart';
+import 'dart:io';
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'fake_server.dart';
+
+final appBoundary = GlobalKey();
 
 /// Starts the whole app against a fake server, already signed in (or not).
 Future<ProviderContainer> launch(WidgetTester tester, FakeServer server, {bool signedIn = true, Size size = const Size(412, 892), String? language}) async {
@@ -14,7 +20,7 @@ Future<ProviderContainer> launch(WidgetTester tester, FakeServer server, {bool s
   final container = ProviderContainer(overrides: server.overrides(token: signedIn ? 'a-valid-token-of-sufficient-length-123456' : null), retry: (_, _) => null);
   addTearDown(container.dispose);
   if (language != null) await container.read(localeProvider.notifier).choose(language);
-  await tester.pumpWidget(UncontrolledProviderScope(container: container, child: const BioBalanceApp()));
+  await tester.pumpWidget(UncontrolledProviderScope(container: container, child: RepaintBoundary(key: appBoundary, child: const BioBalanceApp())));
   await settle(tester);
   return container;
 }
@@ -24,4 +30,16 @@ Future<void> settle(WidgetTester tester, {int frames = 30}) async {
   for (var i = 0; i < frames; i++) {
     await tester.pump(const Duration(milliseconds: 100));
   }
+}
+
+/// Save what is on screen as a PNG (build/screenshots/NAME.png) for a visual review.
+Future<void> screenshot(WidgetTester tester, String name) async {
+  await tester.runAsync(() async {
+    final boundary = appBoundary.currentContext!.findRenderObject()! as RenderRepaintBoundary;
+    final image = await boundary.toImage(pixelRatio: 2);
+    final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
+    final file = File('build/screenshots/$name.png')..createSync(recursive: true);
+    await file.writeAsBytes(bytes!.buffer.asUint8List());
+    image.dispose();
+  });
 }

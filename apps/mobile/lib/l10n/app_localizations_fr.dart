@@ -35,7 +35,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get activationCode => 'Code d’activation';
 
   @override
-  String get activePdvs => 'Points de vente actifs';
+  String get activePdvs => 'PDV actifs';
 
   @override
   String get activity => 'Activité';
@@ -262,6 +262,9 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get back => 'Retour';
+
+  @override
+  String get balanceShort => 'Solde';
 
   @override
   String get barcode => 'Code-barres';
@@ -1779,7 +1782,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get tabOrders => 'Commandes';
 
   @override
-  String get tabPdvs => 'Points de vente';
+  String get tabPdvs => 'Magasins';
 
   @override
   String get tabPeople => 'Personnes';

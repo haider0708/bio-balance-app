@@ -49,6 +49,6 @@ export const mediaRules = {
       "application/pdf",
       "video/mp4",
     ],
-    maxBytes: 300 * MiB,
+    maxBytes: 90 * MiB,
   },
 } as const;

@@ -40,6 +40,8 @@ class _NetworkScreenState extends ConsumerState<NetworkScreen> {
             admin ? t.networkTitle : t.myRegion(me.region?.name ?? ''),
           ),
           bottom: TabBar(
+            isScrollable: true,
+            tabAlignment: TabAlignment.start,
             tabs: [
               Tab(text: t.tabPdvs),
               Tab(text: t.tabGroups),

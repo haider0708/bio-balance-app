@@ -72,8 +72,8 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
-<key>NSCameraUsageDescription</key><string>Scannez les codes-barres des produits BioBalance.</string>
-<key>NSPhotoLibraryUsageDescription</key><string>Sélectionnez les images et vidéos de vos contenus.</string>
+<key>NSCameraUsageDescription</key><string>BioBalance uses the camera to scan product barcodes and to photograph stock and delivery papers. / BioBalance utilise l’appareil photo pour scanner les codes-barres et photographier le stock et les bons de livraison.</string>
+<key>NSPhotoLibraryUsageDescription</key><string>Choose a photo of your stock or delivery paper. / Choisissez une photo de votre stock ou de votre bon de livraison.</string>
 
 </dict>
 </plist>

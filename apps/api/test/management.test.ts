@@ -332,7 +332,9 @@ describe("announcements", () => {
       pinned: true,
     });
     expect((await inbox(v2)).items).toHaveLength(0);
-    expect((await inbox(w.nord)).items.filter((n: any) => n.kind === "MESSAGE")).toHaveLength(0);
+    expect(
+      (await inbox(w.nord)).items.filter((n: any) => n.kind === "MESSAGE"),
+    ).toHaveLength(0);
   });
 
   it("can target everyone, a role, a point of sale or named people", async () => {

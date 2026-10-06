@@ -90,7 +90,7 @@ class VendeurHome extends ConsumerWidget {
                   Expanded(
                     child: StatTile(
                       icon: LucideIcons.wallet,
-                      label: t.walletBalance,
+                      label: t.balanceShort,
                       value: Money.format(wallet.balanceMillimes, locale),
                       tone: Tone.success,
                       onTap: () => context.go('/wallet'),

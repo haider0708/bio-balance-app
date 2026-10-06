@@ -35,7 +35,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get activationCode => 'Activation code';
 
   @override
-  String get activePdvs => 'Active points of sale';
+  String get activePdvs => 'Active PDVs';
 
   @override
   String get activity => 'Activity';
@@ -261,6 +261,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get back => 'Back';
+
+  @override
+  String get balanceShort => 'Balance';
 
   @override
   String get barcode => 'Barcode';
@@ -1773,7 +1776,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get tabOrders => 'Orders';
 
   @override
-  String get tabPdvs => 'Points of sale';
+  String get tabPdvs => 'Stores';
 
   @override
   String get tabPeople => 'People';

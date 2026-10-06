@@ -47,6 +47,6 @@ for line in (root/'references.jsonl').read_text().splitlines():
     count+=1
 print(f'PASS: {count} processed media files match database size and SHA-256')
 PYVERIFY
-"${compose[@]}" exec -T postgres psql -U "$restore_owner" -d "$restore_database" -v ON_ERROR_STOP=1 -c 'SELECT count(*) AS stores FROM "Store"; SELECT count(*) AS sales FROM "Sale"; SELECT count(*) AS movements FROM "StockMovement";' </dev/null
+"${compose[@]}" exec -T postgres psql -U "$restore_owner" -d "$restore_database" -v ON_ERROR_STOP=1 -c 'SELECT count(*) AS users FROM "User"; SELECT count(*) AS pdvs FROM "Pdv"; SELECT count(*) AS sales FROM "Sale"; SELECT count(*) AS movements FROM "StockMovement";' </dev/null
 printf 'Restore verified: database=%s media=%s\n' "$restore_database" "$restore_media"
 # Both isolated outputs remain available for inspection. Production is untouched.

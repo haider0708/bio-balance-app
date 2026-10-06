@@ -255,10 +255,17 @@ class AppTheme {
       chipTheme: base.chipTheme.copyWith(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         side: BorderSide(color: scheme.outlineVariant),
-        labelStyle: const TextStyle(
+        labelStyle: TextStyle(
           fontWeight: FontWeight.w600,
           fontFamily: 'Inter',
+          color: scheme.onSurface,
         ),
+        secondaryLabelStyle: TextStyle(
+          fontWeight: FontWeight.w600,
+          fontFamily: 'Inter',
+          color: scheme.onPrimaryContainer,
+        ),
+        selectedColor: scheme.primaryContainer,
       ),
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: scheme.surface,

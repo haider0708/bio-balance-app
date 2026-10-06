@@ -178,9 +178,7 @@ export class CatalogService {
       ...(instructions !== undefined && { instructions }),
       ...(ingredients !== undefined && { ingredients }),
       ...(precautions !== undefined && { precautions }),
-      ...(imageId !== undefined && {
-        image: imageId ? { connect: { id: imageId } } : { disconnect: true },
-      }),
+      ...(imageId !== undefined && { imageId }),
       ...(active !== undefined && { active }),
     };
   }

@@ -149,7 +149,7 @@ abstract class AppLocalizations {
   /// No description provided for @activePdvs.
   ///
   /// In en, this message translates to:
-  /// **'Active points of sale'**
+  /// **'Active PDVs'**
   String get activePdvs;
 
   /// No description provided for @activity.
@@ -445,6 +445,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Back'**
   String get back;
+
+  /// No description provided for @balanceShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Balance'**
+  String get balanceShort;
 
   /// No description provided for @barcode.
   ///
@@ -3107,7 +3113,7 @@ abstract class AppLocalizations {
   /// No description provided for @tabPdvs.
   ///
   /// In en, this message translates to:
-  /// **'Points of sale'**
+  /// **'Stores'**
   String get tabPdvs;
 
   /// No description provided for @tabPeople.

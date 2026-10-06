@@ -1,5 +1,3 @@
-import java.util.Base64
-
 plugins {
     id("com.android.application")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
@@ -17,42 +15,16 @@ android {
     }
 
     defaultConfig {
-        val defines = (project.findProperty("dart-defines") as? String).orEmpty()
-            .split(",").filter { it.isNotEmpty() }
-            .map { String(Base64.getDecoder().decode(it)) }
-        // Independent private installations share code and signing, never permissions.
-        val installation = defines.firstOrNull { it.startsWith("ANDROID_INSTALLATION=") }
-            ?.substringAfter("=").orEmpty()
-        val identity = when (installation) {
-            "" -> "tn.biobalance.app" to "BioBalance"
-            "admin" -> "tn.biobalance.app" to "BioBalance Admin"
-            "responsable" -> "tn.biobalance.app.responsable" to "BioBalance Responsable"
-            "vendeur" -> "tn.biobalance.app.vendeur" to "BioBalance Vendeur"
-            "vendeur2" -> "tn.biobalance.app.vendeur2" to "BioBalance Vendeur 2"
-            "grossiste" -> "tn.biobalance.app.grossiste" to "BioBalance Grossiste"
-            else -> error("Unsupported Android installation")
-        }
-        applicationId = identity.first
-        manifestPlaceholders["appLabel"] = identity.second
-        val authLinkHost = defines.firstOrNull { it.startsWith("AUTH_LINK_HOST=") }?.substringAfter("=").orEmpty()
-        require(authLinkHost.isEmpty() || Regex("[a-z0-9]+(?:[a-z0-9.-]*[a-z0-9])?").matches(authLinkHost)) { "AUTH_LINK_HOST must be a DNS name" }
-        // Only the main installation handles verified links. Private copies use
-        // manual invitation/recovery codes, without competing for the same URL.
-        manifestPlaceholders["authLinkHost"] = if (installation in listOf("responsable", "vendeur", "vendeur2", "grossiste"))
-            "account-links.invalid" else authLinkHost.ifEmpty { "account-links.invalid" }
-
-        // You can update the following values to match your application needs.
-        // For more information, see: https://flutter.dev/to/review-gradle-config.
+        applicationId = "tn.biobalance.app"
+        manifestPlaceholders["appLabel"] = "BioBalance"
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
-        // Uses the version code from pubspec.yaml. When using split APKs, 1000 * ABI_VERSION
-        // is added automatically by Flutter. (https://developer.android.com/studio/build/configure-apk-splits#configure-APK-versions)
-        // You can force using the value of versionCode by specifying the `-P force-version-code-ignoring-abi=true`
-        // flag during build.
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }
 
+    // Release builds are signed with a key that never lives in the repository:
+    // BIOBALANCE_KEYSTORE, BIOBALANCE_KEYSTORE_PASSWORD, BIOBALANCE_KEY_ALIAS, BIOBALANCE_KEY_PASSWORD.
     val keystorePath = System.getenv("BIOBALANCE_KEYSTORE")
     signingConfigs {
         if (keystorePath != null) {
@@ -73,15 +45,14 @@ android {
     }
 }
 
-// Inspect the actual graph so aggregate tasks (assemble/bundle) cannot bypass
-// the release gate by omitting "Release" from their command-line task name.
+// A release must be signed: refuse to produce an unsigned one by accident.
 gradle.taskGraph.whenReady {
     val buildsRelease = allTasks.any {
         it.project.path == project.path && it.name.contains("release", ignoreCase = true)
     }
     if (buildsRelease) {
-        require(System.getenv("BIOBALANCE_KEYSTORE") != null || System.getenv("BIOBALANCE_BUILD_MODE") == "compile-only") {
-            "Release signing is required. Use scripts/build-signed-android.py or the explicit compile-only workflow."
+        require(System.getenv("BIOBALANCE_KEYSTORE") != null) {
+            "Release signing is required: set BIOBALANCE_KEYSTORE and the related variables."
         }
     }
 }
