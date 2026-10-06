@@ -3475,6 +3475,204 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'BioBalance will record that this place starts empty. Stock arrives with restocks.'**
   String get noStockBody;
+
+  /// No description provided for @toApprove.
+  ///
+  /// In en, this message translates to:
+  /// **'To approve'**
+  String get toApprove;
+
+  /// No description provided for @attnStores.
+  ///
+  /// In en, this message translates to:
+  /// **'Stores waiting'**
+  String get attnStores;
+
+  /// No description provided for @attnGroups.
+  ///
+  /// In en, this message translates to:
+  /// **'Groups waiting'**
+  String get attnGroups;
+
+  /// No description provided for @attnMembers.
+  ///
+  /// In en, this message translates to:
+  /// **'Team members waiting'**
+  String get attnMembers;
+
+  /// No description provided for @attnStockCounts.
+  ///
+  /// In en, this message translates to:
+  /// **'Stock counts to check'**
+  String get attnStockCounts;
+
+  /// No description provided for @attnReceipts.
+  ///
+  /// In en, this message translates to:
+  /// **'Deliveries to check'**
+  String get attnReceipts;
+
+  /// No description provided for @attnRestockRequests.
+  ///
+  /// In en, this message translates to:
+  /// **'Restock requests'**
+  String get attnRestockRequests;
+
+  /// No description provided for @stockSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Stock'**
+  String get stockSection;
+
+  /// No description provided for @restocksSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Restocks'**
+  String get restocksSection;
+
+  /// No description provided for @paymentsSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Payments'**
+  String get paymentsSection;
+
+  /// No description provided for @runningLow.
+  ///
+  /// In en, this message translates to:
+  /// **'Running low'**
+  String get runningLow;
+
+  /// No description provided for @orderNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Order'**
+  String get orderNow;
+
+  /// No description provided for @orderQuantity.
+  ///
+  /// In en, this message translates to:
+  /// **'How many to order?'**
+  String get orderQuantity;
+
+  /// No description provided for @sendOrder.
+  ///
+  /// In en, this message translates to:
+  /// **'Send the order'**
+  String get sendOrder;
+
+  /// No description provided for @orderSent.
+  ///
+  /// In en, this message translates to:
+  /// **'Order sent to BioBalance'**
+  String get orderSent;
+
+  /// No description provided for @bestStores.
+  ///
+  /// In en, this message translates to:
+  /// **'Best stores, 30 days'**
+  String get bestStores;
+
+  /// No description provided for @bestGroups.
+  ///
+  /// In en, this message translates to:
+  /// **'Best groups, 30 days'**
+  String get bestGroups;
+
+  /// No description provided for @regionPageResponsable.
+  ///
+  /// In en, this message translates to:
+  /// **'Responsable'**
+  String get regionPageResponsable;
+
+  /// No description provided for @regionGroups.
+  ///
+  /// In en, this message translates to:
+  /// **'Groups'**
+  String get regionGroups;
+
+  /// No description provided for @regionStores.
+  ///
+  /// In en, this message translates to:
+  /// **'Stores'**
+  String get regionStores;
+
+  /// No description provided for @regionGrossistes.
+  ///
+  /// In en, this message translates to:
+  /// **'Grossistes'**
+  String get regionGrossistes;
+
+  /// No description provided for @regionNoResponsable.
+  ///
+  /// In en, this message translates to:
+  /// **'No responsable yet'**
+  String get regionNoResponsable;
+
+  /// No description provided for @rewardsHow.
+  ///
+  /// In en, this message translates to:
+  /// **'A product’s own rate always beats its family’s rate. Tap a family or a product to set a rate for a period.'**
+  String get rewardsHow;
+
+  /// No description provided for @noFamilyRate.
+  ///
+  /// In en, this message translates to:
+  /// **'No family rate'**
+  String get noFamilyRate;
+
+  /// No description provided for @familyRate.
+  ///
+  /// In en, this message translates to:
+  /// **'Family rate {amount}'**
+  String familyRate(String amount);
+
+  /// No description provided for @ownRate.
+  ///
+  /// In en, this message translates to:
+  /// **'Own rate'**
+  String get ownRate;
+
+  /// No description provided for @followsFamily.
+  ///
+  /// In en, this message translates to:
+  /// **'Follows the family rate'**
+  String get followsFamily;
+
+  /// No description provided for @noReward.
+  ///
+  /// In en, this message translates to:
+  /// **'No reward set'**
+  String get noReward;
+
+  /// No description provided for @findByProduct.
+  ///
+  /// In en, this message translates to:
+  /// **'Find a sale by product'**
+  String get findByProduct;
+
+  /// No description provided for @noSalesWithProduct.
+  ///
+  /// In en, this message translates to:
+  /// **'No sale includes this product'**
+  String get noSalesWithProduct;
+
+  /// No description provided for @noSalesThisMonth.
+  ///
+  /// In en, this message translates to:
+  /// **'No sales this month'**
+  String get noSalesThisMonth;
+
+  /// No description provided for @previousMonth.
+  ///
+  /// In en, this message translates to:
+  /// **'Previous month'**
+  String get previousMonth;
+
+  /// No description provided for @nextMonth.
+  ///
+  /// In en, this message translates to:
+  /// **'Next month'**
+  String get nextMonth;
 }
 
 class _AppLocalizationsDelegate

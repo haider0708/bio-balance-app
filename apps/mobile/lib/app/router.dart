@@ -8,6 +8,7 @@ import '../core/auth/session.dart';
 import '../core/widgets/states.dart';
 import '../features/approvals/approvals_screen.dart';
 import '../features/auth/activate_screen.dart';
+import '../features/dashboard/region_screen.dart';
 import '../features/auth/forgot_screen.dart';
 import '../features/auth/login_screen.dart';
 import '../features/catalog/catalog_screens.dart';
@@ -282,8 +283,19 @@ List<RouteBase> _admin() => [
   ]),
   GoRoute(path: '/payouts', builder: (_, _) => const PayoutsScreen()),
   GoRoute(path: '/reports', builder: (_, _) => const ReportsScreen()),
+  GoRoute(
+    path: '/regions/:id',
+    builder: (_, state) => RegionScreen(
+      regionId: state.pathParameters['id']!,
+      name: state.extra as String?,
+    ),
+  ),
   GoRoute(path: '/rewards', builder: (_, _) => const RewardsScreen()),
-  GoRoute(path: '/rewards/new', builder: (_, _) => const RewardFormScreen()),
+  GoRoute(
+    path: '/rewards/new',
+    builder: (_, state) =>
+        RewardFormScreen(preset: state.extra as RewardPreset?),
+  ),
   GoRoute(path: '/messages', builder: (_, _) => const MessagesScreen()),
   GoRoute(
     path: '/messages/new',

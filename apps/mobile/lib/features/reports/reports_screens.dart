@@ -15,12 +15,24 @@ import '../../core/widgets/components.dart';
 import '../../core/widgets/feedback.dart';
 import '../../core/widgets/states.dart';
 import '../../l10n/app_localizations.dart';
+import '../dashboard/trend_chart.dart';
+import '../media/media_repository.dart';
 import '../network/network_repository.dart';
 import 'reports_repository.dart';
 
 enum _Period { week, month, lastMonth, custom }
 
-/// Sales over a period, grouped the way you need, with a spreadsheet export.
+/// A narrowing of the report picked by tapping a row: this store, this product, this seller.
+class _Focus {
+  const _Focus(this.kind, this.key, this.label);
+
+  final String kind;
+  final String key;
+  final String label;
+}
+
+/// Sales over a period: totals against the period before, a daily chart and a ranking
+/// you can tap to look closer. A spreadsheet export is one tap away.
 class ReportsScreen extends ConsumerStatefulWidget {
   const ReportsScreen({super.key});
 
@@ -33,6 +45,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   String _groupBy = 'pdv';
   String? _regionId;
   DateTimeRange? _custom;
+  final List<_Focus> _focus = [];
 
   ({String from, String to}) get _range {
     final now = DateTime.now();
@@ -56,11 +69,18 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     };
   }
 
+  String? _focused(String kind) =>
+      _focus.where((f) => f.kind == kind).firstOrNull?.key;
+
   ReportQuery get _query => (
     from: _range.from,
     to: _range.to,
     groupBy: _groupBy,
     regionId: _regionId,
+    pdvId: _focused('pdv'),
+    sellerId: _focused('seller'),
+    productId: _focused('product'),
+    family: _focused('family'),
   );
 
   Future<void> _export() async {
@@ -86,6 +106,33 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     });
   }
 
+  /// Tapping a row narrows the report to it and shows the next level down.
+  void _drill(ReportRow row) {
+    final kind = switch (_groupBy) {
+      'pdv' => 'pdv',
+      'product' => 'product',
+      'seller' => 'seller',
+      'family' => 'family',
+      'region' => 'region',
+      _ => null,
+    };
+    if (kind == null) return;
+    setState(() {
+      if (kind == 'region') {
+        _regionId = row.key;
+        _groupBy = 'pdv';
+        return;
+      }
+      _focus.add(_Focus(kind, row.key, row.label));
+      _groupBy = switch (kind) {
+        'pdv' => 'seller',
+        'seller' => 'product',
+        'family' => 'product',
+        _ => 'day',
+      };
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
@@ -94,11 +141,11 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     final report = ref.watch(salesReportProvider(_query));
     final regions = ref.watch(regionsProvider).value ?? const [];
     final groups = [
-      ('day', t.byDay),
       ('pdv', t.byPdv),
       ('product', t.byProductShort),
       ('family', t.byFamily),
       ('seller', t.bySeller),
+      ('day', t.byDay),
       if (admin) ('region', t.byRegion),
     ];
     return Scaffold(
@@ -120,73 +167,88 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 4, 16, 100),
           children: [
-            Wrap(
-              spacing: 8,
-              runSpacing: 4,
-              children: [
-                for (final (p, label) in [
-                  (_Period.week, t.last7Days),
-                  (_Period.month, t.thisMonth),
-                  (_Period.lastMonth, t.lastMonth),
-                  (_Period.custom, t.customPeriod),
-                ])
-                  ChoiceChip(
-                    label: Text(label),
-                    selected: _period == p,
-                    onSelected: (_) async {
-                      if (p == _Period.custom) {
-                        final picked = await showDateRangePicker(
-                          context: context,
-                          firstDate: DateTime(2026),
-                          lastDate: DateTime.now(),
-                          initialDateRange: _custom,
-                        );
-                        if (picked == null) return;
-                        _custom = picked;
-                      }
-                      setState(() => _period = p);
-                    },
-                  ),
-              ],
-            ),
-            const Gap(8),
-            if (admin)
-              Wrap(
-                spacing: 8,
-                runSpacing: 4,
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
                 children: [
-                  ChoiceChip(
-                    label: Text(t.allRegions),
-                    selected: _regionId == null,
-                    onSelected: (_) => setState(() => _regionId = null),
-                  ),
-                  for (final r in regions)
-                    ChoiceChip(
-                      label: Text(r.name),
-                      selected: _regionId == r.id,
-                      onSelected: (_) => setState(() => _regionId = r.id),
-                    ),
-                ],
-              ),
-            const Gap(8),
-            SizedBox(
-              height: 44,
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                children: [
-                  for (final (value, label) in groups)
+                  for (final (p, label) in [
+                    (_Period.week, t.last7Days),
+                    (_Period.month, t.thisMonth),
+                    (_Period.lastMonth, t.lastMonth),
+                    (_Period.custom, t.customPeriod),
+                  ])
                     Padding(
                       padding: const EdgeInsetsDirectional.only(end: 8),
-                      child: FilterChip(
-                        label: Text('${t.groupedBy} $label'),
-                        selected: _groupBy == value,
-                        showCheckmark: false,
-                        onSelected: (_) => setState(() => _groupBy = value),
+                      child: ChoiceChip(
+                        label: Text(label),
+                        selected: _period == p,
+                        onSelected: (_) async {
+                          if (p == _Period.custom) {
+                            final picked = await showDateRangePicker(
+                              context: context,
+                              firstDate: DateTime(2026),
+                              lastDate: DateTime.now(),
+                              initialDateRange: _custom,
+                            );
+                            if (picked == null) return;
+                            _custom = picked;
+                          }
+                          setState(() => _period = p);
+                        },
                       ),
                     ),
                 ],
               ),
             ),
+            if (admin) ...[
+              const Gap(4),
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsetsDirectional.only(end: 8),
+                      child: ChoiceChip(
+                        label: Text(t.allRegions),
+                        selected: _regionId == null,
+                        onSelected: (_) => setState(() => _regionId = null),
+                      ),
+                    ),
+                    for (final r in regions)
+                      Padding(
+                        padding: const EdgeInsetsDirectional.only(end: 8),
+                        child: ChoiceChip(
+                          label: Text(r.name),
+                          selected: _regionId == r.id,
+                          onSelected: (_) => setState(() => _regionId = r.id),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ],
+            if (_focus.isNotEmpty) ...[
+              const Gap(4),
+              Wrap(
+                spacing: 8,
+                children: [
+                  for (final f in _focus)
+                    InputChip(
+                      label: Text(f.label),
+                      onDeleted: () => setState(() {
+                        final i = _focus.indexOf(f);
+                        _focus.removeRange(i, _focus.length);
+                        _groupBy = switch (f.kind) {
+                          'pdv' => 'pdv',
+                          'seller' => 'seller',
+                          'family' => 'family',
+                          _ => 'product',
+                        };
+                      }),
+                    ),
+                ],
+              ),
+            ],
             const Gap(8),
             AsyncBody(
               value: report,
@@ -202,21 +264,18 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                     Row(
                       children: [
                         Expanded(
-                          child: StatTile(
-                            label: t.salesTitleShort,
-                            value: '${r.sales}',
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: StatTile(
+                          child: _Metric(
                             label: t.totalUnits,
                             value: '${r.units}',
+                            change: SalesReport.change(
+                              r.units,
+                              r.previousUnits,
+                            ),
                           ),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
-                          child: StatTile(
+                          child: _Metric(
                             label: t.reward,
                             value: Money.format(
                               r.rewardMillimes,
@@ -224,59 +283,63 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                               unit: false,
                             ),
                             hint: 'TND',
+                            change: SalesReport.change(
+                              r.rewardMillimes,
+                              r.previousRewardMillimes,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _Metric(
+                            label: t.salesTitleShort,
+                            value: '${r.sales}',
                           ),
                         ),
                       ],
                     ),
+                    if (r.trend.isNotEmpty && r.trend.length <= 62) ...[
+                      const Gap(12),
+                      AppCard(child: TrendChart(days: r.trend)),
+                    ],
                     const Gap(12),
+                    SizedBox(
+                      height: 44,
+                      child: ListView(
+                        scrollDirection: Axis.horizontal,
+                        children: [
+                          for (final (value, label) in groups)
+                            Padding(
+                              padding: const EdgeInsetsDirectional.only(end: 8),
+                              child: FilterChip(
+                                label: Text('${t.groupedBy} $label'),
+                                selected: _groupBy == value,
+                                showCheckmark: false,
+                                onSelected: (_) =>
+                                    setState(() => _groupBy = value),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                    const Gap(4),
                     if (r.rows.isEmpty)
                       EmptyState(
                         icon: LucideIcons.chartNoAxesColumn,
                         title: t.noSalesInPeriod,
                       )
                     else
-                      for (final row in r.rows)
+                      for (var i = 0; i < r.rows.length; i++)
                         Padding(
                           padding: const EdgeInsets.only(bottom: 8),
-                          child: AppCard(
-                            padding: const EdgeInsets.all(12),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: Text(
-                                        row.label,
-                                        style: context.text.titleSmall,
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ),
-                                    Text(
-                                      t.units(row.units),
-                                      style: context.text.titleSmall,
-                                    ),
-                                  ],
-                                ),
-                                const Gap(8),
-                                ClipRRect(
-                                  borderRadius: BorderRadius.circular(5),
-                                  child: LinearProgressIndicator(
-                                    value: top == 0 ? 0 : row.units / top,
-                                    minHeight: 6,
-                                    backgroundColor: context.status.mutedSoft,
-                                  ),
-                                ),
-                                const Gap(6),
-                                Text(
-                                  '${t.salesCount(row.sales)} · ${Money.format(row.rewardMillimes, t.localeName)}',
-                                  style: context.text.bodySmall?.copyWith(
-                                    color: context.status.muted,
-                                  ),
-                                ),
-                              ],
-                            ),
+                          child: _ReportRowCard(
+                            row: r.rows[i],
+                            rank: _groupBy == 'day' ? null : i + 1,
+                            top: top,
+                            product: _groupBy == 'product',
+                            onTap: _groupBy == 'day'
+                                ? null
+                                : () => _drill(r.rows[i]),
                           ),
                         ),
                   ],
@@ -285,6 +348,164 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _Metric extends StatelessWidget {
+  const _Metric({
+    required this.label,
+    required this.value,
+    this.hint,
+    this.change,
+  });
+
+  final String label;
+  final String value;
+  final String? hint;
+  final int? change;
+
+  @override
+  Widget build(BuildContext context) {
+    final up = (change ?? 0) >= 0;
+    return AppCard(
+      padding: const EdgeInsets.all(12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: context.text.bodySmall?.copyWith(
+              color: context.status.muted,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 4),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: AlignmentDirectional.centerStart,
+            child: Text(value, style: context.text.headlineSmall),
+          ),
+          if (hint != null)
+            Text(
+              hint!,
+              style: context.text.labelSmall?.copyWith(
+                color: context.status.muted,
+              ),
+            ),
+          if (change != null) ...[
+            const SizedBox(height: 4),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  up ? LucideIcons.trendingUp : LucideIcons.trendingDown,
+                  size: 14,
+                  color: up ? context.status.success : context.status.danger,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  '${up ? '+' : ''}$change %',
+                  style: context.text.labelMedium?.copyWith(
+                    color: up ? context.status.success : context.status.danger,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _ReportRowCard extends StatelessWidget {
+  const _ReportRowCard({
+    required this.row,
+    required this.top,
+    required this.product,
+    this.rank,
+    this.onTap,
+  });
+
+  final ReportRow row;
+  final int top;
+  final bool product;
+  final int? rank;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    return AppCard(
+      onTap: onTap,
+      padding: const EdgeInsets.all(12),
+      child: Row(
+        children: [
+          if (rank != null)
+            SizedBox(
+              width: 24,
+              child: Text(
+                '$rank',
+                style: context.text.titleSmall?.copyWith(
+                  color: rank == 1
+                      ? context.colors.primary
+                      : context.status.muted,
+                ),
+              ),
+            ),
+          if (product) ...[
+            AuthImage(
+              row.imageId,
+              width: 44,
+              height: 44,
+              radius: 10,
+              placeholderIcon: LucideIcons.package,
+            ),
+            const SizedBox(width: 12),
+          ],
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  row.label,
+                  style: context.text.titleSmall,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 6),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(4),
+                  child: LinearProgressIndicator(
+                    value: top == 0 ? 0 : row.units / top,
+                    minHeight: 5,
+                    backgroundColor: context.status.mutedSoft,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '${t.salesCount(row.sales)} · ${Money.format(row.rewardMillimes, t.localeName)}',
+                  style: context.text.bodySmall?.copyWith(
+                    color: context.status.muted,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          Text(t.units(row.units), style: context.text.titleSmall),
+          if (onTap != null) ...[
+            const SizedBox(width: 4),
+            Icon(
+              LucideIcons.chevronRight,
+              size: 16,
+              color: context.status.muted,
+            ),
+          ],
+        ],
       ),
     );
   }

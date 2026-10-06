@@ -15,6 +15,7 @@ import '../../core/widgets/components.dart';
 import '../../l10n/app_localizations.dart';
 import '../notifications/notifications_repository.dart';
 import 'dashboard_repository.dart';
+import 'dashboard_widgets.dart';
 import 'home_scaffold.dart';
 import 'trend_chart.dart';
 
@@ -63,8 +64,6 @@ class _Body extends ConsumerWidget {
     final month = sales.obj('month');
     final approvals = data.obj('approvals');
     final restocks = data.obj('restocks');
-    final attention = data.obj('attention');
-    final payouts = data.objOrNull('payouts');
     final regions = data.list('regions');
     final waiting = approvals.integer('total');
     return ListView(
@@ -152,6 +151,10 @@ class _Body extends ConsumerWidget {
             Padding(
               padding: const EdgeInsets.only(bottom: 8),
               child: AppCard(
+                onTap: () => context.push(
+                  '/regions/${r.str('id')}',
+                  extra: r.str('name'),
+                ),
                 child: Row(
                   children: [
                     Container(
@@ -203,76 +206,36 @@ class _Body extends ConsumerWidget {
                       const SizedBox(width: 8),
                       StatusChip('${r.integer('pending')}', tone: Tone.warning),
                     ],
+                    const SizedBox(width: 4),
+                    Icon(
+                      LucideIcons.chevronRight,
+                      size: 18,
+                      color: context.status.muted,
+                    ),
                   ],
                 ),
               ),
             ),
         ],
-        SectionHeader(t.needsAttention),
-        _AttentionRow(
-          icon: LucideIcons.triangleAlert,
-          tone: Tone.danger,
-          label: t.negativeStock,
-          count: attention.integer('negativeStock'),
-          onTap: () => context.push('/stock-attention'),
-        ),
-        _AttentionRow(
-          icon: LucideIcons.packageMinus,
-          tone: Tone.warning,
-          label: t.lowStock,
-          count: attention.integer('lowStock'),
-          onTap: () => context.push('/stock-attention'),
-        ),
-        _AttentionRow(
-          icon: LucideIcons.truck,
-          tone: Tone.info,
-          label: t.openRestocks,
-          count:
-              restocks.integer('REQUESTED') +
-              restocks.integer('ASSIGNED') +
-              restocks.integer('SHIPPED') +
-              restocks.integer('RECEIVED'),
-          onTap: () => context.go('/restocks'),
-        ),
-        if (payouts != null)
-          _AttentionRow(
-            icon: LucideIcons.banknote,
-            tone: Tone.warning,
-            label: t.payoutRequests,
-            count: payouts.integer('pending'),
-            trailing: payouts.integer('pending') > 0
-                ? Money.format(payouts.integer('amountMillimes'), locale)
-                : null,
-            onTap: () => context.push('/payouts'),
-          ),
-        if (data.list('topProducts').isNotEmpty) ...[
-          SectionHeader(t.topProducts),
-          AppCard(
-            child: Column(
-              children: [
-                for (final p in data.list('topProducts'))
-                  _RankRow(
-                    label: p.str('name'),
-                    sub: p.str('family'),
-                    value: t.units(p.integer('units')),
-                  ),
-              ],
-            ),
+        ...attentionSections(context, t, data, admin: admin),
+        if (!admin && data.list('lowStock').isNotEmpty) ...[
+          SectionHeader(t.runningLow),
+          RunningLow(
+            items: data.list('lowStock'),
+            onOrdered: () => ref.invalidate(dashboardProvider(null)),
           ),
         ],
+        if (data.list('topProducts').isNotEmpty) ...[
+          SectionHeader(t.topProducts),
+          TopProducts(items: data.list('topProducts')),
+        ],
         if (data.list('topPdvs').isNotEmpty) ...[
-          SectionHeader(t.topPdvs),
-          AppCard(
-            child: Column(
-              children: [
-                for (final p in data.list('topPdvs'))
-                  _RankRow(
-                    label: p.str('name'),
-                    value: t.units(p.integer('units')),
-                  ),
-              ],
-            ),
-          ),
+          SectionHeader(admin ? t.topPdvs : t.bestStores),
+          TopPlaces(items: data.list('topPdvs')),
+        ],
+        if (!admin && data.list('topGroups').isNotEmpty) ...[
+          SectionHeader(t.bestGroups),
+          TopPlaces(items: data.list('topGroups'), icon: LucideIcons.layers),
         ],
       ],
     );
@@ -291,6 +254,143 @@ class _Body extends ConsumerWidget {
     ];
     return parts.join(' · ');
   }
+}
+
+/// "Needs attention", split by what it is about, so each kind of work has its own place.
+List<Widget> attentionSections(
+  BuildContext context,
+  AppLocalizations t,
+  Json data, {
+  required bool admin,
+  String? regionId,
+}) {
+  final approvals = data.obj('approvals');
+  final restocks = data.obj('restocks');
+  final attention = data.obj('attention');
+  final payouts = data.objOrNull('payouts');
+  final locale = t.localeName;
+  void approvals_() => context.go('/approvals');
+  return [
+    SectionHeader(t.needsAttention),
+    if (admin) ...[
+      AttentionGroup(
+        title: t.toApprove,
+        rows: [
+          AttentionRow(
+            icon: LucideIcons.store,
+            tone: Tone.warning,
+            label: t.attnStores,
+            count: approvals.integer('PDV'),
+            onTap: approvals_,
+          ),
+          AttentionRow(
+            icon: LucideIcons.layers,
+            tone: Tone.warning,
+            label: t.attnGroups,
+            count: approvals.integer('GROUP'),
+            onTap: approvals_,
+          ),
+          AttentionRow(
+            icon: LucideIcons.userPlus,
+            tone: Tone.warning,
+            label: t.attnMembers,
+            count: approvals.integer('MEMBER'),
+            onTap: approvals_,
+          ),
+          AttentionRow(
+            icon: LucideIcons.boxes,
+            tone: Tone.warning,
+            label: t.attnStockCounts,
+            count: approvals.integer('STOCK'),
+            onTap: approvals_,
+          ),
+          AttentionRow(
+            icon: LucideIcons.packageCheck,
+            tone: Tone.warning,
+            label: t.attnReceipts,
+            count: approvals.integer('RECEIPT'),
+            onTap: approvals_,
+          ),
+          AttentionRow(
+            icon: LucideIcons.truck,
+            tone: Tone.warning,
+            label: t.attnRestockRequests,
+            count: approvals.integer('RESTOCK_REQUEST'),
+            onTap: approvals_,
+          ),
+        ],
+      ),
+    ],
+    AttentionGroup(
+      title: t.stockSection,
+      rows: [
+        AttentionRow(
+          icon: LucideIcons.triangleAlert,
+          tone: Tone.danger,
+          label: t.negativeStock,
+          count: attention.integer('negativeStock'),
+          onTap: () => context.push('/stock-attention'),
+        ),
+        AttentionRow(
+          icon: LucideIcons.packageMinus,
+          tone: Tone.warning,
+          label: t.lowStock,
+          count: attention.integer('lowStock'),
+          onTap: () => context.push('/stock-attention'),
+        ),
+      ],
+    ),
+    AttentionGroup(
+      title: t.restocksSection,
+      rows: [
+        AttentionRow(
+          icon: LucideIcons.truck,
+          tone: Tone.info,
+          label: t.openRestocks,
+          count:
+              restocks.integer('REQUESTED') +
+              restocks.integer('ASSIGNED') +
+              restocks.integer('SHIPPED') +
+              restocks.integer('RECEIVED'),
+          onTap: () => context.go('/restocks'),
+        ),
+      ],
+    ),
+    if (payouts != null)
+      AttentionGroup(
+        title: t.paymentsSection,
+        rows: [
+          AttentionRow(
+            icon: LucideIcons.banknote,
+            tone: Tone.warning,
+            label: t.payoutRequests,
+            count: payouts.integer('pending'),
+            trailing: Money.format(payouts.integer('amountMillimes'), locale),
+            onTap: () => context.push('/payouts'),
+          ),
+        ],
+      ),
+    if ((approvals.integer('total') == 0 || !admin) &&
+        attention.integer('negativeStock') == 0 &&
+        attention.integer('lowStock') == 0 &&
+        restocks.integer('REQUESTED') +
+                restocks.integer('ASSIGNED') +
+                restocks.integer('SHIPPED') +
+                restocks.integer('RECEIVED') ==
+            0 &&
+        (payouts?.integer('pending') ?? 0) == 0)
+      AppCard(
+        child: Row(
+          children: [
+            Icon(LucideIcons.circleCheck, color: context.status.success),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(t.allCaughtUp, style: context.text.titleSmall),
+            ),
+          ],
+        ),
+      ),
+  ];
 }
 
 class _Hero extends StatelessWidget {
@@ -347,111 +447,6 @@ class _Hero extends StatelessWidget {
             ],
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _AttentionRow extends StatelessWidget {
-  const _AttentionRow({
-    required this.icon,
-    required this.tone,
-    required this.label,
-    required this.count,
-    required this.onTap,
-    this.trailing,
-  });
-
-  final IconData icon;
-  final Tone tone;
-  final String label;
-  final int count;
-  final String? trailing;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = tone.colors(context);
-    final active = count > 0;
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: AppCard(
-        onTap: onTap,
-        child: Row(
-          children: [
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: active ? c.soft : context.status.mutedSoft,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(
-                icon,
-                size: 20,
-                color: active ? c.strong : context.status.muted,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(child: Text(label, style: context.text.titleSmall)),
-            if (trailing != null)
-              Padding(
-                padding: const EdgeInsets.only(right: 10),
-                child: Text(
-                  trailing!,
-                  style: context.text.bodySmall?.copyWith(
-                    color: context.status.muted,
-                  ),
-                ),
-              ),
-            Text(
-              '$count',
-              style: context.text.titleMedium?.copyWith(
-                color: active ? c.strong : context.status.muted,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _RankRow extends StatelessWidget {
-  const _RankRow({required this.label, required this.value, this.sub});
-
-  final String label;
-  final String? sub;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: context.text.titleSmall,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                if (sub != null)
-                  Text(
-                    sub!,
-                    style: context.text.bodySmall?.copyWith(
-                      color: context.status.muted,
-                    ),
-                  ),
-              ],
-            ),
-          ),
-          Text(value, style: context.text.titleSmall),
-        ],
       ),
     );
   }

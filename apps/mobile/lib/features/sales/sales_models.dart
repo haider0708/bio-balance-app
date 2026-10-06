@@ -169,3 +169,25 @@ class PendingLine {
 
   Json toJson() => {'productId': productId, 'name': name, 'quantity': quantity};
 }
+
+/// A day of sales with its totals.
+class SaleDay {
+  const SaleDay({
+    required this.day,
+    required this.sales,
+    required this.units,
+    required this.rewardMillimes,
+  });
+
+  factory SaleDay.fromJson(Json j) => SaleDay(
+    day: j.str('day'),
+    sales: j.integer('sales'),
+    units: j.integer('units'),
+    rewardMillimes: j.integer('rewardMillimes'),
+  );
+
+  final String day;
+  final int sales;
+  final int units;
+  final int rewardMillimes;
+}

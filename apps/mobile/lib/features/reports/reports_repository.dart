@@ -10,6 +10,7 @@ class ReportRow {
     required this.sales,
     required this.units,
     required this.rewardMillimes,
+    this.imageId,
   });
 
   factory ReportRow.fromJson(Json j) => ReportRow(
@@ -18,8 +19,10 @@ class ReportRow {
     sales: j.integer('sales'),
     units: j.integer('units'),
     rewardMillimes: j.integer('rewardMillimes'),
+    imageId: j.strOrNull('imageId'),
   );
 
+  final String? imageId;
   final String key;
   final String label;
   final int sales;
@@ -33,6 +36,9 @@ class SalesReport {
     required this.sales,
     required this.units,
     required this.rewardMillimes,
+    required this.previousUnits,
+    required this.previousRewardMillimes,
+    required this.trend,
   });
 
   factory SalesReport.fromJson(Json j) => SalesReport(
@@ -40,7 +46,20 @@ class SalesReport {
     sales: j.obj('totals').integer('sales'),
     units: j.obj('totals').integer('units'),
     rewardMillimes: j.obj('totals').integer('rewardMillimes'),
+    previousUnits: j.objOrNull('previous')?.integer('units') ?? 0,
+    previousRewardMillimes:
+        j.objOrNull('previous')?.integer('rewardMillimes') ?? 0,
+    trend: ((j['trend'] as List<dynamic>?) ?? const []).cast<Json>(),
   );
+
+  /// Units and rewards of the period just before this one, to show the direction.
+  final int previousUnits;
+  final int previousRewardMillimes;
+  final List<Json> trend;
+
+  /// Change against the previous period, in percent; null when there was nothing to compare with.
+  static int? change(int now, int before) =>
+      before == 0 ? null : ((now - before) * 100 / before).round();
 
   final List<ReportRow> rows;
   final int sales;
@@ -107,6 +126,10 @@ typedef ReportQuery = ({
   String to,
   String groupBy,
   String? regionId,
+  String? pdvId,
+  String? sellerId,
+  String? productId,
+  String? family,
 });
 
 class ReportsRepository {
@@ -124,6 +147,10 @@ class ReportsRepository {
                 'to': q.to,
                 'groupBy': q.groupBy,
                 'regionId': q.regionId,
+                'pdvId': q.pdvId,
+                'sellerId': q.sellerId,
+                'productId': q.productId,
+                'family': q.family,
               },
             )
         as Json,

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
@@ -8,7 +9,9 @@ import '../../core/auth/session.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/util/dates.dart';
 import '../../core/util/money.dart';
+import '../../core/widgets/async_body.dart';
 import '../../core/widgets/components.dart';
+import '../../core/widgets/quantity_editor.dart' show ProductPickerSheet;
 import '../../core/widgets/paged_list.dart';
 import '../../core/widgets/states.dart';
 import '../../l10n/app_localizations.dart';
@@ -16,7 +19,8 @@ import 'sales_models.dart';
 import 'sales_outbox.dart';
 import 'sales_repository.dart';
 
-/// Past sales, newest first. A team member sees their own; a responsable or the admin see more.
+/// Past sales. Months and days give the overview (a long history stays easy to read);
+/// open a day to see its sales, or pick a product to find every sale that included it.
 class SalesHistoryScreen extends ConsumerStatefulWidget {
   const SalesHistoryScreen({
     this.pdvId,
@@ -38,24 +42,58 @@ class SalesHistoryScreen extends ConsumerStatefulWidget {
 }
 
 class _SalesHistoryScreenState extends ConsumerState<SalesHistoryScreen> {
-  late final PagedController<Sale> _paged = PagedController<Sale>((
-    cursor,
-  ) async {
-    final page = await ref
-        .read(salesRepositoryProvider)
-        .list(
-          cursor: cursor,
-          pdvId: widget.pdvId,
-          sellerId: widget.sellerId,
-          regionId: widget.regionId,
-        );
-    return PageResult(page.items, page.nextCursor);
-  });
+  DateTime _month = DateTime(DateTime.now().year, DateTime.now().month);
+  String? _productId;
+  String? _productName;
+  PagedController<Sale>? _byProduct;
 
   @override
   void dispose() {
-    _paged.dispose();
+    _byProduct?.dispose();
     super.dispose();
+  }
+
+  bool get _isCurrentMonth {
+    final now = DateTime.now();
+    return _month.year == now.year && _month.month == now.month;
+  }
+
+  SalesDaysQuery get _query => (
+    from: Dates.day(_month),
+    to: Dates.day(DateTime(_month.year, _month.month + 1, 0)),
+    pdvId: widget.pdvId,
+    sellerId: widget.sellerId,
+  );
+
+  Future<void> _pickProduct() async {
+    final picked = await ProductPickerSheet.show(context, single: true);
+    if (picked == null || !mounted) return;
+    _byProduct?.dispose();
+    setState(() {
+      _productId = picked.first.id;
+      _productName = picked.first.name;
+      _byProduct = PagedController<Sale>((cursor) async {
+        final page = await ref
+            .read(salesRepositoryProvider)
+            .list(
+              cursor: cursor,
+              pdvId: widget.pdvId,
+              sellerId: widget.sellerId,
+              regionId: widget.regionId,
+              productId: _productId,
+            );
+        return PageResult(page.items, page.nextCursor);
+      });
+    });
+  }
+
+  void _clearProduct() {
+    _byProduct?.dispose();
+    setState(() {
+      _productId = null;
+      _productName = null;
+      _byProduct = null;
+    });
   }
 
   @override
@@ -64,68 +102,384 @@ class _SalesHistoryScreenState extends ConsumerState<SalesHistoryScreen> {
     final me = ref.watch(meProvider);
     final pending = ref.watch(salesOutboxProvider);
     ref.listen(salesOutboxProvider, (previous, next) {
-      if ((previous?.length ?? 0) > next.length) _paged.refresh();
+      if ((previous?.length ?? 0) > next.length) {
+        ref.invalidate(salesDaysProvider);
+        ref.invalidate(salesOfDayProvider);
+        _byProduct?.refresh();
+      }
     });
     return Scaffold(
-      appBar: AppBar(title: Text(t.salesTitle)),
+      appBar: AppBar(
+        title: Text(t.salesTitle),
+        actions: [
+          IconButton(
+            tooltip: t.findByProduct,
+            onPressed: _pickProduct,
+            icon: const Icon(LucideIcons.search),
+          ),
+        ],
+      ),
       floatingActionButton: me.role == Role.vendeur
           ? FloatingActionButton.extended(
               heroTag: null,
-              onPressed: () => context.push('/sell'),
+              onPressed: () async {
+                await context.push('/sell');
+                ref.invalidate(salesDaysProvider);
+                ref.invalidate(salesOfDayProvider);
+              },
               icon: const Icon(LucideIcons.plus),
               label: Text(t.newSale),
             )
           : null,
-      body: PagedList<Sale>(
-        controller: _paged,
-        header: pending.isEmpty ? null : _Pending(sales: pending),
-        empty: EmptyState(
-          icon: LucideIcons.receipt,
-          title: t.noSalesYet,
-          message: me.role == Role.vendeur ? t.noSalesYetHint : null,
+      body: _productId == null
+          ? _overview(context, t, me, pending)
+          : _search(context, t, me, pending),
+    );
+  }
+
+  Widget _search(
+    BuildContext context,
+    AppLocalizations t,
+    Me me,
+    List<PendingSale> pending,
+  ) {
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
+          child: Align(
+            alignment: AlignmentDirectional.centerStart,
+            child: InputChip(
+              avatar: const Icon(LucideIcons.package, size: 16),
+              label: Text(_productName ?? ''),
+              onDeleted: _clearProduct,
+            ),
+          ),
         ),
-        itemBuilder: (context, sale, index) {
-          final previous = index > 0 ? _paged.items[index - 1] : null;
-          final newDay = previous == null || previous.day != sale.day;
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (newDay)
-                SectionHeader(
-                  Dates.relativeDay(
-                    sale.occurredAt,
-                    t.localeName,
-                    today: t.today,
-                    yesterday: t.yesterday,
+        Expanded(
+          child: PagedList<Sale>(
+            controller: _byProduct!,
+            empty: EmptyState(
+              icon: LucideIcons.receipt,
+              title: t.noSalesWithProduct,
+            ),
+            itemBuilder: (context, sale, index) {
+              final previous = index > 0 ? _byProduct!.items[index - 1] : null;
+              final newDay = previous == null || previous.day != sale.day;
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (newDay)
+                    SectionHeader(
+                      Dates.full(sale.occurredAt, t.localeName),
+                      padding: const EdgeInsets.fromLTRB(4, 16, 4, 8),
+                    ),
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: SaleTile(
+                      sale: sale,
+                      showSeller: me.role != Role.vendeur,
+                    ),
                   ),
-                  padding: const EdgeInsets.fromLTRB(4, 16, 4, 8),
+                ],
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _overview(
+    BuildContext context,
+    AppLocalizations t,
+    Me me,
+    List<PendingSale> pending,
+  ) {
+    final days = ref.watch(salesDaysProvider(_query));
+    return RefreshIndicator(
+      onRefresh: () async {
+        ref.invalidate(salesDaysProvider);
+        ref.invalidate(salesOfDayProvider);
+        await ref.read(salesDaysProvider(_query).future);
+      },
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 100),
+        children: [
+          if (pending.isNotEmpty) _Pending(sales: pending),
+          Row(
+            children: [
+              IconButton(
+                tooltip: t.previousMonth,
+                onPressed: () => setState(
+                  () => _month = DateTime(_month.year, _month.month - 1),
                 ),
-              Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: SaleTile(
-                  sale: sale,
-                  showSeller: me.role != Role.vendeur,
+                icon: const Icon(LucideIcons.chevronLeft),
+              ),
+              Expanded(
+                child: Text(
+                  Dates.monthYear(_month, t.localeName),
+                  textAlign: TextAlign.center,
+                  style: context.text.titleMedium,
                 ),
               ),
+              IconButton(
+                tooltip: t.nextMonth,
+                onPressed: _isCurrentMonth
+                    ? null
+                    : () => setState(
+                        () => _month = DateTime(_month.year, _month.month + 1),
+                      ),
+                icon: const Icon(LucideIcons.chevronRight),
+              ),
             ],
-          );
-        },
+          ),
+          AsyncBody(
+            value: days,
+            onRetry: () => ref.invalidate(salesDaysProvider(_query)),
+            builder: (list) {
+              final units = list.fold(0, (a, d) => a + d.units);
+              final reward = list.fold(0, (a, d) => a + d.rewardMillimes);
+              final sales = list.fold(0, (a, d) => a + d.sales);
+              if (list.isEmpty) {
+                return EmptyState(
+                  icon: LucideIcons.receipt,
+                  title: t.noSalesThisMonth,
+                  message: me.role == Role.vendeur ? t.noSalesYetHint : null,
+                );
+              }
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: StatTile(
+                          label: t.totalUnits,
+                          value: '$units',
+                          hint: t.salesCount(sales),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: StatTile(
+                          label: t.reward,
+                          value: Money.format(
+                            reward,
+                            t.localeName,
+                            unit: false,
+                          ),
+                          hint: 'TND',
+                        ),
+                      ),
+                    ],
+                  ),
+                  const Gap(8),
+                  for (final d in list)
+                    _DayCard(
+                      day: d,
+                      showSeller: me.role != Role.vendeur,
+                      pdvId: widget.pdvId,
+                      sellerId: widget.sellerId,
+                    ),
+                ],
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// A day with its totals; open it to see each sale.
+class _DayCard extends ConsumerStatefulWidget {
+  const _DayCard({
+    required this.day,
+    required this.showSeller,
+    this.pdvId,
+    this.sellerId,
+  });
+
+  final SaleDay day;
+  final bool showSeller;
+  final String? pdvId;
+  final String? sellerId;
+
+  @override
+  ConsumerState<_DayCard> createState() => _DayCardState();
+}
+
+class _DayCardState extends ConsumerState<_DayCard> {
+  late bool _open = widget.day.day == Dates.day(DateTime.now());
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    final date = Dates.parseDay(widget.day.day);
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: AppCard(
+        padding: EdgeInsets.zero,
+        child: Column(
+          children: [
+            InkWell(
+              borderRadius: BorderRadius.circular(16),
+              onTap: () => setState(() => _open = !_open),
+              child: Padding(
+                padding: const EdgeInsets.all(14),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 46,
+                      padding: const EdgeInsets.symmetric(vertical: 6),
+                      decoration: BoxDecoration(
+                        color: context.colors.primaryContainer,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Column(
+                        children: [
+                          Text(
+                            '${date.day}',
+                            style: context.text.titleMedium?.copyWith(
+                              color: context.colors.primary,
+                            ),
+                          ),
+                          Text(
+                            DateFormat.MMM(t.localeName).format(date),
+                            style: context.text.labelSmall?.copyWith(
+                              color: context.colors.primary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            Dates.relativeDay(
+                              date,
+                              t.localeName,
+                              today: t.today,
+                              yesterday: t.yesterday,
+                            ),
+                            style: context.text.titleSmall,
+                          ),
+                          Text(
+                            '${t.salesCount(widget.day.sales)} · ${t.units(widget.day.units)}',
+                            style: context.text.bodySmall?.copyWith(
+                              color: context.status.muted,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (widget.day.rewardMillimes > 0)
+                      Text(
+                        '+ ${Money.format(widget.day.rewardMillimes, t.localeName)}',
+                        style: context.text.titleSmall?.copyWith(
+                          color: context.colors.primary,
+                        ),
+                      ),
+                    const SizedBox(width: 6),
+                    Icon(
+                      _open ? LucideIcons.chevronUp : LucideIcons.chevronDown,
+                      size: 18,
+                      color: context.status.muted,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            if (_open)
+              _Sales(
+                day: widget.day.day,
+                showSeller: widget.showSeller,
+                pdvId: widget.pdvId,
+                sellerId: widget.sellerId,
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _Sales extends ConsumerWidget {
+  const _Sales({
+    required this.day,
+    required this.showSeller,
+    this.pdvId,
+    this.sellerId,
+  });
+
+  final String day;
+  final bool showSeller;
+  final String? pdvId;
+  final String? sellerId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final sales = ref.watch(
+      salesOfDayProvider((day: day, pdvId: pdvId, sellerId: sellerId)),
+    );
+    return sales.when(
+      loading: () => const Padding(
+        padding: EdgeInsets.all(16),
+        child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+      ),
+      error: (_, _) => Padding(
+        padding: const EdgeInsets.all(16),
+        child: TextButton.icon(
+          onPressed: () => ref.invalidate(salesOfDayProvider),
+          icon: const Icon(LucideIcons.refreshCw, size: 16),
+          label: Text(AppLocalizations.of(context).retry),
+        ),
+      ),
+      data: (list) => Padding(
+        padding: const EdgeInsets.fromLTRB(10, 0, 10, 10),
+        child: Column(
+          children: [
+            const Divider(height: 1),
+            const SizedBox(height: 8),
+            for (final s in list)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 6),
+                child: SaleTile(sale: s, showSeller: showSeller, flat: true),
+              ),
+          ],
+        ),
       ),
     );
   }
 }
 
 class SaleTile extends StatelessWidget {
-  const SaleTile({required this.sale, this.showSeller = false, super.key});
+  const SaleTile({
+    required this.sale,
+    this.showSeller = false,
+    this.flat = false,
+    super.key,
+  });
 
   final Sale sale;
   final bool showSeller;
 
+  /// Inside a day card: no frame of its own.
+  final bool flat;
+
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
+    final what = sale.lines.map((l) => '${l.name} ×${l.quantity}').join(' · ');
     return AppCard(
       onTap: () => context.push('/sales/${sale.id}'),
+      color: flat ? context.status.mutedSoft : null,
+      borderColor: flat ? Colors.transparent : null,
+      padding: const EdgeInsets.all(12),
       child: Row(
         children: [
           Container(
@@ -169,6 +523,13 @@ class SaleTile extends StatelessWidget {
                     color: context.status.muted,
                   ),
                 ),
+                if (what.isNotEmpty)
+                  Text(
+                    what,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: context.text.bodySmall,
+                  ),
               ],
             ),
           ),

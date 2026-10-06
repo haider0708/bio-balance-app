@@ -69,6 +69,14 @@ describe("reward rules", () => {
       "Serum Niacinamide": 500,
       "Shampoo Argan": 0,
     });
+    // The product's own rule overrides its family; the family only fills in the others.
+    expect(
+      Object.fromEntries(effective.map((e: any) => [e.name, e.source])),
+    ).toEqual({
+      "Serum Vitamin C": "PRODUCT",
+      "Serum Niacinamide": "FAMILY",
+      "Shampoo Argan": "NONE",
+    });
   });
 
   it("values can change from one week to the next", async () => {
@@ -114,6 +122,9 @@ describe("reward rules", () => {
     expect(
       before.find((e: any) => e.name === "Serum Vitamin C").amountMillimes,
     ).toBe(500);
+    expect(before.find((e: any) => e.name === "Serum Vitamin C").source).toBe(
+      "FAMILY",
+    );
     expect(
       after.find((e: any) => e.name === "Serum Vitamin C").amountMillimes,
     ).toBe(900);

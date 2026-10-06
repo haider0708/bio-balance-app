@@ -38,6 +38,9 @@ class RewardRule {
   final String? note;
 }
 
+/// Which rule decides what a product pays. The product's own rule always beats its family's.
+enum RewardSource { product, family, none }
+
 /// What a product pays today, and where that value comes from.
 class EffectiveReward {
   const EffectiveReward({
@@ -45,6 +48,8 @@ class EffectiveReward {
     required this.name,
     required this.family,
     required this.amountMillimes,
+    required this.source,
+    this.imageId,
   });
 
   factory EffectiveReward.fromJson(Json j) => EffectiveReward(
@@ -52,10 +57,18 @@ class EffectiveReward {
     name: j.str('name'),
     family: j.str('family'),
     amountMillimes: j.integer('amountMillimes'),
+    imageId: j.strOrNull('imageId'),
+    source: switch (j.strOrNull('source')) {
+      'PRODUCT' => RewardSource.product,
+      'FAMILY' => RewardSource.family,
+      _ => RewardSource.none,
+    },
   );
 
   final String productId;
   final String name;
   final String family;
   final int amountMillimes;
+  final String? imageId;
+  final RewardSource source;
 }

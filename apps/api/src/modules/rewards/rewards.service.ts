@@ -6,7 +6,7 @@ import { Database, type Tx } from "../../core/database";
 import { DomainError, notFound, requireRule } from "../../core/errors";
 import { MAX_MILLIMES } from "../../core/money";
 import { addDays, dateToDay, dayToDate, tunisDay } from "../../core/dates";
-import { unitRewards } from "./rules";
+import { rewardSources } from "./rules";
 
 export interface RuleInput {
   scope: RuleScope;
@@ -198,14 +198,16 @@ export class RewardsService {
       const products = await tx.product.findMany({
         where: { active: true },
         orderBy: [{ family: "asc" }, { name: "asc" }],
-        select: { id: true, name: true, family: true },
+        select: { id: true, name: true, family: true, imageId: true },
       });
-      const amounts = await unitRewards(tx, products, dayToDate(day));
+      const decided = await rewardSources(tx, products, dayToDate(day));
       return products.map((p) => ({
         productId: p.id,
         name: p.name,
         family: p.family,
-        amountMillimes: amounts.get(p.id) ?? 0n,
+        imageId: p.imageId,
+        amountMillimes: decided.get(p.id)?.amount ?? 0n,
+        source: decided.get(p.id)?.source ?? "NONE",
       }));
     });
   }

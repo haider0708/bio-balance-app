@@ -78,6 +78,8 @@ class SalesRepository {
     String? pdvId,
     String? sellerId,
     String? regionId,
+    String? productId,
+    int limit = 30,
   }) async {
     final data =
         await _ref
@@ -86,12 +88,13 @@ class SalesRepository {
                   '/v1/sales',
                   query: {
                     'cursor': cursor,
-                    'limit': 30,
+                    'limit': limit,
                     'from': from,
                     'to': to,
                     'pdvId': pdvId,
                     'sellerId': sellerId,
                     'regionId': regionId,
+                    'productId': productId,
                   },
                 )
             as Json;
@@ -100,6 +103,21 @@ class SalesRepository {
       data.strOrNull('nextCursor'),
     );
   }
+
+  /// One row per day, to read a long history at a glance.
+  Future<List<SaleDay>> days({
+    required String from,
+    required String to,
+    String? pdvId,
+    String? sellerId,
+  }) async => jsonList(
+    await _ref
+        .read(apiClientProvider)
+        .get(
+          '/v1/sales/days',
+          query: {'from': from, 'to': to, 'pdvId': pdvId, 'sellerId': sellerId},
+        ),
+  ).map(SaleDay.fromJson).toList();
 
   Future<Sale> get(String id) async => Sale.fromJson(
     await _ref.read(apiClientProvider).get('/v1/sales/$id') as Json,
@@ -122,3 +140,35 @@ final salesRepositoryProvider = Provider<SalesRepository>(SalesRepository.new);
 final saleProvider = FutureProvider.autoDispose.family<Sale, String>(
   (ref, id) => ref.watch(salesRepositoryProvider).get(id),
 );
+
+typedef SalesDaysQuery = ({
+  String from,
+  String to,
+  String? pdvId,
+  String? sellerId,
+});
+
+final salesDaysProvider = FutureProvider.autoDispose
+    .family<List<SaleDay>, SalesDaysQuery>(
+      (ref, q) => ref
+          .watch(salesRepositoryProvider)
+          .days(from: q.from, to: q.to, pdvId: q.pdvId, sellerId: q.sellerId),
+    );
+
+typedef SalesOfDayQuery = ({String day, String? pdvId, String? sellerId});
+
+/// The sales of one day, opened from the overview.
+final salesOfDayProvider = FutureProvider.autoDispose
+    .family<List<Sale>, SalesOfDayQuery>(
+      (ref, q) async =>
+          (await ref
+                  .watch(salesRepositoryProvider)
+                  .list(
+                    from: q.day,
+                    to: q.day,
+                    pdvId: q.pdvId,
+                    sellerId: q.sellerId,
+                    limit: 100,
+                  ))
+              .items,
+    );

@@ -979,5 +979,45 @@
   "outOfStock": "Rupture de stock",
   "noStockHere": "Ce magasin n’a pas encore de stock",
   "noStockTitle": "Déclarer aucun stock ?",
-  "noStockBody": "BioBalance notera que ce lieu démarre vide. Le stock arrivera avec les réapprovisionnements."
+  "noStockBody": "BioBalance notera que ce lieu démarre vide. Le stock arrivera avec les réapprovisionnements.",
+  "toApprove": "À valider",
+  "attnStores": "Magasins en attente",
+  "attnGroups": "Groupes en attente",
+  "attnMembers": "Membres en attente",
+  "attnStockCounts": "Comptages de stock à vérifier",
+  "attnReceipts": "Livraisons à vérifier",
+  "attnRestockRequests": "Demandes de réapprovisionnement",
+  "stockSection": "Stock",
+  "restocksSection": "Réapprovisionnements",
+  "paymentsSection": "Paiements",
+  "runningLow": "Bientôt en rupture",
+  "orderNow": "Commander",
+  "orderQuantity": "Combien commander ?",
+  "sendOrder": "Envoyer la commande",
+  "orderSent": "Commande envoyée à BioBalance",
+  "bestStores": "Meilleurs magasins, 30 jours",
+  "bestGroups": "Meilleurs groupes, 30 jours",
+  "regionPageResponsable": "Responsable",
+  "regionGroups": "Groupes",
+  "regionStores": "Magasins",
+  "regionGrossistes": "Grossistes",
+  "regionNoResponsable": "Pas encore de responsable",
+  "rewardsHow": "Le tarif propre à un produit l’emporte toujours sur celui de sa famille. Touchez une famille ou un produit pour fixer un tarif sur une période.",
+  "noFamilyRate": "Pas de tarif famille",
+  "familyRate": "Tarif famille {amount}",
+  "@familyRate": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "ownRate": "Tarif propre",
+  "followsFamily": "Suit le tarif de la famille",
+  "noReward": "Aucune récompense",
+  "findByProduct": "Trouver une vente par produit",
+  "noSalesWithProduct": "Aucune vente ne contient ce produit",
+  "noSalesThisMonth": "Aucune vente ce mois-ci",
+  "previousMonth": "Mois précédent",
+  "nextMonth": "Mois suivant"
 }

@@ -2007,4 +2007,106 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get noStockBody =>
       'BioBalance will record that this place starts empty. Stock arrives with restocks.';
+
+  @override
+  String get toApprove => 'To approve';
+
+  @override
+  String get attnStores => 'Stores waiting';
+
+  @override
+  String get attnGroups => 'Groups waiting';
+
+  @override
+  String get attnMembers => 'Team members waiting';
+
+  @override
+  String get attnStockCounts => 'Stock counts to check';
+
+  @override
+  String get attnReceipts => 'Deliveries to check';
+
+  @override
+  String get attnRestockRequests => 'Restock requests';
+
+  @override
+  String get stockSection => 'Stock';
+
+  @override
+  String get restocksSection => 'Restocks';
+
+  @override
+  String get paymentsSection => 'Payments';
+
+  @override
+  String get runningLow => 'Running low';
+
+  @override
+  String get orderNow => 'Order';
+
+  @override
+  String get orderQuantity => 'How many to order?';
+
+  @override
+  String get sendOrder => 'Send the order';
+
+  @override
+  String get orderSent => 'Order sent to BioBalance';
+
+  @override
+  String get bestStores => 'Best stores, 30 days';
+
+  @override
+  String get bestGroups => 'Best groups, 30 days';
+
+  @override
+  String get regionPageResponsable => 'Responsable';
+
+  @override
+  String get regionGroups => 'Groups';
+
+  @override
+  String get regionStores => 'Stores';
+
+  @override
+  String get regionGrossistes => 'Grossistes';
+
+  @override
+  String get regionNoResponsable => 'No responsable yet';
+
+  @override
+  String get rewardsHow =>
+      'A product’s own rate always beats its family’s rate. Tap a family or a product to set a rate for a period.';
+
+  @override
+  String get noFamilyRate => 'No family rate';
+
+  @override
+  String familyRate(String amount) {
+    return 'Family rate $amount';
+  }
+
+  @override
+  String get ownRate => 'Own rate';
+
+  @override
+  String get followsFamily => 'Follows the family rate';
+
+  @override
+  String get noReward => 'No reward set';
+
+  @override
+  String get findByProduct => 'Find a sale by product';
+
+  @override
+  String get noSalesWithProduct => 'No sale includes this product';
+
+  @override
+  String get noSalesThisMonth => 'No sales this month';
+
+  @override
+  String get previousMonth => 'Previous month';
+
+  @override
+  String get nextMonth => 'Next month';
 }

@@ -979,5 +979,45 @@
   "outOfStock": "Out of stock",
   "noStockHere": "This store has no stock yet",
   "noStockTitle": "Declare no stock?",
-  "noStockBody": "BioBalance will record that this place starts empty. Stock arrives with restocks."
+  "noStockBody": "BioBalance will record that this place starts empty. Stock arrives with restocks.",
+  "toApprove": "To approve",
+  "attnStores": "Stores waiting",
+  "attnGroups": "Groups waiting",
+  "attnMembers": "Team members waiting",
+  "attnStockCounts": "Stock counts to check",
+  "attnReceipts": "Deliveries to check",
+  "attnRestockRequests": "Restock requests",
+  "stockSection": "Stock",
+  "restocksSection": "Restocks",
+  "paymentsSection": "Payments",
+  "runningLow": "Running low",
+  "orderNow": "Order",
+  "orderQuantity": "How many to order?",
+  "sendOrder": "Send the order",
+  "orderSent": "Order sent to BioBalance",
+  "bestStores": "Best stores, 30 days",
+  "bestGroups": "Best groups, 30 days",
+  "regionPageResponsable": "Responsable",
+  "regionGroups": "Groups",
+  "regionStores": "Stores",
+  "regionGrossistes": "Grossistes",
+  "regionNoResponsable": "No responsable yet",
+  "rewardsHow": "A product’s own rate always beats its family’s rate. Tap a family or a product to set a rate for a period.",
+  "noFamilyRate": "No family rate",
+  "familyRate": "Family rate {amount}",
+  "@familyRate": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "ownRate": "Own rate",
+  "followsFamily": "Follows the family rate",
+  "noReward": "No reward set",
+  "findByProduct": "Find a sale by product",
+  "noSalesWithProduct": "No sale includes this product",
+  "noSalesThisMonth": "No sales this month",
+  "previousMonth": "Previous month",
+  "nextMonth": "Next month"
 }

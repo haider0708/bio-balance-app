@@ -15,6 +15,7 @@ import '../../core/widgets/quantity_editor.dart';
 import '../../core/widgets/states.dart';
 import '../../l10n/app_localizations.dart';
 import '../catalog/catalog_repository.dart';
+import '../media/media_repository.dart';
 import 'rewards_models.dart';
 import 'rewards_repository.dart';
 
@@ -53,11 +54,24 @@ class RewardsScreen extends ConsumerWidget {
   }
 }
 
-class _Today extends ConsumerWidget {
+class _Today extends ConsumerStatefulWidget {
   const _Today();
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_Today> createState() => _TodayState();
+}
+
+class _TodayState extends ConsumerState<_Today> {
+  String _query = '';
+
+  Future<void> _set(RewardPreset preset) async {
+    await context.push('/rewards/new', extra: preset);
+    ref.invalidate(rewardRulesProvider);
+    ref.invalidate(effectiveRewardsProvider);
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
     final day = Dates.day(DateTime.now());
     final effective = ref.watch(effectiveRewardsProvider(day));
@@ -71,64 +85,227 @@ class _Today extends ConsumerWidget {
         message: t.noRewardsYetHint,
       ),
       builder: (list) {
+        final shown = list
+            .where(
+              (r) =>
+                  _query.isEmpty ||
+                  r.name.toLowerCase().contains(_query) ||
+                  r.family.toLowerCase().contains(_query),
+            )
+            .toList();
         final byFamily = <String, List<EffectiveReward>>{};
-        for (final r in list) {
+        for (final r in shown) {
           byFamily.putIfAbsent(r.family, () => []).add(r);
         }
         return ListView(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
           children: [
-            Text(
-              t.paysTodayHint,
-              style: context.text.bodyMedium?.copyWith(
-                color: context.status.muted,
+            AppCard(
+              color: context.colors.primaryContainer,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(LucideIcons.info, color: context.colors.primary),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      t.rewardsHow,
+                      style: context.text.bodyMedium?.copyWith(height: 1.4),
+                    ),
+                  ),
+                ],
               ),
             ),
-            for (final family in byFamily.keys.toList()..sort()) ...[
-              SectionHeader(family),
-              AppCard(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 4,
-                ),
-                child: Column(
-                  children: [
-                    for (final r in byFamily[family]!)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 10),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                r.name,
-                                style: context.text.bodyLarge,
-                              ),
-                            ),
-                            Text(
-                              r.amountMillimes == 0
-                                  ? '—'
-                                  : Money.format(
-                                      r.amountMillimes,
-                                      t.localeName,
-                                    ),
-                              style: context.text.titleSmall?.copyWith(
-                                color: r.amountMillimes == 0
-                                    ? context.status.muted
-                                    : context.colors.primary,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                  ],
-                ),
+            const Gap(12),
+            TextField(
+              decoration: InputDecoration(
+                hintText: t.searchProducts,
+                prefixIcon: const Icon(LucideIcons.search, size: 20),
               ),
-            ],
+              onChanged: (v) => setState(() => _query = v.trim().toLowerCase()),
+            ),
+            for (final family in byFamily.keys.toList()..sort())
+              _FamilyCard(
+                family: family,
+                rewards: byFamily[family]!,
+                onSetFamily: () => _set(RewardPreset.family(family)),
+                onSetProduct: (r) =>
+                    _set(RewardPreset.product(r.productId, r.name)),
+              ),
+            if (shown.isEmpty)
+              EmptyState(
+                icon: LucideIcons.packageSearch,
+                title: t.noProductsFound,
+              ),
           ],
         );
       },
     );
   }
+}
+
+class _FamilyCard extends StatelessWidget {
+  const _FamilyCard({
+    required this.family,
+    required this.rewards,
+    required this.onSetFamily,
+    required this.onSetProduct,
+  });
+
+  final String family;
+  final List<EffectiveReward> rewards;
+  final VoidCallback onSetFamily;
+  final ValueChanged<EffectiveReward> onSetProduct;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    // The family rate is what the products without their own rate earn.
+    final familyRate = rewards
+        .where((r) => r.source == RewardSource.family)
+        .map((r) => r.amountMillimes)
+        .firstOrNull;
+    return Padding(
+      padding: const EdgeInsets.only(top: 16),
+      child: AppCard(
+        padding: EdgeInsets.zero,
+        child: Column(
+          children: [
+            InkWell(
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(16),
+              ),
+              onTap: onSetFamily,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 14, 12, 14),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: context.colors.primaryContainer,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(
+                        LucideIcons.layers,
+                        size: 20,
+                        color: context.colors.primary,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(family, style: context.text.titleSmall),
+                          Text(
+                            familyRate == null
+                                ? t.noFamilyRate
+                                : t.familyRate(
+                                    Money.format(familyRate, t.localeName),
+                                  ),
+                            style: context.text.bodySmall?.copyWith(
+                              color: familyRate == null
+                                  ? context.status.warning
+                                  : context.status.muted,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Icon(
+                      LucideIcons.pencil,
+                      size: 18,
+                      color: context.status.muted,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const Divider(height: 1),
+            for (final r in rewards)
+              InkWell(
+                onTap: () => onSetProduct(r),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 10,
+                  ),
+                  child: Row(
+                    children: [
+                      AuthImage(
+                        r.imageId,
+                        width: 44,
+                        height: 44,
+                        radius: 10,
+                        placeholderIcon: LucideIcons.package,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              r.name,
+                              style: context.text.bodyMedium,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 2),
+                            switch (r.source) {
+                              RewardSource.product => StatusChip(
+                                t.ownRate,
+                                tone: Tone.success,
+                              ),
+                              RewardSource.family => Text(
+                                t.followsFamily,
+                                style: context.text.bodySmall?.copyWith(
+                                  color: context.status.muted,
+                                ),
+                              ),
+                              RewardSource.none => Text(
+                                t.noReward,
+                                style: context.text.bodySmall?.copyWith(
+                                  color: context.status.warning,
+                                ),
+                              ),
+                            },
+                          ],
+                        ),
+                      ),
+                      Text(
+                        r.source == RewardSource.none
+                            ? '—'
+                            : Money.format(r.amountMillimes, t.localeName),
+                        style: context.text.titleMedium?.copyWith(
+                          color: r.source == RewardSource.none
+                              ? context.status.muted
+                              : context.colors.primary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// A starting point for the reward form, when it is opened from a family or a product.
+class RewardPreset {
+  const RewardPreset.family(String this.family)
+    : productId = null,
+      productName = null;
+  const RewardPreset.product(String this.productId, this.productName)
+    : family = null;
+
+  final String? family;
+  final String? productId;
+  final String? productName;
 }
 
 class _Periods extends ConsumerStatefulWidget {
@@ -285,7 +462,9 @@ class _PeriodsState extends ConsumerState<_Periods> {
 
 /// Set an amount for a family or a product, for a period.
 class RewardFormScreen extends ConsumerStatefulWidget {
-  const RewardFormScreen({super.key});
+  const RewardFormScreen({this.preset, super.key});
+
+  final RewardPreset? preset;
 
   @override
   ConsumerState<RewardFormScreen> createState() => _RewardFormScreenState();
@@ -300,6 +479,18 @@ class _RewardFormScreenState extends ConsumerState<RewardFormScreen> {
   final _note = TextEditingController();
   DateTime _start = DateTime.now();
   DateTime? _end;
+
+  @override
+  void initState() {
+    super.initState();
+    final preset = widget.preset;
+    if (preset != null) {
+      _byProduct = preset.productId != null;
+      _family = preset.family;
+      _productId = preset.productId;
+      _productName = preset.productName;
+    }
+  }
 
   @override
   void dispose() {

@@ -8,7 +8,13 @@ void main() {
     final s = shots.server('ADMIN')
       ..on('GET /v1/reports/sales', {
         'rows': [
-          {'key': 'k', 'label': 'Parahouse Marsa', 'sales': 2, 'units': 210, 'rewardMillimes': 0},
+          {
+            'key': 'k',
+            'label': 'Parahouse Marsa',
+            'sales': 2,
+            'units': 210,
+            'rewardMillimes': 0,
+          },
         ],
         'totals': {'sales': 2, 'units': 210, 'rewardMillimes': 0},
       });

@@ -2015,4 +2015,106 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get noStockBody =>
       'BioBalance notera que ce lieu démarre vide. Le stock arrivera avec les réapprovisionnements.';
+
+  @override
+  String get toApprove => 'À valider';
+
+  @override
+  String get attnStores => 'Magasins en attente';
+
+  @override
+  String get attnGroups => 'Groupes en attente';
+
+  @override
+  String get attnMembers => 'Membres en attente';
+
+  @override
+  String get attnStockCounts => 'Comptages de stock à vérifier';
+
+  @override
+  String get attnReceipts => 'Livraisons à vérifier';
+
+  @override
+  String get attnRestockRequests => 'Demandes de réapprovisionnement';
+
+  @override
+  String get stockSection => 'Stock';
+
+  @override
+  String get restocksSection => 'Réapprovisionnements';
+
+  @override
+  String get paymentsSection => 'Paiements';
+
+  @override
+  String get runningLow => 'Bientôt en rupture';
+
+  @override
+  String get orderNow => 'Commander';
+
+  @override
+  String get orderQuantity => 'Combien commander ?';
+
+  @override
+  String get sendOrder => 'Envoyer la commande';
+
+  @override
+  String get orderSent => 'Commande envoyée à BioBalance';
+
+  @override
+  String get bestStores => 'Meilleurs magasins, 30 jours';
+
+  @override
+  String get bestGroups => 'Meilleurs groupes, 30 jours';
+
+  @override
+  String get regionPageResponsable => 'Responsable';
+
+  @override
+  String get regionGroups => 'Groupes';
+
+  @override
+  String get regionStores => 'Magasins';
+
+  @override
+  String get regionGrossistes => 'Grossistes';
+
+  @override
+  String get regionNoResponsable => 'Pas encore de responsable';
+
+  @override
+  String get rewardsHow =>
+      'Le tarif propre à un produit l’emporte toujours sur celui de sa famille. Touchez une famille ou un produit pour fixer un tarif sur une période.';
+
+  @override
+  String get noFamilyRate => 'Pas de tarif famille';
+
+  @override
+  String familyRate(String amount) {
+    return 'Tarif famille $amount';
+  }
+
+  @override
+  String get ownRate => 'Tarif propre';
+
+  @override
+  String get followsFamily => 'Suit le tarif de la famille';
+
+  @override
+  String get noReward => 'Aucune récompense';
+
+  @override
+  String get findByProduct => 'Trouver une vente par produit';
+
+  @override
+  String get noSalesWithProduct => 'Aucune vente ne contient ce produit';
+
+  @override
+  String get noSalesThisMonth => 'Aucune vente ce mois-ci';
+
+  @override
+  String get previousMonth => 'Mois précédent';
+
+  @override
+  String get nextMonth => 'Mois suivant';
 }

@@ -17,6 +17,9 @@ class Dates {
   static String dateTime(DateTime date, String locale) =>
       DateFormat.yMMMd(locale).add_Hm().format(date);
 
+  static String monthYear(DateTime date, String locale) =>
+      DateFormat.yMMMM(locale).format(date);
+
   static String time(DateTime date, String locale) =>
       DateFormat.Hm(locale).format(date);
 
