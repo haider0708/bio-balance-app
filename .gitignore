@@ -41,3 +41,7 @@ apps/mobile/ios/Flutter/AccountLinks.xcconfig
 *.p8
 
 .monitor/
+
+# Admin setup file created by the bootstrap command (password and authenticator link).
+infrastructure/production/setup/
+.volumes/

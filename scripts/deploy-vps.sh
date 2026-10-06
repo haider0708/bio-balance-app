@@ -29,7 +29,7 @@ previous=$(ssh "$host" "sudo grep '^API_IMAGE=' /etc/biobalance/backend.env | cu
 ssh "$host" "echo '$previous' | sudo tee /etc/biobalance/previous-image >/dev/null; sudo sed -i 's|^API_IMAGE=.*|API_IMAGE=biobalance-api:$sha|' /etc/biobalance/backend.env"
 
 echo "== Applying migrations"
-ssh "$host" "sudo biobalance-compose run --rm migrate"
+ssh "$host" "sudo biobalance-compose run --rm migrate && sudo /opt/biobalance/scripts/provision-role-vps.sh"
 
 echo "== Restarting"
 ssh "$host" "sudo biobalance-compose up -d --remove-orphans && sudo biobalance-compose up -d --force-recreate nginx"
