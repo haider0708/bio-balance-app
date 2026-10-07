@@ -19,15 +19,8 @@ with tarfile.open(sys.argv[1]) as archive:
     archive.extractall(sys.argv[2],filter='data')
 PY
 "${compose[@]}" exec -T postgres psql -U "$restore_owner" -d "$restore_database" -v ON_ERROR_STOP=1 -At > "$restore_media/references.jsonl" <<'SQL'
-SELECT json_build_object('path',path,'size',"processedSize"::text,'sha256',sha256) FROM "MediaAsset" WHERE status='ready';
+SELECT json_build_object('path',path,'size',size::text,'sha256',sha256) FROM "MediaAsset";
 SQL
-# Older backup schemas predate thumbnails; keep their restore path valid.
-has_thumbnails=$("${compose[@]}" exec -T postgres psql -U "$restore_owner" -d "$restore_database" -At -c "SELECT EXISTS(SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='MediaAsset' AND column_name='thumbnailPath')" </dev/null)
-if [[ "$has_thumbnails" == t ]]; then
-  "${compose[@]}" exec -T postgres psql -U "$restore_owner" -d "$restore_database" -v ON_ERROR_STOP=1 -At >> "$restore_media/references.jsonl" <<'SQL'
-SELECT json_build_object('path',"thumbnailPath",'size',"thumbnailSize"::text,'sha256',"thumbnailSha256") FROM "MediaAsset" WHERE status='ready' AND "thumbnailPath" IS NOT NULL;
-SQL
-fi
 python3 - "$restore_media" <<'PYVERIFY'
 import sys,json,pathlib,hashlib,re
 root=pathlib.Path(sys.argv[1]);count=0
@@ -45,7 +38,7 @@ for line in (root/'references.jsonl').read_text().splitlines():
         for chunk in iter(lambda:source.read(1024*1024),b''):digest.update(chunk)
     if digest.hexdigest()!=row['sha256']:raise SystemExit('Restored media checksum mismatch: '+name)
     count+=1
-print(f'PASS: {count} processed media files match database size and SHA-256')
+print(f'PASS: {count} media files match database size and SHA-256')
 PYVERIFY
 "${compose[@]}" exec -T postgres psql -U "$restore_owner" -d "$restore_database" -v ON_ERROR_STOP=1 -c 'SELECT count(*) AS users FROM "User"; SELECT count(*) AS pdvs FROM "Pdv"; SELECT count(*) AS sales FROM "Sale"; SELECT count(*) AS movements FROM "StockMovement";' </dev/null
 printf 'Restore verified: database=%s media=%s\n' "$restore_database" "$restore_media"
