@@ -4,17 +4,14 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../l10n/app_localizations.dart';
 import '../theme/app_theme.dart';
 import 'async_body.dart';
+import 'components.dart';
 
 class LoadingState extends StatelessWidget {
   const LoadingState({super.key});
 
   @override
-  Widget build(BuildContext context) => const Center(
-    child: Padding(
-      padding: EdgeInsets.all(32),
-      child: CircularProgressIndicator(),
-    ),
-  );
+  Widget build(BuildContext context) =>
+      const SizedBox(height: 520, child: Skeleton());
 }
 
 class EmptyState extends StatelessWidget {
@@ -40,13 +37,18 @@ class EmptyState extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width: 72,
-              height: 72,
+              width: 84,
+              height: 84,
               decoration: BoxDecoration(
-                color: context.colors.primaryContainer,
                 shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    context.colors.primaryContainer,
+                    context.colors.primaryContainer.withValues(alpha: 0.2),
+                  ],
+                ),
               ),
-              child: Icon(icon, size: 32, color: context.colors.primary),
+              child: Icon(icon, size: 34, color: context.colors.primary),
             ),
             const SizedBox(height: 20),
             Text(

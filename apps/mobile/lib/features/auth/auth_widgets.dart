@@ -25,46 +25,58 @@ class AuthScaffold extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final glow = context.status.glow;
     return Scaffold(
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
+        backgroundColor: Colors.transparent,
         leading: showBack ? const BackButton() : null,
         actions: const [
           Padding(padding: EdgeInsets.only(right: 12), child: LanguageToggle()),
         ],
       ),
-      body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(24, 8, 24, 32),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 440),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Center(
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(18),
-                      child: Image.asset(
-                        'assets/brand/biobalance-logo.jpg',
-                        height: 76,
-                        fit: BoxFit.contain,
+      body: DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.center,
+            colors: [glow, glow.withValues(alpha: 0)],
+          ),
+        ),
+        child: SafeArea(
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(24, 8, 24, 32),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 440),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Center(
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(18),
+                        child: Image.asset(
+                          'assets/brand/biobalance-logo.jpg',
+                          height: 76,
+                          fit: BoxFit.contain,
+                        ),
                       ),
                     ),
-                  ),
-                  const Gap(28),
-                  Text(title, style: context.text.headlineMedium),
-                  if (subtitle != null) ...[
-                    const Gap(8),
-                    Text(
-                      subtitle!,
-                      style: context.text.bodyLarge?.copyWith(
-                        color: context.status.muted,
+                    const Gap(28),
+                    Text(title, style: context.text.headlineMedium),
+                    if (subtitle != null) ...[
+                      const Gap(8),
+                      Text(
+                        subtitle!,
+                        style: context.text.bodyLarge?.copyWith(
+                          color: context.status.muted,
+                        ),
                       ),
-                    ),
+                    ],
+                    const Gap(28),
+                    ...children,
                   ],
-                  const Gap(28),
-                  ...children,
-                ],
+                ),
               ),
             ),
           ),

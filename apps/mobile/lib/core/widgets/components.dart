@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../theme/app_theme.dart';
 
-/// A white rounded panel. Tappable when [onTap] is set.
-class AppCard extends StatelessWidget {
+/// The basic surface: a rounded card with a hairline and a soft shadow. When it can be
+/// tapped it sinks a little under the finger.
+class AppCard extends StatefulWidget {
   const AppCard({
     required this.child,
     this.onTap,
@@ -20,24 +21,88 @@ class AppCard extends StatelessWidget {
   final Color? borderColor;
 
   @override
+  State<AppCard> createState() => _AppCardState();
+}
+
+class _AppCardState extends State<AppCard> {
+  bool _down = false;
+
+  void _press(bool down) {
+    if (widget.onTap != null && _down != down) setState(() => _down = down);
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final card = Card(
-      color: color,
-      shape: borderColor == null
-          ? null
-          : RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14),
-              side: BorderSide(color: borderColor!),
-            ),
-      child: Padding(padding: padding, child: child),
+    final s = context.status;
+    final radius = BorderRadius.circular(AppTheme.radius);
+    final flat = widget.color != null;
+    final card = AnimatedContainer(
+      duration: const Duration(milliseconds: 160),
+      curve: Curves.easeOut,
+      decoration: BoxDecoration(
+        color: widget.color ?? s.card,
+        borderRadius: radius,
+        border: Border.all(color: widget.borderColor ?? s.hairline),
+        boxShadow: flat
+            ? null
+            : [
+                BoxShadow(
+                  color: s.shadow,
+                  blurRadius: _down ? 6 : 18,
+                  offset: Offset(0, _down ? 1 : 5),
+                ),
+              ],
+      ),
+      child: Material(
+        type: MaterialType.transparency,
+        child: InkWell(
+          borderRadius: radius,
+          onTap: widget.onTap,
+          onHighlightChanged: _press,
+          child: Padding(padding: widget.padding, child: widget.child),
+        ),
+      ),
     );
-    if (onTap == null) return card;
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(14),
-        onTap: onTap,
-        child: card,
+    if (widget.onTap == null) return card;
+    return AnimatedScale(
+      scale: _down ? 0.985 : 1,
+      duration: const Duration(milliseconds: 140),
+      curve: Curves.easeOut,
+      child: card,
+    );
+  }
+}
+
+/// A square badge holding an icon, tinted by tone (or filled with the brand gradient).
+class IconBadge extends StatelessWidget {
+  const IconBadge(
+    this.icon, {
+    this.tone = Tone.neutral,
+    this.size = 40,
+    this.gradient = false,
+    super.key,
+  });
+
+  final IconData icon;
+  final Tone tone;
+  final double size;
+  final bool gradient;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = tone.colors(context);
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        color: gradient ? null : c.soft,
+        gradient: gradient ? context.status.gradient : null,
+        borderRadius: BorderRadius.circular(size * 0.32),
+      ),
+      child: Icon(
+        icon,
+        size: size * 0.5,
+        color: gradient ? context.colors.onPrimary : c.strong,
       ),
     );
   }
@@ -53,10 +118,18 @@ class SectionHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: padding ?? const EdgeInsets.fromLTRB(4, 24, 4, 10),
+      padding: padding ?? const EdgeInsets.fromLTRB(4, 26, 4, 12),
       child: Row(
         children: [
-          Expanded(child: Text(title, style: context.text.titleMedium)),
+          Expanded(
+            child: Text(
+              title,
+              style: context.text.titleMedium?.copyWith(
+                fontWeight: FontWeight.w800,
+                letterSpacing: -0.2,
+              ),
+            ),
+          ),
           ?trailing,
         ],
       ),
@@ -88,7 +161,7 @@ class StatTile extends StatelessWidget {
     final colors = tone.colors(context);
     return AppCard(
       onTap: onTap,
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
@@ -96,15 +169,8 @@ class StatTile extends StatelessWidget {
           Row(
             children: [
               if (icon != null) ...[
-                Container(
-                  padding: const EdgeInsets.all(6),
-                  decoration: BoxDecoration(
-                    color: colors.soft,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Icon(icon, size: 16, color: colors.strong),
-                ),
-                const SizedBox(width: 8),
+                IconBadge(icon!, tone: tone, size: 30),
+                const SizedBox(width: 10),
               ],
               Expanded(
                 child: Text(
@@ -118,14 +184,15 @@ class StatTile extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 12),
           FittedBox(
             fit: BoxFit.scaleDown,
             alignment: AlignmentDirectional.centerStart,
-            child: Text(
+            child: CountUpText(
               value,
               style: context.text.headlineSmall?.copyWith(
                 color: tone == Tone.neutral ? null : colors.strong,
+                fontFeatures: const [FontFeature.tabularFigures()],
               ),
             ),
           ),
@@ -182,7 +249,7 @@ class StatusChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = tone.colors(context);
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
         color: c.soft,
         borderRadius: BorderRadius.circular(999),
@@ -193,6 +260,16 @@ class StatusChip extends StatelessWidget {
           if (icon != null) ...[
             Icon(icon, size: 13, color: c.strong),
             const SizedBox(width: 4),
+          ] else ...[
+            Container(
+              width: 6,
+              height: 6,
+              decoration: BoxDecoration(
+                color: c.strong,
+                shape: BoxShape.circle,
+              ),
+            ),
+            const SizedBox(width: 6),
           ],
           Flexible(
             child: Text(
@@ -230,11 +307,15 @@ class Avatar extends StatelessWidget {
       width: size,
       height: size,
       alignment: Alignment.center,
-      decoration: BoxDecoration(color: c.soft, shape: BoxShape.circle),
+      decoration: BoxDecoration(
+        color: tone == Tone.neutral ? null : c.soft,
+        gradient: tone == Tone.neutral ? context.status.gradient : null,
+        shape: BoxShape.circle,
+      ),
       child: Text(
         initials,
         style: TextStyle(
-          color: c.strong,
+          color: tone == Tone.neutral ? context.colors.onPrimary : c.strong,
           fontWeight: FontWeight.w700,
           fontSize: size * 0.36,
         ),
@@ -373,4 +454,120 @@ class Gap extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => SizedBox(height: size, width: size);
+}
+
+/// Text that counts up to its number the first time it appears ("1 240 units", "45.500 TND").
+/// Anything without digits is shown as is.
+class CountUpText extends StatelessWidget {
+  const CountUpText(this.text, {this.style, super.key});
+
+  final String text;
+  final TextStyle? style;
+
+  static final _number = RegExp(r'\d[\d\s.,]*');
+
+  @override
+  Widget build(BuildContext context) {
+    final match = _number.firstMatch(text);
+    if (match == null || MediaQuery.of(context).disableAnimations) {
+      return Text(text, style: style);
+    }
+    final raw = match.group(0)!;
+    final digits = raw.replaceAll(RegExp(r'[^\d]'), '');
+    final target = int.tryParse(digits);
+    if (target == null || target == 0 || digits.length > 12) {
+      return Text(text, style: style);
+    }
+    return TweenAnimationBuilder<double>(
+      key: ValueKey(text),
+      tween: Tween(begin: 0, end: 1),
+      duration: const Duration(milliseconds: 900),
+      curve: Curves.easeOutCubic,
+      builder: (context, v, _) {
+        if (v >= 1) return Text(text, style: style);
+        // Rebuild the number with the same separators, digit by digit.
+        final now = (target * v).round().toString().padLeft(digits.length, '0');
+        var i = 0;
+        final shown = raw.split('').map((ch) {
+          if (RegExp(r'\d').hasMatch(ch)) return now[i++];
+          return ch;
+        }).join();
+        final trimmed = shown.replaceFirst(RegExp(r'^[0\s.,]+(?=\d)'), '');
+        return Text(text.replaceFirst(raw, trimmed), style: style);
+      },
+    );
+  }
+}
+
+/// Grey blocks that pulse while a screen loads: the layout appears before the data.
+class Skeleton extends StatefulWidget {
+  const Skeleton({this.rows = 5, super.key});
+
+  final int rows;
+
+  @override
+  State<Skeleton> createState() => _SkeletonState();
+}
+
+class _SkeletonState extends State<Skeleton>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _pulse = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1100),
+  )..repeat(reverse: true);
+
+  @override
+  void dispose() {
+    _pulse.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final s = context.status;
+    Widget block(double h, {double? w}) => Container(
+      height: h,
+      width: w,
+      decoration: BoxDecoration(
+        color: s.mutedSoft,
+        borderRadius: BorderRadius.circular(12),
+      ),
+    );
+    return FadeTransition(
+      opacity: Tween(begin: 0.45, end: 1.0).animate(_pulse),
+      child: ListView(
+        physics: const NeverScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+        children: [
+          Row(
+            children: [
+              Expanded(child: block(96)),
+              const SizedBox(width: 12),
+              Expanded(child: block(96)),
+            ],
+          ),
+          const SizedBox(height: 20),
+          for (var i = 0; i < widget.rows; i++) ...[
+            Row(
+              children: [
+                block(48, w: 48),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      block(14, w: 180),
+                      const SizedBox(height: 8),
+                      block(12, w: 110),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 18),
+          ],
+        ],
+      ),
+    );
+  }
 }

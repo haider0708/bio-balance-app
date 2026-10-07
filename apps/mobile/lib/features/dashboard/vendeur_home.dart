@@ -168,51 +168,85 @@ class _TodayCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(22),
+      clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            context.colors.primary,
-            Color.lerp(context.colors.primary, Palette.leaf, 0.5)!,
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(20),
+        gradient: context.status.gradient,
+        borderRadius: BorderRadius.circular(26),
+        boxShadow: [
+          BoxShadow(
+            color: context.colors.primary.withValues(alpha: 0.25),
+            blurRadius: 24,
+            offset: const Offset(0, 10),
+          ),
+        ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Stack(
+        clipBehavior: Clip.none,
         children: [
-          Text(
-            t.earnedToday,
-            style: TextStyle(
-              color: context.colors.onPrimary.withValues(alpha: 0.85),
-              fontWeight: FontWeight.w600,
-            ),
+          // Two faint rings: depth without noise.
+          Positioned(
+            right: -70,
+            top: -80,
+            child: _Ring(size: 200, color: context.colors.onPrimary),
           ),
-          const Gap(6),
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Text(
-              Money.format(wallet.today.rewardMillimes, t.localeName),
-              style: context.text.displaySmall?.copyWith(
-                color: context.colors.onPrimary,
-                fontWeight: FontWeight.w800,
-                letterSpacing: -0.5,
+          Positioned(
+            right: 30,
+            bottom: -90,
+            child: _Ring(size: 140, color: context.colors.onPrimary),
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                t.earnedToday,
+                style: TextStyle(
+                  color: context.colors.onPrimary.withValues(alpha: 0.85),
+                  fontWeight: FontWeight.w600,
+                ),
               ),
-            ),
-          ),
-          const Gap(6),
-          Text(
-            '${t.salesCount(wallet.today.sales)} · ${t.units(wallet.today.units)}',
-            style: TextStyle(
-              color: context.colors.onPrimary.withValues(alpha: 0.9),
-            ),
+              const Gap(6),
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                child: CountUpText(
+                  Money.format(wallet.today.rewardMillimes, t.localeName),
+                  style: context.text.displaySmall?.copyWith(
+                    color: context.colors.onPrimary,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.5,
+                  ),
+                ),
+              ),
+              const Gap(6),
+              Text(
+                '${t.salesCount(wallet.today.sales)} · ${t.units(wallet.today.units)}',
+                style: TextStyle(
+                  color: context.colors.onPrimary.withValues(alpha: 0.9),
+                ),
+              ),
+            ],
           ),
         ],
       ),
     );
   }
+}
+
+class _Ring extends StatelessWidget {
+  const _Ring({required this.size, required this.color});
+
+  final double size;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    width: size,
+    height: size,
+    decoration: BoxDecoration(
+      shape: BoxShape.circle,
+      border: Border.all(color: color.withValues(alpha: 0.12), width: 18),
+    ),
+  );
 }
 
 class _Banner extends StatelessWidget {

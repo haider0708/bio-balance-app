@@ -279,7 +279,7 @@ class _ProductTile extends StatelessWidget {
                 width: 44,
                 height: 44,
                 decoration: BoxDecoration(
-                  color: context.colors.primary,
+                  gradient: context.status.gradient,
                   borderRadius: BorderRadius.circular(14),
                 ),
                 child: Icon(LucideIcons.plus, color: context.colors.onPrimary),

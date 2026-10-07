@@ -57,18 +57,7 @@ class DepotsScreen extends ConsumerWidget {
                     : context.push('/stock/${d.id}', extra: d.name),
                 child: Row(
                   children: [
-                    Container(
-                      width: 44,
-                      height: 44,
-                      decoration: BoxDecoration(
-                        color: context.colors.primaryContainer,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Icon(
-                        LucideIcons.warehouse,
-                        color: context.colors.primary,
-                      ),
-                    ),
+                    const IconBadge(LucideIcons.warehouse, size: 44),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Column(

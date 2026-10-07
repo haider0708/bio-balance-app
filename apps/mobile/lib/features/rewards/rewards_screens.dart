@@ -163,19 +163,7 @@ class _FamilyCard extends StatelessWidget {
                 padding: const EdgeInsets.fromLTRB(16, 14, 12, 14),
                 child: Row(
                   children: [
-                    Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: context.colors.primaryContainer,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Icon(
-                        LucideIcons.layers,
-                        size: 20,
-                        color: context.colors.primary,
-                      ),
-                    ),
+                    const IconBadge(LucideIcons.layers, size: 40),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Column(
@@ -339,19 +327,11 @@ class _PeriodsState extends ConsumerState<_Periods> {
                     children: [
                       Row(
                         children: [
-                          Container(
-                            width: 44,
-                            height: 44,
-                            decoration: BoxDecoration(
-                              color: context.colors.primaryContainer,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Icon(
-                              r.byProduct
-                                  ? LucideIcons.package
-                                  : LucideIcons.layers,
-                              color: context.colors.primary,
-                            ),
+                          IconBadge(
+                            r.byProduct
+                                ? LucideIcons.package
+                                : LucideIcons.layers,
+                            size: 44,
                           ),
                           const SizedBox(width: 12),
                           Expanded(

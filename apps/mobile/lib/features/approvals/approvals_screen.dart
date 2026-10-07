@@ -218,15 +218,7 @@ class _ApprovalTile extends ConsumerWidget {
       onTap: () => _open(context, ref),
       child: Row(
         children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: context.colors.primaryContainer,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(_typeIcon(item.type), color: context.colors.primary),
-          ),
+          IconBadge(_typeIcon(item.type), size: 44),
           const SizedBox(width: 12),
           Expanded(
             child: Column(

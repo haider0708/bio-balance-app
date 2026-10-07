@@ -420,40 +420,63 @@ class _Hero extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final fg = highlight ? context.colors.onPrimary : context.colors.primary;
-    return Material(
-      color: highlight
-          ? context.colors.primary
-          : context.colors.primaryContainer,
-      borderRadius: BorderRadius.circular(18),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(18),
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(18),
-          child: Row(
-            children: [
-              Icon(icon, size: 30, color: fg),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: context.text.titleMedium?.copyWith(color: fg),
-                    ),
-                    if (subtitle.isNotEmpty)
-                      Text(
-                        subtitle,
-                        style: context.text.bodySmall?.copyWith(
-                          color: fg.withValues(alpha: 0.85),
-                        ),
-                      ),
-                  ],
+    return Container(
+      decoration: BoxDecoration(
+        gradient: highlight ? context.status.gradient : null,
+        color: highlight ? null : context.colors.primaryContainer,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: highlight
+            ? [
+                BoxShadow(
+                  color: context.colors.primary.withValues(alpha: 0.28),
+                  blurRadius: 24,
+                  offset: const Offset(0, 10),
                 ),
-              ),
-              Icon(LucideIcons.chevronRight, color: fg),
-            ],
+              ]
+            : null,
+      ),
+      child: Material(
+        type: MaterialType.transparency,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(24),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Row(
+              children: [
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: fg.withValues(alpha: 0.16),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Icon(icon, size: 26, color: fg),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: context.text.titleMedium?.copyWith(color: fg),
+                      ),
+                      if (subtitle.isNotEmpty) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          subtitle,
+                          style: context.text.bodySmall?.copyWith(
+                            color: fg.withValues(alpha: 0.88),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                Icon(LucideIcons.arrowRight, color: fg),
+              ],
+            ),
           ),
         ),
       ),
