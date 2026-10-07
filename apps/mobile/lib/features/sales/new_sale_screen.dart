@@ -60,6 +60,10 @@ class _NewSaleScreenState extends ConsumerState<NewSaleScreen> {
       showMessage(context, t.barcodeUnknown, error: true);
       return;
     }
+    if (_most(match.id) <= 0) {
+      showMessage(context, t.outOfStockName(match.name), error: true);
+      return;
+    }
     _set(match, (_cart[match.id] ?? 0) + 1);
     showMessage(context, t.addedToSale(match.name));
   }
@@ -111,7 +115,9 @@ class _NewSaleScreenState extends ConsumerState<NewSaleScreen> {
             ? const AsyncLoading<List<Product>>()
             : products,
         onRetry: () => ref.invalidate(productsProvider),
-        builder: (all) {
+        builder: (everything) {
+          // Only what the store holds can be sold, so only that is shown.
+          final all = everything.where((p) => _most(p.id) > 0).toList();
           final families = {for (final p in all) p.family}.toList()..sort();
           final shown = all
               .where((p) => _family == null || p.family == _family)
@@ -166,7 +172,10 @@ class _NewSaleScreenState extends ConsumerState<NewSaleScreen> {
                 child: shown.isEmpty
                     ? EmptyState(
                         icon: LucideIcons.packageSearch,
-                        title: t.noProductsFound,
+                        title: all.isEmpty
+                            ? t.nothingInStock
+                            : t.noProductsFound,
+                        message: all.isEmpty ? t.nothingInStockHint : null,
                       )
                     : ListView.separated(
                         padding: const EdgeInsets.fromLTRB(16, 8, 16, 120),

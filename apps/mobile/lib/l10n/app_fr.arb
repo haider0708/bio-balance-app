@@ -1068,5 +1068,15 @@
   "approveRecountTitle": "Autoriser un nouveau comptage ?",
   "allowRecount": "Autoriser",
   "recountReasonLabel": "Motif indiqué",
-  "grossisteHandledBy": "Ce grossiste est suivi par le responsable de la région : il vérifie les comptages et les photos avant l’approbation de l’admin."
+  "grossisteHandledBy": "Ce grossiste est suivi par le responsable de la région : il vérifie les comptages et les photos avant l’approbation de l’admin.",
+  "outOfStockName": "{name} est en rupture de stock",
+  "@outOfStockName": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "nothingInStock": "Rien en stock",
+  "nothingInStockHint": "Demandez à votre responsable de réapprovisionner le magasin."
 }

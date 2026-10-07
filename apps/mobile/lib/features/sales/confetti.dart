@@ -122,3 +122,107 @@ class _ConfettiPainter extends CustomPainter {
   @override
   bool shouldRepaint(_ConfettiPainter old) => old.t != t;
 }
+
+/// Gold coins falling from the top while the reward counts up. Decorative, ignores taps.
+class CoinRain extends StatefulWidget {
+  const CoinRain({super.key});
+
+  @override
+  State<CoinRain> createState() => _CoinRainState();
+}
+
+class _CoinRainState extends State<CoinRain>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 3400),
+  )..forward();
+  late final List<
+    ({double x, double delay, double speed, double size, double spin})
+  >
+  _coins = () {
+    final random = Random(11);
+    return List.generate(
+      18,
+      (_) => (
+        x: random.nextDouble(),
+        delay: random.nextDouble() * 0.45,
+        speed: 0.75 + random.nextDouble() * 0.5,
+        size: 18 + random.nextDouble() * 12,
+        spin: 2 + random.nextDouble() * 4,
+      ),
+    );
+  }();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (MediaQuery.of(context).disableAnimations)
+      return const SizedBox.shrink();
+    return IgnorePointer(
+      child: LayoutBuilder(
+        builder: (context, box) => AnimatedBuilder(
+          animation: _controller,
+          builder: (context, _) => Stack(
+            children: [
+              for (final c in _coins)
+                Builder(
+                  builder: (context) {
+                    final t = ((_controller.value - c.delay) / (1 - c.delay))
+                        .clamp(0.0, 1.0);
+                    if (t == 0 || t == 1) return const SizedBox.shrink();
+                    final y =
+                        -40 + (box.maxHeight + 80) * pow(t, 1.4) * c.speed;
+                    final flip = cos(t * c.spin * pi).abs().clamp(0.15, 1.0);
+                    return Positioned(
+                      left: c.x * (box.maxWidth - c.size),
+                      top: y,
+                      child: Opacity(
+                        opacity: (1 - pow(t, 6)).toDouble(),
+                        child: Transform(
+                          alignment: Alignment.center,
+                          transform: Matrix4.diagonal3Values(flip, 1, 1),
+                          child: Container(
+                            width: c.size,
+                            height: c.size,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              gradient: const RadialGradient(
+                                colors: [Color(0xFFFFE08A), Color(0xFFE5A800)],
+                              ),
+                              border: Border.all(
+                                color: const Color(0xFFB88200),
+                                width: 1.5,
+                              ),
+                            ),
+                            child: Center(
+                              child: Container(
+                                width: c.size * 0.5,
+                                height: c.size * 0.5,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: const Color(0xFFB88200),
+                                    width: 1.2,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}

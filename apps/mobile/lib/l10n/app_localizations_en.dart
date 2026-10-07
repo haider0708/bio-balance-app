@@ -2216,4 +2216,15 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get grossisteHandledBy =>
       'This grossiste is looked after by the responsable of the region: they check the stock counts and photos before the admin approves.';
+
+  @override
+  String outOfStockName(String name) {
+    return '$name is out of stock';
+  }
+
+  @override
+  String get nothingInStock => 'Nothing in stock';
+
+  @override
+  String get nothingInStockHint => 'Ask your responsable to restock the store.';
 }

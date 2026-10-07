@@ -1068,5 +1068,15 @@
   "approveRecountTitle": "Allow a recount?",
   "allowRecount": "Allow",
   "recountReasonLabel": "Reason given",
-  "grossisteHandledBy": "This grossiste is looked after by the responsable of the region: they check the stock counts and photos before the admin approves."
+  "grossisteHandledBy": "This grossiste is looked after by the responsable of the region: they check the stock counts and photos before the admin approves.",
+  "outOfStockName": "{name} is out of stock",
+  "@outOfStockName": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "nothingInStock": "Nothing in stock",
+  "nothingInStockHint": "Ask your responsable to restock the store."
 }

@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
@@ -22,10 +25,32 @@ class CelebrationScreen extends StatefulWidget {
 }
 
 class _CelebrationScreenState extends State<CelebrationScreen> {
+  Timer? _ticks;
+
   @override
   void initState() {
     super.initState();
     HapticFeedback.mediumImpact();
+    // Light ticks while the amount counts up, then a firm one when it lands.
+    final outcome = widget.outcome;
+    if (outcome is SaleRecorded && outcome.sale.rewardMillimes > 0) {
+      var n = 0;
+      _ticks = Timer.periodic(const Duration(milliseconds: 140), (timer) {
+        n++;
+        if (n < 8) {
+          HapticFeedback.selectionClick();
+        } else {
+          HapticFeedback.heavyImpact();
+          timer.cancel();
+        }
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _ticks?.cancel();
+    super.dispose();
   }
 
   @override
@@ -66,6 +91,7 @@ class _Recorded extends StatelessWidget {
               ),
             ),
           ),
+          if (earned) const Positioned.fill(child: CoinRain()),
           if (earned)
             Positioned.fill(
               child: ConfettiBurst(
@@ -145,17 +171,59 @@ class _Recorded extends StatelessWidget {
                           liveRegion: true,
                           label: Money.format(sale.rewardMillimes, locale),
                           child: ExcludeSemantics(
-                            child: Text(
-                              '+ ${Money.format(v, locale)}',
-                              style: context.text.displayMedium?.copyWith(
-                                color: context.colors.primary,
-                                fontWeight: FontWeight.w800,
-                                letterSpacing: -1,
+                            // The number swells a little when it lands.
+                            child: Transform.scale(
+                              scale: v == sale.rewardMillimes
+                                  ? 1.0
+                                  : 1 +
+                                        0.1 *
+                                            sin(
+                                              pi *
+                                                  (v / sale.rewardMillimes)
+                                                      .clamp(0.0, 1.0),
+                                            ),
+                              child: Text(
+                                '+ ${Money.format(v, locale)}',
+                                style: context.text.displayMedium?.copyWith(
+                                  color: context.colors.primary,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: -1,
+                                ),
                               ),
                             ),
                           ),
                         ),
                       ),
+                      const Gap(14),
+                      for (var i = 0; i < sale.lines.length; i++)
+                        if (sale.lines[i].rewardMillimes > 0)
+                          _Pop(
+                            delay: Duration(milliseconds: 700 + i * 220),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 3),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Flexible(
+                                    child: Text(
+                                      '${sale.lines[i].name} × ${sale.lines[i].quantity}',
+                                      overflow: TextOverflow.ellipsis,
+                                      style: context.text.bodyMedium?.copyWith(
+                                        color: context.status.muted,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Text(
+                                    '+ ${Money.format(sale.lines[i].rewardMillimes, locale)}',
+                                    style: context.text.titleSmall?.copyWith(
+                                      color: context.colors.primary,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
                     ],
                     const Gap(24),
                     if (wallet != null)
@@ -267,5 +335,47 @@ class _Fill extends StatelessWidget {
   @override
   Widget build(BuildContext context) => CustomScrollView(
     slivers: [SliverFillRemaining(hasScrollBody: false, child: child)],
+  );
+}
+
+/// Slides and fades its child in after a short delay, for lines that appear one by one.
+class _Pop extends StatefulWidget {
+  const _Pop({required this.delay, required this.child});
+
+  final Duration delay;
+  final Widget child;
+
+  @override
+  State<_Pop> createState() => _PopState();
+}
+
+class _PopState extends State<_Pop> {
+  bool _shown = false;
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _timer = Timer(widget.delay, () {
+      if (mounted) setState(() => _shown = true);
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => AnimatedSlide(
+    duration: const Duration(milliseconds: 380),
+    curve: Curves.easeOutBack,
+    offset: _shown ? Offset.zero : const Offset(0, 0.6),
+    child: AnimatedOpacity(
+      duration: const Duration(milliseconds: 300),
+      opacity: _shown ? 1 : 0,
+      child: widget.child,
+    ),
   );
 }

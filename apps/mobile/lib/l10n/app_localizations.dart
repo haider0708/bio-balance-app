@@ -3865,6 +3865,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'This grossiste is looked after by the responsable of the region: they check the stock counts and photos before the admin approves.'**
   String get grossisteHandledBy;
+
+  /// No description provided for @outOfStockName.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} is out of stock'**
+  String outOfStockName(String name);
+
+  /// No description provided for @nothingInStock.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing in stock'**
+  String get nothingInStock;
+
+  /// No description provided for @nothingInStockHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask your responsable to restock the store.'**
+  String get nothingInStockHint;
 }
 
 class _AppLocalizationsDelegate
