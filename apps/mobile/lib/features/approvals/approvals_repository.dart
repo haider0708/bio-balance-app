@@ -11,7 +11,8 @@ enum ApprovalType {
   stock('STOCK'),
   receipt('RECEIPT'),
   restockRequest('RESTOCK_REQUEST'),
-  payout('PAYOUT');
+  payout('PAYOUT'),
+  recount('RECOUNT');
 
   const ApprovalType(this.wire);
   final String wire;

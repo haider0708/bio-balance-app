@@ -458,3 +458,189 @@ describe("several photos", () => {
     }
   });
 });
+
+describe("the grossiste's count goes through the responsable", () => {
+  const count = async (photoIds: string[]) => ({
+    locationId: w.depotId,
+    photoIds,
+    lines: [{ productId: w.products[0]!.id, quantity: 30 }],
+  });
+
+  it("is checked by the responsable of the region, then approved by the admin", async () => {
+    const declared = await w.g.post(
+      "/v1/stock/declarations",
+      await count([await photo(w, w.gros)]),
+    );
+    expect(declared.status).toBe(201);
+    expect(declared.body.status).toBe("REVIEW");
+    // The admin cannot skip the check; the other region cannot see it.
+    expect(
+      (await w.a.post(`/v1/stock/declarations/${declared.body.id}/approve`, {}))
+        .status,
+    ).toBe(409);
+    expect([403, 404]).toContain(
+      (await w.s.get(`/v1/stock/declarations/${declared.body.id}`)).status,
+    );
+    // The responsable sees the numbers and the photos, and the depot's levels.
+    const seen = await w.n.get(`/v1/stock/declarations/${declared.body.id}`);
+    expect(seen.body.photoIds).toHaveLength(1);
+    expect(
+      (await w.n.get("/v1/stock/declarations?status=REVIEW")).body,
+    ).toHaveLength(1);
+    expect((await w.n.get(`/v1/stock/locations/${w.depotId}`)).status).toBe(
+      200,
+    );
+    expect((await w.s.get(`/v1/stock/locations/${w.depotId}`)).status).toBe(
+      404,
+    );
+    // Sent back with a reason, the grossiste can count again at once.
+    const refused = await w.n.post(
+      `/v1/stock/declarations/${declared.body.id}/review`,
+      { action: "reject" },
+    );
+    expect(refused.body.code).toBe("NOTE_REQUIRED");
+    await w.n.post(`/v1/stock/declarations/${declared.body.id}/review`, {
+      action: "reject",
+      note: "Photo too dark",
+    });
+    const again = await w.g.post(
+      "/v1/stock/declarations",
+      await count([await photo(w, w.gros)]),
+    );
+    expect(again.body.status).toBe("REVIEW");
+    const passed = await w.n.post(
+      `/v1/stock/declarations/${again.body.id}/review`,
+      { action: "approve" },
+    );
+    expect(passed.body.status).toBe("PENDING");
+    const done = await w.a.post(
+      `/v1/stock/declarations/${again.body.id}/approve`,
+      {},
+    );
+    expect(done.body.status).toBe("APPROVED");
+    expect(await levels(w, w.depotId)).toEqual({ "Serum Vitamin C": 30 });
+    // Only the responsable of that region reviews.
+    expect(
+      (
+        await w.s.post(`/v1/stock/declarations/${again.body.id}/review`, {
+          action: "approve",
+        })
+      ).status,
+    ).toBe(404);
+  });
+
+  it("goes straight to the admin when the responsable declares it", async () => {
+    const declared = await w.n.post(
+      "/v1/stock/declarations",
+      await count([await photo(w, w.nord)]),
+    );
+    expect(declared.status).toBe(201);
+    expect(declared.body.status).toBe("PENDING");
+  });
+});
+
+describe("counting again needs the admin's permission", () => {
+  it("opens one recount per approval, for a store and for a grossiste", async () => {
+    const pdv = await approvedPdv(w);
+    await stockPlace(w, pdv.id, w.nord, [10, 10, 10]);
+    const redo = (photoIds: string[]) => ({
+      locationId: pdv.id,
+      photoIds,
+      lines: [{ productId: w.products[0]!.id, quantity: 4 }],
+    });
+    // No permission: refused.
+    expect(
+      (await w.n.post("/v1/stock/declarations", redo([await photo(w, w.nord)])))
+        .body.code,
+    ).toBe("ALREADY_COUNTED");
+    // Ask; the admin refuses; nothing changes.
+    const asked = await w.n.post("/v1/stock/recounts", {
+      locationId: pdv.id,
+      reason: "Bought from another shop",
+    });
+    expect(asked.status).toBe(201);
+    expect(
+      (
+        await w.n.post("/v1/stock/recounts", {
+          locationId: pdv.id,
+          reason: "again",
+        })
+      ).body.code,
+    ).toBe("RECOUNT_PENDING");
+    expect((await w.a.get("/v1/approvals")).body.counts.RECOUNT).toBe(1);
+    expect(
+      (await w.n.post(`/v1/stock/recounts/${asked.body.id}/approve`, {}))
+        .status,
+    ).toBe(403);
+    await w.a.post(`/v1/stock/recounts/${asked.body.id}/reject`, {
+      note: "Not needed",
+    });
+    expect(
+      (await w.n.post("/v1/stock/declarations", redo([await photo(w, w.nord)])))
+        .body.code,
+    ).toBe("ALREADY_COUNTED");
+    expect(await levels(w, pdv.id)).toEqual({
+      "Serum Vitamin C": 10,
+      "Serum Niacinamide": 10,
+      "Shampoo Argan": 10,
+    });
+    // Ask again; approved; one recount, which still waits for the admin.
+    const second = await w.n.post("/v1/stock/recounts", {
+      locationId: pdv.id,
+      reason: "Bought from another shop",
+    });
+    await w.a.post(`/v1/stock/recounts/${second.body.id}/approve`, {});
+    const recount = await w.n.post(
+      "/v1/stock/declarations",
+      redo([await photo(w, w.nord)]),
+    );
+    expect(recount.status).toBe(201);
+    expect(recount.body.kind).toBe("COUNT");
+    expect(recount.body.status).toBe("PENDING");
+    expect((await levels(w, pdv.id))["Serum Vitamin C"]).toBe(10);
+    await w.a.post(`/v1/stock/declarations/${recount.body.id}/approve`, {});
+    expect((await levels(w, pdv.id))["Serum Vitamin C"]).toBe(4);
+    // The permission was used up.
+    expect(
+      (await w.n.post("/v1/stock/declarations", redo([await photo(w, w.nord)])))
+        .body.code,
+    ).toBe("ALREADY_COUNTED");
+
+    // A grossiste recounts the same way, and the recount goes through the responsable.
+    await stockPlace(w, w.depotId, w.gros, [20, 20, 20]);
+    const g = await w.g.post("/v1/stock/recounts", {
+      locationId: w.depotId,
+      reason: "Bought stock elsewhere",
+    });
+    expect(g.status).toBe(201);
+    await w.a.post(`/v1/stock/recounts/${g.body.id}/approve`, {});
+    const gcount = await w.g.post("/v1/stock/declarations", {
+      locationId: w.depotId,
+      photoIds: [await photo(w, w.gros)],
+      lines: [{ productId: w.products[0]!.id, quantity: 45 }],
+    });
+    expect(gcount.body.status).toBe("REVIEW");
+    expect(gcount.body.kind).toBe("COUNT");
+  });
+
+  it("cannot be asked for a place that was never counted, or for another region's place", async () => {
+    const pdv = await approvedPdv(w);
+    expect(
+      (
+        await w.n.post("/v1/stock/recounts", {
+          locationId: pdv.id,
+          reason: "why not",
+        })
+      ).body.code,
+    ).toBe("NOT_COUNTED_YET");
+    await stockPlace(w, pdv.id, w.nord, [1, 1, 1]);
+    expect([403, 404]).toContain(
+      (
+        await w.s.post("/v1/stock/recounts", {
+          locationId: pdv.id,
+          reason: "spy",
+        })
+      ).status,
+    );
+  });
+});

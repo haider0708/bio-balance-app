@@ -409,6 +409,10 @@ List<RouteBase> _shared() => [
     builder: (_, state) => AddMemberScreen(pdvId: state.pathParameters['id']!),
   ),
   GoRoute(
+    path: '/stock/review',
+    builder: (_, _) => const CountsToReviewScreen(),
+  ),
+  GoRoute(
     path: '/stock/declarations/:id',
     builder: (_, state) =>
         DeclarationScreen(declarationId: state.pathParameters['id']!),

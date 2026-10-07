@@ -42,8 +42,18 @@ class StockScreen extends ConsumerWidget {
     final declarations = ref.watch(declarationsProvider(locationId));
     final canDeclare = me.role == Role.responsable || me.role == Role.grossiste;
     final pending = declarations.value
-        ?.where((d) => d.status == DeclarationStatus.pending)
+        ?.where(
+          (d) =>
+              d.status == DeclarationStatus.pending ||
+              d.status == DeclarationStatus.review,
+        )
         .firstOrNull;
+    final recounts = canDeclare
+        ? (ref.watch(recountsProvider(locationId)).value ??
+              const <RecountRequest>[])
+        : const <RecountRequest>[];
+    final allowed = recounts.any((r) => r.allowed);
+    final asked = recounts.any((r) => r.waiting);
     // The stock is counted once: only a place with no count waiting or approved can declare.
     final counted =
         declarations.value?.any(
@@ -54,7 +64,8 @@ class StockScreen extends ConsumerWidget {
       appBar: AppBar(
         title: Text(title ?? levels.value?.location.name ?? t.stockTitle),
       ),
-      floatingActionButton: canDeclare && !counted
+      floatingActionButton:
+          canDeclare && (!counted || (allowed && pending == null))
           ? FloatingActionButton.extended(
               heroTag: null,
               onPressed: () async {
@@ -66,7 +77,7 @@ class StockScreen extends ConsumerWidget {
                 ref.invalidate(declarationsProvider(locationId));
               },
               icon: const Icon(LucideIcons.camera),
-              label: Text(t.declareStock),
+              label: Text(counted ? t.recountStock : t.declareStock),
             )
           : null,
       body: RefreshIndicator(
@@ -102,7 +113,9 @@ class StockScreen extends ConsumerWidget {
                           const SizedBox(width: 12),
                           Expanded(
                             child: Text(
-                              t.declarationWaiting,
+                              pending.status == DeclarationStatus.review
+                                  ? t.declarationWaitingResponsable
+                                  : t.declarationWaiting,
                               style: context.text.bodyMedium?.copyWith(
                                 color: context.status.warning,
                                 fontWeight: FontWeight.w600,
@@ -112,6 +125,62 @@ class StockScreen extends ConsumerWidget {
                         ],
                       ),
                     ),
+                  ),
+                if (canDeclare && counted && pending == null)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: asked
+                        ? AppCard(
+                            color: context.status.infoSoft,
+                            borderColor: Colors.transparent,
+                            child: Row(
+                              children: [
+                                Icon(
+                                  LucideIcons.clock,
+                                  color: context.status.info,
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(child: Text(t.recountAsked2)),
+                              ],
+                            ),
+                          )
+                        : allowed
+                        ? AppCard(
+                            color: context.status.successSoft,
+                            borderColor: Colors.transparent,
+                            child: Row(
+                              children: [
+                                Icon(
+                                  LucideIcons.circleCheck,
+                                  color: context.status.success,
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(child: Text(t.recountAllowed)),
+                              ],
+                            ),
+                          )
+                        : OutlinedButton.icon(
+                            onPressed: () async {
+                              final reason = await askNote(
+                                context,
+                                title: t.recountRequestTitle,
+                                confirmLabel: t.recountRequestSend,
+                                hint: t.recountRequestHint,
+                              );
+                              if (reason == null || !context.mounted) return;
+                              if (await perform(
+                                context,
+                                () => ref
+                                    .read(stockRepositoryProvider)
+                                    .requestRecount(locationId, reason),
+                                success: t.recountRequested,
+                              )) {
+                                ref.invalidate(recountsProvider(locationId));
+                              }
+                            },
+                            icon: const Icon(LucideIcons.rotateCcw),
+                            label: Text(t.recountRequestTitle),
+                          ),
                   ),
                 Row(
                   children: [
@@ -486,6 +555,11 @@ class DeclarationScreen extends ConsumerWidget {
               const Gap(16),
               _DecisionBar(declaration: d),
             ],
+            if (me.role == Role.responsable &&
+                d.status == DeclarationStatus.review) ...[
+              const Gap(16),
+              _ReviewBar(declaration: d),
+            ],
           ],
         ),
       ),
@@ -577,6 +651,142 @@ class _DecisionBar extends ConsumerWidget {
           },
         ),
       ],
+    );
+  }
+}
+
+/// The responsable checks a grossiste's count: photos and numbers, then on to the admin or back.
+class _ReviewBar extends ConsumerWidget {
+  const _ReviewBar({required this.declaration});
+
+  final StockDeclaration declaration;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final t = AppLocalizations.of(context);
+    Future<void> done() async {
+      ref.invalidate(declarationProvider(declaration.id));
+      ref.invalidate(countsToReviewProvider);
+      ref.invalidate(declarationsProvider);
+      if (context.mounted) context.pop();
+    }
+
+    return Column(
+      children: [
+        Text(
+          t.reviewHint,
+          textAlign: TextAlign.center,
+          style: context.text.bodySmall?.copyWith(color: context.status.muted),
+        ),
+        const Gap(10),
+        AsyncButton(
+          label: t.sendToAdmin,
+          icon: LucideIcons.send,
+          onPressed: () async {
+            if (await perform(
+              context,
+              () => ref
+                  .read(stockRepositoryProvider)
+                  .review(declaration.id, approve: true),
+              success: t.sentToAdmin,
+            )) {
+              await done();
+            }
+          },
+        ),
+        const Gap(8),
+        AsyncButton(
+          label: t.sendBack,
+          icon: LucideIcons.undo2,
+          style: AsyncButtonStyle.text,
+          onPressed: () async {
+            final note = await askNote(
+              context,
+              title: t.rejectReasonTitle,
+              confirmLabel: t.sendBack,
+              hint: t.rejectReasonHint,
+            );
+            if (note == null || !context.mounted) return;
+            if (await perform(
+              context,
+              () => ref
+                  .read(stockRepositoryProvider)
+                  .review(declaration.id, approve: false, note: note),
+              success: t.sentBack,
+            )) {
+              await done();
+            }
+          },
+        ),
+      ],
+    );
+  }
+}
+
+/// Grossiste counts waiting for the responsable.
+class CountsToReviewScreen extends ConsumerWidget {
+  const CountsToReviewScreen({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final t = AppLocalizations.of(context);
+    final rows = ref.watch(countsToReviewProvider);
+    return Scaffold(
+      appBar: AppBar(title: Text(t.countsToCheck)),
+      body: RefreshIndicator(
+        onRefresh: () async {
+          ref.invalidate(countsToReviewProvider);
+          await ref.read(countsToReviewProvider.future);
+        },
+        child: AsyncBody(
+          value: rows,
+          onRetry: () => ref.invalidate(countsToReviewProvider),
+          isEmpty: (l) => l.isEmpty,
+          empty: ListView(
+            children: [
+              EmptyState(
+                icon: LucideIcons.circleCheck,
+                title: t.nothingToCheck,
+              ),
+            ],
+          ),
+          builder: (list) => ListView.separated(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
+            itemCount: list.length,
+            separatorBuilder: (_, _) => const Gap(8),
+            itemBuilder: (context, i) {
+              final d = list[i];
+              return AppCard(
+                onTap: () async {
+                  await context.push('/stock/declarations/${d.id}');
+                  ref.invalidate(countsToReviewProvider);
+                },
+                child: Row(
+                  children: [
+                    const Icon(LucideIcons.warehouse),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(d.location.name, style: context.text.titleSmall),
+                          Text(
+                            '${d.createdBy} · ${t.units(d.units)} · ${Dates.dateTime(d.createdAt, t.localeName)}',
+                            style: context.text.bodySmall?.copyWith(
+                              color: context.status.muted,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    DeclarationStatusChip(d.status),
+                  ],
+                ),
+              );
+            },
+          ),
+        ),
+      ),
     );
   }
 }

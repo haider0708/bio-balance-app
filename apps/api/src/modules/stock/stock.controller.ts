@@ -21,6 +21,15 @@ const Approve = z.object({
   note: z.string().trim().max(500).optional(),
 });
 const Reject = z.object({ note: z.string().trim().min(2).max(500) });
+const Review = z.object({
+  action: z.enum(["approve", "reject"]),
+  note: z.string().trim().max(500).optional(),
+});
+const Recount = z.object({
+  locationId: id,
+  reason: z.string().trim().min(3).max(500),
+});
+const Decision = z.object({ note: z.string().trim().max(500).optional() });
 
 @Controller("v1/stock")
 export class StockController {
@@ -55,7 +64,9 @@ export class StockController {
       r.actor,
       parse(
         z.object({
-          status: z.enum(["PENDING", "APPROVED", "REJECTED"]).optional(),
+          status: z
+            .enum(["PENDING", "REVIEW", "APPROVED", "REJECTED"])
+            .optional(),
           regionId: id.optional(),
           locationId: id.optional(),
         }),
@@ -80,5 +91,62 @@ export class StockController {
   @Post("declarations/:id/reject")
   reject(@Req() r: AuthRequest, @Param("id") i: string, @Body() b: unknown) {
     return this.stock.reject(r.actor, parse(id, i), parse(Reject, b).note);
+  }
+
+  @Roles("RESPONSABLE")
+  @Post("declarations/:id/review")
+  review(@Req() r: AuthRequest, @Param("id") i: string, @Body() b: unknown) {
+    return this.stock.review(r.actor, parse(id, i), parse(Review, b));
+  }
+
+  @Roles("RESPONSABLE", "GROSSISTE")
+  @Post("recounts")
+  requestRecount(@Req() r: AuthRequest, @Body() b: unknown) {
+    return this.stock.requestRecount(r.actor, parse(Recount, b));
+  }
+
+  @Roles("ADMIN", "RESPONSABLE", "GROSSISTE")
+  @Get("recounts")
+  recounts(@Req() r: AuthRequest, @Query() q: Record<string, string>) {
+    return this.stock.listRecounts(
+      r.actor,
+      parse(
+        z.object({
+          status: z.enum(["PENDING", "APPROVED", "REJECTED"]).optional(),
+          locationId: id.optional(),
+        }),
+        q,
+      ),
+    );
+  }
+
+  @Roles("ADMIN")
+  @Post("recounts/:id/approve")
+  approveRecount(
+    @Req() r: AuthRequest,
+    @Param("id") i: string,
+    @Body() b: unknown,
+  ) {
+    return this.stock.decideRecount(
+      r.actor,
+      parse(id, i),
+      "approve",
+      parse(Decision, b ?? {}).note,
+    );
+  }
+
+  @Roles("ADMIN")
+  @Post("recounts/:id/reject")
+  rejectRecount(
+    @Req() r: AuthRequest,
+    @Param("id") i: string,
+    @Body() b: unknown,
+  ) {
+    return this.stock.decideRecount(
+      r.actor,
+      parse(id, i),
+      "reject",
+      parse(Reject, b).note,
+    );
   }
 }

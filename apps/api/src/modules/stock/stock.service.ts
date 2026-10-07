@@ -29,8 +29,8 @@ export class StockService {
     const ok =
       actor.role === "ADMIN" ||
       (actor.role === "RESPONSABLE" &&
-        location.kind === "PDV" &&
-        location.regionId === actor.regionId) ||
+        location.stockRegionId !== null &&
+        location.stockRegionId === actor.regionId) ||
       (actor.role === "GROSSISTE" &&
         location.kind === "DEPOT" &&
         location.id === actor.depotId) ||
@@ -119,15 +119,35 @@ export class StockService {
         "This place cannot receive stock now.",
         409,
       );
-      // Counted once: a count waiting for approval or already approved is final.
-      // Only a rejected count can be sent again.
+      // Counted once. A place that was counted (or is being counted) can only be
+      // counted again after the admin allowed it, and the permission is used once.
+      const open = await tx.stockDeclaration.findFirst({
+        where: {
+          locationId: location.id,
+          status: { in: ["PENDING", "REVIEW"] },
+        },
+      });
       requireRule(
-        !(await tx.stockDeclaration.findFirst({
-          where: {
-            locationId: location.id,
-            status: { in: ["APPROVED", "PENDING"] },
-          },
-        })),
+        !open,
+        "ALREADY_COUNTED",
+        "The stock of this place was already declared.",
+        409,
+      );
+      const counted = await tx.stockDeclaration.findFirst({
+        where: { locationId: location.id, status: "APPROVED" },
+      });
+      const permit = counted
+        ? await tx.stockRecount.findFirst({
+            where: {
+              locationId: location.id,
+              status: "APPROVED",
+              declarationId: null,
+            },
+            orderBy: { decidedAt: "asc" },
+          })
+        : null;
+      requireRule(
+        !counted || permit,
         "ALREADY_COUNTED",
         "The stock of this place was already declared.",
         409,
@@ -157,12 +177,19 @@ export class StockService {
         "Unknown or inactive product.",
         404,
       );
+      // A grossiste's count is checked by the responsable of the region before it reaches the admin.
+      const regionBoss =
+        actor.role === "GROSSISTE" && location.stockRegionId
+          ? await responsableIds(tx, location.stockRegionId)
+          : [];
+      const toReview = regionBoss.length > 0;
       const declaration = await tx.stockDeclaration.create({
         data: {
-          kind: "INITIAL",
+          kind: counted ? "COUNT" : "INITIAL",
+          status: toReview ? "REVIEW" : "PENDING",
           locationId: location.id,
           locationKind: location.kind,
-          regionId: location.regionId,
+          regionId: location.stockRegionId,
           photoId: photoIds[0] ?? null,
           photoIds,
           note: input.note?.trim() || null,
@@ -185,8 +212,13 @@ export class StockService {
         { location: location.name, lines: input.lines.length },
         location.regionId,
       );
-      await notifyAdmins(tx, {
-        key: "stock.submitted",
+      if (permit)
+        await tx.stockRecount.update({
+          where: { id: permit.id },
+          data: { declarationId: declaration.id },
+        });
+      const notice = {
+        key: toReview ? "stock.to_review" : "stock.submitted",
         params: {
           place: location.name,
           by: actor.name,
@@ -194,7 +226,9 @@ export class StockService {
         },
         entityType: "StockDeclaration",
         entityId: declaration.id,
-      });
+      };
+      if (toReview) await notify(tx, regionBoss, notice);
+      else await notifyAdmins(tx, notice);
       return (await this.present(tx, [declaration]))[0]!;
     });
   }
@@ -376,6 +410,293 @@ export class StockService {
     });
   }
 
+  /**
+   * The responsable of the region checks a grossiste's count (photos and numbers)
+   * and passes it to the admin, or sends it back.
+   */
+  review(
+    actor: Actor,
+    id: string,
+    input: { action: "approve" | "reject"; note?: string },
+  ) {
+    requireRule(
+      actor.role === "RESPONSABLE" && actor.regionId,
+      "FORBIDDEN",
+      "Only the responsable of the region checks this.",
+      403,
+    );
+    requireRule(
+      input.action === "approve" || input.note?.trim(),
+      "NOTE_REQUIRED",
+      "Explain what is wrong.",
+    );
+    return this.db.run(actor, async (tx) => {
+      await this.db.lock(tx, "StockDeclaration", id);
+      const declaration = await tx.stockDeclaration.findUnique({
+        where: { id },
+        include: { lines: true },
+      });
+      if (!declaration || declaration.regionId !== actor.regionId)
+        throw notFound("Stock declaration");
+      requireRule(
+        declaration.status === "REVIEW",
+        "INVALID_STATE",
+        "This count is not waiting for your check.",
+        409,
+      );
+      const location = await findLocation(tx, declaration.locationId);
+      const passed = input.action === "approve";
+      const updated = await tx.stockDeclaration.update({
+        where: { id },
+        data: {
+          status: passed ? "PENDING" : "REJECTED",
+          reviewedById: actor.id,
+          reviewedAt: new Date(),
+          reviewNote: input.note?.trim() || null,
+          ...(passed
+            ? {}
+            : {
+                decidedById: actor.id,
+                decidedAt: new Date(),
+                decisionNote: input.note?.trim(),
+              }),
+        },
+        include: { lines: true },
+      });
+      await audit(
+        tx,
+        actor,
+        passed ? "stock.reviewed" : "stock.review_rejected",
+        "StockDeclaration",
+        id,
+        { note: input.note ?? null },
+        declaration.regionId,
+      );
+      if (passed)
+        await notifyAdmins(tx, {
+          key: "stock.submitted",
+          params: {
+            place: location.name,
+            by: actor.name,
+            kind: declaration.kind,
+          },
+          entityType: "StockDeclaration",
+          entityId: id,
+        });
+      else
+        await notify(tx, [declaration.createdById], {
+          key: "stock.rejected",
+          params: { place: location.name, note: input.note ?? null },
+          entityType: "StockDeclaration",
+          entityId: id,
+        });
+      return (await this.present(tx, [updated]))[0]!;
+    });
+  }
+
+  // ───────────────────────── Counting again ─────────────────────────
+
+  /** Ask the admin for permission to count a place again. */
+  requestRecount(actor: Actor, input: { locationId: string; reason: string }) {
+    requireRule(
+      ["RESPONSABLE", "GROSSISTE"].includes(actor.role),
+      "FORBIDDEN",
+      "Not allowed.",
+      403,
+    );
+    return this.db.run(actor, async (tx) => {
+      const location = await this.authorize(tx, actor, input.locationId);
+      requireRule(
+        await tx.stockDeclaration.findFirst({
+          where: { locationId: location.id, status: "APPROVED" },
+        }),
+        "NOT_COUNTED_YET",
+        "This place has not been counted yet: declare its stock first.",
+        409,
+      );
+      requireRule(
+        !(await tx.stockDeclaration.findFirst({
+          where: {
+            locationId: location.id,
+            status: { in: ["PENDING", "REVIEW"] },
+          },
+        })),
+        "DECLARATION_PENDING",
+        "A count is already waiting.",
+        409,
+      );
+      requireRule(
+        !(await tx.stockRecount.findFirst({
+          where: {
+            locationId: location.id,
+            OR: [
+              { status: "PENDING" },
+              { status: "APPROVED", declarationId: null },
+            ],
+          },
+        })),
+        "RECOUNT_PENDING",
+        "A recount was already asked for this place.",
+        409,
+      );
+      const row = await tx.stockRecount.create({
+        data: {
+          locationId: location.id,
+          locationKind: location.kind,
+          regionId: location.stockRegionId,
+          requestedById: actor.id,
+          reason: input.reason.trim(),
+        },
+      });
+      await audit(
+        tx,
+        actor,
+        "stock.recount_requested",
+        "StockRecount",
+        row.id,
+        { place: location.name },
+        location.stockRegionId,
+      );
+      await notifyAdmins(tx, {
+        key: "recount.requested",
+        params: { place: location.name, by: actor.name },
+        entityType: "StockRecount",
+        entityId: row.id,
+      });
+      return (await this.presentRecounts(tx, [row]))[0]!;
+    });
+  }
+
+  listRecounts(
+    actor: Actor,
+    filter: { status?: Approval; locationId?: string },
+  ) {
+    requireRule(
+      ["ADMIN", "RESPONSABLE", "GROSSISTE"].includes(actor.role),
+      "FORBIDDEN",
+      "Not allowed.",
+      403,
+    );
+    return this.db.run(actor, async (tx) =>
+      this.presentRecounts(
+        tx,
+        await tx.stockRecount.findMany({
+          where: {
+            ...(filter.status && { status: filter.status }),
+            ...(filter.locationId && { locationId: filter.locationId }),
+          },
+          orderBy: { createdAt: "desc" },
+          take: 100,
+        }),
+      ),
+    );
+  }
+
+  decideRecount(
+    actor: Actor,
+    id: string,
+    action: "approve" | "reject",
+    note?: string,
+  ) {
+    requireRule(
+      actor.role === "ADMIN",
+      "FORBIDDEN",
+      "Only the admin decides.",
+      403,
+    );
+    requireRule(
+      action === "approve" || note?.trim(),
+      "NOTE_REQUIRED",
+      "Explain your decision.",
+    );
+    return this.db.run(actor, async (tx) => {
+      await this.db.lock(tx, "StockRecount", id);
+      const row = await tx.stockRecount.findUnique({ where: { id } });
+      if (!row) throw notFound("Recount request");
+      requireRule(
+        row.status === "PENDING",
+        "INVALID_STATE",
+        "This request was already decided.",
+        409,
+      );
+      const location = await findLocation(tx, row.locationId);
+      const updated = await tx.stockRecount.update({
+        where: { id },
+        data: {
+          status: action === "approve" ? "APPROVED" : "REJECTED",
+          decidedById: actor.id,
+          decidedAt: new Date(),
+          decisionNote: note?.trim() || null,
+        },
+      });
+      await audit(
+        tx,
+        actor,
+        `stock.recount_${action}d`,
+        "StockRecount",
+        id,
+        { note: note ?? null },
+        row.regionId,
+      );
+      await notify(
+        tx,
+        [
+          row.requestedById,
+          ...(row.regionId ? await responsableIds(tx, row.regionId) : []),
+        ],
+        {
+          key: action === "approve" ? "recount.approved" : "recount.rejected",
+          params: { place: location.name, note: note ?? null },
+          entityType: "StockRecount",
+          entityId: id,
+        },
+      );
+      return (await this.presentRecounts(tx, [updated]))[0]!;
+    });
+  }
+
+  private async presentRecounts(
+    tx: Tx,
+    rows: Prisma.StockRecountGetPayload<object>[],
+  ) {
+    if (!rows.length) return [];
+    const [pdvs, depots, users] = await Promise.all([
+      tx.pdv.findMany({
+        where: { id: { in: rows.map((r) => r.locationId) } },
+        select: { id: true, name: true },
+      }),
+      tx.depot.findMany({
+        where: { id: { in: rows.map((r) => r.locationId) } },
+        select: { id: true, name: true },
+      }),
+      tx.user.findMany({
+        where: { id: { in: rows.map((r) => r.requestedById) } },
+        select: { id: true, name: true },
+      }),
+    ]);
+    const place = new Map([...pdvs, ...depots].map((p) => [p.id, p.name]));
+    const who = new Map(users.map((u) => [u.id, u.name]));
+    return rows.map((r) => ({
+      id: r.id,
+      status: r.status,
+      place: {
+        id: r.locationId,
+        kind: r.locationKind,
+        name: place.get(r.locationId) ?? "",
+      },
+      regionId: r.regionId,
+      reason: r.reason,
+      requestedBy: {
+        id: r.requestedById,
+        name: who.get(r.requestedById) ?? "",
+      },
+      createdAt: r.createdAt,
+      decidedAt: r.decidedAt,
+      decisionNote: r.decisionNote,
+      used: r.declarationId !== null,
+    }));
+  }
+
   private async tell(
     tx: Tx,
     d: { id: string; createdById: string; regionId: string | null },
@@ -453,6 +774,8 @@ export class StockService {
         : null,
       decidedAt: r.decidedAt,
       decisionNote: r.decisionNote,
+      reviewedAt: r.reviewedAt,
+      reviewNote: r.reviewNote,
       lines: r.lines
         .map((l) => ({
           productId: l.productId,

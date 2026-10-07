@@ -2147,4 +2147,73 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get photosNeeded => 'Add 1 to 5 photos.';
+
+  @override
+  String get statusWaitingResponsable => 'Waiting for the responsable';
+
+  @override
+  String get declarationWaitingResponsable =>
+      'Your count is waiting for the responsable’s check, then the admin.';
+
+  @override
+  String get recountAsked2 =>
+      'Recount requested: waiting for the admin to allow it.';
+
+  @override
+  String get recountAllowed =>
+      'The admin allowed a recount. Count again with the button below.';
+
+  @override
+  String get recountRequestTitle => 'Ask to count again';
+
+  @override
+  String get recountRequestSend => 'Send the request';
+
+  @override
+  String get recountRequestHint =>
+      'Why? (for example, you bought stock elsewhere)';
+
+  @override
+  String get recountRequested => 'Request sent to the admin';
+
+  @override
+  String get reviewHint =>
+      'Check the photos and the numbers. Sent to the admin, it still needs their approval.';
+
+  @override
+  String get sentToAdmin => 'Sent to the admin';
+
+  @override
+  String get sendBack => 'Send back';
+
+  @override
+  String get sentBack => 'Sent back to the grossiste';
+
+  @override
+  String get countsToCheck => 'Counts to check';
+
+  @override
+  String get nothingToCheck => 'Nothing to check right now';
+
+  @override
+  String get typeRecount => 'Recount request';
+
+  @override
+  String get attnRecounts => 'Recount requests';
+
+  @override
+  String get attnGrossisteCounts => 'Grossiste counts to check';
+
+  @override
+  String get approveRecountTitle => 'Allow a recount?';
+
+  @override
+  String get allowRecount => 'Allow';
+
+  @override
+  String get recountReasonLabel => 'Reason given';
+
+  @override
+  String get grossisteHandledBy =>
+      'This grossiste is looked after by the responsable of the region: they check the stock counts and photos before the admin approves.';
 }

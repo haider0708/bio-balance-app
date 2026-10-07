@@ -1047,5 +1047,26 @@
       }
     }
   },
-  "photosNeeded": "Add 1 to 5 photos."
+  "photosNeeded": "Add 1 to 5 photos.",
+  "statusWaitingResponsable": "Waiting for the responsable",
+  "declarationWaitingResponsable": "Your count is waiting for the responsable’s check, then the admin.",
+  "recountAsked2": "Recount requested: waiting for the admin to allow it.",
+  "recountAllowed": "The admin allowed a recount. Count again with the button below.",
+  "recountRequestTitle": "Ask to count again",
+  "recountRequestSend": "Send the request",
+  "recountRequestHint": "Why? (for example, you bought stock elsewhere)",
+  "recountRequested": "Request sent to the admin",
+  "reviewHint": "Check the photos and the numbers. Sent to the admin, it still needs their approval.",
+  "sentToAdmin": "Sent to the admin",
+  "sendBack": "Send back",
+  "sentBack": "Sent back to the grossiste",
+  "countsToCheck": "Counts to check",
+  "nothingToCheck": "Nothing to check right now",
+  "typeRecount": "Recount request",
+  "attnRecounts": "Recount requests",
+  "attnGrossisteCounts": "Grossiste counts to check",
+  "approveRecountTitle": "Allow a recount?",
+  "allowRecount": "Allow",
+  "recountReasonLabel": "Reason given",
+  "grossisteHandledBy": "This grossiste is looked after by the responsable of the region: they check the stock counts and photos before the admin approves."
 }

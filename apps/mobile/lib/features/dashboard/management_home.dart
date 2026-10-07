@@ -272,6 +272,19 @@ List<Widget> attentionSections(
   void approvals_() => context.go('/approvals');
   return [
     SectionHeader(t.needsAttention),
+    if (!admin)
+      AttentionGroup(
+        title: t.toApprove,
+        rows: [
+          AttentionRow(
+            icon: LucideIcons.warehouse,
+            tone: Tone.warning,
+            label: t.attnGrossisteCounts,
+            count: approvals.integer('REVIEW'),
+            onTap: () => context.push('/stock/review'),
+          ),
+        ],
+      ),
     if (admin) ...[
       AttentionGroup(
         title: t.toApprove,
@@ -316,6 +329,13 @@ List<Widget> attentionSections(
             tone: Tone.warning,
             label: t.attnRestockRequests,
             count: approvals.integer('RESTOCK_REQUEST'),
+            onTap: approvals_,
+          ),
+          AttentionRow(
+            icon: LucideIcons.rotateCcw,
+            tone: Tone.warning,
+            label: t.attnRecounts,
+            count: approvals.integer('RECOUNT'),
             onTap: approvals_,
           ),
         ],
@@ -371,6 +391,7 @@ List<Widget> attentionSections(
         ],
       ),
     if ((approvals.integer('total') == 0 || !admin) &&
+        (admin || approvals.integer('REVIEW') == 0) &&
         attention.integer('negativeStock') == 0 &&
         attention.integer('lowStock') == 0 &&
         restocks.integer('REQUESTED') +

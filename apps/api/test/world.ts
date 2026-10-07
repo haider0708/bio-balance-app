@@ -101,6 +101,15 @@ export async function stockPlace(
   });
   if (declared.status !== 201)
     throw new Error(`declare failed: ${JSON.stringify(declared.body)}`);
+  // A grossiste's count is checked by the responsable of the region first.
+  if (declared.body.status === "REVIEW") {
+    const reviewed = await w.n.post(
+      `/v1/stock/declarations/${declared.body.id}/review`,
+      { action: "approve" },
+    );
+    if (reviewed.status !== 201)
+      throw new Error(`review failed: ${JSON.stringify(reviewed.body)}`);
+  }
   const approved = await w.a.post(
     `/v1/stock/declarations/${declared.body.id}/approve`,
     {},

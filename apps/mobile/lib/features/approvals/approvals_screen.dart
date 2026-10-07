@@ -13,6 +13,7 @@ import '../../core/widgets/feedback.dart';
 import '../../core/widgets/states.dart';
 import '../../l10n/app_localizations.dart';
 import '../network/network_repository.dart';
+import '../stock/stock_repository.dart';
 import '../wallet/wallet_repository.dart';
 import 'approvals_repository.dart';
 
@@ -148,6 +149,7 @@ String _typeLabel(AppLocalizations t, ApprovalType type) => switch (type) {
   ApprovalType.receipt => t.typeReceipt,
   ApprovalType.restockRequest => t.typeRestockRequest,
   ApprovalType.payout => t.typePayout,
+  ApprovalType.recount => t.typeRecount,
 };
 
 IconData _typeIcon(ApprovalType type) => switch (type) {
@@ -158,6 +160,7 @@ IconData _typeIcon(ApprovalType type) => switch (type) {
   ApprovalType.receipt => LucideIcons.packageCheck,
   ApprovalType.restockRequest => LucideIcons.truck,
   ApprovalType.payout => LucideIcons.banknote,
+  ApprovalType.recount => LucideIcons.rotateCcw,
 };
 
 class _ApprovalTile extends ConsumerWidget {
@@ -183,6 +186,7 @@ class _ApprovalTile extends ConsumerWidget {
           t.localeName,
         ),
         ApprovalType.group => '',
+        ApprovalType.recount => item.meta.str('reason'),
       },
     ].where((s) => s.isNotEmpty).toList();
     return AppCard(
@@ -249,6 +253,61 @@ class _ApprovalTile extends ConsumerWidget {
         await context.push('/restocks/${item.id}');
       case ApprovalType.payout:
         await context.push('/payouts');
+      case ApprovalType.recount:
+        final approve = await showModalBottomSheet<bool>(
+          context: context,
+          showDragHandle: true,
+          builder: (context) => SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(t.approveRecountTitle, style: context.text.titleMedium),
+                  const Gap(6),
+                  Text(
+                    '${item.name} · ${item.by ?? ''}',
+                    style: context.text.bodyMedium?.copyWith(
+                      color: context.status.muted,
+                    ),
+                  ),
+                  const Gap(14),
+                  Text(t.recountReasonLabel, style: context.text.labelMedium),
+                  Text(item.meta.str('reason'), style: context.text.bodyLarge),
+                  const Gap(20),
+                  FilledButton(
+                    onPressed: () => Navigator.pop(context, true),
+                    child: Text(t.allowRecount),
+                  ),
+                  const Gap(8),
+                  TextButton(
+                    onPressed: () => Navigator.pop(context, false),
+                    child: Text(t.reject),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+        if (approve == null || !context.mounted) return;
+        String? note;
+        if (!approve) {
+          note = await askNote(
+            context,
+            title: t.rejectReasonTitle,
+            confirmLabel: t.reject,
+            hint: t.rejectReasonHint,
+          );
+          if (note == null || !context.mounted) return;
+        }
+        await perform(
+          context,
+          () => ref
+              .read(stockRepositoryProvider)
+              .decideRecount(item.id, approve: approve, note: note),
+          success: approve ? t.approved : t.rejected,
+        );
       case ApprovalType.group:
         final note = await confirm(
           context,

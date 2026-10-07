@@ -690,6 +690,16 @@ class _CreateAccountScreenState extends ConsumerState<CreateAccountScreen> {
                 onChanged: (v) => setState(() => _regionId = v),
                 validator: (v) => v == null ? t.fieldRequired : null,
               ),
+            if (_role == Role.grossiste)
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Text(
+                  t.grossisteHandledBy,
+                  style: context.text.bodySmall?.copyWith(
+                    color: context.status.muted,
+                  ),
+                ),
+              ),
             if (_role == Role.vendeur)
               DropdownButtonFormField<String>(
                 initialValue: _pdvId,

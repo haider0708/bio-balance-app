@@ -63,6 +63,32 @@ class StockRepository {
   Future<void> reject(String id, String note) => _ref
       .read(apiClientProvider)
       .post('/v1/stock/declarations/$id/reject', {'note': note});
+
+  /// The responsable checks a grossiste's count: pass it to the admin or send it back.
+  Future<void> review(String id, {required bool approve, String? note}) =>
+      _ref.read(apiClientProvider).post('/v1/stock/declarations/$id/review', {
+        'action': approve ? 'approve' : 'reject',
+        'note': ?note,
+      });
+
+  Future<void> requestRecount(String locationId, String reason) => _ref
+      .read(apiClientProvider)
+      .post('/v1/stock/recounts', {'locationId': locationId, 'reason': reason});
+
+  Future<List<RecountRequest>> recounts({String? locationId}) async => jsonList(
+    await _ref
+        .read(apiClientProvider)
+        .get('/v1/stock/recounts', query: {'locationId': locationId}),
+  ).map(RecountRequest.fromJson).toList();
+
+  Future<void> decideRecount(
+    String id, {
+    required bool approve,
+    String? note,
+  }) => _ref.read(apiClientProvider).post(
+    '/v1/stock/recounts/$id/${approve ? 'approve' : 'reject'}',
+    {'note': ?note},
+  );
 }
 
 final stockRepositoryProvider = Provider<StockRepository>(StockRepository.new);
@@ -82,4 +108,17 @@ final declarationsProvider = FutureProvider.autoDispose
       (ref, locationId) => ref
           .watch(stockRepositoryProvider)
           .declarations(locationId: locationId),
+    );
+
+final recountsProvider = FutureProvider.autoDispose
+    .family<List<RecountRequest>, String>(
+      (ref, locationId) =>
+          ref.watch(stockRepositoryProvider).recounts(locationId: locationId),
+    );
+
+/// Grossiste counts waiting for the responsable's check.
+final countsToReviewProvider =
+    FutureProvider.autoDispose<List<StockDeclaration>>(
+      (ref) =>
+          ref.watch(stockRepositoryProvider).declarations(status: 'REVIEW'),
     );

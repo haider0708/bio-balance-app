@@ -45,6 +45,7 @@ export class ReportingController {
               "RECEIPT",
               "PAYOUT",
               "RESTOCK_REQUEST",
+              "RECOUNT",
             ])
             .optional(),
         }),

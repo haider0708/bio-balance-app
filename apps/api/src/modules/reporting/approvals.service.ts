@@ -10,7 +10,8 @@ export type ApprovalType =
   | "STOCK"
   | "RECEIPT"
   | "PAYOUT"
-  | "RESTOCK_REQUEST";
+  | "RESTOCK_REQUEST"
+  | "RECOUNT";
 
 export interface ApprovalItem {
   type: ApprovalType;
@@ -191,6 +192,29 @@ export class ApprovalsService {
             },
           });
       }
+      if (want("RECOUNT")) {
+        const rows = await tx.stockRecount.findMany({
+          where: { status: "PENDING", ...(region && { regionId: region }) },
+          orderBy: { createdAt: "asc" },
+          take: 100,
+        });
+        const places = await placeNames(
+          tx,
+          rows.map((r) => r.locationId),
+        );
+        await person(rows.map((r) => r.requestedById));
+        for (const r of rows)
+          items.push({
+            type: "RECOUNT",
+            id: r.id,
+            name: places.get(r.locationId) ?? "",
+            by: people.get(r.requestedById) ?? null,
+            regionId: r.regionId,
+            region: at(r.regionId),
+            createdAt: r.createdAt,
+            meta: { reason: r.reason },
+          });
+      }
       if (want("PAYOUT")) {
         const rows = await tx.payoutRequest.findMany({
           where: { status: "PENDING", ...(region && { regionId: region }) },
@@ -233,18 +257,29 @@ async function placeNames(tx: Tx, ids: string[]) {
 /** How many things wait for the admin, by kind. Scoped by row-level security to the caller. */
 export async function countPending(tx: Tx, regionId?: string) {
   const region = regionId ? { regionId } : {};
-  const [groups, pdvs, members, stock, receipts, requests, payouts] =
-    await Promise.all([
-      tx.group.count({ where: { status: "PENDING", ...region } }),
-      tx.pdv.count({ where: { status: "PENDING", ...region } }),
-      tx.user.count({
-        where: { status: "PENDING", role: "VENDEUR", ...region },
-      }),
-      tx.stockDeclaration.count({ where: { status: "PENDING", ...region } }),
-      tx.restockOrder.count({ where: { status: "RECEIVED", ...region } }),
-      tx.restockOrder.count({ where: { status: "REQUESTED", ...region } }),
-      tx.payoutRequest.count({ where: { status: "PENDING", ...region } }),
-    ]);
+  const [
+    groups,
+    pdvs,
+    members,
+    stock,
+    receipts,
+    requests,
+    payouts,
+    recounts,
+    review,
+  ] = await Promise.all([
+    tx.group.count({ where: { status: "PENDING", ...region } }),
+    tx.pdv.count({ where: { status: "PENDING", ...region } }),
+    tx.user.count({
+      where: { status: "PENDING", role: "VENDEUR", ...region },
+    }),
+    tx.stockDeclaration.count({ where: { status: "PENDING", ...region } }),
+    tx.restockOrder.count({ where: { status: "RECEIVED", ...region } }),
+    tx.restockOrder.count({ where: { status: "REQUESTED", ...region } }),
+    tx.payoutRequest.count({ where: { status: "PENDING", ...region } }),
+    tx.stockRecount.count({ where: { status: "PENDING", ...region } }),
+    tx.stockDeclaration.count({ where: { status: "REVIEW", ...region } }),
+  ]);
   return {
     GROUP: groups,
     PDV: pdvs,
@@ -253,6 +288,17 @@ export async function countPending(tx: Tx, regionId?: string) {
     RECEIPT: receipts,
     RESTOCK_REQUEST: requests,
     PAYOUT: payouts,
-    total: groups + pdvs + members + stock + receipts + requests + payouts,
+    RECOUNT: recounts,
+    /** Grossiste counts waiting for the responsable (not part of the admin's total). */
+    REVIEW: review,
+    total:
+      groups +
+      pdvs +
+      members +
+      stock +
+      receipts +
+      requests +
+      payouts +
+      recounts,
   };
 }

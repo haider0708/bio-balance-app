@@ -1047,5 +1047,26 @@
       }
     }
   },
-  "photosNeeded": "Ajoutez de 1 à 5 photos."
+  "photosNeeded": "Ajoutez de 1 à 5 photos.",
+  "statusWaitingResponsable": "En attente du responsable",
+  "declarationWaitingResponsable": "Votre comptage attend la vérification du responsable, puis l’admin.",
+  "recountAsked2": "Nouveau comptage demandé : en attente de l’accord de l’admin.",
+  "recountAllowed": "L’admin a autorisé un nouveau comptage. Recomptez avec le bouton ci-dessous.",
+  "recountRequestTitle": "Demander un nouveau comptage",
+  "recountRequestSend": "Envoyer la demande",
+  "recountRequestHint": "Pourquoi ? (par exemple, du stock acheté ailleurs)",
+  "recountRequested": "Demande envoyée à l’admin",
+  "reviewHint": "Vérifiez les photos et les chiffres. Envoyé à l’admin, il faut encore son accord.",
+  "sentToAdmin": "Envoyé à l’admin",
+  "sendBack": "Renvoyer",
+  "sentBack": "Renvoyé au grossiste",
+  "countsToCheck": "Comptages à vérifier",
+  "nothingToCheck": "Rien à vérifier pour l’instant",
+  "typeRecount": "Demande de comptage",
+  "attnRecounts": "Demandes de comptage",
+  "attnGrossisteCounts": "Comptages de grossistes à vérifier",
+  "approveRecountTitle": "Autoriser un nouveau comptage ?",
+  "allowRecount": "Autoriser",
+  "recountReasonLabel": "Motif indiqué",
+  "grossisteHandledBy": "Ce grossiste est suivi par le responsable de la région : il vérifie les comptages et les photos avant l’approbation de l’admin."
 }

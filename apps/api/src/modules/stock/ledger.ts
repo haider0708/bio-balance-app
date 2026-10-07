@@ -7,6 +7,8 @@ export interface Location {
   kind: LocationKind;
   /** Null for depots. */
   regionId: string | null;
+  /** The region that owns the stock rows: a depot's is its grossiste's region. */
+  stockRegionId: string | null;
   name: string;
   status: string;
 }
@@ -19,6 +21,7 @@ export async function findLocation(tx: Tx, id: string): Promise<Location> {
       id,
       kind: "PDV",
       regionId: pdv.regionId,
+      stockRegionId: pdv.regionId,
       name: pdv.name,
       status: pdv.status,
     };
@@ -28,6 +31,7 @@ export async function findLocation(tx: Tx, id: string): Promise<Location> {
       id,
       kind: "DEPOT",
       regionId: null,
+      stockRegionId: depot.regionId,
       name: depot.name,
       status: depot.status,
     };
@@ -49,15 +53,18 @@ export interface MovementRef {
  */
 export async function adjustStock(
   tx: Tx,
-  location: Pick<Location, "id" | "kind" | "regionId">,
+  location: Pick<Location, "id" | "kind" | "regionId"> & {
+    stockRegionId?: string | null;
+  },
   productId: string,
   delta: number,
   ref: MovementRef,
 ): Promise<number> {
   if (delta === 0) return currentQuantity(tx, location.id, productId);
+  const stockRegion = location.stockRegionId ?? location.regionId;
   const [row] = await tx.$queryRaw<{ quantity: number }[]>`
     INSERT INTO "Stock" ("locationId","productId","locationKind","regionId",quantity,"updatedAt")
-    VALUES (${location.id}::uuid, ${productId}::uuid, ${location.kind}::"LocationKind", ${location.regionId}::uuid, ${delta}, now())
+    VALUES (${location.id}::uuid, ${productId}::uuid, ${location.kind}::"LocationKind", ${stockRegion}::uuid, ${delta}, now())
     ON CONFLICT ("locationId","productId") DO UPDATE
       SET quantity = "Stock".quantity + ${delta}, "updatedAt" = now()
     RETURNING quantity`;
@@ -73,7 +80,7 @@ export async function adjustStock(
         locationId: location.id,
         productId,
         locationKind: location.kind,
-        regionId: location.regionId,
+        regionId: stockRegion,
         delta,
         reason: ref.reason,
         refType: ref.refType,
@@ -100,7 +107,9 @@ export async function currentQuantity(
 /** Make the quantity exactly `target`, recording the difference. */
 export async function setStock(
   tx: Tx,
-  location: Pick<Location, "id" | "kind" | "regionId">,
+  location: Pick<Location, "id" | "kind" | "regionId"> & {
+    stockRegionId?: string | null;
+  },
   productId: string,
   target: number,
   ref: MovementRef,

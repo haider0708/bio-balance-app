@@ -25,6 +25,8 @@ enum Status {
 
 enum Approval {
   PENDING
+  /// A grossiste's count waiting for the responsable's check.
+  REVIEW
   APPROVED
   REJECTED
 }
@@ -288,6 +290,9 @@ model StockDeclaration {
   decidedById  String?         @db.Uuid
   decidedAt    DateTime?
   decisionNote String?
+  reviewedById String?         @db.Uuid
+  reviewedAt   DateTime?
+  reviewNote   String?
   lines        StockDeclarationLine[]
 
   @@index([status, createdAt])
@@ -594,4 +599,23 @@ model Job {
   createdAt  DateTime @default(now())
 
   @@index([status, availableAt])
+}
+
+/// Permission from the admin to count a place again (used once, by the declaration it opens).
+model StockRecount {
+  id            String       @id @default(uuid()) @db.Uuid
+  locationId    String       @db.Uuid
+  locationKind  LocationKind
+  regionId      String?      @db.Uuid
+  requestedById String       @db.Uuid
+  reason        String
+  status        Approval     @default(PENDING)
+  decidedById   String?      @db.Uuid
+  decidedAt     DateTime?
+  decisionNote  String?
+  declarationId String?      @db.Uuid
+  createdAt     DateTime     @default(now())
+
+  @@index([status, createdAt])
+  @@index([locationId, status])
 }

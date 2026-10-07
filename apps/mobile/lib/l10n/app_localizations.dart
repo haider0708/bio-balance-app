@@ -3739,6 +3739,132 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Add 1 to 5 photos.'**
   String get photosNeeded;
+
+  /// No description provided for @statusWaitingResponsable.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting for the responsable'**
+  String get statusWaitingResponsable;
+
+  /// No description provided for @declarationWaitingResponsable.
+  ///
+  /// In en, this message translates to:
+  /// **'Your count is waiting for the responsable’s check, then the admin.'**
+  String get declarationWaitingResponsable;
+
+  /// No description provided for @recountAsked2.
+  ///
+  /// In en, this message translates to:
+  /// **'Recount requested: waiting for the admin to allow it.'**
+  String get recountAsked2;
+
+  /// No description provided for @recountAllowed.
+  ///
+  /// In en, this message translates to:
+  /// **'The admin allowed a recount. Count again with the button below.'**
+  String get recountAllowed;
+
+  /// No description provided for @recountRequestTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask to count again'**
+  String get recountRequestTitle;
+
+  /// No description provided for @recountRequestSend.
+  ///
+  /// In en, this message translates to:
+  /// **'Send the request'**
+  String get recountRequestSend;
+
+  /// No description provided for @recountRequestHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Why? (for example, you bought stock elsewhere)'**
+  String get recountRequestHint;
+
+  /// No description provided for @recountRequested.
+  ///
+  /// In en, this message translates to:
+  /// **'Request sent to the admin'**
+  String get recountRequested;
+
+  /// No description provided for @reviewHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Check the photos and the numbers. Sent to the admin, it still needs their approval.'**
+  String get reviewHint;
+
+  /// No description provided for @sentToAdmin.
+  ///
+  /// In en, this message translates to:
+  /// **'Sent to the admin'**
+  String get sentToAdmin;
+
+  /// No description provided for @sendBack.
+  ///
+  /// In en, this message translates to:
+  /// **'Send back'**
+  String get sendBack;
+
+  /// No description provided for @sentBack.
+  ///
+  /// In en, this message translates to:
+  /// **'Sent back to the grossiste'**
+  String get sentBack;
+
+  /// No description provided for @countsToCheck.
+  ///
+  /// In en, this message translates to:
+  /// **'Counts to check'**
+  String get countsToCheck;
+
+  /// No description provided for @nothingToCheck.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing to check right now'**
+  String get nothingToCheck;
+
+  /// No description provided for @typeRecount.
+  ///
+  /// In en, this message translates to:
+  /// **'Recount request'**
+  String get typeRecount;
+
+  /// No description provided for @attnRecounts.
+  ///
+  /// In en, this message translates to:
+  /// **'Recount requests'**
+  String get attnRecounts;
+
+  /// No description provided for @attnGrossisteCounts.
+  ///
+  /// In en, this message translates to:
+  /// **'Grossiste counts to check'**
+  String get attnGrossisteCounts;
+
+  /// No description provided for @approveRecountTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Allow a recount?'**
+  String get approveRecountTitle;
+
+  /// No description provided for @allowRecount.
+  ///
+  /// In en, this message translates to:
+  /// **'Allow'**
+  String get allowRecount;
+
+  /// No description provided for @recountReasonLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Reason given'**
+  String get recountReasonLabel;
+
+  /// No description provided for @grossisteHandledBy.
+  ///
+  /// In en, this message translates to:
+  /// **'This grossiste is looked after by the responsable of the region: they check the stock counts and photos before the admin approves.'**
+  String get grossisteHandledBy;
 }
 
 class _AppLocalizationsDelegate

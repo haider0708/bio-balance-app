@@ -94,6 +94,7 @@ class DeclarationLine {
 
 enum DeclarationStatus {
   pending,
+  review,
   approved,
   rejected;
 
@@ -159,4 +160,44 @@ class StockDeclaration {
   final List<DeclarationLine> lines;
 
   int get units => lines.fold(0, (s, l) => s + l.quantity);
+}
+
+/// Permission to count a place again.
+class RecountRequest {
+  const RecountRequest({
+    required this.id,
+    required this.status,
+    required this.placeId,
+    required this.placeName,
+    required this.reason,
+    required this.requestedBy,
+    required this.used,
+    required this.createdAt,
+    this.decisionNote,
+  });
+
+  factory RecountRequest.fromJson(Json j) => RecountRequest(
+    id: j.str('id'),
+    status: DeclarationStatus.parse(j.str('status')),
+    placeId: j.obj('place').str('id'),
+    placeName: j.obj('place').str('name'),
+    reason: j.str('reason'),
+    requestedBy: j.obj('requestedBy').str('name'),
+    used: j.flag('used'),
+    createdAt: j.date('createdAt'),
+    decisionNote: j.strOrNull('decisionNote'),
+  );
+
+  final String id;
+  final DeclarationStatus status;
+  final String placeId;
+  final String placeName;
+  final String reason;
+  final String requestedBy;
+  final bool used;
+  final DateTime createdAt;
+  final String? decisionNote;
+
+  bool get waiting => status == DeclarationStatus.pending;
+  bool get allowed => status == DeclarationStatus.approved && !used;
 }

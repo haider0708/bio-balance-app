@@ -2155,4 +2155,73 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get photosNeeded => 'Ajoutez de 1 à 5 photos.';
+
+  @override
+  String get statusWaitingResponsable => 'En attente du responsable';
+
+  @override
+  String get declarationWaitingResponsable =>
+      'Votre comptage attend la vérification du responsable, puis l’admin.';
+
+  @override
+  String get recountAsked2 =>
+      'Nouveau comptage demandé : en attente de l’accord de l’admin.';
+
+  @override
+  String get recountAllowed =>
+      'L’admin a autorisé un nouveau comptage. Recomptez avec le bouton ci-dessous.';
+
+  @override
+  String get recountRequestTitle => 'Demander un nouveau comptage';
+
+  @override
+  String get recountRequestSend => 'Envoyer la demande';
+
+  @override
+  String get recountRequestHint =>
+      'Pourquoi ? (par exemple, du stock acheté ailleurs)';
+
+  @override
+  String get recountRequested => 'Demande envoyée à l’admin';
+
+  @override
+  String get reviewHint =>
+      'Vérifiez les photos et les chiffres. Envoyé à l’admin, il faut encore son accord.';
+
+  @override
+  String get sentToAdmin => 'Envoyé à l’admin';
+
+  @override
+  String get sendBack => 'Renvoyer';
+
+  @override
+  String get sentBack => 'Renvoyé au grossiste';
+
+  @override
+  String get countsToCheck => 'Comptages à vérifier';
+
+  @override
+  String get nothingToCheck => 'Rien à vérifier pour l’instant';
+
+  @override
+  String get typeRecount => 'Demande de comptage';
+
+  @override
+  String get attnRecounts => 'Demandes de comptage';
+
+  @override
+  String get attnGrossisteCounts => 'Comptages de grossistes à vérifier';
+
+  @override
+  String get approveRecountTitle => 'Autoriser un nouveau comptage ?';
+
+  @override
+  String get allowRecount => 'Autoriser';
+
+  @override
+  String get recountReasonLabel => 'Motif indiqué';
+
+  @override
+  String get grossisteHandledBy =>
+      'Ce grossiste est suivi par le responsable de la région : il vérifie les comptages et les photos avant l’approbation de l’admin.';
 }

@@ -35,6 +35,7 @@ class DeclarationStatusChip extends StatelessWidget {
     final t = AppLocalizations.of(context);
     final (label, tone) = switch (status) {
       DeclarationStatus.pending => (t.statusWaitingApproval, Tone.warning),
+      DeclarationStatus.review => (t.statusWaitingResponsable, Tone.info),
       DeclarationStatus.approved => (t.statusApproved, Tone.success),
       DeclarationStatus.rejected => (t.statusRejected, Tone.danger),
     };

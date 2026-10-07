@@ -339,6 +339,22 @@ class ServerText {
       '{seller} sold {units} units at {place} · {amount} earned.',
       '{seller} a vendu {units} unités à {place} · {amount} gagnés.',
     ),
+    'stock.to_review': (
+      '{by} declared the stock of {place}: check it and pass it to the admin.',
+      '{by} a déclaré le stock de {place} : vérifiez-le puis transmettez-le à l’admin.',
+    ),
+    'recount.requested': (
+      '{by} asks to count {place} again.',
+      '{by} demande de recompter {place}.',
+    ),
+    'recount.approved': (
+      'A recount of {place} was allowed.',
+      'Un nouveau comptage de {place} a été autorisé.',
+    ),
+    'recount.rejected': (
+      'The recount of {place} was refused.',
+      'Le nouveau comptage de {place} a été refusé.',
+    ),
     'stock.submitted': (
       '{by} declared stock for {place}: waiting for approval.',
       '{by} a déclaré le stock de {place} : en attente d’approbation.',
