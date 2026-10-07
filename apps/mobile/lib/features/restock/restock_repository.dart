@@ -67,11 +67,11 @@ class RestockRepository {
 
   Future<void> receive(
     String id, {
-    required String photoId,
+    required List<String> photoIds,
     required List<Map<String, Object>> lines,
     String? note,
   }) => _ref.read(apiClientProvider).post('/v1/restocks/$id/receipt', {
-    'photoId': photoId,
+    'photoIds': photoIds,
     'lines': lines,
     if (note != null && note.isNotEmpty) 'note': note,
   });

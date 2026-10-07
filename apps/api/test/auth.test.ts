@@ -192,3 +192,67 @@ describe("invitation and password reset", () => {
     ).toBe(201);
   });
 });
+
+describe("taking back an invitation", () => {
+  it("kills the code and frees the email before activation, and refuses once the account exists", async () => {
+    const admin = await createAccount({ role: "ADMIN" });
+    const a = client(api, admin.token);
+    const regions = (await a.get("/v1/regions")).body;
+    const nord = regions.find((r: any) => r.code === "NORD");
+    const sud = regions.find((r: any) => r.code === "SUD");
+    const created = await a.post("/v1/users", {
+      role: "GROSSISTE",
+      regionId: nord.id,
+      name: "Mounir",
+      email: "mounir@example.test",
+      depot: { name: "Depot Sfax", address: "ZI", city: "Sfax" },
+    });
+    const db = await owner();
+    const code = (
+      await db.query(
+        `SELECT payload FROM "Job" WHERE kind='email' ORDER BY "createdAt" DESC LIMIT 1`,
+      )
+    ).rows[0].payload.code;
+    await db.end();
+
+    expect(
+      (await a.post(`/v1/users/${created.body.id}/cancel-invite`)).status,
+    ).toBe(201);
+    const anon = client(api);
+    const dead = await anon.post("/v1/auth/activate", {
+      email: "mounir@example.test",
+      code,
+      password: "a-long-password",
+    });
+    expect(dead.status).toBe(422);
+    // The address is free again, with a fresh depot.
+    const again = await a.post("/v1/users", {
+      role: "GROSSISTE",
+      regionId: sud.id,
+      name: "Mounir",
+      email: "mounir@example.test",
+      depot: { name: "Depot Gabes", address: "ZI", city: "Gabes" },
+    });
+    expect(again.status).toBe(201);
+
+    // Once the person has an account, only deactivation is left.
+    const db2 = await owner();
+    const fresh = (
+      await db2.query(
+        `SELECT payload FROM "Job" WHERE kind='email' ORDER BY "createdAt" DESC LIMIT 1`,
+      )
+    ).rows[0].payload.code;
+    await db2.end();
+    await anon.post("/v1/auth/activate", {
+      email: "mounir@example.test",
+      code: fresh,
+      password: "a-long-password",
+    });
+    const refused = await a.post(`/v1/users/${again.body.id}/cancel-invite`);
+    expect(refused.status).toBe(409);
+    expect(refused.body.code).toBe("ALREADY_ACTIVATED");
+    expect(
+      (await a.post(`/v1/users/${again.body.id}/suspend`, {})).body.status,
+    ).toBe("SUSPENDED");
+  });
+});

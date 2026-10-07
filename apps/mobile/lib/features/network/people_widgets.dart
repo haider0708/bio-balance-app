@@ -332,7 +332,33 @@ class PersonPanel extends ConsumerWidget {
             onPressed: () =>
                 act(() => repo.resendInvite(person.id), t.invitationResent),
           ),
-        if (person.status == ItemStatus.active && person.id != me.id)
+        if (person.status == ItemStatus.active &&
+            !person.activated &&
+            person.role != Role.admin)
+          AsyncButton(
+            label: t.cancelInvitation,
+            icon: LucideIcons.mailX,
+            style: AsyncButtonStyle.text,
+            onPressed: () async {
+              if (await confirm(
+                    context,
+                    title: t.cancelInvitationTitle(person.name),
+                    message: t.cancelInvitationBody,
+                    confirmLabel: t.cancelInvitation,
+                    destructive: true,
+                  ) &&
+                  context.mounted) {
+                await act(
+                  () => repo.cancelInvite(person.id),
+                  t.invitationCancelled,
+                );
+              }
+            },
+          ),
+        // Once the account exists it is deactivated; before that the invitation is cancelled.
+        if (person.status == ItemStatus.active &&
+            person.id != me.id &&
+            person.activated)
           AsyncButton(
             label: t.deactivate,
             icon: LucideIcons.userX,

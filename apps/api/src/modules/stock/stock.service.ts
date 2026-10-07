@@ -1,3 +1,4 @@
+import { ownedProofs } from "../media/proofs";
 import { Injectable } from "@nestjs/common";
 import type { Approval, Prisma } from "@prisma/client";
 import type { Actor } from "../../core/actor";
@@ -99,6 +100,7 @@ export class StockService {
     input: {
       locationId: string;
       photoId?: string;
+      photoIds?: string[];
       note?: string;
       lines: DeclarationLineInput[];
     },
@@ -130,18 +132,16 @@ export class StockService {
         "The stock of this place was already declared.",
         409,
       );
-      // A photo proves what is on the shelves; a place with nothing needs none.
-      if (input.lines.length > 0) {
-        const photo = input.photoId
-          ? await tx.mediaAsset.findUnique({ where: { id: input.photoId } })
-          : null;
-        requireRule(
-          photo?.purpose === "PROOF" && photo.ownerId === actor.id,
-          "PHOTO_REQUIRED",
-          "Add a photo of the stock.",
-          422,
-        );
-      }
+      // Photos prove what is on the shelves (one to five); a place with nothing needs none.
+      const photoIds =
+        input.lines.length > 0
+          ? await ownedProofs(
+              tx,
+              actor,
+              input.photoIds ?? (input.photoId ? [input.photoId] : []),
+              "Add a photo of the stock.",
+            )
+          : [];
       const ids = input.lines.map((l) => l.productId);
       requireRule(
         new Set(ids).size === ids.length,
@@ -163,7 +163,8 @@ export class StockService {
           locationId: location.id,
           locationKind: location.kind,
           regionId: location.regionId,
-          photoId: input.lines.length > 0 ? input.photoId : null,
+          photoId: photoIds[0] ?? null,
+          photoIds,
           note: input.note?.trim() || null,
           createdById: actor.id,
           lines: {
@@ -443,6 +444,7 @@ export class StockService {
       },
       regionId: r.regionId,
       photoId: r.photoId,
+      photoIds: r.photoIds.length ? r.photoIds : r.photoId ? [r.photoId] : [],
       note: r.note,
       createdBy: { id: r.createdById, name: user.get(r.createdById) ?? "" },
       createdAt: r.createdAt,

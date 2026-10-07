@@ -114,6 +114,10 @@ class ServerText {
       'The stock of this place was already declared.',
       'Le stock de ce lieu a déjà été déclaré.',
     ),
+    'ALREADY_ACTIVATED': (
+      'This person already has an account. Deactivate it instead.',
+      'Cette personne a déjà un compte. Désactivez-le plutôt.',
+    ),
     'INVALID_STATE': (
       'This was already handled. Refresh to see the latest.',
       'C’est déjà traité. Actualisez pour voir la dernière version.',

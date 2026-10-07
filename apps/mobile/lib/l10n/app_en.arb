@@ -1023,5 +1023,29 @@
   "appearance": "Appearance",
   "themeAuto": "Auto",
   "themeLight": "Light",
-  "themeDark": "Dark"
+  "themeDark": "Dark",
+  "cancelInvitation": "Cancel the invitation",
+  "cancelInvitationTitle": "Cancel the invitation of {name}?",
+  "@cancelInvitationTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "cancelInvitationBody": "The code stops working and the email address becomes free again. You can invite someone else.",
+  "invitationCancelled": "Invitation cancelled",
+  "photoAddAnother": "Add another",
+  "photoCount": "{count} of {max} photos",
+  "@photoCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "photosNeeded": "Add 1 to 5 photos."
 }

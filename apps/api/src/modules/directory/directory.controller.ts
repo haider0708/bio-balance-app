@@ -342,6 +342,12 @@ export class DirectoryController {
     return this.users.resendInvite(r.actor, parse(id, i));
   }
 
+  @Roles("ADMIN", "RESPONSABLE")
+  @Post("users/:id/cancel-invite")
+  cancelInvite(@Req() r: AuthRequest, @Param("id") i: string) {
+    return this.users.cancelInvite(r.actor, parse(id, i));
+  }
+
   // Depots
   @Roles("ADMIN", "RESPONSABLE", "GROSSISTE")
   @Get("depots")

@@ -72,6 +72,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       }
       if (!signedIn) return _publicPaths.contains(path) ? null : '/login';
       if (_publicPaths.contains(path) || path == '/splash') return '/home';
+      if (path.startsWith('/catalog') &&
+          session.value?.me.role == Role.grossiste) {
+        return '/home';
+      }
       return null;
     },
     routes: [
@@ -352,6 +356,13 @@ List<RouteBase> _shared() => [
   ),
   GoRoute(path: '/settings', builder: (_, _) => const SettingsScreen()),
   GoRoute(
+    path: '/photos',
+    builder: (_, state) {
+      final (ids, index) = state.extra! as (List<String>, int);
+      return PhotoGalleryScreen(ids: ids, initial: index);
+    },
+  ),
+  GoRoute(
     path: '/photo/:id',
     builder: (_, state) =>
         PhotoViewerScreen(mediaId: state.pathParameters['id']!),
@@ -457,6 +468,12 @@ Widget _more(Role role) => Builder(
       Role.responsable => [
         MoreEntry(LucideIcons.warehouse, t.grossistesTitle, '/depots'),
         MoreEntry(LucideIcons.package, t.catalogTitle, '/catalog'),
+        MoreEntry(LucideIcons.graduationCap, t.trainingTitle, '/training'),
+        MoreEntry(LucideIcons.bell, t.notificationsTitle, '/notifications'),
+        MoreEntry(LucideIcons.settings, t.settingsTitle, '/settings'),
+      ],
+      // A grossiste works from orders and stock: no catalogue page.
+      Role.grossiste => [
         MoreEntry(LucideIcons.graduationCap, t.trainingTitle, '/training'),
         MoreEntry(LucideIcons.bell, t.notificationsTitle, '/notifications'),
         MoreEntry(LucideIcons.settings, t.settingsTitle, '/settings'),

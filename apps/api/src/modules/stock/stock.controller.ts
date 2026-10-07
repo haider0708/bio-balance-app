@@ -12,6 +12,7 @@ const Lines = z
 const Declare = z.object({
   locationId: id,
   photoId: id.optional(),
+  photoIds: z.array(id).max(5).optional(),
   note: z.string().trim().max(500).optional(),
   lines: z.array(z.object({ productId: id, quantity: qty })).max(500),
 });

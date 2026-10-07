@@ -123,6 +123,9 @@ class NetworkRepository {
   Future<void> resendInvite(String id) =>
       _ref.read(apiClientProvider).post('/v1/users/$id/resend-invite');
 
+  Future<void> cancelInvite(String id) =>
+      _ref.read(apiClientProvider).post('/v1/users/$id/cancel-invite');
+
   Future<List<Depot>> depots() async =>
       jsonList(await _ref.read(apiClientProvider).get('/v1/depots'))
           .map(Depot.fromJson)

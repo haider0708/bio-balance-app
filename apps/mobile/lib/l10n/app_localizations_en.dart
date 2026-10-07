@@ -2121,4 +2121,30 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get themeDark => 'Dark';
+
+  @override
+  String get cancelInvitation => 'Cancel the invitation';
+
+  @override
+  String cancelInvitationTitle(String name) {
+    return 'Cancel the invitation of $name?';
+  }
+
+  @override
+  String get cancelInvitationBody =>
+      'The code stops working and the email address becomes free again. You can invite someone else.';
+
+  @override
+  String get invitationCancelled => 'Invitation cancelled';
+
+  @override
+  String get photoAddAnother => 'Add another';
+
+  @override
+  String photoCount(int count, int max) {
+    return '$count of $max photos';
+  }
+
+  @override
+  String get photosNeeded => 'Add 1 to 5 photos.';
 }

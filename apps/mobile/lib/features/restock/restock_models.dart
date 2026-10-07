@@ -76,6 +76,7 @@ class RestockOrder {
     this.receiver,
     this.note,
     this.receiptPhotoId,
+    this.receiptPhotoIds = const [],
     this.decisionNote,
     this.cancelReason,
     this.shippedAt,
@@ -102,6 +103,8 @@ class RestockOrder {
     receivedAt: j.dateOrNull('receivedAt'),
     decidedAt: j.dateOrNull('decidedAt'),
     receiptPhotoId: j.strOrNull('receiptPhotoId'),
+    receiptPhotoIds: ((j['receiptPhotoIds'] as List<dynamic>?) ?? const [])
+        .cast<String>(),
     decisionNote: j.strOrNull('decisionNote'),
     cancelReason: j.strOrNull('cancelReason'),
     lines: j.list('lines').map(RestockLine.fromJson).toList(),
@@ -127,6 +130,7 @@ class RestockOrder {
   final DateTime? receivedAt;
   final DateTime? decidedAt;
   final String? receiptPhotoId;
+  final List<String> receiptPhotoIds;
   final String? decisionNote;
   final String? cancelReason;
   final List<RestockLine> lines;

@@ -11,7 +11,7 @@ import '../../core/widgets/amend_sheet.dart';
 import '../../core/widgets/async_body.dart';
 import '../../core/widgets/components.dart';
 import '../../core/widgets/feedback.dart';
-import '../../core/widgets/photo_field.dart';
+import '../../core/widgets/photo_set.dart';
 import '../../core/widgets/quantity_editor.dart';
 import '../../core/widgets/states.dart';
 import '../../l10n/app_localizations.dart';
@@ -269,7 +269,8 @@ class DeclareStockScreen extends ConsumerStatefulWidget {
 class _DeclareStockScreenState extends ConsumerState<DeclareStockScreen> {
   final _quantities = QuantityController();
   final _note = TextEditingController();
-  String? _photoId;
+  List<String> _photoIds = const [];
+  bool _photosBusy = false;
   bool _seeded = false;
 
   @override
@@ -316,7 +317,7 @@ class _DeclareStockScreenState extends ConsumerState<DeclareStockScreen> {
           .read(stockRepositoryProvider)
           .declare(
             locationId: widget.locationId,
-            photoId: empty ? null : _photoId,
+            photoIds: empty ? const [] : _photoIds,
             lines: empty ? const [] : _quantities.lines(),
             note: _note.text.trim(),
           ),
@@ -347,9 +348,12 @@ class _DeclareStockScreenState extends ConsumerState<DeclareStockScreen> {
                 ),
               ),
               const Gap(16),
-              PhotoField(
+              PhotoSet(
                 label: t.photoOfStock,
-                onChanged: (id) => setState(() => _photoId = id),
+                onChanged: (ids, busy) => setState(() {
+                  _photoIds = ids;
+                  _photosBusy = busy;
+                }),
               ),
               SectionHeader(t.countedProducts),
               QuantityEditor(controller: _quantities, addLabel: t.addProduct),
@@ -369,12 +373,13 @@ class _DeclareStockScreenState extends ConsumerState<DeclareStockScreen> {
                 builder: (context, _) => AsyncButton(
                   label: t.sendToAdmin,
                   icon: LucideIcons.send,
-                  onPressed: _photoId == null || _quantities.isEmpty
+                  onPressed:
+                      _photoIds.isEmpty || _photosBusy || _quantities.isEmpty
                       ? null
                       : _submit,
                 ),
               ),
-              if (_photoId == null)
+              if (_photoIds.isEmpty)
                 Padding(
                   padding: const EdgeInsets.only(top: 8),
                   child: Text(
@@ -445,15 +450,7 @@ class DeclarationScreen extends ConsumerWidget {
               ),
             ),
             const Gap(12),
-            if (d.photoId != null)
-              GestureDetector(
-                onTap: () => context.push('/photo/${d.photoId}'),
-                child: AuthImage(
-                  d.photoId,
-                  height: 220,
-                  width: double.infinity,
-                ),
-              ),
+            PhotoStrip(ids: d.photoIds.isNotEmpty ? d.photoIds : [?d.photoId]),
             SectionHeader(t.countedProducts),
             for (final l in d.lines)
               Padding(

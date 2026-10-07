@@ -32,7 +32,8 @@ const Direct = z.object({ lines: Lines(positive).optional() });
 const Ship = z.object({ lines: Lines(qty) });
 const Receiver = z.object({ userId: id.nullable() });
 const Receive = z.object({
-  photoId: id,
+  photoId: id.optional(),
+  photoIds: z.array(id).max(5).optional(),
   note: Note.optional(),
   lines: Lines(qty),
 });

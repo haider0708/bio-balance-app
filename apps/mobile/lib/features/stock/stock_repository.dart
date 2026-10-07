@@ -16,13 +16,13 @@ class StockRepository {
 
   Future<StockDeclaration> declare({
     required String locationId,
-    String? photoId,
+    List<String> photoIds = const [],
     required List<Map<String, Object>> lines,
     String? note,
   }) async => StockDeclaration.fromJson(
     await _ref.read(apiClientProvider).post('/v1/stock/declarations', {
       'locationId': locationId,
-      'photoId': ?photoId,
+      if (photoIds.isNotEmpty) 'photoIds': photoIds,
       'lines': lines,
       if (note != null && note.isNotEmpty) 'note': note,
     }) as Json,

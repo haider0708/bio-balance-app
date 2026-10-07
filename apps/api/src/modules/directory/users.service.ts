@@ -413,6 +413,68 @@ export class UsersService {
     });
   }
 
+  /**
+   * Take back an invitation before the person has created their account: the
+   * code stops working and the email address is free again. Once the account
+   * exists it can only be deactivated.
+   */
+  async cancelInvite(actor: Actor, id: string) {
+    requireRule(
+      ["ADMIN", "RESPONSABLE"].includes(actor.role),
+      "FORBIDDEN",
+      "Not allowed.",
+      403,
+    );
+    return this.db.run(actor, async (tx) => {
+      await this.db.lock(tx, "User", id);
+      const user = await tx.user.findUnique({ where: { id } });
+      const visible =
+        user &&
+        (actor.role === "ADMIN" ||
+          (user.role === "VENDEUR" && user.regionId === actor.regionId));
+      if (!user || !visible) throw notFound("User");
+      requireRule(
+        !user.passwordHash && user.role !== "ADMIN",
+        "ALREADY_ACTIVATED",
+        "This person already has an account. Deactivate it instead.",
+        409,
+      );
+      const depot = await tx.depot.findUnique({ where: { userId: id } });
+      if (depot) {
+        const used =
+          (await tx.stockDeclaration.count({
+            where: { locationId: depot.id },
+          })) +
+          (await tx.restockOrder.count({
+            where: {
+              OR: [{ supplierDepotId: depot.id }, { destId: depot.id }],
+            },
+          })) +
+          (await tx.stock.count({ where: { locationId: depot.id } }));
+        requireRule(
+          used === 0,
+          "ALREADY_ACTIVATED",
+          "This grossiste already has activity. Deactivate it instead.",
+          409,
+        );
+        await tx.depot.delete({ where: { id: depot.id } });
+      }
+      await tx.accessToken.deleteMany({ where: { userId: id } });
+      await tx.session.deleteMany({ where: { userId: id } });
+      await tx.user.delete({ where: { id } });
+      await audit(
+        tx,
+        actor,
+        "user.invitation_cancelled",
+        "User",
+        id,
+        { email: user.email, role: user.role },
+        user.regionId,
+      );
+      return { ok: true };
+    });
+  }
+
   // ───────────────────────── Depots ─────────────────────────
 
   async listDepots(actor: Actor) {

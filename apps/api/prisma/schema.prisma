@@ -280,6 +280,8 @@ model StockDeclaration {
   regionId     String?         @db.Uuid
   status       Approval        @default(PENDING)
   photoId      String?         @db.Uuid
+  /// One to five photos of the counted stock; photoId is the first.
+  photoIds     String[]        @db.Uuid @default([])
   note         String?
   createdById  String          @db.Uuid
   createdAt    DateTime        @default(now())
@@ -327,6 +329,7 @@ model RestockOrder {
   /// The responsable, or the team member chosen by them, who counts the goods.
   receiverId     String?     @db.Uuid
   receiptPhotoId String?     @db.Uuid
+  receiptPhotoIds String[]  @db.Uuid @default([])
   receivedAt     DateTime?
   decidedById    String?     @db.Uuid
   decidedAt      DateTime?

@@ -111,6 +111,7 @@ class StockDeclaration {
     required this.status,
     required this.location,
     this.photoId,
+    this.photoIds = const [],
     required this.createdBy,
     required this.createdAt,
     required this.lines,
@@ -131,6 +132,7 @@ class StockDeclaration {
       status: '',
     ),
     photoId: j.strOrNull('photoId'),
+    photoIds: ((j['photoIds'] as List<dynamic>?) ?? const []).cast<String>(),
     note: j.strOrNull('note'),
     createdBy: j.obj('createdBy').str('name'),
     createdAt: j.date('createdAt'),
@@ -147,6 +149,7 @@ class StockDeclaration {
   final DeclarationStatus status;
   final StockLocation location;
   final String? photoId;
+  final List<String> photoIds;
   final String? note;
   final String createdBy;
   final DateTime createdAt;

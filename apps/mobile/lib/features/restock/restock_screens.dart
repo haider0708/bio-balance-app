@@ -11,12 +11,11 @@ import '../../core/widgets/amend_sheet.dart';
 import '../../core/widgets/async_body.dart';
 import '../../core/widgets/components.dart';
 import '../../core/widgets/feedback.dart';
-import '../../core/widgets/photo_field.dart';
+import '../../core/widgets/photo_set.dart';
 import '../../core/widgets/quantity_editor.dart';
 import '../../core/widgets/states.dart';
 import '../../l10n/app_localizations.dart';
 import '../approvals/approvals_repository.dart';
-import '../media/media_repository.dart';
 import '../network/network_models.dart';
 import '../network/network_repository.dart';
 import '../shared/status_chips.dart';
@@ -401,15 +400,12 @@ class _RestockDetailScreenState extends ConsumerState<RestockDetailScreen> {
               ),
               SectionHeader(t.products),
               _Lines(order: o, adjusted: _adjusted),
-              if (o.receiptPhotoId != null) ...[
+              if (o.receiptPhotoIds.isNotEmpty || o.receiptPhotoId != null) ...[
                 SectionHeader(t.deliveryPaper),
-                GestureDetector(
-                  onTap: () => context.push('/photo/${o.receiptPhotoId}'),
-                  child: AuthImage(
-                    o.receiptPhotoId,
-                    height: 200,
-                    width: double.infinity,
-                  ),
+                PhotoStrip(
+                  ids: o.receiptPhotoIds.isNotEmpty
+                      ? o.receiptPhotoIds
+                      : [?o.receiptPhotoId],
                 ),
               ],
               const Gap(20),
@@ -937,7 +933,8 @@ class _ReceiveScreenState extends ConsumerState<ReceiveScreen> {
       ),
   ]);
   final _note = TextEditingController();
-  String? _photoId;
+  List<String> _photoIds = const [];
+  bool _photosBusy = false;
 
   @override
   void dispose() {
@@ -954,7 +951,7 @@ class _ReceiveScreenState extends ConsumerState<ReceiveScreen> {
           .read(restockRepositoryProvider)
           .receive(
             widget.order.id,
-            photoId: _photoId!,
+            photoIds: _photoIds,
             lines: _quantities.lines(),
             note: _note.text.trim(),
           ),
@@ -978,9 +975,12 @@ class _ReceiveScreenState extends ConsumerState<ReceiveScreen> {
             ),
           ),
           const Gap(16),
-          PhotoField(
+          PhotoSet(
             label: t.photoOfPaper,
-            onChanged: (id) => setState(() => _photoId = id),
+            onChanged: (ids, busy) => setState(() {
+              _photoIds = ids;
+              _photosBusy = busy;
+            }),
           ),
           SectionHeader(t.quantitiesReceived),
           QuantityEditor(
@@ -1000,9 +1000,9 @@ class _ReceiveScreenState extends ConsumerState<ReceiveScreen> {
           AsyncButton(
             label: t.sendToAdmin,
             icon: LucideIcons.send,
-            onPressed: _photoId == null ? null : _send,
+            onPressed: _photoIds.isEmpty || _photosBusy ? null : _send,
           ),
-          if (_photoId == null)
+          if (_photoIds.isEmpty)
             Padding(
               padding: const EdgeInsets.only(top: 8),
               child: Text(

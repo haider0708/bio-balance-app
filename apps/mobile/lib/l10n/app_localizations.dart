@@ -3697,6 +3697,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Dark'**
   String get themeDark;
+
+  /// No description provided for @cancelInvitation.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel the invitation'**
+  String get cancelInvitation;
+
+  /// No description provided for @cancelInvitationTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel the invitation of {name}?'**
+  String cancelInvitationTitle(String name);
+
+  /// No description provided for @cancelInvitationBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The code stops working and the email address becomes free again. You can invite someone else.'**
+  String get cancelInvitationBody;
+
+  /// No description provided for @invitationCancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'Invitation cancelled'**
+  String get invitationCancelled;
+
+  /// No description provided for @photoAddAnother.
+  ///
+  /// In en, this message translates to:
+  /// **'Add another'**
+  String get photoAddAnother;
+
+  /// No description provided for @photoCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} of {max} photos'**
+  String photoCount(int count, int max);
+
+  /// No description provided for @photosNeeded.
+  ///
+  /// In en, this message translates to:
+  /// **'Add 1 to 5 photos.'**
+  String get photosNeeded;
 }
 
 class _AppLocalizationsDelegate

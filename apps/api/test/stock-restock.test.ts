@@ -422,3 +422,39 @@ describe("direct restock from BioBalance", () => {
     ).toBe(403);
   });
 });
+
+describe("several photos", () => {
+  it("takes one to five photos for a count and for a delivery, and refuses six", async () => {
+    const pdv = await approvedPdv(w);
+    const photos = async (n: number) =>
+      Promise.all(Array.from({ length: n }, () => photo(w, w.nord)));
+    const body = (photoIds: string[]) => ({
+      locationId: pdv.id,
+      photoIds,
+      lines: [{ productId: w.products[0]!.id, quantity: 5 }],
+    });
+    const six = await w.n.post("/v1/stock/declarations", body(await photos(6)));
+    expect(six.status).toBe(400);
+    const dup = await photos(1);
+    const twice = await w.n.post(
+      "/v1/stock/declarations",
+      body([dup[0]!, dup[0]!]),
+    );
+    expect(twice.body.code).toBe("TOO_MANY_PHOTOS");
+    const other = await photo(w, w.sud);
+    const stolen = await w.n.post("/v1/stock/declarations", body([other]));
+    expect(stolen.body.code).toBe("PHOTO_REQUIRED");
+    const mine = await photos(3);
+    const ok = await w.n.post("/v1/stock/declarations", body(mine));
+    expect(ok.status).toBe(201);
+    expect(ok.body.photoIds).toEqual(mine);
+    expect(ok.body.photoId).toBe(mine[0]);
+    // The admin can open them all.
+    for (const id of mine) {
+      const res = await fetch(`${api.url}/v1/media/${id}`, {
+        headers: { Authorization: `Bearer ${w.admin.token}` },
+      });
+      expect(res.status).toBe(200);
+    }
+  });
+});

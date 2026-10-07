@@ -1,3 +1,4 @@
+import { ownedProofs } from "../media/proofs";
 import { Injectable } from "@nestjs/common";
 import type { OrderStatus, Prisma } from "@prisma/client";
 import type { Actor } from "../../core/actor";
@@ -350,7 +351,12 @@ export class RestockService {
   receive(
     actor: Actor,
     id: string,
-    input: { photoId: string; lines: QtyLine[]; note?: string },
+    input: {
+      photoId?: string;
+      photoIds?: string[];
+      lines: QtyLine[];
+      note?: string;
+    },
   ) {
     return this.db.run(actor, async (tx) => {
       const order = await this.load(tx, id, "SHIPPED");
@@ -369,12 +375,10 @@ export class RestockService {
         "You cannot receive this delivery.",
         403,
       );
-      const photo = await tx.mediaAsset.findUnique({
-        where: { id: input.photoId },
-      });
-      requireRule(
-        photo?.purpose === "PROOF" && photo.ownerId === actor.id,
-        "PHOTO_REQUIRED",
+      const photoIds = await ownedProofs(
+        tx,
+        actor,
+        input.photoIds ?? (input.photoId ? [input.photoId] : []),
         "Add a photo of the delivery paper.",
       );
       const counted = new Map(
@@ -409,7 +413,8 @@ export class RestockService {
         where: { id },
         data: {
           status: "RECEIVED",
-          receiptPhotoId: input.photoId,
+          receiptPhotoId: photoIds[0],
+          receiptPhotoIds: photoIds,
           receivedAt: new Date(),
           decisionNote: null,
           ...(isReceiver ? {} : { receiverId: actor.id }),
@@ -812,6 +817,11 @@ export class RestockService {
       receivedAt: o.receivedAt,
       decidedAt: o.decidedAt,
       receiptPhotoId: o.receiptPhotoId,
+      receiptPhotoIds: o.receiptPhotoIds.length
+        ? o.receiptPhotoIds
+        : o.receiptPhotoId
+          ? [o.receiptPhotoId]
+          : [],
       decisionNote: o.decisionNote,
       cancelReason: o.cancelReason,
       lines: o.lines

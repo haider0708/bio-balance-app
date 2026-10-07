@@ -1023,5 +1023,29 @@
   "appearance": "Apparence",
   "themeAuto": "Auto",
   "themeLight": "Clair",
-  "themeDark": "Sombre"
+  "themeDark": "Sombre",
+  "cancelInvitation": "Annuler l’invitation",
+  "cancelInvitationTitle": "Annuler l’invitation de {name} ?",
+  "@cancelInvitationTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "cancelInvitationBody": "Le code ne fonctionnera plus et l’adresse email redevient libre. Vous pourrez inviter quelqu’un d’autre.",
+  "invitationCancelled": "Invitation annulée",
+  "photoAddAnother": "Ajouter une autre",
+  "photoCount": "{count} photo(s) sur {max}",
+  "@photoCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "photosNeeded": "Ajoutez de 1 à 5 photos."
 }

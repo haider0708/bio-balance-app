@@ -10,6 +10,6 @@ class AppConfig {
   static const version = '2.1.0';
 
   /// Photos are resized on the phone before upload.
-  static const photoMaxWidth = 1600.0;
-  static const photoQuality = 78;
+  static const photoMaxWidth = 1400.0;
+  static const photoQuality = 72;
 }
