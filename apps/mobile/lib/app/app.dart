@@ -32,6 +32,7 @@ class _BioBalanceAppState extends ConsumerState<BioBalanceApp> {
         debugShowCheckedModeBanner: false,
         theme: AppTheme.light(),
         darkTheme: AppTheme.dark(),
+        themeMode: ref.watch(themeModeProvider),
         locale: choice == null ? null : Locale(choice),
         supportedLocales: AppLocalizations.supportedLocales,
         // French is the default unless the phone itself is set to English.

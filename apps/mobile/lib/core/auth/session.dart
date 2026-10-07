@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:flutter/material.dart' show ThemeMode;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -209,3 +210,26 @@ final meProvider = (() {
     throw StateError('No session');
   });
 })();
+
+/// Light, dark, or follow the phone (the default). Remembered on the phone.
+class ThemeModeNotifier extends Notifier<ThemeMode> {
+  @override
+  ThemeMode build() {
+    ref.listen(preferencesProvider, (_, next) {
+      final stored = next.value?.getString('app.theme');
+      final mode = ThemeMode.values.where((m) => m.name == stored).firstOrNull;
+      if (mode != null) state = mode;
+    }, fireImmediately: true);
+    return ThemeMode.system;
+  }
+
+  Future<void> choose(ThemeMode mode) async {
+    state = mode;
+    await (await ref.read(preferencesProvider.future))
+        .setString('app.theme', mode.name);
+  }
+}
+
+final themeModeProvider = NotifierProvider<ThemeModeNotifier, ThemeMode>(
+  ThemeModeNotifier.new,
+);

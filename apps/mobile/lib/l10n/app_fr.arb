@@ -1019,5 +1019,9 @@
   "noSalesWithProduct": "Aucune vente ne contient ce produit",
   "noSalesThisMonth": "Aucune vente ce mois-ci",
   "previousMonth": "Mois précédent",
-  "nextMonth": "Mois suivant"
+  "nextMonth": "Mois suivant",
+  "appearance": "Apparence",
+  "themeAuto": "Auto",
+  "themeLight": "Clair",
+  "themeDark": "Sombre"
 }

@@ -88,6 +88,32 @@ class SettingsScreen extends ConsumerWidget {
               ],
             ),
           ),
+          SectionHeader(t.appearance),
+          AppCard(
+            child: SegmentedButton<ThemeMode>(
+              showSelectedIcon: false,
+              segments: [
+                ButtonSegment(
+                  value: ThemeMode.system,
+                  label: Text(t.themeAuto),
+                  icon: const Icon(LucideIcons.smartphone),
+                ),
+                ButtonSegment(
+                  value: ThemeMode.light,
+                  label: Text(t.themeLight),
+                  icon: const Icon(LucideIcons.sun),
+                ),
+                ButtonSegment(
+                  value: ThemeMode.dark,
+                  label: Text(t.themeDark),
+                  icon: const Icon(LucideIcons.moon),
+                ),
+              ],
+              selected: {ref.watch(themeModeProvider)},
+              onSelectionChanged: (s) =>
+                  ref.read(themeModeProvider.notifier).choose(s.first),
+            ),
+          ),
           SectionHeader(t.about),
           AppCard(
             child: Column(children: [InfoRow(t.appVersion, AppConfig.version)]),

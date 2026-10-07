@@ -2117,4 +2117,16 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get nextMonth => 'Mois suivant';
+
+  @override
+  String get appearance => 'Apparence';
+
+  @override
+  String get themeAuto => 'Auto';
+
+  @override
+  String get themeLight => 'Clair';
+
+  @override
+  String get themeDark => 'Sombre';
 }
