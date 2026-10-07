@@ -2,7 +2,6 @@
 import 'package:biobalance/core/theme/app_theme.dart';
 import 'package:biobalance/features/sales/celebration_screen.dart';
 import 'package:biobalance/features/sales/sales_models.dart';
-import 'package:biobalance/features/sales/sales_outbox.dart';
 import 'package:biobalance/features/sales/sales_repository.dart';
 import 'package:biobalance/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';

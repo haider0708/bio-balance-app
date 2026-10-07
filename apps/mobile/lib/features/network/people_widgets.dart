@@ -293,6 +293,19 @@ class PersonPanel extends ConsumerWidget {
         const Gap(12),
         InfoRow(t.email, person.email),
         if (person.phone != null) InfoRow(t.phone, person.phone!),
+        if (me.role == Role.admin && person.role != Role.admin)
+          Align(
+            alignment: AlignmentDirectional.centerEnd,
+            child: TextButton.icon(
+              onPressed: () async {
+                final changed = await _editPerson(context, person);
+                if (changed == null || !context.mounted) return;
+                await act(() => repo.updatePerson(person.id, changed), t.saved);
+              },
+              icon: const Icon(LucideIcons.pencil, size: 16),
+              label: Text(t.edit),
+            ),
+          ),
         if (person.decisionNote != null)
           InfoRow(t.decision, person.decisionNote!),
         const Gap(12),
@@ -391,4 +404,46 @@ class PersonPanel extends ConsumerWidget {
       ],
     );
   }
+}
+
+/// Name and phone of a person, as the admin corrects them.
+Future<Map<String, Object?>?> _editPerson(BuildContext context, Person person) {
+  final t = AppLocalizations.of(context);
+  final name = TextEditingController(text: person.name);
+  final phone = TextEditingController(text: person.phone ?? '');
+  return showDialog<Map<String, Object?>>(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: Text(t.editPerson),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          TextField(
+            controller: name,
+            textCapitalization: TextCapitalization.words,
+            decoration: InputDecoration(labelText: t.fullName),
+          ),
+          const Gap(10),
+          TextField(
+            controller: phone,
+            keyboardType: TextInputType.phone,
+            decoration: InputDecoration(labelText: t.phone),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text(t.cancel),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.pop(context, {
+            if (name.text.trim().length >= 2) 'name': name.text.trim(),
+            'phone': phone.text.trim().isEmpty ? null : phone.text.trim(),
+          }),
+          child: Text(t.save),
+        ),
+      ],
+    ),
+  );
 }

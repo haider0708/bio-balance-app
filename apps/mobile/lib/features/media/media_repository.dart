@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
@@ -42,9 +43,18 @@ class MediaRepository {
 final mediaRepositoryProvider = Provider<MediaRepository>(MediaRepository.new);
 
 /// Image bytes by id, kept in memory while the app runs.
-final mediaBytesProvider = FutureProvider.family<Uint8List, String>(
-  (ref, id) => ref.watch(mediaRepositoryProvider).bytes(id),
-);
+final mediaBytesProvider = FutureProvider.autoDispose.family<Uint8List, String>((
+  ref,
+  id,
+) async {
+  // Kept for a few minutes after the last screen showing it closes, then freed.
+  final link = ref.keepAlive();
+  Timer? release;
+  ref.onCancel(() => release = Timer(const Duration(minutes: 5), link.close));
+  ref.onResume(() => release?.cancel());
+  ref.onDispose(() => release?.cancel());
+  return ref.watch(mediaRepositoryProvider).bytes(id);
+});
 
 /// An image stored on the server (they need the sign-in token, so a plain network image won't do).
 class AuthImage extends ConsumerWidget {

@@ -272,7 +272,8 @@ describe("a month of activity", () => {
         WHERE (p.status='APPROVED' AND (w."amountMillimes" IS NULL OR w."amountMillimes" <> -p."amountMillimes")) OR (p.status<>'APPROVED' AND w.id IS NOT NULL)`),
       ).toEqual([]);
 
-      // Every completed restock moved exactly its approved quantities, and a grossiste's depot paid for it.
+      // Every completed restock moved exactly its approved quantities into the store,
+      // and a grossiste's depot gave exactly what it shipped.
       expect(
         await one(`SELECT o.id FROM "RestockOrder" o JOIN "RestockLine" l ON l."orderId"=o.id
         LEFT JOIN (SELECT "refId","productId", SUM(delta) AS credited FROM "StockMovement" WHERE reason='RECEIPT' GROUP BY 1,2) c ON c."refId"=o.id AND c."productId"=l."productId"
@@ -281,7 +282,7 @@ describe("a month of activity", () => {
       expect(
         await one(`SELECT o.id FROM "RestockOrder" o JOIN "RestockLine" l ON l."orderId"=o.id
         LEFT JOIN (SELECT "refId","productId", SUM(-delta) AS debited FROM "StockMovement" WHERE reason='SHIPMENT' GROUP BY 1,2) d ON d."refId"=o.id AND d."productId"=l."productId"
-        WHERE o.status='COMPLETED' AND ((o.source='GROSSISTE' AND COALESCE(d.debited,0) <> COALESCE(l.approved,0)) OR (o.source='BIOBALANCE' AND d.debited IS NOT NULL))`),
+        WHERE o.status='COMPLETED' AND ((o.source='GROSSISTE' AND COALESCE(d.debited,0) <> COALESCE(l.shipped,0)) OR (o.source='BIOBALANCE' AND d.debited IS NOT NULL))`),
       ).toEqual([]);
       expect(
         await one(

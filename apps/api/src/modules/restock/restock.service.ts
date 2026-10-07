@@ -236,6 +236,7 @@ export class RestockService {
           "That product is not in the order.",
           422,
         );
+      const depot = await findLocation(tx, actor.depotId!);
       let total = 0;
       for (const line of order.lines) {
         const shipped = byProduct.get(line.productId) ?? 0;
@@ -256,6 +257,14 @@ export class RestockService {
           where: { id: line.id },
           data: { shipped },
         });
+        // The goods leave the depot now; the destination gets what the admin approves.
+        if (shipped > 0)
+          await adjustStock(tx, depot, line.productId, -shipped, {
+            reason: "SHIPMENT",
+            refType: "RestockOrder",
+            refId: id,
+            actorId: actor.id,
+          });
       }
       requireRule(total > 0, "NOTHING_SHIPPED", "Ship at least one unit.");
       const updated = await tx.restockOrder.update({
@@ -465,9 +474,6 @@ export class RestockService {
           422,
         );
       const dest = await findLocation(tx, order.destId);
-      const depot = order.supplierDepotId
-        ? await findLocation(tx, order.supplierDepotId)
-        : null;
       let amended = 0;
       for (const line of order.lines) {
         const approved = overrides.get(line.productId) ?? line.received ?? 0;
@@ -483,13 +489,6 @@ export class RestockService {
           refId: id,
           actorId: actor.id,
         });
-        if (depot)
-          await adjustStock(tx, depot, line.productId, -approved, {
-            reason: "SHIPMENT",
-            refType: "RestockOrder",
-            refId: id,
-            actorId: actor.id,
-          });
       }
       const updated = await tx.restockOrder.update({
         where: { id },
@@ -578,6 +577,18 @@ export class RestockService {
         "This order can no longer be cancelled.",
         409,
       );
+      // Goods already on the road go back to the depot they left.
+      if (order.status === "SHIPPED" && order.supplierDepotId) {
+        const depot = await findLocation(tx, order.supplierDepotId);
+        for (const line of order.lines)
+          if ((line.shipped ?? 0) > 0)
+            await adjustStock(tx, depot, line.productId, line.shipped!, {
+              reason: "SHIPMENT",
+              refType: "RestockOrder",
+              refId: id,
+              actorId: actor.id,
+            });
+      }
       const updated = await tx.restockOrder.update({
         where: { id },
         data: { status: "CANCELLED", cancelReason: reason },

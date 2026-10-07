@@ -50,10 +50,6 @@ class AppLocalizationsFr extends AppLocalizations {
   String get addMember => 'Ajouter un membre';
 
   @override
-  String get addMemberFromPdv =>
-      'Ouvrez un point de vente pour ajouter un membre.';
-
-  @override
   String get addMemberHint =>
       'Ils peuvent se connecter dès que BioBalance les approuve. Ils reçoivent un e-mail avec un code.';
 
@@ -243,9 +239,6 @@ class AppLocalizationsFr extends AppLocalizations {
   String get assignToGrossiste => 'Confier à un grossiste';
 
   @override
-  String get auditTitle => 'Historique des modifications';
-
-  @override
   String get authenticatorCode => 'Code d’authentification';
 
   @override
@@ -259,9 +252,6 @@ class AppLocalizationsFr extends AppLocalizations {
   String availableUpTo(String amount) {
     return 'Jusqu’à $amount';
   }
-
-  @override
-  String get back => 'Retour';
 
   @override
   String get balanceShort => 'Solde';
@@ -383,9 +373,6 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get city => 'Ville';
-
-  @override
-  String get close => 'Fermer';
 
   @override
   String get codeInvalid => 'Saisissez un code valide.';
@@ -834,9 +821,6 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String get more => 'Plus';
-
-  @override
   String get moreTitle => 'Plus';
 
   @override
@@ -858,9 +842,6 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get needsAttention => 'À surveiller';
-
-  @override
-  String get negativeStock => 'Produits sous zéro';
 
   @override
   String get networkTitle => 'Réseau';
@@ -1001,9 +982,6 @@ class AppLocalizationsFr extends AppLocalizations {
   String get noSalesInPeriod => 'Aucune vente sur cette période';
 
   @override
-  String get noSalesYet => 'Aucune vente pour l’instant';
-
-  @override
   String get noSalesYetHint =>
       'Vos ventes et ce qu’elles ont rapporté apparaîtront ici.';
 
@@ -1129,10 +1107,6 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get paysToday => 'Valeurs du jour';
-
-  @override
-  String get paysTodayHint =>
-      'Ce que rapporte une unité vendue aujourd’hui, produit par produit.';
 
   @override
   String pdvCount(int count) {
@@ -1516,9 +1490,6 @@ class AppLocalizationsFr extends AppLocalizations {
   String get saleDetailTitle => 'Vente';
 
   @override
-  String get saleRecordedTitle => 'Vente enregistrée';
-
-  @override
   String get saleRefused => 'Le serveur a refusé cette vente';
 
   @override
@@ -1654,9 +1625,6 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get sentFrom => 'Envoyé par';
-
-  @override
-  String get server => 'Serveur';
 
   @override
   String get setReward => 'Fixer une récompense';
@@ -2083,13 +2051,6 @@ class AppLocalizationsFr extends AppLocalizations {
   String get regionNoResponsable => 'Pas encore de responsable';
 
   @override
-  String get rewardsHow =>
-      'Le tarif propre à un produit l’emporte toujours sur celui de sa famille. Touchez une famille ou un produit pour fixer un tarif sur une période.';
-
-  @override
-  String get noFamilyRate => 'Pas de tarif famille';
-
-  @override
   String familyRate(String amount) {
     return 'Tarif famille $amount';
   }
@@ -2099,9 +2060,6 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get followsFamily => 'Suit le tarif de la famille';
-
-  @override
-  String get noReward => 'Aucune récompense';
 
   @override
   String get findByProduct => 'Trouver une vente par produit';
@@ -2152,9 +2110,6 @@ class AppLocalizationsFr extends AppLocalizations {
   String photoCount(int count, int max) {
     return '$count photo(s) sur $max';
   }
-
-  @override
-  String get photosNeeded => 'Ajoutez de 1 à 5 photos.';
 
   @override
   String get statusWaitingResponsable => 'En attente du responsable';
@@ -2479,4 +2434,10 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get noRewardForSale =>
       'Aucune récompense n’est encore définie pour ces produits.';
+
+  @override
+  String get renameGroup => 'Renommer le groupe';
+
+  @override
+  String get editPerson => 'Modifier la personne';
 }

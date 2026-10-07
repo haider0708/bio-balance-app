@@ -13,7 +13,6 @@
   "add": "Add",
   "addLesson": "Add a lesson",
   "addMember": "Add a member",
-  "addMemberFromPdv": "Open a point of sale to add a team member.",
   "addMemberHint": "They can sign in once BioBalance approves them. They receive an email with a code.",
   "addProduct": "Add a product",
   "addSelected": "{count, plural, =0{Choose products} =1{Add 1 product} other{Add {count} products}}",
@@ -129,7 +128,6 @@
   "approved": "Approved",
   "askRecount": "Ask to count again",
   "assignToGrossiste": "Assign to a grossiste",
-  "auditTitle": "History of changes",
   "authenticatorCode": "Authenticator code",
   "authenticatorCodeHelp": "The 6 digits from your authenticator app.",
   "availableBalance": "Available balance",
@@ -141,7 +139,6 @@
       }
     }
   },
-  "back": "Back",
   "balanceShort": "Balance",
   "barcode": "Barcode",
   "barcodeUnknown": "This barcode is not in the catalog.",
@@ -192,7 +189,6 @@
   "chooseProduct": "Choose a product",
   "chooseReceiver": "Choose who counts the goods",
   "city": "City",
-  "close": "Close",
   "codeInvalid": "Enter a valid code.",
   "colApproved": "Final",
   "colReceived": "Counted",
@@ -404,7 +400,6 @@
       }
     }
   },
-  "more": "More",
   "moreTitle": "More",
   "myRegion": "Region {name}",
   "@myRegion": {
@@ -423,7 +418,6 @@
     }
   },
   "needsAttention": "Needs attention",
-  "negativeStock": "Products below zero",
   "networkTitle": "Network",
   "newAccount": "New account",
   "newAccountHint": "The person receives an email with a code to choose their password.",
@@ -466,7 +460,6 @@
   "noRewardsYetHint": "Choose a family or a product and an amount per unit sold.",
   "noRulesHere": "Nothing here",
   "noSalesInPeriod": "No sales in this period",
-  "noSalesYet": "No sales yet",
   "noSalesYetHint": "Your sales and what they earned will appear here.",
   "noStockYet": "No stock yet",
   "noStockYetHint": "Count what you have, take a photo and send it to BioBalance.",
@@ -525,7 +518,6 @@
   "payouts": "Payouts",
   "payoutsTitle": "Payouts",
   "paysToday": "Pays today",
-  "paysTodayHint": "What one unit sold pays today, product by product.",
   "pdvCount": "{count, plural, =0{No point of sale} =1{1 point of sale} other{{count} points of sale}}",
   "@pdvCount": {
     "placeholders": {
@@ -720,7 +712,6 @@
   "saleCancelled": "Sale cancelled",
   "saleCorrected": "Sale corrected",
   "saleDetailTitle": "Sale",
-  "saleRecordedTitle": "Sale recorded",
   "saleRefused": "The server refused this sale",
   "saleVoided": "Cancelled",
   "salesCount": "{count, plural, =0{No sales} =1{1 sale} other{{count} sales}}",
@@ -790,7 +781,6 @@
   "sendToAdmin": "Send to BioBalance",
   "sentBy": "Sent by",
   "sentFrom": "Sent from",
-  "server": "Server",
   "setReward": "Set a reward",
   "settingsTitle": "Settings",
   "shipHint": "Enter what leaves your depot for {destination}.",
@@ -1002,8 +992,6 @@
   "regionStores": "Stores",
   "regionGrossistes": "Grossistes",
   "regionNoResponsable": "No responsable yet",
-  "rewardsHow": "A product’s own rate always beats its family’s rate. Tap a family or a product to set a rate for a period.",
-  "noFamilyRate": "No family rate",
   "familyRate": "Family rate {amount}",
   "@familyRate": {
     "placeholders": {
@@ -1014,7 +1002,6 @@
   },
   "ownRate": "Own rate",
   "followsFamily": "Follows the family rate",
-  "noReward": "No reward set",
   "findByProduct": "Find a sale by product",
   "noSalesWithProduct": "No sale includes this product",
   "noSalesThisMonth": "No sales this month",
@@ -1047,7 +1034,6 @@
       }
     }
   },
-  "photosNeeded": "Add 1 to 5 photos.",
   "statusWaitingResponsable": "Waiting for the responsable",
   "declarationWaitingResponsable": "Your count is waiting for the responsable’s check, then the admin.",
   "recountAsked2": "Recount requested: waiting for the admin to allow it.",
@@ -1324,5 +1310,7 @@
     }
   },
   "chooseRegionForGroup": "Which region is this group for?",
-  "noRewardForSale": "No reward is set for these products yet."
+  "noRewardForSale": "No reward is set for these products yet.",
+  "renameGroup": "Rename the group",
+  "editPerson": "Edit the person"
 }

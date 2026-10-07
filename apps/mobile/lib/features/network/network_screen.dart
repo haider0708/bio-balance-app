@@ -430,8 +430,38 @@ class GroupScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final t = AppLocalizations.of(context);
     final pdvs = ref.watch(pdvsProvider(group.regionId));
+    final canEdit = ref.watch(meProvider).role != Role.vendeur;
     return Scaffold(
-      appBar: AppBar(title: Text(group.name)),
+      appBar: AppBar(
+        title: Text(group.name),
+        actions: [
+          if (canEdit)
+            IconButton(
+              tooltip: t.renameGroup,
+              icon: const Icon(LucideIcons.pencil),
+              onPressed: () async {
+                final name = await askText(
+                  context,
+                  title: t.renameGroup,
+                  label: t.groupName,
+                  confirmLabel: t.save,
+                  initial: group.name,
+                );
+                if (name == null || !context.mounted) return;
+                if (await perform(
+                  context,
+                  () => ref
+                      .read(networkRepositoryProvider)
+                      .renameGroup(group.id, name),
+                  success: t.saved,
+                )) {
+                  ref.invalidate(groupsProvider);
+                  if (context.mounted) context.pop();
+                }
+              },
+            ),
+        ],
+      ),
       body: AsyncBody(
         value: pdvs,
         onRetry: () => ref.invalidate(pdvsProvider(group.regionId)),

@@ -38,6 +38,8 @@ export async function findLocation(tx: Tx, id: string): Promise<Location> {
   throw notFound("Location");
 }
 
+const LEAVING = new Set(["SALE", "SALE_CORRECTION", "SHIPMENT"]);
+
 export interface MovementRef {
   reason:
     | "DECLARATION"
@@ -54,8 +56,7 @@ export interface MovementRef {
 /**
  * Add `delta` to a product's quantity and record why. One atomic statement,
  * so two phones selling the same product at once never lose an update.
- * A sale can never take a point of sale below zero: the whole transaction
- * is refused, so two phones selling the last unit cannot both succeed.
+ * Goods leaving a place never take it below zero (see LEAVING).
  */
 export async function adjustStock(
   tx: Tx,
@@ -74,10 +75,12 @@ export async function adjustStock(
     ON CONFLICT ("locationId","productId") DO UPDATE
       SET quantity = "Stock".quantity + ${delta}, "updatedAt" = now()
     RETURNING quantity`;
+  // Goods that leave a place (a sale, a shipment) can never take it below zero:
+  // the whole transaction is refused, so two phones cannot both take the last unit.
   requireRule(
-    row!.quantity >= 0 || delta > 0 || !ref.reason.startsWith("SALE"),
+    row!.quantity >= 0 || delta > 0 || !LEAVING.has(ref.reason),
     "OUT_OF_STOCK",
-    "Not enough stock for this sale.",
+    "Not enough stock.",
     409,
   );
   await tx.stockMovement.createMany({

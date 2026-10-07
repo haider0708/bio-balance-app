@@ -13,9 +13,6 @@ export const newCode = () =>
 export const normalizeCode = (value: string) =>
   value.replace(/[\s-]/g, "").toUpperCase();
 
-export const displayCode = (code: string) =>
-  `${code.slice(0, 4)}-${code.slice(4)}`;
-
 export const hashCode = (code: string) =>
   createHash("sha256").update(normalizeCode(code)).digest("hex");
 

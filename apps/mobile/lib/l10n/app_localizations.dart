@@ -176,12 +176,6 @@ abstract class AppLocalizations {
   /// **'Add a member'**
   String get addMember;
 
-  /// No description provided for @addMemberFromPdv.
-  ///
-  /// In en, this message translates to:
-  /// **'Open a point of sale to add a team member.'**
-  String get addMemberFromPdv;
-
   /// No description provided for @addMemberHint.
   ///
   /// In en, this message translates to:
@@ -410,12 +404,6 @@ abstract class AppLocalizations {
   /// **'Assign to a grossiste'**
   String get assignToGrossiste;
 
-  /// No description provided for @auditTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'History of changes'**
-  String get auditTitle;
-
   /// No description provided for @authenticatorCode.
   ///
   /// In en, this message translates to:
@@ -439,12 +427,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Up to {amount}'**
   String availableUpTo(String amount);
-
-  /// No description provided for @back.
-  ///
-  /// In en, this message translates to:
-  /// **'Back'**
-  String get back;
 
   /// No description provided for @balanceShort.
   ///
@@ -661,12 +643,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'City'**
   String get city;
-
-  /// No description provided for @close.
-  ///
-  /// In en, this message translates to:
-  /// **'Close'**
-  String get close;
 
   /// No description provided for @codeInvalid.
   ///
@@ -1478,12 +1454,6 @@ abstract class AppLocalizations {
   /// **'{count} min'**
   String minutes(int count);
 
-  /// No description provided for @more.
-  ///
-  /// In en, this message translates to:
-  /// **'More'**
-  String get more;
-
   /// No description provided for @moreTitle.
   ///
   /// In en, this message translates to:
@@ -1507,12 +1477,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Needs attention'**
   String get needsAttention;
-
-  /// No description provided for @negativeStock.
-  ///
-  /// In en, this message translates to:
-  /// **'Products below zero'**
-  String get negativeStock;
 
   /// No description provided for @networkTitle.
   ///
@@ -1766,12 +1730,6 @@ abstract class AppLocalizations {
   /// **'No sales in this period'**
   String get noSalesInPeriod;
 
-  /// No description provided for @noSalesYet.
-  ///
-  /// In en, this message translates to:
-  /// **'No sales yet'**
-  String get noSalesYet;
-
   /// No description provided for @noSalesYetHint.
   ///
   /// In en, this message translates to:
@@ -1993,12 +1951,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Pays today'**
   String get paysToday;
-
-  /// No description provided for @paysTodayHint.
-  ///
-  /// In en, this message translates to:
-  /// **'What one unit sold pays today, product by product.'**
-  String get paysTodayHint;
 
   /// No description provided for @pdvCount.
   ///
@@ -2666,12 +2618,6 @@ abstract class AppLocalizations {
   /// **'Sale'**
   String get saleDetailTitle;
 
-  /// No description provided for @saleRecordedTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Sale recorded'**
-  String get saleRecordedTitle;
-
   /// No description provided for @saleRefused.
   ///
   /// In en, this message translates to:
@@ -2875,12 +2821,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Sent from'**
   String get sentFrom;
-
-  /// No description provided for @server.
-  ///
-  /// In en, this message translates to:
-  /// **'Server'**
-  String get server;
 
   /// No description provided for @setReward.
   ///
@@ -3608,18 +3548,6 @@ abstract class AppLocalizations {
   /// **'No responsable yet'**
   String get regionNoResponsable;
 
-  /// No description provided for @rewardsHow.
-  ///
-  /// In en, this message translates to:
-  /// **'A product’s own rate always beats its family’s rate. Tap a family or a product to set a rate for a period.'**
-  String get rewardsHow;
-
-  /// No description provided for @noFamilyRate.
-  ///
-  /// In en, this message translates to:
-  /// **'No family rate'**
-  String get noFamilyRate;
-
   /// No description provided for @familyRate.
   ///
   /// In en, this message translates to:
@@ -3637,12 +3565,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Follows the family rate'**
   String get followsFamily;
-
-  /// No description provided for @noReward.
-  ///
-  /// In en, this message translates to:
-  /// **'No reward set'**
-  String get noReward;
 
   /// No description provided for @findByProduct.
   ///
@@ -3733,12 +3655,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{count} of {max} photos'**
   String photoCount(int count, int max);
-
-  /// No description provided for @photosNeeded.
-  ///
-  /// In en, this message translates to:
-  /// **'Add 1 to 5 photos.'**
-  String get photosNeeded;
 
   /// No description provided for @statusWaitingResponsable.
   ///
@@ -4267,6 +4183,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No reward is set for these products yet.'**
   String get noRewardForSale;
+
+  /// No description provided for @renameGroup.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename the group'**
+  String get renameGroup;
+
+  /// No description provided for @editPerson.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit the person'**
+  String get editPerson;
 }
 
 class _AppLocalizationsDelegate

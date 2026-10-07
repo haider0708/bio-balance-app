@@ -42,11 +42,6 @@ class CatalogRepository {
   Future<Product> update(String id, Json body) async => Product.fromJson(
     await _ref.read(apiClientProvider).patch('/v1/products/$id', body) as Json,
   );
-
-  Future<Product> byBarcode(String code) async => Product.fromJson(
-    await _ref.read(apiClientProvider).get('/v1/products/barcode/$code')
-        as Json,
-  );
 }
 
 final catalogRepositoryProvider = Provider<CatalogRepository>(
@@ -60,9 +55,3 @@ final productsProvider = FutureProvider.autoDispose<List<Product>>(
 final allProductsProvider = FutureProvider<List<Product>>(
   (ref) => ref.watch(catalogRepositoryProvider).products(includeInactive: true),
 );
-
-/// Products by id, for screens that only hold ids.
-final productIndexProvider = Provider<Map<String, Product>>((ref) {
-  final list = ref.watch(productsProvider).value ?? const [];
-  return {for (final p in list) p.id: p};
-});

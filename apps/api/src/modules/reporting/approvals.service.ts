@@ -36,7 +36,8 @@ export class ApprovalsService {
 
   /**
    * Everything the admin already decided, newest first: who decided, when and why.
-   * Page backwards with `before` (the date of the last item received).
+   * Read from the audit log, which records every decision exactly once (a restock
+   * has two: the request, then the delivery). Page backwards with `before`.
    */
   history(actor: Actor, filter: { type?: ApprovalType; before?: Date }) {
     requireRule(
@@ -46,170 +47,118 @@ export class ApprovalsService {
       403,
     );
     const take = 40;
+    const actions = Object.entries(DECISIONS)
+      .filter(([, d]) => !filter.type || d.type === filter.type)
+      .map(([action]) => action);
     return this.db.run(actor, async (tx) => {
-      const before = filter.before ?? new Date(Date.now() + 60_000);
-      const decided = { not: null, lt: before } as const;
-      const want = (t: ApprovalType) => !filter.type || filter.type === t;
-      const regions = new Map(
-        (await tx.region.findMany()).map((r) => [r.id, r.name]),
-      );
-      const rows: (HistoryItem & { by: string | null })[] = [];
-      const outcome = (status: string): HistoryItem["outcome"] =>
-        status === "REJECTED"
-          ? "REJECTED"
-          : status === "SUSPENDED"
-            ? "DEACTIVATED"
-            : "APPROVED";
-      const push = (
-        type: ApprovalType,
-        r: {
-          id: string;
-          decidedAt: Date | null;
-          decidedById: string | null;
-          decisionNote: string | null;
-          regionId: string | null;
+      const admins = (
+        await tx.user.findMany({
+          where: { role: "ADMIN" },
+          select: { id: true, name: true },
+        })
+      ).map((u) => u);
+      const rows = await tx.auditEntry.findMany({
+        where: {
+          action: { in: actions },
+          actorId: { in: admins.map((a) => a.id) },
+          ...(filter.before && { createdAt: { lt: filter.before } }),
         },
-        name: string,
-        result: HistoryItem["outcome"],
-      ) =>
-        rows.push({
-          type,
-          id: r.id,
-          name,
-          outcome: result,
-          decidedAt: r.decidedAt!,
-          decidedBy: r.decidedById,
-          region: r.regionId ? (regions.get(r.regionId) ?? null) : null,
-          note: r.decisionNote,
-          by: null,
-        });
-      if (want("GROUP"))
-        for (const r of await tx.group.findMany({
-          where: { decidedAt: decided },
-          orderBy: { decidedAt: "desc" },
-          take,
-        }))
-          push("GROUP", r, r.name, outcome(r.status));
-      if (want("PDV"))
-        for (const r of await tx.pdv.findMany({
-          where: { decidedAt: decided },
-          orderBy: { decidedAt: "desc" },
-          take,
-        }))
-          push("PDV", r, r.name, outcome(r.status));
-      if (want("MEMBER"))
-        for (const r of await tx.user.findMany({
-          where: { decidedAt: decided, role: "VENDEUR" },
-          orderBy: { decidedAt: "desc" },
-          take,
-        }))
-          push("MEMBER", r, r.name, outcome(r.status));
-      if (want("STOCK")) {
-        const list = await tx.stockDeclaration.findMany({
-          where: { decidedAt: decided },
-          orderBy: { decidedAt: "desc" },
-          take,
-        });
-        const places = await placeNames(
-          tx,
-          list.map((d) => d.locationId),
-        );
-        for (const r of list)
-          push(
-            "STOCK",
-            r,
-            places.get(r.locationId) ?? "",
-            r.status === "REJECTED" ? "REJECTED" : "APPROVED",
-          );
-      }
-      for (const type of ["RECEIPT", "RESTOCK_REQUEST"] as const) {
-        if (!want(type)) continue;
-        const list = await tx.restockOrder.findMany({
-          where: {
-            decidedAt: decided,
-            // A receipt is decided once delivered; a request is decided when assigned or cancelled.
-            ...(type === "RECEIPT"
-              ? { receivedAt: { not: null } }
-              : { receivedAt: null }),
-          },
-          orderBy: { decidedAt: "desc" },
-          take,
-        });
-        const places = await placeNames(
-          tx,
-          list.map((o) => o.destId),
-        );
-        for (const r of list)
-          push(
-            type,
-            r,
-            `${places.get(r.destId) ?? ""} · ${r.number}`,
-            r.status === "CANCELLED" ? "REJECTED" : "APPROVED",
-          );
-      }
-      if (want("PAYOUT")) {
-        const list = await tx.payoutRequest.findMany({
-          where: { decidedAt: decided },
-          orderBy: { decidedAt: "desc" },
-          take,
-        });
-        const names = new Map(
-          (
-            await tx.user.findMany({
-              where: { id: { in: list.map((p) => p.userId) } },
-              select: { id: true, name: true },
-            })
-          ).map((u) => [u.id, u.name]),
-        );
-        for (const r of list)
-          push(
-            "PAYOUT",
-            { ...r, regionId: r.regionId ?? null },
-            `${names.get(r.userId) ?? ""} · ${(Number(r.amountMillimes) / 1000).toFixed(3)} TND`,
-            r.status === "REJECTED" ? "REJECTED" : "APPROVED",
-          );
-      }
-      if (want("RECOUNT")) {
-        const list = await tx.stockRecount.findMany({
-          where: { decidedAt: decided },
-          orderBy: { decidedAt: "desc" },
-          take,
-        });
-        const places = await placeNames(
-          tx,
-          list.map((d) => d.locationId),
-        );
-        for (const r of list)
-          push(
-            "RECOUNT",
-            r,
-            places.get(r.locationId) ?? "",
-            r.status === "REJECTED" ? "REJECTED" : "APPROVED",
-          );
-      }
-      rows.sort((a, b) => b.decidedAt.getTime() - a.decidedAt.getTime());
+        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+        take: take + 1,
+      });
       const page = rows.slice(0, take);
-      const people = new Map(
+      const ids = (entity: string) =>
+        page.filter((r) => r.entity === entity).map((r) => r.entityId);
+      const [
+        regions,
+        groups,
+        pdvs,
+        users,
+        declarations,
+        orders,
+        payouts,
+        recounts,
+      ] = await Promise.all([
+        tx.region.findMany(),
+        tx.group.findMany({ where: { id: { in: ids("Group") } } }),
+        tx.pdv.findMany({ where: { id: { in: ids("Pdv") } } }),
+        tx.user.findMany({
+          where: { id: { in: ids("User") } },
+          select: { id: true, name: true },
+        }),
+        tx.stockDeclaration.findMany({
+          where: { id: { in: ids("StockDeclaration") } },
+          select: { id: true, locationId: true },
+        }),
+        tx.restockOrder.findMany({
+          where: { id: { in: ids("RestockOrder") } },
+          select: { id: true, destId: true, number: true },
+        }),
+        tx.payoutRequest.findMany({
+          where: { id: { in: ids("PayoutRequest") } },
+          select: { id: true, userId: true, amountMillimes: true },
+        }),
+        tx.stockRecount.findMany({
+          where: { id: { in: ids("StockRecount") } },
+          select: { id: true, locationId: true },
+        }),
+      ]);
+      const places = await placeNames(tx, [
+        ...declarations.map((d) => d.locationId),
+        ...orders.map((o) => o.destId),
+        ...recounts.map((r) => r.locationId),
+      ]);
+      const payees = new Map(
         (
           await tx.user.findMany({
-            where: {
-              id: {
-                in: page
-                  .map((r) => r.decidedBy)
-                  .filter((x): x is string => !!x),
-              },
-            },
+            where: { id: { in: payouts.map((p) => p.userId) } },
             select: { id: true, name: true },
           })
         ).map((u) => [u.id, u.name]),
       );
+      const name = new Map<string, string>([
+        ...groups.map((g) => [g.id, g.name] as const),
+        ...pdvs.map((p) => [p.id, p.name] as const),
+        ...users.map((u) => [u.id, u.name] as const),
+        ...declarations.map(
+          (d) => [d.id, places.get(d.locationId) ?? ""] as const,
+        ),
+        ...orders.map(
+          (o) => [o.id, `${places.get(o.destId) ?? ""} · ${o.number}`] as const,
+        ),
+        ...payouts.map(
+          (p) =>
+            [
+              p.id,
+              `${payees.get(p.userId) ?? ""} · ${(Number(p.amountMillimes) / 1000).toFixed(3)} TND`,
+            ] as const,
+        ),
+        ...recounts.map((r) => [r.id, places.get(r.locationId) ?? ""] as const),
+      ]);
+      const regionName = new Map(regions.map((r) => [r.id, r.name]));
+      const adminName = new Map(admins.map((a) => [a.id, a.name]));
       return {
-        items: page.map(({ by: _by, ...r }) => ({
-          ...r,
-          decidedBy: r.decidedBy ? (people.get(r.decidedBy) ?? null) : null,
-        })),
+        items: page.map((r) => {
+          const decision = DECISIONS[r.action]!;
+          const details = (r.details ?? {}) as Record<string, unknown>;
+          return {
+            type: decision.type,
+            id: r.entityId,
+            name: name.get(r.entityId) ?? "",
+            outcome: decision.outcome,
+            decidedAt: r.createdAt,
+            decidedBy: r.actorId ? (adminName.get(r.actorId) ?? null) : null,
+            region: r.regionId ? (regionName.get(r.regionId) ?? null) : null,
+            note:
+              typeof details.note === "string"
+                ? details.note
+                : typeof details.reason === "string"
+                  ? details.reason
+                  : null,
+          };
+        }),
         nextBefore:
-          rows.length > take ? page[page.length - 1]!.decidedAt : null,
+          rows.length > take ? page[page.length - 1]!.createdAt : null,
       };
     });
   }
@@ -420,16 +369,35 @@ export class ApprovalsService {
   }
 }
 
-export interface HistoryItem {
-  type: ApprovalType;
-  id: string;
-  name: string;
-  outcome: "APPROVED" | "REJECTED" | "DEACTIVATED";
-  decidedAt: Date;
-  decidedBy: string | null;
-  region: string | null;
-  note: string | null;
-}
+/** The audit actions that are decisions, and what they mean in the history. */
+const DECISIONS: Record<
+  string,
+  { type: ApprovalType; outcome: "APPROVED" | "REJECTED" | "DEACTIVATED" }
+> = {
+  "group.approve": { type: "GROUP", outcome: "APPROVED" },
+  "group.reject": { type: "GROUP", outcome: "REJECTED" },
+  "group.suspend": { type: "GROUP", outcome: "DEACTIVATED" },
+  "group.reactivate": { type: "GROUP", outcome: "APPROVED" },
+  "pdv.approve": { type: "PDV", outcome: "APPROVED" },
+  "pdv.reject": { type: "PDV", outcome: "REJECTED" },
+  "pdv.suspend": { type: "PDV", outcome: "DEACTIVATED" },
+  "pdv.reactivate": { type: "PDV", outcome: "APPROVED" },
+  "user.approve": { type: "MEMBER", outcome: "APPROVED" },
+  "user.reject": { type: "MEMBER", outcome: "REJECTED" },
+  "user.suspend": { type: "MEMBER", outcome: "DEACTIVATED" },
+  "user.reactivate": { type: "MEMBER", outcome: "APPROVED" },
+  "stock.approved": { type: "STOCK", outcome: "APPROVED" },
+  "stock.rejected": { type: "STOCK", outcome: "REJECTED" },
+  "restock.assigned": { type: "RESTOCK_REQUEST", outcome: "APPROVED" },
+  "restock.sent_direct": { type: "RESTOCK_REQUEST", outcome: "APPROVED" },
+  "restock.cancelled": { type: "RESTOCK_REQUEST", outcome: "REJECTED" },
+  "restock.approved": { type: "RECEIPT", outcome: "APPROVED" },
+  "restock.receipt_rejected": { type: "RECEIPT", outcome: "REJECTED" },
+  "payout.approved": { type: "PAYOUT", outcome: "APPROVED" },
+  "payout.rejected": { type: "PAYOUT", outcome: "REJECTED" },
+  "stock.recount_approved": { type: "RECOUNT", outcome: "APPROVED" },
+  "stock.recount_rejected": { type: "RECOUNT", outcome: "REJECTED" },
+};
 
 async function placeNames(tx: Tx, ids: string[]) {
   const [pdvs, depots] = await Promise.all([

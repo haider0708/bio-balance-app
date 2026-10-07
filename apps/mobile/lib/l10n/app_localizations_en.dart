@@ -50,9 +50,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get addMember => 'Add a member';
 
   @override
-  String get addMemberFromPdv => 'Open a point of sale to add a team member.';
-
-  @override
   String get addMemberHint =>
       'They can sign in once BioBalance approves them. They receive an email with a code.';
 
@@ -242,9 +239,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get assignToGrossiste => 'Assign to a grossiste';
 
   @override
-  String get auditTitle => 'History of changes';
-
-  @override
   String get authenticatorCode => 'Authenticator code';
 
   @override
@@ -258,9 +252,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String availableUpTo(String amount) {
     return 'Up to $amount';
   }
-
-  @override
-  String get back => 'Back';
 
   @override
   String get balanceShort => 'Balance';
@@ -382,9 +373,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get city => 'City';
-
-  @override
-  String get close => 'Close';
 
   @override
   String get codeInvalid => 'Enter a valid code.';
@@ -832,9 +820,6 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get more => 'More';
-
-  @override
   String get moreTitle => 'More';
 
   @override
@@ -856,9 +841,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get needsAttention => 'Needs attention';
-
-  @override
-  String get negativeStock => 'Products below zero';
 
   @override
   String get networkTitle => 'Network';
@@ -998,9 +980,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get noSalesInPeriod => 'No sales in this period';
 
   @override
-  String get noSalesYet => 'No sales yet';
-
-  @override
   String get noSalesYetHint =>
       'Your sales and what they earned will appear here.';
 
@@ -1125,10 +1104,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get paysToday => 'Pays today';
-
-  @override
-  String get paysTodayHint =>
-      'What one unit sold pays today, product by product.';
 
   @override
   String pdvCount(int count) {
@@ -1510,9 +1485,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get saleDetailTitle => 'Sale';
 
   @override
-  String get saleRecordedTitle => 'Sale recorded';
-
-  @override
   String get saleRefused => 'The server refused this sale';
 
   @override
@@ -1648,9 +1620,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get sentFrom => 'Sent from';
-
-  @override
-  String get server => 'Server';
 
   @override
   String get setReward => 'Set a reward';
@@ -2075,13 +2044,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get regionNoResponsable => 'No responsable yet';
 
   @override
-  String get rewardsHow =>
-      'A product’s own rate always beats its family’s rate. Tap a family or a product to set a rate for a period.';
-
-  @override
-  String get noFamilyRate => 'No family rate';
-
-  @override
   String familyRate(String amount) {
     return 'Family rate $amount';
   }
@@ -2091,9 +2053,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get followsFamily => 'Follows the family rate';
-
-  @override
-  String get noReward => 'No reward set';
 
   @override
   String get findByProduct => 'Find a sale by product';
@@ -2144,9 +2103,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String photoCount(int count, int max) {
     return '$count of $max photos';
   }
-
-  @override
-  String get photosNeeded => 'Add 1 to 5 photos.';
 
   @override
   String get statusWaitingResponsable => 'Waiting for the responsable';
@@ -2469,4 +2425,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get noRewardForSale => 'No reward is set for these products yet.';
+
+  @override
+  String get renameGroup => 'Rename the group';
+
+  @override
+  String get editPerson => 'Edit the person';
 }

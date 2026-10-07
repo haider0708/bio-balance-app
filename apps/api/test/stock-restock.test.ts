@@ -223,8 +223,8 @@ describe("restock through a grossiste", () => {
       ],
     });
     expect(shipped.body.status).toBe("SHIPPED");
-    // Nothing has moved yet.
-    expect((await levels(w, w.depotId))["Serum Vitamin C"]).toBe(50);
+    // The goods left the depot; the store gets nothing until the admin approves.
+    expect((await levels(w, w.depotId))["Serum Vitamin C"]).toBe(40);
 
     // The responsable picks a team member to count the goods.
     const member = await teamMember(w, pdv.id);
@@ -688,5 +688,51 @@ describe("the admin corrects stock", () => {
     expect(told.body.items.some((n: any) => n.key === "stock.adjusted")).toBe(
       true,
     );
+  });
+});
+
+describe("goods on the road", () => {
+  it("leave the depot when shipped, come back if the order is cancelled, and every decision is in the history", async () => {
+    const pdv = await approvedPdv(w);
+    await stockPlace(w, w.depotId, w.gros, [20, 20, 20]);
+    const order = (
+      await w.n.post("/v1/restocks", {
+        destId: pdv.id,
+        lines: [{ productId: w.products[0]!.id, quantity: 8 }],
+      })
+    ).body;
+    await w.a.post(`/v1/restocks/${order.id}/assign`, { depotId: w.depotId });
+    await w.g.post(`/v1/restocks/${order.id}/ship`, {
+      lines: [{ productId: w.products[0]!.id, quantity: 8 }],
+    });
+    expect((await levels(w, w.depotId))["Serum Vitamin C"]).toBe(12);
+    // The same stock cannot be shipped twice.
+    const second = (
+      await w.n.post("/v1/restocks", {
+        destId: pdv.id,
+        lines: [{ productId: w.products[0]!.id, quantity: 15 }],
+      })
+    ).body;
+    await w.a.post(`/v1/restocks/${second.id}/assign`, { depotId: w.depotId });
+    expect(
+      (
+        await w.g.post(`/v1/restocks/${second.id}/ship`, {
+          lines: [{ productId: w.products[0]!.id, quantity: 15 }],
+        })
+      ).body.code,
+    ).toBe("INSUFFICIENT_STOCK");
+    await w.a.post(`/v1/restocks/${order.id}/cancel`, {
+      note: "Truck broke down",
+    });
+    expect((await levels(w, w.depotId))["Serum Vitamin C"]).toBe(20);
+    const history = (
+      await w.a.get("/v1/approvals/history?type=RESTOCK_REQUEST")
+    ).body.items;
+    expect(history.map((h: any) => h.outcome)).toEqual([
+      "REJECTED",
+      "APPROVED",
+      "APPROVED",
+    ]);
+    expect(history[0].note).toBe("Truck broke down");
   });
 });

@@ -9,19 +9,8 @@ import '../../core/api/json.dart';
 import '../../core/auth/session.dart';
 import 'sales_models.dart';
 
-const _storageKey = 'outbox.sales';
-
-/// Codes meaning "the server understood and said no": retrying would not help.
-const _final = {
-  'PDV_INACTIVE',
-  'OUT_OF_STOCK',
-  'PRODUCT_NOT_FOUND',
-  'INVALID_DATE',
-  'NO_LINES',
-  'VALIDATION',
-  'FORBIDDEN',
-  'DUPLICATE_PRODUCT',
-};
+/// One outbox per person: a sale is only ever sent under the account that made it.
+String _storageKey(String userId) => 'outbox.sales.$userId';
 
 /// Sales made without a connection. They wait here, on the phone, and are sent
 /// again (with the same id, so never twice) as soon as the server answers.
@@ -29,30 +18,41 @@ class SalesOutbox extends Notifier<List<PendingSale>>
     with WidgetsBindingObserver {
   Timer? _timer;
   bool _flushing = false;
+  String? _userId;
 
   @override
   List<PendingSale> build() {
+    // Rebuilt when the person changes: each account sees and sends only its own sales.
+    _userId = ref.watch(sessionProvider.select((s) => s.value?.me.id));
     WidgetsBinding.instance.addObserver(this);
     ref.onDispose(() {
       WidgetsBinding.instance.removeObserver(this);
       _timer?.cancel();
     });
-    _load();
+    if (_userId != null) unawaited(_load(_userId!));
     return const [];
   }
 
-  Future<void> _load() async {
+  Future<void> _load(String userId) async {
     final prefs = await ref.read(preferencesProvider.future);
-    final raw = prefs.getString(_storageKey);
-    if (raw == null) return;
+    // Sales kept by an older version of the app, before outboxes were per person.
+    final legacy = prefs.getString('outbox.sales');
+    if (legacy != null && prefs.getString(_storageKey(userId)) == null) {
+      await prefs.setString(_storageKey(userId), legacy);
+      await prefs.remove('outbox.sales');
+    }
+    final raw = prefs.getString(_storageKey(userId));
+    if (raw == null || _userId != userId) return;
     state = jsonList(jsonDecode(raw)).map(PendingSale.fromJson).toList();
     _schedule();
   }
 
   Future<void> _save() async {
+    final userId = _userId;
+    if (userId == null) return;
     final prefs = await ref.read(preferencesProvider.future);
     await prefs.setString(
-      _storageKey,
+      _storageKey(userId),
       jsonEncode([for (final s in state) s.toJson()]),
     );
   }
@@ -100,19 +100,20 @@ class SalesOutbox extends Notifier<List<PendingSale>>
           });
           state = state.where((s) => s.id != sale.id).toList();
         } on ApiException catch (error) {
+          final status = error.status ?? 0;
+          // No answer, a server problem, a signed-out phone or "slow down": try again later.
           if (error.isOffline ||
               error.code == 'TIMEOUT' ||
-              (error.status ?? 0) >= 500 ||
-              error.isUnauthorized)
+              status >= 500 ||
+              status == 429 ||
+              error.isUnauthorized) {
             break;
-          if (_final.contains(error.code) ||
-              error.status == 400 ||
-              error.status == 403) {
-            state = [
-              for (final s in state)
-                s.id == sale.id ? s.withError(error.code) : s,
-            ];
           }
+          // The server understood and said no: retrying would not help, so show it.
+          state = [
+            for (final s in state)
+              s.id == sale.id ? s.withError(error.code) : s,
+          ];
         }
       }
       await _save();

@@ -13,7 +13,6 @@
   "add": "Ajouter",
   "addLesson": "Ajouter une leçon",
   "addMember": "Ajouter un membre",
-  "addMemberFromPdv": "Ouvrez un point de vente pour ajouter un membre.",
   "addMemberHint": "Ils peuvent se connecter dès que BioBalance les approuve. Ils reçoivent un e-mail avec un code.",
   "addProduct": "Ajouter un produit",
   "addSelected": "{count, plural, =0{Choisissez des produits} =1{Ajouter 1 produit} other{Ajouter {count} produits}}",
@@ -129,7 +128,6 @@
   "approved": "Approuvé",
   "askRecount": "Demander un nouveau comptage",
   "assignToGrossiste": "Confier à un grossiste",
-  "auditTitle": "Historique des modifications",
   "authenticatorCode": "Code d’authentification",
   "authenticatorCodeHelp": "Les 6 chiffres de votre application d’authentification.",
   "availableBalance": "Solde disponible",
@@ -141,7 +139,6 @@
       }
     }
   },
-  "back": "Retour",
   "balanceShort": "Solde",
   "barcode": "Code-barres",
   "barcodeUnknown": "Ce code-barres n’est pas dans le catalogue.",
@@ -192,7 +189,6 @@
   "chooseProduct": "Choisir un produit",
   "chooseReceiver": "Choisir qui compte la marchandise",
   "city": "Ville",
-  "close": "Fermer",
   "codeInvalid": "Saisissez un code valide.",
   "colApproved": "Validé",
   "colReceived": "Compté",
@@ -404,7 +400,6 @@
       }
     }
   },
-  "more": "Plus",
   "moreTitle": "Plus",
   "myRegion": "Région {name}",
   "@myRegion": {
@@ -423,7 +418,6 @@
     }
   },
   "needsAttention": "À surveiller",
-  "negativeStock": "Produits sous zéro",
   "networkTitle": "Réseau",
   "newAccount": "Nouveau compte",
   "newAccountHint": "La personne reçoit un e-mail avec un code pour choisir son mot de passe.",
@@ -466,7 +460,6 @@
   "noRewardsYetHint": "Choisissez une famille ou un produit et un montant par unité vendue.",
   "noRulesHere": "Rien ici",
   "noSalesInPeriod": "Aucune vente sur cette période",
-  "noSalesYet": "Aucune vente pour l’instant",
   "noSalesYetHint": "Vos ventes et ce qu’elles ont rapporté apparaîtront ici.",
   "noStockYet": "Pas encore de stock",
   "noStockYetHint": "Comptez ce que vous avez, prenez une photo et envoyez-la à BioBalance.",
@@ -525,7 +518,6 @@
   "payouts": "Paiements",
   "payoutsTitle": "Paiements",
   "paysToday": "Valeurs du jour",
-  "paysTodayHint": "Ce que rapporte une unité vendue aujourd’hui, produit par produit.",
   "pdvCount": "{count, plural, =0{Aucun point de vente} =1{1 point de vente} other{{count} points de vente}}",
   "@pdvCount": {
     "placeholders": {
@@ -720,7 +712,6 @@
   "saleCancelled": "Vente annulée",
   "saleCorrected": "Vente corrigée",
   "saleDetailTitle": "Vente",
-  "saleRecordedTitle": "Vente enregistrée",
   "saleRefused": "Le serveur a refusé cette vente",
   "saleVoided": "Annulée",
   "salesCount": "{count, plural, =0{Aucune vente} =1{1 vente} other{{count} ventes}}",
@@ -790,7 +781,6 @@
   "sendToAdmin": "Envoyer à BioBalance",
   "sentBy": "Envoyé par",
   "sentFrom": "Envoyé par",
-  "server": "Serveur",
   "setReward": "Fixer une récompense",
   "settingsTitle": "Réglages",
   "shipHint": "Saisissez ce qui part de votre dépôt vers {destination}.",
@@ -1002,8 +992,6 @@
   "regionStores": "Magasins",
   "regionGrossistes": "Grossistes",
   "regionNoResponsable": "Pas encore de responsable",
-  "rewardsHow": "Le tarif propre à un produit l’emporte toujours sur celui de sa famille. Touchez une famille ou un produit pour fixer un tarif sur une période.",
-  "noFamilyRate": "Pas de tarif famille",
   "familyRate": "Tarif famille {amount}",
   "@familyRate": {
     "placeholders": {
@@ -1014,7 +1002,6 @@
   },
   "ownRate": "Tarif propre",
   "followsFamily": "Suit le tarif de la famille",
-  "noReward": "Aucune récompense",
   "findByProduct": "Trouver une vente par produit",
   "noSalesWithProduct": "Aucune vente ne contient ce produit",
   "noSalesThisMonth": "Aucune vente ce mois-ci",
@@ -1047,7 +1034,6 @@
       }
     }
   },
-  "photosNeeded": "Ajoutez de 1 à 5 photos.",
   "statusWaitingResponsable": "En attente du responsable",
   "declarationWaitingResponsable": "Votre comptage attend la vérification du responsable, puis l’admin.",
   "recountAsked2": "Nouveau comptage demandé : en attente de l’accord de l’admin.",
@@ -1324,5 +1310,7 @@
     }
   },
   "chooseRegionForGroup": "Pour quelle région est ce groupe ?",
-  "noRewardForSale": "Aucune récompense n’est encore définie pour ces produits."
+  "noRewardForSale": "Aucune récompense n’est encore définie pour ces produits.",
+  "renameGroup": "Renommer le groupe",
+  "editPerson": "Modifier la personne"
 }
