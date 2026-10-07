@@ -169,8 +169,48 @@ class RestockTile extends StatelessWidget {
               color: context.status.muted,
             ),
           ),
+          if (order.status != RestockStatus.cancelled) ...[
+            const Gap(12),
+            _Steps(order.status),
+          ],
         ],
       ),
+    );
+  }
+}
+
+/// Where an order is on its way: requested, on the road, counted, done.
+class _Steps extends StatelessWidget {
+  const _Steps(this.status);
+
+  final RestockStatus status;
+
+  @override
+  Widget build(BuildContext context) {
+    final reached = switch (status) {
+      RestockStatus.requested => 1,
+      RestockStatus.assigned => 2,
+      RestockStatus.shipped => 3,
+      RestockStatus.received => 4,
+      _ => 5,
+    };
+    return Row(
+      children: [
+        for (var i = 1; i <= 5; i++) ...[
+          Expanded(
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 300),
+              height: 5,
+              decoration: BoxDecoration(
+                gradient: i <= reached ? context.status.gradient : null,
+                color: i <= reached ? null : context.status.mutedSoft,
+                borderRadius: BorderRadius.circular(3),
+              ),
+            ),
+          ),
+          if (i < 5) const SizedBox(width: 4),
+        ],
+      ],
     );
   }
 }

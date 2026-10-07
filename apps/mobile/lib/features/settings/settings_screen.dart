@@ -289,14 +289,20 @@ class _Item extends StatelessWidget {
 
 /// The "More" tab and everything every role shares, as a list of destinations.
 class MoreEntry {
-  const MoreEntry(this.icon, this.label, this.route, {this.badge});
+  const MoreEntry(
+    this.icon,
+    this.label,
+    this.route, {
+    this.tone = Tone.neutral,
+  });
 
   final IconData icon;
   final String label;
   final String route;
-  final int? badge;
+  final Tone tone;
 }
 
+/// Everything that is not a main tab: who you are on top, then a grid of tiles.
 class MoreScreen extends ConsumerWidget {
   const MoreScreen({required this.entries, super.key});
 
@@ -305,17 +311,84 @@ class MoreScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final t = AppLocalizations.of(context);
+    final me = ref.watch(meProvider);
+    final initials = me.name
+        .trim()
+        .split(RegExp(r'\s+'))
+        .where((p) => p.isNotEmpty)
+        .take(2)
+        .map((p) => p[0].toUpperCase())
+        .join();
     return Scaffold(
       appBar: AppBar(title: Text(t.moreTitle)),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
         children: [
-          for (final e in entries)
-            _Item(
-              icon: e.icon,
-              label: e.label,
-              onTap: () => context.push(e.route),
+          AppCard(
+            onTap: () => context.push('/settings'),
+            child: Row(
+              children: [
+                Avatar(initials.isEmpty ? '?' : initials, size: 52),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(me.name, style: context.text.titleMedium),
+                      const SizedBox(height: 2),
+                      Text(
+                        [
+                          roleLabel(t, me.role),
+                          ?me.region?.name,
+                          ?me.pdv?.name,
+                          ?me.depot?.name,
+                        ].join(' · '),
+                        style: context.text.bodySmall?.copyWith(
+                          color: context.status.muted,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(
+                  LucideIcons.chevronRight,
+                  size: 18,
+                  color: context.status.muted,
+                ),
+              ],
             ),
+          ),
+          const Gap(16),
+          GridView.count(
+            crossAxisCount: 2,
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            mainAxisSpacing: 12,
+            crossAxisSpacing: 12,
+            childAspectRatio: 1.45,
+            children: [
+              for (final e in entries)
+                AppCard(
+                  onTap: () => context.push(e.route),
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      IconBadge(e.icon, tone: e.tone, size: 42),
+                      Text(
+                        e.label,
+                        style: context.text.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
         ],
       ),
     );

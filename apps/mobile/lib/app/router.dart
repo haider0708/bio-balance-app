@@ -5,6 +5,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../core/auth/me.dart';
 import '../core/auth/session.dart';
+import '../core/widgets/components.dart';
 import '../core/widgets/states.dart';
 import '../features/approvals/approvals_screen.dart';
 import '../features/auth/activate_screen.dart';
@@ -470,38 +471,98 @@ Widget _more(Role role) => Builder(
     final t = AppLocalizations.of(context);
     final entries = switch (role) {
       Role.admin => [
-        MoreEntry(LucideIcons.banknote, t.rewardsTitle, '/rewards'),
+        MoreEntry(
+          LucideIcons.banknote,
+          t.rewardsTitle,
+          '/rewards',
+          tone: Tone.success,
+        ),
         MoreEntry(LucideIcons.warehouse, t.grossistesTitle, '/depots'),
-        MoreEntry(LucideIcons.wallet, t.payoutsTitle, '/payouts'),
-        MoreEntry(LucideIcons.megaphone, t.announcementsTitle, '/messages'),
+        MoreEntry(
+          LucideIcons.wallet,
+          t.payoutsTitle,
+          '/payouts',
+          tone: Tone.warning,
+        ),
+        MoreEntry(
+          LucideIcons.megaphone,
+          t.announcementsTitle,
+          '/messages',
+          tone: Tone.info,
+        ),
         MoreEntry(
           LucideIcons.graduationCap,
           t.trainingTitle,
           '/training/manage',
         ),
         MoreEntry(LucideIcons.package, t.catalogTitle, '/catalog'),
-        MoreEntry(LucideIcons.chartNoAxesColumn, t.reportsTitle, '/reports'),
-        MoreEntry(LucideIcons.bell, t.notificationsTitle, '/notifications'),
-        MoreEntry(LucideIcons.settings, t.settingsTitle, '/settings'),
+        MoreEntry(
+          LucideIcons.chartNoAxesColumn,
+          t.reportsTitle,
+          '/reports',
+          tone: Tone.info,
+        ),
+        MoreEntry(
+          LucideIcons.bell,
+          t.notificationsTitle,
+          '/notifications',
+          tone: Tone.warning,
+        ),
+        MoreEntry(
+          LucideIcons.settings,
+          t.settingsTitle,
+          '/settings',
+          tone: Tone.muted,
+        ),
       ],
       Role.responsable => [
         MoreEntry(LucideIcons.warehouse, t.grossistesTitle, '/depots'),
         MoreEntry(LucideIcons.package, t.catalogTitle, '/catalog'),
         MoreEntry(LucideIcons.graduationCap, t.trainingTitle, '/training'),
-        MoreEntry(LucideIcons.bell, t.notificationsTitle, '/notifications'),
-        MoreEntry(LucideIcons.settings, t.settingsTitle, '/settings'),
+        MoreEntry(
+          LucideIcons.bell,
+          t.notificationsTitle,
+          '/notifications',
+          tone: Tone.warning,
+        ),
+        MoreEntry(
+          LucideIcons.settings,
+          t.settingsTitle,
+          '/settings',
+          tone: Tone.muted,
+        ),
       ],
       // A grossiste works from orders and stock: no catalogue page.
       Role.grossiste => [
         MoreEntry(LucideIcons.graduationCap, t.trainingTitle, '/training'),
-        MoreEntry(LucideIcons.bell, t.notificationsTitle, '/notifications'),
-        MoreEntry(LucideIcons.settings, t.settingsTitle, '/settings'),
+        MoreEntry(
+          LucideIcons.bell,
+          t.notificationsTitle,
+          '/notifications',
+          tone: Tone.warning,
+        ),
+        MoreEntry(
+          LucideIcons.settings,
+          t.settingsTitle,
+          '/settings',
+          tone: Tone.muted,
+        ),
       ],
       _ => [
         MoreEntry(LucideIcons.package, t.catalogTitle, '/catalog'),
         MoreEntry(LucideIcons.graduationCap, t.trainingTitle, '/training'),
-        MoreEntry(LucideIcons.bell, t.notificationsTitle, '/notifications'),
-        MoreEntry(LucideIcons.settings, t.settingsTitle, '/settings'),
+        MoreEntry(
+          LucideIcons.bell,
+          t.notificationsTitle,
+          '/notifications',
+          tone: Tone.warning,
+        ),
+        MoreEntry(
+          LucideIcons.settings,
+          t.settingsTitle,
+          '/settings',
+          tone: Tone.muted,
+        ),
       ],
     };
     return MoreScreen(entries: entries);
