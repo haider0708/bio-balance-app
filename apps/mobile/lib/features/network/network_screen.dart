@@ -83,10 +83,6 @@ class _NetworkScreenState extends ConsumerState<NetworkScreen> {
           listenable: tabs,
           builder: (context, _) {
             final tab = tabs.index;
-            // Only a responsable creates stores and groups; the admin creates accounts.
-            if (me.role == Role.admin && tab != 2) {
-              return const SizedBox.shrink();
-            }
             final (icon, label) = switch (tab) {
               0 => (LucideIcons.store, t.newStoreButton),
               1 => (LucideIcons.layers, t.newGroupButton),
@@ -94,12 +90,7 @@ class _NetworkScreenState extends ConsumerState<NetworkScreen> {
             };
             return FloatingActionButton.extended(
               heroTag: null,
-              onPressed: me.role == Role.admin
-                  ? () async {
-                      await context.push('/people/new');
-                      ref.invalidate(peopleProvider);
-                    }
-                  : () => _addForTab(context, tab),
+              onPressed: () => _addForTab(context, tab),
               icon: Icon(icon),
               label: Text(label),
             );
@@ -114,7 +105,11 @@ class _NetworkScreenState extends ConsumerState<NetworkScreen> {
       case 1:
         await _newGroup(context);
       case 2:
-        await _addMember(context);
+        if (ref.read(meProvider).role == Role.admin) {
+          await context.push<void>('/people/new');
+        } else {
+          await _addMember(context);
+        }
       default:
         await context.push<void>('/pdvs/new');
     }
@@ -167,6 +162,37 @@ class _NetworkScreenState extends ConsumerState<NetworkScreen> {
 
   Future<void> _newGroup(BuildContext context) async {
     final t = AppLocalizations.of(context);
+    // The admin says which region the group is for.
+    String? regionId;
+    if (ref.read(meProvider).role == Role.admin) {
+      final regions = await ref.read(regionsProvider.future);
+      if (!context.mounted) return;
+      regionId = await showModalBottomSheet<String>(
+        context: context,
+        showDragHandle: true,
+        builder: (context) => SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+                child: Text(
+                  t.chooseRegionForGroup,
+                  style: context.text.titleMedium,
+                ),
+              ),
+              for (final r in regions)
+                ListTile(
+                  leading: const Icon(LucideIcons.mapPin),
+                  title: Text(r.name),
+                  onTap: () => Navigator.pop(context, r.id),
+                ),
+            ],
+          ),
+        ),
+      );
+      if (regionId == null || !context.mounted) return;
+    }
     final name = await askText(
       context,
       title: t.newGroup,
@@ -176,7 +202,9 @@ class _NetworkScreenState extends ConsumerState<NetworkScreen> {
     if (name == null || !context.mounted) return;
     await perform(
       context,
-      () => ref.read(networkRepositoryProvider).createGroup(name),
+      () => ref
+          .read(networkRepositoryProvider)
+          .createGroup(name, regionId: regionId),
       success: t.groupCreated,
     );
   }

@@ -1322,5 +1322,7 @@
         "type": "int"
       }
     }
-  }
+  },
+  "chooseRegionForGroup": "Pour quelle région est ce groupe ?",
+  "noRewardForSale": "Aucune récompense n’est encore définie pour ces produits."
 }

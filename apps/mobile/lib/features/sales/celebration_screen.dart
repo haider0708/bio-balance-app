@@ -33,7 +33,7 @@ class _CelebrationScreenState extends State<CelebrationScreen> {
     HapticFeedback.mediumImpact();
     // Light ticks while the amount counts up, then a firm one when it lands.
     final outcome = widget.outcome;
-    if (outcome is SaleRecorded && outcome.sale.rewardMillimes > 0) {
+    if (outcome is SaleRecorded) {
       var n = 0;
       _ticks = Timer.periodic(const Duration(milliseconds: 140), (timer) {
         n++;
@@ -91,19 +91,19 @@ class _Recorded extends StatelessWidget {
               ),
             ),
           ),
-          if (earned) const Positioned.fill(child: CoinRain()),
-          if (earned)
-            Positioned.fill(
-              child: ConfettiBurst(
-                colors: [
-                  context.colors.primary,
-                  Palette.leaf,
-                  const Color(0xFFFFC857),
-                  const Color(0xFF4FC3F7),
-                  const Color(0xFFFF8A80),
-                ],
-              ),
+          // Every sale is celebrated, with or without a reward.
+          const Positioned.fill(child: CoinRain()),
+          Positioned.fill(
+            child: ConfettiBurst(
+              colors: [
+                context.colors.primary,
+                Palette.leaf,
+                const Color(0xFFFFC857),
+                const Color(0xFF4FC3F7),
+                const Color(0xFFFF8A80),
+              ],
             ),
+          ),
           SafeArea(
             child: _Fill(
               child: Padding(
@@ -134,7 +134,7 @@ class _Recorded extends StatelessWidget {
                           ],
                         ),
                         child: Icon(
-                          earned ? LucideIcons.partyPopper : LucideIcons.check,
+                          LucideIcons.partyPopper,
                           size: 52,
                           color: context.colors.onPrimary,
                         ),
@@ -142,7 +142,7 @@ class _Recorded extends StatelessWidget {
                     ),
                     const Gap(28),
                     Text(
-                      earned ? t.celebrateTitle : t.saleRecordedTitle,
+                      t.celebrateTitle,
                       style: context.text.headlineMedium,
                       textAlign: TextAlign.center,
                     ),
@@ -224,6 +224,44 @@ class _Recorded extends StatelessWidget {
                               ),
                             ),
                           ),
+                    ] else ...[
+                      const Gap(28),
+                      TweenAnimationBuilder<int>(
+                        tween: IntTween(begin: 0, end: sale.units),
+                        duration: const Duration(milliseconds: 900),
+                        curve: Curves.easeOutCubic,
+                        builder: (context, v, _) => Text(
+                          '+ ${t.units(v)}',
+                          style: context.text.displayMedium?.copyWith(
+                            color: context.colors.primary,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: -1,
+                          ),
+                        ),
+                      ),
+                      const Gap(10),
+                      for (var i = 0; i < sale.lines.length; i++)
+                        _Pop(
+                          delay: Duration(milliseconds: 500 + i * 200),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 3),
+                            child: Text(
+                              '${sale.lines[i].name} × ${sale.lines[i].quantity}',
+                              overflow: TextOverflow.ellipsis,
+                              style: context.text.bodyMedium?.copyWith(
+                                color: context.status.muted,
+                              ),
+                            ),
+                          ),
+                        ),
+                      const Gap(8),
+                      Text(
+                        t.noRewardForSale,
+                        textAlign: TextAlign.center,
+                        style: context.text.bodySmall?.copyWith(
+                          color: context.status.muted,
+                        ),
+                      ),
                     ],
                     const Gap(24),
                     if (wallet != null)
@@ -272,55 +310,75 @@ class _Queued extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
     return Scaffold(
-      body: SafeArea(
-        child: _Fill(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              children: [
-                const Spacer(flex: 2),
-                Container(
-                  width: 104,
-                  height: 104,
-                  decoration: BoxDecoration(
-                    color: context.status.infoSoft,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    LucideIcons.cloudUpload,
-                    size: 48,
-                    color: context.status.info,
-                  ),
-                ),
-                const Gap(28),
-                Text(
-                  t.savedOnPhoneTitle,
-                  style: context.text.headlineMedium,
-                  textAlign: TextAlign.center,
-                ),
-                const Gap(8),
-                Text(
-                  t.savedOnPhoneBody(pending.units),
-                  style: context.text.bodyLarge?.copyWith(
-                    color: context.status.muted,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const Spacer(flex: 3),
-                FilledButton.icon(
-                  onPressed: () => context.go('/sell'),
-                  icon: const Icon(LucideIcons.plus),
-                  label: Text(t.newSale),
-                ),
-                const Gap(8),
-                TextButton(
-                  onPressed: () => context.go('/home'),
-                  child: Text(t.done),
-                ),
+      body: Stack(
+        children: [
+          Positioned.fill(
+            child: ConfettiBurst(
+              colors: [
+                context.colors.primary,
+                context.status.info,
+                const Color(0xFFFFC857),
               ],
             ),
           ),
-        ),
+          SafeArea(
+            child: _Fill(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  children: [
+                    const Spacer(flex: 2),
+                    TweenAnimationBuilder<double>(
+                      tween: Tween(begin: 0, end: 1),
+                      duration: const Duration(milliseconds: 650),
+                      curve: Curves.elasticOut,
+                      builder: (context, v, child) =>
+                          Transform.scale(scale: v, child: child),
+                      child: Container(
+                        width: 104,
+                        height: 104,
+                        decoration: BoxDecoration(
+                          color: context.status.infoSoft,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          LucideIcons.cloudUpload,
+                          size: 48,
+                          color: context.status.info,
+                        ),
+                      ),
+                    ),
+                    const Gap(28),
+                    Text(
+                      t.savedOnPhoneTitle,
+                      style: context.text.headlineMedium,
+                      textAlign: TextAlign.center,
+                    ),
+                    const Gap(8),
+                    Text(
+                      t.savedOnPhoneBody(pending.units),
+                      style: context.text.bodyLarge?.copyWith(
+                        color: context.status.muted,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const Spacer(flex: 3),
+                    FilledButton.icon(
+                      onPressed: () => context.go('/sell'),
+                      icon: const Icon(LucideIcons.plus),
+                      label: Text(t.newSale),
+                    ),
+                    const Gap(8),
+                    TextButton(
+                      onPressed: () => context.go('/home'),
+                      child: Text(t.done),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

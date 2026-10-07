@@ -20,13 +20,14 @@ const phone = z.string().trim().max(30).nullable().optional();
 const Status = z.enum(["PENDING", "ACTIVE", "REJECTED", "SUSPENDED"]);
 const Note = z.object({ note: z.string().trim().max(500).optional() });
 
-const Group = z.object({ name: text() });
+const Group = z.object({ name: text(), regionId: id.optional() });
 const Pdv = z.object({
   name: text(),
   address: text(200),
   city: text(80),
   phone,
   groupId: id.nullable().optional(),
+  regionId: id.optional(),
 });
 const Member = z.object({ name: text(100), email, phone });
 const AdminUser = z.discriminatedUnion("role", [
@@ -82,7 +83,7 @@ export class DirectoryController {
   }
 
   // Groups
-  @Roles("RESPONSABLE")
+  @Roles("ADMIN", "RESPONSABLE")
   @Post("groups")
   createGroup(@Req() r: AuthRequest, @Body() b: unknown) {
     return this.structure.createGroup(r.actor, parse(Group, b));
@@ -161,7 +162,7 @@ export class DirectoryController {
   }
 
   // Points of sale
-  @Roles("RESPONSABLE")
+  @Roles("ADMIN", "RESPONSABLE")
   @Post("pdvs")
   createPdv(@Req() r: AuthRequest, @Body() b: unknown) {
     return this.structure.createPdv(r.actor, parse(Pdv, b));

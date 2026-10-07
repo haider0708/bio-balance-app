@@ -4255,6 +4255,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'To {count} people'**
   String sentTo(int count);
+
+  /// No description provided for @chooseRegionForGroup.
+  ///
+  /// In en, this message translates to:
+  /// **'Which region is this group for?'**
+  String get chooseRegionForGroup;
+
+  /// No description provided for @noRewardForSale.
+  ///
+  /// In en, this message translates to:
+  /// **'No reward is set for these products yet.'**
+  String get noRewardForSale;
 }
 
 class _AppLocalizationsDelegate

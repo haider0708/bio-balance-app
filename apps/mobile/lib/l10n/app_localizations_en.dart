@@ -2463,4 +2463,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String sentTo(int count) {
     return 'To $count people';
   }
+
+  @override
+  String get chooseRegionForGroup => 'Which region is this group for?';
+
+  @override
+  String get noRewardForSale => 'No reward is set for these products yet.';
 }

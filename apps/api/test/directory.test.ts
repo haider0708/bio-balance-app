@@ -69,7 +69,7 @@ describe("groups and points of sale", () => {
     expect(again.body.status).toBe("PENDING");
   });
 
-  it("only the admin can approve, and only a responsable can create", async () => {
+  it("only the admin approves; the admin and a responsable create, a grossiste cannot", async () => {
     const created = (
       await w.n.post("/v1/pdvs", {
         name: "Para Y",
@@ -82,15 +82,6 @@ describe("groups and points of sale", () => {
     );
     expect(
       (
-        await w.a.post("/v1/pdvs", {
-          name: "Admin PDV",
-          address: "x",
-          city: "y",
-        })
-      ).status,
-    ).toBe(403);
-    expect(
-      (
         await w.g.post("/v1/pdvs", {
           name: "Gros PDV",
           address: "x",
@@ -98,6 +89,62 @@ describe("groups and points of sale", () => {
         })
       ).status,
     ).toBe(403);
+    expect((await w.g.post("/v1/groups", { name: "Gros group" })).status).toBe(
+      403,
+    );
+  });
+
+  it("lets the admin create a store and a group for any region, active at once", async () => {
+    const sud = (await w.a.get("/v1/regions")).body.find(
+      (r: any) => r.code === "SUD",
+    );
+    // The region is needed, and must exist.
+    expect(
+      (await w.a.post("/v1/groups", { name: "Groupe Sud" })).body.code,
+    ).toBe("REGION_REQUIRED");
+    const group = await w.a.post("/v1/groups", {
+      name: "Groupe Sud",
+      regionId: sud.id,
+    });
+    expect(group.status).toBe(201);
+    expect(group.body).toMatchObject({ status: "ACTIVE", regionId: sud.id });
+    const pdv = await w.a.post("/v1/pdvs", {
+      name: "Para Sfax",
+      address: "1 rue",
+      city: "Sfax",
+      regionId: sud.id,
+      groupId: group.body.id,
+    });
+    expect(pdv.status).toBe(201);
+    expect(pdv.body).toMatchObject({ status: "ACTIVE", regionId: sud.id });
+    // The responsable of that region sees both, and the other region does not.
+    expect((await w.s.get("/v1/pdvs")).body.map((p: any) => p.name)).toEqual([
+      "Para Sfax",
+    ]);
+    expect((await w.n.get("/v1/pdvs")).body).toEqual([]);
+    expect((await w.s.get("/v1/groups")).body.map((g: any) => g.name)).toEqual([
+      "Groupe Sud",
+    ]);
+    // A group of another region cannot hold the store.
+    const nord = (await w.a.get("/v1/regions")).body.find(
+      (r: any) => r.code === "NORD",
+    );
+    const bad = await w.a.post("/v1/pdvs", {
+      name: "Mixed",
+      address: "x",
+      city: "y",
+      regionId: nord.id,
+      groupId: group.body.id,
+    });
+    expect(bad.body.code).toBe("GROUP_NOT_FOUND");
+    // And the admin can add a team member to it right away.
+    const member = await w.a.post("/v1/users", {
+      role: "VENDEUR",
+      pdvId: pdv.body.id,
+      name: "Amira",
+      email: "amira@example.test",
+    });
+    expect(member.status).toBe(201);
   });
 
   it("groups hold points of sale of the same region only", async () => {

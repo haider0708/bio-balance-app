@@ -23,8 +23,10 @@ class NetworkRepository {
             .get('/v1/groups', query: {'status': status, 'regionId': regionId}),
       ).map(Group.fromJson).toList();
 
-  Future<void> createGroup(String name) =>
-      _ref.read(apiClientProvider).post('/v1/groups', {'name': name});
+  /// The admin names the region; a responsable's group goes to their own.
+  Future<void> createGroup(String name, {String? regionId}) => _ref
+      .read(apiClientProvider)
+      .post('/v1/groups', {'name': name, 'regionId': ?regionId});
 
   Future<void> renameGroup(String id, String name) =>
       _ref.read(apiClientProvider).patch('/v1/groups/$id', {'name': name});
@@ -57,6 +59,7 @@ class NetworkRepository {
     required String city,
     String? phone,
     String? groupId,
+    String? regionId,
   }) async => Pdv.fromJson(
     await _ref.read(apiClientProvider).post('/v1/pdvs', {
       'name': name,
@@ -64,6 +67,7 @@ class NetworkRepository {
       'city': city,
       if (phone != null && phone.isNotEmpty) 'phone': phone,
       'groupId': ?groupId,
+      'regionId': ?regionId,
     }) as Json,
   );
 

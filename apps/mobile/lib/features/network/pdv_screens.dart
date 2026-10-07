@@ -316,6 +316,9 @@ class _PdvFormScreenState extends ConsumerState<PdvFormScreen> {
   late final _phone = TextEditingController(text: widget.existing?.phone);
   late String? _groupId = widget.existing?.groupId;
 
+  /// The admin chooses the region of a new store; a responsable's is their own.
+  String? _regionId;
+
   @override
   void dispose() {
     for (final c in [_name, _address, _city, _phone]) {
@@ -338,6 +341,7 @@ class _PdvFormScreenState extends ConsumerState<PdvFormScreen> {
           city: _city.text.trim(),
           phone: _phone.text.trim(),
           groupId: _groupId,
+          regionId: _regionId,
         )).id;
       } else {
         await repo.updatePdv(existing.id, {
@@ -362,7 +366,10 @@ class _PdvFormScreenState extends ConsumerState<PdvFormScreen> {
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
-    final groups = ref.watch(groupsProvider(null));
+    final admin = ref.watch(meProvider).role == Role.admin;
+    final chooseRegion = admin && widget.existing == null;
+    final regions = ref.watch(regionsProvider).value ?? const [];
+    final groups = ref.watch(groupsProvider(chooseRegion ? _regionId : null));
     String? required(String? v) =>
         (v == null || v.trim().length < 2) ? t.fieldRequired : null;
     return Scaffold(
@@ -374,7 +381,7 @@ class _PdvFormScreenState extends ConsumerState<PdvFormScreen> {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            if (widget.existing == null) ...[
+            if (widget.existing == null && !admin) ...[
               Text(
                 t.newPdvHint,
                 style: context.text.bodyMedium?.copyWith(
@@ -382,6 +389,22 @@ class _PdvFormScreenState extends ConsumerState<PdvFormScreen> {
                 ),
               ),
               const Gap(16),
+            ],
+            if (chooseRegion) ...[
+              DropdownButtonFormField<String>(
+                initialValue: _regionId,
+                decoration: InputDecoration(labelText: t.region),
+                items: [
+                  for (final r in regions)
+                    DropdownMenuItem(value: r.id, child: Text(r.name)),
+                ],
+                onChanged: (v) => setState(() {
+                  _regionId = v;
+                  _groupId = null;
+                }),
+                validator: (v) => v == null ? t.fieldRequired : null,
+              ),
+              const Gap(12),
             ],
             TextFormField(
               controller: _name,

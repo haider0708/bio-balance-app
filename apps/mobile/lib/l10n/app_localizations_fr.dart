@@ -2472,4 +2472,11 @@ class AppLocalizationsFr extends AppLocalizations {
   String sentTo(int count) {
     return 'À $count personnes';
   }
+
+  @override
+  String get chooseRegionForGroup => 'Pour quelle région est ce groupe ?';
+
+  @override
+  String get noRewardForSale =>
+      'Aucune récompense n’est encore définie pour ces produits.';
 }

@@ -26,19 +26,37 @@ export class StructureService {
 
   // ───────────────────────── Groups ─────────────────────────
 
-  async createGroup(actor: Actor, input: { name: string }) {
+  /**
+   * A responsable creates a group for their region and the admin approves it.
+   * The admin creates one for any region and it is active at once.
+   */
+  async createGroup(actor: Actor, input: { name: string; regionId?: string }) {
+    const byAdmin = actor.role === "ADMIN";
     requireRule(
-      actor.role === "RESPONSABLE" && actor.regionId,
+      byAdmin || (actor.role === "RESPONSABLE" && actor.regionId),
       "FORBIDDEN",
-      "Only a responsable creates groups.",
+      "Not allowed.",
       403,
     );
+    const regionId = byAdmin ? input.regionId : actor.regionId;
+    requireRule(regionId, "REGION_REQUIRED", "Choose a region.", 422);
     return this.db.run(actor, async (tx) => {
+      requireRule(
+        await tx.region.findUnique({ where: { id: regionId } }),
+        "REGION_NOT_FOUND",
+        "Unknown region.",
+        404,
+      );
       const group = await tx.group.create({
         data: {
           name: input.name,
-          regionId: actor.regionId!,
+          regionId,
           createdById: actor.id,
+          ...(byAdmin && {
+            status: "ACTIVE" as const,
+            decidedById: actor.id,
+            decidedAt: new Date(),
+          }),
         },
       });
       await audit(
@@ -50,12 +68,20 @@ export class StructureService {
         { name: group.name },
         group.regionId,
       );
-      await notifyAdmins(tx, {
-        key: "group.submitted",
-        params: { name: group.name, by: actor.name },
-        entityType: "Group",
-        entityId: group.id,
-      });
+      if (byAdmin)
+        await notify(tx, await responsableIds(tx, group.regionId), {
+          key: "group.approved",
+          params: { name: group.name, note: null },
+          entityType: "Group",
+          entityId: group.id,
+        });
+      else
+        await notifyAdmins(tx, {
+          key: "group.submitted",
+          params: { name: group.name, by: actor.name },
+          entityType: "Group",
+          entityId: group.id,
+        });
       return group;
     });
   }
@@ -116,22 +142,32 @@ export class StructureService {
 
   // ───────────────────────── Points of sale ─────────────────────────
 
-  async createPdv(actor: Actor, input: PlaceInput) {
+  /** Same rule as groups: a responsable proposes, the admin creates for any region and it is active at once. */
+  async createPdv(actor: Actor, input: PlaceInput & { regionId?: string }) {
+    const byAdmin = actor.role === "ADMIN";
     requireRule(
-      actor.role === "RESPONSABLE" && actor.regionId,
+      byAdmin || (actor.role === "RESPONSABLE" && actor.regionId),
       "FORBIDDEN",
-      "Only a responsable creates points of sale.",
+      "Not allowed.",
       403,
     );
+    const regionId = byAdmin ? input.regionId : actor.regionId;
+    requireRule(regionId, "REGION_REQUIRED", "Choose a region.", 422);
     return this.db.run(actor, async (tx) => {
+      requireRule(
+        await tx.region.findUnique({ where: { id: regionId } }),
+        "REGION_NOT_FOUND",
+        "Unknown region.",
+        404,
+      );
       if (input.groupId) {
         const group = await tx.group.findUnique({
           where: { id: input.groupId },
         });
         requireRule(
-          group && group.regionId === actor.regionId,
+          group && group.regionId === regionId,
           "GROUP_NOT_FOUND",
-          "Choose one of your groups.",
+          "Choose a group of the same region.",
           404,
         );
       }
@@ -142,8 +178,13 @@ export class StructureService {
           city: input.city,
           phone: input.phone ?? null,
           groupId: input.groupId ?? null,
-          regionId: actor.regionId!,
+          regionId,
           createdById: actor.id,
+          ...(byAdmin && {
+            status: "ACTIVE" as const,
+            decidedById: actor.id,
+            decidedAt: new Date(),
+          }),
         },
       });
       await audit(
@@ -155,12 +196,20 @@ export class StructureService {
         { name: pdv.name },
         pdv.regionId,
       );
-      await notifyAdmins(tx, {
-        key: "pdv.submitted",
-        params: { name: pdv.name, by: actor.name },
-        entityType: "Pdv",
-        entityId: pdv.id,
-      });
+      if (byAdmin)
+        await notify(tx, await responsableIds(tx, pdv.regionId), {
+          key: "pdv.approved",
+          params: { name: pdv.name, note: null },
+          entityType: "Pdv",
+          entityId: pdv.id,
+        });
+      else
+        await notifyAdmins(tx, {
+          key: "pdv.submitted",
+          params: { name: pdv.name, by: actor.name },
+          entityType: "Pdv",
+          entityId: pdv.id,
+        });
       return pdv;
     });
   }
