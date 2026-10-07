@@ -614,3 +614,28 @@ describe("reading the history", () => {
     expect(report.rows[0]).toHaveProperty("imageId");
   });
 });
+
+describe("notification filters", () => {
+  it("narrow the inbox by kind of notification and by unread", async () => {
+    await w.a.post("/v1/reward-rules", family(500));
+    const { m } = await shop();
+    await m.post("/v1/sales", {
+      id: randomUUID(),
+      lines: [{ productId: w.products[0]!.id, quantity: 1 }],
+    });
+    const all = (await w.n.get("/v1/notifications")).body.items;
+    expect(all.length).toBeGreaterThan(1);
+    const sales = (await w.n.get("/v1/notifications?category=SALES")).body
+      .items;
+    expect(sales.every((n: any) => n.key === "sale.recorded")).toBe(true);
+    expect(sales).toHaveLength(1);
+    const stock = (await w.n.get("/v1/notifications?category=STOCK")).body
+      .items;
+    expect(stock.some((n: any) => n.key === "sale.recorded")).toBe(false);
+    await w.n.post(`/v1/notifications/${sales[0].id}/read`);
+    expect(
+      (await w.n.get("/v1/notifications?category=SALES&unreadOnly=true")).body
+        .items,
+    ).toEqual([]);
+  });
+});

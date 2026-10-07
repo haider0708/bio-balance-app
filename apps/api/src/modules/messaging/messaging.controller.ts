@@ -40,7 +40,22 @@ export class MessagingController {
   inbox(@Req() r: AuthRequest, @Query() q: Record<string, string>) {
     return this.messaging.inbox(
       r.actor,
-      parse(PageQuery.extend({ unreadOnly: z.stringbool().optional() }), q),
+      parse(
+        PageQuery.extend({
+          unreadOnly: z.stringbool().optional(),
+          category: z
+            .enum([
+              "SALES",
+              "STOCK",
+              "RESTOCKS",
+              "PAYMENTS",
+              "NETWORK",
+              "MESSAGES",
+            ])
+            .optional(),
+        }),
+        q,
+      ),
     );
   }
   @Get("notifications/unread-count")

@@ -1124,5 +1124,203 @@
   "adjustReason": "Motif (obligatoire)",
   "stockAdjusted": "Stock corrigé",
   "editDepot": "Modifier le dépôt",
-  "grossisteLabel": "Grossiste"
+  "grossisteLabel": "Grossiste",
+  "unreadFilter": "Non lues",
+  "filterSales": "Ventes",
+  "filterStock": "Stock",
+  "filterRestocks": "Réappros",
+  "filterPayments": "Paiements",
+  "filterNetwork": "Réseau",
+  "filterMessages": "Annonces",
+  "reportOverview": "Aperçu",
+  "reportProducts": "Produits",
+  "reportTeam": "Équipe",
+  "reportStock": "Stock",
+  "reportDetails": "Détails",
+  "whatTheNumbersSay": "Ce que disent les chiffres",
+  "dailySales": "Unités vendues par jour",
+  "bestDay": "Meilleur jour",
+  "slowestDay": "Jour le plus calme",
+  "byWeekday": "Unités par jour de la semaine",
+  "salesByFamily": "Part par famille",
+  "vsPrevious": "avant : {count}",
+  "@vsPrevious": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "unitsPerSale": "{value} unités par vente",
+  "@unitsPerSale": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "activeStoresLabel": "Magasins actifs",
+  "sellersCount": "{count} vendeurs",
+  "@sellersCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "shareOfTotal": "{share} % du total",
+  "@shareOfTotal": {
+    "placeholders": {
+      "share": {
+        "type": "int"
+      }
+    }
+  },
+  "insTopFamily": "{family} est la meilleure famille : {share} % des unités.",
+  "@insTopFamily": {
+    "placeholders": {
+      "family": {
+        "type": "String"
+      },
+      "share": {
+        "type": "int"
+      }
+    }
+  },
+  "insUpOn": "En hausse de {change} % sur la période précédente.",
+  "@insUpOn": {
+    "placeholders": {
+      "change": {
+        "type": "int"
+      }
+    }
+  },
+  "insDownOn": "En baisse de {change} % sur la période précédente.",
+  "@insDownOn": {
+    "placeholders": {
+      "change": {
+        "type": "int"
+      }
+    }
+  },
+  "insStoreDown": "{store} a vendu {change} % de moins que sur la période précédente.",
+  "@insStoreDown": {
+    "placeholders": {
+      "store": {
+        "type": "String"
+      },
+      "change": {
+        "type": "int"
+      }
+    }
+  },
+  "insStoreUp": "{store} a vendu {change} % de plus que sur la période précédente.",
+  "@insStoreUp": {
+    "placeholders": {
+      "store": {
+        "type": "String"
+      },
+      "change": {
+        "type": "int"
+      }
+    }
+  },
+  "insRunningOut": "{count} produits seront en rupture d’ici {days} jours au rythme actuel.",
+  "@insRunningOut": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "insDeadStock": "{count} produits dorment en stock sans vente depuis quatre semaines.",
+  "@insDeadStock": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "insBestWeekday": "{day} est le meilleur jour de la semaine : {share} % des unités.",
+  "@insBestWeekday": {
+    "placeholders": {
+      "day": {
+        "type": "String"
+      },
+      "share": {
+        "type": "int"
+      }
+    }
+  },
+  "insTopSeller": "{name} a le plus vendu : {units} unités.",
+  "@insTopSeller": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "units": {
+        "type": "int"
+      }
+    }
+  },
+  "insRewardPerUnit": "Les récompenses coûtent {amount} par unité vendue.",
+  "@insRewardPerUnit": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "stockPaceHint": "Jours de stock restants, au rythme des quatre dernières semaines.",
+  "runsOutSoon": "Rupture d’ici une semaine",
+  "stockPaceFine": "Aucune rupture prévue d’ici une semaine au rythme actuel.",
+  "daysLeft": "{count} jours restants",
+  "@daysLeft": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "stockAtPace": "{stock} en stock · {perDay} par jour",
+  "@stockAtPace": {
+    "placeholders": {
+      "stock": {
+        "type": "int"
+      },
+      "perDay": {
+        "type": "String"
+      }
+    }
+  },
+  "notMoving": "Qui ne bougent pas : {count} produits",
+  "@notMoving": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "lessonCountLabel": "{count} leçons",
+  "@lessonCountLabel": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "audienceEveryone": "Tout le monde",
+  "sentSection": "Envoyées",
+  "scheduledSection": "Programmées",
+  "sentTo": "À {count} personnes",
+  "@sentTo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  }
 }

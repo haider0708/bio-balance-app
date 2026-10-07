@@ -2300,4 +2300,176 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get grossisteLabel => 'Grossiste';
+
+  @override
+  String get unreadFilter => 'Non lues';
+
+  @override
+  String get filterSales => 'Ventes';
+
+  @override
+  String get filterStock => 'Stock';
+
+  @override
+  String get filterRestocks => 'Réappros';
+
+  @override
+  String get filterPayments => 'Paiements';
+
+  @override
+  String get filterNetwork => 'Réseau';
+
+  @override
+  String get filterMessages => 'Annonces';
+
+  @override
+  String get reportOverview => 'Aperçu';
+
+  @override
+  String get reportProducts => 'Produits';
+
+  @override
+  String get reportTeam => 'Équipe';
+
+  @override
+  String get reportStock => 'Stock';
+
+  @override
+  String get reportDetails => 'Détails';
+
+  @override
+  String get whatTheNumbersSay => 'Ce que disent les chiffres';
+
+  @override
+  String get dailySales => 'Unités vendues par jour';
+
+  @override
+  String get bestDay => 'Meilleur jour';
+
+  @override
+  String get slowestDay => 'Jour le plus calme';
+
+  @override
+  String get byWeekday => 'Unités par jour de la semaine';
+
+  @override
+  String get salesByFamily => 'Part par famille';
+
+  @override
+  String vsPrevious(int count) {
+    return 'avant : $count';
+  }
+
+  @override
+  String unitsPerSale(String value) {
+    return '$value unités par vente';
+  }
+
+  @override
+  String get activeStoresLabel => 'Magasins actifs';
+
+  @override
+  String sellersCount(int count) {
+    return '$count vendeurs';
+  }
+
+  @override
+  String shareOfTotal(int share) {
+    return '$share % du total';
+  }
+
+  @override
+  String insTopFamily(String family, int share) {
+    return '$family est la meilleure famille : $share % des unités.';
+  }
+
+  @override
+  String insUpOn(int change) {
+    return 'En hausse de $change % sur la période précédente.';
+  }
+
+  @override
+  String insDownOn(int change) {
+    return 'En baisse de $change % sur la période précédente.';
+  }
+
+  @override
+  String insStoreDown(String store, int change) {
+    return '$store a vendu $change % de moins que sur la période précédente.';
+  }
+
+  @override
+  String insStoreUp(String store, int change) {
+    return '$store a vendu $change % de plus que sur la période précédente.';
+  }
+
+  @override
+  String insRunningOut(int count, int days) {
+    return '$count produits seront en rupture d’ici $days jours au rythme actuel.';
+  }
+
+  @override
+  String insDeadStock(int count) {
+    return '$count produits dorment en stock sans vente depuis quatre semaines.';
+  }
+
+  @override
+  String insBestWeekday(String day, int share) {
+    return '$day est le meilleur jour de la semaine : $share % des unités.';
+  }
+
+  @override
+  String insTopSeller(String name, int units) {
+    return '$name a le plus vendu : $units unités.';
+  }
+
+  @override
+  String insRewardPerUnit(String amount) {
+    return 'Les récompenses coûtent $amount par unité vendue.';
+  }
+
+  @override
+  String get stockPaceHint =>
+      'Jours de stock restants, au rythme des quatre dernières semaines.';
+
+  @override
+  String get runsOutSoon => 'Rupture d’ici une semaine';
+
+  @override
+  String get stockPaceFine =>
+      'Aucune rupture prévue d’ici une semaine au rythme actuel.';
+
+  @override
+  String daysLeft(int count) {
+    return '$count jours restants';
+  }
+
+  @override
+  String stockAtPace(int stock, String perDay) {
+    return '$stock en stock · $perDay par jour';
+  }
+
+  @override
+  String notMoving(int count) {
+    return 'Qui ne bougent pas : $count produits';
+  }
+
+  @override
+  String lessonCountLabel(int count) {
+    return '$count leçons';
+  }
+
+  @override
+  String get audienceEveryone => 'Tout le monde';
+
+  @override
+  String get sentSection => 'Envoyées';
+
+  @override
+  String get scheduledSection => 'Programmées';
+
+  @override
+  String sentTo(int count) {
+    return 'À $count personnes';
+  }
 }

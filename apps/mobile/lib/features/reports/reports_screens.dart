@@ -16,6 +16,7 @@ import '../../core/widgets/states.dart';
 import '../../l10n/app_localizations.dart';
 import '../dashboard/dashboard_widgets.dart' show StockAttentionTile;
 import '../dashboard/trend_chart.dart';
+import 'reports_insights.dart';
 import '../media/media_repository.dart';
 import '../network/network_repository.dart';
 import 'reports_repository.dart';
@@ -71,6 +72,9 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
 
   String? _focused(String kind) =>
       _focus.where((f) => f.kind == kind).firstOrNull?.key;
+
+  InsightsQuery get _insightsQuery =>
+      (from: _range.from, to: _range.to, regionId: _regionId);
 
   ReportQuery get _query => (
     from: _range.from,
@@ -159,192 +163,240 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
           ),
         ],
       ),
-      body: RefreshIndicator(
-        onRefresh: () async {
-          ref.invalidate(salesReportProvider(_query));
-          await ref.read(salesReportProvider(_query).future);
-        },
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 4, 16, 100),
+      body: DefaultTabController(
+        length: 6,
+        child: Column(
           children: [
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  for (final (p, label) in [
-                    (_Period.week, t.last7Days),
-                    (_Period.month, t.thisMonth),
-                    (_Period.lastMonth, t.lastMonth),
-                    (_Period.custom, t.customPeriod),
-                  ])
-                    Padding(
-                      padding: const EdgeInsetsDirectional.only(end: 8),
-                      child: ChoiceChip(
-                        label: Text(label),
-                        selected: _period == p,
-                        onSelected: (_) async {
-                          if (p == _Period.custom) {
-                            final picked = await showDateRangePicker(
-                              context: context,
-                              firstDate: DateTime(2026),
-                              lastDate: DateTime.now(),
-                              initialDateRange: _custom,
-                            );
-                            if (picked == null) return;
-                            _custom = picked;
-                          }
-                          setState(() => _period = p);
-                        },
-                      ),
-                    ),
-                ],
-              ),
-            ),
-            if (admin) ...[
-              const Gap(4),
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: [
-                    Padding(
-                      padding: const EdgeInsetsDirectional.only(end: 8),
-                      child: ChoiceChip(
-                        label: Text(t.allRegions),
-                        selected: _regionId == null,
-                        onSelected: (_) => setState(() => _regionId = null),
-                      ),
-                    ),
-                    for (final r in regions)
-                      Padding(
-                        padding: const EdgeInsetsDirectional.only(end: 8),
-                        child: ChoiceChip(
-                          label: Text(r.name),
-                          selected: _regionId == r.id,
-                          onSelected: (_) => setState(() => _regionId = r.id),
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-            ],
-            if (_focus.isNotEmpty) ...[
-              const Gap(4),
-              Wrap(
-                spacing: 8,
-                children: [
-                  for (final f in _focus)
-                    InputChip(
-                      label: Text(f.label),
-                      onDeleted: () => setState(() {
-                        final i = _focus.indexOf(f);
-                        _focus.removeRange(i, _focus.length);
-                        _groupBy = switch (f.kind) {
-                          'pdv' => 'pdv',
-                          'seller' => 'seller',
-                          'family' => 'family',
-                          _ => 'product',
-                        };
-                      }),
-                    ),
-                ],
-              ),
-            ],
-            const Gap(8),
-            AsyncBody(
-              value: report,
-              onRetry: () => ref.invalidate(salesReportProvider(_query)),
-              builder: (r) {
-                final top = r.rows.fold<int>(
-                  0,
-                  (m, e) => e.units > m ? e.units : m,
-                );
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
                       children: [
-                        Expanded(
-                          child: _Metric(
-                            label: t.totalUnits,
-                            value: '${r.units}',
-                            change: SalesReport.change(
-                              r.units,
-                              r.previousUnits,
+                        for (final (p, label) in [
+                          (_Period.week, t.last7Days),
+                          (_Period.month, t.thisMonth),
+                          (_Period.lastMonth, t.lastMonth),
+                          (_Period.custom, t.customPeriod),
+                        ])
+                          Padding(
+                            padding: const EdgeInsetsDirectional.only(end: 8),
+                            child: ChoiceChip(
+                              label: Text(label),
+                              selected: _period == p,
+                              onSelected: (_) async {
+                                if (p == _Period.custom) {
+                                  final picked = await showDateRangePicker(
+                                    context: context,
+                                    firstDate: DateTime(2026),
+                                    lastDate: DateTime.now(),
+                                    initialDateRange: _custom,
+                                  );
+                                  if (picked == null) return;
+                                  _custom = picked;
+                                }
+                                setState(() => _period = p);
+                              },
                             ),
                           ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _Metric(
-                            label: t.reward,
-                            value: Money.format(
-                              r.rewardMillimes,
-                              t.localeName,
-                              unit: false,
-                            ),
-                            hint: 'TND',
-                            change: SalesReport.change(
-                              r.rewardMillimes,
-                              r.previousRewardMillimes,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _Metric(
-                            label: t.salesTitleShort,
-                            value: '${r.sales}',
-                          ),
-                        ),
                       ],
                     ),
-                    if (r.trend.isNotEmpty && r.trend.length <= 62) ...[
-                      const Gap(12),
-                      AppCard(child: TrendChart(days: r.trend)),
-                    ],
-                    const Gap(12),
-                    SizedBox(
-                      height: 44,
-                      child: ListView(
-                        scrollDirection: Axis.horizontal,
+                  ),
+                  if (admin) ...[
+                    const Gap(4),
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
                         children: [
-                          for (final (value, label) in groups)
+                          Padding(
+                            padding: const EdgeInsetsDirectional.only(end: 8),
+                            child: ChoiceChip(
+                              label: Text(t.allRegions),
+                              selected: _regionId == null,
+                              onSelected: (_) =>
+                                  setState(() => _regionId = null),
+                            ),
+                          ),
+                          for (final r in regions)
                             Padding(
                               padding: const EdgeInsetsDirectional.only(end: 8),
-                              child: FilterChip(
-                                label: Text('${t.groupedBy} $label'),
-                                selected: _groupBy == value,
-                                showCheckmark: false,
+                              child: ChoiceChip(
+                                label: Text(r.name),
+                                selected: _regionId == r.id,
                                 onSelected: (_) =>
-                                    setState(() => _groupBy = value),
+                                    setState(() => _regionId = r.id),
                               ),
                             ),
                         ],
                       ),
                     ),
-                    const Gap(4),
-                    if (r.rows.isEmpty)
-                      EmptyState(
-                        icon: LucideIcons.chartNoAxesColumn,
-                        title: t.noSalesInPeriod,
-                      )
-                    else
-                      for (var i = 0; i < r.rows.length; i++)
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 8),
-                          child: _ReportRowCard(
-                            row: r.rows[i],
-                            rank: _groupBy == 'day' ? null : i + 1,
-                            top: top,
-                            product: _groupBy == 'product',
-                            onTap: _groupBy == 'day'
-                                ? null
-                                : () => _drill(r.rows[i]),
-                          ),
-                        ),
                   ],
-                );
-              },
+                ],
+              ),
+            ),
+            TabBar(
+              isScrollable: true,
+              tabAlignment: TabAlignment.start,
+              tabs: [
+                Tab(text: t.reportOverview),
+                Tab(text: t.tabPdvs),
+                Tab(text: t.reportProducts),
+                Tab(text: t.reportTeam),
+                Tab(text: t.reportStock),
+                Tab(text: t.reportDetails),
+              ],
+            ),
+            Expanded(
+              child: TabBarView(
+                children: [
+                  InsightsOverview(range: _insightsQuery),
+                  InsightsStores(range: _insightsQuery),
+                  InsightsProducts(range: _insightsQuery),
+                  InsightsTeam(range: _insightsQuery),
+                  InsightsStock(range: _insightsQuery),
+                  RefreshIndicator(
+                    onRefresh: () async {
+                      ref.invalidate(salesReportProvider(_query));
+                      await ref.read(salesReportProvider(_query).future);
+                    },
+                    child: ListView(
+                      padding: const EdgeInsets.fromLTRB(16, 4, 16, 100),
+                      children: [
+                        if (_focus.isNotEmpty) ...[
+                          const Gap(4),
+                          Wrap(
+                            spacing: 8,
+                            children: [
+                              for (final f in _focus)
+                                InputChip(
+                                  label: Text(f.label),
+                                  onDeleted: () => setState(() {
+                                    final i = _focus.indexOf(f);
+                                    _focus.removeRange(i, _focus.length);
+                                    _groupBy = switch (f.kind) {
+                                      'pdv' => 'pdv',
+                                      'seller' => 'seller',
+                                      'family' => 'family',
+                                      _ => 'product',
+                                    };
+                                  }),
+                                ),
+                            ],
+                          ),
+                        ],
+                        const Gap(8),
+                        AsyncBody(
+                          value: report,
+                          onRetry: () =>
+                              ref.invalidate(salesReportProvider(_query)),
+                          builder: (r) {
+                            final top = r.rows.fold<int>(
+                              0,
+                              (m, e) => e.units > m ? e.units : m,
+                            );
+                            return Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: _Metric(
+                                        label: t.totalUnits,
+                                        value: '${r.units}',
+                                        change: SalesReport.change(
+                                          r.units,
+                                          r.previousUnits,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: _Metric(
+                                        label: t.reward,
+                                        value: Money.format(
+                                          r.rewardMillimes,
+                                          t.localeName,
+                                          unit: false,
+                                        ),
+                                        hint: 'TND',
+                                        change: SalesReport.change(
+                                          r.rewardMillimes,
+                                          r.previousRewardMillimes,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: _Metric(
+                                        label: t.salesTitleShort,
+                                        value: '${r.sales}',
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                if (r.trend.isNotEmpty &&
+                                    r.trend.length <= 62) ...[
+                                  const Gap(12),
+                                  AppCard(child: TrendChart(days: r.trend)),
+                                ],
+                                const Gap(12),
+                                SizedBox(
+                                  height: 44,
+                                  child: ListView(
+                                    scrollDirection: Axis.horizontal,
+                                    children: [
+                                      for (final (value, label) in groups)
+                                        Padding(
+                                          padding:
+                                              const EdgeInsetsDirectional.only(
+                                                end: 8,
+                                              ),
+                                          child: FilterChip(
+                                            label: Text(
+                                              '${t.groupedBy} $label',
+                                            ),
+                                            selected: _groupBy == value,
+                                            showCheckmark: false,
+                                            onSelected: (_) => setState(
+                                              () => _groupBy = value,
+                                            ),
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                                const Gap(4),
+                                if (r.rows.isEmpty)
+                                  EmptyState(
+                                    icon: LucideIcons.chartNoAxesColumn,
+                                    title: t.noSalesInPeriod,
+                                  )
+                                else
+                                  for (var i = 0; i < r.rows.length; i++)
+                                    Padding(
+                                      padding: const EdgeInsets.only(bottom: 8),
+                                      child: _ReportRowCard(
+                                        row: r.rows[i],
+                                        rank: _groupBy == 'day' ? null : i + 1,
+                                        top: top,
+                                        product: _groupBy == 'product',
+                                        onTap: _groupBy == 'day'
+                                            ? null
+                                            : () => _drill(r.rows[i]),
+                                      ),
+                                    ),
+                              ],
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
           ],
         ),

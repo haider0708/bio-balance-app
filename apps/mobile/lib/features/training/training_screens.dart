@@ -139,17 +139,26 @@ class CourseCard extends StatelessWidget {
                   ),
                 ],
                 const Gap(12),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(6),
-                  child: LinearProgressIndicator(
-                    value: course.progress,
-                    minHeight: 6,
-                    backgroundColor: context.status.mutedSoft,
+                // The admin manages a course (who it is for, how long it is); a learner follows their progress.
+                if (!showStatus) ...[
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(6),
+                    child: LinearProgressIndicator(
+                      value: course.progress,
+                      minHeight: 6,
+                      backgroundColor: context.status.mutedSoft,
+                    ),
                   ),
-                ),
-                const Gap(8),
+                  const Gap(8),
+                ],
                 Text(
-                  '${t.lessonsDone(course.completedCount, course.lessonCount)}${course.minutes > 0 ? ' · ${t.minutes(course.minutes)}' : ''}',
+                  showStatus
+                      ? [
+                          t.lessonCountLabel(course.lessonCount),
+                          if (course.minutes > 0) t.minutes(course.minutes),
+                          _audience(t, course),
+                        ].join(' · ')
+                      : '${t.lessonsDone(course.completedCount, course.lessonCount)}${course.minutes > 0 ? ' · ${t.minutes(course.minutes)}' : ''}',
                   style: context.text.bodySmall?.copyWith(
                     color: context.status.muted,
                   ),
@@ -446,4 +455,18 @@ class _Pdf extends ConsumerWidget {
             },
     );
   }
+}
+
+/// Who a course is for, in words.
+String _audience(AppLocalizations t, Course course) {
+  if (course.audienceRoles.isEmpty) return t.audienceEveryone;
+  return course.audienceRoles
+      .map(
+        (r) => switch (r) {
+          'RESPONSABLE' => t.roleResponsable,
+          'GROSSISTE' => t.roleGrossiste,
+          _ => t.roleVendeurShort,
+        },
+      )
+      .join(', ');
 }

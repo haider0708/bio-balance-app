@@ -56,3 +56,12 @@ Rewards credit the team member's wallet. They can **request a payout** up to wha
 Dashboards per role, sales reports grouped by day, region, point of sale, seller, product or family with a spreadsheet export, a stock-attention list (nearly out, each with an Order button for the responsable). Reports compare with the previous period, draw a daily chart and let you tap a row to narrow it (store → seller → product). The admin's home splits "needs attention" by kind and opens a page per region (responsable, numbers, groups, stores, grossistes, top products and stores). The audit log of who changed what is kept for the developer only; it is not in the app.
 
 **Sales history** is read by month and day (totals per day, open a day for its sales, search by product), so a list of hundreds stays readable. **Rewards:** a product's own rate always overrides its family's rate. **Notifications:** the responsable is told about every sale of their stores; phones check for new notifications about every 15 minutes even when the app is closed (no push service needed).
+
+## Round three: what changed
+
+- **Approvals** has a Pending and a History tab (who decided, when, why). Nothing is shown when nothing waits.
+- **Stock:** old negative rows were brought to zero by correction entries; the admin can correct any place's quantities with a reason (kept in the history, the people in charge are told). A grossiste's count is checked by the responsable of the region before the admin approves; a recount needs the admin's permission, used once.
+- **Dashboards:** top 5 products and stores with "see more" (30 and 10), stock warnings summarised per store, group pages list their stores, the buttons follow the tab (new store, new group, new member).
+- **Reports** have tabs (Overview, Stores, Products, Team, Stock, Details): comparison with the previous period, plain-language insights, weekday and family mix, rankings with share and change, days of stock left at the current pace, and stock that does not move.
+- **Notifications** can be filtered (unread, sales, stock, restocks, payments, network, announcements).
+- **Invitations** can be cancelled before the account exists; after that the account is deactivated.

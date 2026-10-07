@@ -52,13 +52,12 @@ class MessagesScreen extends ConsumerWidget {
               ),
             ],
           ),
-          builder: (list) => ListView.separated(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
-            itemCount: list.length,
-            separatorBuilder: (_, _) => const Gap(8),
-            itemBuilder: (context, i) {
-              final m = list[i];
-              return AppCard(
+          builder: (list) {
+            final scheduled = list.where((m) => m.scheduled).toList();
+            final sent = list.where((m) => !m.scheduled).toList();
+            Widget card(Announcement m) => Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: AppCard(
                 onTap: () => context.push('/messages/${m.id}'),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -70,14 +69,8 @@ class MessagesScreen extends ConsumerWidget {
                         ),
                         if (m.pinned)
                           const Padding(
-                            padding: EdgeInsets.only(right: 6),
+                            padding: EdgeInsets.only(left: 6),
                             child: Icon(LucideIcons.pin, size: 16),
-                          ),
-                        if (m.scheduled)
-                          StatusChip(
-                            t.scheduled,
-                            tone: Tone.info,
-                            icon: LucideIcons.clock,
                           ),
                       ],
                     ),
@@ -93,17 +86,21 @@ class MessagesScreen extends ConsumerWidget {
                     const Gap(10),
                     Row(
                       children: [
-                        Text(
-                          Dates.dateTime(
-                            m.scheduledFor ?? m.sentAt ?? m.createdAt,
-                            t.localeName,
-                          ),
-                          style: context.text.bodySmall?.copyWith(
-                            color: context.status.muted,
+                        Icon(
+                          m.scheduled ? LucideIcons.clock : LucideIcons.send,
+                          size: 14,
+                          color: context.status.muted,
+                        ),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            '${Dates.dateTime(m.scheduledFor ?? m.sentAt ?? m.createdAt, t.localeName)} · ${t.sentTo(m.recipientCount)}',
+                            style: context.text.bodySmall?.copyWith(
+                              color: context.status.muted,
+                            ),
                           ),
                         ),
-                        const Spacer(),
-                        if (!m.scheduled)
+                        if (!m.scheduled && m.recipientCount > 0)
                           StatusChip(
                             t.readOf(m.readCount, m.recipientCount),
                             tone: m.readCount == m.recipientCount
@@ -113,11 +110,35 @@ class MessagesScreen extends ConsumerWidget {
                           ),
                       ],
                     ),
+                    if (!m.scheduled && m.recipientCount > 0) ...[
+                      const Gap(8),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(4),
+                        child: LinearProgressIndicator(
+                          value: m.readCount / m.recipientCount,
+                          minHeight: 4,
+                          backgroundColor: context.status.mutedSoft,
+                        ),
+                      ),
+                    ],
                   ],
                 ),
-              );
-            },
-          ),
+              ),
+            );
+            return ListView(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 100),
+              children: [
+                if (scheduled.isNotEmpty) ...[
+                  SectionHeader(t.scheduledSection),
+                  for (final m in scheduled) card(m),
+                ],
+                if (sent.isNotEmpty) ...[
+                  SectionHeader(t.sentSection),
+                  for (final m in sent) card(m),
+                ],
+              ],
+            );
+          },
         ),
       ),
     );

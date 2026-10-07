@@ -3991,6 +3991,270 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Grossiste'**
   String get grossisteLabel;
+
+  /// No description provided for @unreadFilter.
+  ///
+  /// In en, this message translates to:
+  /// **'Unread'**
+  String get unreadFilter;
+
+  /// No description provided for @filterSales.
+  ///
+  /// In en, this message translates to:
+  /// **'Sales'**
+  String get filterSales;
+
+  /// No description provided for @filterStock.
+  ///
+  /// In en, this message translates to:
+  /// **'Stock'**
+  String get filterStock;
+
+  /// No description provided for @filterRestocks.
+  ///
+  /// In en, this message translates to:
+  /// **'Restocks'**
+  String get filterRestocks;
+
+  /// No description provided for @filterPayments.
+  ///
+  /// In en, this message translates to:
+  /// **'Payments'**
+  String get filterPayments;
+
+  /// No description provided for @filterNetwork.
+  ///
+  /// In en, this message translates to:
+  /// **'Network'**
+  String get filterNetwork;
+
+  /// No description provided for @filterMessages.
+  ///
+  /// In en, this message translates to:
+  /// **'Announcements'**
+  String get filterMessages;
+
+  /// No description provided for @reportOverview.
+  ///
+  /// In en, this message translates to:
+  /// **'Overview'**
+  String get reportOverview;
+
+  /// No description provided for @reportProducts.
+  ///
+  /// In en, this message translates to:
+  /// **'Products'**
+  String get reportProducts;
+
+  /// No description provided for @reportTeam.
+  ///
+  /// In en, this message translates to:
+  /// **'Team'**
+  String get reportTeam;
+
+  /// No description provided for @reportStock.
+  ///
+  /// In en, this message translates to:
+  /// **'Stock'**
+  String get reportStock;
+
+  /// No description provided for @reportDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Details'**
+  String get reportDetails;
+
+  /// No description provided for @whatTheNumbersSay.
+  ///
+  /// In en, this message translates to:
+  /// **'What the numbers say'**
+  String get whatTheNumbersSay;
+
+  /// No description provided for @dailySales.
+  ///
+  /// In en, this message translates to:
+  /// **'Units sold per day'**
+  String get dailySales;
+
+  /// No description provided for @bestDay.
+  ///
+  /// In en, this message translates to:
+  /// **'Best day'**
+  String get bestDay;
+
+  /// No description provided for @slowestDay.
+  ///
+  /// In en, this message translates to:
+  /// **'Slowest day'**
+  String get slowestDay;
+
+  /// No description provided for @byWeekday.
+  ///
+  /// In en, this message translates to:
+  /// **'Units by day of the week'**
+  String get byWeekday;
+
+  /// No description provided for @salesByFamily.
+  ///
+  /// In en, this message translates to:
+  /// **'Share by family'**
+  String get salesByFamily;
+
+  /// No description provided for @vsPrevious.
+  ///
+  /// In en, this message translates to:
+  /// **'before: {count}'**
+  String vsPrevious(int count);
+
+  /// No description provided for @unitsPerSale.
+  ///
+  /// In en, this message translates to:
+  /// **'{value} units per sale'**
+  String unitsPerSale(String value);
+
+  /// No description provided for @activeStoresLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Selling stores'**
+  String get activeStoresLabel;
+
+  /// No description provided for @sellersCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} sellers'**
+  String sellersCount(int count);
+
+  /// No description provided for @shareOfTotal.
+  ///
+  /// In en, this message translates to:
+  /// **'{share} % of the total'**
+  String shareOfTotal(int share);
+
+  /// No description provided for @insTopFamily.
+  ///
+  /// In en, this message translates to:
+  /// **'{family} is the best family: {share} % of units.'**
+  String insTopFamily(String family, int share);
+
+  /// No description provided for @insUpOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Up {change} % on the previous period.'**
+  String insUpOn(int change);
+
+  /// No description provided for @insDownOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Down {change} % on the previous period.'**
+  String insDownOn(int change);
+
+  /// No description provided for @insStoreDown.
+  ///
+  /// In en, this message translates to:
+  /// **'{store} sold {change} % less than in the previous period.'**
+  String insStoreDown(String store, int change);
+
+  /// No description provided for @insStoreUp.
+  ///
+  /// In en, this message translates to:
+  /// **'{store} sold {change} % more than in the previous period.'**
+  String insStoreUp(String store, int change);
+
+  /// No description provided for @insRunningOut.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} products will run out within {days} days at the current pace.'**
+  String insRunningOut(int count, int days);
+
+  /// No description provided for @insDeadStock.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} products sit in stock with no sale in four weeks.'**
+  String insDeadStock(int count);
+
+  /// No description provided for @insBestWeekday.
+  ///
+  /// In en, this message translates to:
+  /// **'{day} is the best day of the week: {share} % of units.'**
+  String insBestWeekday(String day, int share);
+
+  /// No description provided for @insTopSeller.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} sold the most: {units} units.'**
+  String insTopSeller(String name, int units);
+
+  /// No description provided for @insRewardPerUnit.
+  ///
+  /// In en, this message translates to:
+  /// **'Rewards cost {amount} per unit sold.'**
+  String insRewardPerUnit(String amount);
+
+  /// No description provided for @stockPaceHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Days of stock left, at the pace of the last four weeks.'**
+  String get stockPaceHint;
+
+  /// No description provided for @runsOutSoon.
+  ///
+  /// In en, this message translates to:
+  /// **'Running out within a week'**
+  String get runsOutSoon;
+
+  /// No description provided for @stockPaceFine.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing runs out within a week at the current pace.'**
+  String get stockPaceFine;
+
+  /// No description provided for @daysLeft.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} days left'**
+  String daysLeft(int count);
+
+  /// No description provided for @stockAtPace.
+  ///
+  /// In en, this message translates to:
+  /// **'{stock} in stock · {perDay} a day'**
+  String stockAtPace(int stock, String perDay);
+
+  /// No description provided for @notMoving.
+  ///
+  /// In en, this message translates to:
+  /// **'Not moving: {count} products'**
+  String notMoving(int count);
+
+  /// No description provided for @lessonCountLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} lessons'**
+  String lessonCountLabel(int count);
+
+  /// No description provided for @audienceEveryone.
+  ///
+  /// In en, this message translates to:
+  /// **'Everyone'**
+  String get audienceEveryone;
+
+  /// No description provided for @sentSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Sent'**
+  String get sentSection;
+
+  /// No description provided for @scheduledSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Scheduled'**
+  String get scheduledSection;
+
+  /// No description provided for @sentTo.
+  ///
+  /// In en, this message translates to:
+  /// **'To {count} people'**
+  String sentTo(int count);
 }
 
 class _AppLocalizationsDelegate

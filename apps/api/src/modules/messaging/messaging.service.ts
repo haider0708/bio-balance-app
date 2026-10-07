@@ -14,6 +14,23 @@ export interface MessageInput {
   scheduledFor?: Date | null;
 }
 
+export type NotificationCategory =
+  "SALES" | "STOCK" | "RESTOCKS" | "PAYMENTS" | "NETWORK" | "MESSAGES";
+
+/** What each filter chip on the phone means, by the notification's key. */
+const starts = (...prefixes: string[]) => ({
+  kind: "SYSTEM" as const,
+  OR: prefixes.map((p) => ({ key: { startsWith: p } })),
+});
+const categoryFilter: Record<NotificationCategory, object> = {
+  SALES: starts("sale."),
+  STOCK: starts("stock.", "recount."),
+  RESTOCKS: starts("restock."),
+  PAYMENTS: starts("payout."),
+  NETWORK: starts("pdv.", "group.", "member."),
+  MESSAGES: { kind: "MESSAGE" },
+};
+
 @Injectable()
 export class MessagingService {
   constructor(private readonly db: Database) {}
@@ -22,7 +39,12 @@ export class MessagingService {
 
   inbox(
     actor: Actor,
-    filter: { limit: number; cursor?: string; unreadOnly?: boolean },
+    filter: {
+      limit: number;
+      cursor?: string;
+      unreadOnly?: boolean;
+      category?: NotificationCategory;
+    },
   ) {
     return this.db.run(actor, async (tx) => {
       const after = decodeCursor(filter.cursor);
@@ -30,6 +52,7 @@ export class MessagingService {
         where: {
           userId: actor.id,
           ...(filter.unreadOnly && { readAt: null }),
+          ...(filter.category && categoryFilter[filter.category]),
           ...(after && {
             OR: [
               { createdAt: { lt: after.createdAt } },

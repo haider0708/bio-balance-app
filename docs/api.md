@@ -175,3 +175,5 @@ Every route is under `https://api.galylio.com`, JSON in and out, `Authorization:
 | POST | `/v1/lessons/:id/complete` | any signed-in role |
 
 Other changes: `GET /c` (public) is the page the code emails link to, with a Copy button; `GET /v1/stock/locations/:id` also serves a team member for their own store; grossistes carry a `regionId` (`POST /v1/users` needs it); `GET /v1/sales` accepts `productId`; `GET /v1/reports/sales` returns `previous` and `trend`; `GET /v1/reward-rules/effective` returns `source`.
+
+Round three: `GET /v1/approvals/history`, `GET /v1/reports/insights`, `POST /v1/stock/adjust`, `POST /v1/stock/declarations/:id/review`, `POST|GET /v1/stock/recounts` (+ `/:id/approve|reject`), `POST /v1/users/:id/cancel-invite`; `GET /v1/notifications` accepts `category`.

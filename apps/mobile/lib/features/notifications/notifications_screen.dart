@@ -22,6 +22,8 @@ String? routeForEntity(Role role, String? type, String? id) {
   if (type == null || id == null) return null;
   return switch ((type, role)) {
     ('RestockOrder', _) => '/restocks/$id',
+    ('StockRecount', Role.admin) => '/approvals',
+    ('Location', _) => '/stock/$id',
     ('StockDeclaration', Role.admin) => '/approvals',
     ('StockDeclaration', _) => '/stock/declarations/$id',
     ('Pdv', Role.admin) || ('Pdv', Role.responsable) => '/pdvs/$id',
@@ -44,15 +46,33 @@ class NotificationsScreen extends ConsumerStatefulWidget {
 
 class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
   List<AppNotification> _pinned = const [];
-  late final PagedController<AppNotification> _paged = PagedController((
-    cursor,
-  ) async {
+
+  /// null shows everything; 'UNREAD' only what was not read; otherwise a category.
+  String? _filter;
+  late PagedController<AppNotification> _paged = _make();
+
+  PagedController<AppNotification> _make() => PagedController((cursor) async {
     final page = await ref
         .read(notificationsRepositoryProvider)
-        .page(cursor: cursor);
-    if (cursor == null && mounted) setState(() => _pinned = page.pinned);
+        .page(
+          cursor: cursor,
+          category: _filter == 'UNREAD' ? null : _filter,
+          unreadOnly: _filter == 'UNREAD',
+        );
+    if (cursor == null && mounted) {
+      setState(() => _pinned = _filter == null ? page.pinned : const []);
+    }
     return PageResult(page.items, page.nextCursor);
   });
+
+  void _choose(String? filter) {
+    if (filter == _filter) return;
+    _paged.dispose();
+    setState(() {
+      _filter = filter;
+      _paged = _make();
+    });
+  }
 
   @override
   void dispose() {
@@ -105,37 +125,79 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
           ),
         ],
       ),
-      body: PagedList<AppNotification>(
-        controller: _paged,
-        empty: EmptyState(
-          icon: LucideIcons.bellOff,
-          title: t.noNotifications,
-          message: t.noNotificationsHint,
-        ),
-        header: _pinned.isEmpty
-            ? null
-            : Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  SectionHeader(
-                    t.pinned,
-                    padding: const EdgeInsets.fromLTRB(4, 8, 4, 8),
-                  ),
-                  for (final n in _pinned)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: _Tile(notification: n, onTap: () => _open(n)),
+      body: Column(
+        children: [
+          SizedBox(
+            height: 52,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
+              children: [
+                for (final (value, label) in _filters(
+                  t,
+                  ref.read(meProvider).role,
+                ))
+                  Padding(
+                    padding: const EdgeInsetsDirectional.only(end: 8),
+                    child: ChoiceChip(
+                      label: Text(label),
+                      selected: _filter == value,
+                      onSelected: (_) => _choose(value),
                     ),
-                  SectionHeader(
-                    t.recent,
-                    padding: const EdgeInsets.fromLTRB(4, 12, 4, 8),
                   ),
-                ],
-              ),
-        itemBuilder: (context, n, _) => Padding(
-          padding: const EdgeInsets.only(bottom: 8),
-          child: _Tile(notification: n, onTap: () => _open(n)),
-        ),
+              ],
+            ),
+          ),
+          Expanded(child: _list(t)),
+        ],
+      ),
+    );
+  }
+
+  List<(String?, String)> _filters(AppLocalizations t, Role role) => [
+    (null, t.all),
+    ('UNREAD', t.unreadFilter),
+    if (role == Role.responsable) ('SALES', t.filterSales),
+    if (role != Role.vendeur) ('STOCK', t.filterStock),
+    if (role != Role.vendeur) ('RESTOCKS', t.filterRestocks),
+    if (role == Role.admin || role == Role.vendeur)
+      ('PAYMENTS', t.filterPayments),
+    if (role == Role.admin || role == Role.responsable)
+      ('NETWORK', t.filterNetwork),
+    ('MESSAGES', t.filterMessages),
+  ];
+
+  Widget _list(AppLocalizations t) {
+    return PagedList<AppNotification>(
+      controller: _paged,
+      empty: EmptyState(
+        icon: LucideIcons.bellOff,
+        title: t.noNotifications,
+        message: t.noNotificationsHint,
+      ),
+      header: _pinned.isEmpty
+          ? null
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SectionHeader(
+                  t.pinned,
+                  padding: const EdgeInsets.fromLTRB(4, 8, 4, 8),
+                ),
+                for (final n in _pinned)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: _Tile(notification: n, onTap: () => _open(n)),
+                  ),
+                SectionHeader(
+                  t.recent,
+                  padding: const EdgeInsets.fromLTRB(4, 12, 4, 8),
+                ),
+              ],
+            ),
+      itemBuilder: (context, n, _) => Padding(
+        padding: const EdgeInsets.only(bottom: 8),
+        child: _Tile(notification: n, onTap: () => _open(n)),
       ),
     );
   }

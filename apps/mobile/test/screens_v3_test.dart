@@ -90,6 +90,43 @@ void main() {
         'totals': {'sales': 230, 'units': 630, 'rewardMillimes': 310000},
         'previous': {'sales': 200, 'units': 700, 'rewardMillimes': 250000},
         'trend': [for (var i = 1; i <= 30; i++) {'day': '2026-09-${i.toString().padLeft(2, '0')}', 'units': (i * 7) % 23, 'sales': i % 5}],
+      })
+      ..on('GET /v1/reports/insights', {
+        'totals': {'sales': 230, 'units': 630, 'rewardMillimes': 310000, 'activeStores': 7, 'activeSellers': 12, 'unitsChange': -10, 'salesChange': 15, 'rewardChange': 24, 'unitsPerSale': 2.7, 'previousUnits': 700},
+        'weekdays': [for (var d = 0; d < 7; d++) {'weekday': d, 'units': [40, 90, 110, 100, 85, 130, 75][d]}],
+        'bestDay': {'day': '2026-09-19', 'units': 48, 'weekday': 6},
+        'slowDay': {'day': '2026-09-03', 'units': 4, 'weekday': 4},
+        'families': [
+          {'name': 'Sérums', 'units': 300, 'before': 250, 'change': 20},
+          {'name': 'Soins capillaires', 'units': 180, 'before': 260, 'change': -31},
+          {'name': 'Crèmes visage', 'units': 150, 'before': 150, 'change': 0},
+        ],
+        'stores': [
+          {'id': 's1', 'name': 'Para Lac', 'city': 'Tunis', 'units': 260, 'before': 300, 'rewardMillimes': 120000, 'share': 41, 'change': -13},
+          {'id': 's2', 'name': 'Pharma Marsa', 'city': 'La Marsa', 'units': 210, 'before': 150, 'rewardMillimes': 90000, 'share': 33, 'change': 40},
+        ],
+        'products': [
+          {'id': 'a', 'name': 'BIOBALANCE SÉRUM VITAMINE C 30ML', 'family': 'Sérums', 'imageId': null, 'units': 120, 'before': 90, 'change': 33},
+        ],
+        'sellers': [
+          {'id': 'u1', 'name': 'Amira Gharbi', 'store': 'Para Lac', 'units': 140, 'sales': 61},
+          {'id': 'u2', 'name': 'Karim Mejri', 'store': 'Pharma Marsa', 'units': 95, 'sales': 40},
+        ],
+        'stock': {
+          'runningOut': [
+            {'id': 'a', 'name': 'BIOBALANCE SÉRUM VITAMINE C 30ML', 'imageId': null, 'stock': 6, 'perDay': 2.1, 'days': 2},
+            {'id': 'b', 'name': 'BIOBALANCE SÉRUM NIACINAMIDE 10%', 'imageId': null, 'stock': 0, 'perDay': 1.4, 'days': 0},
+          ],
+          'dead': {'count': 3, 'items': [{'id': 'z', 'name': 'BIOBALANCE MASQUE ARGILE', 'imageId': null, 'stock': 24}]},
+        },
+        'insights': [
+          {'key': 'TOP_FAMILY', 'params': {'family': 'Sérums', 'share': 48, 'change': 20}},
+          {'key': 'STORE_DOWN', 'params': {'store': 'Para Lac', 'change': -13}},
+          {'key': 'RUNNING_OUT', 'params': {'count': 2, 'days': 7}},
+          {'key': 'BEST_WEEKDAY', 'params': {'weekday': 5, 'share': 21}},
+          {'key': 'TOP_SELLER', 'params': {'name': 'Amira Gharbi', 'units': 140}},
+          {'key': 'REWARD_PER_UNIT', 'params': {'amountMillimes': 492}},
+        ],
       });
     await launch(tester, s, language: 'en', size: tall);
     await tester.tap(find.text('More').last);
@@ -102,6 +139,12 @@ void main() {
     await tester.tap(find.text('Reports'));
     await settle(tester);
     await screenshot(tester, '35-reports-v3');
+    await tester.tap(find.text('Stores').last);
+    await settle(tester);
+    await screenshot(tester, '35b-reports-stores');
+    await tester.tap(find.text('Stock').last);
+    await settle(tester);
+    await screenshot(tester, '35c-reports-stock');
   });
 
   testWidgets('the team member reads a long history', (tester) async {

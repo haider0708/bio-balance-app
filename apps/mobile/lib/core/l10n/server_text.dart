@@ -343,6 +343,10 @@ class ServerText {
       '{by} declared the stock of {place}: check it and pass it to the admin.',
       '{by} a déclaré le stock de {place} : vérifiez-le puis transmettez-le à l’admin.',
     ),
+    'stock.adjusted': (
+      'The stock of {place} was corrected: {note}',
+      'Le stock de {place} a été corrigé : {note}',
+    ),
     'recount.requested': (
       '{by} asks to count {place} again.',
       '{by} demande de recompter {place}.',

@@ -12,16 +12,24 @@ class NotificationsRepository {
 
   final Ref _ref;
 
-  Future<NotificationsPage> page({String? cursor}) async =>
-      NotificationsPage.fromJson(
-        await _ref
-                .read(apiClientProvider)
-                .get(
-                  '/v1/notifications',
-                  query: {'cursor': cursor, 'limit': 30},
-                )
-            as Json,
-      );
+  Future<NotificationsPage> page({
+    String? cursor,
+    String? category,
+    bool unreadOnly = false,
+  }) async => NotificationsPage.fromJson(
+    await _ref
+            .read(apiClientProvider)
+            .get(
+              '/v1/notifications',
+              query: {
+                'cursor': cursor,
+                'limit': 30,
+                'category': category,
+                'unreadOnly': unreadOnly ? 'true' : null,
+              },
+            )
+        as Json,
+  );
 
   Future<int> unread() async =>
       ((await _ref
