@@ -34,6 +34,8 @@ export class InsightsService {
       "Not allowed.",
       403,
     );
+    if (actor.role === "RESPONSABLE" && actor.regionId && !f.regionId)
+      f = { ...f, regionId: actor.regionId };
     const length = days(f);
     const before: Period = {
       from: addDays(f.from, -length),
@@ -44,17 +46,35 @@ export class InsightsService {
         f.regionId
           ? Prisma.sql`AND ${Prisma.raw(alias)}."regionId" = ${f.regionId}::uuid`
           : Prisma.empty;
-      const [now, prev, daily, families, stores, products, sellers, health] =
+      const [now, prev, daily, stores, allProducts, sellers, health] =
         await Promise.all([
           this.totals(tx, f, region),
           this.totals(tx, before, region),
           this.daily(tx, f, region),
-          this.byFamily(tx, f, before, region),
           this.byStore(tx, f, before, region),
           this.byProduct(tx, f, before, region),
           this.bySeller(tx, f, region),
           this.stockHealth(tx, region),
         ]);
+
+      // Families come from the same pass over the sale lines as the products.
+      const byFamily = new Map<string, { units: number; before: number }>();
+      for (const p of allProducts) {
+        const f = byFamily.get(p.family) ?? { units: 0, before: 0 };
+        f.units += p.units;
+        f.before += p.before;
+        byFamily.set(p.family, f);
+      }
+      const families = [...byFamily]
+        .map(([name, v]) => ({
+          name,
+          units: v.units,
+          before: v.before,
+          change: pct(v.units, v.before),
+        }))
+        .sort((a, b) => b.units - a.units)
+        .slice(0, 12);
+      const products = allProducts.slice(0, 30);
 
       const weekdays = Array.from({ length: 7 }, (_, d) => ({
         weekday: d, // 0 = Sunday
@@ -187,24 +207,6 @@ export class InsightsService {
       GROUP BY s.day ORDER BY s.day`;
   }
 
-  private async byFamily(
-    tx: Tx,
-    p: Period,
-    q: Period,
-    region: (a: string) => Prisma.Sql,
-  ) {
-    const rows = await tx.$queryRaw<
-      { name: string; units: number; before: number }[]
-    >`SELECT p.family AS name,
-        COALESCE(SUM(l.quantity) FILTER (WHERE s.day BETWEEN ${dayToDate(p.from)} AND ${dayToDate(p.to)}),0)::int AS units,
-        COALESCE(SUM(l.quantity) FILTER (WHERE s.day BETWEEN ${dayToDate(q.from)} AND ${dayToDate(q.to)}),0)::int AS before
-      FROM "Sale" s JOIN "SaleLine" l ON l."saleId" = s.id JOIN "Product" p ON p.id = l."productId"
-      WHERE s.status='ACTIVE' AND s.day BETWEEN ${dayToDate(q.from)} AND ${dayToDate(p.to)} ${region("s")}
-      GROUP BY p.family HAVING COALESCE(SUM(l.quantity) FILTER (WHERE s.day BETWEEN ${dayToDate(p.from)} AND ${dayToDate(p.to)}),0) > 0
-      ORDER BY units DESC LIMIT 12`;
-    return rows.map((r) => ({ ...r, change: pct(r.units, r.before) }));
-  }
-
   private async byStore(
     tx: Tx,
     p: Period,
@@ -262,7 +264,7 @@ export class InsightsService {
       WHERE s.status='ACTIVE' AND s.day BETWEEN ${dayToDate(q.from)} AND ${dayToDate(p.to)} ${region("s")}
       GROUP BY p.id, p.name, p.family, p."imageId"
       HAVING COALESCE(SUM(l.quantity) FILTER (WHERE s.day BETWEEN ${dayToDate(p.from)} AND ${dayToDate(p.to)}),0) > 0
-      ORDER BY units DESC, p.name LIMIT 30`;
+      ORDER BY units DESC, p.name`;
     return rows.map((r) => ({ ...r, change: pct(r.units, r.before) }));
   }
 

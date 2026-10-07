@@ -15,8 +15,22 @@ void main() {
     addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);
     final s = base.server('ADMIN')
       ..on('GET /v1/reward-rules/effective', [
-        {'productId': 'a', 'name': 'BIOBALANCE SÉRUM VITAMINE C 30ML', 'family': 'Sérums', 'imageId': null, 'amountMillimes': 800, 'source': 'PRODUCT'},
-        {'productId': 'b', 'name': 'BIOBALANCE SÉRUM NIACINAMIDE 10%', 'family': 'Sérums', 'imageId': null, 'amountMillimes': 500, 'source': 'FAMILY'},
+        {
+          'productId': 'a',
+          'name': 'BIOBALANCE SÉRUM VITAMINE C 30ML',
+          'family': 'Sérums',
+          'imageId': null,
+          'amountMillimes': 800,
+          'source': 'PRODUCT',
+        },
+        {
+          'productId': 'b',
+          'name': 'BIOBALANCE SÉRUM NIACINAMIDE 10%',
+          'family': 'Sérums',
+          'imageId': null,
+          'amountMillimes': 500,
+          'source': 'FAMILY',
+        },
       ]);
     await launch(tester, s, language: 'en');
     await screenshot(tester, '40-dark-admin-home');
@@ -30,7 +44,8 @@ void main() {
   testWidgets('dark: team member', (tester) async {
     tester.platformDispatcher.platformBrightnessTestValue = Brightness.dark;
     addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);
-    final s = base.server('VENDEUR')..on('GET /v1/stock/locations/p1', stockJson(['a', 'b', 'c', 'd']));
+    final s = base.server('VENDEUR')
+      ..on('GET /v1/stock/locations/p1', stockJson(['a', 'b', 'c', 'd']));
     await launch(tester, s, language: 'en');
     await screenshot(tester, '42-dark-vendeur-home');
     await tester.tap(find.text('New sale').first);

@@ -12,7 +12,11 @@ const id = z.uuid();
 const day = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 const Period = z
   .object({ from: day, to: day })
-  .refine((p) => p.from <= p.to, "from must not be after to");
+  .refine((p) => p.from <= p.to, "from must not be after to")
+  .refine(
+    (p) => Date.parse(p.to) - Date.parse(p.from) <= 400 * 86400_000,
+    "A report covers at most 400 days",
+  );
 
 @Controller("v1")
 export class ReportingController {

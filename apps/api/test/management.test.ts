@@ -696,3 +696,20 @@ describe("insights", () => {
     expect(r.insights.some((i: any) => i.key === "RUNNING_OUT")).toBe(true);
   });
 });
+
+describe("report limits", () => {
+  it("refuses a range longer than 400 days and a backwards one, cleanly", async () => {
+    const long = await w.a.get(
+      "/v1/reports/insights?from=2020-01-01&to=2026-12-31",
+    );
+    expect(long.status).toBe(400);
+    const back = await w.a.get(
+      "/v1/reports/sales?groupBy=day&from=2026-10-01&to=2026-09-01",
+    );
+    expect(back.status).toBe(400);
+    const ok = await w.a.get(
+      "/v1/reports/insights?from=2026-01-01&to=2026-12-31",
+    );
+    expect(ok.status).toBe(200);
+  });
+});

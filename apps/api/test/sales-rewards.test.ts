@@ -639,3 +639,23 @@ describe("notification filters", () => {
     ).toEqual([]);
   });
 });
+
+describe("the same sale sent many times at once", () => {
+  it("is recorded once, and every sender gets the receipt", async () => {
+    await w.a.post("/v1/reward-rules", family(500));
+    const { m, pdv } = await shop();
+    const id = randomUUID();
+    const sends = await Promise.all(
+      Array.from({ length: 25 }, () =>
+        m.post("/v1/sales", {
+          id,
+          lines: [{ productId: w.products[0]!.id, quantity: 2 }],
+        }),
+      ),
+    );
+    expect(sends.every((s) => [200, 201].includes(s.status))).toBe(true);
+    expect(sends.filter((s) => s.body.replay === false)).toHaveLength(1);
+    expect((await levels(w, pdv.id))["Serum Vitamin C"]).toBe(18);
+    expect((await m.get("/v1/wallet")).body.balanceMillimes).toBe(1000);
+  });
+});

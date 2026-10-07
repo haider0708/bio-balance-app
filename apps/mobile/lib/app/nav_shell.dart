@@ -86,60 +86,69 @@ class _Tab extends StatelessWidget {
   Widget build(BuildContext context) {
     final s = context.status;
     final badge = destination.badge ?? 0;
-    return Semantics(
-      selected: selected,
-      button: true,
-      label: destination.label,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: onTap,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 260),
-              curve: Curves.easeOutCubic,
-              width: selected ? 54 : 40,
-              height: 32,
-              decoration: BoxDecoration(
-                gradient: selected ? s.gradient : null,
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: selected
-                    ? [
-                        BoxShadow(
-                          color: context.colors.primary.withValues(alpha: 0.3),
-                          blurRadius: 12,
-                          offset: const Offset(0, 5),
-                        ),
-                      ]
-                    : null,
-              ),
-              child: Center(
-                child: Badge(
-                  isLabelVisible: badge > 0,
-                  label: Text('$badge'),
-                  child: Icon(
-                    destination.icon,
-                    size: 21,
-                    color: selected ? context.colors.onPrimary : s.muted,
+    // The bar keeps its shape for people who enlarge their text: its labels grow only a little.
+    final media = MediaQuery.of(context);
+    return MediaQuery(
+      data: media.copyWith(
+        textScaler: media.textScaler.clamp(maxScaleFactor: 1.15),
+      ),
+      child: Semantics(
+        selected: selected,
+        button: true,
+        label: destination.label,
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: onTap,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 260),
+                curve: Curves.easeOutCubic,
+                width: selected ? 54 : 40,
+                height: 32,
+                decoration: BoxDecoration(
+                  gradient: selected ? s.gradient : null,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: selected
+                      ? [
+                          BoxShadow(
+                            color: context.colors.primary.withValues(
+                              alpha: 0.3,
+                            ),
+                            blurRadius: 12,
+                            offset: const Offset(0, 5),
+                          ),
+                        ]
+                      : null,
+                ),
+                child: Center(
+                  child: Badge(
+                    isLabelVisible: badge > 0,
+                    label: Text('$badge'),
+                    child: Icon(
+                      destination.icon,
+                      size: 21,
+                      color: selected ? context.colors.onPrimary : s.muted,
+                    ),
                   ),
                 ),
               ),
-            ),
-            const SizedBox(height: 4),
-            AnimatedDefaultTextStyle(
-              duration: const Duration(milliseconds: 200),
-              style: context.text.labelSmall!.copyWith(
-                fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
-                color: selected ? context.colors.primary : s.muted,
+              const SizedBox(height: 4),
+              AnimatedDefaultTextStyle(
+                duration: const Duration(milliseconds: 200),
+                style: context.text.labelSmall!.copyWith(
+                  fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
+                  color: selected ? context.colors.primary : s.muted,
+                ),
+                child: Text(
+                  destination.label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
-              child: Text(
-                destination.label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

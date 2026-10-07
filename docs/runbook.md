@@ -70,3 +70,9 @@ To restore by hand: stop `api1 api2 worker`, `pg_restore --clean --if-exists` th
 ## Reset to an empty system
 
 Only for a deliberate wipe, with a fresh dump taken first. Stop `api1 api2 worker`, then as the owner: `DROP SCHEMA public CASCADE; CREATE SCHEMA public;`, run `scripts/provision-role.sql` after migrating, start the services and create the admin again.
+
+## Limits and load tests
+
+`scripts/dev/stress.mjs` (races, replays, abuse, hostile input, uploads, load) and `scripts/dev/timing.mjs` (every main screen's request, cold and warm) run against a **local** server only. `scripts/dev/volume.sql` fills the local database with 300 000 sales (a year of heavy activity) first.
+
+With that volume (local laptop, one API process): a month of reports or the home of any role answers in about 20 ms; a full year of reports by store, seller or day in 0.25–0.6 s; a full year by product or insights in 2–3 s (the database checks row-level security on 600 000 sale lines). Reports cover at most 400 days. If years of data ever make this slow, add a daily summary table per store and product, filled by the same code that records sales.

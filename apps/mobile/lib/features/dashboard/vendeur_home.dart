@@ -128,22 +128,34 @@ class VendeurHome extends ConsumerWidget {
                           ),
                           const SizedBox(width: 12),
                           Expanded(
-                            child: Text(
-                              '${Dates.relativeDay(s.date('occurredAt'), locale, today: t.today, yesterday: t.yesterday)} · ${Dates.time(s.date('occurredAt'), locale)}',
-                              style: context.text.titleSmall,
-                            ),
-                          ),
-                          Text(
-                            t.units(s.integer('units')),
-                            style: context.text.bodySmall?.copyWith(
-                              color: context.status.muted,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  '${Dates.relativeDay(s.date('occurredAt'), locale, today: t.today, yesterday: t.yesterday)} · ${Dates.time(s.date('occurredAt'), locale)}',
+                                  style: context.text.titleSmall,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                Text(
+                                  t.units(s.integer('units')),
+                                  style: context.text.bodySmall?.copyWith(
+                                    color: context.status.muted,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                           const SizedBox(width: 12),
-                          Text(
-                            '+ ${Money.format(s.integer('rewardMillimes'), locale)}',
-                            style: context.text.titleSmall?.copyWith(
-                              color: context.colors.primary,
+                          Flexible(
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text(
+                                '+ ${Money.format(s.integer('rewardMillimes'), locale)}',
+                                style: context.text.titleSmall?.copyWith(
+                                  color: context.colors.primary,
+                                ),
+                              ),
                             ),
                           ),
                         ],

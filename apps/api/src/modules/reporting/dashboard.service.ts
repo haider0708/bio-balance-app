@@ -18,11 +18,38 @@ interface Window {
 export class DashboardService {
   constructor(private readonly db: Database) {}
 
+  /**
+   * The management dashboard is a dozen aggregate queries. Many phones asking at the same
+   * moment (the morning rush) share one answer for a few seconds instead of each running
+   * them; a pull to refresh a moment later is always fresh.
+   */
+  private readonly recent = new Map<
+    string,
+    { at: number; value: Promise<unknown> }
+  >();
+
+  private shared<T>(key: string, compute: () => Promise<T>): Promise<T> {
+    if (process.env.NODE_ENV === "test") return compute();
+    const now = Date.now();
+    const hit = this.recent.get(key);
+    if (hit && now - hit.at < 3000) return hit.value as Promise<T>;
+    for (const [k, v] of this.recent)
+      if (now - v.at > 10_000) this.recent.delete(k);
+    const value = compute().catch((error) => {
+      this.recent.delete(key);
+      throw error;
+    });
+    this.recent.set(key, { at: now, value });
+    return value;
+  }
+
   forActor(actor: Actor, filter: { regionId?: string }) {
     switch (actor.role) {
       case "ADMIN":
       case "RESPONSABLE":
-        return this.management(actor, filter.regionId);
+        return this.shared(`${actor.id}:${filter.regionId ?? ""}`, () =>
+          this.management(actor, filter.regionId),
+        );
       case "GROSSISTE":
         return this.grossiste(actor);
       default:
@@ -33,8 +60,11 @@ export class DashboardService {
   private async management(actor: Actor, regionId?: string) {
     const today = tunisDay(new Date());
     const scope = actor.role === "ADMIN" ? regionId : undefined;
-    const sale = scope
-      ? Prisma.sql`AND s."regionId" = ${scope}::uuid`
+    // Row-level security already limits a responsable to their region; saying so in the
+    // query as well lets the database use its indexes instead of reading every sale.
+    const saleRegion = scope ?? actor.regionId ?? undefined;
+    const sale = saleRegion
+      ? Prisma.sql`AND s."regionId" = ${saleRegion}::uuid`
       : Prisma.empty;
     return this.db.run(actor, async (tx) => {
       const [
@@ -262,9 +292,14 @@ export class DashboardService {
     return this.db.run(actor, async (tx) => {
       const [wallet, week, latest] = await Promise.all([
         walletSummary(tx, actor.id),
-        window(tx, addDays(today, -6), today, Prisma.empty),
+        window(
+          tx,
+          addDays(today, -6),
+          today,
+          Prisma.sql`AND s."sellerId" = ${actor.id}::uuid`,
+        ),
         tx.sale.findMany({
-          where: { status: "ACTIVE" },
+          where: { status: "ACTIVE", sellerId: actor.id },
           orderBy: [{ createdAt: "desc" }],
           take: 5,
           select: {

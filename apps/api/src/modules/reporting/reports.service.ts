@@ -33,6 +33,9 @@ export class ReportsService {
       "Not allowed.",
       403,
     );
+    // A responsable's reports are their region's: say so, so the database can use its indexes.
+    if (actor.role === "RESPONSABLE" && actor.regionId && !f.regionId)
+      f = { ...f, regionId: actor.regionId };
     return this.db.run(actor, async (tx) => {
       const rows = await this.rows(tx, f);
       const sum = (list: Row[]) =>
@@ -116,7 +119,15 @@ export class ReportsService {
       product: Prisma.sql`p.name`,
       family: Prisma.sql`p.family`,
     }[f.groupBy];
-    const joins = Prisma.sql`JOIN "Region" r ON r.id = s."regionId" JOIN "Pdv" pd ON pd.id = s."pdvId" JOIN "User" u ON u.id = s."sellerId"`;
+    // Only join what the grouping shows: each extra table is checked row by row by the database.
+    const joins = {
+      region: Prisma.sql`JOIN "Region" r ON r.id = s."regionId"`,
+      pdv: Prisma.sql`JOIN "Pdv" pd ON pd.id = s."pdvId"`,
+      seller: Prisma.sql`JOIN "User" u ON u.id = s."sellerId"`,
+      day: Prisma.empty,
+      product: Prisma.empty,
+      family: Prisma.empty,
+    }[f.groupBy];
     return byLine
       ? await tx.$queryRaw<
           Row[]

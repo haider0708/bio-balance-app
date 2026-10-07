@@ -4,7 +4,7 @@ import type { Actor } from "../../core/actor";
 import { audit } from "../../core/audit";
 import { dateToDay, dayToDate, tunisDay } from "../../core/dates";
 import { Database, json, type Tx } from "../../core/database";
-import { notFound, requireRule } from "../../core/errors";
+import { DomainError, notFound, requireRule } from "../../core/errors";
 import { notify, responsableIds } from "../../core/notifier";
 import { decodeCursor, page } from "../../core/pagination";
 import { adjustStock, type Location } from "../stock/ledger";
@@ -50,6 +50,21 @@ export class SalesService {
       "INVALID_DATE",
       "The sale is too old to be recorded.",
     );
+    return this.record(actor, input, occurredAt).catch(async (error) => {
+      // The same sale sent twice at once: the loser of the race gets the winner's receipt.
+      if (error instanceof DomainError && error.code === "DUPLICATE")
+        return this.db.run(actor, (tx) =>
+          this.receipt(tx, actor, input.id, true),
+        );
+      throw error;
+    });
+  }
+
+  private record(
+    actor: Actor,
+    input: { id: string; lines: SaleLineInput[] },
+    occurredAt: Date,
+  ) {
     return this.db.run(actor, async (tx) => {
       const existing = await tx.sale.findUnique({
         where: { id: input.id },
@@ -312,6 +327,10 @@ export class SalesService {
             lines: { some: { productId: filter.productId } },
           }),
           ...(filter.pdvId && { pdvId: filter.pdvId }),
+          // The database already hides what is not theirs; naming it lets it use the indexes.
+          ...(actor.role === "VENDEUR" && { sellerId: actor.id }),
+          ...(actor.role === "RESPONSABLE" &&
+            actor.regionId && { regionId: actor.regionId }),
           ...(filter.sellerId && { sellerId: filter.sellerId }),
           ...(actor.role === "ADMIN" &&
             filter.regionId && { regionId: filter.regionId }),
@@ -361,6 +380,8 @@ export class SalesService {
         FROM "Sale" s
         WHERE s.status='ACTIVE' AND s.day BETWEEN ${dayToDate(filter.from)} AND ${dayToDate(filter.to)}
           ${filter.pdvId ? Prisma.sql`AND s."pdvId" = ${filter.pdvId}::uuid` : Prisma.empty}
+          ${actor.role === "VENDEUR" ? Prisma.sql`AND s."sellerId" = ${actor.id}::uuid` : Prisma.empty}
+          ${actor.role === "RESPONSABLE" && actor.regionId ? Prisma.sql`AND s."regionId" = ${actor.regionId}::uuid` : Prisma.empty}
           ${filter.sellerId ? Prisma.sql`AND s."sellerId" = ${filter.sellerId}::uuid` : Prisma.empty}
         GROUP BY 1 ORDER BY 1 DESC LIMIT 400`;
       return rows;
