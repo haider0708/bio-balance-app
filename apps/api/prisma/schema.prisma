@@ -262,7 +262,7 @@ model StockMovement {
   locationKind LocationKind
   regionId     String?      @db.Uuid
   delta        Int
-  /// DECLARATION, RECEIPT, SHIPMENT, SALE, SALE_CORRECTION
+  /// DECLARATION, RECEIPT, SHIPMENT, SALE, SALE_CORRECTION, ADJUSTMENT
   reason       String
   refType      String
   refId        String       @db.Uuid

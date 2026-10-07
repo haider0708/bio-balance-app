@@ -945,7 +945,7 @@ class AppLocalizationsFr extends AppLocalizations {
       'Un groupe réunit plusieurs points de vente d’un même propriétaire.';
 
   @override
-  String get noHistoryYet => 'Rien d’enregistré pour l’instant';
+  String get noHistoryYet => 'Aucune décision pour l’instant';
 
   @override
   String get noLessonsYet =>
@@ -2236,4 +2236,68 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get nothingInStockHint =>
       'Demandez à votre responsable de réapprovisionner le magasin.';
+
+  @override
+  String seeMore(int count) {
+    return 'Voir plus ($count)';
+  }
+
+  @override
+  String get seeLess => 'Voir moins';
+
+  @override
+  String almostOutCount(int count) {
+    return '$count bientôt en rupture';
+  }
+
+  @override
+  String outCount(int count) {
+    return '$count en rupture';
+  }
+
+  @override
+  String leftCount(int count) {
+    return '$count restant(s)';
+  }
+
+  @override
+  String get newStoreButton => 'Nouveau magasin';
+
+  @override
+  String get newGroupButton => 'Nouveau groupe';
+
+  @override
+  String get newMemberButton => 'Nouveau membre';
+
+  @override
+  String get noStoresInGroup => 'Aucun magasin dans ce groupe';
+
+  @override
+  String get noStoresInGroupHint =>
+      'Choisissez ce groupe en créant ou modifiant un magasin.';
+
+  @override
+  String get pendingTab => 'À décider';
+
+  @override
+  String get historyTab => 'Historique';
+
+  @override
+  String get adjustStock => 'Corriger le stock';
+
+  @override
+  String get adjustStockHint =>
+      'Indiquez les quantités réelles. Chaque changement est conservé dans l’historique avec votre motif.';
+
+  @override
+  String get adjustReason => 'Motif (obligatoire)';
+
+  @override
+  String get stockAdjusted => 'Stock corrigé';
+
+  @override
+  String get editDepot => 'Modifier le dépôt';
+
+  @override
+  String get grossisteLabel => 'Grossiste';
 }

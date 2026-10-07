@@ -48,10 +48,13 @@ void main() {
   testWidgets('responsable home with quick restock', (tester) async {
     final s = base.server('RESPONSABLE');
     final dash = (s.routes['GET /v1/dashboard']!)(RequestOptions0.none).body! as Map<String, Object?>;
-    dash['lowStock'] = [
-      {'pdvId': 'p1', 'place': 'Para Lac', 'productId': 'a', 'product': 'BIOBALANCE SÉRUM VITAMINE C 30ML', 'imageId': null, 'quantity': 2},
-      {'pdvId': 'p1', 'place': 'Para Lac', 'productId': 'b', 'product': 'BIOBALANCE SÉRUM NIACINAMIDE 10%', 'imageId': null, 'quantity': 0},
+    dash['lowByPlace'] = [
+      {'pdvId': 'p1', 'place': 'Para Lac', 'low': 2, 'out': 1},
     ];
+    s.on('GET /v1/reports/stock/attention', [
+      {'locationId': 'p1', 'place': 'Para Lac', 'kind': 'PDV', 'productId': 'a', 'product': 'BIOBALANCE SÉRUM VITAMINE C 30ML', 'family': 'Sérums', 'quantity': 2},
+      {'locationId': 'p1', 'place': 'Para Lac', 'kind': 'PDV', 'productId': 'b', 'product': 'BIOBALANCE SÉRUM NIACINAMIDE 10%', 'family': 'Sérums', 'quantity': 0},
+    ]);
     dash['topGroups'] = [
       {'groupId': 'g1', 'name': 'Groupe Lac', 'units': 190},
     ];
@@ -64,9 +67,12 @@ void main() {
     s.handle('POST /v1/restocks', (_) => (status: 201, body: {'id': 'o9', 'number': 'RS-2026-000009', 'status': 'REQUESTED', 'lines': <Object>[]}));
     await launch(tester, s, language: 'en', size: tall);
     await screenshot(tester, '32-responsable-home-v3');
+    await tester.tap(find.text('Para Lac').first);
+    await settle(tester);
+    await screenshot(tester, '33-store-low-sheet');
     await tester.tap(find.text('Order').first);
     await settle(tester);
-    await screenshot(tester, '33-order-sheet');
+    await screenshot(tester, '33b-order-sheet');
   });
 
   testWidgets('rewards and reports', (tester) async {

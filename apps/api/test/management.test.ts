@@ -143,6 +143,11 @@ describe("dashboards", () => {
     expect(d.trend).toHaveLength(14);
     expect(d.attention).toEqual({ negativeStock: 0, lowStock: 1 });
     expect(d.pdvs.active).toBe(2);
+    // One line per store with something running out, not one per product.
+    expect(d.lowByPlace).toEqual([
+      expect.objectContaining({ place: "Para Nord", low: 1, out: 0 }),
+    ]);
+    expect(d.lowStock).toBeUndefined();
   });
 
   it("limits a responsable to their own region", async () => {

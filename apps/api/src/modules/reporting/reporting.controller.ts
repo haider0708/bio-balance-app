@@ -29,6 +29,30 @@ export class ReportingController {
   }
 
   @Roles("ADMIN")
+  @Get("approvals/history")
+  history(@Req() r: AuthRequest, @Query() q: Record<string, string>) {
+    const v = parse(
+      z.object({
+        type: z
+          .enum([
+            "GROUP",
+            "PDV",
+            "MEMBER",
+            "STOCK",
+            "RECEIPT",
+            "PAYOUT",
+            "RESTOCK_REQUEST",
+            "RECOUNT",
+          ])
+          .optional(),
+        before: z.coerce.date().optional(),
+      }),
+      q,
+    );
+    return this.approvals.history(r.actor, v);
+  }
+
+  @Roles("ADMIN")
   @Get("approvals")
   inbox(@Req() r: AuthRequest, @Query() q: Record<string, string>) {
     return this.approvals.inbox(

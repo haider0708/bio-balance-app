@@ -9,6 +9,9 @@ import '../../core/widgets/feedback.dart';
 import '../../core/widgets/quantity_editor.dart' show QtyStepper;
 import '../../l10n/app_localizations.dart';
 import '../media/media_repository.dart';
+import '../../core/widgets/async_body.dart';
+import '../../core/widgets/states.dart';
+import '../reports/reports_repository.dart';
 import '../restock/restock_repository.dart';
 
 /// A titled group of attention rows, shown only when it has something to say.
@@ -16,7 +19,7 @@ class AttentionGroup extends StatelessWidget {
   const AttentionGroup({required this.title, required this.rows, super.key});
 
   final String title;
-  final List<AttentionRow> rows;
+  final List<AttentionLine> rows;
 
   @override
   Widget build(BuildContext context) {
@@ -42,8 +45,8 @@ class AttentionGroup extends StatelessWidget {
   }
 }
 
-class AttentionRow extends StatelessWidget {
-  const AttentionRow({
+class AttentionLine extends StatelessWidget {
+  const AttentionLine({
     required this.icon,
     required this.tone,
     required this.label,
@@ -116,15 +119,26 @@ class AttentionRow extends StatelessWidget {
 }
 
 /// The best sellers with their picture, name and units, bars scaled to the leader.
-class TopProducts extends StatelessWidget {
-  const TopProducts({required this.items, super.key});
+class TopProducts extends StatefulWidget {
+  const TopProducts({required this.items, this.initial = 5, super.key});
 
   final List<Json> items;
+  final int initial;
+
+  @override
+  State<TopProducts> createState() => _TopProductsState();
+}
+
+class _TopProductsState extends State<TopProducts> {
+  bool _all = false;
 
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
-    final top = items.fold<int>(
+    final items = _all
+        ? widget.items
+        : widget.items.take(widget.initial).toList();
+    final top = widget.items.fold<int>(
       1,
       (m, p) => p.integer('units') > m ? p.integer('units') : m,
     );
@@ -185,27 +199,68 @@ class TopProducts extends StatelessWidget {
                 ],
               ),
             ),
+          if (widget.items.length > widget.initial)
+            _SeeMore(
+              all: _all,
+              total: widget.items.length,
+              onTap: () => setState(() => _all = !_all),
+            ),
         ],
       ),
     );
   }
 }
 
+/// "See more (30)" / "See less" under a ranking.
+class _SeeMore extends StatelessWidget {
+  const _SeeMore({required this.all, required this.total, required this.onTap});
+
+  final bool all;
+  final int total;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    return TextButton.icon(
+      onPressed: onTap,
+      icon: Icon(
+        all ? LucideIcons.chevronUp : LucideIcons.chevronDown,
+        size: 18,
+      ),
+      label: Text(all ? t.seeLess : t.seeMore(total)),
+    );
+  }
+}
+
 /// Stores (or groups) ranked by units sold.
-class TopPlaces extends StatelessWidget {
+class TopPlaces extends StatefulWidget {
   const TopPlaces({
     required this.items,
     this.icon = LucideIcons.store,
+    this.initial = 5,
     super.key,
   });
 
   final List<Json> items;
   final IconData icon;
+  final int initial;
+
+  @override
+  State<TopPlaces> createState() => _TopPlacesState();
+}
+
+class _TopPlacesState extends State<TopPlaces> {
+  bool _all = false;
 
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
-    final top = items.fold<int>(
+    final icon = widget.icon;
+    final items = _all
+        ? widget.items
+        : widget.items.take(widget.initial).toList();
+    final top = widget.items.fold<int>(
       1,
       (m, p) => p.integer('units') > m ? p.integer('units') : m,
     );
@@ -275,18 +330,24 @@ class TopPlaces extends StatelessWidget {
                 ],
               ),
             ),
+          if (widget.items.length > widget.initial)
+            _SeeMore(
+              all: _all,
+              total: widget.items.length,
+              onTap: () => setState(() => _all = !_all),
+            ),
         ],
       ),
     );
   }
 }
 
-/// What is running out in the responsable's stores, with an Order button right there.
-class RunningLow extends ConsumerWidget {
-  const RunningLow({required this.items, required this.onOrdered, super.key});
+/// Stores with products running out: one line per store; tap for its products.
+class LowByStore extends ConsumerWidget {
+  const LowByStore({required this.items, required this.canOrder, super.key});
 
   final List<Json> items;
-  final VoidCallback onOrdered;
+  final bool canOrder;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -297,63 +358,177 @@ class RunningLow extends ConsumerWidget {
           Padding(
             padding: const EdgeInsets.only(bottom: 8),
             child: AppCard(
-              padding: const EdgeInsets.all(10),
+              onTap: () => showStoreStock(
+                context,
+                pdvId: row.str('pdvId'),
+                place: row.str('place'),
+                canOrder: canOrder,
+              ),
               child: Row(
                 children: [
-                  AuthImage(
-                    row.strOrNull('imageId'),
-                    width: 48,
-                    height: 48,
-                    radius: 12,
-                    placeholderIcon: LucideIcons.package,
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: context.status.warningSoft,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(
+                      LucideIcons.packageMinus,
+                      size: 20,
+                      color: context.status.warning,
+                    ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        Text(row.str('place'), style: context.text.titleSmall),
                         Text(
-                          row.str('product'),
-                          style: context.text.titleSmall,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        Text(
-                          '${row.str('place')} · ${row.integer('quantity') <= 0 ? t.outOfStock : t.inStockCount(row.integer('quantity'))}',
+                          [
+                            t.almostOutCount(
+                              row.integer('low') - row.integer('out'),
+                            ),
+                            if (row.integer('out') > 0)
+                              t.outCount(row.integer('out')),
+                          ].where((x) => x.isNotEmpty).join(' · '),
                           style: context.text.bodySmall?.copyWith(
-                            color: row.integer('quantity') <= 0
-                                ? context.status.danger
-                                : context.status.warning,
+                            color: context.status.muted,
                           ),
                         ),
                       ],
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  FilledButton.tonal(
-                    onPressed: () async {
-                      if (await orderProduct(
-                        context,
-                        ref,
-                        pdvId: row.str('pdvId'),
-                        productId: row.str('productId'),
-                        product: row.str('product'),
-                        place: row.str('place'),
-                      )) {
-                        onOrdered();
-                      }
-                    },
-                    style: FilledButton.styleFrom(
-                      minimumSize: const Size(72, 44),
-                      padding: const EdgeInsets.symmetric(horizontal: 14),
-                    ),
-                    child: Text(t.orderNow),
+                  Icon(
+                    LucideIcons.chevronRight,
+                    size: 18,
+                    color: context.status.muted,
                   ),
                 ],
               ),
             ),
           ),
       ],
+    );
+  }
+}
+
+/// The products running out in one store, in a sheet; the responsable can order from it.
+Future<void> showStoreStock(
+  BuildContext context, {
+  required String pdvId,
+  required String place,
+  required bool canOrder,
+}) => showModalBottomSheet<void>(
+  context: context,
+  isScrollControlled: true,
+  showDragHandle: true,
+  useSafeArea: true,
+  builder: (_) => DraggableScrollableSheet(
+    expand: false,
+    initialChildSize: 0.7,
+    maxChildSize: 0.95,
+    builder: (context, scroll) => Consumer(
+      builder: (context, ref, _) {
+        final t = AppLocalizations.of(context);
+        final rows = ref.watch(stockAttentionProvider);
+        return AsyncBody(
+          value: rows,
+          onRetry: () => ref.invalidate(stockAttentionProvider),
+          builder: (all) {
+            final mine = all.where((r) => r.locationId == pdvId).toList();
+            return ListView(
+              controller: scroll,
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+              children: [
+                Text(place, style: context.text.titleLarge),
+                const Gap(12),
+                if (mine.isEmpty)
+                  EmptyState(
+                    icon: LucideIcons.circleCheck,
+                    title: t.stockAllGood,
+                  ),
+                for (final r in mine)
+                  StockAttentionTile(row: r, canOrder: canOrder),
+              ],
+            );
+          },
+        );
+      },
+    ),
+  ),
+);
+
+/// One product that is running out, with the Order button for the responsable.
+class StockAttentionTile extends ConsumerWidget {
+  const StockAttentionTile({
+    required this.row,
+    required this.canOrder,
+    super.key,
+  });
+
+  final AttentionRow row;
+  final bool canOrder;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final t = AppLocalizations.of(context);
+    final out = row.quantity <= 0;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: AppCard(
+        padding: const EdgeInsets.all(12),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    row.product,
+                    style: context.text.titleSmall,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Text(
+                    row.family,
+                    style: context.text.bodySmall?.copyWith(
+                      color: context.status.muted,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            StatusChip(
+              out ? t.outOfStock : t.leftCount(row.quantity),
+              tone: out ? Tone.danger : Tone.warning,
+            ),
+            if (canOrder) ...[
+              const SizedBox(width: 8),
+              FilledButton.tonal(
+                onPressed: () async {
+                  if (await orderProduct(
+                    context,
+                    ref,
+                    pdvId: row.locationId,
+                    productId: row.productId,
+                    product: row.product,
+                    place: row.place,
+                  )) {
+                    ref.invalidate(stockAttentionProvider);
+                  }
+                },
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size(64, 40),
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                ),
+                child: Text(t.orderNow),
+              ),
+            ],
+          ],
+        ),
+      ),
     );
   }
 }

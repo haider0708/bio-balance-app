@@ -100,23 +100,6 @@ class _TodayState extends ConsumerState<_Today> {
         return ListView(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
           children: [
-            AppCard(
-              color: context.colors.primaryContainer,
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Icon(LucideIcons.info, color: context.colors.primary),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      t.rewardsHow,
-                      style: context.text.bodyMedium?.copyWith(height: 1.4),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const Gap(12),
             TextField(
               decoration: InputDecoration(
                 hintText: t.searchProducts,
@@ -199,18 +182,15 @@ class _FamilyCard extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(family, style: context.text.titleSmall),
-                          Text(
-                            familyRate == null
-                                ? t.noFamilyRate
-                                : t.familyRate(
-                                    Money.format(familyRate, t.localeName),
-                                  ),
-                            style: context.text.bodySmall?.copyWith(
-                              color: familyRate == null
-                                  ? context.status.warning
-                                  : context.status.muted,
+                          if (familyRate != null)
+                            Text(
+                              t.familyRate(
+                                Money.format(familyRate, t.localeName),
+                              ),
+                              style: context.text.bodySmall?.copyWith(
+                                color: context.status.muted,
+                              ),
                             ),
-                          ),
                         ],
                       ),
                     ),
@@ -264,12 +244,7 @@ class _FamilyCard extends StatelessWidget {
                                   color: context.status.muted,
                                 ),
                               ),
-                              RewardSource.none => Text(
-                                t.noReward,
-                                style: context.text.bodySmall?.copyWith(
-                                  color: context.status.warning,
-                                ),
-                              ),
+                              RewardSource.none => const SizedBox.shrink(),
                             },
                           ],
                         ),

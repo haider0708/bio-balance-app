@@ -305,3 +305,48 @@ describe("regions are separate", () => {
     ]);
   });
 });
+
+describe("the approvals history", () => {
+  it("lists what was decided, by whom and why, newest first, for the admin only", async () => {
+    const ok = (
+      await w.n.post("/v1/pdvs", {
+        name: "Para Lac",
+        address: "1 rue",
+        city: "Tunis",
+      })
+    ).body;
+    const no = (
+      await w.n.post("/v1/pdvs", {
+        name: "Para Rade",
+        address: "2 rue",
+        city: "Rades",
+      })
+    ).body;
+    await w.a.post(`/v1/pdvs/${ok.id}/approve`, {});
+    await w.a.post(`/v1/pdvs/${no.id}/reject`, {
+      note: "Address is incomplete",
+    });
+    const history = (await w.a.get("/v1/approvals/history")).body;
+    expect(history.items.map((i: any) => [i.name, i.outcome])).toEqual([
+      ["Para Rade", "REJECTED"],
+      ["Para Lac", "APPROVED"],
+    ]);
+    expect(history.items[0]).toMatchObject({
+      type: "PDV",
+      note: "Address is incomplete",
+      decidedBy: "Admin",
+      region: "Nord",
+    });
+    expect(
+      (await w.a.get("/v1/approvals/history?type=MEMBER")).body.items,
+    ).toEqual([]);
+    expect((await w.n.get("/v1/approvals/history")).status).toBe(403);
+    // Paging backwards by date.
+    const older = (
+      await w.a.get(
+        `/v1/approvals/history?before=${encodeURIComponent(history.items[0].decidedAt)}`,
+      )
+    ).body;
+    expect(older.items.map((i: any) => i.name)).toEqual(["Para Lac"]);
+  });
+});

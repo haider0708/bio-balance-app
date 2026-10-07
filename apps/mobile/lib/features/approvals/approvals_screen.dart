@@ -4,12 +4,14 @@ import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../core/api/json.dart';
+import '../../core/auth/session.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/util/dates.dart';
 import '../../core/util/money.dart';
 import '../../core/widgets/async_body.dart';
 import '../../core/widgets/components.dart';
 import '../../core/widgets/feedback.dart';
+import '../../core/widgets/paged_list.dart';
 import '../../core/widgets/states.dart';
 import '../../l10n/app_localizations.dart';
 import '../network/network_repository.dart';
@@ -28,6 +30,7 @@ class ApprovalsScreen extends ConsumerStatefulWidget {
 class _ApprovalsScreenState extends ConsumerState<ApprovalsScreen> {
   ApprovalType? _type;
   String? _regionId;
+  bool _history = false;
 
   void _reload() {
     ref.invalidate(approvalsProvider);
@@ -45,96 +48,118 @@ class _ApprovalsScreenState extends ConsumerState<ApprovalsScreen> {
       appBar: AppBar(title: Text(t.approvalsTitle)),
       body: Column(
         children: [
-          SizedBox(
-            height: 52,
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
-              children: [
-                Padding(
-                  padding: const EdgeInsetsDirectional.only(end: 8),
-                  child: ChoiceChip(
-                    label: Text(t.allRegions),
-                    selected: _regionId == null,
-                    onSelected: (_) => setState(() => _regionId = null),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+            child: SegmentedButton<bool>(
+              showSelectedIcon: false,
+              segments: [
+                ButtonSegment(
+                  value: false,
+                  label: Text(
+                    '${t.pendingTab}${(data.value?.total ?? 0) > 0 ? ' ${data.value!.total}' : ''}',
                   ),
                 ),
-                for (final r in regions)
+                ButtonSegment(value: true, label: Text(t.historyTab)),
+              ],
+              selected: {_history},
+              onSelectionChanged: (s) => setState(() => _history = s.first),
+            ),
+          ),
+          if (_history)
+            Expanded(child: _History(key: ValueKey(_type)))
+          else ...[
+            SizedBox(
+              height: 52,
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
+                children: [
                   Padding(
                     padding: const EdgeInsetsDirectional.only(end: 8),
                     child: ChoiceChip(
-                      label: Text(r.name),
-                      selected: _regionId == r.id,
-                      onSelected: (_) => setState(() => _regionId = r.id),
+                      label: Text(t.allRegions),
+                      selected: _regionId == null,
+                      onSelected: (_) => setState(() => _regionId = null),
                     ),
                   ),
-              ],
-            ),
-          ),
-          SizedBox(
-            height: 48,
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
-              children: [
-                Padding(
-                  padding: const EdgeInsetsDirectional.only(end: 8),
-                  child: ChoiceChip(
-                    label: Text('${t.all} ${data.value?.total ?? ''}'.trim()),
-                    selected: _type == null,
-                    onSelected: (_) => setState(() => _type = null),
-                  ),
-                ),
-                for (final type in ApprovalType.values)
-                  if ((data.value?.counts[type] ?? 0) > 0)
+                  for (final r in regions)
                     Padding(
                       padding: const EdgeInsetsDirectional.only(end: 8),
                       child: ChoiceChip(
-                        label: Text(
-                          '${_typeLabel(t, type)} ${data.value!.counts[type]}',
-                        ),
-                        selected: _type == type,
-                        onSelected: (_) =>
-                            setState(() => _type = _type == type ? null : type),
+                        label: Text(r.name),
+                        selected: _regionId == r.id,
+                        onSelected: (_) => setState(() => _regionId = r.id),
                       ),
                     ),
-              ],
-            ),
-          ),
-          Expanded(
-            child: RefreshIndicator(
-              onRefresh: () async {
-                _reload();
-                await ref.read(approvalsProvider(_regionId).future);
-              },
-              child: AsyncBody(
-                value: data,
-                onRetry: _reload,
-                builder: (a) {
-                  final items = a.items
-                      .where((i) => _type == null || i.type == _type)
-                      .toList();
-                  if (items.isEmpty)
-                    return ListView(
-                      children: [
-                        EmptyState(
-                          icon: LucideIcons.circleCheck,
-                          title: t.nothingToApprove,
-                          message: t.allCaughtUp,
-                        ),
-                      ],
-                    );
-                  return ListView.separated(
-                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
-                    itemCount: items.length,
-                    separatorBuilder: (_, _) => const Gap(8),
-                    itemBuilder: (context, i) =>
-                        _ApprovalTile(item: items[i], onDone: _reload),
-                  );
-                },
+                ],
               ),
             ),
-          ),
+            SizedBox(
+              height: 48,
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+                children: [
+                  Padding(
+                    padding: const EdgeInsetsDirectional.only(end: 8),
+                    child: ChoiceChip(
+                      label: Text('${t.all} ${data.value?.total ?? ''}'.trim()),
+                      selected: _type == null,
+                      onSelected: (_) => setState(() => _type = null),
+                    ),
+                  ),
+                  for (final type in ApprovalType.values)
+                    if ((data.value?.counts[type] ?? 0) > 0)
+                      Padding(
+                        padding: const EdgeInsetsDirectional.only(end: 8),
+                        child: ChoiceChip(
+                          label: Text(
+                            '${_typeLabel(t, type)} ${data.value!.counts[type]}',
+                          ),
+                          selected: _type == type,
+                          onSelected: (_) => setState(
+                            () => _type = _type == type ? null : type,
+                          ),
+                        ),
+                      ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: RefreshIndicator(
+                onRefresh: () async {
+                  _reload();
+                  await ref.read(approvalsProvider(_regionId).future);
+                },
+                child: AsyncBody(
+                  value: data,
+                  onRetry: _reload,
+                  builder: (a) {
+                    final items = a.items
+                        .where((i) => _type == null || i.type == _type)
+                        .toList();
+                    if (items.isEmpty)
+                      return ListView(
+                        children: [
+                          EmptyState(
+                            icon: LucideIcons.circleCheck,
+                            title: t.nothingToApprove,
+                            message: t.allCaughtUp,
+                          ),
+                        ],
+                      );
+                    return ListView.separated(
+                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
+                      itemCount: items.length,
+                      separatorBuilder: (_, _) => const Gap(8),
+                      itemBuilder: (context, i) =>
+                          _ApprovalTile(item: items[i], onDone: _reload),
+                    );
+                  },
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -332,5 +357,140 @@ class _ApprovalTile extends ConsumerWidget {
     }
     onDone();
     ref.invalidate(myPayoutsProvider);
+  }
+}
+
+/// What was decided before: date, who decided, the outcome and the reason.
+class _History extends ConsumerStatefulWidget {
+  const _History({super.key});
+
+  @override
+  ConsumerState<_History> createState() => _HistoryState();
+}
+
+class _HistoryState extends ConsumerState<_History> {
+  ApprovalType? _type;
+  late PagedController<HistoryItem> _paged = _make();
+
+  PagedController<HistoryItem> _make() =>
+      PagedController<HistoryItem>((cursor) async {
+        final page = await fetchApprovalHistory(
+          ref.read(apiClientProvider),
+          before: cursor,
+          type: _type,
+        );
+        return PageResult(page.items, page.next);
+      });
+
+  @override
+  void dispose() {
+    _paged.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    return Column(
+      children: [
+        SizedBox(
+          height: 48,
+          child: ListView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+            children: [
+              Padding(
+                padding: const EdgeInsetsDirectional.only(end: 8),
+                child: ChoiceChip(
+                  label: Text(t.all),
+                  selected: _type == null,
+                  onSelected: (_) => setState(() {
+                    _type = null;
+                    _paged.dispose();
+                    _paged = _make();
+                  }),
+                ),
+              ),
+              for (final type in ApprovalType.values)
+                Padding(
+                  padding: const EdgeInsetsDirectional.only(end: 8),
+                  child: ChoiceChip(
+                    label: Text(_typeLabel(t, type)),
+                    selected: _type == type,
+                    onSelected: (_) => setState(() {
+                      _type = _type == type ? null : type;
+                      _paged.dispose();
+                      _paged = _make();
+                    }),
+                  ),
+                ),
+            ],
+          ),
+        ),
+        Expanded(
+          child: PagedList<HistoryItem>(
+            controller: _paged,
+            empty: EmptyState(icon: LucideIcons.history, title: t.noHistoryYet),
+            itemBuilder: (context, item, index) {
+              final tone = switch (item.outcome) {
+                'APPROVED' => Tone.success,
+                'REJECTED' => Tone.danger,
+                _ => Tone.muted,
+              };
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: AppCard(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(_typeIcon(item.type), size: 20),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              item.name,
+                              style: context.text.titleSmall,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          StatusChip(switch (item.outcome) {
+                            'APPROVED' => t.statusApproved,
+                            'REJECTED' => t.statusRejected,
+                            _ => t.deactivated,
+                          }, tone: tone),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '${_typeLabel(t, item.type)}${item.region != null ? ' · ${item.region}' : ''}',
+                        style: context.text.bodySmall?.copyWith(
+                          color: context.colors.primary,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      Text(
+                        [
+                          Dates.dateTime(item.decidedAt, t.localeName),
+                          if (item.decidedBy != null) t.byName(item.decidedBy!),
+                        ].join(' · '),
+                        style: context.text.bodySmall?.copyWith(
+                          color: context.status.muted,
+                        ),
+                      ),
+                      if (item.note != null && item.note!.isNotEmpty) ...[
+                        const SizedBox(height: 6),
+                        Text('“${item.note}”', style: context.text.bodyMedium),
+                      ],
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
   }
 }

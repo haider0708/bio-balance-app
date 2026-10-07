@@ -69,17 +69,15 @@ class _Body extends ConsumerWidget {
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 100),
       children: [
-        if (admin)
+        if (admin && waiting > 0)
           _Hero(
-            icon: waiting == 0 ? LucideIcons.circleCheck : LucideIcons.inbox,
-            title: waiting == 0 ? t.nothingToApprove : t.waitingForYou(waiting),
-            subtitle: waiting == 0
-                ? t.allCaughtUp
-                : _approvalSummary(t, approvals),
-            highlight: waiting > 0,
+            icon: LucideIcons.inbox,
+            title: t.waitingForYou(waiting),
+            subtitle: _approvalSummary(t, approvals),
+            highlight: true,
             onTap: () => context.go('/approvals'),
           )
-        else if (waiting > 0)
+        else if (!admin && waiting > 0)
           _Hero(
             icon: LucideIcons.clock,
             title: t.waitingAdmin(waiting),
@@ -218,12 +216,9 @@ class _Body extends ConsumerWidget {
             ),
         ],
         ...attentionSections(context, t, data, admin: admin),
-        if (!admin && data.list('lowStock').isNotEmpty) ...[
+        if (data.list('lowByPlace').isNotEmpty) ...[
           SectionHeader(t.runningLow),
-          RunningLow(
-            items: data.list('lowStock'),
-            onOrdered: () => ref.invalidate(dashboardProvider(null)),
-          ),
+          LowByStore(items: data.list('lowByPlace'), canOrder: !admin),
         ],
         if (data.list('topProducts').isNotEmpty) ...[
           SectionHeader(t.topProducts),
@@ -276,7 +271,7 @@ List<Widget> attentionSections(
       AttentionGroup(
         title: t.toApprove,
         rows: [
-          AttentionRow(
+          AttentionLine(
             icon: LucideIcons.warehouse,
             tone: Tone.warning,
             label: t.attnGrossisteCounts,
@@ -289,49 +284,49 @@ List<Widget> attentionSections(
       AttentionGroup(
         title: t.toApprove,
         rows: [
-          AttentionRow(
+          AttentionLine(
             icon: LucideIcons.store,
             tone: Tone.warning,
             label: t.attnStores,
             count: approvals.integer('PDV'),
             onTap: approvals_,
           ),
-          AttentionRow(
+          AttentionLine(
             icon: LucideIcons.layers,
             tone: Tone.warning,
             label: t.attnGroups,
             count: approvals.integer('GROUP'),
             onTap: approvals_,
           ),
-          AttentionRow(
+          AttentionLine(
             icon: LucideIcons.userPlus,
             tone: Tone.warning,
             label: t.attnMembers,
             count: approvals.integer('MEMBER'),
             onTap: approvals_,
           ),
-          AttentionRow(
+          AttentionLine(
             icon: LucideIcons.boxes,
             tone: Tone.warning,
             label: t.attnStockCounts,
             count: approvals.integer('STOCK'),
             onTap: approvals_,
           ),
-          AttentionRow(
+          AttentionLine(
             icon: LucideIcons.packageCheck,
             tone: Tone.warning,
             label: t.attnReceipts,
             count: approvals.integer('RECEIPT'),
             onTap: approvals_,
           ),
-          AttentionRow(
+          AttentionLine(
             icon: LucideIcons.truck,
             tone: Tone.warning,
             label: t.attnRestockRequests,
             count: approvals.integer('RESTOCK_REQUEST'),
             onTap: approvals_,
           ),
-          AttentionRow(
+          AttentionLine(
             icon: LucideIcons.rotateCcw,
             tone: Tone.warning,
             label: t.attnRecounts,
@@ -344,14 +339,7 @@ List<Widget> attentionSections(
     AttentionGroup(
       title: t.stockSection,
       rows: [
-        AttentionRow(
-          icon: LucideIcons.triangleAlert,
-          tone: Tone.danger,
-          label: t.negativeStock,
-          count: attention.integer('negativeStock'),
-          onTap: () => context.push('/stock-attention'),
-        ),
-        AttentionRow(
+        AttentionLine(
           icon: LucideIcons.packageMinus,
           tone: Tone.warning,
           label: t.lowStock,
@@ -363,7 +351,7 @@ List<Widget> attentionSections(
     AttentionGroup(
       title: t.restocksSection,
       rows: [
-        AttentionRow(
+        AttentionLine(
           icon: LucideIcons.truck,
           tone: Tone.info,
           label: t.openRestocks,
@@ -380,7 +368,7 @@ List<Widget> attentionSections(
       AttentionGroup(
         title: t.paymentsSection,
         rows: [
-          AttentionRow(
+          AttentionLine(
             icon: LucideIcons.banknote,
             tone: Tone.warning,
             label: t.payoutRequests,

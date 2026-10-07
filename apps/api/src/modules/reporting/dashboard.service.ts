@@ -49,7 +49,7 @@ export class DashboardService {
         pdvs,
         payouts,
         topGroups,
-        lowStock,
+        lowByPlace,
         region,
       ] = await Promise.all([
         window(tx, addDays(today, -6), today, sale),
@@ -67,7 +67,7 @@ export class DashboardService {
           SELECT l."productId", p.name, p.family, p."imageId", SUM(l.quantity)::int AS units
           FROM "Sale" s JOIN "SaleLine" l ON l."saleId" = s.id JOIN "Product" p ON p.id = l."productId"
           WHERE s.status='ACTIVE' AND s.day >= ${dayToDate(addDays(today, -29))} ${sale}
-          GROUP BY l."productId", p.name, p.family, p."imageId" ORDER BY units DESC LIMIT 5`,
+          GROUP BY l."productId", p.name, p.family, p."imageId" ORDER BY units DESC LIMIT 30`,
         tx.$queryRaw<
           {
             pdvId: string;
@@ -80,7 +80,7 @@ export class DashboardService {
           SELECT s."pdvId", pd.name, pd.city, SUM(s.units)::int AS units, SUM(s."rewardMillimes")::bigint AS "rewardMillimes"
           FROM "Sale" s JOIN "Pdv" pd ON pd.id = s."pdvId"
           WHERE s.status='ACTIVE' AND s.day >= ${dayToDate(addDays(today, -29))} ${sale}
-          GROUP BY s."pdvId", pd.name, pd.city ORDER BY units DESC LIMIT 5`,
+          GROUP BY s."pdvId", pd.name, pd.city ORDER BY units DESC LIMIT 10`,
         tx.$queryRaw<{ negative: number; low: number }[]>`
           SELECT COUNT(*) FILTER (WHERE quantity < 0)::int AS negative,
                  COUNT(*) FILTER (WHERE quantity >= 0 AND quantity <= ${LOW_STOCK})::int AS low
@@ -109,23 +109,19 @@ export class DashboardService {
           FROM "Sale" s JOIN "Pdv" pd ON pd.id = s."pdvId" JOIN "Group" g ON g.id = pd."groupId"
           WHERE s.status='ACTIVE' AND s.day >= ${dayToDate(addDays(today, -29))} ${sale}
           GROUP BY g.id, g.name ORDER BY units DESC LIMIT 3`,
-        // What is running out, ready to be reordered from the dashboard.
-        actor.role === "RESPONSABLE"
-          ? tx.$queryRaw<
-              {
-                pdvId: string;
-                place: string;
-                productId: string;
-                product: string;
-                imageId: string | null;
-                quantity: number;
-              }[]
-            >`
-              SELECT st."locationId" AS "pdvId", pd.name AS place, st."productId", p.name AS product, p."imageId", st.quantity
-              FROM "Stock" st JOIN "Pdv" pd ON pd.id = st."locationId" JOIN "Product" p ON p.id = st."productId"
-              WHERE st."locationKind" = 'PDV' AND pd.status = 'ACTIVE' AND st.quantity <= ${LOW_STOCK} AND p.active
-              ORDER BY st.quantity ASC, pd.name, p.name LIMIT 12`
-          : Promise.resolve([]),
+        // The stores with products running out, one line per store.
+        tx.$queryRaw<
+          { pdvId: string; place: string; low: number; out: number }[]
+        >`
+          SELECT st."locationId" AS "pdvId", pd.name AS place,
+                 COUNT(*) FILTER (WHERE st.quantity <= ${LOW_STOCK})::int AS low,
+                 COUNT(*) FILTER (WHERE st.quantity <= 0)::int AS out
+          FROM "Stock" st JOIN "Pdv" pd ON pd.id = st."locationId" JOIN "Product" p ON p.id = st."productId"
+          WHERE st."locationKind" = 'PDV' AND pd.status = 'ACTIVE' AND p.active
+            ${scope ? Prisma.sql`AND st."regionId" = ${scope}::uuid` : Prisma.empty}
+          GROUP BY st."locationId", pd.name
+          HAVING COUNT(*) FILTER (WHERE st.quantity <= ${LOW_STOCK}) > 0
+          ORDER BY out DESC, low DESC, pd.name LIMIT 8`,
         scope ? this.regionCard(tx, scope) : Promise.resolve(null),
       ]);
       const day = trend.at(-1);
@@ -147,7 +143,7 @@ export class DashboardService {
         topProducts,
         topPdvs,
         topGroups,
-        lowStock,
+        lowByPlace,
         region,
         attention: {
           negativeStock: attention[0]?.negative ?? 0,

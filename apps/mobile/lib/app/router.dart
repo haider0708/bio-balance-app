@@ -288,6 +288,17 @@ List<RouteBase> _admin() => [
   GoRoute(path: '/payouts', builder: (_, _) => const PayoutsScreen()),
   GoRoute(path: '/reports', builder: (_, _) => const ReportsScreen()),
   GoRoute(
+    path: '/depots/:id',
+    builder: (_, state) => DepotScreen(depot: state.extra! as Depot),
+  ),
+  GoRoute(
+    path: '/stock/:id/adjust',
+    builder: (_, state) => AdjustStockScreen(
+      locationId: state.pathParameters['id']!,
+      locationName: state.extra as String?,
+    ),
+  ),
+  GoRoute(
     path: '/regions/:id',
     builder: (_, state) => RegionScreen(
       regionId: state.pathParameters['id']!,
@@ -389,6 +400,10 @@ List<RouteBase> _shared() => [
     path: '/catalog/:id',
     builder: (context, state) =>
         _ProductEntry(product: state.extra! as Product),
+  ),
+  GoRoute(
+    path: '/groups/:id',
+    builder: (_, state) => GroupScreen(group: state.extra! as Group),
   ),
   GoRoute(path: '/pdvs/new', builder: (_, _) => const PdvFormScreen()),
   GoRoute(

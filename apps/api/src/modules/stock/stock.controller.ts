@@ -29,6 +29,14 @@ const Recount = z.object({
   locationId: id,
   reason: z.string().trim().min(3).max(500),
 });
+const Adjust = z.object({
+  locationId: id,
+  reason: z.string().trim().min(3).max(300),
+  lines: z
+    .array(z.object({ productId: id, quantity: qty }))
+    .min(1)
+    .max(500),
+});
 const Decision = z.object({ note: z.string().trim().max(500).optional() });
 
 @Controller("v1/stock")
@@ -148,5 +156,11 @@ export class StockController {
       "reject",
       parse(Reject, b).note,
     );
+  }
+
+  @Roles("ADMIN")
+  @Post("adjust")
+  adjust(@Req() r: AuthRequest, @Body() b: unknown) {
+    return this.stock.adjust(r.actor, parse(Adjust, b));
   }
 }

@@ -72,33 +72,41 @@ class _NetworkScreenState extends ConsumerState<NetworkScreen> {
     );
   }
 
+  /// The button follows the tab: a new store, a new group or a new member.
   Widget? _fab(BuildContext context, Me me) {
     final t = AppLocalizations.of(context);
-    if (me.role == Role.responsable) {
-      return Builder(
-        builder: (context) => FloatingActionButton.extended(
-          heroTag: null,
-          onPressed: () =>
-              _addForTab(context, DefaultTabController.of(context).index),
-          icon: const Icon(LucideIcons.plus),
-          label: Text(t.add),
-        ),
-      );
-    }
-    if (me.role == Role.admin) {
-      return Builder(
-        builder: (context) => FloatingActionButton.extended(
-          heroTag: null,
-          onPressed: () async {
-            await context.push('/people/new');
-            ref.invalidate(peopleProvider);
+    if (me.role != Role.responsable && me.role != Role.admin) return null;
+    return Builder(
+      builder: (context) {
+        final tabs = DefaultTabController.of(context);
+        return ListenableBuilder(
+          listenable: tabs,
+          builder: (context, _) {
+            final tab = tabs.index;
+            // Only a responsable creates stores and groups; the admin creates accounts.
+            if (me.role == Role.admin && tab != 2) {
+              return const SizedBox.shrink();
+            }
+            final (icon, label) = switch (tab) {
+              0 => (LucideIcons.store, t.newStoreButton),
+              1 => (LucideIcons.layers, t.newGroupButton),
+              _ => (LucideIcons.userPlus, t.newMemberButton),
+            };
+            return FloatingActionButton.extended(
+              heroTag: null,
+              onPressed: me.role == Role.admin
+                  ? () async {
+                      await context.push('/people/new');
+                      ref.invalidate(peopleProvider);
+                    }
+                  : () => _addForTab(context, tab),
+              icon: Icon(icon),
+              label: Text(label),
+            );
           },
-          icon: const Icon(LucideIcons.userPlus),
-          label: Text(t.newAccount),
-        ),
-      );
-    }
-    return null;
+        );
+      },
+    );
   }
 
   Future<void> _addForTab(BuildContext context, int tab) async {
@@ -337,6 +345,7 @@ class _GroupList extends ConsumerWidget {
         itemBuilder: (context, i) {
           final g = list[i];
           return AppCard(
+            onTap: () => context.push('/groups/${g.id}', extra: g),
             child: Row(
               children: [
                 const Icon(LucideIcons.layers),
@@ -376,6 +385,42 @@ class _GroupList extends ConsumerWidget {
                   ),
               ],
             ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+/// A group and the stores in it.
+class GroupScreen extends ConsumerWidget {
+  const GroupScreen({required this.group, super.key});
+
+  final Group group;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final t = AppLocalizations.of(context);
+    final pdvs = ref.watch(pdvsProvider(group.regionId));
+    return Scaffold(
+      appBar: AppBar(title: Text(group.name)),
+      body: AsyncBody(
+        value: pdvs,
+        onRetry: () => ref.invalidate(pdvsProvider(group.regionId)),
+        builder: (all) {
+          final mine = all.where((p) => p.groupId == group.id).toList();
+          if (mine.isEmpty) {
+            return EmptyState(
+              icon: LucideIcons.store,
+              title: t.noStoresInGroup,
+              message: t.noStoresInGroupHint,
+            );
+          }
+          return ListView.separated(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
+            itemCount: mine.length,
+            separatorBuilder: (_, _) => const Gap(8),
+            itemBuilder: (context, i) => PdvTile(pdv: mine[i]),
           );
         },
       ),

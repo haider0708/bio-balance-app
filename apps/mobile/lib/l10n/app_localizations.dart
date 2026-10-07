@@ -1667,7 +1667,7 @@ abstract class AppLocalizations {
   /// No description provided for @noHistoryYet.
   ///
   /// In en, this message translates to:
-  /// **'Nothing recorded yet'**
+  /// **'No decision yet'**
   String get noHistoryYet;
 
   /// No description provided for @noLessonsYet.
@@ -3883,6 +3883,114 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Ask your responsable to restock the store.'**
   String get nothingInStockHint;
+
+  /// No description provided for @seeMore.
+  ///
+  /// In en, this message translates to:
+  /// **'See more ({count})'**
+  String seeMore(int count);
+
+  /// No description provided for @seeLess.
+  ///
+  /// In en, this message translates to:
+  /// **'See less'**
+  String get seeLess;
+
+  /// No description provided for @almostOutCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} almost out'**
+  String almostOutCount(int count);
+
+  /// No description provided for @outCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} out'**
+  String outCount(int count);
+
+  /// No description provided for @leftCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} left'**
+  String leftCount(int count);
+
+  /// No description provided for @newStoreButton.
+  ///
+  /// In en, this message translates to:
+  /// **'New store'**
+  String get newStoreButton;
+
+  /// No description provided for @newGroupButton.
+  ///
+  /// In en, this message translates to:
+  /// **'New group'**
+  String get newGroupButton;
+
+  /// No description provided for @newMemberButton.
+  ///
+  /// In en, this message translates to:
+  /// **'New member'**
+  String get newMemberButton;
+
+  /// No description provided for @noStoresInGroup.
+  ///
+  /// In en, this message translates to:
+  /// **'No store in this group yet'**
+  String get noStoresInGroup;
+
+  /// No description provided for @noStoresInGroupHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose this group when you create or edit a store.'**
+  String get noStoresInGroupHint;
+
+  /// No description provided for @pendingTab.
+  ///
+  /// In en, this message translates to:
+  /// **'To decide'**
+  String get pendingTab;
+
+  /// No description provided for @historyTab.
+  ///
+  /// In en, this message translates to:
+  /// **'History'**
+  String get historyTab;
+
+  /// No description provided for @adjustStock.
+  ///
+  /// In en, this message translates to:
+  /// **'Adjust the stock'**
+  String get adjustStock;
+
+  /// No description provided for @adjustStockHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Set the real quantities. Every change is kept in the history with your reason.'**
+  String get adjustStockHint;
+
+  /// No description provided for @adjustReason.
+  ///
+  /// In en, this message translates to:
+  /// **'Reason (required)'**
+  String get adjustReason;
+
+  /// No description provided for @stockAdjusted.
+  ///
+  /// In en, this message translates to:
+  /// **'Stock corrected'**
+  String get stockAdjusted;
+
+  /// No description provided for @editDepot.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit the depot'**
+  String get editDepot;
+
+  /// No description provided for @grossisteLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Grossiste'**
+  String get grossisteLabel;
 }
 
 class _AppLocalizationsDelegate

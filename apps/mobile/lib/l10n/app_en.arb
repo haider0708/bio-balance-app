@@ -449,7 +449,7 @@
   "noGroup": "No group",
   "noGroups": "No group yet",
   "noGroupsHint": "A group gathers several points of sale of the same owner.",
-  "noHistoryYet": "Nothing recorded yet",
+  "noHistoryYet": "No decision yet",
   "noLessonsYet": "No lesson yet. Add one to publish the course.",
   "noNotifications": "Nothing new",
   "noNotificationsHint": "Announcements and updates will appear here.",
@@ -1078,5 +1078,51 @@
     }
   },
   "nothingInStock": "Nothing in stock",
-  "nothingInStockHint": "Ask your responsable to restock the store."
+  "nothingInStockHint": "Ask your responsable to restock the store.",
+  "seeMore": "See more ({count})",
+  "@seeMore": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "seeLess": "See less",
+  "almostOutCount": "{count} almost out",
+  "@almostOutCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "outCount": "{count} out",
+  "@outCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "leftCount": "{count} left",
+  "@leftCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "newStoreButton": "New store",
+  "newGroupButton": "New group",
+  "newMemberButton": "New member",
+  "noStoresInGroup": "No store in this group yet",
+  "noStoresInGroupHint": "Choose this group when you create or edit a store.",
+  "pendingTab": "To decide",
+  "historyTab": "History",
+  "adjustStock": "Adjust the stock",
+  "adjustStockHint": "Set the real quantities. Every change is kept in the history with your reason.",
+  "adjustReason": "Reason (required)",
+  "stockAdjusted": "Stock corrected",
+  "editDepot": "Edit the depot",
+  "grossisteLabel": "Grossiste"
 }

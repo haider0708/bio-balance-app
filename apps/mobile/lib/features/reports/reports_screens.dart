@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
@@ -15,7 +14,7 @@ import '../../core/widgets/components.dart';
 import '../../core/widgets/feedback.dart';
 import '../../core/widgets/states.dart';
 import '../../l10n/app_localizations.dart';
-import '../dashboard/dashboard_widgets.dart' show orderProduct;
+import '../dashboard/dashboard_widgets.dart' show StockAttentionTile;
 import '../dashboard/trend_chart.dart';
 import '../media/media_repository.dart';
 import '../network/network_repository.dart';
@@ -512,7 +511,7 @@ class _ReportRowCard extends StatelessWidget {
   }
 }
 
-/// Products that are nearly out or below zero, at each place.
+/// Products that are nearly out, grouped by store so a long list stays readable.
 class StockAttentionScreen extends ConsumerWidget {
   const StockAttentionScreen({super.key});
 
@@ -520,6 +519,7 @@ class StockAttentionScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final t = AppLocalizations.of(context);
     final rows = ref.watch(stockAttentionProvider);
+    final canOrder = ref.watch(meProvider).role == Role.responsable;
     return Scaffold(
       appBar: AppBar(title: Text(t.needsAttention)),
       body: RefreshIndicator(
@@ -536,65 +536,110 @@ class StockAttentionScreen extends ConsumerWidget {
               EmptyState(icon: LucideIcons.circleCheck, title: t.stockAllGood),
             ],
           ),
-          builder: (list) => ListView.separated(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
-            itemCount: list.length,
-            separatorBuilder: (_, _) => const Gap(8),
-            itemBuilder: (context, i) {
-              final r = list[i];
-              final negative = r.quantity < 0;
-              return AppCard(
-                onTap: () =>
-                    context.push('/stock/${r.locationId}', extra: r.place),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(r.product, style: context.text.titleSmall),
-                          Text(
-                            '${r.place} · ${r.family}',
-                            style: context.text.bodySmall?.copyWith(
-                              color: context.status.muted,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    StatusChip(
-                      '${r.quantity}',
-                      tone: negative ? Tone.danger : Tone.warning,
-                    ),
-                    if (ref.watch(meProvider).role == Role.responsable &&
-                        r.kind == 'PDV') ...[
-                      const SizedBox(width: 8),
-                      FilledButton.tonal(
-                        onPressed: () async {
-                          if (await orderProduct(
-                            context,
-                            ref,
-                            pdvId: r.locationId,
-                            productId: r.productId,
-                            product: r.product,
-                            place: r.place,
-                          )) {
-                            ref.invalidate(stockAttentionProvider);
-                          }
-                        },
-                        style: FilledButton.styleFrom(
-                          minimumSize: const Size(64, 40),
-                          padding: const EdgeInsets.symmetric(horizontal: 12),
-                        ),
-                        child: Text(t.orderNow),
-                      ),
-                    ],
-                  ],
-                ),
-              );
-            },
-          ),
+          builder: (list) {
+            final byStore = <String, List<AttentionRow>>{};
+            for (final r in list) {
+              byStore.putIfAbsent(r.locationId, () => []).add(r);
+            }
+            final stores = byStore.values.toList()
+              ..sort((a, b) {
+                final outA = a.where((r) => r.quantity <= 0).length;
+                final outB = b.where((r) => r.quantity <= 0).length;
+                return outB != outA ? outB - outA : b.length - a.length;
+              });
+            return ListView.separated(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
+              itemCount: stores.length,
+              separatorBuilder: (_, _) => const Gap(8),
+              itemBuilder: (context, i) => _StoreGroup(
+                rows: stores[i],
+                canOrder: canOrder,
+                startOpen: i == 0,
+              ),
+            );
+          },
         ),
+      ),
+    );
+  }
+}
+
+class _StoreGroup extends StatefulWidget {
+  const _StoreGroup({
+    required this.rows,
+    required this.canOrder,
+    required this.startOpen,
+  });
+
+  final List<AttentionRow> rows;
+  final bool canOrder;
+  final bool startOpen;
+
+  @override
+  State<_StoreGroup> createState() => _StoreGroupState();
+}
+
+class _StoreGroupState extends State<_StoreGroup> {
+  late bool _open = widget.startOpen;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    final out = widget.rows.where((r) => r.quantity <= 0).length;
+    final low = widget.rows.length - out;
+    return AppCard(
+      padding: EdgeInsets.zero,
+      child: Column(
+        children: [
+          InkWell(
+            borderRadius: BorderRadius.circular(16),
+            onTap: () => setState(() => _open = !_open),
+            child: Padding(
+              padding: const EdgeInsets.all(14),
+              child: Row(
+                children: [
+                  const Icon(LucideIcons.store),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          widget.rows.first.place,
+                          style: context.text.titleSmall,
+                        ),
+                        Text(
+                          [
+                            if (low > 0) t.almostOutCount(low),
+                            if (out > 0) t.outCount(out),
+                          ].join(' · '),
+                          style: context.text.bodySmall?.copyWith(
+                            color: context.status.muted,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Icon(
+                    _open ? LucideIcons.chevronUp : LucideIcons.chevronDown,
+                    size: 18,
+                    color: context.status.muted,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          if (_open)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(10, 0, 10, 6),
+              child: Column(
+                children: [
+                  for (final r in widget.rows)
+                    StockAttentionTile(row: r, canOrder: widget.canOrder),
+                ],
+              ),
+            ),
+        ],
       ),
     );
   }

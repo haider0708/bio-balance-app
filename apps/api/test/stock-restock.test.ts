@@ -644,3 +644,49 @@ describe("counting again needs the admin's permission", () => {
     );
   });
 });
+
+describe("the admin corrects stock", () => {
+  it("sets quantities with a reason, keeps the history and tells the people in charge", async () => {
+    await stockPlace(w, w.depotId, w.gros, [20, 20, 20]);
+    const res = await w.a.post("/v1/stock/adjust", {
+      locationId: w.depotId,
+      reason: "Damaged in transport",
+      lines: [
+        { productId: w.products[0]!.id, quantity: 12 },
+        { productId: w.products[1]!.id, quantity: 20 },
+      ],
+    });
+    expect(res.status).toBe(201);
+    expect(res.body.changed).toBe(1);
+    expect((await levels(w, w.depotId))["Serum Vitamin C"]).toBe(12);
+    const movements = await w.a.get(
+      `/v1/stock/locations/${w.depotId}/products/${w.products[0]!.id}/movements`,
+    );
+    expect(movements.body[0]).toMatchObject({
+      delta: -8,
+      reason: "ADJUSTMENT",
+    });
+    expect(
+      (
+        await w.g.post("/v1/stock/adjust", {
+          locationId: w.depotId,
+          reason: "mine",
+          lines: [{ productId: w.products[0]!.id, quantity: 99 }],
+        })
+      ).status,
+    ).toBe(403);
+    expect(
+      (
+        await w.a.post("/v1/stock/adjust", {
+          locationId: w.depotId,
+          reason: "no",
+          lines: [{ productId: w.products[0]!.id, quantity: -1 }],
+        })
+      ).status,
+    ).toBe(400);
+    const told = await client(api, w.gros.token).get("/v1/notifications");
+    expect(told.body.items.some((n: any) => n.key === "stock.adjusted")).toBe(
+      true,
+    );
+  });
+});

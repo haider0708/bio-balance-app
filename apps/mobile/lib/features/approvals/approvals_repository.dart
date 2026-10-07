@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/api/api_client.dart';
 import '../../core/api/json.dart';
 import '../../core/auth/session.dart';
 
@@ -80,3 +81,61 @@ final approvalsProvider = FutureProvider.autoDispose.family<Approvals, String?>(
         as Json,
   ),
 );
+
+/// A decision the admin already took.
+class HistoryItem {
+  const HistoryItem({
+    required this.type,
+    required this.id,
+    required this.name,
+    required this.outcome,
+    required this.decidedAt,
+    this.decidedBy,
+    this.region,
+    this.note,
+  });
+
+  factory HistoryItem.fromJson(Json j) => HistoryItem(
+    type: ApprovalType.parse(j.str('type')),
+    id: j.str('id'),
+    name: j.str('name'),
+    outcome: j.str('outcome'),
+    decidedAt: j.date('decidedAt'),
+    decidedBy: j.strOrNull('decidedBy'),
+    region: j.strOrNull('region'),
+    note: j.strOrNull('note'),
+  );
+
+  final ApprovalType type;
+  final String id;
+  final String name;
+
+  /// APPROVED, REJECTED or DEACTIVATED.
+  final String outcome;
+  final DateTime decidedAt;
+  final String? decidedBy;
+  final String? region;
+  final String? note;
+}
+
+class HistoryPage {
+  const HistoryPage(this.items, this.next);
+
+  final List<HistoryItem> items;
+  final String? next;
+}
+
+Future<HistoryPage> fetchApprovalHistory(
+  ApiClient client, {
+  String? before,
+  ApprovalType? type,
+}) async {
+  final data = await client.get(
+    '/v1/approvals/history',
+    query: {'before': before, 'type': type?.wire},
+  ) as Json;
+  return HistoryPage(
+    data.list('items').map(HistoryItem.fromJson).toList(),
+    data.strOrNull('nextBefore'),
+  );
+}

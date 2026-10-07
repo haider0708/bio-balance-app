@@ -39,7 +39,13 @@ export async function findLocation(tx: Tx, id: string): Promise<Location> {
 }
 
 export interface MovementRef {
-  reason: "DECLARATION" | "RECEIPT" | "SHIPMENT" | "SALE" | "SALE_CORRECTION";
+  reason:
+    | "DECLARATION"
+    | "RECEIPT"
+    | "SHIPMENT"
+    | "SALE"
+    | "SALE_CORRECTION"
+    | "ADJUSTMENT";
   refType: string;
   refId: string;
   actorId: string | null;

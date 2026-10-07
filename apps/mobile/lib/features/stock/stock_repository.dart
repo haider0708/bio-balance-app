@@ -71,6 +71,17 @@ class StockRepository {
         'note': ?note,
       });
 
+  /// The admin sets quantities directly, with the reason.
+  Future<void> adjust({
+    required String locationId,
+    required String reason,
+    required List<Map<String, Object>> lines,
+  }) => _ref.read(apiClientProvider).post('/v1/stock/adjust', {
+    'locationId': locationId,
+    'reason': reason,
+    'lines': lines,
+  });
+
   Future<void> requestRecount(String locationId, String reason) => _ref
       .read(apiClientProvider)
       .post('/v1/stock/recounts', {'locationId': locationId, 'reason': reason});

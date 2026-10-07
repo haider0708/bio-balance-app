@@ -213,7 +213,7 @@ class StockScreen extends ConsumerWidget {
                   for (final item in data.items)
                     Padding(
                       padding: const EdgeInsets.only(bottom: 8),
-                      child: _StockTile(item: item),
+                      child: StockTile(item: item),
                     ),
                 ],
                 if (recent.isNotEmpty) ...[
@@ -258,8 +258,8 @@ class StockScreen extends ConsumerWidget {
   }
 }
 
-class _StockTile extends StatelessWidget {
-  const _StockTile({required this.item});
+class StockTile extends StatelessWidget {
+  const StockTile({required this.item, super.key});
 
   final StockItem item;
 
@@ -786,6 +786,118 @@ class CountsToReviewScreen extends ConsumerWidget {
             },
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// The admin corrects the quantities of a place, with a reason that is kept in the history.
+class AdjustStockScreen extends ConsumerStatefulWidget {
+  const AdjustStockScreen({
+    required this.locationId,
+    this.locationName,
+    super.key,
+  });
+
+  final String locationId;
+  final String? locationName;
+
+  @override
+  ConsumerState<AdjustStockScreen> createState() => _AdjustStockScreenState();
+}
+
+class _AdjustStockScreenState extends ConsumerState<AdjustStockScreen> {
+  final _quantities = QuantityController();
+  final _reason = TextEditingController();
+  bool _seeded = false;
+
+  @override
+  void dispose() {
+    _quantities.dispose();
+    _reason.dispose();
+    super.dispose();
+  }
+
+  void _seed(StockLevels levels) {
+    if (_seeded) return;
+    _seeded = true;
+    for (final i in levels.items) {
+      _quantities.addItem(
+        QuantityItem(
+          productId: i.productId,
+          name: i.name,
+          family: i.family,
+          imageId: i.imageId,
+          quantity: i.quantity < 0 ? 0 : i.quantity,
+        ),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    final levels = ref.watch(stockLevelsProvider(widget.locationId));
+    return Scaffold(
+      appBar: AppBar(title: Text(t.adjustStock)),
+      body: AsyncBody(
+        value: levels,
+        onRetry: () => ref.invalidate(stockLevelsProvider(widget.locationId)),
+        builder: (data) {
+          _seed(data);
+          return ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              Text(
+                widget.locationName ?? data.location.name,
+                style: context.text.titleLarge,
+              ),
+              const Gap(4),
+              Text(
+                t.adjustStockHint,
+                style: context.text.bodyMedium?.copyWith(
+                  color: context.status.muted,
+                ),
+              ),
+              const Gap(16),
+              QuantityEditor(controller: _quantities, addLabel: t.addProduct),
+              const Gap(16),
+              TextField(
+                controller: _reason,
+                maxLength: 300,
+                minLines: 1,
+                maxLines: 3,
+                onChanged: (_) => setState(() {}),
+                decoration: InputDecoration(labelText: t.adjustReason),
+              ),
+              const Gap(8),
+              AsyncButton(
+                label: t.save,
+                icon: LucideIcons.save,
+                onPressed: _reason.text.trim().length < 3
+                    ? null
+                    : () async {
+                        if (await perform(
+                          context,
+                          () => ref
+                              .read(stockRepositoryProvider)
+                              .adjust(
+                                locationId: widget.locationId,
+                                reason: _reason.text.trim(),
+                                lines: _quantities.lines(),
+                              ),
+                          success: t.stockAdjusted,
+                        )) {
+                          ref.invalidate(
+                            stockLevelsProvider(widget.locationId),
+                          );
+                          if (context.mounted) context.pop();
+                        }
+                      },
+              ),
+            ],
+          );
+        },
       ),
     );
   }

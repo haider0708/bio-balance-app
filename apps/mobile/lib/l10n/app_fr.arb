@@ -449,7 +449,7 @@
   "noGroup": "Aucun groupe",
   "noGroups": "Aucun groupe pour l’instant",
   "noGroupsHint": "Un groupe réunit plusieurs points de vente d’un même propriétaire.",
-  "noHistoryYet": "Rien d’enregistré pour l’instant",
+  "noHistoryYet": "Aucune décision pour l’instant",
   "noLessonsYet": "Aucune leçon. Ajoutez-en une pour publier la formation.",
   "noNotifications": "Rien de nouveau",
   "noNotificationsHint": "Les annonces et mises à jour apparaîtront ici.",
@@ -1078,5 +1078,51 @@
     }
   },
   "nothingInStock": "Rien en stock",
-  "nothingInStockHint": "Demandez à votre responsable de réapprovisionner le magasin."
+  "nothingInStockHint": "Demandez à votre responsable de réapprovisionner le magasin.",
+  "seeMore": "Voir plus ({count})",
+  "@seeMore": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "seeLess": "Voir moins",
+  "almostOutCount": "{count} bientôt en rupture",
+  "@almostOutCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "outCount": "{count} en rupture",
+  "@outCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "leftCount": "{count} restant(s)",
+  "@leftCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "newStoreButton": "Nouveau magasin",
+  "newGroupButton": "Nouveau groupe",
+  "newMemberButton": "Nouveau membre",
+  "noStoresInGroup": "Aucun magasin dans ce groupe",
+  "noStoresInGroupHint": "Choisissez ce groupe en créant ou modifiant un magasin.",
+  "pendingTab": "À décider",
+  "historyTab": "Historique",
+  "adjustStock": "Corriger le stock",
+  "adjustStockHint": "Indiquez les quantités réelles. Chaque changement est conservé dans l’historique avec votre motif.",
+  "adjustReason": "Motif (obligatoire)",
+  "stockAdjusted": "Stock corrigé",
+  "editDepot": "Modifier le dépôt",
+  "grossisteLabel": "Grossiste"
 }

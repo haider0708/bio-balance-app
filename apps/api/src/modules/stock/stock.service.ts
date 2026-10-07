@@ -6,7 +6,13 @@ import { audit } from "../../core/audit";
 import { Database, type Tx } from "../../core/database";
 import { notFound, requireRule } from "../../core/errors";
 import { notify, notifyAdmins, responsableIds } from "../../core/notifier";
-import { findLocation, setStock, type Location } from "./ledger";
+import { randomUUID } from "node:crypto";
+import {
+  currentQuantity,
+  findLocation,
+  setStock,
+  type Location,
+} from "./ledger";
 
 export interface DeclarationLineInput {
   productId: string;
@@ -491,6 +497,90 @@ export class StockService {
           entityId: id,
         });
       return (await this.present(tx, [updated]))[0]!;
+    });
+  }
+
+  /**
+   * The admin corrects a place's quantities directly (a mistake found later, goods lost).
+   * Each change is a movement in the history, with the reason, and the people in charge are told.
+   */
+  adjust(
+    actor: Actor,
+    input: {
+      locationId: string;
+      reason: string;
+      lines: DeclarationLineInput[];
+    },
+  ) {
+    requireRule(
+      actor.role === "ADMIN",
+      "FORBIDDEN",
+      "Only the admin corrects stock.",
+      403,
+    );
+    return this.db.run(actor, async (tx) => {
+      const location = await findLocation(tx, input.locationId);
+      const ids = input.lines.map((l) => l.productId);
+      requireRule(
+        new Set(ids).size === ids.length,
+        "DUPLICATE_PRODUCT",
+        "A product appears twice.",
+      );
+      requireRule(
+        (await tx.product.count({ where: { id: { in: ids } } })) === ids.length,
+        "PRODUCT_NOT_FOUND",
+        "Unknown product.",
+        404,
+      );
+      const ref = randomUUID();
+      let changed = 0;
+      for (const line of input.lines) {
+        const before = await currentQuantity(tx, location.id, line.productId);
+        if (before === line.quantity) continue;
+        changed++;
+        await setStock(tx, location, line.productId, line.quantity, {
+          reason: "ADJUSTMENT",
+          refType: "Adjustment",
+          refId: ref,
+          actorId: actor.id,
+        });
+      }
+      await audit(
+        tx,
+        actor,
+        "stock.adjusted",
+        "Location",
+        location.id,
+        { reason: input.reason, changed },
+        location.stockRegionId,
+      );
+      if (changed > 0) {
+        const owner =
+          location.kind === "DEPOT"
+            ? (await tx.depot.findUnique({ where: { id: location.id } }))
+                ?.userId
+            : null;
+        await notify(
+          tx,
+          [
+            ...(owner ? [owner] : []),
+            ...(location.stockRegionId
+              ? await responsableIds(tx, location.stockRegionId)
+              : []),
+          ],
+          {
+            key: "stock.adjusted",
+            params: {
+              place: location.name,
+              note: input.reason,
+              amended: changed,
+            },
+            entityType: "Location",
+            entityId: location.id,
+          },
+        );
+      }
+      return { changed };
     });
   }
 

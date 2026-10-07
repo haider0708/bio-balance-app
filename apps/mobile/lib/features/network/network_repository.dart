@@ -123,6 +123,19 @@ class NetworkRepository {
   Future<void> resendInvite(String id) =>
       _ref.read(apiClientProvider).post('/v1/users/$id/resend-invite');
 
+  Future<void> updateDepot(
+    String id, {
+    String? name,
+    String? address,
+    String? city,
+    String? phone,
+  }) => _ref.read(apiClientProvider).patch('/v1/depots/$id', {
+    'name': ?name,
+    'address': ?address,
+    'city': ?city,
+    'phone': ?phone,
+  });
+
   Future<void> cancelInvite(String id) =>
       _ref.read(apiClientProvider).post('/v1/users/$id/cancel-invite');
 

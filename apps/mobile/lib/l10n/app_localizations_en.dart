@@ -943,7 +943,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'A group gathers several points of sale of the same owner.';
 
   @override
-  String get noHistoryYet => 'Nothing recorded yet';
+  String get noHistoryYet => 'No decision yet';
 
   @override
   String get noLessonsYet => 'No lesson yet. Add one to publish the course.';
@@ -2227,4 +2227,68 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get nothingInStockHint => 'Ask your responsable to restock the store.';
+
+  @override
+  String seeMore(int count) {
+    return 'See more ($count)';
+  }
+
+  @override
+  String get seeLess => 'See less';
+
+  @override
+  String almostOutCount(int count) {
+    return '$count almost out';
+  }
+
+  @override
+  String outCount(int count) {
+    return '$count out';
+  }
+
+  @override
+  String leftCount(int count) {
+    return '$count left';
+  }
+
+  @override
+  String get newStoreButton => 'New store';
+
+  @override
+  String get newGroupButton => 'New group';
+
+  @override
+  String get newMemberButton => 'New member';
+
+  @override
+  String get noStoresInGroup => 'No store in this group yet';
+
+  @override
+  String get noStoresInGroupHint =>
+      'Choose this group when you create or edit a store.';
+
+  @override
+  String get pendingTab => 'To decide';
+
+  @override
+  String get historyTab => 'History';
+
+  @override
+  String get adjustStock => 'Adjust the stock';
+
+  @override
+  String get adjustStockHint =>
+      'Set the real quantities. Every change is kept in the history with your reason.';
+
+  @override
+  String get adjustReason => 'Reason (required)';
+
+  @override
+  String get stockAdjusted => 'Stock corrected';
+
+  @override
+  String get editDepot => 'Edit the depot';
+
+  @override
+  String get grossisteLabel => 'Grossiste';
 }
