@@ -53,7 +53,12 @@ const _publicPaths = {'/login', '/activate', '/forgot', '/code'};
 
 /// The page the browser was opened on (a bookmark, a reload): after the saved session is checked the
 /// app goes there, once, instead of always landing on the home tab.
-String? _landing = kIsWeb ? PlatformDispatcher.instance.defaultRouteName : null;
+String? _landing;
+
+/// Called once at start, before the first screen replaces the browser's address.
+void rememberLanding() {
+  if (kIsWeb) _landing = PlatformDispatcher.instance.defaultRouteName;
+}
 
 /// The app's routes. They depend on who is signed in, so a new router is built at sign-in and sign-out.
 final routerProvider = Provider<GoRouter>((ref) {
