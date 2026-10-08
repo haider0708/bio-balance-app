@@ -359,8 +359,9 @@ class MoreScreen extends ConsumerWidget {
             ),
           ),
           const Gap(16),
-          GridView.count(
-            crossAxisCount: 2,
+          GridView.extent(
+            // Two columns on a phone, three or four in a wide browser window.
+            maxCrossAxisExtent: 230,
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             mainAxisSpacing: 12,

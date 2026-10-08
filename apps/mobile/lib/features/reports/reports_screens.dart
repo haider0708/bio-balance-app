@@ -158,6 +158,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
       body: DefaultTabController(
         length: 6,
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
