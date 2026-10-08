@@ -128,8 +128,8 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/code', builder: (_, _) => const SizedBox.shrink()),
       if (role != null) ...[
         ..._roleRoutes(role),
-        // Admin owns its destinations inside AdminShell; other roles share these.
-        if (role != Role.admin) ..._shared(),
+        // Web admin owns every destination inside AdminShell; phone admin + other roles use shared routes.
+        if (!(role == Role.admin && kIsWeb)) ..._shared(),
       ],
     ],
   );
@@ -171,7 +171,8 @@ List<RouteBase> _roleRoutes(Role role) => switch (role) {
   Role.vendeur => _vendeur(),
   Role.responsable => _responsable(),
   Role.grossiste => _grossiste(),
-  Role.admin => _admin(),
+  // Web = sidebar dashboard; phone = bottom-tab mobile app.
+  Role.admin => kIsWeb ? _adminWeb() : _adminMobile(),
 };
 
 List<RouteBase> _vendeur() => [
@@ -283,8 +284,121 @@ List<RouteBase> _grossiste() => [
   ]),
 ];
 
-/// Admin console: retractable sidebar shell with every admin destination inside.
-List<RouteBase> _admin() => [
+/// Phone admin: classic bottom tabs + More, same chrome as other mobile roles.
+List<RouteBase> _adminMobile() => [
+  _shell([
+    TabSpec(
+      LucideIcons.house,
+      (t) => t.tabHome,
+      '/home',
+      () => const ManagementHome(),
+    ),
+    TabSpec(
+      LucideIcons.inbox,
+      (t) => t.tabApprovals,
+      '/approvals',
+      () => const ApprovalsScreen(),
+    ),
+    TabSpec(
+      LucideIcons.network,
+      (t) => t.tabNetwork,
+      '/network',
+      () => const NetworkScreen(),
+    ),
+    TabSpec(
+      LucideIcons.truck,
+      (t) => t.tabRestocks,
+      '/restocks',
+      () => const RestocksScreen(),
+    ),
+    TabSpec(
+      LucideIcons.menu,
+      (t) => t.moreTitle,
+      '/more',
+      () => _more(Role.admin),
+    ),
+  ]),
+  ..._adminMobileExtras(),
+];
+
+/// Admin-only screens reached from More / deep links on the phone (shared covers the rest).
+List<RouteBase> _adminMobileExtras() => [
+  GoRoute(path: '/payouts', builder: (_, _) => const PayoutsScreen()),
+  GoRoute(path: '/reports', builder: (_, _) => const ReportsScreen()),
+  GoRoute(
+    path: '/depots/:id',
+    builder: (_, state) => DepotScreen(depot: state.extra! as Depot),
+  ),
+  GoRoute(
+    path: '/stock/:id/adjust',
+    builder: (_, state) => AdjustStockScreen(
+      locationId: state.pathParameters['id']!,
+      locationName: state.extra as String?,
+    ),
+  ),
+  GoRoute(
+    path: '/regions/:id',
+    builder: (_, state) => RegionScreen(
+      regionId: state.pathParameters['id']!,
+      name: state.extra as String?,
+    ),
+  ),
+  GoRoute(path: '/rewards', builder: (_, _) => const RewardsScreen()),
+  GoRoute(
+    path: '/rewards/new',
+    builder: (_, state) =>
+        RewardFormScreen(preset: state.extra as RewardPreset?),
+  ),
+  GoRoute(path: '/messages', builder: (_, _) => const MessagesScreen()),
+  GoRoute(
+    path: '/messages/new',
+    builder: (_, _) => const ComposeMessageScreen(),
+  ),
+  GoRoute(
+    path: '/messages/:id',
+    builder: (_, state) =>
+        MessageDetailScreen(messageId: state.pathParameters['id']!),
+  ),
+  GoRoute(path: '/people/new', builder: (_, _) => const CreateAccountScreen()),
+  GoRoute(
+    path: '/people/:id',
+    builder: (_, state) => PersonDetailScreen(person: state.extra! as Person),
+  ),
+  GoRoute(
+    path: '/training/manage',
+    builder: (_, _) => const ManageCoursesScreen(),
+  ),
+  GoRoute(
+    path: '/training/manage/:id',
+    builder: (_, state) =>
+        CourseEditorScreen(courseId: state.pathParameters['id']!),
+  ),
+  GoRoute(
+    path: '/training/manage/:id/progress',
+    builder: (_, state) =>
+        CourseProgressScreen(courseId: state.pathParameters['id']!),
+  ),
+  GoRoute(
+    path: '/training/manage/:id/lessons/new',
+    builder: (_, state) =>
+        LessonEditorScreen(courseId: state.pathParameters['id']!),
+  ),
+  GoRoute(
+    path: '/training/manage/:id/lessons/:lesson',
+    builder: (_, state) => LessonEditorScreen(
+      courseId: state.pathParameters['id']!,
+      lesson: state.extra as Lesson?,
+    ),
+  ),
+  GoRoute(path: '/catalog/new', builder: (_, _) => const ProductFormScreen()),
+  GoRoute(
+    path: '/catalog/:id/edit',
+    builder: (_, state) => ProductFormScreen(existing: state.extra as Product?),
+  ),
+];
+
+/// Web admin dashboard: retractable sidebar with every destination inside.
+List<RouteBase> _adminWeb() => [
   ShellRoute(
     builder: (context, state, child) => AdminShell(child: child),
     routes: [
@@ -602,8 +716,51 @@ Widget _more(Role role) => Builder(
   builder: (context) {
     final t = AppLocalizations.of(context);
     final entries = switch (role) {
-      // Admin uses the sidebar console; More is only for other roles.
-      Role.admin => const <MoreEntry>[],
+      Role.admin => [
+        MoreEntry(
+          LucideIcons.banknote,
+          t.rewardsTitle,
+          '/rewards',
+          tone: Tone.success,
+        ),
+        MoreEntry(LucideIcons.warehouse, t.grossistesTitle, '/depots'),
+        MoreEntry(
+          LucideIcons.wallet,
+          t.payoutsTitle,
+          '/payouts',
+          tone: Tone.warning,
+        ),
+        MoreEntry(
+          LucideIcons.megaphone,
+          t.announcementsTitle,
+          '/messages',
+          tone: Tone.info,
+        ),
+        MoreEntry(
+          LucideIcons.graduationCap,
+          t.trainingTitle,
+          '/training/manage',
+        ),
+        MoreEntry(LucideIcons.package, t.catalogTitle, '/catalog'),
+        MoreEntry(
+          LucideIcons.chartNoAxesColumn,
+          t.reportsTitle,
+          '/reports',
+          tone: Tone.info,
+        ),
+        MoreEntry(
+          LucideIcons.bell,
+          t.notificationsTitle,
+          '/notifications',
+          tone: Tone.warning,
+        ),
+        MoreEntry(
+          LucideIcons.settings,
+          t.settingsTitle,
+          '/settings',
+          tone: Tone.muted,
+        ),
+      ],
       Role.responsable => [
         MoreEntry(LucideIcons.warehouse, t.grossistesTitle, '/depots'),
         MoreEntry(LucideIcons.package, t.catalogTitle, '/catalog'),

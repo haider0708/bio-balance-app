@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -54,7 +55,8 @@ class _BioBalanceAppState extends ConsumerState<BioBalanceApp> {
             sessionProvider.select((s) => s.value?.me.role),
           );
           return WebFrame(
-            fullBleed: role == Role.admin,
+            // Full-bleed sidebar console is web-only; the phone stays a normal app.
+            fullBleed: kIsWeb && role == Role.admin,
             child: child ?? const SizedBox(),
           );
         },

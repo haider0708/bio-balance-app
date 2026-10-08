@@ -66,12 +66,14 @@ void main() {
         },
       ]);
     await launch(tester, s, language: 'en', size: const Size(412, 1100));
-    await openAdminNav(tester);
-    await tester.tap(find.text('Announcements').last);
+    await tester.tap(find.text('More').last);
+    await settle(tester);
+    await tester.tap(find.text('Announcements'));
     await settle(tester);
     await screenshot(tester, '50-announcements');
-    await openAdminNav(tester);
-    await tester.tap(find.text('Training').last);
+    await tester.pageBack();
+    await settle(tester);
+    await tester.tap(find.text('Training'));
     await settle(tester);
     await screenshot(tester, '51-training-admin');
   });

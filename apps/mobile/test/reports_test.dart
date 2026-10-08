@@ -42,8 +42,9 @@ void main() {
         'totals': {'sales': 2, 'units': 210, 'rewardMillimes': 0},
       });
     await launch(tester, s, language: 'en');
-    await openAdminNav(tester);
-    await tester.tap(find.text('Reports').last);
+    await tester.tap(find.text('More').last);
+    await settle(tester);
+    await tester.tap(find.text('Reports'));
     await settle(tester);
     await tester.ensureVisible(find.text('Details'));
     await settle(tester, frames: 3);

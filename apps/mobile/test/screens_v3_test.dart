@@ -359,12 +359,14 @@ void main() {
         ],
       });
     await launch(tester, s, language: 'en', size: tall);
-    await openAdminNav(tester);
-    await tester.tap(find.text('Rewards').last);
+    await tester.tap(find.text('More').last);
+    await settle(tester);
+    await tester.tap(find.text('Rewards'));
     await settle(tester);
     await screenshot(tester, '34-rewards-v3');
-    await openAdminNav(tester);
-    await tester.tap(find.text('Reports').last);
+    await tester.pageBack();
+    await settle(tester);
+    await tester.tap(find.text('Reports'));
     await settle(tester);
     await screenshot(tester, '35-reports-v3');
     await tester.tap(find.text('Stores').last);
