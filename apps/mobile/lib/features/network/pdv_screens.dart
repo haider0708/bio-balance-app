@@ -67,7 +67,7 @@ class PdvDetailScreen extends ConsumerWidget {
             await ref.read(pdvProvider(pdvId).future);
           },
           child: ListView(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
             children: [
               AppCard(
                 child: Column(

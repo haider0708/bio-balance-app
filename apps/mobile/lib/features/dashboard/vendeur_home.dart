@@ -54,7 +54,7 @@ class VendeurHome extends ConsumerWidget {
           final pdv = d.objOrNull('pdv');
           final inactive = pdv != null && pdv.str('status') != 'ACTIVE';
           return ListView(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 100),
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
             children: [
               if (inactive)
                 _Banner(
@@ -183,13 +183,13 @@ class _TodayCard extends StatelessWidget {
       padding: const EdgeInsets.all(22),
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        gradient: context.status.gradient,
-        borderRadius: BorderRadius.circular(26),
+        color: context.colors.primary,
+        borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: context.colors.primary.withValues(alpha: 0.25),
-            blurRadius: 24,
-            offset: const Offset(0, 10),
+            color: context.colors.primary.withValues(alpha: 0.18),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
           ),
         ],
       ),

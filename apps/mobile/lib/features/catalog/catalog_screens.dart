@@ -123,7 +123,7 @@ class _CatalogScreenState extends ConsumerState<CatalogScreen> {
                           );
                         },
                         child: ListView.separated(
-                          padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
+                          padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
                           itemCount: shown.length,
                           separatorBuilder: (_, _) => const Gap(8),
                           itemBuilder: (context, i) {

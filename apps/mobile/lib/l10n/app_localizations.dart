@@ -1484,6 +1484,60 @@ abstract class AppLocalizations {
   /// **'Network'**
   String get networkTitle;
 
+  /// No description provided for @navCollapseSidebar.
+  ///
+  /// In en, this message translates to:
+  /// **'Collapse sidebar'**
+  String get navCollapseSidebar;
+
+  /// No description provided for @navExpandSidebar.
+  ///
+  /// In en, this message translates to:
+  /// **'Expand sidebar'**
+  String get navExpandSidebar;
+
+  /// No description provided for @navSectionAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Account'**
+  String get navSectionAccount;
+
+  /// No description provided for @navSectionCommerce.
+  ///
+  /// In en, this message translates to:
+  /// **'Commerce'**
+  String get navSectionCommerce;
+
+  /// No description provided for @navSectionContent.
+  ///
+  /// In en, this message translates to:
+  /// **'Content'**
+  String get navSectionContent;
+
+  /// No description provided for @navSectionInsights.
+  ///
+  /// In en, this message translates to:
+  /// **'Insights'**
+  String get navSectionInsights;
+
+  /// No description provided for @navSectionOperations.
+  ///
+  /// In en, this message translates to:
+  /// **'Operations'**
+  String get navSectionOperations;
+
+  /// No description provided for @navSectionOverview.
+  ///
+  /// In en, this message translates to:
+  /// **'Overview'**
+  String get navSectionOverview;
+
+  /// No description provided for @navSectionPlaces.
+  ///
+  /// In en, this message translates to:
+  /// **'Places'**
+  String get navSectionPlaces;
+
   /// No description provided for @newAccount.
   ///
   /// In en, this message translates to:

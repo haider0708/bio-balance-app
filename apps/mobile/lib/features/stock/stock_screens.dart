@@ -94,7 +94,7 @@ class StockScreen extends ConsumerWidget {
                 declarations.value?.take(3).toList() ??
                 const <StockDeclaration>[];
             return ListView(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 120),
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
               children: [
                 if (pending != null)
                   Padding(
@@ -751,7 +751,7 @@ class CountsToReviewScreen extends ConsumerWidget {
             ],
           ),
           builder: (list) => ListView.separated(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
             itemCount: list.length,
             separatorBuilder: (_, _) => const Gap(8),
             itemBuilder: (context, i) {

@@ -256,7 +256,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                       await ref.read(salesReportProvider(_query).future);
                     },
                     child: ListView(
-                      padding: const EdgeInsets.fromLTRB(16, 4, 16, 100),
+                      padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
                       children: [
                         if (_focus.isNotEmpty) ...[
                           const Gap(4),
@@ -593,7 +593,7 @@ class StockAttentionScreen extends ConsumerWidget {
                 return outB != outA ? outB - outA : b.length - a.length;
               });
             return ListView.separated(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
               itemCount: stores.length,
               separatorBuilder: (_, _) => const Gap(8),
               itemBuilder: (context, i) => _StoreGroup(

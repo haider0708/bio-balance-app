@@ -3,18 +3,21 @@ import 'package:flutter/material.dart';
 
 import '../core/theme/app_theme.dart';
 
-/// On a wide browser window the app keeps the width it was designed for, centred on a calm backdrop.
-/// On a phone, or a narrow window, it fills the screen as usual.
+/// On a wide browser window the phone app keeps a phone-sized column.
+/// The admin console is full-bleed — it uses the whole window.
 class WebFrame extends StatelessWidget {
-  const WebFrame({required this.child, super.key});
+  const WebFrame({required this.child, this.fullBleed = false, super.key});
 
   static const maxWidth = 760.0;
 
   final Widget child;
 
+  /// When true (admin), skip the centered phone column.
+  final bool fullBleed;
+
   @override
   Widget build(BuildContext context) {
-    if (!kIsWeb || MediaQuery.sizeOf(context).width <= maxWidth + 40) {
+    if (!kIsWeb || fullBleed || MediaQuery.sizeOf(context).width <= maxWidth + 40) {
       return child;
     }
     final s = context.status;

@@ -3,6 +3,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/date_symbol_data_local.dart';
 
+import '../core/auth/me.dart';
 import '../core/auth/session.dart';
 import '../core/theme/app_theme.dart';
 import '../l10n/app_localizations.dart';
@@ -48,7 +49,15 @@ class _BioBalanceAppState extends ConsumerState<BioBalanceApp> {
           GlobalCupertinoLocalizations.delegate,
         ],
         routerConfig: router,
-        builder: (context, child) => WebFrame(child: child ?? const SizedBox()),
+        builder: (context, child) {
+          final role = ref.watch(
+            sessionProvider.select((s) => s.value?.me.role),
+          );
+          return WebFrame(
+            fullBleed: role == Role.admin,
+            child: child ?? const SizedBox(),
+          );
+        },
       ),
     );
   }

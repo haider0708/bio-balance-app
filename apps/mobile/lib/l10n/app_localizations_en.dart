@@ -846,6 +846,33 @@ class AppLocalizationsEn extends AppLocalizations {
   String get networkTitle => 'Network';
 
   @override
+  String get navCollapseSidebar => 'Collapse sidebar';
+
+  @override
+  String get navExpandSidebar => 'Expand sidebar';
+
+  @override
+  String get navSectionAccount => 'Account';
+
+  @override
+  String get navSectionCommerce => 'Commerce';
+
+  @override
+  String get navSectionContent => 'Content';
+
+  @override
+  String get navSectionInsights => 'Insights';
+
+  @override
+  String get navSectionOperations => 'Operations';
+
+  @override
+  String get navSectionOverview => 'Overview';
+
+  @override
+  String get navSectionPlaces => 'Places';
+
+  @override
   String get newAccount => 'New account';
 
   @override

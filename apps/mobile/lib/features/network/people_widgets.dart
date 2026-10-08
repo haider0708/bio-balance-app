@@ -130,7 +130,7 @@ class _PeopleListState extends ConsumerState<PeopleList> {
                 ],
               ),
               builder: (list) => ListView.separated(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
                 itemCount: list.length,
                 separatorBuilder: (_, _) => const Gap(8),
                 itemBuilder: (context, i) => PersonTile(

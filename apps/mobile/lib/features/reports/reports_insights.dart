@@ -58,7 +58,7 @@ class _InsightsTab extends ConsumerWidget {
         value: data,
         onRetry: () => ref.invalidate(insightsProvider(range)),
         builder: (d) => ListView(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
           children: builder(context, d),
         ),
       ),

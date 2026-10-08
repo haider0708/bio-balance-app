@@ -25,70 +25,58 @@ class AuthScaffold extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final glow = context.status.glow;
     return Scaffold(
-      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
         leading: showBack ? const BackButton() : null,
         actions: const [
           Padding(padding: EdgeInsets.only(right: 12), child: LanguageToggle()),
         ],
       ),
-      body: DecoratedBox(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.center,
-            colors: [glow, glow.withValues(alpha: 0)],
-          ),
-        ),
-        child: SafeArea(
-          child: Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(24, 8, 24, 32),
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 440),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Center(
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(18),
-                        // The wordmark is dark: on a dark screen it sits on a light plate so it stays readable.
-                        child: ColoredBox(
-                          color: Theme.of(context).brightness == Brightness.dark
-                              ? Colors.white
-                              : Colors.transparent,
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 14,
-                              vertical: 6,
-                            ),
-                            child: Image.asset(
-                              'assets/brand/biobalance-logo.jpg',
-                              height: 64,
-                              fit: BoxFit.contain,
-                            ),
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(24, 8, 24, 32),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 440),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Center(
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(14),
+                      // The wordmark is dark: on a dark screen it sits on a light plate so it stays readable.
+                      child: ColoredBox(
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.white
+                            : Colors.transparent,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 6,
+                          ),
+                          child: Image.asset(
+                            'assets/brand/biobalance-logo.jpg',
+                            height: 64,
+                            fit: BoxFit.contain,
                           ),
                         ),
                       ),
                     ),
-                    const Gap(28),
-                    Text(title, style: context.text.headlineMedium),
-                    if (subtitle != null) ...[
-                      const Gap(8),
-                      Text(
-                        subtitle!,
-                        style: context.text.bodyLarge?.copyWith(
-                          color: context.status.muted,
-                        ),
+                  ),
+                  const Gap(28),
+                  Text(title, style: context.text.headlineMedium),
+                  if (subtitle != null) ...[
+                    const Gap(8),
+                    Text(
+                      subtitle!,
+                      style: context.text.bodyLarge?.copyWith(
+                        color: context.status.muted,
                       ),
-                    ],
-                    const Gap(28),
-                    ...children,
+                    ),
                   ],
-                ),
+                  const Gap(28),
+                  ...children,
+                ],
               ),
             ),
           ),

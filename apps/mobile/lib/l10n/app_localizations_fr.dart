@@ -847,6 +847,33 @@ class AppLocalizationsFr extends AppLocalizations {
   String get networkTitle => 'Réseau';
 
   @override
+  String get navCollapseSidebar => 'Réduire le panneau';
+
+  @override
+  String get navExpandSidebar => 'Agrandir le panneau';
+
+  @override
+  String get navSectionAccount => 'Compte';
+
+  @override
+  String get navSectionCommerce => 'Commerce';
+
+  @override
+  String get navSectionContent => 'Contenu';
+
+  @override
+  String get navSectionInsights => 'Analyses';
+
+  @override
+  String get navSectionOperations => 'Opérations';
+
+  @override
+  String get navSectionOverview => 'Vue d’ensemble';
+
+  @override
+  String get navSectionPlaces => 'Lieux';
+
+  @override
   String get newAccount => 'Nouveau compte';
 
   @override

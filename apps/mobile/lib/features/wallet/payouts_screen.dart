@@ -74,7 +74,7 @@ class _Requests extends ConsumerWidget {
           ],
         ),
         builder: (list) => ListView.separated(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
           itemCount: list.length,
           separatorBuilder: (_, _) => const Gap(8),
           itemBuilder: (context, i) => _RequestCard(payout: list[i]),
@@ -269,7 +269,7 @@ class _History extends ConsumerWidget {
             .where((p) => p.status != PayoutStatus.pending)
             .toList();
         return ListView.separated(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
           itemCount: list.length,
           separatorBuilder: (_, _) => const Gap(8),
           itemBuilder: (context, i) {
@@ -325,7 +325,7 @@ class _Wallets extends ConsumerWidget {
       isEmpty: (l) => l.isEmpty,
       empty: EmptyState(icon: LucideIcons.wallet, title: t.noWalletsYet),
       builder: (list) => ListView.separated(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
         itemCount: list.length,
         separatorBuilder: (_, _) => const Gap(8),
         itemBuilder: (context, i) {

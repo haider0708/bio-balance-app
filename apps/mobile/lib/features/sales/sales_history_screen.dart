@@ -204,7 +204,7 @@ class _SalesHistoryScreenState extends ConsumerState<SalesHistoryScreen> {
         await ref.read(salesDaysProvider(_query).future);
       },
       child: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 0, 16, 100),
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
         children: [
           if (pending.isNotEmpty) _Pending(sales: pending),
           Row(

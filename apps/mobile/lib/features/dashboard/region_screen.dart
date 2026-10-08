@@ -52,7 +52,7 @@ class RegionScreen extends ConsumerWidget {
             final sales = d.obj('sales');
             final locale = t.localeName;
             return ListView(
-              padding: const EdgeInsets.fromLTRB(16, 4, 16, 100),
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
               children: [
                 AppCard(
                   child: Row(

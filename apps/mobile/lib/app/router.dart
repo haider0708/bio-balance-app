@@ -47,6 +47,7 @@ import '../features/training/training_screens.dart';
 import '../features/wallet/payouts_screen.dart';
 import '../features/wallet/wallet_screen.dart';
 import '../l10n/app_localizations.dart';
+import 'admin_shell.dart';
 import 'nav_shell.dart';
 
 const _publicPaths = {'/login', '/activate', '/forgot', '/code'};
@@ -125,7 +126,11 @@ final routerProvider = Provider<GoRouter>((ref) {
             ForgotScreen(code: state.uri.queryParameters['code']),
       ),
       GoRoute(path: '/code', builder: (_, _) => const SizedBox.shrink()),
-      if (role != null) ...[..._roleRoutes(role), ..._shared()],
+      if (role != null) ...[
+        ..._roleRoutes(role),
+        // Admin owns its destinations inside AdminShell; other roles share these.
+        if (role != Role.admin) ..._shared(),
+      ],
     ],
   );
   ref.onDispose(router.dispose);
@@ -278,110 +283,212 @@ List<RouteBase> _grossiste() => [
   ]),
 ];
 
+/// Admin console: retractable sidebar shell with every admin destination inside.
 List<RouteBase> _admin() => [
-  _shell([
-    TabSpec(
-      LucideIcons.house,
-      (t) => t.tabHome,
-      '/home',
-      () => const ManagementHome(),
-    ),
-    TabSpec(
-      LucideIcons.inbox,
-      (t) => t.tabApprovals,
-      '/approvals',
-      () => const ApprovalsScreen(),
-    ),
-    TabSpec(
-      LucideIcons.network,
-      (t) => t.tabNetwork,
-      '/network',
-      () => const NetworkScreen(),
-    ),
-    TabSpec(
-      LucideIcons.truck,
-      (t) => t.tabRestocks,
-      '/restocks',
-      () => const RestocksScreen(),
-    ),
-    TabSpec(
-      LucideIcons.menu,
-      (t) => t.moreTitle,
-      '/more',
-      () => _more(Role.admin),
-    ),
-  ]),
-  GoRoute(path: '/payouts', builder: (_, _) => const PayoutsScreen()),
-  GoRoute(path: '/reports', builder: (_, _) => const ReportsScreen()),
-  GoRoute(
-    path: '/depots/:id',
-    builder: (_, state) => DepotScreen(depot: state.extra! as Depot),
-  ),
-  GoRoute(
-    path: '/stock/:id/adjust',
-    builder: (_, state) => AdjustStockScreen(
-      locationId: state.pathParameters['id']!,
-      locationName: state.extra as String?,
-    ),
-  ),
-  GoRoute(
-    path: '/regions/:id',
-    builder: (_, state) => RegionScreen(
-      regionId: state.pathParameters['id']!,
-      name: state.extra as String?,
-    ),
-  ),
-  GoRoute(path: '/rewards', builder: (_, _) => const RewardsScreen()),
-  GoRoute(
-    path: '/rewards/new',
-    builder: (_, state) =>
-        RewardFormScreen(preset: state.extra as RewardPreset?),
-  ),
-  GoRoute(path: '/messages', builder: (_, _) => const MessagesScreen()),
-  GoRoute(
-    path: '/messages/new',
-    builder: (_, _) => const ComposeMessageScreen(),
-  ),
-  GoRoute(
-    path: '/messages/:id',
-    builder: (_, state) =>
-        MessageDetailScreen(messageId: state.pathParameters['id']!),
-  ),
-  GoRoute(path: '/people/new', builder: (_, _) => const CreateAccountScreen()),
-  GoRoute(
-    path: '/people/:id',
-    builder: (_, state) => PersonDetailScreen(person: state.extra! as Person),
-  ),
-  GoRoute(
-    path: '/training/manage',
-    builder: (_, _) => const ManageCoursesScreen(),
-  ),
-  GoRoute(
-    path: '/training/manage/:id',
-    builder: (_, state) =>
-        CourseEditorScreen(courseId: state.pathParameters['id']!),
-  ),
-  GoRoute(
-    path: '/training/manage/:id/progress',
-    builder: (_, state) =>
-        CourseProgressScreen(courseId: state.pathParameters['id']!),
-  ),
-  GoRoute(
-    path: '/training/manage/:id/lessons/new',
-    builder: (_, state) =>
-        LessonEditorScreen(courseId: state.pathParameters['id']!),
-  ),
-  GoRoute(
-    path: '/training/manage/:id/lessons/:lesson',
-    builder: (_, state) => LessonEditorScreen(
-      courseId: state.pathParameters['id']!,
-      lesson: state.extra as Lesson?,
-    ),
-  ),
-  GoRoute(path: '/catalog/new', builder: (_, _) => const ProductFormScreen()),
-  GoRoute(
-    path: '/catalog/:id/edit',
-    builder: (_, state) => ProductFormScreen(existing: state.extra as Product?),
+  ShellRoute(
+    builder: (context, state, child) => AdminShell(child: child),
+    routes: [
+      GoRoute(
+        path: '/home',
+        builder: (_, _) => const ManagementHome(),
+      ),
+      GoRoute(
+        path: '/approvals',
+        builder: (_, _) => const ApprovalsScreen(),
+      ),
+      GoRoute(
+        path: '/network',
+        builder: (_, _) => const NetworkScreen(),
+      ),
+      GoRoute(
+        path: '/restocks',
+        builder: (_, _) => const RestocksScreen(),
+      ),
+      GoRoute(path: '/payouts', builder: (_, _) => const PayoutsScreen()),
+      GoRoute(path: '/reports', builder: (_, _) => const ReportsScreen()),
+      GoRoute(path: '/rewards', builder: (_, _) => const RewardsScreen()),
+      GoRoute(
+        path: '/rewards/new',
+        builder: (_, state) =>
+            RewardFormScreen(preset: state.extra as RewardPreset?),
+      ),
+      GoRoute(path: '/messages', builder: (_, _) => const MessagesScreen()),
+      GoRoute(
+        path: '/messages/new',
+        builder: (_, _) => const ComposeMessageScreen(),
+      ),
+      GoRoute(
+        path: '/messages/:id',
+        builder: (_, state) =>
+            MessageDetailScreen(messageId: state.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: '/training/manage',
+        builder: (_, _) => const ManageCoursesScreen(),
+      ),
+      GoRoute(
+        path: '/training/manage/:id',
+        builder: (_, state) =>
+            CourseEditorScreen(courseId: state.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: '/training/manage/:id/progress',
+        builder: (_, state) =>
+            CourseProgressScreen(courseId: state.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: '/training/manage/:id/lessons/new',
+        builder: (_, state) =>
+            LessonEditorScreen(courseId: state.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: '/training/manage/:id/lessons/:lesson',
+        builder: (_, state) => LessonEditorScreen(
+          courseId: state.pathParameters['id']!,
+          lesson: state.extra as Lesson?,
+        ),
+      ),
+      GoRoute(path: '/catalog', builder: (_, _) => const _CatalogEntry()),
+      GoRoute(
+        path: '/catalog/new',
+        builder: (_, _) => const ProductFormScreen(),
+      ),
+      GoRoute(
+        path: '/catalog/:id',
+        builder: (_, state) =>
+            _ProductEntry(product: state.extra! as Product),
+      ),
+      GoRoute(
+        path: '/catalog/:id/edit',
+        builder: (_, state) =>
+            ProductFormScreen(existing: state.extra as Product?),
+      ),
+      GoRoute(path: '/depots', builder: (_, _) => const DepotsScreen()),
+      GoRoute(
+        path: '/depots/:id',
+        builder: (_, state) => DepotScreen(depot: state.extra! as Depot),
+      ),
+      GoRoute(
+        path: '/notifications',
+        builder: (_, _) => const NotificationsScreen(),
+      ),
+      GoRoute(path: '/settings', builder: (_, _) => const SettingsScreen()),
+      GoRoute(
+        path: '/regions/:id',
+        builder: (_, state) => RegionScreen(
+          regionId: state.pathParameters['id']!,
+          name: state.extra as String?,
+        ),
+      ),
+      GoRoute(path: '/people/new', builder: (_, _) => const CreateAccountScreen()),
+      GoRoute(
+        path: '/people/:id',
+        builder: (_, state) =>
+            PersonDetailScreen(person: state.extra! as Person),
+      ),
+      GoRoute(
+        path: '/photos',
+        builder: (_, state) {
+          final (ids, index) = state.extra! as (List<String>, int);
+          return PhotoGalleryScreen(ids: ids, initial: index);
+        },
+      ),
+      GoRoute(
+        path: '/photo/:id',
+        builder: (_, state) =>
+            PhotoViewerScreen(mediaId: state.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: '/stock-attention',
+        builder: (_, _) => const StockAttentionScreen(),
+      ),
+      GoRoute(path: '/training', builder: (_, _) => const CoursesScreen()),
+      GoRoute(
+        path: '/training/:id',
+        builder: (_, state) =>
+            CourseScreen(courseId: state.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: '/training/:id/lessons/:lesson',
+        builder: (_, state) => LessonScreen(
+          courseId: state.pathParameters['id']!,
+          lessonId: state.pathParameters['lesson']!,
+        ),
+      ),
+      GoRoute(
+        path: '/groups/:id',
+        builder: (_, state) => GroupScreen(group: state.extra! as Group),
+      ),
+      GoRoute(path: '/pdvs/new', builder: (_, _) => const PdvFormScreen()),
+      GoRoute(
+        path: '/pdvs/:id',
+        builder: (_, state) =>
+            PdvDetailScreen(pdvId: state.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: '/pdvs/:id/edit',
+        builder: (_, state) => PdvFormScreen(existing: state.extra as Pdv?),
+      ),
+      GoRoute(
+        path: '/pdvs/:id/sales',
+        builder: (_, state) =>
+            SalesHistoryScreen(pdvId: state.pathParameters['id']),
+      ),
+      GoRoute(
+        path: '/pdvs/:id/members/new',
+        builder: (_, state) =>
+            AddMemberScreen(pdvId: state.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: '/stock/review',
+        builder: (_, _) => const CountsToReviewScreen(),
+      ),
+      GoRoute(
+        path: '/stock/declarations/:id',
+        builder: (_, state) =>
+            DeclarationScreen(declarationId: state.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: '/stock/:id',
+        builder: (_, state) => StockScreen(
+          locationId: state.pathParameters['id']!,
+          title: state.extra as String?,
+        ),
+      ),
+      GoRoute(
+        path: '/stock/:id/declare',
+        builder: (_, state) => DeclareStockScreen(
+          locationId: state.pathParameters['id']!,
+          locationName: state.extra as String?,
+        ),
+      ),
+      GoRoute(
+        path: '/stock/:id/adjust',
+        builder: (_, state) => AdjustStockScreen(
+          locationId: state.pathParameters['id']!,
+          locationName: state.extra as String?,
+        ),
+      ),
+      GoRoute(
+        path: '/restocks/new',
+        builder: (_, state) =>
+            RequestRestockScreen(pdvId: state.extra as String?),
+      ),
+      GoRoute(
+        path: '/restocks/:id',
+        builder: (_, state) =>
+            RestockDetailScreen(orderId: state.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: '/restocks/:id/ship',
+        builder: (_, state) => ShipScreen(order: state.extra! as RestockOrder),
+      ),
+      GoRoute(
+        path: '/restocks/:id/receive',
+        builder: (_, state) =>
+            ReceiveScreen(order: state.extra! as RestockOrder),
+      ),
+    ],
   ),
 ];
 
@@ -495,51 +602,8 @@ Widget _more(Role role) => Builder(
   builder: (context) {
     final t = AppLocalizations.of(context);
     final entries = switch (role) {
-      Role.admin => [
-        MoreEntry(
-          LucideIcons.banknote,
-          t.rewardsTitle,
-          '/rewards',
-          tone: Tone.success,
-        ),
-        MoreEntry(LucideIcons.warehouse, t.grossistesTitle, '/depots'),
-        MoreEntry(
-          LucideIcons.wallet,
-          t.payoutsTitle,
-          '/payouts',
-          tone: Tone.warning,
-        ),
-        MoreEntry(
-          LucideIcons.megaphone,
-          t.announcementsTitle,
-          '/messages',
-          tone: Tone.info,
-        ),
-        MoreEntry(
-          LucideIcons.graduationCap,
-          t.trainingTitle,
-          '/training/manage',
-        ),
-        MoreEntry(LucideIcons.package, t.catalogTitle, '/catalog'),
-        MoreEntry(
-          LucideIcons.chartNoAxesColumn,
-          t.reportsTitle,
-          '/reports',
-          tone: Tone.info,
-        ),
-        MoreEntry(
-          LucideIcons.bell,
-          t.notificationsTitle,
-          '/notifications',
-          tone: Tone.warning,
-        ),
-        MoreEntry(
-          LucideIcons.settings,
-          t.settingsTitle,
-          '/settings',
-          tone: Tone.muted,
-        ),
-      ],
+      // Admin uses the sidebar console; More is only for other roles.
+      Role.admin => const <MoreEntry>[],
       Role.responsable => [
         MoreEntry(LucideIcons.warehouse, t.grossistesTitle, '/depots'),
         MoreEntry(LucideIcons.package, t.catalogTitle, '/catalog'),

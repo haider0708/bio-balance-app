@@ -34,9 +34,8 @@ void main() {
       ]);
     await launch(tester, s, language: 'en');
     await screenshot(tester, '40-dark-admin-home');
-    await tester.tap(find.text('More').last);
-    await settle(tester);
-    await tester.tap(find.text('Rewards'));
+    await openAdminNav(tester);
+    await tester.tap(find.text('Rewards').last);
     await settle(tester);
     await screenshot(tester, '41-dark-rewards');
   });

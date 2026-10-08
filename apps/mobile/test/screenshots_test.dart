@@ -466,9 +466,11 @@ void main() {
     final s = server('ADMIN');
     await launch(tester, s, language: 'fr');
     await screenshot(tester, '20-admin-home');
+    await openAdminNav(tester);
     await tester.tap(find.text('Validations').last);
     await settle(tester);
     await screenshot(tester, '21-admin-approvals');
+    await openAdminNav(tester);
     await tester.tap(find.text('Réseau').last);
     await settle(tester);
     await screenshot(tester, '22-admin-network');
@@ -587,6 +589,7 @@ void main() {
         },
       ]);
     await launch(tester, s, language: 'fr');
+    await openAdminNav(tester);
     await tester.tap(find.text('Réassorts').last);
     await settle(tester);
     await screenshot(tester, '23-admin-restocks');
@@ -595,15 +598,13 @@ void main() {
     await screenshot(tester, '24-admin-restock-review');
     await tester.tap(find.byType(BackButton).first);
     await settle(tester);
-    await tester.tap(find.text('Plus').last);
-    await settle(tester);
+    await openAdminNav(tester);
     await screenshot(tester, '25-admin-more');
-    await tester.tap(find.text('Récompenses'));
+    await tester.tap(find.text('Récompenses').last);
     await settle(tester);
     await screenshot(tester, '26-admin-rewards');
-    await tester.tap(find.byType(BackButton).first);
-    await settle(tester);
-    await tester.tap(find.text('Annonces'));
+    await openAdminNav(tester);
+    await tester.tap(find.text('Annonces').last);
     await settle(tester);
     await screenshot(tester, '27-admin-announcements');
     await tester.tap(find.text('Nouvelle annonce').last);

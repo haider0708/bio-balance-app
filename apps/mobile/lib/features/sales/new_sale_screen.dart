@@ -178,7 +178,7 @@ class _NewSaleScreenState extends ConsumerState<NewSaleScreen> {
                         message: all.isEmpty ? t.nothingInStockHint : null,
                       )
                     : ListView.separated(
-                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 120),
+                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
                         itemCount: shown.length,
                         separatorBuilder: (_, _) => const Gap(8),
                         itemBuilder: (context, i) => _ProductTile(
@@ -279,8 +279,8 @@ class _ProductTile extends StatelessWidget {
                 width: 44,
                 height: 44,
                 decoration: BoxDecoration(
-                  gradient: context.status.gradient,
-                  borderRadius: BorderRadius.circular(14),
+                  color: context.colors.primary,
+                  borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(LucideIcons.plus, color: context.colors.onPrimary),
               ),

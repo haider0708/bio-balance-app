@@ -67,7 +67,7 @@ class _Body extends ConsumerWidget {
     final regions = data.list('regions');
     final waiting = approvals.integer('total');
     return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 100),
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
       children: [
         if (admin && waiting > 0)
           _Hero(
@@ -422,15 +422,19 @@ class _Hero extends StatelessWidget {
     final fg = highlight ? context.colors.onPrimary : context.colors.primary;
     return Container(
       decoration: BoxDecoration(
-        gradient: highlight ? context.status.gradient : null,
-        color: highlight ? null : context.colors.primaryContainer,
-        borderRadius: BorderRadius.circular(24),
+        color: highlight
+            ? context.colors.primary
+            : context.colors.primaryContainer,
+        borderRadius: BorderRadius.circular(16),
+        border: highlight
+            ? null
+            : Border.all(color: context.status.hairline),
         boxShadow: highlight
             ? [
                 BoxShadow(
-                  color: context.colors.primary.withValues(alpha: 0.28),
-                  blurRadius: 24,
-                  offset: const Offset(0, 10),
+                  color: context.colors.primary.withValues(alpha: 0.18),
+                  blurRadius: 16,
+                  offset: const Offset(0, 6),
                 ),
               ]
             : null,
@@ -438,7 +442,7 @@ class _Hero extends StatelessWidget {
       child: Material(
         type: MaterialType.transparency,
         child: InkWell(
-          borderRadius: BorderRadius.circular(24),
+          borderRadius: BorderRadius.circular(16),
           onTap: onTap,
           child: Padding(
             padding: const EdgeInsets.all(20),

@@ -41,7 +41,7 @@ class WalletScreen extends ConsumerWidget {
         builder: (w) => RefreshIndicator(
           onRefresh: () => _refresh(ref),
           child: ListView(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
             children: [
               _BalanceCard(wallet: w),
               const Gap(12),
@@ -110,15 +110,15 @@ class _BalanceCard extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            context.colors.primary,
-            Color.lerp(context.colors.primary, Palette.leaf, 0.45)!,
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(20),
+        color: context.colors.primary,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: context.colors.primary.withValues(alpha: 0.18),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

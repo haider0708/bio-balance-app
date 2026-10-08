@@ -68,7 +68,7 @@ class PagedList<T> extends StatefulWidget {
     required this.itemBuilder,
     required this.empty,
     this.header,
-    this.padding = const EdgeInsets.fromLTRB(16, 8, 16, 100),
+    this.padding = const EdgeInsets.fromLTRB(16, 8, 16, 24),
     super.key,
   });
 

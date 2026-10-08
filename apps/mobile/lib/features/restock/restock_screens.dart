@@ -117,7 +117,7 @@ class _RestocksScreenState extends ConsumerState<RestocksScreen> {
                   ],
                 ),
                 builder: (list) => ListView.separated(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
                   itemCount: list.length,
                   separatorBuilder: (_, _) => const Gap(8),
                   itemBuilder: (context, i) => RestockTile(order: list[i]),
@@ -202,8 +202,9 @@ class _Steps extends StatelessWidget {
               duration: const Duration(milliseconds: 300),
               height: 5,
               decoration: BoxDecoration(
-                gradient: i <= reached ? context.status.gradient : null,
-                color: i <= reached ? null : context.status.mutedSoft,
+                color: i <= reached
+                    ? context.colors.primary
+                    : context.status.mutedSoft,
                 borderRadius: BorderRadius.circular(3),
               ),
             ),

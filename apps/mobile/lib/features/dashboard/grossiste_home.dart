@@ -39,7 +39,7 @@ class GrossisteHome extends ConsumerWidget {
           final stock = d.obj('stock');
           final last = d.objOrNull('lastDeclaration');
           return ListView(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 100),
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
             children: [
               AppCard(
                 onTap: () => context.go('/orders'),

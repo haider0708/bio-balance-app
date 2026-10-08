@@ -8,6 +8,7 @@ void main() {
     'the admin can create a store, a group and a member, the button follows the tab',
     (tester) async {
       await launch(tester, base.server('ADMIN'), language: 'en');
+      await openAdminNav(tester);
       await tester.tap(find.text('Network').last);
       await settle(tester);
       expect(find.text('New store'), findsOneWidget);

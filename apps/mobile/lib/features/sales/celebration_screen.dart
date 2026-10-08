@@ -84,7 +84,7 @@ class _Recorded extends StatelessWidget {
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    context.colors.primaryContainer,
+                    context.status.mutedSoft,
                     context.theme.scaffoldBackgroundColor,
                   ],
                 ),

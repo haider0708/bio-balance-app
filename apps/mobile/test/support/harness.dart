@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import 'fake_server.dart';
 
@@ -48,6 +49,14 @@ Future<void> settle(WidgetTester tester, {int frames = 30}) async {
   for (var i = 0; i < frames; i++) {
     await tester.pump(const Duration(milliseconds: 100));
   }
+}
+
+/// Open the admin drawer (phone layout) so sidebar destinations can be tapped.
+Future<void> openAdminNav(WidgetTester tester) async {
+  final menu = find.byIcon(LucideIcons.menu);
+  expect(menu, findsWidgets);
+  await tester.tap(menu.first);
+  await settle(tester);
 }
 
 /// Save what is on screen as a PNG (build/screenshots/NAME.png) for a visual review.

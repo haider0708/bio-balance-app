@@ -434,7 +434,7 @@ class _ProductPickerSheetState extends ConsumerState<ProductPickerSheet> {
                   );
                 return ListView.builder(
                   controller: scroll,
-                  padding: const EdgeInsets.only(bottom: 100),
+                  padding: const EdgeInsets.only(bottom: 24),
                   itemCount: shown.length,
                   itemBuilder: (context, i) {
                     final p = shown[i];

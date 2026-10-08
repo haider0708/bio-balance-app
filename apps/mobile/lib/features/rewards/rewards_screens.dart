@@ -98,7 +98,7 @@ class _TodayState extends ConsumerState<_Today> {
           byFamily.putIfAbsent(r.family, () => []).add(r);
         }
         return ListView(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
           children: [
             TextField(
               decoration: InputDecoration(
@@ -309,7 +309,7 @@ class _PeriodsState extends ConsumerState<_Periods> {
               title: t.noRulesHere,
             ),
             builder: (list) => ListView.separated(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 100),
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
               itemCount: list.length,
               separatorBuilder: (_, _) => const Gap(8),
               itemBuilder: (context, i) {

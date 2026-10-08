@@ -95,8 +95,7 @@ class IconBadge extends StatelessWidget {
       width: size,
       height: size,
       decoration: BoxDecoration(
-        color: gradient ? null : c.soft,
-        gradient: gradient ? context.status.gradient : null,
+        color: gradient ? context.colors.primary : c.soft,
         borderRadius: BorderRadius.circular(size * 0.32),
       ),
       child: Icon(
@@ -308,8 +307,7 @@ class Avatar extends StatelessWidget {
       height: size,
       alignment: Alignment.center,
       decoration: BoxDecoration(
-        color: tone == Tone.neutral ? null : c.soft,
-        gradient: tone == Tone.neutral ? context.status.gradient : null,
+        color: tone == Tone.neutral ? context.colors.primary : c.soft,
         shape: BoxShape.circle,
       ),
       child: Text(

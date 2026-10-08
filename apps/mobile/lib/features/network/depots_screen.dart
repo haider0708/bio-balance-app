@@ -45,7 +45,7 @@ class DepotsScreen extends ConsumerWidget {
             ],
           ),
           builder: (list) => ListView.separated(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
             itemCount: list.length,
             separatorBuilder: (_, _) => const Gap(8),
             itemBuilder: (context, i) {
@@ -194,7 +194,7 @@ class DepotScreen extends ConsumerWidget {
           await ref.read(stockLevelsProvider(depot.id).future);
         },
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
           children: [
             AppCard(
               child: Column(

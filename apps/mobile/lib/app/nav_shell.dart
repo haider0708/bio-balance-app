@@ -1,6 +1,5 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 
 import '../core/theme/app_theme.dart';
@@ -13,8 +12,7 @@ class NavDestination {
   final int? badge;
 }
 
-/// The floating, frosted bar around a role's main tabs. The selected tab grows into a
-/// gradient pill with its label; each tab keeps its own place while you switch.
+/// Docked bottom bar: flush, hairline top, solid selected state. No float, no blur.
 class NavShell extends StatelessWidget {
   const NavShell({required this.shell, required this.destinations, super.key});
 
@@ -24,30 +22,20 @@ class NavShell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final s = context.status;
-    final bottom = MediaQuery.paddingOf(context).bottom;
     return Scaffold(
       body: shell,
-      bottomNavigationBar: Padding(
-        padding: EdgeInsets.fromLTRB(14, 0, 14, bottom > 0 ? bottom : 12),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(28),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 22, sigmaY: 22),
-            child: Container(
-              height: 70,
-              padding: const EdgeInsets.symmetric(horizontal: 6),
-              decoration: BoxDecoration(
-                color: s.card.withValues(alpha: 0.82),
-                borderRadius: BorderRadius.circular(28),
-                border: Border.all(color: s.hairline),
-                boxShadow: [
-                  BoxShadow(
-                    color: s.shadow,
-                    blurRadius: 30,
-                    offset: const Offset(0, 10),
-                  ),
-                ],
-              ),
+      bottomNavigationBar: Material(
+        color: s.card,
+        elevation: 0,
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            border: Border(top: BorderSide(color: s.hairline)),
+          ),
+          child: SafeArea(
+            top: false,
+            minimum: const EdgeInsets.only(bottom: 4),
+            child: SizedBox(
+              height: 60,
               child: Row(
                 children: [
                   for (var i = 0; i < destinations.length; i++)
@@ -55,10 +43,13 @@ class NavShell extends StatelessWidget {
                       child: _Tab(
                         destination: destinations[i],
                         selected: i == shell.currentIndex,
-                        onTap: () => shell.goBranch(
-                          i,
-                          initialLocation: i == shell.currentIndex,
-                        ),
+                        onTap: () {
+                          HapticFeedback.selectionClick();
+                          shell.goBranch(
+                            i,
+                            initialLocation: i == shell.currentIndex,
+                          );
+                        },
                       ),
                     ),
                 ],
@@ -85,9 +76,11 @@ class _Tab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final s = context.status;
+    final primary = context.colors.primary;
     final badge = destination.badge ?? 0;
-    // The bar keeps its shape for people who enlarge their text: its labels grow only a little.
     final media = MediaQuery.of(context);
+    final color = selected ? primary : s.muted;
+
     return MediaQuery(
       data: media.copyWith(
         textScaler: media.textScaler.clamp(maxScaleFactor: 1.15),
@@ -96,50 +89,42 @@ class _Tab extends StatelessWidget {
         selected: selected,
         button: true,
         label: destination.label,
-        child: GestureDetector(
-          behavior: HitTestBehavior.opaque,
+        child: InkWell(
           onTap: onTap,
+          splashColor: primary.withValues(alpha: 0.08),
+          highlightColor: primary.withValues(alpha: 0.04),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               AnimatedContainer(
-                duration: const Duration(milliseconds: 260),
+                duration: const Duration(milliseconds: 220),
                 curve: Curves.easeOutCubic,
-                width: selected ? 54 : 40,
-                height: 32,
+                width: 28,
+                height: 3,
+                margin: const EdgeInsets.only(bottom: 6),
                 decoration: BoxDecoration(
-                  gradient: selected ? s.gradient : null,
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: selected
-                      ? [
-                          BoxShadow(
-                            color: context.colors.primary.withValues(
-                              alpha: 0.3,
-                            ),
-                            blurRadius: 12,
-                            offset: const Offset(0, 5),
-                          ),
-                        ]
-                      : null,
+                  color: selected ? primary : Colors.transparent,
+                  borderRadius: BorderRadius.circular(2),
                 ),
-                child: Center(
-                  child: Badge(
-                    isLabelVisible: badge > 0,
-                    label: Text('$badge'),
-                    child: Icon(
-                      destination.icon,
-                      size: 21,
-                      color: selected ? context.colors.onPrimary : s.muted,
-                    ),
-                  ),
+              ),
+              Badge(
+                isLabelVisible: badge > 0,
+                label: Text('$badge'),
+                child: AnimatedScale(
+                  scale: selected ? 1.05 : 1,
+                  duration: const Duration(milliseconds: 200),
+                  curve: Curves.easeOutCubic,
+                  child: Icon(destination.icon, size: 22, color: color),
                 ),
               ),
               const SizedBox(height: 4),
               AnimatedDefaultTextStyle(
-                duration: const Duration(milliseconds: 200),
+                duration: const Duration(milliseconds: 180),
                 style: context.text.labelSmall!.copyWith(
-                  fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
-                  color: selected ? context.colors.primary : s.muted,
+                  fontSize: 11.5,
+                  fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
+                  letterSpacing: 0.1,
+                  color: color,
                 ),
                 child: Text(
                   destination.label,
