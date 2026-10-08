@@ -4,7 +4,9 @@ services:
     ports: !override ['127.0.0.1:18081:80']
     volumes: !override
       - ./shared-vps/nginx.conf:/etc/nginx/nginx.conf:ro
-      - /opt/biobalance-web:/usr/share/biobalance-web/admin:ro
+      - ./shared-vps/nginx-common.conf:/etc/nginx/biobalance-common.conf:ro
+      - ./shared-vps/nginx-api-proxy.conf:/etc/nginx/biobalance-api-proxy.conf:ro
+      - /opt/biobalance-web:/usr/share/biobalance-web:ro
     mem_limit: 128m
     cpus: 1
     read_only: true

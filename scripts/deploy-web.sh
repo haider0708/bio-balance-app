@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
-# Build the admin web page from the app's code and publish it on the shared go2code VPS at https://api.galylio.com/admin/
+# Build the admin web page from the app's code and publish it on the shared go2code VPS at https://admin.galylio.com/
 # Usage: scripts/deploy-web.sh        (needs Flutter locally, `ssh go2code` and sudo rights there)
 # The page needs no restart: nginx serves the files from /opt/biobalance-web and re-checks them on every visit.
 set -euo pipefail
 host=${DEPLOY_HOST:-go2code}
-url=${DEPLOY_WEB_URL:-https://api.galylio.com/admin/}
+url=${DEPLOY_WEB_URL:-https://admin.galylio.com/}
 cd "$(dirname "$0")/../apps/mobile"
 
 echo "== Building the web page"
-flutter build web --release --base-href /admin/ --no-web-resources-cdn --csp --no-source-maps --no-wasm-dry-run >/dev/null
+flutter build web --release --base-href / --dart-define=API_BASE_URL=https://admin.galylio.com --no-web-resources-cdn --csp --no-source-maps --no-wasm-dry-run >/dev/null
 cp -r build/web "/tmp/biobalance-web.$$"
 trap 'rm -rf "/tmp/biobalance-web.$$"' EXIT
 
