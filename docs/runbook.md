@@ -40,6 +40,15 @@ sudo cat /opt/biobalance/infrastructure/production/setup/admin-reset.json   # ne
 
 This ends their sessions and touches no business data.
 
+## The admin web page
+
+The administrator can also work from a browser: **https://api.galylio.com/admin/**. It is the same app as the phone's, built for the web from the same code (`apps/mobile`), with the same screens, languages and sign-in (password plus authenticator code). Only administrators can sign in there; anyone else is told to use the phone app.
+
+- It is served by the existing nginx container from `/opt/biobalance-web` on the server (mounted read-only at `/admin/`), through the same Apache and Cloudflare as the API. The page and the API share one address, so no cross-site settings are needed.
+- Publish a new version: `scripts/deploy-web.sh` (builds locally, uploads, checks). No restart is needed. Nginx re-checks the files on every visit, so people get the new version on their next reload.
+- Changes to the nginx settings (`shared-vps/nginx.conf`, the `/admin/` block with its security headers) go out with `scripts/deploy-vps.sh`.
+- Rolling back: check out the older commit and run `scripts/deploy-web.sh` again.
+
 ## Environment keys
 
 `API_PUBLIC_URL` (for example `https://api.galylio.com`) is used by the API and the worker to put the "copy your code" link in emails.
