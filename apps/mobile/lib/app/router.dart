@@ -62,7 +62,6 @@ final routerProvider = Provider<GoRouter>((ref) {
   ref.onDispose(refresh.dispose);
   final role = ref.watch(sessionProvider.select((s) => s.value?.me.role));
 
-  GoRouter? self;
   final router = GoRouter(
     initialLocation: '/splash',
     refreshListenable: refresh,
@@ -81,15 +80,15 @@ final routerProvider = Provider<GoRouter>((ref) {
       }
       if (!signedIn) return _publicPaths.contains(path) ? null : '/login';
       if ((path == '/splash' || _publicPaths.contains(path)) &&
-          _landing != null) {
+          _landing != null &&
+          role != null) {
         final target = _landing!;
         _landing = null;
         final uri = Uri.tryParse(target);
         if (uri != null &&
             uri.path != '/' &&
             uri.path != '/splash' &&
-            !_publicPaths.contains(uri.path) &&
-            self?.configuration.findMatch(uri).isError == false) {
+            !_publicPaths.contains(uri.path)) {
           return target;
         }
       }
@@ -124,7 +123,6 @@ final routerProvider = Provider<GoRouter>((ref) {
       if (role != null) ...[..._roleRoutes(role), ..._shared()],
     ],
   );
-  self = router;
   ref.onDispose(router.dispose);
   return router;
 });
