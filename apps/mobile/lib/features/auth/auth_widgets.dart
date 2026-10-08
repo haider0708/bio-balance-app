@@ -55,10 +55,22 @@ class AuthScaffold extends StatelessWidget {
                     Center(
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(18),
-                        child: Image.asset(
-                          'assets/brand/biobalance-logo.jpg',
-                          height: 76,
-                          fit: BoxFit.contain,
+                        // The wordmark is dark: on a dark screen it sits on a light plate so it stays readable.
+                        child: ColoredBox(
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.white
+                              : Colors.transparent,
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 6,
+                            ),
+                            child: Image.asset(
+                              'assets/brand/biobalance-logo.jpg',
+                              height: 64,
+                              fit: BoxFit.contain,
+                            ),
+                          ),
                         ),
                       ),
                     ),

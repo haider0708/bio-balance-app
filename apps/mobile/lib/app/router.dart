@@ -1,3 +1,6 @@
+import 'dart:ui' show PlatformDispatcher;
+
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -48,6 +51,10 @@ import 'nav_shell.dart';
 
 const _publicPaths = {'/login', '/activate', '/forgot', '/code'};
 
+/// The page the browser was opened on (a bookmark, a reload): after the saved session is checked the
+/// app goes there, once, instead of always landing on the home tab.
+String? _landing = kIsWeb ? PlatformDispatcher.instance.defaultRouteName : null;
+
 /// The app's routes. They depend on who is signed in, so a new router is built at sign-in and sign-out.
 final routerProvider = Provider<GoRouter>((ref) {
   final refresh = ValueNotifier<int>(0);
@@ -55,6 +62,7 @@ final routerProvider = Provider<GoRouter>((ref) {
   ref.onDispose(refresh.dispose);
   final role = ref.watch(sessionProvider.select((s) => s.value?.me.role));
 
+  GoRouter? self;
   final router = GoRouter(
     initialLocation: '/splash',
     refreshListenable: refresh,
@@ -72,6 +80,19 @@ final routerProvider = Provider<GoRouter>((ref) {
             : '/activate?code=$code';
       }
       if (!signedIn) return _publicPaths.contains(path) ? null : '/login';
+      if ((path == '/splash' || _publicPaths.contains(path)) &&
+          _landing != null) {
+        final target = _landing!;
+        _landing = null;
+        final uri = Uri.tryParse(target);
+        if (uri != null &&
+            uri.path != '/' &&
+            uri.path != '/splash' &&
+            !_publicPaths.contains(uri.path) &&
+            self?.configuration.findMatch(uri).isError == false) {
+          return target;
+        }
+      }
       if (_publicPaths.contains(path) || path == '/splash') return '/home';
       if (path.startsWith('/catalog') &&
           session.value?.me.role == Role.grossiste) {
@@ -103,6 +124,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       if (role != null) ...[..._roleRoutes(role), ..._shared()],
     ],
   );
+  self = router;
   ref.onDispose(router.dispose);
   return router;
 });
