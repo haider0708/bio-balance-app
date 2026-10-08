@@ -26,7 +26,7 @@ class BackgroundAlerts {
   static bool _asked = false;
 
   static Future<void> start() async {
-    if (defaultTargetPlatform != TargetPlatform.android) return;
+    if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) return;
     await Workmanager().initialize(alertsDispatcher);
     await Workmanager().registerPeriodicTask(
       _taskName,
@@ -39,7 +39,8 @@ class BackgroundAlerts {
 
   /// Android 13+ asks the person once whether alerts may be shown.
   static Future<void> askPermission() async {
-    if (_asked || defaultTargetPlatform != TargetPlatform.android) return;
+    if (_asked || kIsWeb || defaultTargetPlatform != TargetPlatform.android)
+      return;
     _asked = true;
     try {
       await _notifications.initialize(

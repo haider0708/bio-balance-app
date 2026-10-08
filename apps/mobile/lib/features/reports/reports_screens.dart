@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:share_plus/share_plus.dart';
+
+import '../../core/files/files.dart';
 
 import '../../core/auth/me.dart';
 import '../../core/auth/session.dart';
@@ -90,22 +90,14 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   Future<void> _export() async {
     final t = AppLocalizations.of(context);
     await perform(context, () async {
-      final dir = await getTemporaryDirectory();
-      final path =
-          '${dir.path}/biobalance-sales-${_range.from}-${_range.to}.csv';
-      await ref
+      final bytes = await ref
           .read(reportsRepositoryProvider)
-          .downloadCsv(
-            from: _range.from,
-            to: _range.to,
-            regionId: _regionId,
-            path: path,
-          );
-      await SharePlus.instance.share(
-        ShareParams(
-          files: [XFile(path, mimeType: 'text/csv')],
-          subject: t.reportsTitle,
-        ),
+          .csv(from: _range.from, to: _range.to, regionId: _regionId);
+      await exportFile(
+        'biobalance-sales-${_range.from}-${_range.to}.csv',
+        bytes,
+        'text/csv',
+        subject: t.reportsTitle,
       );
     });
   }

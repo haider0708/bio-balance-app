@@ -35,9 +35,6 @@ class MediaRepository {
   Future<Uint8List> bytes(String id) async => Uint8List.fromList(
     await _ref.read(apiClientProvider).bytes('/v1/media/$id'),
   );
-
-  Future<void> download(String id, String path) =>
-      _ref.read(apiClientProvider).download('/v1/media/$id', path);
 }
 
 final mediaRepositoryProvider = Provider<MediaRepository>(MediaRepository.new);

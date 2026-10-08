@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/json.dart';
@@ -159,18 +161,18 @@ class ReportsRepository {
         as Json,
   );
 
-  Future<void> downloadCsv({
+  Future<Uint8List> csv({
     required String from,
     required String to,
     String? regionId,
-    required String path,
-  }) => _ref
-      .read(apiClientProvider)
-      .download(
-        '/v1/reports/sales.csv',
-        path,
-        query: {'from': from, 'to': to, 'regionId': regionId},
-      );
+  }) async => Uint8List.fromList(
+    await _ref
+        .read(apiClientProvider)
+        .bytes(
+          '/v1/reports/sales.csv',
+          query: {'from': from, 'to': to, 'regionId': regionId},
+        ),
+  );
 
   Future<List<AttentionRow>> attention({String? regionId}) async => jsonList(
     await _ref

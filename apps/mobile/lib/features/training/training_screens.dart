@@ -1,15 +1,17 @@
+import 'dart:async';
+
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
-import 'package:open_filex/open_filex.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:video_player/video_player.dart';
 
 import '../../core/auth/me.dart';
 import '../../core/auth/session.dart';
 import '../../core/config.dart';
+import '../../core/files/files.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/async_body.dart';
 import '../../core/widgets/components.dart';
@@ -361,20 +363,32 @@ class _VideoState extends ConsumerState<_Video> {
   void initState() {
     super.initState();
     final mediaId = widget.lesson.mediaId;
-    if (mediaId != null) {
-      final controller = VideoPlayerController.networkUrl(
-        Uri.parse('${AppConfig.apiBaseUrl}/v1/media/$mediaId'),
-        httpHeaders: {'Authorization': 'Bearer ${ref.read(tokenProvider)}'},
-      );
+    if (mediaId != null) unawaited(_open(mediaId));
+  }
+
+  Future<void> _open(String mediaId) async {
+    try {
+      // A browser cannot send the sign-in header with a video, so it plays the downloaded file.
+      final local = kIsWeb
+          ? localObjectUrl(
+              await ref.read(mediaRepositoryProvider).bytes(mediaId),
+              'video/mp4',
+            )
+          : null;
+      if (!mounted) return;
+      final controller = local != null
+          ? VideoPlayerController.networkUrl(Uri.parse(local))
+          : VideoPlayerController.networkUrl(
+              Uri.parse('${AppConfig.apiBaseUrl}/v1/media/$mediaId'),
+              httpHeaders: {
+                'Authorization': 'Bearer ${ref.read(tokenProvider)}',
+              },
+            );
       _controller = controller;
-      controller
-          .initialize()
-          .then((_) {
-            if (mounted) setState(() {});
-          })
-          .catchError((Object e) {
-            if (mounted) setState(() => _error = e);
-          });
+      await controller.initialize();
+      if (mounted) setState(() {});
+    } catch (e) {
+      if (mounted) setState(() => _error = e);
     }
   }
 
@@ -443,14 +457,10 @@ class _Pdf extends ConsumerWidget {
           ? null
           : () async {
               await perform(context, () async {
-                final dir = await getTemporaryDirectory();
-                final path = '${dir.path}/${lesson.id}.pdf';
-                await ref
+                final bytes = await ref
                     .read(mediaRepositoryProvider)
-                    .download(lesson.mediaId!, path);
-                final result = await OpenFilex.open(path);
-                if (result.type != ResultType.done)
-                  throw StateError('no viewer');
+                    .bytes(lesson.mediaId!);
+                await viewFile('${lesson.id}.pdf', bytes, 'application/pdf');
               });
             },
     );

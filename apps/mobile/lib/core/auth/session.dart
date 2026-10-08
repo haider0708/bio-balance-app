@@ -1,12 +1,14 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart' show ThemeMode;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../api/api_client.dart';
+import '../config.dart';
 import '../api/api_exception.dart';
 import '../api/json.dart';
 import 'me.dart';
@@ -92,6 +94,13 @@ class SessionNotifier extends AsyncNotifier<Session?> {
     final token = await storage.read(key: _tokenKey);
     if (token == null) return null;
     ref.read(tokenProvider.notifier).set(token);
+    if (kIsWeb && AppConfig.webAdminOnly) {
+      final stored = await storage.read(key: _meKey);
+      if (stored != null && (jsonDecode(stored) as Json)['role'] != 'ADMIN') {
+        await _clear();
+        return null;
+      }
+    }
     final cached = await storage.read(key: _meKey);
     try {
       final me = Me.fromJson(
@@ -127,6 +136,24 @@ class SessionNotifier extends AsyncNotifier<Session?> {
     }) as Json;
     final token = response.str('token');
     final me = Me.fromJson(response.obj('me'));
+    if (kIsWeb && AppConfig.webAdminOnly && me.role != Role.admin) {
+      // Not an admin: close the session that was just opened and point to the phone app.
+      ref.read(tokenProvider.notifier).set(token);
+      try {
+        await ref.read(apiClientProvider).post('/v1/auth/logout');
+      } on ApiException {
+        // The session expires by itself.
+      }
+      ref.read(tokenProvider.notifier).set(null);
+      final fr = (ref.read(localeProvider) ?? 'fr') == 'fr';
+      throw ApiException(
+        code: 'WEB_ADMIN_ONLY',
+        message: fr
+            ? 'Cette page est réservée aux administrateurs. Utilisez l’application BioBalance sur votre téléphone.'
+            : 'This page is for administrators. Please use the BioBalance app on your phone.',
+        status: 403,
+      );
+    }
     final storage = ref.read(secureStorageProvider);
     await storage.write(key: _tokenKey, value: token);
     await storage.write(key: _meKey, value: jsonEncode(_meJson(me)));

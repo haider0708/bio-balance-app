@@ -7,6 +7,7 @@ import '../core/auth/session.dart';
 import '../core/theme/app_theme.dart';
 import '../l10n/app_localizations.dart';
 import 'router.dart';
+import 'web_frame.dart';
 
 class BioBalanceApp extends ConsumerStatefulWidget {
   const BioBalanceApp({super.key});
@@ -47,6 +48,7 @@ class _BioBalanceAppState extends ConsumerState<BioBalanceApp> {
           GlobalCupertinoLocalizations.delegate,
         ],
         routerConfig: router,
+        builder: (context, child) => WebFrame(child: child ?? const SizedBox()),
       ),
     );
   }

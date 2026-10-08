@@ -96,27 +96,12 @@ class ApiClient {
     ),
   );
 
-  /// Download a file (a PDF, a CSV) to [savePath].
-  Future<void> download(
-    String path,
-    String savePath, {
-    Map<String, Object?>? query,
-  }) async {
-    await _send(
-      () => _dio.download(
-        path,
-        savePath,
-        queryParameters: _clean(query),
-        options: _options(),
-      ),
-    );
-  }
-
   /// Raw bytes, e.g. a proof photo.
-  Future<List<int>> bytes(String path) async {
+  Future<List<int>> bytes(String path, {Map<String, Object?>? query}) async {
     final response = await _send(
       () => _dio.get<List<int>>(
         path,
+        queryParameters: _clean(query),
         options: _options(type: ResponseType.bytes),
       ),
     );

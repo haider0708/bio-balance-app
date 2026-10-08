@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -429,14 +427,13 @@ class _LessonEditorScreenState extends ConsumerState<LessonEditorScreen> {
       type: FileType.custom,
       allowedExtensions: _kind == LessonKind.pdf ? ['pdf'] : ['mp4'],
     );
-    final path = picked?.path;
-    if (path == null || !mounted) return;
+    if (picked == null || !mounted) return;
     setState(() => _uploading = true);
     try {
-      final bytes = await File(path).readAsBytes();
+      final bytes = await picked.readAsBytes();
       final id = await ref
           .read(mediaRepositoryProvider)
-          .upload(bytes, purpose: 'TRAINING', filename: picked!.name);
+          .upload(bytes, purpose: 'TRAINING', filename: picked.name);
       if (mounted)
         setState(() {
           _mediaId = id;
