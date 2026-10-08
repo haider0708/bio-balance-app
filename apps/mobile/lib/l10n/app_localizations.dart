@@ -2606,6 +2606,30 @@ abstract class AppLocalizations {
   /// **'Administrator'**
   String get roleAdmin;
 
+  /// No description provided for @adminConsoleTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Admin console'**
+  String get adminConsoleTitle;
+
+  /// No description provided for @adminConsoleTagline.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage the BioBalance network: stores, stock, restocks, rewards and approvals.'**
+  String get adminConsoleTagline;
+
+  /// No description provided for @adminSignInTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in to the console'**
+  String get adminSignInTitle;
+
+  /// No description provided for @adminSignInSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Administrator access only. Use your password and authenticator code.'**
+  String get adminSignInSubtitle;
+
   /// No description provided for @roleGrossiste.
   ///
   /// In en, this message translates to:

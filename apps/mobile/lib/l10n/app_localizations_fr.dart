@@ -1484,6 +1484,20 @@ class AppLocalizationsFr extends AppLocalizations {
   String get roleAdmin => 'Administrateur';
 
   @override
+  String get adminConsoleTitle => 'Console d’administration';
+
+  @override
+  String get adminConsoleTagline =>
+      'Pilotez le réseau BioBalance : magasins, stock, réassorts, récompenses et validations.';
+
+  @override
+  String get adminSignInTitle => 'Connexion à la console';
+
+  @override
+  String get adminSignInSubtitle =>
+      'Accès administrateur uniquement. Mot de passe et code d’authentification.';
+
+  @override
   String get roleGrossiste => 'Grossiste';
 
   @override

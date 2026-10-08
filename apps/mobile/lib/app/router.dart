@@ -14,6 +14,7 @@ import '../features/approvals/approvals_screen.dart';
 import '../features/auth/activate_screen.dart';
 import '../features/dashboard/region_screen.dart';
 import '../features/auth/forgot_screen.dart';
+import '../features/auth/admin_login_screen.dart';
 import '../features/auth/login_screen.dart';
 import '../features/catalog/catalog_screens.dart';
 import '../features/catalog/product.dart';
@@ -112,8 +113,13 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/login',
-        builder: (_, state) =>
-            LoginScreen(email: state.uri.queryParameters['email']),
+        builder: (_, state) {
+          final email = state.uri.queryParameters['email'];
+          // Web is the admin console: a dedicated sign-in, not the phone auth screen.
+          return kIsWeb
+              ? AdminLoginScreen(email: email)
+              : LoginScreen(email: email);
+        },
       ),
       GoRoute(
         path: '/activate',

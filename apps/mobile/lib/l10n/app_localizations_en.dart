@@ -1479,6 +1479,20 @@ class AppLocalizationsEn extends AppLocalizations {
   String get roleAdmin => 'Administrator';
 
   @override
+  String get adminConsoleTitle => 'Admin console';
+
+  @override
+  String get adminConsoleTagline =>
+      'Manage the BioBalance network: stores, stock, restocks, rewards and approvals.';
+
+  @override
+  String get adminSignInTitle => 'Sign in to the console';
+
+  @override
+  String get adminSignInSubtitle =>
+      'Administrator access only. Use your password and authenticator code.';
+
+  @override
   String get roleGrossiste => 'Grossiste';
 
   @override
