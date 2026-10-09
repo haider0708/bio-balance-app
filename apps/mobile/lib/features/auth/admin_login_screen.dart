@@ -1,77 +1,22 @@
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
 
-import '../../core/api/api_exception.dart';
-import '../../core/auth/session.dart';
 import '../../core/config.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/components.dart';
-import '../../core/widgets/feedback.dart';
 import '../../l10n/app_localizations.dart';
 import 'auth_widgets.dart';
+import 'login_screen.dart';
 
 /// Web-only administrator sign-in: full-bleed console layout, not the phone auth screen.
-class AdminLoginScreen extends ConsumerStatefulWidget {
+class AdminLoginScreen extends StatelessWidget {
   const AdminLoginScreen({this.email, super.key});
 
   final String? email;
 
   @override
-  ConsumerState<AdminLoginScreen> createState() => _AdminLoginScreenState();
-}
-
-class _AdminLoginScreenState extends ConsumerState<AdminLoginScreen> {
-  final _form = GlobalKey<FormState>();
-  late final _email = TextEditingController(text: widget.email);
-  final _password = TextEditingController();
-  final _otp = TextEditingController();
-  bool _needsCode = false;
-
-  @override
-  void dispose() {
-    _email.dispose();
-    _password.dispose();
-    _otp.dispose();
-    super.dispose();
-  }
-
-  Future<void> _submit() async {
-    if (!_form.currentState!.validate()) return;
-    final t = AppLocalizations.of(context);
-    try {
-      await ref
-          .read(sessionProvider.notifier)
-          .login(email: _email.text, password: _password.text, otp: _otp.text);
-    } on ApiException catch (error) {
-      if (!mounted) return;
-      if (error.code == 'MFA_REQUIRED') {
-        setState(() => _needsCode = true);
-        if (_otp.text.isNotEmpty) {
-          showMessage(context, t.codeInvalid, error: true);
-        }
-        return;
-      }
-      showError(context, error);
-    } catch (error) {
-      if (mounted) showError(context, error);
-    }
-  }
-
-  @override
   Widget build(BuildContext context) {
     final wide = MediaQuery.sizeOf(context).width >= 900;
-    final form = _LoginCard(
-      formKey: _form,
-      email: _email,
-      password: _password,
-      otp: _otp,
-      needsCode: _needsCode,
-      onSubmit: _submit,
-    );
+    final form = _Card(email: email);
 
     return Scaffold(
       backgroundColor: context.theme.scaffoldBackgroundColor,
@@ -274,29 +219,14 @@ class _Ring extends StatelessWidget {
   }
 }
 
-class _LoginCard extends StatelessWidget {
-  const _LoginCard({
-    required this.formKey,
-    required this.email,
-    required this.password,
-    required this.otp,
-    required this.needsCode,
-    required this.onSubmit,
-  });
+class _Card extends StatelessWidget {
+  const _Card({this.email});
 
-  final GlobalKey<FormState> formKey;
-  final TextEditingController email;
-  final TextEditingController password;
-  final TextEditingController otp;
-  final bool needsCode;
-  final Future<void> Function() onSubmit;
+  final String? email;
 
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
-    final s = context.status;
-    assert(kIsWeb, 'AdminLoginScreen is web-only');
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -317,86 +247,10 @@ class _LoginCard extends StatelessWidget {
         const Gap(8),
         Text(
           t.adminSignInSubtitle,
-          style: context.text.bodyMedium?.copyWith(color: s.muted),
+          style: context.text.bodyMedium?.copyWith(color: context.status.muted),
         ),
         const Gap(28),
-        Form(
-          key: formKey,
-          child: AutofillGroup(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                TextFormField(
-                  controller: email,
-                  keyboardType: TextInputType.emailAddress,
-                  textInputAction: TextInputAction.next,
-                  autofillHints: const [
-                    AutofillHints.username,
-                    AutofillHints.email,
-                  ],
-                  decoration: InputDecoration(
-                    labelText: t.email,
-                    prefixIcon: Icon(
-                      LucideIcons.mail,
-                      size: 18,
-                      color: s.muted,
-                    ),
-                  ),
-                  validator: (v) =>
-                      (v == null || !v.contains('@')) ? t.emailInvalid : null,
-                ),
-                const Gap(14),
-                PasswordField(
-                  controller: password,
-                  label: t.password,
-                  autofillHints: const [AutofillHints.password],
-                  textInputAction: needsCode
-                      ? TextInputAction.next
-                      : TextInputAction.done,
-                  onSubmitted: (_) => needsCode ? null : onSubmit(),
-                  validator: (v) =>
-                      (v == null || v.isEmpty) ? t.passwordRequired : null,
-                ),
-                if (needsCode) ...[
-                  const Gap(14),
-                  TextFormField(
-                    controller: otp,
-                    autofocus: true,
-                    keyboardType: TextInputType.number,
-                    inputFormatters: [
-                      FilteringTextInputFormatter.digitsOnly,
-                      LengthLimitingTextInputFormatter(6),
-                    ],
-                    textInputAction: TextInputAction.done,
-                    autofillHints: const [AutofillHints.oneTimeCode],
-                    decoration: InputDecoration(
-                      labelText: t.authenticatorCode,
-                      helperText: t.authenticatorCodeHelp,
-                      prefixIcon: Icon(
-                        LucideIcons.shieldCheck,
-                        size: 18,
-                        color: s.muted,
-                      ),
-                    ),
-                    onFieldSubmitted: (_) => onSubmit(),
-                    validator: (v) =>
-                        (v == null || v.length != 6) ? t.codeInvalid : null,
-                  ),
-                ],
-                const Gap(8),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton(
-                    onPressed: () => context.push('/forgot'),
-                    child: Text(t.forgotPassword),
-                  ),
-                ),
-                const Gap(8),
-                AsyncButton(label: t.signIn, onPressed: onSubmit),
-              ],
-            ),
-          ),
-        ),
+        SignInForm(email: email, icons: true),
       ],
     );
   }

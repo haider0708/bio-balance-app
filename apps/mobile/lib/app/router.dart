@@ -132,12 +132,9 @@ final routerProvider = Provider<GoRouter>((ref) {
             ForgotScreen(code: state.uri.queryParameters['code']),
       ),
       GoRoute(path: '/code', builder: (_, _) => const SizedBox.shrink()),
-      if (role != null) ...[
-        ..._roleRoutes(role),
-        // Web admin owns every destination inside AdminShell; phone admin + other roles use shared routes.
-        if (!(role == Role.admin && kIsWeb)) ..._shared(),
-      ],
+      if (role != null) ..._roleRoutes(role),
     ],
+    errorBuilder: (_, _) => const _NotFound(),
   );
   ref.onDispose(router.dispose);
   return router;
@@ -174,12 +171,51 @@ StatefulShellRoute _shell(List<TabSpec> tabs) =>
     );
 
 List<RouteBase> _roleRoutes(Role role) => switch (role) {
-  Role.vendeur => _vendeur(),
-  Role.responsable => _responsable(),
-  Role.grossiste => _grossiste(),
-  // Web = sidebar dashboard; phone = bottom-tab mobile app.
-  Role.admin => kIsWeb ? _adminWeb() : _adminMobile(),
+  Role.vendeur => [..._vendeur(), ..._shared()],
+  Role.responsable => [..._responsable(), ..._shared()],
+  Role.grossiste => [..._grossiste(), ..._shared()],
+  // On the phone the admin has bottom tabs; in a browser, a sidebar around every page.
+  Role.admin =>
+    kIsWeb
+        ? [
+            ShellRoute(
+              builder: (_, _, child) => AdminShell(child: child),
+              routes: [
+                GoRoute(
+                  path: '/home',
+                  builder: (_, _) => const ManagementHome(),
+                ),
+                GoRoute(
+                  path: '/approvals',
+                  builder: (_, _) => const ApprovalsScreen(),
+                ),
+                GoRoute(
+                  path: '/network',
+                  builder: (_, _) => const NetworkScreen(),
+                ),
+                GoRoute(
+                  path: '/restocks',
+                  builder: (_, _) => const RestocksScreen(),
+                ),
+                ..._admin(),
+                ..._shared(),
+              ],
+            ),
+          ]
+        : [..._adminTabs(), ..._admin(), ..._shared()],
 };
+
+/// A page built from an object handed over by the previous screen. Opened without it
+/// (a reload, a bookmark, the browser's back button) it goes to [fallback] instead of failing.
+GoRoute _withExtra<T>(
+  String path,
+  String fallback,
+  Widget Function(GoRouterState state, T extra) builder,
+) => GoRoute(
+  path: path,
+  redirect: (_, state) => state.extra is T ? null : fallback,
+  builder: (_, state) => builder(state, state.extra as T),
+);
 
 List<RouteBase> _vendeur() => [
   _shell([
@@ -210,19 +246,20 @@ List<RouteBase> _vendeur() => [
   ]),
   GoRoute(path: '/sell', builder: (_, _) => const NewSaleScreen()),
   GoRoute(path: '/scan', builder: (_, _) => const ScannerScreen()),
-  GoRoute(
-    path: '/sale-done',
-    builder: (_, state) =>
-        CelebrationScreen(outcome: state.extra! as SaleOutcome),
+  _withExtra<SaleOutcome>(
+    '/sale-done',
+    '/home',
+    (_, outcome) => CelebrationScreen(outcome: outcome),
   ),
   GoRoute(
     path: '/sales/:id',
     builder: (_, state) =>
         SaleDetailScreen(saleId: state.pathParameters['id']!),
   ),
-  GoRoute(
-    path: '/sales/:id/correct',
-    builder: (_, state) => CorrectSaleScreen(sale: state.extra! as Sale),
+  _withExtra<Sale>(
+    '/sales/:id/correct',
+    '/sales',
+    (_, sale) => CorrectSaleScreen(sale: sale),
   ),
 ];
 
@@ -290,8 +327,8 @@ List<RouteBase> _grossiste() => [
   ]),
 ];
 
-/// Phone admin: classic bottom tabs + More, same chrome as other mobile roles.
-List<RouteBase> _adminMobile() => [
+/// The admin's bottom tabs on the phone.
+List<RouteBase> _adminTabs() => [
   _shell([
     TabSpec(
       LucideIcons.house,
@@ -324,16 +361,16 @@ List<RouteBase> _adminMobile() => [
       () => _more(Role.admin),
     ),
   ]),
-  ..._adminMobileExtras(),
 ];
 
-/// Admin-only screens reached from More / deep links on the phone (shared covers the rest).
-List<RouteBase> _adminMobileExtras() => [
+/// Screens only the admin opens, the same on the phone and on the web.
+List<RouteBase> _admin() => [
   GoRoute(path: '/payouts', builder: (_, _) => const PayoutsScreen()),
   GoRoute(path: '/reports', builder: (_, _) => const ReportsScreen()),
-  GoRoute(
-    path: '/depots/:id',
-    builder: (_, state) => DepotScreen(depot: state.extra! as Depot),
+  _withExtra<Depot>(
+    '/depots/:id',
+    '/depots',
+    (_, depot) => DepotScreen(depot: depot),
   ),
   GoRoute(
     path: '/stock/:id/adjust',
@@ -366,9 +403,10 @@ List<RouteBase> _adminMobileExtras() => [
         MessageDetailScreen(messageId: state.pathParameters['id']!),
   ),
   GoRoute(path: '/people/new', builder: (_, _) => const CreateAccountScreen()),
-  GoRoute(
-    path: '/people/:id',
-    builder: (_, state) => PersonDetailScreen(person: state.extra! as Person),
+  _withExtra<Person>(
+    '/people/:id',
+    '/network',
+    (_, person) => PersonDetailScreen(person: person),
   ),
   GoRoute(
     path: '/training/manage',
@@ -403,205 +441,6 @@ List<RouteBase> _adminMobileExtras() => [
   ),
 ];
 
-/// Web admin dashboard: retractable sidebar with every destination inside.
-List<RouteBase> _adminWeb() => [
-  ShellRoute(
-    builder: (context, state, child) => AdminShell(child: child),
-    routes: [
-      GoRoute(path: '/home', builder: (_, _) => const ManagementHome()),
-      GoRoute(path: '/approvals', builder: (_, _) => const ApprovalsScreen()),
-      GoRoute(path: '/network', builder: (_, _) => const NetworkScreen()),
-      GoRoute(path: '/restocks', builder: (_, _) => const RestocksScreen()),
-      GoRoute(path: '/payouts', builder: (_, _) => const PayoutsScreen()),
-      GoRoute(path: '/reports', builder: (_, _) => const ReportsScreen()),
-      GoRoute(path: '/rewards', builder: (_, _) => const RewardsScreen()),
-      GoRoute(
-        path: '/rewards/new',
-        builder: (_, state) =>
-            RewardFormScreen(preset: state.extra as RewardPreset?),
-      ),
-      GoRoute(path: '/messages', builder: (_, _) => const MessagesScreen()),
-      GoRoute(
-        path: '/messages/new',
-        builder: (_, _) => const ComposeMessageScreen(),
-      ),
-      GoRoute(
-        path: '/messages/:id',
-        builder: (_, state) =>
-            MessageDetailScreen(messageId: state.pathParameters['id']!),
-      ),
-      GoRoute(
-        path: '/training/manage',
-        builder: (_, _) => const ManageCoursesScreen(),
-      ),
-      GoRoute(
-        path: '/training/manage/:id',
-        builder: (_, state) =>
-            CourseEditorScreen(courseId: state.pathParameters['id']!),
-      ),
-      GoRoute(
-        path: '/training/manage/:id/progress',
-        builder: (_, state) =>
-            CourseProgressScreen(courseId: state.pathParameters['id']!),
-      ),
-      GoRoute(
-        path: '/training/manage/:id/lessons/new',
-        builder: (_, state) =>
-            LessonEditorScreen(courseId: state.pathParameters['id']!),
-      ),
-      GoRoute(
-        path: '/training/manage/:id/lessons/:lesson',
-        builder: (_, state) => LessonEditorScreen(
-          courseId: state.pathParameters['id']!,
-          lesson: state.extra as Lesson?,
-        ),
-      ),
-      GoRoute(path: '/catalog', builder: (_, _) => const _CatalogEntry()),
-      GoRoute(
-        path: '/catalog/new',
-        builder: (_, _) => const ProductFormScreen(),
-      ),
-      GoRoute(
-        path: '/catalog/:id',
-        builder: (_, state) => _ProductEntry(product: state.extra! as Product),
-      ),
-      GoRoute(
-        path: '/catalog/:id/edit',
-        builder: (_, state) =>
-            ProductFormScreen(existing: state.extra as Product?),
-      ),
-      GoRoute(path: '/depots', builder: (_, _) => const DepotsScreen()),
-      GoRoute(
-        path: '/depots/:id',
-        builder: (_, state) => DepotScreen(depot: state.extra! as Depot),
-      ),
-      GoRoute(
-        path: '/notifications',
-        builder: (_, _) => const NotificationsScreen(),
-      ),
-      GoRoute(path: '/settings', builder: (_, _) => const SettingsScreen()),
-      GoRoute(
-        path: '/regions/:id',
-        builder: (_, state) => RegionScreen(
-          regionId: state.pathParameters['id']!,
-          name: state.extra as String?,
-        ),
-      ),
-      GoRoute(
-        path: '/people/new',
-        builder: (_, _) => const CreateAccountScreen(),
-      ),
-      GoRoute(
-        path: '/people/:id',
-        builder: (_, state) =>
-            PersonDetailScreen(person: state.extra! as Person),
-      ),
-      GoRoute(
-        path: '/photos',
-        builder: (_, state) {
-          final (ids, index) = state.extra! as (List<String>, int);
-          return PhotoGalleryScreen(ids: ids, initial: index);
-        },
-      ),
-      GoRoute(
-        path: '/photo/:id',
-        builder: (_, state) =>
-            PhotoViewerScreen(mediaId: state.pathParameters['id']!),
-      ),
-      GoRoute(
-        path: '/stock-attention',
-        builder: (_, _) => const StockAttentionScreen(),
-      ),
-      GoRoute(path: '/training', builder: (_, _) => const CoursesScreen()),
-      GoRoute(
-        path: '/training/:id',
-        builder: (_, state) =>
-            CourseScreen(courseId: state.pathParameters['id']!),
-      ),
-      GoRoute(
-        path: '/training/:id/lessons/:lesson',
-        builder: (_, state) => LessonScreen(
-          courseId: state.pathParameters['id']!,
-          lessonId: state.pathParameters['lesson']!,
-        ),
-      ),
-      GoRoute(
-        path: '/groups/:id',
-        builder: (_, state) => GroupScreen(group: state.extra! as Group),
-      ),
-      GoRoute(path: '/pdvs/new', builder: (_, _) => const PdvFormScreen()),
-      GoRoute(
-        path: '/pdvs/:id',
-        builder: (_, state) =>
-            PdvDetailScreen(pdvId: state.pathParameters['id']!),
-      ),
-      GoRoute(
-        path: '/pdvs/:id/edit',
-        builder: (_, state) => PdvFormScreen(existing: state.extra as Pdv?),
-      ),
-      GoRoute(
-        path: '/pdvs/:id/sales',
-        builder: (_, state) =>
-            SalesHistoryScreen(pdvId: state.pathParameters['id']),
-      ),
-      GoRoute(
-        path: '/pdvs/:id/members/new',
-        builder: (_, state) =>
-            AddMemberScreen(pdvId: state.pathParameters['id']!),
-      ),
-      GoRoute(
-        path: '/stock/review',
-        builder: (_, _) => const CountsToReviewScreen(),
-      ),
-      GoRoute(
-        path: '/stock/declarations/:id',
-        builder: (_, state) =>
-            DeclarationScreen(declarationId: state.pathParameters['id']!),
-      ),
-      GoRoute(
-        path: '/stock/:id',
-        builder: (_, state) => StockScreen(
-          locationId: state.pathParameters['id']!,
-          title: state.extra as String?,
-        ),
-      ),
-      GoRoute(
-        path: '/stock/:id/declare',
-        builder: (_, state) => DeclareStockScreen(
-          locationId: state.pathParameters['id']!,
-          locationName: state.extra as String?,
-        ),
-      ),
-      GoRoute(
-        path: '/stock/:id/adjust',
-        builder: (_, state) => AdjustStockScreen(
-          locationId: state.pathParameters['id']!,
-          locationName: state.extra as String?,
-        ),
-      ),
-      GoRoute(
-        path: '/restocks/new',
-        builder: (_, state) =>
-            RequestRestockScreen(pdvId: state.extra as String?),
-      ),
-      GoRoute(
-        path: '/restocks/:id',
-        builder: (_, state) =>
-            RestockDetailScreen(orderId: state.pathParameters['id']!),
-      ),
-      GoRoute(
-        path: '/restocks/:id/ship',
-        builder: (_, state) => ShipScreen(order: state.extra! as RestockOrder),
-      ),
-      GoRoute(
-        path: '/restocks/:id/receive',
-        builder: (_, state) =>
-            ReceiveScreen(order: state.extra! as RestockOrder),
-      ),
-    ],
-  ),
-];
-
 /// Screens that several roles can open.
 List<RouteBase> _shared() => [
   GoRoute(
@@ -609,13 +448,10 @@ List<RouteBase> _shared() => [
     builder: (_, _) => const NotificationsScreen(),
   ),
   GoRoute(path: '/settings', builder: (_, _) => const SettingsScreen()),
-  GoRoute(
-    path: '/photos',
-    builder: (_, state) {
-      final (ids, index) = state.extra! as (List<String>, int);
-      return PhotoGalleryScreen(ids: ids, initial: index);
-    },
-  ),
+  _withExtra<(List<String>, int)>('/photos', '/home', (_, extra) {
+    final (ids, index) = extra;
+    return PhotoGalleryScreen(ids: ids, initial: index);
+  }),
   GoRoute(
     path: '/photo/:id',
     builder: (_, state) =>
@@ -638,15 +474,16 @@ List<RouteBase> _shared() => [
       lessonId: state.pathParameters['lesson']!,
     ),
   ),
-  GoRoute(path: '/catalog', builder: (context, _) => const _CatalogEntry()),
-  GoRoute(
-    path: '/catalog/:id',
-    builder: (context, state) =>
-        _ProductEntry(product: state.extra! as Product),
+  GoRoute(path: '/catalog', builder: (_, _) => const _CatalogEntry()),
+  _withExtra<Product>(
+    '/catalog/:id',
+    '/catalog',
+    (_, product) => _ProductEntry(product: product),
   ),
-  GoRoute(
-    path: '/groups/:id',
-    builder: (_, state) => GroupScreen(group: state.extra! as Group),
+  _withExtra<Group>(
+    '/groups/:id',
+    '/network',
+    (_, group) => GroupScreen(group: group),
   ),
   GoRoute(path: '/pdvs/new', builder: (_, _) => const PdvFormScreen()),
   GoRoute(
@@ -700,10 +537,16 @@ List<RouteBase> _shared() => [
   ),
   GoRoute(
     path: '/restocks/:id/ship',
+    redirect: (_, state) => state.extra is RestockOrder
+        ? null
+        : '/restocks/${state.pathParameters['id']}',
     builder: (_, state) => ShipScreen(order: state.extra! as RestockOrder),
   ),
   GoRoute(
     path: '/restocks/:id/receive',
+    redirect: (_, state) => state.extra is RestockOrder
+        ? null
+        : '/restocks/${state.pathParameters['id']}',
     builder: (_, state) => ReceiveScreen(order: state.extra! as RestockOrder),
   ),
 ];
@@ -843,4 +686,25 @@ class _ProductEntry extends ConsumerWidget {
     product: product,
     editable: ref.watch(meProvider).role == Role.admin,
   );
+}
+
+/// An address the app does not know (an old link, a page of another role).
+class _NotFound extends StatelessWidget {
+  const _NotFound();
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    return Scaffold(
+      body: EmptyState(
+        icon: LucideIcons.mapPinOff,
+        title: t.pageNotFound,
+        message: t.pageNotFoundHint,
+        action: FilledButton(
+          onPressed: () => context.go('/home'),
+          child: Text(t.backToHome),
+        ),
+      ),
+    );
+  }
 }

@@ -658,9 +658,15 @@ export class RestockService {
   }
 
   get(actor: Actor, id: string) {
-    return this.db.run(actor, async (tx) =>
-      this.one(tx, await this.load(tx, id)),
-    );
+    // A plain read: no row lock, so viewing an order never holds up someone acting on it.
+    return this.db.run(actor, async (tx) => {
+      const order = await tx.restockOrder.findUnique({
+        where: { id },
+        include: { lines: true },
+      });
+      if (!order) throw notFound("Restock");
+      return this.one(tx, order);
+    });
   }
 
   // ───────────────────────── Helpers ─────────────────────────

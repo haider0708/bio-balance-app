@@ -273,53 +273,38 @@ class InsightsOverview extends ConsumerWidget {
         final slow = d.objOrNull('slowDay');
         final totalUnits = totals.integer('units');
         return [
-          Row(
+          AutoGrid(
             children: [
-              Expanded(
-                child: _Kpi(
-                  icon: LucideIcons.package,
-                  label: t.totalUnits,
-                  value: '$totalUnits',
-                  change: totals['unitsChange'] as int?,
-                  hint: t.vsPrevious(totals.integer('previousUnits')),
-                ),
+              _Kpi(
+                icon: LucideIcons.package,
+                label: t.totalUnits,
+                value: '$totalUnits',
+                change: totals['unitsChange'] as int?,
+                hint: t.vsPrevious(totals.integer('previousUnits')),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _Kpi(
-                  icon: LucideIcons.banknote,
-                  label: t.reward,
-                  value: Money.format(
-                    totals.integer('rewardMillimes'),
-                    locale,
-                    unit: false,
-                  ),
-                  hint: 'TND',
-                  change: totals['rewardChange'] as int?,
+              _Kpi(
+                icon: LucideIcons.banknote,
+                label: t.reward,
+                value: Money.format(
+                  totals.integer('rewardMillimes'),
+                  locale,
+                  unit: false,
                 ),
+                hint: 'TND',
+                change: totals['rewardChange'] as int?,
               ),
-            ],
-          ),
-          const Gap(12),
-          Row(
-            children: [
-              Expanded(
-                child: _Kpi(
-                  icon: LucideIcons.receipt,
-                  label: t.salesTitleShort,
-                  value: '${totals.integer('sales')}',
-                  change: totals['salesChange'] as int?,
-                  hint: t.unitsPerSale('${totals['unitsPerSale']}'),
-                ),
+              _Kpi(
+                icon: LucideIcons.receipt,
+                label: t.salesTitleShort,
+                value: '${totals.integer('sales')}',
+                change: totals['salesChange'] as int?,
+                hint: t.unitsPerSale('${totals['unitsPerSale']}'),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _Kpi(
-                  icon: LucideIcons.store,
-                  label: t.activeStoresLabel,
-                  value: '${totals.integer('activeStores')}',
-                  hint: t.sellersCount(totals.integer('activeSellers')),
-                ),
+              _Kpi(
+                icon: LucideIcons.store,
+                label: t.activeStoresLabel,
+                value: '${totals.integer('activeStores')}',
+                hint: t.sellersCount(totals.integer('activeSellers')),
               ),
             ],
           ),

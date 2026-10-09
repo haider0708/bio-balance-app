@@ -1327,5 +1327,8 @@
   "renameGroup": "Rename the group",
   "editPerson": "Edit the person",
   "showPassword": "Show password",
-  "hidePassword": "Hide password"
+  "hidePassword": "Hide password",
+  "pageNotFound": "This page does not exist",
+  "pageNotFoundHint": "The link may be old, or the page was opened from somewhere else.",
+  "backToHome": "Back to home"
 }

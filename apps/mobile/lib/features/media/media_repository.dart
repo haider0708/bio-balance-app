@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
@@ -7,6 +8,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../core/api/json.dart';
 import '../../core/auth/session.dart';
+import '../../core/config.dart';
 import '../../core/theme/app_theme.dart';
 
 class MediaRepository {
@@ -89,6 +91,15 @@ class AuthImage extends ConsumerWidget {
     );
     final id = mediaId;
     if (id == null) return placeholder;
+    // Decoded at twice the box's longest side, enough to stay sharp whatever the photo's shape.
+    final sides = [width, height].whereType<double>().where((v) => v.isFinite);
+    final wanted = sides.isEmpty
+        ? null
+        : (sides.reduce(math.max) * MediaQuery.devicePixelRatioOf(context) * 2)
+              .round();
+    final decodeWidth = wanted != null && wanted < AppConfig.photoMaxWidth
+        ? wanted
+        : null;
     return ClipRRect(
       borderRadius: BorderRadius.circular(radius),
       child: ref
@@ -100,6 +111,9 @@ class AuthImage extends ConsumerWidget {
               height: height,
               fit: fit,
               gaplessPlayback: true,
+              // A thumbnail is decoded at the size it is shown, not the photo's full size:
+              // long lists stay smooth and light on memory.
+              cacheWidth: decodeWidth,
             ),
             loading: () => placeholder,
             error: (_, _) => placeholder,

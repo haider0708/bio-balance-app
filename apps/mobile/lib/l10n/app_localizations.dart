@@ -4285,6 +4285,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Hide password'**
   String get hidePassword;
+
+  /// No description provided for @pageNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'This page does not exist'**
+  String get pageNotFound;
+
+  /// No description provided for @pageNotFoundHint.
+  ///
+  /// In en, this message translates to:
+  /// **'The link may be old, or the page was opened from somewhere else.'**
+  String get pageNotFoundHint;
+
+  /// No description provided for @backToHome.
+  ///
+  /// In en, this message translates to:
+  /// **'Back to home'**
+  String get backToHome;
 }
 
 class _AppLocalizationsDelegate

@@ -96,48 +96,33 @@ class _Body extends ConsumerWidget {
           ),
         ],
         const Gap(12),
-        Row(
+        AutoGrid(
           children: [
-            Expanded(
-              child: StatTile(
-                icon: LucideIcons.receipt,
-                label: t.today,
-                value: t.units(today.integer('units')),
-                hint: t.salesCount(today.integer('sales')),
-              ),
+            StatTile(
+              icon: LucideIcons.receipt,
+              label: t.today,
+              value: t.units(today.integer('units')),
+              hint: t.salesCount(today.integer('sales')),
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: StatTile(
-                icon: LucideIcons.calendarDays,
-                label: t.last7Days,
-                value: t.units(week.integer('units')),
-                hint: t.salesCount(week.integer('sales')),
-              ),
+            StatTile(
+              icon: LucideIcons.calendarDays,
+              label: t.last7Days,
+              value: t.units(week.integer('units')),
+              hint: t.salesCount(week.integer('sales')),
             ),
-          ],
-        ),
-        const Gap(12),
-        Row(
-          children: [
-            Expanded(
-              child: StatTile(
-                icon: LucideIcons.banknote,
-                label: t.rewardsMonth,
-                value: Money.format(month.integer('rewardMillimes'), locale),
-                hint: t.units(month.integer('units')),
-              ),
+            StatTile(
+              icon: LucideIcons.banknote,
+              label: t.rewardsMonth,
+              value: Money.format(month.integer('rewardMillimes'), locale),
+              hint: t.units(month.integer('units')),
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: StatTile(
-                icon: LucideIcons.store,
-                label: t.activePdvs,
-                value: '${data.obj('pdvs').integer('active')}',
-                hint: data.obj('pdvs').integer('pending') > 0
-                    ? t.pendingCount(data.obj('pdvs').integer('pending'))
-                    : null,
-              ),
+            StatTile(
+              icon: LucideIcons.store,
+              label: t.activePdvs,
+              value: '${data.obj('pdvs').integer('active')}',
+              hint: data.obj('pdvs').integer('pending') > 0
+                  ? t.pendingCount(data.obj('pdvs').integer('pending'))
+                  : null,
             ),
           ],
         ),
@@ -145,75 +130,82 @@ class _Body extends ConsumerWidget {
         AppCard(child: TrendChart(days: data.list('trend'))),
         if (admin && regions.isNotEmpty) ...[
           SectionHeader(t.regions),
-          for (final r in regions)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: AppCard(
-                onTap: () => context.push(
-                  '/regions/${r.str('id')}',
-                  extra: r.str('name'),
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 44,
-                      height: 44,
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        color: context.colors.primaryContainer,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        (r.str('name')).substring(0, 1),
-                        style: context.text.titleMedium?.copyWith(
-                          color: context.colors.primary,
+          AutoGrid(
+            minItemWidth: 300,
+            maxColumns: 3,
+            spacing: 8,
+            children: [
+              for (final r in regions)
+                AppCard(
+                  onTap: () => context.push(
+                    '/regions/${r.str('id')}',
+                    extra: r.str('name'),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 44,
+                        height: 44,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color: context.colors.primaryContainer,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          (r.str('name')).substring(0, 1),
+                          style: context.text.titleMedium?.copyWith(
+                            color: context.colors.primary,
+                          ),
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(r.str('name'), style: context.text.titleSmall),
+                            Text(
+                              '${t.pdvCount(r.integer('pdvs'))} · ${t.teamCount(r.integer('members'))}',
+                              style: context.text.bodySmall?.copyWith(
+                                color: context.status.muted,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
-                          Text(r.str('name'), style: context.text.titleSmall),
                           Text(
-                            '${t.pdvCount(r.integer('pdvs'))} · ${t.teamCount(r.integer('members'))}',
+                            t.units(r.integer('units')),
+                            style: context.text.titleSmall,
+                          ),
+                          Text(
+                            t.last7Days,
                             style: context.text.bodySmall?.copyWith(
                               color: context.status.muted,
                             ),
                           ),
                         ],
                       ),
-                    ),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Text(
-                          t.units(r.integer('units')),
-                          style: context.text.titleSmall,
-                        ),
-                        Text(
-                          t.last7Days,
-                          style: context.text.bodySmall?.copyWith(
-                            color: context.status.muted,
-                          ),
+                      if (r.integer('pending') > 0) ...[
+                        const SizedBox(width: 8),
+                        StatusChip(
+                          '${r.integer('pending')}',
+                          tone: Tone.warning,
                         ),
                       ],
-                    ),
-                    if (r.integer('pending') > 0) ...[
-                      const SizedBox(width: 8),
-                      StatusChip('${r.integer('pending')}', tone: Tone.warning),
+                      const SizedBox(width: 4),
+                      Icon(
+                        LucideIcons.chevronRight,
+                        size: 18,
+                        color: context.status.muted,
+                      ),
                     ],
-                    const SizedBox(width: 4),
-                    Icon(
-                      LucideIcons.chevronRight,
-                      size: 18,
-                      color: context.status.muted,
-                    ),
-                  ],
+                  ),
                 ),
-              ),
-            ),
+            ],
+          ),
         ],
         ...attentionSections(context, t, data, admin: admin),
         if (data.list('lowByPlace').isNotEmpty) ...[

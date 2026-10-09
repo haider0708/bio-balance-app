@@ -2478,4 +2478,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get hidePassword => 'Hide password';
+
+  @override
+  String get pageNotFound => 'This page does not exist';
+
+  @override
+  String get pageNotFoundHint =>
+      'The link may be old, or the page was opened from somewhere else.';
+
+  @override
+  String get backToHome => 'Back to home';
 }

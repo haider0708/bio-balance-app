@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 
 /// The basic surface: a rounded card with a hairline and a soft shadow. When it can be
-/// tapped it sinks a little under the finger.
+/// tapped it sinks a little under the finger, and with a mouse its edge lights up on hover.
 class AppCard extends StatefulWidget {
   const AppCard({
     required this.child,
@@ -26,9 +26,14 @@ class AppCard extends StatefulWidget {
 
 class _AppCardState extends State<AppCard> {
   bool _down = false;
+  bool _hover = false;
 
   void _press(bool down) {
     if (widget.onTap != null && _down != down) setState(() => _down = down);
+  }
+
+  void _hovering(bool hover) {
+    if (widget.onTap != null && _hover != hover) setState(() => _hover = hover);
   }
 
   @override
@@ -42,7 +47,11 @@ class _AppCardState extends State<AppCard> {
       decoration: BoxDecoration(
         color: widget.color ?? s.card,
         borderRadius: radius,
-        border: Border.all(color: widget.borderColor ?? s.hairline),
+        border: Border.all(
+          color: _hover
+              ? context.colors.primary.withValues(alpha: 0.45)
+              : widget.borderColor ?? s.hairline,
+        ),
         boxShadow: flat
             ? null
             : [
@@ -59,6 +68,7 @@ class _AppCardState extends State<AppCard> {
           borderRadius: radius,
           onTap: widget.onTap,
           onHighlightChanged: _press,
+          onHover: _hovering,
           child: Padding(padding: widget.padding, child: widget.child),
         ),
       ),
@@ -568,4 +578,48 @@ class _SkeletonState extends State<Skeleton>
       ),
     );
   }
+}
+
+/// Blocks side by side, as many per row as fit: two stat tiles on a phone, four on a wide screen.
+class AutoGrid extends StatelessWidget {
+  const AutoGrid({
+    required this.children,
+    this.minItemWidth = 160,
+    this.maxColumns = 4,
+    this.spacing = 12,
+    super.key,
+  });
+
+  final List<Widget> children;
+  final double minItemWidth;
+  final int maxColumns;
+  final double spacing;
+
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, box) {
+      final fit = ((box.maxWidth + spacing) / (minItemWidth + spacing)).floor();
+      final columns = fit.clamp(1, maxColumns);
+      return Column(
+        children: [
+          for (var start = 0; start < children.length; start += columns) ...[
+            if (start > 0) SizedBox(height: spacing),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                for (var i = start; i < start + columns; i++) ...[
+                  if (i > start) SizedBox(width: spacing),
+                  Expanded(
+                    child: i < children.length
+                        ? children[i]
+                        : const SizedBox.shrink(),
+                  ),
+                ],
+              ],
+            ),
+          ],
+        ],
+      );
+    },
+  );
 }

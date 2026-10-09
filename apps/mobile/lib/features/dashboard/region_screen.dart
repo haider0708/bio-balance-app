@@ -91,45 +91,30 @@ class RegionScreen extends ConsumerWidget {
                   ),
                 ),
                 const Gap(12),
-                Row(
+                AutoGrid(
                   children: [
-                    Expanded(
-                      child: StatTile(
-                        icon: LucideIcons.store,
-                        label: t.regionStores,
-                        value: '${region?.integer('pdvs') ?? 0}',
-                      ),
+                    StatTile(
+                      icon: LucideIcons.store,
+                      label: t.regionStores,
+                      value: '${region?.integer('pdvs') ?? 0}',
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: StatTile(
-                        icon: LucideIcons.users,
-                        label: t.tabPeople,
-                        value: '${region?.integer('members') ?? 0}',
-                      ),
+                    StatTile(
+                      icon: LucideIcons.users,
+                      label: t.tabPeople,
+                      value: '${region?.integer('members') ?? 0}',
                     ),
-                  ],
-                ),
-                const Gap(12),
-                Row(
-                  children: [
-                    Expanded(
-                      child: StatTile(
-                        icon: LucideIcons.receipt,
-                        label: t.last7Days,
-                        value: t.units(sales.obj('week').integer('units')),
-                        hint: t.salesCount(sales.obj('week').integer('sales')),
-                      ),
+                    StatTile(
+                      icon: LucideIcons.receipt,
+                      label: t.last7Days,
+                      value: t.units(sales.obj('week').integer('units')),
+                      hint: t.salesCount(sales.obj('week').integer('sales')),
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: StatTile(
-                        icon: LucideIcons.banknote,
-                        label: t.rewardsMonth,
-                        value: Money.format(
-                          sales.obj('month').integer('rewardMillimes'),
-                          locale,
-                        ),
+                    StatTile(
+                      icon: LucideIcons.banknote,
+                      label: t.rewardsMonth,
+                      value: Money.format(
+                        sales.obj('month').integer('rewardMillimes'),
+                        locale,
                       ),
                     ),
                   ],

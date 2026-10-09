@@ -136,8 +136,6 @@ class RestockOrder {
   final List<RestockLine> lines;
 
   int get requestedUnits => lines.fold(0, (s, l) => s + l.requested);
-  int get shippedUnits => lines.fold(0, (s, l) => s + (l.shipped ?? 0));
-  int get receivedUnits => lines.fold(0, (s, l) => s + (l.received ?? 0));
   int get approvedUnits => lines.fold(0, (s, l) => s + (l.approved ?? 0));
 
   bool get toDepot => destinationKind == 'DEPOT';

@@ -1,4 +1,3 @@
-import { ownedProofs } from "../media/proofs";
 import { Injectable } from "@nestjs/common";
 import type { Approval, Prisma } from "@prisma/client";
 import type { Actor } from "../../core/actor";
@@ -7,6 +6,7 @@ import { Database, type Tx } from "../../core/database";
 import { notFound, requireRule } from "../../core/errors";
 import { notify, notifyAdmins, responsableIds } from "../../core/notifier";
 import { randomUUID } from "node:crypto";
+import { ownedProofs } from "../media/proofs";
 import {
   currentQuantity,
   findLocation,
@@ -295,17 +295,11 @@ export class StockService {
       403,
     );
     return this.db.run(actor, async (tx) => {
-      await this.db.lock(tx, "StockDeclaration", id);
-      const declaration = await tx.stockDeclaration.findUnique({
-        where: { id },
-        include: { lines: true },
-      });
-      if (!declaration) throw notFound("Stock declaration");
-      requireRule(
-        declaration.status === "PENDING",
-        "INVALID_STATE",
+      const declaration = await this.lockDeclaration(
+        tx,
+        id,
+        "PENDING",
         "This declaration was already decided.",
-        409,
       );
       const overrides = new Map(
         (input.lines ?? []).map((l) => [l.productId, l.quantity]),
@@ -372,17 +366,11 @@ export class StockService {
       403,
     );
     return this.db.run(actor, async (tx) => {
-      await this.db.lock(tx, "StockDeclaration", id);
-      const declaration = await tx.stockDeclaration.findUnique({
-        where: { id },
-        include: { lines: true },
-      });
-      if (!declaration) throw notFound("Stock declaration");
-      requireRule(
-        declaration.status === "PENDING",
-        "INVALID_STATE",
+      const declaration = await this.lockDeclaration(
+        tx,
+        id,
+        "PENDING",
         "This declaration was already decided.",
-        409,
       );
       const location = await findLocation(tx, declaration.locationId);
       const updated = await tx.stockDeclaration.update({
@@ -437,19 +425,15 @@ export class StockService {
       "Explain what is wrong.",
     );
     return this.db.run(actor, async (tx) => {
-      await this.db.lock(tx, "StockDeclaration", id);
-      const declaration = await tx.stockDeclaration.findUnique({
-        where: { id },
-        include: { lines: true },
-      });
-      if (!declaration || declaration.regionId !== actor.regionId)
-        throw notFound("Stock declaration");
-      requireRule(
-        declaration.status === "REVIEW",
-        "INVALID_STATE",
+      const declaration = await this.lockDeclaration(
+        tx,
+        id,
+        "REVIEW",
         "This count is not waiting for your check.",
-        409,
       );
+      // Another region's count is invisible to this responsable, as if it did not exist.
+      if (declaration.regionId !== actor.regionId)
+        throw notFound("Stock declaration");
       const location = await findLocation(tx, declaration.locationId);
       const passed = input.action === "approve";
       const updated = await tx.stockDeclaration.update({
@@ -785,6 +769,28 @@ export class StockService {
       decisionNote: r.decisionNote,
       used: r.declarationId !== null,
     }));
+  }
+
+  /** Locks a declaration for a decision and checks it is still at the expected step. */
+  private async lockDeclaration(
+    tx: Tx,
+    id: string,
+    status: "PENDING" | "REVIEW",
+    alreadyDone: string,
+  ) {
+    await this.db.lock(tx, "StockDeclaration", id);
+    const declaration = await tx.stockDeclaration.findUnique({
+      where: { id },
+      include: { lines: true },
+    });
+    if (!declaration) throw notFound("Stock declaration");
+    requireRule(
+      declaration.status === status,
+      "INVALID_STATE",
+      alreadyDone,
+      409,
+    );
+    return declaration;
   }
 
   private async tell(

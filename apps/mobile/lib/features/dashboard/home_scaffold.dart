@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -60,21 +61,24 @@ class HomeScaffold extends ConsumerWidget {
                       ],
                     ),
                   ),
-                  _RoundButton(
-                    tooltip: t.notificationsTitle,
-                    onTap: () => context.push('/notifications'),
-                    child: Badge(
-                      isLabelVisible: unread > 0,
-                      label: Text(unread > 99 ? '99+' : '$unread'),
-                      child: const Icon(LucideIcons.bell, size: 20),
+                  // In the web console the sidebar already holds notifications and settings.
+                  if (!kIsWeb) ...[
+                    _RoundButton(
+                      tooltip: t.notificationsTitle,
+                      onTap: () => context.push('/notifications'),
+                      child: Badge(
+                        isLabelVisible: unread > 0,
+                        label: Text(unread > 99 ? '99+' : '$unread'),
+                        child: const Icon(LucideIcons.bell, size: 20),
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  _RoundButton(
-                    tooltip: t.settingsTitle,
-                    onTap: () => context.push('/settings'),
-                    child: const Icon(LucideIcons.settings2, size: 20),
-                  ),
+                    const SizedBox(width: 8),
+                    _RoundButton(
+                      tooltip: t.settingsTitle,
+                      onTap: () => context.push('/settings'),
+                      child: const Icon(LucideIcons.settings2, size: 20),
+                    ),
+                  ],
                 ],
               ),
             ),
