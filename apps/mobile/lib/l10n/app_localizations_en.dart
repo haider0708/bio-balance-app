@@ -2472,4 +2472,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get editPerson => 'Edit the person';
+
+  @override
+  String get showPassword => 'Show password';
+
+  @override
+  String get hidePassword => 'Hide password';
 }

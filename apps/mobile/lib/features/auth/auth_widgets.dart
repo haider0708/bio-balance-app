@@ -169,6 +169,9 @@ class _PasswordFieldState extends State<PasswordField> {
       decoration: InputDecoration(
         labelText: widget.label,
         suffixIcon: IconButton(
+          tooltip: _hidden
+              ? AppLocalizations.of(context).showPassword
+              : AppLocalizations.of(context).hidePassword,
           icon: Icon(_hidden ? LucideIcons.eye : LucideIcons.eyeOff, size: 20),
           onPressed: () => setState(() => _hidden = !_hidden),
         ),

@@ -86,14 +86,19 @@ class _AdminShellState extends ConsumerState<AdminShell> {
           children: [
             panel,
             // Phone-sized screens read badly stretched over a big monitor: keep them to a comfortable width.
+            // The page is its own accessibility region: a route inside it would otherwise hide the sidebar from screen readers.
             Expanded(
-              child: Align(
-                alignment: Alignment.topCenter,
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(
-                    maxWidth: adminContentMaxWidth,
+              child: Semantics(
+                container: true,
+                explicitChildNodes: true,
+                child: Align(
+                  alignment: Alignment.topCenter,
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(
+                      maxWidth: adminContentMaxWidth,
+                    ),
+                    child: widget.child,
                   ),
-                  child: widget.child,
                 ),
               ),
             ),
@@ -399,63 +404,67 @@ class _NavTile extends StatelessWidget {
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 2),
-      child: Tooltip(
-        message: collapsed ? entry.label : '',
-        waitDuration: const Duration(milliseconds: 400),
-        child: Material(
-          color: bg,
-          borderRadius: BorderRadius.circular(10),
-          child: InkWell(
+      child: Semantics(
+        selected: selected,
+        button: true,
+        child: Tooltip(
+          message: collapsed ? entry.label : '',
+          waitDuration: const Duration(milliseconds: 400),
+          child: Material(
+            color: bg,
             borderRadius: BorderRadius.circular(10),
-            onTap: onTap,
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 160),
-              height: 40,
-              padding: EdgeInsets.symmetric(horizontal: collapsed ? 0 : 10),
-              alignment: collapsed ? Alignment.center : Alignment.centerLeft,
-              child: collapsed
-                  ? icon
-                  : Row(
-                      children: [
-                        icon,
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            entry.label,
-                            style: context.text.labelLarge?.copyWith(
-                              color: selected
-                                  ? primary
-                                  : context.colors.onSurface,
-                              fontWeight: selected
-                                  ? FontWeight.w700
-                                  : FontWeight.w600,
-                              fontSize: 13.5,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        if (badge > 0)
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 6,
-                              vertical: 2,
-                            ),
-                            decoration: BoxDecoration(
-                              color: primary,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(10),
+              onTap: onTap,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 160),
+                height: 40,
+                padding: EdgeInsets.symmetric(horizontal: collapsed ? 0 : 10),
+                alignment: collapsed ? Alignment.center : Alignment.centerLeft,
+                child: collapsed
+                    ? icon
+                    : Row(
+                        children: [
+                          icon,
+                          const SizedBox(width: 12),
+                          Expanded(
                             child: Text(
-                              badge > 99 ? '99+' : '$badge',
-                              style: TextStyle(
-                                color: context.colors.onPrimary,
-                                fontSize: 10,
-                                fontWeight: FontWeight.w700,
+                              entry.label,
+                              style: context.text.labelLarge?.copyWith(
+                                color: selected
+                                    ? primary
+                                    : context.colors.onSurface,
+                                fontWeight: selected
+                                    ? FontWeight.w700
+                                    : FontWeight.w600,
+                                fontSize: 13.5,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          if (badge > 0)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: primary,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                badge > 99 ? '99+' : '$badge',
+                                style: TextStyle(
+                                  color: context.colors.onPrimary,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w700,
+                                ),
                               ),
                             ),
-                          ),
-                      ],
-                    ),
+                        ],
+                      ),
+              ),
             ),
           ),
         ),

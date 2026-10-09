@@ -1325,5 +1325,7 @@
   "chooseRegionForGroup": "Which region is this group for?",
   "noRewardForSale": "No reward is set for these products yet.",
   "renameGroup": "Rename the group",
-  "editPerson": "Edit the person"
+  "editPerson": "Edit the person",
+  "showPassword": "Show password",
+  "hidePassword": "Hide password"
 }

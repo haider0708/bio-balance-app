@@ -65,3 +65,13 @@ Dashboards per role, sales reports grouped by day, region, point of sale, seller
 - **Reports** have tabs (Overview, Stores, Products, Team, Stock, Details): comparison with the previous period, plain-language insights, weekday and family mix, rankings with share and change, days of stock left at the current pace, and stock that does not move.
 - **Notifications** can be filtered (unread, sales, stock, restocks, payments, network, announcements).
 - **Invitations** can be cancelled before the account exists; after that the account is deactivated.
+
+## Admin console on the web
+
+The administrator can work from a browser at https://admin.galylio.com/ with the same account (password and authenticator code). It is the phone app built for the web, so every admin function exists in both. Differences on the web:
+
+- Only administrators can sign in; other roles are told to use the phone app.
+- A collapsible sidebar groups every section (Overview, Operations, Insights, Commerce, Content, Places, Account). Under 900 px wide it becomes a drawer. Page content is capped at a comfortable width on very large monitors.
+- Reports export downloads a CSV file; PDFs open in a new tab; training videos play from a downloaded copy.
+- Text can be selected and copied, and the page is exposed to screen readers.
+- Alerts when the page is closed are not available (they need the phone).

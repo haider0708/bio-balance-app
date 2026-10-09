@@ -4273,6 +4273,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Edit the person'**
   String get editPerson;
+
+  /// No description provided for @showPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Show password'**
+  String get showPassword;
+
+  /// No description provided for @hidePassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide password'**
+  String get hidePassword;
 }
 
 class _AppLocalizationsDelegate
