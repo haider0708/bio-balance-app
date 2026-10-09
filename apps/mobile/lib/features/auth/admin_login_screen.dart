@@ -179,7 +179,7 @@ class _BrandPanel extends StatelessWidget {
                           color: onDark.withValues(alpha: 0.18),
                         ),
                       ),
-                      child: Text(
+                      child: const Text(
                         'B',
                         style: TextStyle(
                           color: onDark,
@@ -191,7 +191,7 @@ class _BrandPanel extends StatelessWidget {
                     const SizedBox(width: 12),
                     Text(
                       t.appName,
-                      style: TextStyle(
+                      style: const TextStyle(
                         color: onDark,
                         fontWeight: FontWeight.w700,
                         fontSize: 18,
@@ -204,7 +204,7 @@ class _BrandPanel extends StatelessWidget {
                   const Spacer(),
                   Text(
                     t.adminConsoleTitle,
-                    style: TextStyle(
+                    style: const TextStyle(
                       color: onDark,
                       fontWeight: FontWeight.w800,
                       fontSize: 36,
@@ -236,7 +236,7 @@ class _BrandPanel extends StatelessWidget {
                     padding: const EdgeInsets.only(top: 12),
                     child: Text(
                       t.adminConsoleTitle,
-                      style: TextStyle(
+                      style: const TextStyle(
                         color: onDark,
                         fontWeight: FontWeight.w700,
                         fontSize: 20,

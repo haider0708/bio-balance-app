@@ -369,9 +369,7 @@ class AppTheme {
         hintStyle: TextStyle(color: status.muted),
       ),
       chipTheme: base.chipTheme.copyWith(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         side: BorderSide(color: status.hairline),
         backgroundColor: status.card,
         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),

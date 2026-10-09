@@ -25,19 +25,15 @@ class AdminSidebarCollapsed extends Notifier<bool> {
 
   Future<void> toggle() async {
     state = !state;
-    await (await ref.read(preferencesProvider.future)).setBool(
-      _collapsedKey,
-      state,
-    );
+    await (await ref.read(preferencesProvider.future))
+        .setBool(_collapsedKey, state);
   }
 
   Future<void> set(bool value) async {
     if (state == value) return;
     state = value;
-    await (await ref.read(preferencesProvider.future)).setBool(
-      _collapsedKey,
-      value,
-    );
+    await (await ref.read(preferencesProvider.future))
+        .setBool(_collapsedKey, value);
   }
 }
 
@@ -301,9 +297,9 @@ class _AdminPanel extends ConsumerWidget {
                   else
                     _NavTile(
                       entry: entry,
-                      selected: identical(entry, selected) ||
-                          (selected != null &&
-                              entry.path == selected!.path),
+                      selected:
+                          identical(entry, selected) ||
+                          (selected != null && entry.path == selected!.path),
                       collapsed: collapsed,
                       badge: entry.path == '/notifications' ? unread : 0,
                       onTap: () => onNavigate(entry.path!),

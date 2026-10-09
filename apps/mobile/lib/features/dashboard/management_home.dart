@@ -426,9 +426,7 @@ class _Hero extends StatelessWidget {
             ? context.colors.primary
             : context.colors.primaryContainer,
         borderRadius: BorderRadius.circular(16),
-        border: highlight
-            ? null
-            : Border.all(color: context.status.hairline),
+        border: highlight ? null : Border.all(color: context.status.hairline),
         boxShadow: highlight
             ? [
                 BoxShadow(

@@ -45,11 +45,7 @@ class AdminNavEntry {
 /// Ordered sidebar contents for the admin console.
 List<AdminNavEntry> adminNavEntries(AppLocalizations t) => [
   AdminNavEntry.section(t.navSectionOverview),
-  AdminNavEntry.item(
-    icon: LucideIcons.house,
-    label: t.tabHome,
-    path: '/home',
-  ),
+  AdminNavEntry.item(icon: LucideIcons.house, label: t.tabHome, path: '/home'),
   AdminNavEntry.section(t.navSectionOperations),
   AdminNavEntry.item(
     icon: LucideIcons.inbox,

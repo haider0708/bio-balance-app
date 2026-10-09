@@ -17,7 +17,9 @@ class WebFrame extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (!kIsWeb || fullBleed || MediaQuery.sizeOf(context).width <= maxWidth + 40) {
+    if (!kIsWeb ||
+        fullBleed ||
+        MediaQuery.sizeOf(context).width <= maxWidth + 40) {
       return child;
     }
     final s = context.status;

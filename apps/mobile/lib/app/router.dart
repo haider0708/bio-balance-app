@@ -408,22 +408,10 @@ List<RouteBase> _adminWeb() => [
   ShellRoute(
     builder: (context, state, child) => AdminShell(child: child),
     routes: [
-      GoRoute(
-        path: '/home',
-        builder: (_, _) => const ManagementHome(),
-      ),
-      GoRoute(
-        path: '/approvals',
-        builder: (_, _) => const ApprovalsScreen(),
-      ),
-      GoRoute(
-        path: '/network',
-        builder: (_, _) => const NetworkScreen(),
-      ),
-      GoRoute(
-        path: '/restocks',
-        builder: (_, _) => const RestocksScreen(),
-      ),
+      GoRoute(path: '/home', builder: (_, _) => const ManagementHome()),
+      GoRoute(path: '/approvals', builder: (_, _) => const ApprovalsScreen()),
+      GoRoute(path: '/network', builder: (_, _) => const NetworkScreen()),
+      GoRoute(path: '/restocks', builder: (_, _) => const RestocksScreen()),
       GoRoute(path: '/payouts', builder: (_, _) => const PayoutsScreen()),
       GoRoute(path: '/reports', builder: (_, _) => const ReportsScreen()),
       GoRoute(path: '/rewards', builder: (_, _) => const RewardsScreen()),
@@ -475,8 +463,7 @@ List<RouteBase> _adminWeb() => [
       ),
       GoRoute(
         path: '/catalog/:id',
-        builder: (_, state) =>
-            _ProductEntry(product: state.extra! as Product),
+        builder: (_, state) => _ProductEntry(product: state.extra! as Product),
       ),
       GoRoute(
         path: '/catalog/:id/edit',
@@ -500,7 +487,10 @@ List<RouteBase> _adminWeb() => [
           name: state.extra as String?,
         ),
       ),
-      GoRoute(path: '/people/new', builder: (_, _) => const CreateAccountScreen()),
+      GoRoute(
+        path: '/people/new',
+        builder: (_, _) => const CreateAccountScreen(),
+      ),
       GoRoute(
         path: '/people/:id',
         builder: (_, state) =>
