@@ -74,4 +74,6 @@ The administrator can work from a browser at https://admin.galylio.com/ with the
 - A collapsible sidebar groups every section (Overview, Operations, Insights, Commerce, Content, Places, Account). Under 900 px wide it becomes a drawer. Page content is capped at a comfortable width on very large monitors.
 - Reports export downloads a CSV file; PDFs open in a new tab; training videos play from a downloaded copy.
 - Text can be selected and copied, and the page is exposed to screen readers.
+- Every page has its own address: reload, bookmarks and the browser's back and forward buttons work. A detail page opened without its context (for example a person's page after a reload) returns to its list; an unknown address shows a "page not found" screen.
+- Dashboards use the width: four figures per row and regions side by side on a large screen.
 - Alerts when the page is closed are not available (they need the phone).
