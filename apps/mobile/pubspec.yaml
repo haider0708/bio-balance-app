@@ -1,7 +1,7 @@
 name: biobalance
 description: "BioBalance: stock, sales and rewards for the BioBalance partner network."
 publish_to: 'none'
-version: 2.0.0+30
+version: 2.5.0+31
 
 environment:
   sdk: ^3.13.4

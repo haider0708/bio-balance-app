@@ -313,9 +313,7 @@ class _AdminPanel extends ConsumerWidget {
                   else
                     _NavTile(
                       entry: entry,
-                      selected:
-                          identical(entry, selected) ||
-                          (selected != null && entry.path == selected!.path),
+                      selected: entry.path == selected?.path,
                       collapsed: collapsed,
                       badge: entry.path == '/notifications' ? unread : 0,
                       onTap: () => onNavigate(entry.path!),

@@ -99,33 +99,6 @@ class AttentionRow {
   final int quantity;
 }
 
-class AuditItem {
-  const AuditItem({
-    required this.action,
-    required this.entity,
-    required this.createdAt,
-    this.actorName,
-    this.actorRole,
-    this.details = const {},
-  });
-
-  factory AuditItem.fromJson(Json j) => AuditItem(
-    action: j.str('action'),
-    entity: j.str('entity'),
-    createdAt: j.date('createdAt'),
-    actorName: j.objOrNull('actor')?.str('name'),
-    actorRole: j.objOrNull('actor')?.str('role'),
-    details: j.obj('details'),
-  );
-
-  final String action;
-  final String entity;
-  final DateTime createdAt;
-  final String? actorName;
-  final String? actorRole;
-  final Json details;
-}
-
 typedef ReportQuery = ({
   String from,
   String to,
@@ -179,20 +152,6 @@ class ReportsRepository {
         .read(apiClientProvider)
         .get('/v1/reports/stock/attention', query: {'regionId': regionId}),
   ).map(AttentionRow.fromJson).toList();
-
-  Future<({List<AuditItem> items, String? next})> audit({
-    String? cursor,
-  }) async {
-    final data =
-        await _ref
-                .read(apiClientProvider)
-                .get('/v1/audit', query: {'cursor': cursor, 'limit': 50})
-            as Json;
-    return (
-      items: data.list('items').map(AuditItem.fromJson).toList(),
-      next: data.strOrNull('nextCursor'),
-    );
-  }
 }
 
 final reportsRepositoryProvider = Provider<ReportsRepository>(

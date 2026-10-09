@@ -8,7 +8,6 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../api/api_client.dart';
-import '../config.dart';
 import '../api/api_exception.dart';
 import '../api/json.dart';
 import 'me.dart';
@@ -94,18 +93,16 @@ class SessionNotifier extends AsyncNotifier<Session?> {
     final token = await storage.read(key: _tokenKey);
     if (token == null) return null;
     ref.read(tokenProvider.notifier).set(token);
-    if (kIsWeb && AppConfig.webAdminOnly) {
-      final stored = await storage.read(key: _meKey);
-      if (stored != null && (jsonDecode(stored) as Json)['role'] != 'ADMIN') {
-        await _clear();
-        return null;
-      }
-    }
     final cached = await storage.read(key: _meKey);
     try {
       final me = Me.fromJson(
         await ref.read(apiClientProvider).get('/v1/me') as Json,
       );
+      // The web console is for administrators only (see [login]).
+      if (kIsWeb && me.role != Role.admin) {
+        await _clear();
+        return null;
+      }
       await storage.write(key: _meKey, value: jsonEncode(_meJson(me)));
       return Session(token: token, me: me);
     } on ApiException catch (error) {
@@ -136,7 +133,7 @@ class SessionNotifier extends AsyncNotifier<Session?> {
     }) as Json;
     final token = response.str('token');
     final me = Me.fromJson(response.obj('me'));
-    if (kIsWeb && AppConfig.webAdminOnly && me.role != Role.admin) {
+    if (kIsWeb && me.role != Role.admin) {
       // Not an admin: close the session that was just opened and point to the phone app.
       ref.read(tokenProvider.notifier).set(token);
       try {
@@ -145,12 +142,9 @@ class SessionNotifier extends AsyncNotifier<Session?> {
         // The session expires by itself.
       }
       ref.read(tokenProvider.notifier).set(null);
-      final fr = (ref.read(localeProvider) ?? 'fr') == 'fr';
-      throw ApiException(
+      throw const ApiException(
         code: 'WEB_ADMIN_ONLY',
-        message: fr
-            ? 'Cette page est réservée aux administrateurs. Utilisez l’application BioBalance sur votre téléphone.'
-            : 'This page is for administrators. Please use the BioBalance app on your phone.',
+        message: 'This page is for administrators.',
         status: 403,
       );
     }

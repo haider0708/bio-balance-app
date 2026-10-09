@@ -19,18 +19,6 @@ class Palette {
   static const dangerSoft = Color(0xFFFDECEC);
   static const info = Color(0xFF1C6FB0);
   static const infoSoft = Color(0xFFE8F1FB);
-
-  /// Subtle brand wash for rare hero surfaces (wallet, today card).
-  static const brand = LinearGradient(
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-    colors: [Color(0xFF0C6B45), Color(0xFF0D8F7A)],
-  );
-  static const brandDark = LinearGradient(
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-    colors: [Color(0xFF1FA971), Color(0xFF1BB39C)],
-  );
 }
 
 /// Colours with a meaning (status, warnings) that the Material scheme does not carry,
@@ -51,8 +39,6 @@ class StatusColors extends ThemeExtension<StatusColors> {
     required this.card,
     required this.hairline,
     required this.shadow,
-    required this.gradient,
-    required this.glow,
   });
 
   final Color success;
@@ -71,12 +57,6 @@ class StatusColors extends ThemeExtension<StatusColors> {
   final Color hairline;
   final Color shadow;
 
-  /// Brand gradient for rare hero accents (not page backgrounds).
-  final LinearGradient gradient;
-
-  /// Kept for API compatibility; intentionally near-transparent / neutral.
-  final Color glow;
-
   static const light = StatusColors(
     success: Color(0xFF0C6B45),
     successSoft: Color(0xFFEEF8F3),
@@ -91,8 +71,6 @@ class StatusColors extends ThemeExtension<StatusColors> {
     card: Colors.white,
     hairline: Color(0xFFE6E8EC),
     shadow: Color(0x0A000000),
-    gradient: Palette.brand,
-    glow: Color(0x00FFFFFF),
   );
 
   static const dark = StatusColors(
@@ -109,8 +87,6 @@ class StatusColors extends ThemeExtension<StatusColors> {
     card: Color(0xFF141518),
     hairline: Color(0xFF2A2C31),
     shadow: Color(0x66000000),
-    gradient: Palette.brandDark,
-    glow: Color(0x00000000),
   );
 
   @override

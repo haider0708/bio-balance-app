@@ -83,20 +83,18 @@ class _AppCardState extends State<AppCard> {
   }
 }
 
-/// A square badge holding an icon, tinted by tone (or filled with the brand gradient).
+/// A square badge holding an icon, tinted by tone.
 class IconBadge extends StatelessWidget {
   const IconBadge(
     this.icon, {
     this.tone = Tone.neutral,
     this.size = 40,
-    this.gradient = false,
     super.key,
   });
 
   final IconData icon;
   final Tone tone;
   final double size;
-  final bool gradient;
 
   @override
   Widget build(BuildContext context) {
@@ -105,14 +103,10 @@ class IconBadge extends StatelessWidget {
       width: size,
       height: size,
       decoration: BoxDecoration(
-        color: gradient ? context.colors.primary : c.soft,
+        color: c.soft,
         borderRadius: BorderRadius.circular(size * 0.32),
       ),
-      child: Icon(
-        icon,
-        size: size * 0.5,
-        color: gradient ? context.colors.onPrimary : c.strong,
-      ),
+      child: Icon(icon, size: size * 0.5, color: c.strong),
     );
   }
 }

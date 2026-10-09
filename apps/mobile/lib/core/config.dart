@@ -7,10 +7,7 @@ class AppConfig {
     defaultValue: 'https://api.galylio.com',
   );
 
-  /// The web page is the admin's: everyone else uses the phone app.
-  static const webAdminOnly = true;
-
-  static const version = '2.4.1';
+  static const version = '2.5.0';
 
   /// Photos are resized on the phone before upload.
   static const photoMaxWidth = 1400.0;

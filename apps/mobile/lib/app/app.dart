@@ -8,7 +8,6 @@ import '../core/auth/session.dart';
 import '../core/theme/app_theme.dart';
 import '../l10n/app_localizations.dart';
 import 'router.dart';
-import 'web_frame.dart';
 
 class BioBalanceApp extends ConsumerStatefulWidget {
   const BioBalanceApp({super.key});
@@ -52,15 +51,11 @@ class _BioBalanceAppState extends ConsumerState<BioBalanceApp> {
           GlobalCupertinoLocalizations.delegate,
         ],
         routerConfig: router,
-        builder: (context, child) {
-          final page = WebFrame(
-            // admin.galylio.com is the admin site (signed-in or login): never phone-framed.
-            fullBleed: kIsWeb,
-            child: child ?? const SizedBox(),
-          );
-          // On the web the administrator can select and copy any text (an email, a code, a total).
-          return kIsWeb ? SelectionArea(child: page) : page;
-        },
+        // On the web the administrator can select and copy any text (an email, a code, a total).
+        builder: kIsWeb
+            ? (context, child) =>
+                  SelectionArea(child: child ?? const SizedBox())
+            : null,
       ),
     );
   }

@@ -48,6 +48,23 @@ class ServerText {
   }
 
   static const _errors = <String, _Text>{
+    'REGION_REQUIRED': ('Choose a region.', 'Choisissez une région.'),
+    'REGION_NOT_FOUND': (
+      'This region no longer exists.',
+      'Cette région n’existe plus.',
+    ),
+    'DEPOT_OTHER_REGION': (
+      'This grossiste works for another region.',
+      'Ce grossiste travaille pour une autre région.',
+    ),
+    'TOO_MANY_PHOTOS': (
+      'Add between 1 and 5 different photos.',
+      'Ajoutez entre 1 et 5 photos différentes.',
+    ),
+    'WEB_ADMIN_ONLY': (
+      'This page is for administrators. Please use the BioBalance app on your phone.',
+      'Cette page est réservée aux administrateurs. Utilisez l’application BioBalance sur votre téléphone.',
+    ),
     'INVALID_CREDENTIALS': (
       'Incorrect email or password.',
       'E-mail ou mot de passe incorrect.',

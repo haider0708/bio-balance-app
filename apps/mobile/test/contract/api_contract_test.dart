@@ -317,10 +317,6 @@ void main() {
           .preview(const Audience(roles: {'RESPONSABLE'}));
       expect(preview.recipients, 2);
 
-      final audit = await c.read(reportsRepositoryProvider).audit();
-      expect(audit.items, isNotEmpty);
-      expect(audit.items.first.actorName, isNotNull);
-
       final dashboard =
           await c.read(apiClientProvider).get('/v1/dashboard') as Json;
       expect(dashboard.list('regions'), hasLength(3));
