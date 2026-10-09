@@ -9,6 +9,17 @@ cd "$(dirname "$0")/../apps/mobile"
 
 echo "== Building the web page"
 flutter build web --release --base-href / --dart-define=API_BASE_URL=https://admin.galylio.com --no-web-resources-cdn --csp --no-source-maps --no-wasm-dry-run | tail -3
+# The icon package also ships six weight variants (~2.9 MB) the app never uses: browsers would download them all at start.
+python3 - <<'PY'
+import json, pathlib
+web = pathlib.Path("build/web")
+manifest = web / "assets/FontManifest.json"
+fonts = json.loads(manifest.read_text())
+kept = [f for f in fonts if not f["family"].startswith("packages/lucide_icons_flutter/Lucide") or f["family"].endswith("/Lucide")]
+manifest.write_text(json.dumps(kept))
+for f in (web / "assets/packages/lucide_icons_flutter/assets/build_font").glob("LucideVariable-*.ttf"):
+    f.unlink()
+PY
 cp -r build/web "/tmp/biobalance-web.$$"
 trap 'rm -rf "/tmp/biobalance-web.$$"' EXIT
 

@@ -33,37 +33,41 @@ class EmptyState extends StatelessWidget {
     return Center(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 40),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 80,
-              height: 80,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: context.status.mutedSoft,
-                border: Border.all(color: context.status.hairline),
-              ),
-              child: Icon(icon, size: 32, color: context.status.muted),
-            ),
-            const SizedBox(height: 20),
-            Text(
-              title,
-              style: context.text.titleMedium,
-              textAlign: TextAlign.center,
-            ),
-            if (message != null) ...[
-              const SizedBox(height: 8),
-              Text(
-                message!,
-                style: context.text.bodyMedium?.copyWith(
-                  color: context.status.muted,
+        // A short, readable column even in a wide browser window.
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 420),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: context.status.mutedSoft,
+                  border: Border.all(color: context.status.hairline),
                 ),
+                child: Icon(icon, size: 32, color: context.status.muted),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                title,
+                style: context.text.titleMedium,
                 textAlign: TextAlign.center,
               ),
+              if (message != null) ...[
+                const SizedBox(height: 8),
+                Text(
+                  message!,
+                  style: context.text.bodyMedium?.copyWith(
+                    color: context.status.muted,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+              if (action != null) ...[const SizedBox(height: 24), action!],
             ],
-            if (action != null) ...[const SizedBox(height: 24), action!],
-          ],
+          ),
         ),
       ),
     );
