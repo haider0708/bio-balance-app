@@ -85,7 +85,18 @@ class _AdminShellState extends ConsumerState<AdminShell> {
         child: Row(
           children: [
             panel,
-            Expanded(child: widget.child),
+            // Phone-sized screens read badly stretched over a big monitor: keep them to a comfortable width.
+            Expanded(
+              child: Align(
+                alignment: Alignment.topCenter,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(
+                    maxWidth: adminContentMaxWidth,
+                  ),
+                  child: widget.child,
+                ),
+              ),
+            ),
           ],
         ),
       );
@@ -102,7 +113,7 @@ class _AdminShellState extends ConsumerState<AdminShell> {
       body: Column(
         children: [
           _AdminTopBar(
-            title: selected?.label ?? t.roleAdmin,
+            title: t.appName,
             onMenu: () => _scaffoldKey.currentState?.openDrawer(),
             onNotifications: () => go('/notifications'),
           ),

@@ -159,6 +159,7 @@ class _SalesHistoryScreenState extends ConsumerState<SalesHistoryScreen> {
         Expanded(
           child: PagedList<Sale>(
             controller: _byProduct!,
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
             empty: EmptyState(
               icon: LucideIcons.receipt,
               title: t.noSalesWithProduct,
@@ -204,7 +205,7 @@ class _SalesHistoryScreenState extends ConsumerState<SalesHistoryScreen> {
         await ref.read(salesDaysProvider(_query).future);
       },
       child: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 96),
         children: [
           if (pending.isNotEmpty) _Pending(sales: pending),
           Row(

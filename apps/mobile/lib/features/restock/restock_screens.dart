@@ -117,7 +117,7 @@ class _RestocksScreenState extends ConsumerState<RestocksScreen> {
                   ],
                 ),
                 builder: (list) => ListView.separated(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
                   itemCount: list.length,
                   separatorBuilder: (_, _) => const Gap(8),
                   itemBuilder: (context, i) => RestockTile(order: list[i]),

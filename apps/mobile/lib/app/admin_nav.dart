@@ -6,6 +6,9 @@ import '../l10n/app_localizations.dart';
 /// Width under which the admin shell uses a drawer instead of a persistent sidebar.
 const adminWideBreakpoint = 900.0;
 
+/// The widest the page content grows on a large monitor.
+const adminContentMaxWidth = 1120.0;
+
 const adminSidebarExpandedWidth = 248.0;
 const adminSidebarCollapsedWidth = 72.0;
 

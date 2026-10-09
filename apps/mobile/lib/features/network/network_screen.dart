@@ -278,7 +278,7 @@ class _PdvList extends ConsumerWidget {
           ],
         ),
         builder: (list) => ListView.separated(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
           itemCount: list.length,
           separatorBuilder: (_, _) => const Gap(8),
           itemBuilder: (context, i) => PdvTile(pdv: list[i]),
@@ -367,7 +367,7 @@ class _GroupList extends ConsumerWidget {
         message: me.role == Role.responsable ? t.noGroupsHint : null,
       ),
       builder: (list) => ListView.separated(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
         itemCount: list.length,
         separatorBuilder: (_, _) => const Gap(8),
         itemBuilder: (context, i) {
@@ -475,7 +475,7 @@ class GroupScreen extends ConsumerWidget {
             );
           }
           return ListView.separated(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
             itemCount: mine.length,
             separatorBuilder: (_, _) => const Gap(8),
             itemBuilder: (context, i) => PdvTile(pdv: mine[i]),

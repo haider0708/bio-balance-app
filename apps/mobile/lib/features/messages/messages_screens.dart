@@ -126,7 +126,7 @@ class MessagesScreen extends ConsumerWidget {
               ),
             );
             return ListView(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 96),
               children: [
                 if (scheduled.isNotEmpty) ...[
                   SectionHeader(t.scheduledSection),

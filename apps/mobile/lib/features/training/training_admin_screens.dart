@@ -58,7 +58,7 @@ class ManageCoursesScreen extends ConsumerWidget {
           message: t.noCoursesAdminHint,
         ),
         builder: (list) => ListView.separated(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
           itemCount: list.length,
           separatorBuilder: (_, _) => const Gap(12),
           itemBuilder: (context, i) => CourseCard(

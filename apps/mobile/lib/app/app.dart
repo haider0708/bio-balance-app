@@ -30,7 +30,10 @@ class _BioBalanceAppState extends ConsumerState<BioBalanceApp> {
     return FutureBuilder<void>(
       future: _ready,
       builder: (context, snapshot) => MaterialApp.router(
-        onGenerateTitle: (context) => AppLocalizations.of(context).appName,
+        onGenerateTitle: (context) {
+          final t = AppLocalizations.of(context);
+          return kIsWeb ? '${t.appName} · ${t.adminConsoleTitle}' : t.appName;
+        },
         debugShowCheckedModeBanner: false,
         theme: AppTheme.light(),
         darkTheme: AppTheme.dark(),
@@ -49,11 +52,15 @@ class _BioBalanceAppState extends ConsumerState<BioBalanceApp> {
           GlobalCupertinoLocalizations.delegate,
         ],
         routerConfig: router,
-        builder: (context, child) => WebFrame(
-          // admin.galylio.com is the admin site (signed-in or login): never phone-framed.
-          fullBleed: kIsWeb,
-          child: child ?? const SizedBox(),
-        ),
+        builder: (context, child) {
+          final page = WebFrame(
+            // admin.galylio.com is the admin site (signed-in or login): never phone-framed.
+            fullBleed: kIsWeb,
+            child: child ?? const SizedBox(),
+          );
+          // On the web the administrator can select and copy any text (an email, a code, a total).
+          return kIsWeb ? SelectionArea(child: page) : page;
+        },
       ),
     );
   }

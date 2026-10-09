@@ -94,7 +94,7 @@ class StockScreen extends ConsumerWidget {
                 declarations.value?.take(3).toList() ??
                 const <StockDeclaration>[];
             return ListView(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
               children: [
                 if (pending != null)
                   Padding(
