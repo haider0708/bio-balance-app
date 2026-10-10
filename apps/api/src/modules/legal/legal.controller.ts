@@ -27,6 +27,13 @@ const escape = (s: string) =>
       ]!,
   );
 
+/**
+ * The contact address as a link. Cloudflare would otherwise rewrite it into a script-decoded
+ * placeholder, which these script-free pages could never decode: `email_off` keeps it as is.
+ */
+const mailLink = (email: string) =>
+  `<!--email_off--><a href="mailto:${escape(email)}">${escape(email)}</a><!--/email_off-->`;
+
 interface Page {
   title: string;
   intro: string;
@@ -34,7 +41,7 @@ interface Page {
 }
 
 function privacy(lang: Lang, email: string): Page {
-  const mail = `<a href="mailto:${escape(email)}">${escape(email)}</a>`;
+  const mail = mailLink(email);
   return lang === "fr"
     ? {
         title: "Politique de confidentialité",
@@ -149,7 +156,7 @@ function privacy(lang: Lang, email: string): Page {
 }
 
 function terms(lang: Lang, email: string): Page {
-  const mail = `<a href="mailto:${escape(email)}">${escape(email)}</a>`;
+  const mail = mailLink(email);
   return lang === "fr"
     ? {
         title: "Conditions d’utilisation",
@@ -218,7 +225,7 @@ function terms(lang: Lang, email: string): Page {
 }
 
 function deletion(lang: Lang, email: string): Page {
-  const mail = `<a href="mailto:${escape(email)}">${escape(email)}</a>`;
+  const mail = mailLink(email);
   return lang === "fr"
     ? {
         title: "Supprimer votre compte BioBalance",
@@ -285,7 +292,7 @@ function deletion(lang: Lang, email: string): Page {
 }
 
 function support(lang: Lang, email: string): Page {
-  const mail = `<a href="mailto:${escape(email)}">${escape(email)}</a>`;
+  const mail = mailLink(email);
   return lang === "fr"
     ? {
         title: "Aide BioBalance",

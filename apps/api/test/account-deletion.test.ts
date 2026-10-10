@@ -121,6 +121,8 @@ describe("public pages for the app stores", () => {
       const text = await en.text();
       expect(text).toContain('lang="en"');
       expect(text).toContain("mailto:");
+      // Cloudflare must not turn the address into a script it would need to decode.
+      expect(text).toContain("<!--email_off-->");
       expect(en.headers.get("content-security-policy")).toContain(
         "default-src 'none'",
       );
