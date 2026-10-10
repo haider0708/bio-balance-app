@@ -14,6 +14,48 @@ enum ItemStatus {
   String get wire => name.toUpperCase();
 }
 
+/// A region as the admin manages it: who looks after it and what it holds.
+class RegionInfo {
+  const RegionInfo({
+    required this.id,
+    required this.name,
+    required this.pdvs,
+    required this.groups,
+    required this.grossistes,
+    required this.members,
+    required this.deletable,
+    this.responsable,
+  });
+
+  factory RegionInfo.fromJson(Json j) => RegionInfo(
+    id: j.str('id'),
+    name: j.str('name'),
+    pdvs: j.integer('pdvs'),
+    groups: j.integer('groups'),
+    grossistes: j.integer('grossistes'),
+    members: j.integer('members'),
+    deletable: j['deletable'] == true,
+    responsable: j.objOrNull('responsable') == null
+        ? null
+        : Person.fromJson({
+            ...j.obj('responsable'),
+            'role': 'RESPONSABLE',
+            'activated': true,
+          }),
+  );
+
+  final String id;
+  final String name;
+  final int pdvs;
+  final int groups;
+  final int grossistes;
+  final int members;
+
+  /// Nothing left in it: only then can it be deleted.
+  final bool deletable;
+  final Person? responsable;
+}
+
 class Group {
   const Group({
     required this.id,

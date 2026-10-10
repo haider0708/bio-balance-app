@@ -80,6 +80,7 @@ export class DashboardService {
         lowByPlace,
         region,
         grossistes,
+        toShip,
       ] = await Promise.all([
         window(tx, addDays(today, -6), today, sale),
         window(tx, addDays(today, -29), today, sale),
@@ -158,6 +159,12 @@ export class DashboardService {
                  COUNT(*) FILTER (WHERE NOT EXISTS (
                    SELECT 1 FROM "StockDeclaration" x WHERE x."locationId" = d.id AND x.status = 'APPROVED'))::int AS uncounted
           FROM "Depot" d WHERE d.status = 'ACTIVE' ${scope ? Prisma.sql`AND d."regionId" = ${scope}::uuid` : Prisma.empty}`,
+        // Orders waiting to leave a grossiste of the caller's region.
+        actor.role === "RESPONSABLE" && actor.regionId
+          ? tx.restockOrder.count({
+              where: { status: "ASSIGNED", supplierRegionId: actor.regionId },
+            })
+          : Promise.resolve(0),
       ]);
       const day = trend.at(-1);
       return {
@@ -188,6 +195,7 @@ export class DashboardService {
           restocks.map((r) => [r.status, r._count._all]),
         ),
         pdvs: { active: pdvs[0]?.active ?? 0, pending: pdvs[0]?.pending ?? 0 },
+        toShip,
         grossistes: {
           active: grossistes[0]?.active ?? 0,
           uncounted: grossistes[0]?.uncounted ?? 0,

@@ -12,6 +12,8 @@ import '../../core/widgets/components.dart';
 import '../../l10n/app_localizations.dart';
 import '../network/network_models.dart';
 import '../network/network_repository.dart';
+import '../network/region_moves.dart';
+import '../network/regions_screen.dart';
 import '../network/network_screen.dart' show PdvTile;
 import 'dashboard_repository.dart';
 import 'dashboard_widgets.dart';
@@ -25,17 +27,118 @@ class RegionScreen extends ConsumerWidget {
   final String regionId;
   final String? name;
 
+  /// Choose who looks after this region: any responsable can be moved here (swapping with the current one), or a new one created.
+  Future<void> _changeResponsable(
+    BuildContext context,
+    WidgetRef ref,
+    RegionInfo? info,
+  ) async {
+    final t = AppLocalizations.of(context);
+    final people = await ref.read(
+      peopleProvider((
+        role: 'RESPONSABLE',
+        pdvId: null,
+        regionId: null,
+        status: null,
+      )).future,
+    );
+    if (!context.mounted) return;
+    final regions = await ref.read(regionsOverviewProvider.future);
+    if (!context.mounted) return;
+    final candidates = people
+        .where(
+          (p) =>
+              p.regionId != regionId &&
+              (p.status == ItemStatus.active || p.status == ItemStatus.pending),
+        )
+        .toList();
+    final chosen = await showModalBottomSheet<Object>(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) => SafeArea(
+        child: ListView(
+          shrinkWrap: true,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+              child: Text(
+                t.regionPickResponsable(name ?? info?.name ?? ''),
+                style: context.text.titleLarge,
+              ),
+            ),
+            for (final p in candidates)
+              ListTile(
+                leading: Avatar(p.initials, size: 36),
+                title: Text(p.name),
+                subtitle: Text(
+                  t.regionCurrently(
+                    regions
+                            .where((r) => r.id == p.regionId)
+                            .firstOrNull
+                            ?.name ??
+                        '—',
+                  ),
+                ),
+                onTap: () => Navigator.pop(context, p),
+              ),
+            ListTile(
+              leading: const Icon(LucideIcons.userPlus),
+              title: Text(t.regionNewResponsable),
+              onTap: () => Navigator.pop(context, 'new'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (!context.mounted) return;
+    if (chosen == 'new') {
+      await context.push('/people/new', extra: regionId);
+      refreshAfterMove(ref);
+    } else if (chosen is Person) {
+      await moveResponsableTo(context, ref, chosen, regionId);
+    }
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final t = AppLocalizations.of(context);
     final data = ref.watch(dashboardProvider(regionId));
     final pdvs = ref.watch(pdvsProvider(regionId)).value ?? const <Pdv>[];
     final groups = ref.watch(groupsProvider(regionId)).value ?? const [];
+    final info =
+        (ref.watch(regionsOverviewProvider).value ?? const <RegionInfo>[])
+            .where((r) => r.id == regionId)
+            .firstOrNull;
     final depots = (ref.watch(depotsProvider).value ?? const <Depot>[])
         .where((d) => d.regionId == regionId)
         .toList();
     return Scaffold(
-      appBar: AppBar(title: Text(name ?? t.regions)),
+      appBar: AppBar(
+        title: Text(name ?? t.regions),
+        actions: [
+          IconButton(
+            tooltip: t.regionRename,
+            icon: const Icon(LucideIcons.pencil),
+            onPressed: () async {
+              if (await renameRegionFlow(context, ref, regionId, name ?? '') &&
+                  context.mounted) {
+                context.pop();
+              }
+            },
+          ),
+          if (info?.deletable ?? false)
+            IconButton(
+              tooltip: t.regionDelete,
+              icon: const Icon(LucideIcons.trash2),
+              onPressed: () async {
+                if (await deleteRegionFlow(context, ref, info!) &&
+                    context.mounted) {
+                  context.pop();
+                }
+              },
+            ),
+        ],
+      ),
       body: RefreshIndicator(
         onRefresh: () async {
           ref.invalidate(dashboardProvider(regionId));
@@ -75,6 +178,10 @@ class RegionScreen extends ConsumerWidget {
                             ),
                           ],
                         ),
+                      ),
+                      TextButton(
+                        onPressed: () => _changeResponsable(context, ref, info),
+                        child: Text(t.regionChangeResponsable),
                       ),
                       if (boss?.strOrNull('phone') != null)
                         IconButton.filledTonal(

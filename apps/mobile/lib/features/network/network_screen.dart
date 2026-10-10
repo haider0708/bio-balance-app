@@ -14,6 +14,7 @@ import '../../l10n/app_localizations.dart';
 import '../shared/status_chips.dart';
 import 'network_models.dart';
 import 'network_repository.dart';
+import 'region_moves.dart';
 import 'people_widgets.dart';
 
 /// The network: points of sale, groups and people. A responsable sees their region; the admin picks one.
@@ -459,6 +460,18 @@ class GroupScreen extends ConsumerWidget {
                   if (context.mounted) context.pop();
                 }
               },
+            ),
+          if (ref.watch(meProvider).role == Role.admin)
+            PopupMenuButton<String>(
+              onSelected: (_) async {
+                if (await moveGroupFlow(context, ref, group) &&
+                    context.mounted) {
+                  context.pop();
+                }
+              },
+              itemBuilder: (context) => [
+                PopupMenuItem(value: 'move', child: Text(t.moveToRegion)),
+              ],
             ),
         ],
       ),

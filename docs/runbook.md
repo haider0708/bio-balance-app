@@ -42,7 +42,7 @@ This ends their sessions and touches no business data.
 
 ## The admin web page
 
-The administrator can also work from a browser: **https://admin.galylio.com/**. It is the same app as the phone's, built for the web from the same code (`apps/mobile`), with the same screens, languages and sign-in (password plus authenticator code). Only administrators can sign in there; anyone else is told to use the phone app.
+The administrator can also work from a browser: **https://admin.galylio.com/**. It is the same app as the phone's, built for the web from the same code (`apps/mobile`), with the same screens, languages and sign-in (the administrator also enters an authenticator code). Administrators and responsables can sign in there, each with their own sidebar; team members are told to use the phone app.
 
 - It is served by the existing nginx container from `/opt/biobalance-web` on the server (mounted read-only at `/admin/`), through the same Apache and Cloudflare as the API. The page and the API share one address, so no cross-site settings are needed.
 - Publish a new version: `scripts/deploy-web.sh` (builds locally, uploads, checks). No restart is needed. Nginx re-checks the files on every visit, so people get the new version on their next reload.

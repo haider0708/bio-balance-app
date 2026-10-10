@@ -1442,18 +1442,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get roleAdmin => 'Administrator';
 
   @override
-  String get adminConsoleTitle => 'Admin console';
+  String get adminConsoleTitle => 'BioBalance console';
 
   @override
   String get adminConsoleTagline =>
-      'Manage the BioBalance network: stores, stock, restocks, rewards and approvals.';
+      'Run the BioBalance network: regions, stores, stock, restocks, rewards and approvals.';
 
   @override
   String get adminSignInTitle => 'Sign in to the console';
 
   @override
   String get adminSignInSubtitle =>
-      'Administrator access only. Use your password and authenticator code.';
+      'For administrators and responsables. Use your password and authenticator code.';
 
   @override
   String get roleResponsable => 'Responsable';
@@ -2509,4 +2509,121 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get attnToShip => 'Orders to ship';
+
+  @override
+  String get regionNew => 'New region';
+
+  @override
+  String get regionName => 'Region name';
+
+  @override
+  String get regionRename => 'Rename the region';
+
+  @override
+  String get regionDelete => 'Delete the region';
+
+  @override
+  String regionDeleteTitle(String name) {
+    return 'Delete $name?';
+  }
+
+  @override
+  String get regionDeleteBody => 'The region is empty. This cannot be undone.';
+
+  @override
+  String get regionDeleted => 'Region deleted';
+
+  @override
+  String get regionSaved => 'Region saved';
+
+  @override
+  String get regionNotEmptyHint =>
+      'Move its stores, groups, grossistes and people elsewhere before deleting it.';
+
+  @override
+  String regionHolds(int pdvs, int groups, int grossistes) {
+    return '$pdvs stores · $groups groups · $grossistes grossistes';
+  }
+
+  @override
+  String get regionNoneYet => 'No region yet';
+
+  @override
+  String get regionNoneYetHint =>
+      'Create the first region, then add its responsable.';
+
+  @override
+  String get regionChangeResponsable => 'Change the responsable';
+
+  @override
+  String regionPickResponsable(String name) {
+    return 'Who looks after $name?';
+  }
+
+  @override
+  String get regionNewResponsable => 'Create a new responsable';
+
+  @override
+  String regionCurrently(String region) {
+    return 'Now in $region';
+  }
+
+  @override
+  String get moveToRegion => 'Move to another region';
+
+  @override
+  String get moveChooseRegion => 'Choose the region';
+
+  @override
+  String get moveGroupInNewRegion => 'Group in the new region';
+
+  @override
+  String get moveNoGroup => 'No group';
+
+  @override
+  String moveStoreTitle(String name) {
+    return 'Move $name';
+  }
+
+  @override
+  String get moveStoreHint =>
+      'Its team, stock, sales and history move with it. It must have no delivery or count waiting.';
+
+  @override
+  String get moveGroupHint =>
+      'The group and all of its stores move together, with their team, stock and sales.';
+
+  @override
+  String get moveDepotHint =>
+      'Its stock moves with it. It must have no delivery or count waiting.';
+
+  @override
+  String get moveResponsableHint =>
+      'A responsable always looks after exactly one region.';
+
+  @override
+  String get moveDone => 'Moved';
+
+  @override
+  String get moveSwapTitle => 'Swap the two responsables?';
+
+  @override
+  String moveSwapBody(String a, String b, String regionA, String regionB) {
+    return '$a takes $regionA, and $b goes to $regionB.';
+  }
+
+  @override
+  String get moveSwap => 'Swap';
+
+  @override
+  String get moveHere => 'Move here';
+
+  @override
+  String shipByRegionTeam(String region) {
+    return 'To be shipped by the team of $region.';
+  }
+
+  @override
+  String get chooseGrossisteOtherRegions =>
+      'Grossistes of other regions can supply it too.';
 }

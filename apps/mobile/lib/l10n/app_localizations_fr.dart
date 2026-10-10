@@ -1447,18 +1447,18 @@ class AppLocalizationsFr extends AppLocalizations {
   String get roleAdmin => 'Administrateur';
 
   @override
-  String get adminConsoleTitle => 'Console d’administration';
+  String get adminConsoleTitle => 'Console BioBalance';
 
   @override
   String get adminConsoleTagline =>
-      'Pilotez le réseau BioBalance : magasins, stock, réassorts, récompenses et validations.';
+      'Pilotez le réseau BioBalance : régions, magasins, stock, réassorts, récompenses et validations.';
 
   @override
   String get adminSignInTitle => 'Connexion à la console';
 
   @override
   String get adminSignInSubtitle =>
-      'Accès administrateur uniquement. Mot de passe et code d’authentification.';
+      'Pour les administrateurs et les responsables. Utilisez votre mot de passe et votre code d’authentification.';
 
   @override
   String get roleResponsable => 'Responsable';
@@ -2518,4 +2518,122 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get attnToShip => 'Commandes à expédier';
+
+  @override
+  String get regionNew => 'Nouvelle région';
+
+  @override
+  String get regionName => 'Nom de la région';
+
+  @override
+  String get regionRename => 'Renommer la région';
+
+  @override
+  String get regionDelete => 'Supprimer la région';
+
+  @override
+  String regionDeleteTitle(String name) {
+    return 'Supprimer $name ?';
+  }
+
+  @override
+  String get regionDeleteBody =>
+      'La région est vide. Cette action est définitive.';
+
+  @override
+  String get regionDeleted => 'Région supprimée';
+
+  @override
+  String get regionSaved => 'Région enregistrée';
+
+  @override
+  String get regionNotEmptyHint =>
+      'Déplacez d’abord ses magasins, groupes, grossistes et personnes avant de la supprimer.';
+
+  @override
+  String regionHolds(int pdvs, int groups, int grossistes) {
+    return '$pdvs magasins · $groups groupes · $grossistes grossistes';
+  }
+
+  @override
+  String get regionNoneYet => 'Aucune région';
+
+  @override
+  String get regionNoneYetHint =>
+      'Créez la première région, puis ajoutez son responsable.';
+
+  @override
+  String get regionChangeResponsable => 'Changer de responsable';
+
+  @override
+  String regionPickResponsable(String name) {
+    return 'Qui s’occupe de $name ?';
+  }
+
+  @override
+  String get regionNewResponsable => 'Créer un nouveau responsable';
+
+  @override
+  String regionCurrently(String region) {
+    return 'Actuellement : $region';
+  }
+
+  @override
+  String get moveToRegion => 'Déplacer vers une autre région';
+
+  @override
+  String get moveChooseRegion => 'Choisissez la région';
+
+  @override
+  String get moveGroupInNewRegion => 'Groupe dans la nouvelle région';
+
+  @override
+  String get moveNoGroup => 'Aucun groupe';
+
+  @override
+  String moveStoreTitle(String name) {
+    return 'Déplacer $name';
+  }
+
+  @override
+  String get moveStoreHint =>
+      'Son équipe, son stock, ses ventes et son historique le suivent. Il ne doit avoir aucune livraison ni comptage en attente.';
+
+  @override
+  String get moveGroupHint =>
+      'Le groupe et tous ses magasins se déplacent ensemble, avec leur équipe, leur stock et leurs ventes.';
+
+  @override
+  String get moveDepotHint =>
+      'Son stock le suit. Il ne doit avoir aucune livraison ni comptage en attente.';
+
+  @override
+  String get moveResponsableHint =>
+      'Un responsable s’occupe toujours d’une seule région.';
+
+  @override
+  String get moveDone => 'Déplacé';
+
+  @override
+  String get moveSwapTitle => 'Échanger les deux responsables ?';
+
+  @override
+  String moveSwapBody(String a, String b, String regionA, String regionB) {
+    return '$a prend $regionA, et $b va à $regionB.';
+  }
+
+  @override
+  String get moveSwap => 'Échanger';
+
+  @override
+  String get moveHere => 'Déplacer ici';
+
+  @override
+  String shipByRegionTeam(String region) {
+    return 'À expédier par l’équipe de $region.';
+  }
+
+  @override
+  String get chooseGrossisteOtherRegions =>
+      'Les grossistes des autres régions peuvent aussi le fournir.';
 }

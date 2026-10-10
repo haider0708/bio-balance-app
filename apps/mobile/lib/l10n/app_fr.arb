@@ -690,10 +690,10 @@
   "rewardsMonth": "Gains, 30 jours",
   "rewardsTitle": "Récompenses",
   "roleAdmin": "Administrateur",
-  "adminConsoleTitle": "Console d’administration",
-  "adminConsoleTagline": "Pilotez le réseau BioBalance : magasins, stock, réassorts, récompenses et validations.",
+  "adminConsoleTitle": "Console BioBalance",
+  "adminConsoleTagline": "Pilotez le réseau BioBalance : régions, magasins, stock, réassorts, récompenses et validations.",
   "adminSignInTitle": "Connexion à la console",
-  "adminSignInSubtitle": "Accès administrateur uniquement. Mot de passe et code d’authentification.",
+  "adminSignInSubtitle": "Pour les administrateurs et les responsables. Utilisez votre mot de passe et votre code d’authentification.",
   "roleResponsable": "Responsable",
   "roleResponsablePlural": "Responsables",
   "roleVendeur": "Membre de l’équipe",
@@ -1347,5 +1347,101 @@
     }
   },
   "attnGrossisteUncounted": "Grossistes sans stock",
-  "attnToShip": "Commandes à expédier"
+  "attnToShip": "Commandes à expédier",
+  "regionNew": "Nouvelle région",
+  "regionName": "Nom de la région",
+  "regionRename": "Renommer la région",
+  "regionDelete": "Supprimer la région",
+  "regionDeleteTitle": "Supprimer {name} ?",
+  "@regionDeleteTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "regionDeleteBody": "La région est vide. Cette action est définitive.",
+  "regionDeleted": "Région supprimée",
+  "regionSaved": "Région enregistrée",
+  "regionNotEmptyHint": "Déplacez d’abord ses magasins, groupes, grossistes et personnes avant de la supprimer.",
+  "regionHolds": "{pdvs} magasins · {groups} groupes · {grossistes} grossistes",
+  "@regionHolds": {
+    "placeholders": {
+      "pdvs": {
+        "type": "int"
+      },
+      "groups": {
+        "type": "int"
+      },
+      "grossistes": {
+        "type": "int"
+      }
+    }
+  },
+  "regionNoneYet": "Aucune région",
+  "regionNoneYetHint": "Créez la première région, puis ajoutez son responsable.",
+  "regionChangeResponsable": "Changer de responsable",
+  "regionPickResponsable": "Qui s’occupe de {name} ?",
+  "@regionPickResponsable": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "regionNewResponsable": "Créer un nouveau responsable",
+  "regionCurrently": "Actuellement : {region}",
+  "@regionCurrently": {
+    "placeholders": {
+      "region": {
+        "type": "String"
+      }
+    }
+  },
+  "moveToRegion": "Déplacer vers une autre région",
+  "moveChooseRegion": "Choisissez la région",
+  "moveGroupInNewRegion": "Groupe dans la nouvelle région",
+  "moveNoGroup": "Aucun groupe",
+  "moveStoreTitle": "Déplacer {name}",
+  "@moveStoreTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "moveStoreHint": "Son équipe, son stock, ses ventes et son historique le suivent. Il ne doit avoir aucune livraison ni comptage en attente.",
+  "moveGroupHint": "Le groupe et tous ses magasins se déplacent ensemble, avec leur équipe, leur stock et leurs ventes.",
+  "moveDepotHint": "Son stock le suit. Il ne doit avoir aucune livraison ni comptage en attente.",
+  "moveResponsableHint": "Un responsable s’occupe toujours d’une seule région.",
+  "moveDone": "Déplacé",
+  "moveSwapTitle": "Échanger les deux responsables ?",
+  "moveSwapBody": "{a} prend {regionA}, et {b} va à {regionB}.",
+  "@moveSwapBody": {
+    "placeholders": {
+      "a": {
+        "type": "String"
+      },
+      "b": {
+        "type": "String"
+      },
+      "regionA": {
+        "type": "String"
+      },
+      "regionB": {
+        "type": "String"
+      }
+    }
+  },
+  "moveSwap": "Échanger",
+  "moveHere": "Déplacer ici",
+  "shipByRegionTeam": "À expédier par l’équipe de {region}.",
+  "@shipByRegionTeam": {
+    "placeholders": {
+      "region": {
+        "type": "String"
+      }
+    }
+  },
+  "chooseGrossisteOtherRegions": "Les grossistes des autres régions peuvent aussi le fournir."
 }

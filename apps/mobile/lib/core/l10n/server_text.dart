@@ -48,6 +48,30 @@ class ServerText {
   }
 
   static const _errors = <String, _Text>{
+    'REGION_NOT_EMPTY': (
+      'This region still holds stores, groups, grossistes or people. Move them elsewhere first.',
+      'Cette région contient encore des magasins, groupes, grossistes ou personnes. Déplacez-les d’abord.',
+    ),
+    'REGION_NAME_TAKEN': (
+      'A region already has this name.',
+      'Une région porte déjà ce nom.',
+    ),
+    'REGION_MOVE_BLOCKED': (
+      'It still has restocks, counts or recount requests waiting. Finish or cancel them first.',
+      'Il a encore des réassorts, comptages ou demandes de recomptage en attente. Terminez-les ou annulez-les d’abord.',
+    ),
+    'SAME_REGION': (
+      'It already belongs to this region.',
+      'Il appartient déjà à cette région.',
+    ),
+    'GROUP_OTHER_REGION': (
+      'Choose a group of the new region.',
+      'Choisissez un groupe de la nouvelle région.',
+    ),
+    'NOT_A_RESPONSABLE': (
+      'Only a responsable can be moved this way.',
+      'Seul un responsable peut être déplacé ainsi.',
+    ),
     'REGION_REQUIRED': ('Choose a region.', 'Choisissez une région.'),
     'REGION_NOT_FOUND': (
       'This region no longer exists.',
@@ -61,9 +85,9 @@ class ServerText {
       'Add between 1 and 5 different photos.',
       'Ajoutez entre 1 et 5 photos différentes.',
     ),
-    'WEB_ADMIN_ONLY': (
-      'This page is for administrators. Please use the BioBalance app on your phone.',
-      'Cette page est réservée aux administrateurs. Utilisez l’application BioBalance sur votre téléphone.',
+    'WEB_STAFF_ONLY': (
+      'This page is for administrators and responsables. Please use the BioBalance app on your phone.',
+      'Cette page est réservée aux administrateurs et aux responsables. Utilisez l’application BioBalance sur votre téléphone.',
     ),
     'INVALID_CREDENTIALS': (
       'Incorrect email or password.',
@@ -108,8 +132,8 @@ class ServerText {
       'Cet e-mail a déjà un compte.',
     ),
     'REGION_HAS_RESPONSABLE': (
-      'This region already has a responsable.',
-      'Cette région a déjà un responsable.',
+      'This region already has a responsable: swap the two, or move that one first.',
+      'Cette région a déjà un responsable : échangez les deux, ou déplacez-le d’abord.',
     ),
     'GROUP_NOT_FOUND': (
       'Choose one of your groups.',
@@ -292,6 +316,38 @@ class ServerText {
   };
 
   static const _notifications = <String, _Text>{
+    'pdv.moved.in': (
+      '{name} joined your region, from {from}, with its team and stock.',
+      '{name} rejoint votre région, depuis {from}, avec son équipe et son stock.',
+    ),
+    'pdv.moved.out': (
+      '{name} moved to {to}.',
+      '{name} est passé dans la région {to}.',
+    ),
+    'group.moved.in': (
+      'The group {name} joined your region, from {from}.',
+      'Le groupe {name} rejoint votre région, depuis {from}.',
+    ),
+    'group.moved.out': (
+      'The group {name} moved to {to}.',
+      'Le groupe {name} est passé dans la région {to}.',
+    ),
+    'depot.moved.in': (
+      'The grossiste {name} joined your region, from {from}.',
+      'Le grossiste {name} rejoint votre région, depuis {from}.',
+    ),
+    'depot.moved.out': (
+      'The grossiste {name} moved to {to}.',
+      'Le grossiste {name} est passé dans la région {to}.',
+    ),
+    'responsable.moved': (
+      'You now look after {region}.',
+      'Vous vous occupez maintenant de {region}.',
+    ),
+    'restock.assigned': (
+      'Restock {number} will be shipped from {depot}.',
+      'Le réassort {number} sera expédié depuis {depot}.',
+    ),
     'group.submitted': (
       '{by} created the group “{name}”: waiting for approval.',
       '{by} a créé le groupe « {name} » : en attente d’approbation.',

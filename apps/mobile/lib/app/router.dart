@@ -26,6 +26,7 @@ import '../features/network/network_models.dart';
 import '../features/network/depots_screen.dart';
 import '../features/network/network_screen.dart';
 import '../features/network/pdv_screens.dart';
+import '../features/network/regions_screen.dart';
 import '../features/network/people_widgets.dart';
 import '../features/notifications/notifications_screen.dart';
 import '../features/restock/restock_models.dart';
@@ -47,7 +48,7 @@ import '../features/training/training_screens.dart';
 import '../features/wallet/payouts_screen.dart';
 import '../features/wallet/wallet_screen.dart';
 import '../l10n/app_localizations.dart';
-import 'admin_shell.dart';
+import 'console_shell.dart';
 import 'nav_shell.dart';
 
 const _publicPaths = {'/login', '/activate', '/forgot', '/code'};
@@ -167,13 +168,39 @@ StatefulShellRoute _shell(List<TabSpec> tabs) =>
 
 List<RouteBase> _roleRoutes(Role role) => switch (role) {
   Role.vendeur => [..._vendeur(), ..._shared()],
-  Role.responsable => [..._responsable(), ..._shared()],
-  // On the phone the admin has bottom tabs; in a browser, a sidebar around every page.
+  Role.responsable =>
+    kIsWeb
+        ? [
+            ShellRoute(
+              builder: (_, _, child) => ConsoleShell(child: child),
+              routes: [
+                GoRoute(
+                  path: '/home',
+                  builder: (_, _) => const ManagementHome(),
+                ),
+                GoRoute(
+                  path: '/pdvs',
+                  builder: (_, _) => const NetworkScreen(),
+                ),
+                GoRoute(
+                  path: '/restocks',
+                  builder: (_, _) => const RestocksScreen(),
+                ),
+                GoRoute(
+                  path: '/reports',
+                  builder: (_, _) => const ReportsScreen(),
+                ),
+                ..._shared(),
+              ],
+            ),
+          ]
+        : [..._responsable(), ..._shared()],
+  // On the phone the admin and the responsable have bottom tabs; in a browser, a sidebar around every page.
   Role.admin =>
     kIsWeb
         ? [
             ShellRoute(
-              builder: (_, _, child) => AdminShell(child: child),
+              builder: (_, _, child) => ConsoleShell(child: child),
               routes: [
                 GoRoute(
                   path: '/home',
@@ -333,6 +360,7 @@ List<RouteBase> _admin() => [
   GoRoute(path: '/payouts', builder: (_, _) => const PayoutsScreen()),
   GoRoute(path: '/reports', builder: (_, _) => const ReportsScreen()),
   GoRoute(path: '/depots/new', builder: (_, _) => const DepotFormScreen()),
+  GoRoute(path: '/regions', builder: (_, _) => const RegionsScreen()),
   _withExtra<String>(
     '/depots/:id/restock',
     '/depots',
@@ -376,7 +404,11 @@ List<RouteBase> _admin() => [
     builder: (_, state) =>
         MessageDetailScreen(messageId: state.pathParameters['id']!),
   ),
-  GoRoute(path: '/people/new', builder: (_, _) => const CreateAccountScreen()),
+  GoRoute(
+    path: '/people/new',
+    builder: (_, state) =>
+        CreateAccountScreen(regionId: state.extra as String?),
+  ),
   _withExtra<Person>(
     '/people/:id',
     '/network',
@@ -536,6 +568,7 @@ Widget _more(Role role) => Builder(
           '/rewards',
           tone: Tone.success,
         ),
+        MoreEntry(LucideIcons.map, t.regions, '/regions'),
         MoreEntry(LucideIcons.warehouse, t.grossistesTitle, '/depots'),
         MoreEntry(
           LucideIcons.wallet,

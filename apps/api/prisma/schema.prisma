@@ -94,9 +94,11 @@ enum LessonKind {
 
 // ───────────────────────────── Identity ─────────────────────────────
 
+/// A region of the network. Regions are stable; the admin names them, and moves stores, groups,
+/// grossistes and responsables between them.
 model Region {
   id   String @id @default(uuid()) @db.Uuid
-  /// NORD, CENTRE or SUD. The three regions are fixed.
+  /// Internal, generated from the name when the region is created; never shown.
   code String @unique
   name String
 }
@@ -321,6 +323,8 @@ model RestockOrder {
   status         OrderStatus @default(REQUESTED)
   source         OrderSource?
   supplierDepotId String?    @db.Uuid
+  /// The region the goods leave from (the grossiste's): its responsable ships the order.
+  supplierRegionId String?   @db.Uuid
   requestedById  String      @db.Uuid
   note           String?
   createdAt      DateTime    @default(now())
@@ -341,6 +345,7 @@ model RestockOrder {
   @@index([status, createdAt])
   @@index([regionId, status])
   @@index([supplierDepotId, status])
+  @@index([supplierRegionId, status])
   @@index([destId, status])
 }
 

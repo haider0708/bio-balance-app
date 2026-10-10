@@ -690,10 +690,10 @@
   "rewardsMonth": "Rewards, 30 days",
   "rewardsTitle": "Rewards",
   "roleAdmin": "Administrator",
-  "adminConsoleTitle": "Admin console",
-  "adminConsoleTagline": "Manage the BioBalance network: stores, stock, restocks, rewards and approvals.",
+  "adminConsoleTitle": "BioBalance console",
+  "adminConsoleTagline": "Run the BioBalance network: regions, stores, stock, restocks, rewards and approvals.",
   "adminSignInTitle": "Sign in to the console",
-  "adminSignInSubtitle": "Administrator access only. Use your password and authenticator code.",
+  "adminSignInSubtitle": "For administrators and responsables. Use your password and authenticator code.",
   "roleResponsable": "Responsable",
   "roleResponsablePlural": "Responsables",
   "roleVendeur": "Team member",
@@ -1347,5 +1347,101 @@
     }
   },
   "attnGrossisteUncounted": "Grossistes without stock yet",
-  "attnToShip": "Orders to ship"
+  "attnToShip": "Orders to ship",
+  "regionNew": "New region",
+  "regionName": "Region name",
+  "regionRename": "Rename the region",
+  "regionDelete": "Delete the region",
+  "regionDeleteTitle": "Delete {name}?",
+  "@regionDeleteTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "regionDeleteBody": "The region is empty. This cannot be undone.",
+  "regionDeleted": "Region deleted",
+  "regionSaved": "Region saved",
+  "regionNotEmptyHint": "Move its stores, groups, grossistes and people elsewhere before deleting it.",
+  "regionHolds": "{pdvs} stores · {groups} groups · {grossistes} grossistes",
+  "@regionHolds": {
+    "placeholders": {
+      "pdvs": {
+        "type": "int"
+      },
+      "groups": {
+        "type": "int"
+      },
+      "grossistes": {
+        "type": "int"
+      }
+    }
+  },
+  "regionNoneYet": "No region yet",
+  "regionNoneYetHint": "Create the first region, then add its responsable.",
+  "regionChangeResponsable": "Change the responsable",
+  "regionPickResponsable": "Who looks after {name}?",
+  "@regionPickResponsable": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "regionNewResponsable": "Create a new responsable",
+  "regionCurrently": "Now in {region}",
+  "@regionCurrently": {
+    "placeholders": {
+      "region": {
+        "type": "String"
+      }
+    }
+  },
+  "moveToRegion": "Move to another region",
+  "moveChooseRegion": "Choose the region",
+  "moveGroupInNewRegion": "Group in the new region",
+  "moveNoGroup": "No group",
+  "moveStoreTitle": "Move {name}",
+  "@moveStoreTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "moveStoreHint": "Its team, stock, sales and history move with it. It must have no delivery or count waiting.",
+  "moveGroupHint": "The group and all of its stores move together, with their team, stock and sales.",
+  "moveDepotHint": "Its stock moves with it. It must have no delivery or count waiting.",
+  "moveResponsableHint": "A responsable always looks after exactly one region.",
+  "moveDone": "Moved",
+  "moveSwapTitle": "Swap the two responsables?",
+  "moveSwapBody": "{a} takes {regionA}, and {b} goes to {regionB}.",
+  "@moveSwapBody": {
+    "placeholders": {
+      "a": {
+        "type": "String"
+      },
+      "b": {
+        "type": "String"
+      },
+      "regionA": {
+        "type": "String"
+      },
+      "regionB": {
+        "type": "String"
+      }
+    }
+  },
+  "moveSwap": "Swap",
+  "moveHere": "Move here",
+  "shipByRegionTeam": "To be shipped by the team of {region}.",
+  "@shipByRegionTeam": {
+    "placeholders": {
+      "region": {
+        "type": "String"
+      }
+    }
+  },
+  "chooseGrossisteOtherRegions": "Grossistes of other regions can supply it too."
 }

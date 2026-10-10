@@ -72,6 +72,7 @@ class RestockOrder {
     this.source,
     this.supplier,
     this.supplierId,
+    this.supplierRegionId,
     this.requestedBy,
     this.receiver,
     this.note,
@@ -95,6 +96,7 @@ class RestockOrder {
     destinationId: j.obj('destination').str('id'),
     supplier: j.objOrNull('supplier')?.str('name'),
     supplierId: j.objOrNull('supplier')?.str('id'),
+    supplierRegionId: j.objOrNull('supplier')?.strOrNull('regionId'),
     requestedBy: Actor.from(j.objOrNull('requestedBy')),
     receiver: Actor.from(j.objOrNull('receiver')),
     note: j.strOrNull('note'),
@@ -122,6 +124,9 @@ class RestockOrder {
   final String destinationId;
   final String? supplier;
   final String? supplierId;
+
+  /// The region the goods leave from: its responsable ships them.
+  final String? supplierRegionId;
   final Actor? requestedBy;
   final Actor? receiver;
   final String? note;

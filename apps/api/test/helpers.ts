@@ -44,7 +44,7 @@ export async function owner() {
   return client;
 }
 
-/** Empty every business table (the three fixed regions stay). */
+/** Empty every business table and put the three starting regions back (tests may rename, add or delete regions). */
 export async function resetDatabase() {
   const db = await owner();
   try {
@@ -53,6 +53,19 @@ export async function resetDatabase() {
     );
     await db.query(
       `TRUNCATE ${rows.map((r) => `"${r.tablename}"`).join(",")} RESTART IDENTITY CASCADE`,
+    );
+    for (const [code, name] of [
+      ["NORD", "Nord"],
+      ["CENTRE", "Centre"],
+      ["SUD", "Sud"],
+    ])
+      await db.query(
+        `INSERT INTO "Region"(id, code, name) VALUES (gen_random_uuid(), $1, $2)
+         ON CONFLICT (code) DO UPDATE SET name = EXCLUDED.name`,
+        [code, name],
+      );
+    await db.query(
+      `DELETE FROM "Region" WHERE code NOT IN ('NORD','CENTRE','SUD')`,
     );
   } finally {
     await db.end();

@@ -710,9 +710,24 @@ class _RestockDetailScreenState extends ConsumerState<RestockDetailScreen> {
     }
 
     // The responsable of the region (or the admin) ships from the grossiste.
-    if ((me.role == Role.responsable || me.role == Role.admin) &&
-        o.status == RestockStatus.assigned &&
-        o.supplierId != null) {
+    final shipsIt =
+        me.role == Role.admin ||
+        (me.role == Role.responsable && o.supplierRegionId == me.region?.id);
+    if (o.status == RestockStatus.assigned &&
+        o.supplierId != null &&
+        !shipsIt) {
+      // Another region's grossiste supplies it: that region's team ships, here we only follow.
+      w
+        ..add(
+          StatusChip(
+            t.shipByRegionTeam(o.supplier ?? ''),
+            tone: Tone.info,
+            icon: LucideIcons.truck,
+          ),
+        )
+        ..add(gap);
+    }
+    if (shipsIt && o.status == RestockStatus.assigned && o.supplierId != null) {
       w.add(
         AsyncButton(
           label: t.prepareAndShip,
@@ -816,15 +831,23 @@ class _RestockDetailScreenState extends ConsumerState<RestockDetailScreen> {
     return w;
   }
 
-  /// Only the grossistes of the order's own region can take it.
+  /// Any active grossiste can supply the order, in its region or another; the order's own region comes first.
   Future<Depot?> _pickDepot(BuildContext context, String? regionId) async {
-    final depots = (await ref.read(networkRepositoryProvider).depots())
-        .where((d) => regionId == null || d.regionId == regionId)
-        .toList();
+    final depots =
+        (await ref.read(networkRepositoryProvider).depots())
+            .where((d) => d.active)
+            .toList()
+          ..sort((a, b) {
+            final byRegion = (a.regionId == regionId ? 0 : 1).compareTo(
+              b.regionId == regionId ? 0 : 1,
+            );
+            return byRegion != 0 ? byRegion : a.name.compareTo(b.name);
+          });
     if (!context.mounted) return null;
     return showModalBottomSheet<Depot>(
       context: context,
-      builder: (context) => _DepotSheet(depots: depots),
+      isScrollControlled: true,
+      builder: (context) => _DepotSheet(depots: depots, regionId: regionId),
     );
   }
 }
@@ -892,9 +915,12 @@ class _Lines extends StatelessWidget {
 }
 
 class _DepotSheet extends StatelessWidget {
-  const _DepotSheet({required this.depots});
+  const _DepotSheet({required this.depots, required this.regionId});
 
   final List<Depot> depots;
+
+  /// The order's region: its grossistes are listed first.
+  final String? regionId;
 
   @override
   Widget build(BuildContext context) {
@@ -907,6 +933,15 @@ class _DepotSheet extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
             child: Text(t.chooseGrossiste, style: context.text.titleLarge),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+            child: Text(
+              t.chooseGrossisteOtherRegions,
+              style: context.text.bodyMedium?.copyWith(
+                color: context.status.muted,
+              ),
+            ),
           ),
           if (depots.isEmpty)
             Padding(

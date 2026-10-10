@@ -351,7 +351,7 @@ List<Widget> attentionSections(
             icon: LucideIcons.packageCheck,
             tone: Tone.warning,
             label: t.attnToShip,
-            count: restocks.integer('ASSIGNED'),
+            count: data.integer('toShip'),
             onTap: () => context.go('/restocks'),
           ),
         AttentionLine(

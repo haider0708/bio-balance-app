@@ -7,7 +7,7 @@ class AppConfig {
     defaultValue: 'https://api.galylio.com',
   );
 
-  static const version = '2.6.0';
+  static const version = '2.7.0';
 
   /// Photos are resized on the phone before upload.
   static const photoMaxWidth = 1400.0;

@@ -16,6 +16,7 @@ import '../settings/settings_screen.dart';
 import '../shared/status_chips.dart';
 import 'network_models.dart';
 import 'network_repository.dart';
+import 'region_moves.dart';
 
 /// Ask for one short piece of text.
 Future<String?> askText(
@@ -24,43 +25,75 @@ Future<String?> askText(
   required String label,
   required String confirmLabel,
   String? initial,
-}) {
-  final controller = TextEditingController(text: initial);
-  return showModalBottomSheet<String>(
-    context: context,
-    isScrollControlled: true,
-    builder: (context) => Padding(
-      padding: EdgeInsets.fromLTRB(
-        20,
-        0,
-        20,
-        20 + MediaQuery.viewInsetsOf(context).bottom,
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(title, style: context.text.titleLarge),
-          const Gap(16),
-          TextField(
-            controller: controller,
-            autofocus: true,
-            textCapitalization: TextCapitalization.words,
-            decoration: InputDecoration(labelText: label),
-            onSubmitted: (v) =>
-                v.trim().length >= 2 ? Navigator.pop(context, v.trim()) : null,
-          ),
-          const Gap(16),
-          FilledButton(
-            onPressed: () => controller.text.trim().length >= 2
-                ? Navigator.pop(context, controller.text.trim())
-                : null,
-            child: Text(confirmLabel),
-          ),
-        ],
-      ),
+}) => showModalBottomSheet<String>(
+  context: context,
+  isScrollControlled: true,
+  builder: (context) => _TextSheet(
+    title: title,
+    label: label,
+    confirmLabel: confirmLabel,
+    initial: initial,
+  ),
+);
+
+/// The sheet owns its text field's controller, so it lives exactly as long as the sheet.
+class _TextSheet extends StatefulWidget {
+  const _TextSheet({
+    required this.title,
+    required this.label,
+    required this.confirmLabel,
+    this.initial,
+  });
+
+  final String title;
+  final String label;
+  final String confirmLabel;
+  final String? initial;
+
+  @override
+  State<_TextSheet> createState() => _TextSheetState();
+}
+
+class _TextSheetState extends State<_TextSheet> {
+  late final _controller = TextEditingController(text: widget.initial);
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _done() {
+    final text = _controller.text.trim();
+    if (text.length >= 2) Navigator.pop(context, text);
+  }
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: EdgeInsets.fromLTRB(
+      20,
+      0,
+      20,
+      20 + MediaQuery.viewInsetsOf(context).bottom,
     ),
-  ).whenComplete(controller.dispose);
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(widget.title, style: context.text.titleLarge),
+        const Gap(16),
+        TextField(
+          controller: _controller,
+          autofocus: true,
+          textCapitalization: TextCapitalization.words,
+          decoration: InputDecoration(labelText: widget.label),
+          onSubmitted: (_) => _done(),
+        ),
+        const Gap(16),
+        FilledButton(onPressed: _done, child: Text(widget.confirmLabel)),
+      ],
+    ),
+  );
 }
 
 /// People of the network: the admin sees every role (filterable), a responsable their team.
@@ -307,6 +340,20 @@ class PersonPanel extends ConsumerWidget {
           ),
         if (person.decisionNote != null)
           InfoRow(t.decision, person.decisionNote!),
+        if (me.role == Role.admin && person.role == Role.responsable)
+          Align(
+            alignment: AlignmentDirectional.centerEnd,
+            child: TextButton.icon(
+              onPressed: () async {
+                if (await moveResponsableFlow(context, ref, person)) {
+                  onChanged();
+                  onDone();
+                }
+              },
+              icon: const Icon(LucideIcons.moveRight, size: 16),
+              label: Text(t.moveToRegion),
+            ),
+          ),
         const Gap(12),
         if (me.role == Role.admin && person.status == ItemStatus.pending) ...[
           AsyncButton(

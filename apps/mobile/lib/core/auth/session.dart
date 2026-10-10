@@ -98,8 +98,8 @@ class SessionNotifier extends AsyncNotifier<Session?> {
       final me = Me.fromJson(
         await ref.read(apiClientProvider).get('/v1/me') as Json,
       );
-      // The web console is for administrators only (see [login]).
-      if (kIsWeb && me.role != Role.admin) {
+      // The web console is for administrators and responsables; team members use the phone (see [login]).
+      if (kIsWeb && me.role == Role.vendeur) {
         await _clear();
         return null;
       }
@@ -133,8 +133,8 @@ class SessionNotifier extends AsyncNotifier<Session?> {
     }) as Json;
     final token = response.str('token');
     final me = Me.fromJson(response.obj('me'));
-    if (kIsWeb && me.role != Role.admin) {
-      // Not an admin: close the session that was just opened and point to the phone app.
+    if (kIsWeb && me.role == Role.vendeur) {
+      // A team member: close the session that was just opened and point to the phone app.
       ref.read(tokenProvider.notifier).set(token);
       try {
         await ref.read(apiClientProvider).post('/v1/auth/logout');
@@ -143,8 +143,8 @@ class SessionNotifier extends AsyncNotifier<Session?> {
       }
       ref.read(tokenProvider.notifier).set(null);
       throw const ApiException(
-        code: 'WEB_ADMIN_ONLY',
-        message: 'This page is for administrators.',
+        code: 'WEB_STAFF_ONLY',
+        message: 'This page is for administrators and responsables.',
         status: 403,
       );
     }

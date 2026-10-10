@@ -40,6 +40,14 @@ Every route is under `https://api.galylio.com`, JSON in and out, `Authorization:
 
 | Method | Path | Who |
 |---|---|---|
+| GET | `/v1/regions/overview` | admin (regions with their responsable and counts) |
+| POST | `/v1/regions` | admin |
+| PATCH | `/v1/regions/:id` | admin (rename) |
+| DELETE | `/v1/regions/:id` | admin (only when empty) |
+| POST | `/v1/users/:id/move` | admin (a responsable to another region; `swap` to exchange with its responsable) |
+| POST | `/v1/pdvs/:id/move` | admin (`regionId`, optional `groupId` of the new region) |
+| POST | `/v1/groups/:id/move` | admin (with all its stores) |
+| POST | `/v1/depots/:id/move` | admin |
 | GET | `/v1/depots` | admin, responsable (own region) |
 | GET | `/v1/depots/:id` | admin, responsable (own region) |
 | POST | `/v1/depots` | admin |
@@ -118,7 +126,7 @@ Every route is under `https://api.galylio.com`, JSON in and out, `Authorization:
 | PUT | `/v1/restocks/:id/receiver` | responsable |
 | POST | `/v1/restocks/:id/reject-receipt` | admin |
 | POST | `/v1/restocks/:id/send-direct` | admin |
-| POST | `/v1/restocks/:id/ship` | admin, responsable |
+| POST | `/v1/restocks/:id/ship` | admin, responsable of the grossiste's region |
 
 ## rewards
 

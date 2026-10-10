@@ -12,6 +12,7 @@ import {
 import { z } from "zod";
 import { type AuthRequest, Roles, parse } from "../../core/http";
 import { DepotsService } from "./depots.service";
+import { RegionsService } from "./regions.service";
 import { StructureService } from "./structure.service";
 import { UsersService } from "./users.service";
 
@@ -54,6 +55,13 @@ const UserPatch = z.object({
   pdvId: id.optional(),
 });
 const Photos = z.array(id).max(5);
+const RegionName = z.object({ name: text(60) });
+const MoveTo = z.object({ regionId: id });
+const MovePdv = z.object({ regionId: id, groupId: id.nullable().optional() });
+const MoveResponsable = z.object({
+  regionId: id,
+  swap: z.boolean().optional(),
+});
 const NewDepot = z.object({
   regionId: id,
   name: text(),
@@ -77,6 +85,7 @@ export class DirectoryController {
     private readonly structure: StructureService,
     private readonly users: UsersService,
     private readonly depotsService: DepotsService,
+    private readonly regionsService: RegionsService,
   ) {}
 
   @Get("regions") regions() {
@@ -346,6 +355,78 @@ export class DirectoryController {
   @Post("users/:id/cancel-invite")
   cancelInvite(@Req() r: AuthRequest, @Param("id") i: string) {
     return this.users.cancelInvite(r.actor, parse(id, i));
+  }
+
+  // Regions
+  @Roles("ADMIN")
+  @Get("regions/overview")
+  regionsOverview(@Req() r: AuthRequest) {
+    return this.regionsService.overview(r.actor);
+  }
+  @Roles("ADMIN")
+  @Post("regions")
+  createRegion(@Req() r: AuthRequest, @Body() b: unknown) {
+    return this.regionsService.create(r.actor, parse(RegionName, b).name);
+  }
+  @Roles("ADMIN")
+  @Patch("regions/:id")
+  renameRegion(
+    @Req() r: AuthRequest,
+    @Param("id") i: string,
+    @Body() b: unknown,
+  ) {
+    return this.regionsService.rename(
+      r.actor,
+      parse(id, i),
+      parse(RegionName, b).name,
+    );
+  }
+  @Roles("ADMIN")
+  @Delete("regions/:id")
+  deleteRegion(@Req() r: AuthRequest, @Param("id") i: string) {
+    return this.regionsService.remove(r.actor, parse(id, i));
+  }
+  @Roles("ADMIN")
+  @Post("users/:id/move")
+  moveResponsable(
+    @Req() r: AuthRequest,
+    @Param("id") i: string,
+    @Body() b: unknown,
+  ) {
+    const body = parse(MoveResponsable, b);
+    return this.regionsService.moveResponsable(
+      r.actor,
+      parse(id, i),
+      body.regionId,
+      body.swap ?? false,
+    );
+  }
+  @Roles("ADMIN")
+  @Post("pdvs/:id/move")
+  movePdv(@Req() r: AuthRequest, @Param("id") i: string, @Body() b: unknown) {
+    return this.regionsService.movePdv(
+      r.actor,
+      parse(id, i),
+      parse(MovePdv, b),
+    );
+  }
+  @Roles("ADMIN")
+  @Post("groups/:id/move")
+  moveGroup(@Req() r: AuthRequest, @Param("id") i: string, @Body() b: unknown) {
+    return this.regionsService.moveGroup(
+      r.actor,
+      parse(id, i),
+      parse(MoveTo, b).regionId,
+    );
+  }
+  @Roles("ADMIN")
+  @Post("depots/:id/move")
+  moveDepot(@Req() r: AuthRequest, @Param("id") i: string, @Body() b: unknown) {
+    return this.regionsService.moveDepot(
+      r.actor,
+      parse(id, i),
+      parse(MoveTo, b).regionId,
+    );
   }
 
   // Grossistes (warehouses)

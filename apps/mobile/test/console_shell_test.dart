@@ -1,4 +1,4 @@
-import 'package:biobalance/app/admin_shell.dart';
+import 'package:biobalance/app/console_shell.dart';
 import 'package:biobalance/core/auth/session.dart';
 import 'package:biobalance/core/theme/app_theme.dart';
 import 'package:biobalance/l10n/app_localizations.dart';
@@ -10,15 +10,19 @@ import 'package:go_router/go_router.dart';
 
 import 'screenshots_test.dart' as base show server;
 
-/// The web admin's sidebar, on its own: it must be reachable by keyboard and screen readers, and lead everywhere.
+/// The web console's sidebar, on its own: it must be reachable by keyboard and screen readers, and lead everywhere.
 void main() {
-  Future<GoRouter> pump(WidgetTester tester, Size size) async {
+  Future<GoRouter> pump(
+    WidgetTester tester,
+    Size size, {
+    String role = 'ADMIN',
+  }) async {
     tester.view.physicalSize = size;
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
     final container = ProviderContainer(
       overrides: base
-          .server('ADMIN')
+          .server(role)
           .overrides(token: 'a-valid-token-of-sufficient-length-123456'),
       retry: (_, _) => null,
     );
@@ -28,7 +32,7 @@ void main() {
       initialLocation: '/home',
       routes: [
         ShellRoute(
-          builder: (_, _, child) => AdminShell(child: child),
+          builder: (_, _, child) => ConsoleShell(child: child),
           routes: [
             for (final p in ['/home', '/approvals', '/reports', '/settings'])
               GoRoute(
@@ -70,6 +74,27 @@ void main() {
     await tester.pump(const Duration(seconds: 1));
     await tester.pump(const Duration(seconds: 1));
     expect(find.text('page /reports'), findsOneWidget);
+    handle.dispose();
+  });
+
+  testWidgets('a responsable gets their own sections, not the admin\'s', (
+    tester,
+  ) async {
+    final handle = tester.ensureSemantics();
+    await pump(tester, const Size(1400, 900), role: 'RESPONSABLE');
+    expect(find.bySemanticsLabel('Restocks'), findsOneWidget);
+    expect(find.bySemanticsLabel('Reports'), findsOneWidget);
+    expect(find.bySemanticsLabel('Grossistes'), findsOneWidget);
+    expect(find.bySemanticsLabel('Approvals'), findsNothing);
+    expect(find.bySemanticsLabel('Payouts'), findsNothing);
+    expect(find.bySemanticsLabel('Regions'), findsNothing);
+    handle.dispose();
+  });
+
+  testWidgets('the admin also gets the regions', (tester) async {
+    final handle = tester.ensureSemantics();
+    await pump(tester, const Size(1400, 900));
+    expect(find.bySemanticsLabel('Regions'), findsOneWidget);
     handle.dispose();
   });
 

@@ -7,13 +7,14 @@ import '../core/auth/session.dart';
 import '../core/theme/app_theme.dart';
 import '../core/widgets/components.dart';
 import '../features/notifications/notifications_repository.dart';
+import '../features/settings/settings_screen.dart' show roleLabel;
 import '../l10n/app_localizations.dart';
-import 'admin_nav.dart';
+import 'console_nav.dart';
 
 const _collapsedKey = 'admin.sidebar.collapsed';
 
 /// Whether the wide sidebar shows icons only.
-class AdminSidebarCollapsed extends Notifier<bool> {
+class ConsoleSidebarCollapsed extends Notifier<bool> {
   @override
   bool build() {
     ref.listen(preferencesProvider, (_, next) {
@@ -37,47 +38,72 @@ class AdminSidebarCollapsed extends Notifier<bool> {
   }
 }
 
-final adminSidebarCollapsedProvider =
-    NotifierProvider<AdminSidebarCollapsed, bool>(AdminSidebarCollapsed.new);
+final consoleSidebarCollapsedProvider =
+    NotifierProvider<ConsoleSidebarCollapsed, bool>(
+      ConsoleSidebarCollapsed.new,
+    );
 
-/// Full-width admin console: persistent collapsible sidebar on wide screens,
+/// The web console: persistent collapsible sidebar on wide screens,
 /// drawer + top chrome on phone.
-class AdminShell extends ConsumerStatefulWidget {
-  const AdminShell({required this.child, super.key});
+class ConsoleShell extends ConsumerStatefulWidget {
+  const ConsoleShell({required this.child, super.key});
 
   final Widget child;
 
   @override
-  ConsumerState<AdminShell> createState() => _AdminShellState();
+  ConsumerState<ConsoleShell> createState() => _ConsoleShellState();
 }
 
-class _AdminShellState extends ConsumerState<AdminShell> {
+class _ConsoleShellState extends ConsumerState<ConsoleShell> {
   final _scaffoldKey = GlobalKey<ScaffoldState>();
 
   @override
   Widget build(BuildContext context) {
-    final wide = MediaQuery.sizeOf(context).width >= adminWideBreakpoint;
-    final collapsed = ref.watch(adminSidebarCollapsedProvider);
+    final wide = MediaQuery.sizeOf(context).width >= consoleWideBreakpoint;
+    final collapsed = ref.watch(consoleSidebarCollapsedProvider);
     final location = GoRouterState.of(context).uri.toString();
     final t = AppLocalizations.of(context);
-    final entries = adminNavEntries(t);
-    final selected = selectedAdminNav(entries, location);
+    final entries = consoleNavEntries(t, ref.watch(meProvider).role);
+    final selected = selectedConsoleNav(entries, location);
 
     void go(String path) {
       if (GoRouterState.of(context).uri.path != path) context.go(path);
       if (!wide) _scaffoldKey.currentState?.closeDrawer();
     }
 
-    final panel = _AdminPanel(
+    final panel = _SidebarPanel(
       entries: entries,
       selected: selected,
       collapsed: wide && collapsed,
       onNavigate: go,
       onToggleCollapse: wide
-          ? () => ref.read(adminSidebarCollapsedProvider.notifier).toggle()
+          ? () => ref.read(consoleSidebarCollapsedProvider.notifier).toggle()
           : null,
       showCollapseControl: wide,
     );
+
+    // The browser tab names the section: "Network · BioBalance".
+    final title = selected == null
+        ? t.appName
+        : '${selected.label} · ${t.appName}';
+    return Title(
+      title: title,
+      color: context.colors.primary,
+      child: _layout(context, wide, panel, t),
+    );
+  }
+
+  Widget _layout(
+    BuildContext context,
+    bool wide,
+    Widget panel,
+    AppLocalizations t,
+  ) {
+    final location = GoRouterState.of(context).uri.toString();
+    void go(String path) {
+      if (GoRouterState.of(context).uri.path != path) context.go(path);
+      if (!wide) _scaffoldKey.currentState?.closeDrawer();
+    }
 
     if (wide) {
       return Material(
@@ -94,8 +120,10 @@ class _AdminShellState extends ConsumerState<AdminShell> {
                 child: Align(
                   alignment: Alignment.topCenter,
                   child: ConstrainedBox(
-                    constraints: const BoxConstraints(
-                      maxWidth: adminContentMaxWidth,
+                    constraints: BoxConstraints(
+                      maxWidth: isFormPath(Uri.parse(location).path)
+                          ? consoleFormMaxWidth
+                          : consoleContentMaxWidth,
                     ),
                     child: widget.child,
                   ),
@@ -110,14 +138,14 @@ class _AdminShellState extends ConsumerState<AdminShell> {
     return Scaffold(
       key: _scaffoldKey,
       drawer: Drawer(
-        width: adminSidebarExpandedWidth + 8,
+        width: consoleSidebarExpandedWidth + 8,
         backgroundColor: context.status.card,
         shape: const RoundedRectangleBorder(),
         child: SafeArea(child: panel),
       ),
       body: Column(
         children: [
-          _AdminTopBar(
+          _TopBar(
             title: t.appName,
             onMenu: () => _scaffoldKey.currentState?.openDrawer(),
             onNotifications: () => go('/notifications'),
@@ -129,8 +157,8 @@ class _AdminShellState extends ConsumerState<AdminShell> {
   }
 }
 
-class _AdminTopBar extends ConsumerWidget {
-  const _AdminTopBar({
+class _TopBar extends ConsumerWidget {
+  const _TopBar({
     required this.title,
     required this.onMenu,
     required this.onNotifications,
@@ -186,8 +214,8 @@ class _AdminTopBar extends ConsumerWidget {
   }
 }
 
-class _AdminPanel extends ConsumerWidget {
-  const _AdminPanel({
+class _SidebarPanel extends ConsumerWidget {
+  const _SidebarPanel({
     required this.entries,
     required this.selected,
     required this.collapsed,
@@ -196,8 +224,8 @@ class _AdminPanel extends ConsumerWidget {
     this.onToggleCollapse,
   });
 
-  final List<AdminNavEntry> entries;
-  final AdminNavEntry? selected;
+  final List<ConsoleNavEntry> entries;
+  final ConsoleNavEntry? selected;
   final bool collapsed;
   final ValueChanged<String> onNavigate;
   final bool showCollapseControl;
@@ -209,8 +237,8 @@ class _AdminPanel extends ConsumerWidget {
     final t = AppLocalizations.of(context);
     final me = ref.watch(meProvider);
     final width = collapsed
-        ? adminSidebarCollapsedWidth
-        : adminSidebarExpandedWidth;
+        ? consoleSidebarCollapsedWidth
+        : consoleSidebarExpandedWidth;
     final unread = ref.watch(unreadCountProvider);
 
     return AnimatedContainer(
@@ -263,7 +291,7 @@ class _AdminPanel extends ConsumerWidget {
                           overflow: TextOverflow.ellipsis,
                         ),
                         Text(
-                          t.roleAdmin,
+                          roleLabel(t, me.role),
                           style: context.text.labelSmall?.copyWith(
                             color: s.muted,
                           ),
@@ -381,7 +409,7 @@ class _NavTile extends StatelessWidget {
     this.badge = 0,
   });
 
-  final AdminNavEntry entry;
+  final ConsoleNavEntry entry;
   final bool selected;
   final bool collapsed;
   final VoidCallback onTap;

@@ -14,6 +14,7 @@ import '../approvals/approvals_repository.dart';
 import '../shared/status_chips.dart';
 import 'network_models.dart';
 import 'network_repository.dart';
+import 'region_moves.dart';
 import 'people_widgets.dart';
 
 /// One point of sale: its state, its stock, its team, and what the viewer can do about it.
@@ -55,6 +56,13 @@ class PdvDetailScreen extends ConsumerWidget {
                 await context.push('/pdvs/$pdvId/edit', extra: pdv.value);
                 _reload(ref);
               },
+            ),
+          if (pdv.hasValue && me.role == Role.admin)
+            PopupMenuButton<String>(
+              onSelected: (_) => movePdvFlow(context, ref, pdv.value!),
+              itemBuilder: (context) => [
+                PopupMenuItem(value: 'move', child: Text(t.moveToRegion)),
+              ],
             ),
         ],
       ),
@@ -574,7 +582,10 @@ class _AddMemberScreenState extends ConsumerState<AddMemberScreen> {
 
 /// The admin creates a responsable or a team member directly.
 class CreateAccountScreen extends ConsumerStatefulWidget {
-  const CreateAccountScreen({super.key});
+  const CreateAccountScreen({this.regionId, super.key});
+
+  /// Opened from a region's page: a responsable for that region.
+  final String? regionId;
 
   @override
   ConsumerState<CreateAccountScreen> createState() =>
@@ -587,7 +598,7 @@ class _CreateAccountScreenState extends ConsumerState<CreateAccountScreen> {
   final _name = TextEditingController();
   final _email = TextEditingController();
   final _phone = TextEditingController();
-  String? _regionId;
+  late String? _regionId = widget.regionId;
   String? _pdvId;
 
   @override

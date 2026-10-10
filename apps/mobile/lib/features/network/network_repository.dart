@@ -15,6 +15,43 @@ class NetworkRepository {
           .map(Region.fromJson)
           .toList();
 
+  // Regions (admin)
+  Future<List<RegionInfo>> regionsOverview() async =>
+      jsonList(await _ref.read(apiClientProvider).get('/v1/regions/overview'))
+          .map(RegionInfo.fromJson)
+          .toList();
+
+  Future<void> createRegion(String name) =>
+      _ref.read(apiClientProvider).post('/v1/regions', {'name': name});
+
+  Future<void> renameRegion(String id, String name) =>
+      _ref.read(apiClientProvider).patch('/v1/regions/$id', {'name': name});
+
+  Future<void> deleteRegion(String id) =>
+      _ref.read(apiClientProvider).delete('/v1/regions/$id');
+
+  /// A responsable looks after one region; with [swap], the one already there takes their old place.
+  Future<void> moveResponsable(
+    String userId,
+    String regionId, {
+    bool swap = false,
+  }) => _ref.read(apiClientProvider).post('/v1/users/$userId/move', {
+    'regionId': regionId,
+    if (swap) 'swap': true,
+  });
+
+  Future<void> movePdv(String id, String regionId, {String? groupId}) => _ref
+      .read(apiClientProvider)
+      .post('/v1/pdvs/$id/move', {'regionId': regionId, 'groupId': groupId});
+
+  Future<void> moveGroup(String id, String regionId) => _ref
+      .read(apiClientProvider)
+      .post('/v1/groups/$id/move', {'regionId': regionId});
+
+  Future<void> moveDepot(String id, String regionId) => _ref
+      .read(apiClientProvider)
+      .post('/v1/depots/$id/move', {'regionId': regionId});
+
   // Groups
   Future<List<Group>> groups({String? status, String? regionId}) async =>
       jsonList(
@@ -173,6 +210,10 @@ class NetworkRepository {
 
 final networkRepositoryProvider = Provider<NetworkRepository>(
   NetworkRepository.new,
+);
+
+final regionsOverviewProvider = FutureProvider.autoDispose<List<RegionInfo>>(
+  (ref) => ref.watch(networkRepositoryProvider).regionsOverview(),
 );
 
 final regionsProvider = FutureProvider<List<Region>>(

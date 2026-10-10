@@ -10,6 +10,14 @@ BioBalance runs the network of BioBalance parapharmacies: who sells where, what 
 | **Responsable** | 3, one per region (Nord, Centre, Sud) | Creates the group(s) and points of sale (PDV) of their region, adds teams, declares stock, requests restocks, receives deliveries, and handles the **grossistes** of their region (see below). Sees only their own region. |
 | **Team member** (vendeur) | any | Works in one point of sale. Records sales, sees the reward each sale earned, keeps a wallet. |
 
+### Regions are managed by the admin
+
+The admin creates, renames and deletes regions (**More → Regions**, or **Regions** in the web sidebar). A region is deleted only when nothing is left in it: no store, group, grossiste or person. A region has **one responsable**, and a responsable always has a region.
+
+- **Responsables:** created for a region, and moved between regions. Moving one into a region that already has a responsable asks the admin to **swap** the two; nothing happens without that confirmation. A suspended responsable can be moved anywhere (this is how a region is emptied before it is deleted).
+- **Stores, groups and grossistes** can be moved to another region. Everything attached goes with it: a store's team, stock, sales, past deliveries and photos; a group takes all its stores; a grossiste keeps its stock. Reports from before the move show it in its new region. A move is refused while the place has a restock in progress, a count waiting, or a recount request ("finish or cancel them first"). A store leaves its group when it moves, or joins one of the new region. Both regions' responsables are told.
+- **Grossistes supply any region:** the admin may give a store's order to a grossiste of another region. That region's responsable (or the admin) ships it, because the goods leave their stock; the store's own responsable receives it and the admin approves, as always.
+
 Regions are separate: a responsable never sees another region's points of sale, people, stock, sales, deliveries or grossistes (enforced in the database, not only in the app).
 
 ### Grossistes are warehouses, not accounts
@@ -85,8 +93,8 @@ Dashboards per role, sales reports grouped by day, region, point of sale, seller
 
 The administrator can work from a browser at https://admin.galylio.com/ with the same account (password and authenticator code). It is the phone app built for the web, so every admin function exists in both. Differences on the web:
 
-- Only administrators can sign in; other roles are told to use the phone app.
-- A collapsible sidebar groups every section (Overview, Operations, Insights, Commerce, Content, Places, Account). Under 900 px wide it becomes a drawer. Page content is capped at a comfortable width on very large monitors.
+- Team members who try to sign in are told to use the phone app.
+- Administrators and responsables sign in on the web (team members use the phone). A collapsible sidebar groups the sections of their role (Overview, Operations, Insights, Commerce, Content, Places, Account); a responsable sees their own region only. Under 900 px wide it becomes a drawer. Page content is capped at a comfortable width on very large monitors.
 - Reports export downloads a CSV file; PDFs open in a new tab; training videos play from a downloaded copy.
 - Text can be selected and copied, and the page is exposed to screen readers.
 - Every page has its own address: reload, bookmarks and the browser's back and forward buttons work. A detail page opened without its context (for example a person's page after a reload) returns to its list; an unknown address shows a "page not found" screen.

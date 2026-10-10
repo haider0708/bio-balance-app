@@ -286,6 +286,12 @@ void main() {
   group('admin', () {
     test('sees everything that waits for them', () async {
       final c = as('admin');
+      final regions = await c.read(networkRepositoryProvider).regionsOverview();
+      final nord = regions.firstWhere((r) => r.name == 'Nord');
+      expect(nord.responsable?.name, 'Nora Nord');
+      expect(nord.grossistes, 1);
+      expect(nord.pdvs, greaterThan(0));
+      expect(nord.deletable, isFalse);
       final approvals = await c.read(approvalsProvider(null).future);
       expect(approvals.counts[ApprovalType.pdv], 1);
       expect(approvals.counts[ApprovalType.member], 1);

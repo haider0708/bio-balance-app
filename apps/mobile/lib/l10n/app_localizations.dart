@@ -2573,13 +2573,13 @@ abstract class AppLocalizations {
   /// No description provided for @adminConsoleTitle.
   ///
   /// In en, this message translates to:
-  /// **'Admin console'**
+  /// **'BioBalance console'**
   String get adminConsoleTitle;
 
   /// No description provided for @adminConsoleTagline.
   ///
   /// In en, this message translates to:
-  /// **'Manage the BioBalance network: stores, stock, restocks, rewards and approvals.'**
+  /// **'Run the BioBalance network: regions, stores, stock, restocks, rewards and approvals.'**
   String get adminConsoleTagline;
 
   /// No description provided for @adminSignInTitle.
@@ -2591,7 +2591,7 @@ abstract class AppLocalizations {
   /// No description provided for @adminSignInSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Administrator access only. Use your password and authenticator code.'**
+  /// **'For administrators and responsables. Use your password and authenticator code.'**
   String get adminSignInSubtitle;
 
   /// No description provided for @roleResponsable.
@@ -4369,6 +4369,198 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Orders to ship'**
   String get attnToShip;
+
+  /// No description provided for @regionNew.
+  ///
+  /// In en, this message translates to:
+  /// **'New region'**
+  String get regionNew;
+
+  /// No description provided for @regionName.
+  ///
+  /// In en, this message translates to:
+  /// **'Region name'**
+  String get regionName;
+
+  /// No description provided for @regionRename.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename the region'**
+  String get regionRename;
+
+  /// No description provided for @regionDelete.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete the region'**
+  String get regionDelete;
+
+  /// No description provided for @regionDeleteTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete {name}?'**
+  String regionDeleteTitle(String name);
+
+  /// No description provided for @regionDeleteBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The region is empty. This cannot be undone.'**
+  String get regionDeleteBody;
+
+  /// No description provided for @regionDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Region deleted'**
+  String get regionDeleted;
+
+  /// No description provided for @regionSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Region saved'**
+  String get regionSaved;
+
+  /// No description provided for @regionNotEmptyHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Move its stores, groups, grossistes and people elsewhere before deleting it.'**
+  String get regionNotEmptyHint;
+
+  /// No description provided for @regionHolds.
+  ///
+  /// In en, this message translates to:
+  /// **'{pdvs} stores · {groups} groups · {grossistes} grossistes'**
+  String regionHolds(int pdvs, int groups, int grossistes);
+
+  /// No description provided for @regionNoneYet.
+  ///
+  /// In en, this message translates to:
+  /// **'No region yet'**
+  String get regionNoneYet;
+
+  /// No description provided for @regionNoneYetHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Create the first region, then add its responsable.'**
+  String get regionNoneYetHint;
+
+  /// No description provided for @regionChangeResponsable.
+  ///
+  /// In en, this message translates to:
+  /// **'Change the responsable'**
+  String get regionChangeResponsable;
+
+  /// No description provided for @regionPickResponsable.
+  ///
+  /// In en, this message translates to:
+  /// **'Who looks after {name}?'**
+  String regionPickResponsable(String name);
+
+  /// No description provided for @regionNewResponsable.
+  ///
+  /// In en, this message translates to:
+  /// **'Create a new responsable'**
+  String get regionNewResponsable;
+
+  /// No description provided for @regionCurrently.
+  ///
+  /// In en, this message translates to:
+  /// **'Now in {region}'**
+  String regionCurrently(String region);
+
+  /// No description provided for @moveToRegion.
+  ///
+  /// In en, this message translates to:
+  /// **'Move to another region'**
+  String get moveToRegion;
+
+  /// No description provided for @moveChooseRegion.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose the region'**
+  String get moveChooseRegion;
+
+  /// No description provided for @moveGroupInNewRegion.
+  ///
+  /// In en, this message translates to:
+  /// **'Group in the new region'**
+  String get moveGroupInNewRegion;
+
+  /// No description provided for @moveNoGroup.
+  ///
+  /// In en, this message translates to:
+  /// **'No group'**
+  String get moveNoGroup;
+
+  /// No description provided for @moveStoreTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Move {name}'**
+  String moveStoreTitle(String name);
+
+  /// No description provided for @moveStoreHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Its team, stock, sales and history move with it. It must have no delivery or count waiting.'**
+  String get moveStoreHint;
+
+  /// No description provided for @moveGroupHint.
+  ///
+  /// In en, this message translates to:
+  /// **'The group and all of its stores move together, with their team, stock and sales.'**
+  String get moveGroupHint;
+
+  /// No description provided for @moveDepotHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Its stock moves with it. It must have no delivery or count waiting.'**
+  String get moveDepotHint;
+
+  /// No description provided for @moveResponsableHint.
+  ///
+  /// In en, this message translates to:
+  /// **'A responsable always looks after exactly one region.'**
+  String get moveResponsableHint;
+
+  /// No description provided for @moveDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Moved'**
+  String get moveDone;
+
+  /// No description provided for @moveSwapTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Swap the two responsables?'**
+  String get moveSwapTitle;
+
+  /// No description provided for @moveSwapBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{a} takes {regionA}, and {b} goes to {regionB}.'**
+  String moveSwapBody(String a, String b, String regionA, String regionB);
+
+  /// No description provided for @moveSwap.
+  ///
+  /// In en, this message translates to:
+  /// **'Swap'**
+  String get moveSwap;
+
+  /// No description provided for @moveHere.
+  ///
+  /// In en, this message translates to:
+  /// **'Move here'**
+  String get moveHere;
+
+  /// No description provided for @shipByRegionTeam.
+  ///
+  /// In en, this message translates to:
+  /// **'To be shipped by the team of {region}.'**
+  String shipByRegionTeam(String region);
+
+  /// No description provided for @chooseGrossisteOtherRegions.
+  ///
+  /// In en, this message translates to:
+  /// **'Grossistes of other regions can supply it too.'**
+  String get chooseGrossisteOtherRegions;
 }
 
 class _AppLocalizationsDelegate

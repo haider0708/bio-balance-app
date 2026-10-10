@@ -17,6 +17,7 @@ import '../media/media_repository.dart';
 import '../stock/stock_screens.dart' show StockScreen;
 import 'network_models.dart';
 import 'network_repository.dart';
+import 'region_moves.dart';
 
 void _call(String phone) =>
     launchUrl(Uri(scheme: 'tel', path: phone.replaceAll(' ', '')));
@@ -71,11 +72,16 @@ class DepotsScreen extends ConsumerWidget {
                 for (final region in regions) ...[
                   // One region (a responsable's own) needs no heading.
                   if (regions.length > 1) SectionHeader(region),
-                  for (final d in list.where((d) => d.regionName == region))
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: _DepotTile(depot: d),
-                    ),
+                  AutoGrid(
+                    minItemWidth: 360,
+                    maxColumns: 2,
+                    spacing: 8,
+                    children: [
+                      for (final d in list.where((d) => d.regionName == region))
+                        _DepotTile(depot: d),
+                    ],
+                  ),
+                  const Gap(8),
                 ],
               ],
             );
@@ -264,6 +270,8 @@ class _DepotMenu extends ConsumerWidget {
               ..invalidate(depotProvider(depot.id))
               ..invalidate(depotsProvider);
           }
+        } else if (action == 'move') {
+          await moveDepotFlow(context, ref, depot);
         } else if (action == 'remove') {
           final yes = await confirm(
             context,
@@ -289,6 +297,7 @@ class _DepotMenu extends ConsumerWidget {
           value: 'toggle',
           child: Text(depot.active ? t.depotSuspend : t.depotReactivate),
         ),
+        PopupMenuItem(value: 'move', child: Text(t.moveToRegion)),
         PopupMenuItem(value: 'remove', child: Text(t.depotRemove)),
       ],
     );

@@ -343,20 +343,55 @@ describe("restock through a grossiste", () => {
     expect(res.body.code).toBe("INSUFFICIENT_STOCK");
   });
 
-  it("assigns only a grossiste of the same region", async () => {
+  it("a grossiste of another region can supply the store: its own responsable ships, the store's receives", async () => {
     const pdv = await approvedPdv(w, "s", "Para Sud");
+    await stockPlace(w, w.depotId, w.nord, [50, 40, 30]); // the grossiste works in Nord
     const order = (
       await w.s.post("/v1/restocks", {
         destId: pdv.id,
         lines: [{ productId: w.products[0]!.id, quantity: 4 }],
       })
     ).body;
-    const refused = await w.a.post(`/v1/restocks/${order.id}/assign`, {
+    const assigned = await w.a.post(`/v1/restocks/${order.id}/assign`, {
       depotId: w.depotId,
-    }); // the world's grossiste works for Nord
-    expect(refused.status).toBe(409);
-    expect(refused.body.code).toBe("DEPOT_OTHER_REGION");
-    expect((await w.s.get("/v1/depots")).body).toEqual([]);
+    });
+    expect(assigned.body).toMatchObject({
+      status: "ASSIGNED",
+      supplier: { id: w.depotId, regionId: expect.any(String) },
+    });
+    // Both responsables see the order; only the one whose region holds the goods ships them.
+    expect((await w.n.get(`/v1/restocks/${order.id}`)).status).toBe(200);
+    expect((await w.s.get(`/v1/restocks/${order.id}`)).status).toBe(200);
+    const lines = [{ productId: w.products[0]!.id, quantity: 4 }];
+    expect(
+      (await w.s.post(`/v1/restocks/${order.id}/ship`, { lines })).status,
+    ).toBe(403);
+    const told = (await w.n.get("/v1/notifications")).body.items.map(
+      (n: any) => n.key,
+    );
+    expect(told).toContain("restock.to_prepare");
+    expect(
+      (await w.s.get("/v1/notifications")).body.items.map((n: any) => n.key),
+    ).toContain("restock.assigned");
+    expect((await w.n.get("/v1/dashboard")).body.toShip).toBe(1);
+    const shipped = await w.n.post(`/v1/restocks/${order.id}/ship`, { lines });
+    expect(shipped.body.status).toBe("SHIPPED");
+    expect((await levels(w, w.depotId))["Serum Vitamin C"]).toBe(46);
+    // The store's own responsable counts it; the admin approves.
+    await w.s.post(`/v1/restocks/${order.id}/receipt`, {
+      photoId: await photo(w, w.sud),
+      lines,
+    });
+    await w.a.post(`/v1/restocks/${order.id}/approve`, {});
+    expect((await levels(w, pdv.id))["Serum Vitamin C"]).toBe(4);
+    // A region that is neither the store's nor the grossiste's never sees it.
+    const third = await createAccount({
+      role: "RESPONSABLE",
+      regionCode: "CENTRE",
+    });
+    expect(
+      (await client(api, third.token).get(`/v1/restocks/${order.id}`)).status,
+    ).toBe(404);
   });
 
   it("only the responsable of the region (or the admin) ships", async () => {

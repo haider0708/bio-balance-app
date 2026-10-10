@@ -150,7 +150,7 @@ export class RestockService {
 
   // ───────────────────────── Admin routes the order ─────────────────────────
 
-  /** The admin picks the grossiste the goods leave from. The admin may adjust the quantities first. */
+  /** The admin picks the grossiste the goods leave from, in any region. The admin may adjust the quantities first. */
   assign(
     actor: Actor,
     id: string,
@@ -177,12 +177,6 @@ export class RestockService {
         "Choose an active grossiste.",
         404,
       );
-      requireRule(
-        depot.regionId === order.regionId,
-        "DEPOT_OTHER_REGION",
-        "This grossiste works for another region.",
-        409,
-      );
       if (input.lines) await this.reshape(tx, order, input.lines);
       const updated = await tx.restockOrder.update({
         where: { id },
@@ -190,6 +184,7 @@ export class RestockService {
           status: "ASSIGNED",
           source: "GROSSISTE",
           supplierDepotId: depot.id,
+          supplierRegionId: depot.regionId,
           assignedAt: new Date(),
         },
         include: { lines: true },
@@ -203,13 +198,19 @@ export class RestockService {
         { depot: depot.name },
         order.regionId,
       );
-      // The responsable of the region ships it from the grossiste.
-      await notify(tx, await responsableIds(tx, order.regionId!), {
+      // The responsable of the grossiste's region ships it; the one who asked is told where it comes from.
+      const shippers = await responsableIds(tx, depot.regionId);
+      await notify(tx, shippers, {
         key: "restock.to_prepare",
         params: { number: order.number, depot: depot.name },
         entityType: "RestockOrder",
         entityId: id,
       });
+      if (!shippers.includes(order.requestedById))
+        await this.tellRequester(tx, order, "restock.assigned", {
+          number: order.number,
+          depot: depot.name,
+        });
       return this.one(tx, updated);
     });
   }
@@ -255,7 +256,7 @@ export class RestockService {
 
   // ───────────────────────── Shipping from a grossiste ─────────────────────────
 
-  /** The responsable of the region (or the admin) says what really leaves the grossiste. */
+  /** The responsable of the grossiste's region (or the admin) says what really leaves it. */
   ship(actor: Actor, id: string, input: { lines: QtyLine[] }) {
     requireRule(
       ["ADMIN", "RESPONSABLE"].includes(actor.role),
@@ -265,9 +266,10 @@ export class RestockService {
     );
     return this.db.run(actor, async (tx) => {
       const order = await this.load(tx, id, "ASSIGNED");
+      // The goods leave a grossiste: its region's responsable (or the admin) ships them.
       requireRule(
         order.supplierDepotId &&
-          (actor.role === "ADMIN" || order.regionId === actor.regionId),
+          (actor.role === "ADMIN" || order.supplierRegionId === actor.regionId),
         "FORBIDDEN",
         "This order is not yours to ship.",
         403,
@@ -812,9 +814,12 @@ export class RestockService {
     params: Record<string, unknown>,
     except?: string,
   ) {
-    const region = order.regionId
-      ? await responsableIds(tx, order.regionId)
-      : [];
+    const region = [
+      ...(order.regionId ? await responsableIds(tx, order.regionId) : []),
+      ...(order.supplierRegionId
+        ? await responsableIds(tx, order.supplierRegionId)
+        : []),
+    ];
     const ids = [order.requestedById, order.receiverId, ...region].filter(
       (x): x is string => !!x && x !== except,
     );
@@ -883,7 +888,11 @@ export class RestockService {
         name: place.get(o.destId) ?? "",
       },
       supplier: o.supplierDepotId
-        ? { id: o.supplierDepotId, name: place.get(o.supplierDepotId) ?? "" }
+        ? {
+            id: o.supplierDepotId,
+            name: place.get(o.supplierDepotId) ?? "",
+            regionId: o.supplierRegionId,
+          }
         : null,
       requestedBy: who(o.requestedById),
       receiver: who(o.receiverId),
