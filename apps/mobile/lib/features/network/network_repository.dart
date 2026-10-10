@@ -216,9 +216,10 @@ final regionsOverviewProvider = FutureProvider.autoDispose<List<RegionInfo>>(
   (ref) => ref.watch(networkRepositoryProvider).regionsOverview(),
 );
 
-final regionsProvider = FutureProvider<List<Region>>(
-  (ref) => ref.watch(networkRepositoryProvider).regions(),
-);
+final regionsProvider = FutureProvider<List<Region>>((ref) async {
+  if (ref.watch(accountProvider) == null) return const [];
+  return ref.watch(networkRepositoryProvider).regions();
+});
 
 final pdvsProvider = FutureProvider.autoDispose.family<List<Pdv>, String?>(
   (ref, regionId) =>

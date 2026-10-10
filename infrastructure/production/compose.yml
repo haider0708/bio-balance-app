@@ -7,6 +7,11 @@ x-api-environment: &api-env
   MEDIA_ROOT: /var/lib/biobalance/media
   # The mailbox shown on the privacy, terms and account-deletion pages.
   SUPPORT_EMAIL: ${SUPPORT_EMAIL:-biobalance@galylio.com}
+  # Apple push alerts for iPhones (docs/runbook.md, "iPhone alerts"); unset = the phones check by themselves.
+  APNS_KEY_ID: ${APNS_KEY_ID:-}
+  APNS_TEAM_ID: ${APNS_TEAM_ID:-}
+  APNS_KEY_P8: ${APNS_KEY_P8:-}
+  APNS_TOPIC: ${APNS_TOPIC:-tn.biobalance.app}
 x-app: &app
   image: ${API_IMAGE:?Set an immutable API image tag or digest}
   restart: unless-stopped
@@ -65,6 +70,10 @@ services:
       SMTP_FROM: ${SMTP_FROM:?Set sender}
       SMTP_USER: ${SMTP_USER:-}
       SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      APNS_KEY_ID: ${APNS_KEY_ID:-}
+      APNS_TEAM_ID: ${APNS_TEAM_ID:-}
+      APNS_KEY_P8: ${APNS_KEY_P8:-}
+      APNS_TOPIC: ${APNS_TOPIC:-tn.biobalance.app}
     healthcheck:
       test: [CMD, node, -e, "const fs=require('fs');process.exit(Date.now()-Number(fs.readFileSync('/tmp/biobalance-worker-heartbeat','utf8'))<60000?0:1)"]
       interval: 30s

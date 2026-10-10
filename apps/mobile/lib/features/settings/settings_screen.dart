@@ -5,6 +5,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../core/auth/me.dart';
 import '../../core/auth/session.dart';
+import '../../core/drafts/drafts.dart';
 import '../../core/app_version.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/util/money.dart';
@@ -508,6 +509,11 @@ class _DeleteAccountSheetState extends ConsumerState<_DeleteAccountSheet> {
                   );
                   if (!ok || !context.mounted) return;
                   final messenger = ScaffoldMessenger.of(context);
+                  final account = ref.read(accountProvider);
+                  final prefs = ref.read(preferencesProvider).value;
+                  if (account != null && prefs != null)
+                    await Drafts.forget(prefs, account);
+                  if (!context.mounted) return;
                   Navigator.pop(context);
                   ref.read(sessionProvider.notifier).expire();
                   messenger.showSnackBar(

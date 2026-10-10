@@ -1,3 +1,4 @@
+import { tunisDay } from "../src/core/dates";
 /**
  * Starts the API on a test database with a realistic world, writes the connection details to a file,
  * then keeps running until a `<file>.stop` file appears. The mobile contract test connects to it
@@ -131,13 +132,13 @@ export async function serveFixture(out: string) {
     scope: "FAMILY",
     family: "Sérums",
     amountMillimes: 500,
-    startsOn: new Date().toISOString().slice(0, 10),
+    startsOn: tunisDay(new Date()),
   });
   await a.post("/v1/reward-rules", {
     scope: "PRODUCT",
     productId: products[0],
     amountMillimes: 800,
-    startsOn: new Date().toISOString().slice(0, 10),
+    startsOn: tunisDay(new Date()),
     note: "Promo",
   });
   const sale = (

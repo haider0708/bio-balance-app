@@ -25,6 +25,15 @@ const Profile = z.object({
   locale: z.enum(["fr", "en"]).optional(),
 });
 const DeleteAccount = z.object({ password: z.string().min(1).max(128) });
+const PushDevice = z.object({
+  token: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .regex(/^[0-9a-f]{32,200}$/),
+  platform: z.literal("IOS"),
+  sandbox: z.boolean().default(false),
+});
 const ChangePassword = z.object({
   current: z.string().min(1).max(128),
   next: password,
@@ -89,6 +98,12 @@ export class AuthController {
       req.actor,
       parse(DeleteAccount, raw).password,
     );
+  }
+
+  /** The phone of this session receives push alerts; says whether the server sends any. */
+  @Post("me/push-device")
+  pushDevice(@Req() req: AuthRequest, @Body() raw: unknown) {
+    return this.auth.registerPushDevice(req.actor, parse(PushDevice, raw));
   }
 
   @Post("me/password")

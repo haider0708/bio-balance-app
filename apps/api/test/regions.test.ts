@@ -1,3 +1,4 @@
+import { tunisDay } from "../src/core/dates";
 import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import {
@@ -217,7 +218,7 @@ describe("moving a store", () => {
       ).status,
     ).toBe(201);
     // Reports by region follow.
-    const day = new Date().toISOString().slice(0, 10);
+    const day = tunisDay(new Date());
     const q = `from=${day}&to=${day}`;
     const byRegion = (await w.a.get(`/v1/reports/sales?groupBy=region&${q}`))
       .body;

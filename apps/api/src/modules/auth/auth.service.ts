@@ -9,6 +9,7 @@ import { deletedEmail } from "./deleted";
 import { hashCode, issueCode, normalizeCode, tokenHash } from "./codes";
 import { decryptSecret, matchTotp } from "./mfa";
 import { PasswordHasher } from "./password-hasher";
+import { pushConfigured } from "../../push/apns";
 
 const SESSION_HOURS = { ADMIN: 12, default: 24 * 30 };
 
@@ -128,6 +129,31 @@ export class AuthService {
       expiresAt: expiresAt.toISOString(),
       me: await this.me(user.id),
     };
+  }
+
+  /**
+   * Registers the phone behind this session for Apple push alerts. A token moves to whoever
+   * signs in on that phone last; a person keeps at most ten phones.
+   */
+  async registerPushDevice(
+    actor: Actor,
+    device: { token: string; platform: "IOS"; sandbox: boolean },
+  ) {
+    requireRule(
+      actor.sessionId,
+      "SESSION_EXPIRED",
+      "Please sign in again.",
+      401,
+    );
+    await this.db.run("SYSTEM", async (tx) => {
+      await tx.$executeRaw`INSERT INTO "PushDevice" (token, "userId", "sessionId", platform, sandbox)
+        VALUES (${device.token}, ${actor.id}::uuid, ${actor.sessionId}::uuid, ${device.platform}, ${device.sandbox})
+        ON CONFLICT (token) DO UPDATE SET "userId" = EXCLUDED."userId", "sessionId" = EXCLUDED."sessionId",
+          sandbox = EXCLUDED.sandbox, "updatedAt" = CURRENT_TIMESTAMP`;
+      await tx.$executeRaw`DELETE FROM "PushDevice" WHERE "userId" = ${actor.id}::uuid AND token NOT IN (
+        SELECT token FROM "PushDevice" WHERE "userId" = ${actor.id}::uuid ORDER BY "updatedAt" DESC LIMIT 10)`;
+    });
+    return { push: pushConfigured() };
   }
 
   /** Resolve a bearer token to the person making the request. */

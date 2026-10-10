@@ -2953,13 +2953,6 @@ class AppLocalizationsFr extends AppLocalizations {
       'Ce qui est supprimé et ce qui est gardé';
 
   @override
-  String get leaveTitle => 'Quitter sans enregistrer ?';
-
-  @override
-  String get leaveMessage =>
-      'Ce que vous avez saisi sur cette page sera perdu.';
-
-  @override
   String get photoChooseDocument => 'Choisir un document';
 
   @override
@@ -2980,4 +2973,20 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get clearDate => 'Retirer la date';
+
+  @override
+  String get draftRestored => 'Votre saisie en cours a été reprise.';
+
+  @override
+  String get draftKept =>
+      'Gardé en brouillon : vous pourrez le terminer plus tard.';
+
+  @override
+  String get startOver => 'Recommencer';
+
+  @override
+  String get startOverTitle => 'Recommencer ?';
+
+  @override
+  String get startOverBody => 'Ce que vous avez saisi ici sera effacé.';
 }

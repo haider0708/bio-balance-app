@@ -124,7 +124,7 @@ The administrator can work from a browser at https://admin.galylio.com/ with the
 - **Account deletion.** Everyone can delete their own account in Settings → Delete my account, with their password. Their name, email, phone, password, notifications and training progress are erased at once and they can no longer sign in; sales, stock counts and rewards already paid stay in the records under "Compte supprimé". Waiting payout requests are cancelled (the sheet shows the balance still to be paid), and sales still waiting on the phone must be sent first. The last admin cannot delete their account. The admins are told.
 - **Privacy, terms, help and deletion pages** in French and English at `https://api.galylio.com/privacy`, `/terms`, `/support`, `/account-deletion`, linked from the sign-in screen and Settings.
 - **Tablets (iPad, Android tablets):** a side rail replaces the bottom bar, pages keep a readable width and forms a narrow column; every orientation. **Phones** stay upright.
-- **Nothing lost by mistake:** leaving a sale being built, a stock count or a restock order by the back button or gesture asks first.
+- **Nothing lost by mistake:** a sale being built, a stock count or a restock order is kept as a draft when the person leaves (since 3.2; it used to ask first).
 - **Code links** from the emails open the app on iPhone too.
 - The version in Settings is the one of the build.
 
@@ -135,6 +135,16 @@ The administrator can work from a browser at https://admin.galylio.com/ with the
 
 ## Platform notes (3.1.1)
 
-- **Alerts while the app is closed** work on Android (the phone checks every 15 minutes). On iPhone, notifications appear when the app is opened; real-time alerts on a closed iPhone need Apple push notifications (an APNs key from the Apple account), a later step.
-- **iPhone and iPad** use the system page slide with the swipe from the left edge to go back; while a sale, a count or an order is being filled in, the back button asks before leaving (the swipe is off until then).
+- **Alerts while the app is closed** work on Android (the phone checks every 15 minutes) and, since 3.2, on iPhone (Apple push with the server key, otherwise a check when iOS allows).
+- **iPhone and iPad** use the system page slide with the swipe from the left edge to go back, on every screen (work in progress is kept as a draft since 3.2).
 - **Photos and documents** opened once are kept on the phone (up to 200 MB, files over 15 MB are not kept), so they open at once and spare mobile data; signing out removes them.
+
+## Drafts and alerts (3.2)
+
+- **Drafts instead of "Leave without saving?"**: a sale being built, a stock count (with its photos and note) and a restock request are kept on the phone at every change. Leaving by the back button or the iPhone swipe never blocks and never loses anything ("Kept as a draft"); opening the screen again brings the work back ("Your unfinished entry is back", with **Start over**). A sale draft lasts 12 hours (only what is still in stock comes back, never more than the store holds), a count or a request a week. Drafts belong to the account that made them and go when it is deleted.
+- **iPhone alerts**: with the Apple key on the server (docs/runbook.md), alerts reach a closed iPhone within seconds, in the person's language, with the unread number on the app icon; many at once become one summary. Without it, the iPhone checks by itself when iOS allows. Tapping an alert, on iPhone or Android, opens the notifications.
+- **Badge and polling**: the unread number refreshes every minute only while the app is in front, and stops at sign-out; lists kept for the whole session (regions, catalogue) are reloaded when another account signs in on the same phone.
+- **Pending sales** are only ever sent with the account that recorded them.
+- The admin's "rewards in effect today" follows the Tunis day (it showed the day before between midnight and 1 am).
+- The note of a stock correction is no longer written twice in its notification.
+

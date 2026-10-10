@@ -2940,12 +2940,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get deleteAccountLearnMore => 'What is deleted and what is kept';
 
   @override
-  String get leaveTitle => 'Leave without saving?';
-
-  @override
-  String get leaveMessage => 'What you entered on this page will be lost.';
-
-  @override
   String get photoChooseDocument => 'Choose a document';
 
   @override
@@ -2966,4 +2960,19 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get clearDate => 'Remove the date';
+
+  @override
+  String get draftRestored => 'Your unfinished entry is back.';
+
+  @override
+  String get draftKept => 'Kept as a draft: finish it later.';
+
+  @override
+  String get startOver => 'Start over';
+
+  @override
+  String get startOverTitle => 'Start over?';
+
+  @override
+  String get startOverBody => 'What you entered here is cleared.';
 }

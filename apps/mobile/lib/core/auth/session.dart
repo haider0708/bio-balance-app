@@ -1,5 +1,3 @@
-import '../files/media_cache.dart';
-
 import 'dart:async';
 import 'dart:convert';
 
@@ -9,17 +7,21 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../alerts/background_alerts.dart';
+import '../alerts/push.dart';
 import '../api/api_client.dart';
 import '../api/api_exception.dart';
 import '../api/json.dart';
+import '../files/media_cache.dart';
 import 'me.dart';
+import 'secure_storage.dart';
 
 const _tokenKey = 'session.token';
 const _meKey = 'session.me';
 const _localeKey = 'app.locale';
 
 final secureStorageProvider = Provider<FlutterSecureStorage>(
-  (_) => const FlutterSecureStorage(),
+  (_) => secureStorage,
 );
 
 final preferencesProvider = FutureProvider<SharedPreferences>(
@@ -191,6 +193,8 @@ class SessionNotifier extends AsyncNotifier<Session?> {
 
   Future<void> _clear() async {
     ref.read(tokenProvider.notifier).set(null);
+    BackgroundAlerts.reset();
+    unawaited(Push.badge(0));
     final storage = ref.read(secureStorageProvider);
     await storage.delete(key: _tokenKey);
     await storage.delete(key: _meKey);
@@ -217,6 +221,12 @@ class SessionNotifier extends AsyncNotifier<Session?> {
 
 final sessionProvider = AsyncNotifierProvider<SessionNotifier, Session?>(
   SessionNotifier.new,
+);
+
+/// Who is signed in (null when nobody is). Data kept for the whole run watches it, so nothing
+/// from one account is ever shown to the next one on the same phone.
+final accountProvider = Provider<String?>(
+  (ref) => ref.watch(sessionProvider.select((s) => s.value?.me.id)),
 );
 
 /// The signed-in person. While signing out, screens that are still on display for a moment keep

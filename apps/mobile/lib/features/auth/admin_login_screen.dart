@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/app_version.dart';
+import '../../core/brand/leaf_mark.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/components.dart';
 import '../../l10n/app_localizations.dart';
@@ -115,26 +116,7 @@ class _BrandPanel extends ConsumerWidget {
               children: [
                 Row(
                   children: [
-                    Container(
-                      width: 40,
-                      height: 40,
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        color: onDark.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(
-                          color: onDark.withValues(alpha: 0.18),
-                        ),
-                      ),
-                      child: const Text(
-                        'B',
-                        style: TextStyle(
-                          color: onDark,
-                          fontWeight: FontWeight.w800,
-                          fontSize: 18,
-                        ),
-                      ),
-                    ),
+                    const LeafMarkTile(size: 40),
                     const SizedBox(width: 12),
                     Text(
                       t.appName,

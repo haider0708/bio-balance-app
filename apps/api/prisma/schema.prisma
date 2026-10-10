@@ -104,24 +104,24 @@ model Region {
 }
 
 model User {
-  id           String   @id @default(uuid()) @db.Uuid
-  email        String   @unique
+  id           String    @id @default(uuid()) @db.Uuid
+  email        String    @unique
   name         String
   phone        String?
   /// Null until the person accepts the invitation and chooses a password.
   passwordHash String?
   role         Role
-  status       Status   @default(PENDING)
+  status       Status    @default(PENDING)
   /// Responsables and vendeurs belong to exactly one region.
-  regionId     String?  @db.Uuid
+  regionId     String?   @db.Uuid
   /// A vendeur works in one point of sale.
-  pdvId        String?  @db.Uuid
-  locale       String   @default("fr")
+  pdvId        String?   @db.Uuid
+  locale       String    @default("fr")
   mfaSecret    String?
-  lastTotpStep BigInt   @default(-1)
-  createdById  String?  @db.Uuid
-  createdAt    DateTime @default(now())
-  decidedById  String?  @db.Uuid
+  lastTotpStep BigInt    @default(-1)
+  createdById  String?   @db.Uuid
+  createdAt    DateTime  @default(now())
+  decidedById  String?   @db.Uuid
   decidedAt    DateTime?
   decisionNote String?
 
@@ -139,6 +139,24 @@ model Session {
   createdAt DateTime  @default(now())
 
   @@index([userId])
+}
+
+/// A phone that receives Apple push alerts for one signed-in session.
+model PushDevice {
+  /// The device token Apple gave the phone (hexadecimal).
+  token     String   @id
+  userId    String   @db.Uuid
+  /// Removed with its session (a foreign key in the migration).
+  sessionId String   @db.Uuid
+  /// IOS.
+  platform  String
+  /// Builds made from Xcode talk to Apple's test servers.
+  sandbox   Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@index([userId])
+  @@index([sessionId])
 }
 
 /// Single-use capability sent by email: account activation or password reset.
@@ -209,7 +227,7 @@ model Depot {
   city      String
   phone     String?
   /// One to five photos of the warehouse (media ids), shown on its page.
-  photoIds  String[] @db.Uuid @default([])
+  photoIds  String[] @default([]) @db.Uuid
   status    Status   @default(ACTIVE)
   createdAt DateTime @default(now())
 
@@ -219,21 +237,21 @@ model Depot {
 // ───────────────────────────── Catalog ─────────────────────────────
 
 model Product {
-  id          String   @id @default(uuid()) @db.Uuid
-  reference   String   @unique
-  name        String
-  barcode     String?  @unique
+  id           String   @id @default(uuid()) @db.Uuid
+  reference    String   @unique
+  name         String
+  barcode      String?  @unique
   /// Family (shampoo, serum…): rewards can be set per family.
-  family      String   @default("")
-  range       String   @default("")
-  packageSize String   @default("")
-  description String   @default("")
-  instructions String  @default("")
-  ingredients String   @default("")
-  precautions String   @default("")
-  imageId     String?  @db.Uuid
-  active      Boolean  @default(true)
-  updatedAt   DateTime @updatedAt
+  family       String   @default("")
+  range        String   @default("")
+  packageSize  String   @default("")
+  description  String   @default("")
+  instructions String   @default("")
+  ingredients  String   @default("")
+  precautions  String   @default("")
+  imageId      String?  @db.Uuid
+  active       Boolean  @default(true)
+  updatedAt    DateTime @updatedAt
 
   @@index([family])
   @@index([active, name])
@@ -276,19 +294,19 @@ model StockMovement {
 
 /// Stock counted by a responsable or the admin with photos; the admin approves a responsable's count.
 model StockDeclaration {
-  id           String          @id @default(uuid()) @db.Uuid
+  id           String                 @id @default(uuid()) @db.Uuid
   kind         DeclarationKind
-  locationId   String          @db.Uuid
+  locationId   String                 @db.Uuid
   locationKind LocationKind
-  regionId     String?         @db.Uuid
-  status       Approval        @default(PENDING)
-  photoId      String?         @db.Uuid
+  regionId     String?                @db.Uuid
+  status       Approval               @default(PENDING)
+  photoId      String?                @db.Uuid
   /// One to five photos of the counted stock; photoId is the first.
-  photoIds     String[]        @db.Uuid @default([])
+  photoIds     String[]               @default([]) @db.Uuid
   note         String?
-  createdById  String          @db.Uuid
-  createdAt    DateTime        @default(now())
-  decidedById  String?         @db.Uuid
+  createdById  String                 @db.Uuid
+  createdAt    DateTime               @default(now())
+  decidedById  String?                @db.Uuid
   decidedAt    DateTime?
   decisionNote String?
   lines        StockDeclarationLine[]
@@ -313,34 +331,34 @@ model StockDeclarationLine {
 // ───────────────────────────── Restocks ─────────────────────────────
 
 model RestockOrder {
-  id             String      @id @default(uuid()) @db.Uuid
+  id               String        @id @default(uuid()) @db.Uuid
   /// RS-2026-000001
-  number         String      @unique
+  number           String        @unique
   /// Region of the destination: a point of sale's, or the grossiste's.
-  regionId       String?     @db.Uuid
-  destKind       LocationKind
-  destId         String      @db.Uuid
-  status         OrderStatus @default(REQUESTED)
-  source         OrderSource?
-  supplierDepotId String?    @db.Uuid
+  regionId         String?       @db.Uuid
+  destKind         LocationKind
+  destId           String        @db.Uuid
+  status           OrderStatus   @default(REQUESTED)
+  source           OrderSource?
+  supplierDepotId  String?       @db.Uuid
   /// The region the goods leave from (the grossiste's): its responsable ships the order.
-  supplierRegionId String?   @db.Uuid
-  requestedById  String      @db.Uuid
-  note           String?
-  createdAt      DateTime    @default(now())
-  updatedAt      DateTime    @updatedAt
-  assignedAt     DateTime?
-  shippedAt      DateTime?
+  supplierRegionId String?       @db.Uuid
+  requestedById    String        @db.Uuid
+  note             String?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  assignedAt       DateTime?
+  shippedAt        DateTime?
   /// The responsable, or the team member chosen by them, who counts the goods.
-  receiverId     String?     @db.Uuid
-  receiptPhotoId String?     @db.Uuid
-  receiptPhotoIds String[]  @db.Uuid @default([])
-  receivedAt     DateTime?
-  decidedById    String?     @db.Uuid
-  decidedAt      DateTime?
-  decisionNote   String?
-  cancelReason   String?
-  lines          RestockLine[]
+  receiverId       String?       @db.Uuid
+  receiptPhotoId   String?       @db.Uuid
+  receiptPhotoIds  String[]      @default([]) @db.Uuid
+  receivedAt       DateTime?
+  decidedById      String?       @db.Uuid
+  decidedAt        DateTime?
+  decisionNote     String?
+  cancelReason     String?
+  lines            RestockLine[]
 
   @@index([status, createdAt])
   @@index([regionId, status])
@@ -366,19 +384,19 @@ model RestockLine {
 
 model Sale {
   /// Chosen by the phone: retrying the same sale never duplicates it.
-  id            String     @id @db.Uuid
-  pdvId         String     @db.Uuid
-  regionId      String     @db.Uuid
-  sellerId      String     @db.Uuid
-  occurredAt    DateTime
+  id             String     @id @db.Uuid
+  pdvId          String     @db.Uuid
+  regionId       String     @db.Uuid
+  sellerId       String     @db.Uuid
+  occurredAt     DateTime
   /// Tunis calendar day of the sale, used for rewards and reports.
-  day           DateTime   @db.Date
-  units         Int
-  rewardMillimes BigInt    @default(0)
-  status        SaleStatus @default(ACTIVE)
-  version       Int        @default(1)
-  createdAt     DateTime   @default(now())
-  lines         SaleLine[]
+  day            DateTime   @db.Date
+  units          Int
+  rewardMillimes BigInt     @default(0)
+  status         SaleStatus @default(ACTIVE)
+  version        Int        @default(1)
+  createdAt      DateTime   @default(now())
+  lines          SaleLine[]
 
   @@index([pdvId, occurredAt])
   @@index([regionId, day])
@@ -501,6 +519,8 @@ model Notification {
   entityType String?
   entityId   String?   @db.Uuid
   readAt     DateTime?
+  /// When the worker handed it to the push service (or decided not to).
+  pushedAt   DateTime?
   createdAt  DateTime  @default(now())
 
   @@unique([userId, messageId])
@@ -587,17 +607,17 @@ model AuditEntry {
 }
 
 model Job {
-  id         String   @id @default(uuid()) @db.Uuid
-  kind       String
-  key        String   @unique
-  payload    Json
-  status     String   @default("pending")
-  attempts   Int      @default(0)
-  availableAt DateTime @default(now())
-  lockedAt   DateTime?
-  leaseToken String?  @db.Uuid
-  lastError  String?
-  createdAt  DateTime @default(now())
+  id          String    @id @default(uuid()) @db.Uuid
+  kind        String
+  key         String    @unique
+  payload     Json
+  status      String    @default("pending")
+  attempts    Int       @default(0)
+  availableAt DateTime  @default(now())
+  lockedAt    DateTime?
+  leaseToken  String?   @db.Uuid
+  lastError   String?
+  createdAt   DateTime  @default(now())
 
   @@index([status, availableAt])
 }

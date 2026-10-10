@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../core/auth/session.dart';
+import '../core/brand/leaf_mark.dart';
 import '../core/theme/app_theme.dart';
 import '../core/widgets/components.dart';
 import '../features/notifications/notifications_repository.dart';
@@ -261,23 +262,7 @@ class _SidebarPanel extends ConsumerWidget {
             ),
             child: Row(
               children: [
-                Container(
-                  width: 36,
-                  height: 36,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: context.colors.primary,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Text(
-                    'B',
-                    style: TextStyle(
-                      color: context.colors.onPrimary,
-                      fontWeight: FontWeight.w800,
-                      fontSize: 16,
-                    ),
-                  ),
-                ),
+                const LeafMarkTile(),
                 if (!collapsed) ...[
                   const SizedBox(width: 12),
                   Expanded(

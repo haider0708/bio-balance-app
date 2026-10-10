@@ -1,0 +1,186 @@
+{
+  "account.deleted": {
+    "en": "{name} deleted their account. Their sales and history stay, without their name.",
+    "fr": "{name} a supprimé son compte. Ses ventes et son historique restent, sans son nom."
+  },
+  "pdv.moved.in": {
+    "en": "{name} joined your region, from {from}, with its team and stock.",
+    "fr": "{name} rejoint votre région, depuis {from}, avec son équipe et son stock."
+  },
+  "pdv.moved.out": {
+    "en": "{name} moved to {to}.",
+    "fr": "{name} est passé dans la région {to}."
+  },
+  "group.moved.in": {
+    "en": "The group {name} joined your region, from {from}.",
+    "fr": "Le groupe {name} rejoint votre région, depuis {from}."
+  },
+  "group.moved.out": {
+    "en": "The group {name} moved to {to}.",
+    "fr": "Le groupe {name} est passé dans la région {to}."
+  },
+  "depot.moved.in": {
+    "en": "The grossiste {name} joined your region, from {from}.",
+    "fr": "Le grossiste {name} rejoint votre région, depuis {from}."
+  },
+  "depot.moved.out": {
+    "en": "The grossiste {name} moved to {to}.",
+    "fr": "Le grossiste {name} est passé dans la région {to}."
+  },
+  "responsable.moved": {
+    "en": "You now look after {region}.",
+    "fr": "Vous vous occupez maintenant de {region}."
+  },
+  "restock.assigned": {
+    "en": "Restock {number} will be shipped from {depot}.",
+    "fr": "Le réassort {number} sera expédié depuis {depot}."
+  },
+  "group.submitted": {
+    "en": "{by} created the group “{name}”: waiting for approval.",
+    "fr": "{by} a créé le groupe « {name} » : en attente d’approbation."
+  },
+  "group.approved": {
+    "en": "The group “{name}” was approved.",
+    "fr": "Le groupe « {name} » a été approuvé."
+  },
+  "group.rejected": {
+    "en": "The group “{name}” was rejected.",
+    "fr": "Le groupe « {name} » a été refusé."
+  },
+  "group.suspended": {
+    "en": "The group “{name}” was suspended.",
+    "fr": "Le groupe « {name} » a été suspendu."
+  },
+  "group.reactivated": {
+    "en": "The group “{name}” is active again.",
+    "fr": "Le groupe « {name} » est de nouveau actif."
+  },
+  "pdv.submitted": {
+    "en": "{by} created the point of sale “{name}”: waiting for approval.",
+    "fr": "{by} a créé le point de vente « {name} » : en attente d’approbation."
+  },
+  "pdv.approved": {
+    "en": "The point of sale “{name}” was approved.",
+    "fr": "Le point de vente « {name} » a été approuvé."
+  },
+  "pdv.rejected": {
+    "en": "The point of sale “{name}” was rejected.",
+    "fr": "Le point de vente « {name} » a été refusé."
+  },
+  "pdv.suspended": {
+    "en": "The point of sale “{name}” was suspended.",
+    "fr": "Le point de vente « {name} » a été suspendu."
+  },
+  "pdv.reactivated": {
+    "en": "The point of sale “{name}” is active again.",
+    "fr": "Le point de vente « {name} » est de nouveau actif."
+  },
+  "member.submitted": {
+    "en": "{by} added {name} to {pdv}: waiting for approval.",
+    "fr": "{by} a ajouté {name} à {pdv} : en attente d’approbation."
+  },
+  "member.approved": {
+    "en": "{name} was approved and received an invitation.",
+    "fr": "{name} a été approuvé(e) et reçoit une invitation."
+  },
+  "member.rejected": {
+    "en": "{name} was not approved.",
+    "fr": "{name} n’a pas été approuvé(e)."
+  },
+  "member.suspended": {
+    "en": "{name} was deactivated.",
+    "fr": "{name} a été désactivé(e)."
+  },
+  "member.reactivated": {
+    "en": "{name} is active again.",
+    "fr": "{name} est de nouveau actif(ve)."
+  },
+  "sale.recorded": {
+    "en": "{seller} sold {units} units at {place} · {amount} earned.",
+    "fr": "{seller} a vendu {units} unités à {place} · {amount} gagnés."
+  },
+  "stock.adjusted": {
+    "en": "The stock of {place} was corrected: {note}",
+    "fr": "Le stock de {place} a été corrigé : {note}"
+  },
+  "recount.requested": {
+    "en": "{by} asks to count {place} again.",
+    "fr": "{by} demande de recompter {place}."
+  },
+  "recount.approved": {
+    "en": "A recount of {place} was allowed.",
+    "fr": "Un nouveau comptage de {place} a été autorisé."
+  },
+  "recount.rejected": {
+    "en": "The recount of {place} was refused.",
+    "fr": "Le nouveau comptage de {place} a été refusé."
+  },
+  "stock.submitted": {
+    "en": "{by} declared stock for {place}: waiting for approval.",
+    "fr": "{by} a déclaré le stock de {place} : en attente d’approbation."
+  },
+  "stock.approved": {
+    "en": "The stock of {place} was approved.",
+    "fr": "Le stock de {place} a été approuvé."
+  },
+  "stock.rejected": {
+    "en": "The stock of {place} was rejected.",
+    "fr": "Le stock de {place} a été refusé."
+  },
+  "restock.requested": {
+    "en": "{by} requested a restock {number} for {place}.",
+    "fr": "{by} a demandé le réassort {number} pour {place}."
+  },
+  "restock.to_prepare": {
+    "en": "Restock {number} was given to {depot}: ship it.",
+    "fr": "Le réassort {number} a été confié à {depot} : expédiez-le."
+  },
+  "restock.shipped": {
+    "en": "Restock {number} is on its way from {from}.",
+    "fr": "Le réassort {number} est en route depuis {from}."
+  },
+  "restock.shipped_info": {
+    "en": "{by} shipped restock {number}.",
+    "fr": "{by} a expédié le réassort {number}."
+  },
+  "restock.receiver_assigned": {
+    "en": "You were chosen to receive restock {number}.",
+    "fr": "Vous êtes chargé(e) de recevoir le réassort {number}."
+  },
+  "restock.received": {
+    "en": "{by} sent the delivery paper for restock {number}: waiting for approval.",
+    "fr": "{by} a envoyé le bon de livraison du réassort {number} : en attente d’approbation."
+  },
+  "restock.completed": {
+    "en": "Restock {number} is complete and the stock is updated.",
+    "fr": "Le réassort {number} est terminé et le stock est mis à jour."
+  },
+  "restock.receipt_rejected": {
+    "en": "The receipt of restock {number} must be redone.",
+    "fr": "La réception du réassort {number} est à refaire."
+  },
+  "restock.cancelled": {
+    "en": "Restock {number} was cancelled.",
+    "fr": "Le réassort {number} a été annulé."
+  },
+  "sale.corrected": {
+    "en": "{by} corrected one of your sales.",
+    "fr": "{by} a corrigé l’une de vos ventes."
+  },
+  "sale.voided": {
+    "en": "{by} cancelled one of your sales.",
+    "fr": "{by} a annulé l’une de vos ventes."
+  },
+  "payout.requested": {
+    "en": "{name} asked for a payout of {amount}.",
+    "fr": "{name} demande un paiement de {amount}."
+  },
+  "payout.approved": {
+    "en": "Your payout of {amount} was approved.",
+    "fr": "Votre paiement de {amount} a été approuvé."
+  },
+  "payout.rejected": {
+    "en": "Your payout request of {amount} was declined.",
+    "fr": "Votre demande de paiement de {amount} a été refusée."
+  }
+}

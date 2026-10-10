@@ -6,11 +6,15 @@ import { SmtpEmailTransport } from "./email/smtp";
 import { type JobExecutor, JobRunner } from "./jobs/job-runner";
 import { cleanup, scheduleCleanup } from "./jobs/maintenance";
 import { MessagingService } from "./modules/messaging/messaging.service";
+import { ApnsTransport } from "./push/apns";
+import { PushDelivery } from "./push/push-delivery";
 
 const db = new Database();
 const smtp = new SmtpEmailTransport();
 const emails = new EmailDelivery(db, smtp);
 const messages = new MessagingService(db);
+const apns = ApnsTransport.fromEnv();
+const pushes = new PushDelivery(db, apns);
 let stopping = false;
 
 const execute: JobExecutor = async (job, stillOwned) => {
@@ -78,8 +82,21 @@ async function main() {
       }
     })(),
   );
-  await Promise.all(loops);
+  // New notifications reach phones within a few seconds.
+  const push = (async () => {
+    while (!stopping) {
+      try {
+        if (!(await pushes.tick()))
+          await new Promise((r) => setTimeout(r, apns ? 3000 : 15_000));
+      } catch {
+        console.error(JSON.stringify({ level: "error", code: "PUSH_LOOP" }));
+        await new Promise((r) => setTimeout(r, 5000));
+      }
+    }
+  })();
+  await Promise.all([...loops, push]);
   clearInterval(heartbeat);
+  apns?.close();
   smtp.close();
   await db.$disconnect();
 }

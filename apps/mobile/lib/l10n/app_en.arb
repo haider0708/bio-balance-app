@@ -1662,13 +1662,16 @@
   "deleteAccountConfirm": "Delete my account for good",
   "deleteAccountDone": "Your account was deleted.",
   "deleteAccountLearnMore": "What is deleted and what is kept",
-  "leaveTitle": "Leave without saving?",
-  "leaveMessage": "What you entered on this page will be lost.",
   "photoChooseDocument": "Choose a document",
   "photoChooseDocumentHint": "A delivery note or an invoice, as a PDF",
   "documentLabel": "Document",
   "documentTooLarge": "This document is larger than 12 MB.",
   "play": "Play",
   "pause": "Pause",
-  "clearDate": "Remove the date"
+  "clearDate": "Remove the date",
+  "draftRestored": "Your unfinished entry is back.",
+  "draftKept": "Kept as a draft: finish it later.",
+  "startOver": "Start over",
+  "startOverTitle": "Start over?",
+  "startOverBody": "What you entered here is cleared."
 }

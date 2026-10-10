@@ -85,10 +85,13 @@ class SalesOutbox extends Notifier<List<PendingSale>>
 
   /// Try to send everything waiting. Stops at the first connection problem.
   Future<void> flush() async {
-    if (_flushing || ref.read(tokenProvider) == null) return;
+    final owner = _userId;
+    if (_flushing || owner == null || ref.read(tokenProvider) == null) return;
     _flushing = true;
     try {
       for (final sale in state.where((s) => s.error == null).toList()) {
+        // Another account signed in meanwhile: its token must never send this person's sales.
+        if (_userId != owner || ref.read(accountProvider) != owner) return;
         try {
           await ref.read(apiClientProvider).post('/v1/sales', {
             'id': sale.id,

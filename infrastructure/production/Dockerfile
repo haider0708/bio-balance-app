@@ -22,5 +22,5 @@ RUN mkdir -p /var/lib/biobalance/media && chown node:node /var/lib/biobalance/me
 USER node
 RUN node -e "require('./dist/app.module');require.resolve('nodemailer')"
 EXPOSE 3000
-HEALTHCHECK --interval=20s --timeout=3s --retries=3 CMD node -e "fetch('http://127.0.0.1:3000/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+HEALTHCHECK --interval=20s --timeout=3s --retries=3 --start-period=60s --start-interval=2s CMD node -e "fetch('http://127.0.0.1:3000/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
 CMD ["node","dist/main.js"]

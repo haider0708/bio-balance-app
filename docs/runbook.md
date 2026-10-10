@@ -54,7 +54,19 @@ The administrator can also work from a browser: **https://admin.galylio.com/**. 
 `API_PUBLIC_URL` (for example `https://api.galylio.com`) is used by the API and the worker to put the "copy your code" link in emails.
 
 
-`API_IMAGE` (set by the deploy script), `DATABASE_URL` (restricted application role), `MIGRATION_DATABASE_URL` (owner), `POSTGRES_USER`/`POSTGRES_PASSWORD`/`POSTGRES_DB`, `MFA_ENCRYPTION_KEY` (32 random bytes, base64 — losing it locks the admin's authenticator), `SMTP_HOST`/`SMTP_PORT`/`SMTP_SECURE`/`SMTP_REQUIRE_TLS`/`SMTP_FROM`/`SMTP_USER`/`SMTP_PASSWORD`, `WORKER_CONCURRENCY`.
+`API_IMAGE` (set by the deploy script), `DATABASE_URL` (restricted application role), `MIGRATION_DATABASE_URL` (owner), `POSTGRES_USER`/`POSTGRES_PASSWORD`/`POSTGRES_DB`, `MFA_ENCRYPTION_KEY` (32 random bytes, base64 — losing it locks the admin's authenticator), `SMTP_HOST`/`SMTP_PORT`/`SMTP_SECURE`/`SMTP_REQUIRE_TLS`/`SMTP_FROM`/`SMTP_USER`/`SMTP_PASSWORD`, `WORKER_CONCURRENCY`, `SUPPORT_EMAIL`, and for iPhone alerts `APNS_KEY_ID`/`APNS_TEAM_ID`/`APNS_KEY_P8`/`APNS_TOPIC` (below).
+
+### iPhone alerts (Apple push)
+
+Without these keys iPhones check for alerts by themselves when iOS lets them (a few times a day), and see everything when the app opens. With them, an alert reaches a closed iPhone within seconds. Once the Apple developer account exists:
+
+1. developer.apple.com → Certificates, Identifiers & Profiles → **Keys** → **+** → name it "BioBalance push", tick **Apple Push Notifications service (APNs)**, Continue → Register → **Download** the `AuthKey_XXXXXXXXXX.p8` file (it can be downloaded only once: keep it with the signing keys). Note the **Key ID** and the **Team ID** (top right of the page).
+2. On the server: `base64 -w0 AuthKey_XXXXXXXXXX.p8` and add to `/etc/biobalance/backend.env`:
+   `APNS_KEY_ID=<Key ID>`, `APNS_TEAM_ID=<Team ID>`, `APNS_KEY_P8=<the base64 text>` (`APNS_TOPIC` defaults to `tn.biobalance.app`).
+3. `sudo biobalance-compose up -d` (the API and the worker restart with the key).
+4. Check: sign in on an iPhone, allow notifications, record a sale from another phone: the responsable's iPhone shows it. A refused key shows as `PUSH_FAILED` with `status` 403 in `docker logs biobalance-worker-1`.
+
+The app registers for push in Xcode automatically: with automatic signing, the Push Notifications capability is added to the App ID at the first build (`ios/Runner/Runner.entitlements`).
 
 ## Backups and restore
 
@@ -102,3 +114,10 @@ cd apps/api && TEST_DATABASE_URL=postgresql://biobalance_app:local-app-only@loca
 ```
 
 Measured 2026-10-10: dashboards 0.3–0.6 s, analytics of 30 days 0.8 s (a region 0.5 s), a whole year against the year before 4 s, stores board 0.08 s, sales ledger 0.03 s. The analytics read the lens's sale lines once into transaction-scoped working tables (`lens_line`, `lens_sale`) and compute every ranking from them; raw SQL compares `day` columns with `::date` parameters so the day indexes are used.
+
+## Drafts, alerts and deploys (3.2)
+
+- Deploys restart one API at a time (the other keeps answering) and restart nginx only when its settings changed: no more "502" during a deploy.
+- Photo downloads have their own, higher limit than uploads: a page full of photos no longer hits "too many requests".
+- The Apache log lines start with the time (`biobalance-access.log`).
+

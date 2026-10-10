@@ -9,7 +9,7 @@ flutter analyze && flutter test
 flutter build apk --debug          # a quick install on a test phone
 ```
 
-The version is `version:` in `pubspec.yaml` (`3.1.1+37`): raise the number after `+` for **every** upload to either store. The app reads it from the build (Settings → About), so it can never disagree with the stores.
+The version is `version:` in `pubspec.yaml` (`3.2.0+38`): raise the number after `+` for **every** upload to either store. The app reads it from the build (Settings → About), so it can never disagree with the stores.
 
 ## Android (Google Play)
 
@@ -41,7 +41,7 @@ flutter build ipa --release        # build/ios/ipa/*.ipa
 
 Upload the `.ipa` with Apple's **Transporter** app (or Xcode → Window → Organizer → Distribute App). Plugins come through Swift Package Manager: no CocoaPods needed. Bundle identifier: `tn.biobalance.app`; iOS 15 or later; iPhone and iPad.
 
-Already in the project: the camera and photo texts in French and English, the **privacy manifest** (`PrivacyInfo.xcprivacy`: no tracking, the data collected and why), **no export-compliance question** (`ITSAppUsesNonExemptEncryption = false`, the app only uses standard HTTPS), the `biobalance://` link that opens a code from the email, portrait on iPhone and every orientation on iPad (with a side rail), and the share sheet anchored correctly on iPad.
+Already in the project: the camera and photo texts in French and English, the **privacy manifest** (`PrivacyInfo.xcprivacy`: no tracking, the data collected and why), **no export-compliance question** (`ITSAppUsesNonExemptEncryption = false`, the app only uses standard HTTPS), the `biobalance://` link that opens a code from the email, **push alerts** (`Runner.entitlements`, added to the App ID by automatic signing; the server key is in docs/runbook.md) and the background check for alerts (`fetch` background mode, task `biobalance.alerts`), portrait on iPhone and every orientation on iPad (with a side rail), and the share sheet anchored correctly on iPad.
 
 ## Store assets
 

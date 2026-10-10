@@ -113,3 +113,24 @@ class LeafMarkView extends StatelessWidget {
     ),
   );
 }
+
+/// The leaf on a white rounded tile, like the app icon: the brand next to the name in the
+/// console's sidebar and sign-in page.
+class LeafMarkTile extends StatelessWidget {
+  const LeafMarkTile({this.size = 36, super.key});
+
+  final double size;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    width: size,
+    height: size,
+    alignment: Alignment.center,
+    decoration: BoxDecoration(
+      color: const Color(0xFFFFFFFF),
+      borderRadius: BorderRadius.circular(size * 0.28),
+    ),
+    // The name is written next to it: read once, not twice.
+    child: ExcludeSemantics(child: LeafMarkView(width: size * 0.7)),
+  );
+}

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
+import '../../core/api/json.dart';
 import '../../core/auth/me.dart';
 import '../../core/auth/session.dart';
 import '../../core/theme/app_theme.dart';
@@ -10,7 +11,7 @@ import '../../core/util/dates.dart';
 import '../../core/widgets/amend_sheet.dart';
 import '../../core/widgets/async_body.dart';
 import '../../core/widgets/components.dart';
-import '../../core/widgets/leave_guard.dart';
+import '../../core/drafts/drafts.dart';
 import '../../core/widgets/feedback.dart';
 import '../../core/widgets/photo_set.dart';
 import '../../core/widgets/quantity_editor.dart';
@@ -421,6 +422,28 @@ class _DeclareStockScreenState extends ConsumerState<DeclareStockScreen> {
   bool _photosBusy = false;
   bool _seeded = false;
 
+  /// A count can take a while: it is kept for a week, per place, until it is sent.
+  late final _draft = DraftKeeper(
+    ref,
+    'count.${widget.locationId}',
+    life: const Duration(days: 7),
+  );
+  late Json? _left = _draft.restored;
+  bool _restored = false;
+
+  /// Changes when the photos are put back or cleared, so the photo set starts again.
+  int _photosRound = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    final photos = _left?['photos'];
+    if (photos is List) _photoIds = photos.whereType<String>().toList();
+    _note.text = _left?['note'] as String? ?? '';
+    _quantities.addListener(_keep);
+    _note.addListener(_keep);
+  }
+
   @override
   void dispose() {
     _quantities.dispose();
@@ -428,21 +451,54 @@ class _DeclareStockScreenState extends ConsumerState<DeclareStockScreen> {
     super.dispose();
   }
 
-  /// A recount starts from what the system believes the place holds.
+  bool get _pending =>
+      _quantities.edited ||
+      _photoIds.isNotEmpty ||
+      _note.text.trim().isNotEmpty;
+
+  void _keep() => _draft.save(
+    _pending
+        ? {
+            'lines': _quantities.toDraft(),
+            'photos': _photoIds,
+            'note': _note.text,
+          }
+        : null,
+  );
+
+  List<QuantityItem> _start(StockLevels levels) => [
+    for (final i in levels.items)
+      QuantityItem(
+        productId: i.productId,
+        name: i.name,
+        family: i.family,
+        imageId: i.imageId,
+        quantity: i.quantity < 0 ? 0 : i.quantity,
+      ),
+  ];
+
+  /// A recount starts from what the system believes the place holds, then the draft (if any).
   void _seed(StockLevels levels) {
     if (_seeded) return;
     _seeded = true;
-    for (final i in levels.items) {
-      _quantities.addItem(
-        QuantityItem(
-          productId: i.productId,
-          name: i.name,
-          family: i.family,
-          imageId: i.imageId,
-          quantity: i.quantity < 0 ? 0 : i.quantity,
-        ),
-      );
-    }
+    _start(levels).forEach(_quantities.addItem);
+    final left = _left;
+    _left = null;
+    if (left == null) return;
+    final lines = left['lines'];
+    if (lines is List && lines.isNotEmpty) _quantities.restore(lines);
+    _restored = _pending;
+  }
+
+  void _startOver(StockLevels levels) {
+    setState(() {
+      _restored = false;
+      _photoIds = const [];
+      _photosRound++;
+    });
+    _note.clear();
+    _quantities.reset(_start(levels));
+    _keep();
   }
 
   Future<void> _declareEmpty() async {
@@ -475,7 +531,10 @@ class _DeclareStockScreenState extends ConsumerState<DeclareStockScreen> {
           ? t.stockSaved
           : t.declarationSent,
     );
-    if (ok && mounted) context.pop();
+    if (ok && mounted) {
+      _draft.discard();
+      context.pop();
+    }
   }
 
   @override
@@ -483,12 +542,8 @@ class _DeclareStockScreenState extends ConsumerState<DeclareStockScreen> {
     final t = AppLocalizations.of(context);
     final levels = ref.watch(stockLevelsProvider(widget.locationId));
     final admin = ref.watch(meProvider).role == Role.admin;
-    return ListenableBuilder(
-      listenable: _quantities,
-      builder: (context, child) => LeaveGuard(
-        dirty: _quantities.edited || _photoIds.isNotEmpty,
-        child: child!,
-      ),
+    return DraftLeaveNote(
+      pending: () => _pending && !_draft.done,
       child: Scaffold(
         appBar: AppBar(title: Text(widget.locationName ?? t.declareStock)),
         body: AsyncBody(
@@ -500,6 +555,7 @@ class _DeclareStockScreenState extends ConsumerState<DeclareStockScreen> {
             return ListView(
               padding: const EdgeInsets.all(16),
               children: [
+                if (_restored) DraftNotice(onStartOver: () => _startOver(data)),
                 Text(
                   admin
                       ? t.stockCountedByYou
@@ -512,11 +568,16 @@ class _DeclareStockScreenState extends ConsumerState<DeclareStockScreen> {
                 ),
                 const Gap(16),
                 PhotoSet(
+                  key: ValueKey(_photosRound),
                   label: t.photoOfStock,
-                  onChanged: (ids, busy) => setState(() {
-                    _photoIds = ids;
-                    _photosBusy = busy;
-                  }),
+                  initialIds: _photoIds,
+                  onChanged: (ids, busy) {
+                    setState(() {
+                      _photoIds = ids;
+                      _photosBusy = busy;
+                    });
+                    _keep();
+                  },
                 ),
                 SectionHeader(t.countedProducts),
                 QuantityEditor(controller: _quantities, addLabel: t.addProduct),

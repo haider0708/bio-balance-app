@@ -390,7 +390,8 @@ export class LegalController {
       "default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'",
     );
     // Public, unchanging text: browsers and Cloudflare may keep it for an hour.
-    res.setHeader("Cache-Control", "public, max-age=3600");
+    // "no-transform": Cloudflare leaves the page as written (no injected script or rewritten addresses).
+    res.setHeader("Cache-Control", "public, max-age=3600, no-transform");
     res.setHeader("Vary", "Accept-Language");
     return html;
   }

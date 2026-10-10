@@ -4,10 +4,10 @@ import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../core/auth/session.dart';
+import '../../core/drafts/drafts.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/async_body.dart';
 import '../../core/widgets/components.dart';
-import '../../core/widgets/leave_guard.dart';
 import '../../core/widgets/feedback.dart';
 import '../../core/widgets/quantity_editor.dart' show QtyStepper;
 import '../../core/widgets/states.dart';
@@ -35,6 +35,48 @@ class _NewSaleScreenState extends ConsumerState<NewSaleScreen> {
   String _query = '';
   String? _family;
 
+  /// The sale being built is kept until it is recorded (half a day at most: a sale is "now").
+  late final _draft = DraftKeeper(ref, 'sale', life: const Duration(hours: 12));
+
+  /// Left last time, put back once the products and the stock are known.
+  Map<String, int>? _left;
+  bool _restored = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final cart = _draft.restored?['cart'];
+    if (cart is Map && cart.isNotEmpty)
+      _left = {
+        for (final e in cart.entries) '${e.key}': (e.value as num).toInt(),
+      };
+  }
+
+  /// Only what still exists and is still in stock comes back, never more than the store holds.
+  void _restore(List<Product> products) {
+    final left = _left;
+    if (left == null) return;
+    _left = null;
+    for (final p in products) {
+      final quantity = left[p.id];
+      if (quantity == null) continue;
+      final next = quantity.clamp(0, _most(p.id));
+      if (next > 0) _cart[p.id] = next;
+    }
+    _restored = _cart.isNotEmpty;
+    _keep();
+  }
+
+  void _keep() => _draft.save(_cart.isEmpty ? null : {'cart': _cart});
+
+  void _startOver() {
+    setState(() {
+      _cart.clear();
+      _restored = false;
+    });
+    _keep();
+  }
+
   int get _units => _cart.values.fold(0, (a, b) => a + b);
 
   /// What the store holds right now; a sale can never go beyond it.
@@ -50,6 +92,7 @@ class _NewSaleScreenState extends ConsumerState<NewSaleScreen> {
     final most = _most(p.id);
     final next = quantity > most ? most : quantity;
     setState(() => next <= 0 ? _cart.remove(p.id) : _cart[p.id] = next);
+    _keep();
   }
 
   Future<void> _scan(List<Product> products) async {
@@ -84,8 +127,10 @@ class _NewSaleScreenState extends ConsumerState<NewSaleScreen> {
         onChanged: _set,
       ),
     );
-    if (outcome != null && mounted)
+    if (outcome != null && mounted) {
+      _draft.discard();
       context.pushReplacement('/sale-done', extra: outcome);
+    }
   }
 
   @override
@@ -99,8 +144,14 @@ class _NewSaleScreenState extends ConsumerState<NewSaleScreen> {
       for (final i in levels?.value?.items ?? const <StockItem>[])
         i.productId: i.quantity,
     };
-    return LeaveGuard(
-      dirty: _cart.isNotEmpty,
+    // The draft comes back once both the products and the stock have answered (or failed).
+    if (_left != null &&
+        products.hasValue &&
+        (levels == null || !levels.isLoading)) {
+      _restore(products.value!);
+    }
+    return DraftLeaveNote(
+      pending: () => _cart.isNotEmpty && !_draft.done,
       child: Scaffold(
         appBar: AppBar(
           title: Text(t.newSale),
@@ -135,6 +186,11 @@ class _NewSaleScreenState extends ConsumerState<NewSaleScreen> {
                 .toList();
             return Column(
               children: [
+                if (_restored)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
+                    child: DraftNotice(onStartOver: _startOver),
+                  ),
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
                   child: TextField(

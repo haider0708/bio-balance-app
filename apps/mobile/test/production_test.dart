@@ -1,14 +1,16 @@
 // The opening, what the app stores check and what protects people's work: account deletion,
-// the legal pages, and nothing lost by a stray back gesture.
+// the legal pages, and work in progress kept as a draft.
+import 'dart:async';
+
+import 'package:biobalance/app/router.dart';
 import 'package:biobalance/core/theme/app_theme.dart';
-import 'package:biobalance/core/widgets/leave_guard.dart';
 import 'package:biobalance/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:biobalance/core/widgets/photo_set.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'screenshots_test.dart' as base show loadFonts;
+import 'screenshots_test.dart' as base show loadFonts, server;
 import 'support/fake_server.dart';
 import 'support/harness.dart';
 import 'vendeur_flow_test.dart' show vendeurServer;
@@ -75,47 +77,89 @@ void main() {
     expect(find.text('Your account was deleted.'), findsOneWidget);
   });
 
-  testWidgets('a sale being built is not lost by the back gesture', (
+  testWidgets('a sale being built is kept as a draft, then gone once recorded', (
     tester,
   ) async {
-    await launch(tester, vendeurServer(), language: 'en');
+    final server = vendeurServer();
+    await launch(tester, server, language: 'en');
     await tester.tap(find.text('New sale').first);
     await settle(tester);
     await tester.tap(find.text('Serum Vitamin C'));
     await settle(tester, frames: 5);
-    await tester.pageBack();
-    await settle(tester);
-    expect(find.text('Leave without saving?'), findsOneWidget);
-    await tester.tap(find.text('Cancel'));
-    await settle(tester);
-    expect(find.textContaining('Review sale'), findsOneWidget);
-    await tester.pageBack();
-    await settle(tester);
-    await tester.tap(find.text('Discard'));
+
+    // Back (the button or the iPhone edge swipe) is never blocked: the sale is kept.
+    await tester.tap(find.byType(BackButton));
     await settle(tester);
     expect(find.text('Hello, Karim'), findsOneWidget);
+    expect(find.text('Kept as a draft: finish it later.'), findsOneWidget);
+
+    await tester.tap(find.text('New sale').first);
+    await settle(tester);
+    expect(find.text('Your unfinished entry is back.'), findsOneWidget);
+    expect(find.textContaining('Review sale · 1 unit'), findsOneWidget);
+    await screenshot(tester, '16-vendeur-draft');
+
+    // Starting over asks first, then empties the sale.
+    await tester.tap(find.text('Start over'));
+    await settle(tester);
+    await tester.tap(find.widgetWithText(TextButton, 'Start over').last);
+    await settle(tester);
+    expect(find.textContaining('Review sale'), findsNothing);
+    expect(find.text('Your unfinished entry is back.'), findsNothing);
+
+    // A recorded sale (here kept on the phone, offline) leaves no draft behind.
+    await tester.tap(find.text('Serum Vitamin C'));
+    await settle(tester, frames: 5);
+    server.offline = true;
+    await tester.tap(find.textContaining('Review sale'));
+    await settle(tester);
+    await tester.tap(find.text('Record the sale'));
+    await settle(tester, frames: 40);
+    expect(find.text('Saved on your phone'), findsOneWidget);
+    await tester.tap(find.text('New sale').last);
+    await settle(tester);
+    expect(find.text('Your unfinished entry is back.'), findsNothing);
+    expect(find.textContaining('Review sale'), findsNothing);
+    // Back online: the outbox tries the kept sale and stops retrying.
+    server.offline = false;
+    await tester.pump(const Duration(seconds: 31));
+    await settle(tester);
   });
 
-  testWidgets('the guard never blocks the app leaving after a save', (
-    tester,
-  ) async {
-    final navigator = GlobalKey<NavigatorState>();
-    await tester.pumpWidget(
-      MaterialApp(
-        theme: AppTheme.light(),
-        navigatorKey: navigator,
-        localizationsDelegates: AppLocalizations.localizationsDelegates,
-        supportedLocales: AppLocalizations.supportedLocales,
-        home: const Text('home'),
-      ),
-    );
-    unawaitedPush(navigator);
-    await tester.pumpAndSettle();
-    expect(find.text('form'), findsOneWidget);
-    navigator.currentState!.pop();
-    await tester.pumpAndSettle();
-    expect(find.text('home'), findsOneWidget);
-  });
+  testWidgets(
+    'a stock count is kept as a draft with its note, until started over',
+    (tester) async {
+      final server = base.server('RESPONSABLE')
+        ..on('GET /v1/stock/locations/p1', stockJson(['a', 'b']));
+      final container = await launch(tester, server, language: 'en');
+      final router = container.read(routerProvider);
+      unawaited(router.push('/stock/p1/declare', extra: 'Para Lac'));
+      await settle(tester);
+      await tester.enterText(
+        find.widgetWithText(TextField, 'Note (optional)'),
+        'Shelf 2 checked',
+      );
+      await settle(tester, frames: 5);
+      await tester.tap(find.byType(BackButton));
+      await settle(tester);
+      expect(find.text('Kept as a draft: finish it later.'), findsOneWidget);
+
+      unawaited(router.push('/stock/p1/declare', extra: 'Para Lac'));
+      await settle(tester);
+      expect(find.text('Your unfinished entry is back.'), findsOneWidget);
+      expect(find.text('Shelf 2 checked'), findsOneWidget);
+      await tester.tap(find.text('Start over'));
+      await settle(tester);
+      await tester.tap(find.widgetWithText(TextButton, 'Start over').last);
+      await settle(tester);
+      expect(find.text('Shelf 2 checked'), findsNothing);
+      expect(find.text('Your unfinished entry is back.'), findsNothing);
+      // Nothing left: leaving now keeps nothing.
+      await tester.tap(find.byType(BackButton));
+      await settle(tester);
+      expect(find.text('Kept as a draft: finish it later.'), findsNothing);
+    },
+  );
 }
 
 Widget _host(FakeServer server, Widget child) => UncontrolledProviderScope(
@@ -168,12 +212,4 @@ void documentTests() {
     expect(find.text('Choose a document'), findsOneWidget);
     expect(find.text('0 of 5 photos or documents'), findsOneWidget);
   });
-}
-
-void unawaitedPush(GlobalKey<NavigatorState> navigator) {
-  navigator.currentState!.push(
-    MaterialPageRoute<void>(
-      builder: (_) => const LeaveGuard(dirty: true, child: Text('form')),
-    ),
-  );
 }

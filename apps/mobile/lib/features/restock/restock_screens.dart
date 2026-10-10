@@ -10,7 +10,7 @@ import '../../core/util/dates.dart';
 import '../../core/widgets/amend_sheet.dart';
 import '../../core/widgets/async_body.dart';
 import '../../core/widgets/components.dart';
-import '../../core/widgets/leave_guard.dart';
+import '../../core/drafts/drafts.dart';
 import '../../core/widgets/feedback.dart';
 import '../../core/widgets/photo_set.dart';
 import '../../core/widgets/quantity_editor.dart';
@@ -228,6 +228,55 @@ class _RequestRestockScreenState extends ConsumerState<RequestRestockScreen> {
   final _note = TextEditingController();
   late String? _destId = widget.destId;
 
+  /// The request is kept for a week until it is sent; one opened from a place has its own.
+  late final _draft = DraftKeeper(
+    ref,
+    'restock.${widget.destId ?? 'any'}',
+    life: const Duration(days: 7),
+  );
+  bool _restored = false;
+  int _round = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    final left = _draft.restored;
+    if (left != null) {
+      final lines = left['lines'];
+      if (lines is List) _quantities.restore(lines);
+      _note.text = left['note'] as String? ?? '';
+      _destId ??= left['destId'] as String?;
+      _restored = _pending;
+    }
+    _quantities.addListener(_keep);
+    _note.addListener(_keep);
+  }
+
+  bool get _pending =>
+      _quantities.items.any((i) => i.quantity > 0) ||
+      _note.text.trim().isNotEmpty;
+
+  void _keep() => _draft.save(
+    _pending
+        ? {
+            'lines': _quantities.toDraft(),
+            'note': _note.text,
+            'destId': _destId,
+          }
+        : null,
+  );
+
+  void _startOver() {
+    setState(() {
+      _restored = false;
+      _destId = widget.destId;
+      _round++;
+    });
+    _note.clear();
+    _quantities.reset(const []);
+    _keep();
+  }
+
   @override
   void dispose() {
     _quantities.dispose();
@@ -249,6 +298,7 @@ class _RequestRestockScreenState extends ConsumerState<RequestRestockScreen> {
       success: t.restockSent,
     );
     if (ok && mounted) {
+      _draft.discard();
       ref.invalidate(restocksProvider);
       ref.invalidate(approvalsProvider);
       context.pop();
@@ -267,15 +317,14 @@ class _RequestRestockScreenState extends ConsumerState<RequestRestockScreen> {
       for (final d in depots.value ?? const <Depot>[])
         if (d.active) (d.id, d.name, LucideIcons.warehouse),
     ];
-    return ListenableBuilder(
-      listenable: _quantities,
-      builder: (context, child) =>
-          LeaveGuard(dirty: _quantities.edited, child: child!),
+    return DraftLeaveNote(
+      pending: () => _pending && !_draft.done,
       child: Scaffold(
         appBar: AppBar(title: Text(t.requestRestock)),
         body: ListView(
           padding: const EdgeInsets.all(16),
           children: [
+            if (_restored) DraftNotice(onStartOver: _startOver),
             AsyncBody(
               value: pdvs,
               onRetry: () {
@@ -298,6 +347,8 @@ class _RequestRestockScreenState extends ConsumerState<RequestRestockScreen> {
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 16),
                   child: DropdownButtonFormField<String>(
+                    // Made again when the grossistes arrive after the stores, or on starting over.
+                    key: ValueKey((_round, places.length)),
                     initialValue: places.any((p) => p.$1 == _destId)
                         ? _destId
                         : null,
@@ -320,7 +371,10 @@ class _RequestRestockScreenState extends ConsumerState<RequestRestockScreen> {
                           ),
                         ),
                     ],
-                    onChanged: (v) => setState(() => _destId = v),
+                    onChanged: (v) {
+                      setState(() => _destId = v);
+                      _keep();
+                    },
                   ),
                 );
               },

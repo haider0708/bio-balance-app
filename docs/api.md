@@ -16,8 +16,11 @@ Every route is under `https://api.galylio.com`, JSON in and out, `Authorization:
 | PATCH | `/v1/me` | any signed-in role |
 | POST | `/v1/me/password` | any signed-in role |
 | POST | `/v1/me/delete` | any signed-in role (deletes their own account) |
+| POST | `/v1/me/push-device` | any signed-in role (this iPhone receives push alerts) |
 
 `POST /v1/me/delete` with `{ password }` erases what identifies the person (name, email, phone, password, two-step secret, sessions, codes, notifications, training progress), cancels their waiting payout requests and suspends the account for good; sales, stock and rewards stay, under "Compte supprimé #XXXX". The last active admin gets `LAST_ADMIN`. A deleted account cannot be reactivated, invited, edited or moved (`ACCOUNT_DELETED`); the admins are notified (`account.deleted`).
+
+`POST /v1/me/push-device` with `{ token, platform: "IOS", sandbox }` ties the iPhone's Apple device token to the current session (the last account signed in on a phone gets its alerts; ten phones per person at most). It answers `{ push }`: true when this server sends Apple push alerts, in which case the app turns its own background check off. Signing out, a new password or a deleted account ends the session, and the alerts stop with it. The worker pushes each new notification once, in the person's language (`apps/api/src/core/notice-text.json`, the same wording as the app), with the unread count on the app icon; more than three at once become one summary, and alerts older than half an hour are never sent.
 
 ## Public pages
 

@@ -1,65 +1,133 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:ui' show Color;
+import 'dart:ui' show Color, VoidCallback;
 
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:workmanager/workmanager.dart';
 
+import '../api/api_client.dart';
+import '../auth/secure_storage.dart';
 import '../config.dart';
 import '../l10n/server_text.dart';
+import 'push.dart';
 
 const _taskName = 'biobalance.alerts';
 const _channelId = 'biobalance_alerts';
 const _seenKey = 'alerts.seen';
 
+/// Set when the server sends this iPhone push alerts: the background check then stays quiet.
+const _pushedKey = 'alerts.pushed';
+
+const _settings = InitializationSettings(
+  android: AndroidInitializationSettings('@drawable/ic_stat_biobalance'),
+  // Permission is asked in the app (Push.token), never from the background.
+  iOS: DarwinInitializationSettings(
+    requestAlertPermission: false,
+    requestBadgePermission: false,
+    requestSoundPermission: false,
+  ),
+);
+
 final _notifications = FlutterLocalNotificationsPlugin();
 
-/// Phone alerts without a push service: every fifteen minutes (the shortest the system
-/// allows) the phone asks the server for new notifications and shows them, even when the
-/// app is closed. A responsable hears about each sale of their stores this way.
+/// Phone alerts. Every fifteen minutes or so (the shortest the system allows; on iPhone, when
+/// iOS decides) the phone asks the server for new notifications and shows them, even when the
+/// app is closed. A responsable hears about each sale of their stores this way. On an iPhone
+/// whose server sends Apple push alerts ([Push]), the push does it at once and this check stays
+/// quiet, so nothing is announced twice.
 class BackgroundAlerts {
   const BackgroundAlerts._();
 
-  static bool _asked = false;
+  static String? _enabledFor;
+  static VoidCallback? _opened;
+  static bool _initialized = false;
+
+  /// Prepares the phone's alerts once in the app, with what a tap on one does.
+  static Future<void> _initialize() async {
+    if (_initialized) return;
+    await _notifications.initialize(
+      _settings,
+      onDidReceiveNotificationResponse: (_) => _opened?.call(),
+    );
+    _initialized = true;
+  }
+
+  static bool get _phone =>
+      !kIsWeb &&
+      (defaultTargetPlatform == TargetPlatform.android ||
+          defaultTargetPlatform == TargetPlatform.iOS);
 
   static Future<void> start() async {
-    if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) return;
-    await Workmanager().initialize(alertsDispatcher);
-    await Workmanager().registerPeriodicTask(
-      _taskName,
-      _taskName,
-      frequency: const Duration(minutes: 15),
-      existingWorkPolicy: ExistingPeriodicWorkPolicy.update,
-      constraints: Constraints(networkType: NetworkType.connected),
-    );
-  }
-
-  /// Android 13+ asks the person once whether alerts may be shown.
-  static Future<void> askPermission() async {
-    if (_asked || kIsWeb || defaultTargetPlatform != TargetPlatform.android)
-      return;
-    _asked = true;
+    if (!_phone) return;
+    final ios = defaultTargetPlatform == TargetPlatform.iOS;
     try {
-      await _notifications.initialize(
-        const InitializationSettings(
-          android: AndroidInitializationSettings(
-            '@drawable/ic_stat_biobalance',
-          ),
-        ),
+      await Workmanager().initialize(alertsDispatcher);
+      await Workmanager().registerPeriodicTask(
+        _taskName,
+        _taskName,
+        frequency: const Duration(minutes: 15),
+        initialDelay: ios ? const Duration(minutes: 15) : null,
+        existingWorkPolicy: ExistingPeriodicWorkPolicy.update,
+        constraints: ios
+            ? null
+            : Constraints(networkType: NetworkType.connected),
       );
-      await _notifications
-          .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin
-          >()
-          ?.requestNotificationsPermission();
     } catch (_) {
-      // No notification support here (a test, an old phone): the app works without alerts.
+      // Background work refused by this phone: alerts still show in the app.
     }
   }
+
+  /// Runs [opened] when the person taps an alert (a push on iPhone, a background alert on both),
+  /// including the one that started the app.
+  static Future<void> onOpened(VoidCallback opened) async {
+    if (!_phone) return;
+    _opened = opened;
+    await Push.onOpened(opened);
+    try {
+      await _initialize();
+      final launch = await _notifications.getNotificationAppLaunchDetails();
+      if (launch?.didNotificationLaunchApp ?? false) opened();
+    } catch (_) {
+      // No notification support here (a test): taps simply open the app.
+    }
+  }
+
+  /// Once per account on this phone: asks whether alerts may be shown (Android 13+, iPhone)
+  /// and, on an iPhone, registers it for push alerts.
+  static Future<void> enable(String account, ApiClient api) async {
+    if (!_phone || _enabledFor == account) return;
+    _enabledFor = account;
+    try {
+      if (defaultTargetPlatform == TargetPlatform.android) {
+        await _initialize();
+        await _notifications
+            .resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin
+            >()
+            ?.requestNotificationsPermission();
+        return;
+      }
+      final token = await Push.token();
+      if (token == null) return;
+      final answer = await api.post('/v1/me/push-device', {
+        'token': token,
+        'platform': 'IOS',
+        // Builds run from Xcode talk to Apple's test servers.
+        'sandbox': !kReleaseMode,
+      });
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(_pushedKey, answer is Map && answer['push'] == true);
+    } catch (_) {
+      // No notification support here (a test, an old phone, offline): try at the next start.
+      _enabledFor = null;
+    }
+  }
+
+  /// Signed out: the next account asks again.
+  static void reset() => _enabledFor = null;
 }
 
 /// Runs in the background, without the app. Returns true when done (it runs again at the next turn).
@@ -80,10 +148,10 @@ Future<void> checkForAlerts({
   Dio? client,
   Future<void> Function(int id, String title, String body)? show,
 }) async {
-  const storage = FlutterSecureStorage();
-  final token = await storage.read(key: 'session.token');
+  final token = await secureStorage.read(key: 'session.token');
   if (token == null) return;
   final prefs = await SharedPreferences.getInstance();
+  if (prefs.getBool(_pushedKey) ?? false) return;
   final locale = prefs.getString('app.locale') ?? 'fr';
   final dio =
       client ??
@@ -136,11 +204,7 @@ Future<void> checkForAlerts({
 }
 
 Future<void> _show(int id, String title, String body) async {
-  await _notifications.initialize(
-    const InitializationSettings(
-      android: AndroidInitializationSettings('@drawable/ic_stat_biobalance'),
-    ),
-  );
+  await _notifications.initialize(_settings);
   await _notifications.show(
     id,
     title,
@@ -155,6 +219,7 @@ Future<void> _show(int id, String title, String body) async {
         // The white leaf in the status bar, tinted with the brand colour in the shade.
         color: Color(0xFF0C6B45),
       ),
+      iOS: DarwinNotificationDetails(threadIdentifier: 'biobalance'),
     ),
   );
 }

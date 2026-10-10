@@ -90,6 +90,50 @@ class QuantityController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// The rows as they stand, to keep in a draft.
+  List<Map<String, Object?>> toDraft() => [
+    for (final i in _items.values)
+      {
+        'productId': i.productId,
+        'name': i.name,
+        'family': i.family,
+        'imageId': i.imageId,
+        'quantity': i.quantity,
+      },
+  ];
+
+  /// Puts a draft's rows back: known rows take the draft's quantity, others are added.
+  void restore(List<Object?> rows) {
+    for (final row in rows.whereType<Map<String, Object?>>()) {
+      final id = row['productId'];
+      final quantity = row['quantity'];
+      if (id is! String || quantity is! num) continue;
+      final item = _items[id];
+      if (item != null) {
+        item.quantity = quantity.toInt().clamp(0, item.max ?? 100000);
+      } else {
+        _items[id] = QuantityItem(
+          productId: id,
+          name: row['name'] as String? ?? '',
+          family: row['family'] as String? ?? '',
+          imageId: row['imageId'] as String?,
+          quantity: quantity.toInt().clamp(0, 100000),
+        );
+      }
+    }
+    _edited = true;
+    notifyListeners();
+  }
+
+  /// Back to the rows put in beforehand (the person started over).
+  void reset(Iterable<QuantityItem> initial) {
+    _items
+      ..clear()
+      ..addEntries(initial.map((i) => MapEntry(i.productId, i)));
+    _edited = false;
+    notifyListeners();
+  }
+
   /// The lines to send to the server.
   List<Map<String, Object>> lines({bool skipZero = false}) => [
     for (final i in _items.values)

@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart' show visibleForTesting;
+
 import '../../l10n/app_localizations.dart';
 import '../api/api_exception.dart';
 import '../util/money.dart';
@@ -27,7 +29,8 @@ class ServerText {
   }) {
     final text = _notifications[key];
     if (text == null) return fallback ?? key;
-    var line = locale == 'fr' ? text.$2 : text.$1;
+    final wording = locale == 'fr' ? text.$2 : text.$1;
+    var line = wording;
     params.forEach((name, value) {
       final shown = name == 'amountMillimes' && value is num
           ? Money.format(value.toInt(), locale)
@@ -41,8 +44,9 @@ class ServerText {
         .replaceAll(RegExp(r'\{\w+\}'), '')
         .replaceAll(RegExp(r'\s+'), ' ')
         .trim();
+    // A note the wording does not already show is added at the end.
     final note = params['note'];
-    if (note is String && note.trim().isNotEmpty)
+    if (note is String && note.trim().isNotEmpty && !wording.contains('{note}'))
       line = '$line — ${note.trim()}';
     return line;
   }
@@ -325,6 +329,11 @@ class ServerText {
       'Trop de demandes. Patientez un instant.',
     ),
   };
+
+  /// The wording table, for the test that keeps it equal to the server's copy
+  /// (apps/api/src/core/notice-text.json, used for iPhone push alerts).
+  @visibleForTesting
+  static Map<String, (String, String)> get notificationTexts => _notifications;
 
   static const _notifications = <String, _Text>{
     'account.deleted': (

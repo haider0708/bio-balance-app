@@ -61,4 +61,27 @@ void main() {
       expect(jsonEncode(shown), isNot(contains('n1')));
     },
   );
+
+  test(
+    'an iPhone that receives push alerts never asks in the background',
+    () async {
+      SharedPreferences.setMockInitialValues({
+        'alerts.pushed': true,
+        'alerts.seen': <String>[],
+      });
+      FlutterSecureStorage.setMockInitialValues({
+        'session.token': 'a-valid-token-of-sufficient-length-123456',
+      });
+      final server = FakeServer();
+      final dio = Dio(BaseOptions(baseUrl: 'http://fake'))
+        ..httpClientAdapter = server;
+      final shown = <String>[];
+      await checkForAlerts(
+        client: dio,
+        show: (id, title, body) async => shown.add(body),
+      );
+      expect(shown, isEmpty);
+      expect(server.count('GET /v1/notifications'), 0);
+    },
+  );
 }

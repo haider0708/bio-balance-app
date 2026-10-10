@@ -16,6 +16,11 @@
             <key>CFBundleURLSchemes</key><array><string>biobalance</string></array>
         </dict>
     </array>
+    <!-- The background check for new alerts (BGAppRefreshTask, see AppDelegate.swift). -->
+    <key>UIBackgroundModes</key>
+    <array><string>fetch</string></array>
+    <key>BGTaskSchedulerPermittedIdentifiers</key>
+    <array><string>biobalance.alerts</string></array>
     <!-- Only standard HTTPS: no export-compliance questions at each upload. -->
     <key>ITSAppUsesNonExemptEncryption</key><false/>
     <key>CFBundleLocalizations</key>

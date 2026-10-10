@@ -19,7 +19,10 @@ echo "== Building the image on the server"
 ssh "$host" "cd $src && sudo docker build -q -f infrastructure/production/Dockerfile -t biobalance-api:$sha ."
 
 echo "== Installing the new files"
+proxy_files="/opt/biobalance/infrastructure/production/shared-vps/nginx*.conf"
+proxy_before=$(ssh "$host" "cat $proxy_files 2>/dev/null | sha256sum")
 ssh "$host" "sudo rsync -a --delete --exclude /infrastructure/production/setup $src/ /opt/biobalance/ && sudo rm -rf $src"
+proxy_after=$(ssh "$host" "cat $proxy_files | sha256sum")
 
 echo "== Backing up the database"
 ssh "$host" 'sudo mkdir -p /srv/biobalance-backups/pre-deploy && sudo chmod 700 /srv/biobalance-backups/pre-deploy'
@@ -31,8 +34,28 @@ ssh "$host" "echo '$previous' | sudo tee /etc/biobalance/previous-image >/dev/nu
 echo "== Applying migrations"
 ssh "$host" "sudo biobalance-compose run --rm migrate && sudo /opt/biobalance/scripts/provision-role-vps.sh"
 
-echo "== Restarting"
-ssh "$host" "sudo biobalance-compose up -d --remove-orphans && sudo biobalance-compose up -d --force-recreate nginx"
+echo "== Restarting, one API at a time: the other one keeps answering"
+for service in api1 api2; do
+  ssh "$host" "sudo biobalance-compose up -d --no-deps $service"
+  state=starting
+  for _ in $(seq 1 45); do
+    state=$(ssh "$host" "docker inspect -f '{{.State.Health.Status}}' biobalance-$service-1" || true)
+    [ "$state" = healthy ] && break
+    sleep 2
+  done
+  if [ "$state" != healthy ]; then
+    echo "$service did not become healthy; the other API still runs the previous image ($previous)." >&2
+    echo "Roll back: put API_IMAGE=$previous back in /etc/biobalance/backend.env and run: sudo biobalance-compose up -d" >&2
+    exit 1
+  fi
+  echo "$service is healthy."
+done
+ssh "$host" "sudo biobalance-compose up -d --remove-orphans"
+# A changed proxy file needs a new nginx container (the files are mounted one by one); otherwise it keeps running.
+if [ "$proxy_before" != "$proxy_after" ]; then
+  echo "== The proxy settings changed: restarting nginx"
+  ssh "$host" "sudo biobalance-compose up -d --no-deps --force-recreate nginx"
+fi
 
 echo "== Waiting for health"
 for _ in $(seq 1 40); do

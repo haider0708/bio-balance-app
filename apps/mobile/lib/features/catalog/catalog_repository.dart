@@ -52,6 +52,7 @@ final productsProvider = FutureProvider.autoDispose<List<Product>>(
   (ref) => ref.watch(catalogRepositoryProvider).products(),
 );
 
-final allProductsProvider = FutureProvider<List<Product>>(
-  (ref) => ref.watch(catalogRepositoryProvider).products(includeInactive: true),
-);
+final allProductsProvider = FutureProvider<List<Product>>((ref) async {
+  if (ref.watch(accountProvider) == null) return const [];
+  return ref.watch(catalogRepositoryProvider).products(includeInactive: true);
+});

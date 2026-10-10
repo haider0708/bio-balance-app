@@ -5012,18 +5012,6 @@ abstract class AppLocalizations {
   /// **'What is deleted and what is kept'**
   String get deleteAccountLearnMore;
 
-  /// No description provided for @leaveTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Leave without saving?'**
-  String get leaveTitle;
-
-  /// No description provided for @leaveMessage.
-  ///
-  /// In en, this message translates to:
-  /// **'What you entered on this page will be lost.'**
-  String get leaveMessage;
-
   /// No description provided for @photoChooseDocument.
   ///
   /// In en, this message translates to:
@@ -5065,6 +5053,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Remove the date'**
   String get clearDate;
+
+  /// No description provided for @draftRestored.
+  ///
+  /// In en, this message translates to:
+  /// **'Your unfinished entry is back.'**
+  String get draftRestored;
+
+  /// No description provided for @draftKept.
+  ///
+  /// In en, this message translates to:
+  /// **'Kept as a draft: finish it later.'**
+  String get draftKept;
+
+  /// No description provided for @startOver.
+  ///
+  /// In en, this message translates to:
+  /// **'Start over'**
+  String get startOver;
+
+  /// No description provided for @startOverTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Start over?'**
+  String get startOverTitle;
+
+  /// No description provided for @startOverBody.
+  ///
+  /// In en, this message translates to:
+  /// **'What you entered here is cleared.'**
+  String get startOverBody;
 }
 
 class _AppLocalizationsDelegate

@@ -1,3 +1,4 @@
+import { tunisDay } from "../../core/dates";
 import {
   Body,
   Controller,
@@ -70,7 +71,7 @@ export class RewardsController {
   effective(@Req() r: AuthRequest, @Query("day") d?: string) {
     return this.rewards.effective(
       r.actor,
-      parse(day.optional(), d) ?? new Date().toISOString().slice(0, 10),
+      parse(day.optional(), d) ?? tunisDay(new Date()),
     );
   }
   @Roles("ADMIN")
