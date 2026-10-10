@@ -424,7 +424,6 @@ describe("what each role sees of sales", () => {
     expect(
       (await w.a.get(`/v1/sales?regionId=${south.regionId}`)).body.items,
     ).toHaveLength(1);
-    expect((await w.g.get("/v1/sales")).status).toBe(403);
   });
 });
 

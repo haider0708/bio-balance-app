@@ -2,11 +2,12 @@ import {
   client,
   createAccount,
   fakeJpeg,
+  regionId,
   type Account,
   type Api,
 } from "./helpers";
 
-/** A small world used by most tests: an admin, a responsable in two regions, one grossiste and some products. */
+/** A small world used by most tests: an admin, a responsable in two regions, one grossiste (a warehouse of Nord) and some products. */
 export async function buildWorld(api: Api) {
   const admin = await createAccount({ role: "ADMIN", name: "Admin" });
   const nord = await createAccount({
@@ -18,11 +19,6 @@ export async function buildWorld(api: Api) {
     role: "RESPONSABLE",
     regionCode: "SUD",
     name: "Sami Sud",
-  });
-  const gros = await createAccount({
-    role: "GROSSISTE",
-    name: "Hedi",
-    depot: { name: "Depot Hedi" },
   });
   const a = client(api, admin.token);
   const products: { id: string; name: string; family: string }[] = [];
@@ -41,19 +37,24 @@ export async function buildWorld(api: Api) {
         })
       ).body,
     );
-  const me = (await client(api, gros.token).get("/v1/depots")).body[0];
+  const depot = (
+    await a.post("/v1/depots", {
+      regionId: await regionId("NORD"),
+      name: "Depot Hedi",
+      address: "1 rue du Depot",
+      city: "Tunis",
+    })
+  ).body;
   return {
     api,
     admin,
     nord,
     sud,
-    gros,
     products,
-    depotId: me.id as string,
+    depotId: depot.id as string,
     a,
     n: client(api, nord.token),
     s: client(api, sud.token),
-    g: client(api, gros.token),
   };
 }
 
@@ -101,15 +102,8 @@ export async function stockPlace(
   });
   if (declared.status !== 201)
     throw new Error(`declare failed: ${JSON.stringify(declared.body)}`);
-  // A grossiste's count is checked by the responsable of the region first.
-  if (declared.body.status === "REVIEW") {
-    const reviewed = await w.n.post(
-      `/v1/stock/declarations/${declared.body.id}/review`,
-      { action: "approve" },
-    );
-    if (reviewed.status !== 201)
-      throw new Error(`review failed: ${JSON.stringify(reviewed.body)}`);
-  }
+  // The admin's own count applies at once; a responsable's waits for the admin.
+  if (declared.body.status === "APPROVED") return declared.body;
   const approved = await w.a.post(
     `/v1/stock/declarations/${declared.body.id}/approve`,
     {},

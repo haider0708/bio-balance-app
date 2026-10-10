@@ -12,13 +12,13 @@ data          the initial catalog (51 products with photos)
 
 A modular monolith. Each module owns its routes, rules and queries:
 
-`auth` (sessions, MFA for the admin, activation and reset codes) · `directory` (groups, points of sale, people, depots) · `catalog` · `media` (streamed uploads, content checked by real bytes) · `stock` (ledger and declarations) · `restock` · `rewards` (rules and wallet) · `sales` · `messaging` (notifications and announcements) · `training` · `reporting` (dashboards, approvals inbox, reports, audit).
+`auth` (sessions, MFA for the admin, activation and reset codes) · `directory` (groups, points of sale, people, grossistes: warehouses without accounts) · `catalog` · `media` (streamed uploads, content checked by real bytes) · `stock` (ledger and declarations) · `restock` · `rewards` (rules and wallet) · `sales` · `messaging` (notifications and announcements) · `training` · `reporting` (dashboards, approvals inbox, reports, audit).
 
 Shared kernel in `core/`: errors, the `Database` wrapper, auth guard and roles, audit, notifications, dates, money.
 
 ### One request, one transaction, one identity
 
-`Database.run(actor, work)` opens a transaction and first tells PostgreSQL who is calling (`app.role`, `app.user_id`, `app.region_id`, `app.pdv_id`, `app.depot_id`). Row-level security policies (in the baseline migration) read those settings, and the application's database role cannot bypass them. So a region is isolated **even if a query forgets its filter**; tests prove it by querying with forged filters. Trusted server work (jobs, sign-in lookups) runs as `SYSTEM`.
+`Database.run(actor, work)` opens a transaction and first tells PostgreSQL who is calling (`app.role`, `app.user_id`, `app.region_id`, `app.pdv_id`). Row-level security policies (in the migrations) read those settings, and the application's database role cannot bypass them. So a region is isolated **even if a query forgets its filter**; tests prove it by querying with forged filters. Trusted server work (jobs, sign-in lookups) runs as `SYSTEM`.
 
 ### Data integrity in the database itself
 

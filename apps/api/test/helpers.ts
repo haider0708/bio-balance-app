@@ -67,13 +67,11 @@ export interface Account {
 
 /** Create an active account with a live session, skipping the sign-in screen. */
 export async function createAccount(input: {
-  role: "ADMIN" | "RESPONSABLE" | "GROSSISTE" | "VENDEUR";
+  role: "ADMIN" | "RESPONSABLE" | "VENDEUR";
   email?: string;
   name?: string;
   regionCode?: string;
   pdvId?: string;
-  /** A grossiste works for one region: `regionCode` (NORD when not given). */
-  depot?: { name: string };
   status?: "ACTIVE" | "PENDING";
 }): Promise<Account> {
   const db = await owner();
@@ -94,15 +92,6 @@ export async function createAccount(input: {
           input.pdvId,
         ])
       ).rows[0].regionId;
-    const depotRegionId =
-      input.role === "GROSSISTE"
-        ? (
-            await db.query(`SELECT id FROM "Region" WHERE code=$1`, [
-              input.regionCode ?? "NORD",
-            ])
-          ).rows[0].id
-        : null;
-    if (input.role === "GROSSISTE") regionId = null;
     const { rows } = await db.query(
       `INSERT INTO "User"(id,email,name,role,status,"regionId","pdvId","passwordHash")
        VALUES (gen_random_uuid(),$1,$2,$3::"Role",$4::"Status",$5,$6,'x') RETURNING id`,
@@ -116,11 +105,6 @@ export async function createAccount(input: {
       ],
     );
     const id = rows[0].id as string;
-    if (input.depot)
-      await db.query(
-        `INSERT INTO "Depot"(id,"userId","regionId",name,address,city) VALUES (gen_random_uuid(),$1,$2,$3,'1 rue du Test','Tunis')`,
-        [id, depotRegionId, input.depot.name],
-      );
     const token = randomBytes(32).toString("base64url");
     await db.query(
       `INSERT INTO "Session"(id,"userId","tokenHash","expiresAt") VALUES (gen_random_uuid(),$1,$2,now()+interval '1 day')`,

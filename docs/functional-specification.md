@@ -7,34 +7,49 @@ BioBalance runs the network of BioBalance parapharmacies: who sells where, what 
 | Role | Count | What they do |
 |---|---|---|
 | **Admin** | few | Sees everything, approves everything, sets rewards, pays out, writes announcements and training. Signs in with a password and an authenticator code. |
-| **Responsable** | 3, one per region (Nord, Centre, Sud) | Creates the group(s) and points of sale (PDV) of their region, adds teams, declares stock, requests restocks, receives deliveries. Sees only their own region. |
-| **Grossiste** | any | A wholesaler with one depot, working for **one region** and handled by that region's responsable (a restock can only be assigned to a grossiste of its own region). Declares the depot stock, prepares and ships the orders assigned to them, can request stock from BioBalance. |
+| **Responsable** | 3, one per region (Nord, Centre, Sud) | Creates the group(s) and points of sale (PDV) of their region, adds teams, declares stock, requests restocks, receives deliveries, and handles the **grossistes** of their region (see below). Sees only their own region. |
 | **Team member** (vendeur) | any | Works in one point of sale. Records sales, sees the reward each sale earned, keeps a wallet. |
 
-Regions are separate: a responsable never sees another region's points of sale, people, stock, sales or deliveries (enforced in the database, not only in the app).
+Regions are separate: a responsable never sees another region's points of sale, people, stock, sales, deliveries or grossistes (enforced in the database, not only in the app).
+
+### Grossistes are warehouses, not accounts
+
+A **grossiste** is a record: a name, an address, a city, a phone number, its region, one to five photos, and the stock it holds. It has **no login and no email**; nobody signs in as a grossiste. The admin creates and edits grossistes (and may suspend or, if unused, remove them). The responsable of the region sees them and manages their stock; other regions never see them.
+
+| | Admin | Responsable of the region |
+|---|---|---|
+| Create, edit, suspend, remove | yes | no |
+| First stock count | yes, with photos, applied at once | yes, with photos; the admin approves |
+| Recount later | corrects directly (reason required) | asks; the admin allows it once |
+| Restock (goods arriving from BioBalance) | yes, with photos, applied at once | asks BioBalance, then records the delivery with photos; the admin approves |
+| Ship goods to a store | yes | yes |
+
+Photos are the proof that the goods are really there, for both roles.
 
 ## Approvals
 
-Everything a responsable or grossiste creates **works immediately but stays inactive until the admin approves it**, item by item: a group, a point of sale, each team member, the opening stock of a place, a delivery receipt. A rejection carries a reason and the creator can fix and resubmit. The admin has one **approvals inbox** for all of it.
+Everything a responsable creates **works immediately but stays inactive until the admin approves it**, item by item: a group, a point of sale, each team member, the opening stock of a place, a delivery receipt. A rejection carries a reason and the creator can fix and resubmit. The admin has one **approvals inbox** for all of it.
 
 - A point of sale sells once it is approved; its team members sign in once they are approved (they then receive an email with an activation code).
 - Stock is never official until the admin approves its declaration.
 
 ## Stock
 
-One quantity per product per place (point of sale or depot). **No lots, no expiry dates, no prices.** Every change is kept in an append-only history. **A sale can never take a store below zero:** the server refuses it (`OUT_OF_STOCK`), and the sale screen shows what is in stock and caps the quantity. While the phone is offline the sale is kept and checked when it is sent. A team member can read the stock of their own store only.
+One quantity per product per place (point of sale or grossiste). **No lots, no expiry dates, no prices.** Every change is kept in an append-only history. **A sale can never take a store below zero:** the server refuses it (`OUT_OF_STOCK`), and the sale screen shows what is in stock and caps the quantity. While the phone is offline the sale is kept and checked when it is sent. A team member can read the stock of their own store only.
 
-- **Opening stock, counted once:** the responsable (or grossiste) counts, enters quantities and takes a photo. The admin sees the photo next to the numbers and approves, corrects some quantities, or rejects. There is no recount: a place whose count is waiting or approved cannot declare again (`ALREADY_COUNTED`); only a rejected count can be sent again. A place with nothing on its shelves declares "no stock" (no photo needed). Later stock moves only through restocks and sales.
+- **Opening stock, counted once:** the responsable counts, enters quantities and takes photos. The admin sees the photos next to the numbers and approves, corrects some quantities, or rejects. When the admin counts a grossiste herself, the stock applies at once. A place whose count is waiting or approved cannot declare again (`ALREADY_COUNTED`) unless the admin allowed a recount; only a rejected count can be sent again. A place with nothing on its shelves declares "no stock" (no photo needed). Later stock moves only through restocks and sales.
 - **Quick restock:** a low-stock product on the responsable's dashboard (or on the stock-attention list) has an Order button that sends the request in two taps.
 
 ## Restock
 
-1. The responsable asks for products for a point of sale (a grossiste can ask for the depot).
-2. The admin either **assigns it to a grossiste** or **sends it directly** (BioBalance has unlimited stock). The admin can adjust quantities first.
-3. The grossiste prepares and ships (cannot ship more than requested or held).
+1. The responsable asks for products for a point of sale **or a grossiste** of the region.
+2. For a store, the admin either **gives it to a grossiste** of the same region or **sends it directly** (BioBalance has unlimited stock); for a grossiste, the admin sends it directly. The admin can adjust quantities first.
+3. For an order given to a grossiste, the responsable (or the admin) says what really leaves it: stock leaves at that moment, and never more than requested or held.
+
+The admin can also restock a grossiste herself: she counts what BioBalance delivered, photographs it, and the goods are added at once.
 4. The responsable, **or a team member the responsable chooses**, photographs the signed delivery paper and enters the quantities actually received.
 5. The admin compares photo and numbers, then approves as counted, corrects, or asks for a recount.
-6. **Only then does stock move**: the destination gains the approved quantities and, for a grossiste, the depot loses them.
+6. **Only then does the destination gain stock**: the approved quantities are added. A grossiste that supplied the order lost them when they were shipped.
 
 ## Sales and rewards
 

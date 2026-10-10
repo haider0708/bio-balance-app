@@ -100,7 +100,6 @@ class _PeopleListState extends ConsumerState<PeopleList> {
                 for (final (value, label) in [
                   (null, t.all),
                   ('RESPONSABLE', t.roleResponsable),
-                  ('GROSSISTE', t.roleGrossiste),
                   ('VENDEUR', t.roleVendeur),
                 ])
                   Padding(

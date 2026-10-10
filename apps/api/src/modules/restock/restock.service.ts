@@ -27,26 +27,35 @@ export class RestockService {
 
   // ───────────────────────── Request ─────────────────────────
 
+  /**
+   * A responsable asks BioBalance for goods (a store of their region, or a grossiste of it).
+   * The admin restocking a grossiste records the delivery on the spot, with photos of the goods.
+   */
   async create(
     actor: Actor,
-    input: { destId?: string; note?: string; lines: QtyLine[] },
+    input: {
+      destId?: string;
+      note?: string;
+      lines: QtyLine[];
+      photoIds?: string[];
+    },
   ) {
     requireRule(
-      ["RESPONSABLE", "GROSSISTE"].includes(actor.role),
+      ["ADMIN", "RESPONSABLE"].includes(actor.role),
       "FORBIDDEN",
-      "Only a responsable or grossiste requests a restock.",
+      "Only the admin or a responsable restocks.",
       403,
     );
     return this.db.run(actor, async (tx) => {
-      const destId = actor.role === "GROSSISTE" ? actor.depotId : input.destId;
-      requireRule(destId, "DESTINATION_REQUIRED", "Choose a point of sale.");
-      const dest = await findLocation(tx, destId);
+      requireRule(input.destId, "DESTINATION_REQUIRED", "Choose a place.");
+      const dest = await findLocation(tx, input.destId);
+      const byAdmin = actor.role === "ADMIN";
       requireRule(
-        actor.role === "GROSSISTE"
-          ? dest.kind === "DEPOT" && dest.id === actor.depotId
-          : dest.kind === "PDV" && dest.regionId === actor.regionId,
+        byAdmin ? dest.kind === "DEPOT" : dest.stockRegionId === actor.regionId,
         "FORBIDDEN",
-        "You cannot request stock for this place.",
+        byAdmin
+          ? "The admin restocks a grossiste; stores order through their responsable."
+          : "You cannot request stock for this place.",
         403,
       );
       requireRule(
@@ -60,10 +69,20 @@ export class RestockService {
         { n: bigint }[]
       >`SELECT nextval('restock_number_seq') AS n`;
       const number = `RS-${new Date().getUTCFullYear()}-${String(sequence!.n).padStart(6, "0")}`;
+      const photoIds = byAdmin
+        ? await ownedProofs(
+            tx,
+            actor,
+            input.photoIds ?? [],
+            "Add a photo of the goods.",
+            { regionId: dest.stockRegionId },
+          )
+        : [];
+      const now = new Date();
       const order = await tx.restockOrder.create({
         data: {
           number,
-          regionId: dest.regionId,
+          regionId: dest.stockRegionId,
           destKind: dest.kind,
           destId: dest.id,
           requestedById: actor.id,
@@ -72,33 +91,66 @@ export class RestockService {
             create: input.lines.map((l) => ({
               productId: l.productId,
               requested: l.quantity,
+              ...(byAdmin && {
+                shipped: l.quantity,
+                received: l.quantity,
+                approved: l.quantity,
+              }),
             })),
           },
+          ...(byAdmin && {
+            status: "COMPLETED" as const,
+            source: "BIOBALANCE" as const,
+            assignedAt: now,
+            shippedAt: now,
+            receivedAt: now,
+            decidedAt: now,
+            receiverId: actor.id,
+            decidedById: actor.id,
+            receiptPhotoId: photoIds[0],
+            receiptPhotoIds: photoIds,
+          }),
         },
         include: { lines: true },
       });
       await audit(
         tx,
         actor,
-        "restock.requested",
+        byAdmin ? "restock.recorded" : "restock.requested",
         "RestockOrder",
         order.id,
         { number, place: dest.name },
-        dest.regionId,
+        dest.stockRegionId,
       );
-      await notifyAdmins(tx, {
-        key: "restock.requested",
-        params: { number, place: dest.name, by: actor.name },
-        entityType: "RestockOrder",
-        entityId: order.id,
-      });
+      if (byAdmin) {
+        for (const l of input.lines)
+          await adjustStock(tx, dest, l.productId, l.quantity, {
+            reason: "RECEIPT",
+            refType: "RestockOrder",
+            refId: order.id,
+            actorId: actor.id,
+          });
+        await this.tellEveryone(
+          tx,
+          order,
+          "restock.completed",
+          { number, amended: 0, note: input.note ?? null },
+          actor.id,
+        );
+      } else
+        await notifyAdmins(tx, {
+          key: "restock.requested",
+          params: { number, place: dest.name, by: actor.name },
+          entityType: "RestockOrder",
+          entityId: order.id,
+        });
       return this.one(tx, order);
     });
   }
 
   // ───────────────────────── Admin routes the order ─────────────────────────
 
-  /** Give the order to a grossiste. The admin may adjust the quantities first. */
+  /** The admin picks the grossiste the goods leave from. The admin may adjust the quantities first. */
   assign(
     actor: Actor,
     id: string,
@@ -151,13 +203,10 @@ export class RestockService {
         { depot: depot.name },
         order.regionId,
       );
-      await this.tellRequester(tx, order, "restock.assigned", {
-        number: order.number,
-        depot: depot.name,
-      });
-      await notify(tx, [depot.userId], {
+      // The responsable of the region ships it from the grossiste.
+      await notify(tx, await responsableIds(tx, order.regionId!), {
         key: "restock.to_prepare",
-        params: { number: order.number },
+        params: { number: order.number, depot: depot.name },
         entityType: "RestockOrder",
         entityId: id,
       });
@@ -204,21 +253,23 @@ export class RestockService {
     });
   }
 
-  // ───────────────────────── Grossiste ships ─────────────────────────
+  // ───────────────────────── Shipping from a grossiste ─────────────────────────
 
+  /** The responsable of the region (or the admin) says what really leaves the grossiste. */
   ship(actor: Actor, id: string, input: { lines: QtyLine[] }) {
     requireRule(
-      actor.role === "GROSSISTE" && actor.depotId,
+      ["ADMIN", "RESPONSABLE"].includes(actor.role),
       "FORBIDDEN",
-      "Only the assigned grossiste ships.",
+      "Only the admin or the responsable ships.",
       403,
     );
     return this.db.run(actor, async (tx) => {
       const order = await this.load(tx, id, "ASSIGNED");
       requireRule(
-        order.supplierDepotId === actor.depotId,
+        order.supplierDepotId &&
+          (actor.role === "ADMIN" || order.regionId === actor.regionId),
         "FORBIDDEN",
-        "This order is not assigned to you.",
+        "This order is not yours to ship.",
         403,
       );
       const byProduct = new Map(
@@ -236,7 +287,7 @@ export class RestockService {
           "That product is not in the order.",
           422,
         );
-      const depot = await findLocation(tx, actor.depotId!);
+      const depot = await findLocation(tx, order.supplierDepotId!);
       let total = 0;
       for (const line of order.lines) {
         const shipped = byProduct.get(line.productId) ?? 0;
@@ -245,11 +296,11 @@ export class RestockService {
           "TOO_MANY",
           "You cannot ship more than was requested.",
         );
-        const have = await currentQuantity(tx, actor.depotId!, line.productId);
+        const have = await currentQuantity(tx, depot.id, line.productId);
         requireRule(
           shipped <= have,
           "INSUFFICIENT_STOCK",
-          "Your depot does not hold enough of a product.",
+          "The grossiste does not hold enough of a product.",
           409,
         );
         total += shipped;
@@ -281,16 +332,20 @@ export class RestockService {
         { units: total },
         order.regionId,
       );
-      await this.tellRequester(tx, order, "restock.shipped", {
-        number: order.number,
-        from: actor.name,
-      });
-      await notifyAdmins(tx, {
-        key: "restock.shipped_info",
-        params: { number: order.number, by: actor.name },
-        entityType: "RestockOrder",
-        entityId: id,
-      });
+      await this.tellEveryone(
+        tx,
+        order,
+        "restock.shipped",
+        { number: order.number, from: depot.name },
+        actor.id,
+      );
+      if (actor.role !== "ADMIN")
+        await notifyAdmins(tx, {
+          key: "restock.shipped_info",
+          params: { number: order.number, by: actor.name },
+          entityType: "RestockOrder",
+          entityId: id,
+        });
       return this.one(tx, updated);
     });
   }
@@ -372,12 +427,8 @@ export class RestockService {
       const isReceiver = order.receiverId === actor.id;
       const allowed =
         isReceiver ||
-        (actor.role === "RESPONSABLE" &&
-          order.destKind === "PDV" &&
-          order.regionId === actor.regionId) ||
-        (actor.role === "GROSSISTE" &&
-          order.destKind === "DEPOT" &&
-          order.destId === actor.depotId);
+        (actor.role === "RESPONSABLE" && order.regionId === actor.regionId) ||
+        (actor.role === "ADMIN" && order.destKind === "DEPOT");
       requireRule(
         allowed,
         "FORBIDDEN",
@@ -389,6 +440,7 @@ export class RestockService {
         actor,
         input.photoIds ?? (input.photoId ? [input.photoId] : []),
         "Add a photo of the delivery paper.",
+        { regionId: order.regionId },
       );
       const counted = new Map(
         input.lines.map((l) => [l.productId, l.quantity]),
@@ -439,6 +491,8 @@ export class RestockService {
         { note: input.note ?? null },
         order.regionId,
       );
+      // The admin counting a delivery is also the one who approves it.
+      if (actor.role === "ADMIN") return this.settle(tx, actor, updated);
       await notifyAdmins(tx, {
         key: "restock.received",
         params: { number: order.number, by: actor.name },
@@ -473,52 +527,64 @@ export class RestockService {
           "That product is not in the order.",
           422,
         );
-      const dest = await findLocation(tx, order.destId);
-      let amended = 0;
-      for (const line of order.lines) {
-        const approved = overrides.get(line.productId) ?? line.received ?? 0;
-        if (approved !== (line.received ?? 0)) amended++;
-        await tx.restockLine.update({
-          where: { id: line.id },
-          data: { approved },
-        });
-        if (approved === 0) continue;
-        await adjustStock(tx, dest, line.productId, approved, {
-          reason: "RECEIPT",
-          refType: "RestockOrder",
-          refId: id,
-          actorId: actor.id,
-        });
-      }
-      const updated = await tx.restockOrder.update({
-        where: { id },
-        data: {
-          status: "COMPLETED",
-          decidedById: actor.id,
-          decidedAt: new Date(),
-          decisionNote: input.note?.trim() || null,
-        },
-        include: { lines: true },
-      });
-      await audit(
-        tx,
-        actor,
-        "restock.approved",
-        "RestockOrder",
-        id,
-        { amended },
-        order.regionId,
-      );
-      await this.tellEveryone(tx, order, "restock.completed", {
-        number: order.number,
-        amended,
-        note: input.note ?? null,
-      });
-      return this.one(tx, updated);
+      return this.settle(tx, actor, order, overrides, input.note);
     });
   }
 
-  /** The receipt does not match: send it back to be counted again. */
+  /** Put the approved quantities into the destination's stock and close the order. */
+  private async settle(
+    tx: Tx,
+    actor: Actor,
+    order: Order,
+    overrides: Map<string, number> = new Map(),
+    note?: string,
+  ) {
+    const dest = await findLocation(tx, order.destId);
+    let amended = 0;
+    for (const line of order.lines) {
+      const approved = overrides.get(line.productId) ?? line.received ?? 0;
+      if (approved !== (line.received ?? 0)) amended++;
+      await tx.restockLine.update({
+        where: { id: line.id },
+        data: { approved },
+      });
+      if (approved === 0) continue;
+      await adjustStock(tx, dest, line.productId, approved, {
+        reason: "RECEIPT",
+        refType: "RestockOrder",
+        refId: order.id,
+        actorId: actor.id,
+      });
+    }
+    const updated = await tx.restockOrder.update({
+      where: { id: order.id },
+      data: {
+        status: "COMPLETED",
+        decidedById: actor.id,
+        decidedAt: new Date(),
+        decisionNote: note?.trim() || null,
+      },
+      include: { lines: true },
+    });
+    await audit(
+      tx,
+      actor,
+      "restock.approved",
+      "RestockOrder",
+      order.id,
+      { amended },
+      order.regionId,
+    );
+    await this.tellEveryone(
+      tx,
+      order,
+      "restock.completed",
+      { number: order.number, amended, note: note ?? null },
+      actor.id,
+    );
+    return this.one(tx, updated);
+  }
+
   reject(actor: Actor, id: string, note: string) {
     requireRule(
       actor.role === "ADMIN",
@@ -626,7 +692,7 @@ export class RestockService {
     },
   ) {
     requireRule(
-      ["ADMIN", "RESPONSABLE", "GROSSISTE", "VENDEUR"].includes(actor.role),
+      ["ADMIN", "RESPONSABLE", "VENDEUR"].includes(actor.role),
       "FORBIDDEN",
       "Not allowed.",
       403,
@@ -746,18 +812,12 @@ export class RestockService {
     params: Record<string, unknown>,
     except?: string,
   ) {
-    const depot = order.supplierDepotId
-      ? await tx.depot.findUnique({ where: { id: order.supplierDepotId } })
-      : null;
     const region = order.regionId
       ? await responsableIds(tx, order.regionId)
       : [];
-    const ids = [
-      order.requestedById,
-      order.receiverId,
-      depot?.userId,
-      ...region,
-    ].filter((x): x is string => !!x && x !== except);
+    const ids = [order.requestedById, order.receiverId, ...region].filter(
+      (x): x is string => !!x && x !== except,
+    );
     await notify(tx, ids, {
       key,
       params,

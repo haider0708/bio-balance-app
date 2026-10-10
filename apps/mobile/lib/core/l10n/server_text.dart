@@ -356,10 +356,6 @@ class ServerText {
       '{seller} sold {units} units at {place} · {amount} earned.',
       '{seller} a vendu {units} unités à {place} · {amount} gagnés.',
     ),
-    'stock.to_review': (
-      '{by} declared the stock of {place}: check it and pass it to the admin.',
-      '{by} a déclaré le stock de {place} : vérifiez-le puis transmettez-le à l’admin.',
-    ),
     'stock.adjusted': (
       'The stock of {place} was corrected: {note}',
       'Le stock de {place} a été corrigé : {note}',
@@ -392,13 +388,9 @@ class ServerText {
       '{by} requested a restock {number} for {place}.',
       '{by} a demandé le réassort {number} pour {place}.',
     ),
-    'restock.assigned': (
-      'Restock {number} was assigned to {depot}.',
-      'Le réassort {number} a été confié à {depot}.',
-    ),
     'restock.to_prepare': (
-      'Restock {number} is waiting for you to prepare it.',
-      'Le réassort {number} attend votre préparation.',
+      'Restock {number} was given to {depot}: ship it.',
+      'Le réassort {number} a été confié à {depot} : expédiez-le.',
     ),
     'restock.shipped': (
       'Restock {number} is on its way from {from}.',

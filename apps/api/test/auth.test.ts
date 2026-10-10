@@ -150,7 +150,7 @@ describe("invitation and password reset", () => {
       type: argon2.argon2id,
     });
     await db.query(
-      `INSERT INTO "User"(id,email,name,role,status,"passwordHash") VALUES (gen_random_uuid(),'g@example.test','G','GROSSISTE','ACTIVE',$1)`,
+      `INSERT INTO "User"(id,email,name,role,status,"regionId","passwordHash") VALUES (gen_random_uuid(),'g@example.test','G','RESPONSABLE','ACTIVE',(SELECT id FROM "Region" WHERE code='NORD'),$1)`,
       [hash],
     );
     const anon = client(api);
@@ -201,11 +201,10 @@ describe("taking back an invitation", () => {
     const nord = regions.find((r: any) => r.code === "NORD");
     const sud = regions.find((r: any) => r.code === "SUD");
     const created = await a.post("/v1/users", {
-      role: "GROSSISTE",
+      role: "RESPONSABLE",
       regionId: nord.id,
       name: "Mounir",
       email: "mounir@example.test",
-      depot: { name: "Depot Sfax", address: "ZI", city: "Sfax" },
     });
     const db = await owner();
     const code = (
@@ -225,13 +224,12 @@ describe("taking back an invitation", () => {
       password: "a-long-password",
     });
     expect(dead.status).toBe(422);
-    // The address is free again, with a fresh depot.
+    // The address is free again, for another region.
     const again = await a.post("/v1/users", {
-      role: "GROSSISTE",
+      role: "RESPONSABLE",
       regionId: sud.id,
       name: "Mounir",
       email: "mounir@example.test",
-      depot: { name: "Depot Gabes", address: "ZI", city: "Gabes" },
     });
     expect(again.status).toBe(201);
 

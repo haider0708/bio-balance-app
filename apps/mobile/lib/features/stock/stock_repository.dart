@@ -64,13 +64,6 @@ class StockRepository {
       .read(apiClientProvider)
       .post('/v1/stock/declarations/$id/reject', {'note': note});
 
-  /// The responsable checks a grossiste's count: pass it to the admin or send it back.
-  Future<void> review(String id, {required bool approve, String? note}) =>
-      _ref.read(apiClientProvider).post('/v1/stock/declarations/$id/review', {
-        'action': approve ? 'approve' : 'reject',
-        'note': ?note,
-      });
-
   /// The admin sets quantities directly, with the reason.
   Future<void> adjust({
     required String locationId,
@@ -125,11 +118,4 @@ final recountsProvider = FutureProvider.autoDispose
     .family<List<RecountRequest>, String>(
       (ref, locationId) =>
           ref.watch(stockRepositoryProvider).recounts(locationId: locationId),
-    );
-
-/// Grossiste counts waiting for the responsable's check.
-final countsToReviewProvider =
-    FutureProvider.autoDispose<List<StockDeclaration>>(
-      (ref) =>
-          ref.watch(stockRepositoryProvider).declarations(status: 'REVIEW'),
     );

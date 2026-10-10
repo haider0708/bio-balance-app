@@ -127,26 +127,48 @@ class NetworkRepository {
   Future<void> resendInvite(String id) =>
       _ref.read(apiClientProvider).post('/v1/users/$id/resend-invite');
 
-  Future<void> updateDepot(
-    String id, {
-    String? name,
-    String? address,
-    String? city,
-    String? phone,
-  }) => _ref.read(apiClientProvider).patch('/v1/depots/$id', {
-    'name': ?name,
-    'address': ?address,
-    'city': ?city,
-    'phone': ?phone,
-  });
-
   Future<void> cancelInvite(String id) =>
       _ref.read(apiClientProvider).post('/v1/users/$id/cancel-invite');
 
-  Future<List<Depot>> depots() async =>
-      jsonList(await _ref.read(apiClientProvider).get('/v1/depots'))
-          .map(Depot.fromJson)
-          .toList();
+  // Grossistes (warehouses)
+  Future<List<Depot>> depots({String? regionId}) async => jsonList(
+    await _ref
+        .read(apiClientProvider)
+        .get('/v1/depots', query: {'regionId': regionId}),
+  ).map(Depot.fromJson).toList();
+
+  Future<Depot> depot(String id) async => Depot.fromJson(
+    await _ref.read(apiClientProvider).get('/v1/depots/$id') as Json,
+  );
+
+  Future<void> saveDepot(
+    String? id, {
+    required String name,
+    required String address,
+    required String city,
+    required List<String> photoIds,
+    String? phone,
+    String? regionId,
+  }) {
+    final api = _ref.read(apiClientProvider);
+    final body = {
+      'name': name,
+      'address': address,
+      'city': city,
+      'phone': phone,
+      'photoIds': photoIds,
+    };
+    return id == null
+        ? api.post('/v1/depots', {...body, 'regionId': regionId})
+        : api.patch('/v1/depots/$id', body);
+  }
+
+  Future<void> setDepotActive(String id, {required bool active}) => _ref
+      .read(apiClientProvider)
+      .patch('/v1/depots/$id', {'status': active ? 'ACTIVE' : 'SUSPENDED'});
+
+  Future<void> deleteDepot(String id) =>
+      _ref.read(apiClientProvider).delete('/v1/depots/$id');
 }
 
 final networkRepositoryProvider = Provider<NetworkRepository>(
@@ -169,6 +191,10 @@ final pdvProvider = FutureProvider.autoDispose.family<Pdv, String>(
 final groupsProvider = FutureProvider.autoDispose.family<List<Group>, String?>(
   (ref, regionId) =>
       ref.watch(networkRepositoryProvider).groups(regionId: regionId),
+);
+
+final depotProvider = FutureProvider.autoDispose.family<Depot, String>(
+  (ref, id) => ref.watch(networkRepositoryProvider).depot(id),
 );
 
 final depotsProvider = FutureProvider.autoDispose<List<Depot>>(

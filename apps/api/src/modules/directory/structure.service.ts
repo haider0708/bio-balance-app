@@ -404,7 +404,7 @@ export class StructureService {
     const memberCount = new Map(members.map((m) => [m.pdvId, m._count._all]));
     const groupName = new Map(groups.map((g) => [g.id, g.name]));
     // APPROVED beats PENDING beats REJECTED; NONE when nothing was declared.
-    const rank = { APPROVED: 3, PENDING: 2, REVIEW: 2, REJECTED: 1 } as const;
+    const rank = { APPROVED: 3, PENDING: 2, REJECTED: 1 } as const;
     const stock = new Map<
       string,
       "NONE" | "PENDING" | "APPROVED" | "REJECTED"
@@ -412,7 +412,7 @@ export class StructureService {
     for (const d of declarations) {
       const current = stock.get(d.locationId);
       if (!current || current === "NONE" || rank[d.status] > rank[current])
-        stock.set(d.locationId, d.status === "REVIEW" ? "PENDING" : d.status);
+        stock.set(d.locationId, d.status);
     }
     return pdvs.map((p) => ({
       ...p,

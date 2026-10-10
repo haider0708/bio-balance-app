@@ -97,7 +97,6 @@ Map<String, Object?> meJson({
   'locale': locale,
   'region': {'id': 'r1', 'code': 'NORD', 'name': 'Nord'},
   'pdv': {'id': 'p1', 'name': 'Para Lac'},
-  'depot': null,
 };
 
 Map<String, Object?> productJson(

@@ -2,11 +2,20 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import {
   client,
   createAccount,
+  owner,
+  regionId,
   resetDatabase,
   startApi,
   type Api,
 } from "./helpers";
-import { approvedPdv, buildWorld, type World } from "./world";
+import {
+  approvedPdv,
+  buildWorld,
+  photo,
+  stockPlace,
+  teamMember,
+  type World,
+} from "./world";
 
 let api: Api;
 let w: World;
@@ -69,7 +78,7 @@ describe("groups and points of sale", () => {
     expect(again.body.status).toBe("PENDING");
   });
 
-  it("only the admin approves; the admin and a responsable create, a grossiste cannot", async () => {
+  it("only the admin approves; the admin and a responsable create, a team member cannot", async () => {
     const created = (
       await w.n.post("/v1/pdvs", {
         name: "Para Y",
@@ -80,16 +89,13 @@ describe("groups and points of sale", () => {
     expect((await w.n.post(`/v1/pdvs/${created.id}/approve`, {})).status).toBe(
       403,
     );
+    // A team member cannot create stores or groups either.
+    const member = client(api, (await teamMember(w, created.id)).token);
     expect(
-      (
-        await w.g.post("/v1/pdvs", {
-          name: "Gros PDV",
-          address: "x",
-          city: "y",
-        })
-      ).status,
+      (await member.post("/v1/pdvs", { name: "X", address: "x", city: "y" }))
+        .status,
     ).toBe(403);
-    expect((await w.g.post("/v1/groups", { name: "Gros group" })).status).toBe(
+    expect((await member.post("/v1/groups", { name: "X group" })).status).toBe(
       403,
     );
   });
@@ -228,27 +234,46 @@ describe("team members", () => {
     expect(second.body.code).toBe("REGION_HAS_RESPONSABLE");
   });
 
-  it("creates a grossiste with a depot that responsables can see", async () => {
+  it("the admin creates a grossiste (no account); responsables see only their region's", async () => {
     const regions = (await w.a.get("/v1/regions")).body;
     const nord = regions.find((r: any) => r.code === "NORD");
     const sud = regions.find((r: any) => r.code === "SUD");
-    const created = await w.a.post("/v1/users", {
-      role: "GROSSISTE",
+    const photoIds = [await photo(w, w.admin), await photo(w, w.admin)];
+    const created = await w.a.post("/v1/depots", {
       regionId: nord.id,
-      name: "Mounir",
-      email: "mounir@example.test",
-      depot: { name: "Depot Sfax", address: "Zone industrielle", city: "Sfax" },
+      name: "Depot Sfax",
+      address: "Zone industrielle",
+      city: "Sfax",
+      phone: "20 000 000",
+      photoIds,
     });
     expect(created.status).toBe(201);
-    const depots = await w.n.get("/v1/depots");
-    expect(depots.body.map((d: any) => d.name)).toContain("Depot Sfax");
-    // A responsable sees only the grossistes of their own region.
-    const other = await w.a.post("/v1/users", {
-      role: "GROSSISTE",
+    expect(created.body).toMatchObject({
+      name: "Depot Sfax",
+      status: "ACTIVE",
+      units: 0,
+      counted: false,
+      region: { name: "Nord" },
+      photoIds,
+    });
+    // It never became a login: nobody was invited.
+    const db = await owner();
+    expect(
+      (
+        await db.query(
+          `SELECT count(*)::int AS n FROM "User" WHERE name='Depot Sfax'`,
+        )
+      ).rows[0].n,
+    ).toBe(0);
+    await db.end();
+    expect(
+      (await w.n.get("/v1/depots")).body.map((d: any) => d.name),
+    ).toContain("Depot Sfax");
+    const other = await w.a.post("/v1/depots", {
       regionId: sud.id,
-      name: "Slim",
-      email: "slim@example.test",
-      depot: { name: "Depot Sud", address: "Route de Gabes", city: "Gabes" },
+      name: "Depot Sud",
+      address: "Route de Gabes",
+      city: "Gabes",
     });
     expect(other.status).toBe(201);
     expect(
@@ -257,10 +282,54 @@ describe("team members", () => {
     expect(
       (await w.a.get("/v1/depots")).body.map((d: any) => d.name),
     ).toContain("Depot Sud");
-    // A grossiste sees only their own depot.
-    const own = await w.g.get("/v1/depots");
-    expect(own.body).toHaveLength(1);
-    expect(own.body[0].name).toBe("Depot Hedi");
+    expect([403, 404]).toContain(
+      (await w.n.get(`/v1/depots/${other.body.id}`)).status,
+    );
+    // Photos of the grossiste are visible to the region's responsable, not to another region's.
+    const seen = (token: string) =>
+      fetch(`${api.url}/v1/media/${photoIds[0]}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+    expect((await seen(w.nord.token)).status).toBe(200);
+    expect((await seen(w.sud.token)).status).toBe(404);
+  });
+
+  it("only the admin creates, edits and removes grossistes", async () => {
+    const regionNord = await regionId("NORD");
+    const body = {
+      regionId: regionNord,
+      name: "Depot X",
+      address: "1 rue",
+      city: "Tunis",
+    };
+    expect((await w.n.post("/v1/depots", body)).status).toBe(403);
+    expect(
+      (await w.n.patch(`/v1/depots/${w.depotId}`, { name: "Mine" })).status,
+    ).toBe(403);
+    const edited = await w.a.patch(`/v1/depots/${w.depotId}`, {
+      name: "Depot Hedi 2",
+      phone: "71 000 000",
+      status: "SUSPENDED",
+    });
+    expect(edited.body).toMatchObject({
+      name: "Depot Hedi 2",
+      status: "SUSPENDED",
+    });
+    // A suspended grossiste takes no new stock.
+    const refused = await w.n.post("/v1/stock/declarations", {
+      locationId: w.depotId,
+      photoIds: [await photo(w, w.nord)],
+      lines: [{ productId: w.products[0]!.id, quantity: 1 }],
+    });
+    expect(refused.status).toBe(409);
+    // One that never held anything can be removed; one with activity cannot.
+    const fresh = await w.a.post("/v1/depots", body);
+    expect((await w.a.delete(`/v1/depots/${fresh.body.id}`)).status).toBe(200);
+    await w.a.patch(`/v1/depots/${w.depotId}`, { status: "ACTIVE" });
+    await stockPlace(w, w.depotId, w.nord, [1, 1, 1]);
+    expect((await w.a.delete(`/v1/depots/${w.depotId}`)).body.code).toBe(
+      "ALREADY_USED",
+    );
   });
 });
 
@@ -315,7 +384,6 @@ describe("regions are separate", () => {
       role: "RESPONSABLE" as const,
       regionId: (await w.s.get("/v1/me")).body.region.id,
       pdvId: null,
-      depotId: null,
       locale: "fr" as const,
     };
     const rows = await db.run(actor, (tx) => tx.pdv.findMany());

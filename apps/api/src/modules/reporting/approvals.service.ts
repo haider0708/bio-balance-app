@@ -390,6 +390,7 @@ const DECISIONS: Record<
   "stock.rejected": { type: "STOCK", outcome: "REJECTED" },
   "restock.assigned": { type: "RESTOCK_REQUEST", outcome: "APPROVED" },
   "restock.sent_direct": { type: "RESTOCK_REQUEST", outcome: "APPROVED" },
+  "restock.recorded": { type: "RECEIPT", outcome: "APPROVED" },
   "restock.cancelled": { type: "RESTOCK_REQUEST", outcome: "REJECTED" },
   "restock.approved": { type: "RECEIPT", outcome: "APPROVED" },
   "restock.receipt_rejected": { type: "RECEIPT", outcome: "REJECTED" },
@@ -416,29 +417,19 @@ async function placeNames(tx: Tx, ids: string[]) {
 /** How many things wait for the admin, by kind. Scoped by row-level security to the caller. */
 export async function countPending(tx: Tx, regionId?: string) {
   const region = regionId ? { regionId } : {};
-  const [
-    groups,
-    pdvs,
-    members,
-    stock,
-    receipts,
-    requests,
-    payouts,
-    recounts,
-    review,
-  ] = await Promise.all([
-    tx.group.count({ where: { status: "PENDING", ...region } }),
-    tx.pdv.count({ where: { status: "PENDING", ...region } }),
-    tx.user.count({
-      where: { status: "PENDING", role: "VENDEUR", ...region },
-    }),
-    tx.stockDeclaration.count({ where: { status: "PENDING", ...region } }),
-    tx.restockOrder.count({ where: { status: "RECEIVED", ...region } }),
-    tx.restockOrder.count({ where: { status: "REQUESTED", ...region } }),
-    tx.payoutRequest.count({ where: { status: "PENDING", ...region } }),
-    tx.stockRecount.count({ where: { status: "PENDING", ...region } }),
-    tx.stockDeclaration.count({ where: { status: "REVIEW", ...region } }),
-  ]);
+  const [groups, pdvs, members, stock, receipts, requests, payouts, recounts] =
+    await Promise.all([
+      tx.group.count({ where: { status: "PENDING", ...region } }),
+      tx.pdv.count({ where: { status: "PENDING", ...region } }),
+      tx.user.count({
+        where: { status: "PENDING", role: "VENDEUR", ...region },
+      }),
+      tx.stockDeclaration.count({ where: { status: "PENDING", ...region } }),
+      tx.restockOrder.count({ where: { status: "RECEIVED", ...region } }),
+      tx.restockOrder.count({ where: { status: "REQUESTED", ...region } }),
+      tx.payoutRequest.count({ where: { status: "PENDING", ...region } }),
+      tx.stockRecount.count({ where: { status: "PENDING", ...region } }),
+    ]);
   return {
     GROUP: groups,
     PDV: pdvs,
@@ -448,8 +439,6 @@ export async function countPending(tx: Tx, regionId?: string) {
     RESTOCK_REQUEST: requests,
     PAYOUT: payouts,
     RECOUNT: recounts,
-    /** Grossiste counts waiting for the responsable (not part of the admin's total). */
-    REVIEW: review,
     total:
       groups +
       pdvs +

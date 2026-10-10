@@ -21,18 +21,31 @@ import '../shared/status_chips.dart';
 import 'stock_models.dart';
 import 'stock_repository.dart';
 
-/// What a place holds. A responsable opens it for a point of sale, a grossiste for the depot.
+/// What a place holds, and what its people may do about it. A responsable counts and recounts
+/// a point of sale or a grossiste of their region; the admin counts a grossiste herself.
 class StockScreen extends ConsumerWidget {
   const StockScreen({
     required this.locationId,
     this.title,
-    this.embedded = false,
+    this.isDepot = false,
+    this.suspended = false,
+    this.header = const [],
+    this.appBarActions = const [],
     super.key,
   });
 
   final String locationId;
   final String? title;
-  final bool embedded;
+
+  /// A grossiste: the admin may count it herself and add goods to it.
+  final bool isDepot;
+
+  /// A suspended grossiste takes no counts and no goods.
+  final bool suspended;
+
+  /// What a page about this place shows above the stock (a grossiste's photos and details).
+  final List<Widget> header;
+  final List<Widget> appBarActions;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -40,13 +53,11 @@ class StockScreen extends ConsumerWidget {
     final me = ref.watch(meProvider);
     final levels = ref.watch(stockLevelsProvider(locationId));
     final declarations = ref.watch(declarationsProvider(locationId));
-    final canDeclare = me.role == Role.responsable || me.role == Role.grossiste;
+    final admin = me.role == Role.admin;
+    final canDeclare =
+        !suspended && (me.role == Role.responsable || (admin && isDepot));
     final pending = declarations.value
-        ?.where(
-          (d) =>
-              d.status == DeclarationStatus.pending ||
-              d.status == DeclarationStatus.review,
-        )
+        ?.where((d) => d.status == DeclarationStatus.pending)
         .firstOrNull;
     final recounts = canDeclare
         ? (ref.watch(recountsProvider(locationId)).value ??
@@ -63,6 +74,7 @@ class StockScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text(title ?? levels.value?.location.name ?? t.stockTitle),
+        actions: appBarActions,
       ),
       floatingActionButton:
           canDeclare && (!counted || (allowed && pending == null))
@@ -96,6 +108,22 @@ class StockScreen extends ConsumerWidget {
             return ListView(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
               children: [
+                ...header,
+                if (suspended)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: AppCard(
+                      color: context.status.mutedSoft,
+                      borderColor: Colors.transparent,
+                      child: Row(
+                        children: [
+                          Icon(LucideIcons.pause, color: context.status.muted),
+                          const SizedBox(width: 12),
+                          Expanded(child: Text(t.depotSuspendedHint)),
+                        ],
+                      ),
+                    ),
+                  ),
                 if (pending != null)
                   Padding(
                     padding: const EdgeInsets.only(bottom: 12),
@@ -113,9 +141,7 @@ class StockScreen extends ConsumerWidget {
                           const SizedBox(width: 12),
                           Expanded(
                             child: Text(
-                              pending.status == DeclarationStatus.review
-                                  ? t.declarationWaitingResponsable
-                                  : t.declarationWaiting,
+                              t.declarationWaiting,
                               style: context.text.bodyMedium?.copyWith(
                                 color: context.status.warning,
                                 fontWeight: FontWeight.w600,
@@ -126,7 +152,15 @@ class StockScreen extends ConsumerWidget {
                       ),
                     ),
                   ),
-                if (canDeclare && counted && pending == null)
+                if (isDepot && !suspended && counted && pending == null)
+                  _DepotActions(
+                    locationId: locationId,
+                    name: data.location.name,
+                  ),
+                if (me.role == Role.responsable &&
+                    canDeclare &&
+                    counted &&
+                    pending == null)
                   Padding(
                     padding: const EdgeInsets.only(bottom: 12),
                     child: asked
@@ -182,22 +216,17 @@ class StockScreen extends ConsumerWidget {
                             label: Text(t.recountRequestTitle),
                           ),
                   ),
-                Row(
+                AutoGrid(
                   children: [
-                    Expanded(
-                      child: StatTile(
-                        icon: LucideIcons.boxes,
-                        label: t.totalUnits,
-                        value: '${data.units}',
-                      ),
+                    StatTile(
+                      icon: LucideIcons.boxes,
+                      label: t.totalUnits,
+                      value: '${data.units}',
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: StatTile(
-                        icon: LucideIcons.package,
-                        label: t.products,
-                        value: '${data.items.length}',
-                      ),
+                    StatTile(
+                      icon: LucideIcons.package,
+                      label: t.products,
+                      value: '${data.items.length}',
                     ),
                   ],
                 ),
@@ -206,7 +235,13 @@ class StockScreen extends ConsumerWidget {
                   EmptyState(
                     icon: LucideIcons.boxes,
                     title: t.noStockYet,
-                    message: canDeclare ? t.noStockYetHint : null,
+                    message: !canDeclare
+                        ? null
+                        : isDepot
+                        ? (admin
+                              ? t.depotFirstStockAdminHint
+                              : t.depotFirstStockHint)
+                        : t.noStockYetHint,
                   )
                 else ...[
                   SectionHeader(t.stockLevels),
@@ -253,6 +288,49 @@ class StockScreen extends ConsumerWidget {
             );
           },
         ),
+      ),
+    );
+  }
+}
+
+/// What may be done to a grossiste that was counted: add goods to it, or (admin) correct its stock.
+class _DepotActions extends ConsumerWidget {
+  const _DepotActions({required this.locationId, required this.name});
+
+  final String locationId;
+  final String name;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final t = AppLocalizations.of(context);
+    final admin = ref.watch(meProvider).role == Role.admin;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Column(
+        children: [
+          FilledButton.icon(
+            onPressed: () async {
+              await context.push(
+                admin ? '/depots/$locationId/restock' : '/restocks/new',
+                extra: admin ? name : locationId,
+              );
+              ref.invalidate(stockLevelsProvider(locationId));
+            },
+            icon: const Icon(LucideIcons.packagePlus),
+            label: Text(t.depotRestock),
+          ),
+          if (admin) ...[
+            const Gap(8),
+            OutlinedButton.icon(
+              onPressed: () async {
+                await context.push('/stock/$locationId/adjust', extra: name);
+                ref.invalidate(stockLevelsProvider(locationId));
+              },
+              icon: const Icon(LucideIcons.slidersHorizontal),
+              label: Text(t.depotCorrect),
+            ),
+          ],
+        ],
       ),
     );
   }
@@ -372,7 +450,9 @@ class _DeclareStockScreenState extends ConsumerState<DeclareStockScreen> {
       context,
       title: t.noStockTitle,
       message: t.noStockBody,
-      confirmLabel: t.sendToAdmin,
+      confirmLabel: ref.read(meProvider).role == Role.admin
+          ? t.saveStock
+          : t.sendToAdmin,
     );
     if (!yes || !mounted) return;
     await _submit(empty: true);
@@ -390,7 +470,9 @@ class _DeclareStockScreenState extends ConsumerState<DeclareStockScreen> {
             lines: empty ? const [] : _quantities.lines(),
             note: _note.text.trim(),
           ),
-      success: t.declarationSent,
+      success: ref.read(meProvider).role == Role.admin
+          ? t.stockSaved
+          : t.declarationSent,
     );
     if (ok && mounted) context.pop();
   }
@@ -399,6 +481,7 @@ class _DeclareStockScreenState extends ConsumerState<DeclareStockScreen> {
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
     final levels = ref.watch(stockLevelsProvider(widget.locationId));
+    final admin = ref.watch(meProvider).role == Role.admin;
     return Scaffold(
       appBar: AppBar(title: Text(widget.locationName ?? t.declareStock)),
       body: AsyncBody(
@@ -411,7 +494,11 @@ class _DeclareStockScreenState extends ConsumerState<DeclareStockScreen> {
             padding: const EdgeInsets.all(16),
             children: [
               Text(
-                first ? t.declareFirstHint : t.recountHint,
+                admin
+                    ? t.stockCountedByYou
+                    : first
+                    ? t.declareFirstHint
+                    : t.recountHint,
                 style: context.text.bodyMedium?.copyWith(
                   color: context.status.muted,
                 ),
@@ -440,8 +527,8 @@ class _DeclareStockScreenState extends ConsumerState<DeclareStockScreen> {
               ListenableBuilder(
                 listenable: _quantities,
                 builder: (context, _) => AsyncButton(
-                  label: t.sendToAdmin,
-                  icon: LucideIcons.send,
+                  label: admin ? t.saveStock : t.sendToAdmin,
+                  icon: admin ? LucideIcons.check : LucideIcons.send,
                   onPressed:
                       _photoIds.isEmpty || _photosBusy || _quantities.isEmpty
                       ? null
@@ -555,11 +642,6 @@ class DeclarationScreen extends ConsumerWidget {
               const Gap(16),
               _DecisionBar(declaration: d),
             ],
-            if (me.role == Role.responsable &&
-                d.status == DeclarationStatus.review) ...[
-              const Gap(16),
-              _ReviewBar(declaration: d),
-            ],
           ],
         ),
       ),
@@ -651,142 +733,6 @@ class _DecisionBar extends ConsumerWidget {
           },
         ),
       ],
-    );
-  }
-}
-
-/// The responsable checks a grossiste's count: photos and numbers, then on to the admin or back.
-class _ReviewBar extends ConsumerWidget {
-  const _ReviewBar({required this.declaration});
-
-  final StockDeclaration declaration;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final t = AppLocalizations.of(context);
-    Future<void> done() async {
-      ref.invalidate(declarationProvider(declaration.id));
-      ref.invalidate(countsToReviewProvider);
-      ref.invalidate(declarationsProvider);
-      if (context.mounted) context.pop();
-    }
-
-    return Column(
-      children: [
-        Text(
-          t.reviewHint,
-          textAlign: TextAlign.center,
-          style: context.text.bodySmall?.copyWith(color: context.status.muted),
-        ),
-        const Gap(10),
-        AsyncButton(
-          label: t.sendToAdmin,
-          icon: LucideIcons.send,
-          onPressed: () async {
-            if (await perform(
-              context,
-              () => ref
-                  .read(stockRepositoryProvider)
-                  .review(declaration.id, approve: true),
-              success: t.sentToAdmin,
-            )) {
-              await done();
-            }
-          },
-        ),
-        const Gap(8),
-        AsyncButton(
-          label: t.sendBack,
-          icon: LucideIcons.undo2,
-          style: AsyncButtonStyle.text,
-          onPressed: () async {
-            final note = await askNote(
-              context,
-              title: t.rejectReasonTitle,
-              confirmLabel: t.sendBack,
-              hint: t.rejectReasonHint,
-            );
-            if (note == null || !context.mounted) return;
-            if (await perform(
-              context,
-              () => ref
-                  .read(stockRepositoryProvider)
-                  .review(declaration.id, approve: false, note: note),
-              success: t.sentBack,
-            )) {
-              await done();
-            }
-          },
-        ),
-      ],
-    );
-  }
-}
-
-/// Grossiste counts waiting for the responsable.
-class CountsToReviewScreen extends ConsumerWidget {
-  const CountsToReviewScreen({super.key});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final t = AppLocalizations.of(context);
-    final rows = ref.watch(countsToReviewProvider);
-    return Scaffold(
-      appBar: AppBar(title: Text(t.countsToCheck)),
-      body: RefreshIndicator(
-        onRefresh: () async {
-          ref.invalidate(countsToReviewProvider);
-          await ref.read(countsToReviewProvider.future);
-        },
-        child: AsyncBody(
-          value: rows,
-          onRetry: () => ref.invalidate(countsToReviewProvider),
-          isEmpty: (l) => l.isEmpty,
-          empty: ListView(
-            children: [
-              EmptyState(
-                icon: LucideIcons.circleCheck,
-                title: t.nothingToCheck,
-              ),
-            ],
-          ),
-          builder: (list) => ListView.separated(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-            itemCount: list.length,
-            separatorBuilder: (_, _) => const Gap(8),
-            itemBuilder: (context, i) {
-              final d = list[i];
-              return AppCard(
-                onTap: () async {
-                  await context.push('/stock/declarations/${d.id}');
-                  ref.invalidate(countsToReviewProvider);
-                },
-                child: Row(
-                  children: [
-                    const Icon(LucideIcons.warehouse),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(d.location.name, style: context.text.titleSmall),
-                          Text(
-                            '${d.createdBy} · ${t.units(d.units)} · ${Dates.dateTime(d.createdAt, t.localeName)}',
-                            style: context.text.bodySmall?.copyWith(
-                              color: context.status.muted,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    DeclarationStatusChip(d.status),
-                  ],
-                ),
-              );
-            },
-          ),
-        ),
-      ),
     );
   }
 }

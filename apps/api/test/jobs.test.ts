@@ -49,11 +49,10 @@ const runAll = async (mail: FakeMail) => {
 describe("emails", () => {
   it("send the activation code in the person's language and then forget it", async () => {
     await w.a.post("/v1/users", {
-      role: "GROSSISTE",
-      regionId: await regionId("NORD"),
+      role: "RESPONSABLE",
+      regionId: await regionId("CENTRE"),
       name: "Mounir",
       email: "mounir@example.test",
-      depot: { name: "Depot Sfax", address: "ZI", city: "Sfax" },
     });
     const mail = new FakeMail();
     await runAll(mail);
@@ -68,11 +67,10 @@ describe("emails", () => {
 
   it("use English when the person chose it", async () => {
     await w.a.post("/v1/users", {
-      role: "GROSSISTE",
-      regionId: await regionId("NORD"),
+      role: "RESPONSABLE",
+      regionId: await regionId("CENTRE"),
       name: "Mounir",
       email: "mounir@example.test",
-      depot: { name: "Depot Sfax", address: "ZI", city: "Sfax" },
     });
     await db.user.update({
       where: { email: "mounir@example.test" },
@@ -87,11 +85,10 @@ describe("emails", () => {
 
   it("are not sent for a code that was already used", async () => {
     await w.a.post("/v1/users", {
-      role: "GROSSISTE",
-      regionId: await regionId("NORD"),
+      role: "RESPONSABLE",
+      regionId: await regionId("CENTRE"),
       name: "Mounir",
       email: "mounir@example.test",
-      depot: { name: "Depot Sfax", address: "ZI", city: "Sfax" },
     });
     const o = await owner();
     const { code } = (
@@ -114,11 +111,10 @@ describe("emails", () => {
 
   it("do not reach people who are no longer active", async () => {
     await w.a.post("/v1/users", {
-      role: "GROSSISTE",
-      regionId: await regionId("NORD"),
+      role: "RESPONSABLE",
+      regionId: await regionId("CENTRE"),
       name: "Mounir",
       email: "mounir@example.test",
-      depot: { name: "Depot Sfax", address: "ZI", city: "Sfax" },
     });
     await db.user.update({
       where: { email: "mounir@example.test" },
@@ -185,8 +181,8 @@ describe("cleanup", () => {
   it("removes expired sessions and codes but keeps business history", async () => {
     const o = await owner();
     const user = await createAccount({
-      role: "GROSSISTE",
-      depot: { name: "D" },
+      role: "RESPONSABLE",
+      regionCode: "CENTRE",
     });
     await o.query(
       `INSERT INTO "Session"(id,"userId","tokenHash","expiresAt") VALUES (gen_random_uuid(),$1,'old-token',now()-interval '30 days')`,

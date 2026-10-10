@@ -218,8 +218,8 @@ void main() {
       expect(dashboard.obj('approvals').integer('PDV'), 1);
 
       final report = await c.read(reportsRepositoryProvider).sales((
-        from: '2020-01-01',
-        to: '2099-01-01',
+        from: _day(DateTime.now().subtract(const Duration(days: 30))),
+        to: _day(DateTime.now().add(const Duration(days: 1))),
         groupBy: 'family',
         regionId: null,
         pdvId: null,
@@ -245,24 +245,41 @@ void main() {
     });
   });
 
-  group('grossiste', () {
-    test('sees the orders assigned to them and their depot', () async {
-      final c = as('grossiste');
+  group('grossiste (a warehouse, no account)', () {
+    test('the responsable of its region sees it, its stock and the orders to ship', () async {
+      final c = as('responsable');
+      final depots = await c.read(networkRepositoryProvider).depots();
+      expect(depots.single, isA<Depot>());
+      final depot = depots.single;
+      expect(depot.name, 'Depot Hedi');
+      expect(depot.regionName, 'Nord');
+      expect(depot.active, isTrue);
+      expect(depot.counted, isTrue);
+      expect(depot.countPending, isFalse);
+      // 50/40/30 counted by the admin; 5 and 5 left for the completed restock.
+      expect(depot.units, 110);
+      expect(depot.products, 3);
+      final one = await c.read(networkRepositoryProvider).depot(depot.id);
+      expect(one.phone, '71 111 111');
+      final stock = await c.read(stockRepositoryProvider).levels(id('depot'));
+      expect(
+        {for (final i in stock.items) i.name: i.quantity},
+        {'Serum Vitamin C': 45, 'Serum Niacinamide': 35, 'Shampoing Argan': 30},
+      );
       final orders = await c.read(restockRepositoryProvider).list(active: true);
       expect(
         orders.where((o) => o.status == RestockStatus.assigned),
         hasLength(1),
       );
-      final stock = await c.read(stockRepositoryProvider).levels(id('depot'));
-      // 50/40/30 declared; 5 and 5 left for the completed restock.
-      expect(
-        {for (final i in stock.items) i.name: i.quantity},
-        {'Serum Vitamin C': 45, 'Serum Niacinamide': 35, 'Shampoing Argan': 30},
-      );
       final dashboard =
           await c.read(apiClientProvider).get('/v1/dashboard') as Json;
-      expect(dashboard.integer('toShip'), 1);
-      expect(dashboard.obj('stock').integer('units'), 110);
+      expect(dashboard.obj('grossistes').integer('active'), 1);
+      expect(dashboard.obj('grossistes').integer('uncounted'), 0);
+    });
+
+    test('another region does not see it', () async {
+      final c = as('responsableSud');
+      expect(await c.read(networkRepositoryProvider).depots(), isEmpty);
     });
   });
 
@@ -355,3 +372,5 @@ class Sale2 {
   final bool replay;
   final int balance;
 }
+
+String _day(DateTime d) => d.toIso8601String().substring(0, 10);

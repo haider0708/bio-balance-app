@@ -50,8 +50,6 @@ export class DashboardService {
         return this.shared(`${actor.id}:${filter.regionId ?? ""}`, () =>
           this.management(actor, filter.regionId),
         );
-      case "GROSSISTE":
-        return this.grossiste(actor);
       default:
         return this.vendeur(actor);
     }
@@ -81,6 +79,7 @@ export class DashboardService {
         topGroups,
         lowByPlace,
         region,
+        grossistes,
       ] = await Promise.all([
         window(tx, addDays(today, -6), today, sale),
         window(tx, addDays(today, -29), today, sale),
@@ -153,6 +152,12 @@ export class DashboardService {
           HAVING COUNT(*) FILTER (WHERE st.quantity <= ${LOW_STOCK}) > 0
           ORDER BY out DESC, low DESC, pd.name LIMIT 8`,
         scope ? this.regionCard(tx, scope) : Promise.resolve(null),
+        // Grossistes: how many are active, and how many still wait for their first stock.
+        tx.$queryRaw<{ active: number; uncounted: number }[]>`
+          SELECT COUNT(*)::int AS active,
+                 COUNT(*) FILTER (WHERE NOT EXISTS (
+                   SELECT 1 FROM "StockDeclaration" x WHERE x."locationId" = d.id AND x.status = 'APPROVED'))::int AS uncounted
+          FROM "Depot" d WHERE d.status = 'ACTIVE' ${scope ? Prisma.sql`AND d."regionId" = ${scope}::uuid` : Prisma.empty}`,
       ]);
       const day = trend.at(-1);
       return {
@@ -183,6 +188,10 @@ export class DashboardService {
           restocks.map((r) => [r.status, r._count._all]),
         ),
         pdvs: { active: pdvs[0]?.active ?? 0, pending: pdvs[0]?.pending ?? 0 },
+        grossistes: {
+          active: grossistes[0]?.active ?? 0,
+          uncounted: grossistes[0]?.uncounted ?? 0,
+        },
         regions,
         payouts: payouts
           ? {
@@ -248,43 +257,6 @@ export class DashboardService {
           + (SELECT COUNT(*) FROM "RestockOrder" o WHERE o."regionId"=r.id AND o.status IN ('REQUESTED','RECEIVED')))::int AS pending
       FROM "Region" r ORDER BY r.name`;
     return rows;
-  }
-
-  private async grossiste(actor: Actor) {
-    return this.db.run(actor, async (tx) => {
-      const [toShip, mine, stock, declaration] = await Promise.all([
-        tx.restockOrder.count({
-          where: { status: "ASSIGNED", supplierDepotId: actor.depotId },
-        }),
-        tx.restockOrder.groupBy({
-          by: ["status"],
-          where: {
-            destId: actor.depotId ?? undefined,
-            status: { in: ["REQUESTED", "SHIPPED", "RECEIVED"] },
-          },
-          _count: { _all: true },
-        }),
-        tx.stock.aggregate({
-          where: { locationId: actor.depotId ?? undefined },
-          _sum: { quantity: true },
-          _count: { _all: true },
-        }),
-        tx.stockDeclaration.findFirst({
-          where: { locationId: actor.depotId ?? undefined },
-          orderBy: { createdAt: "desc" },
-          select: { id: true, status: true, kind: true, createdAt: true },
-        }),
-      ]);
-      return {
-        role: actor.role,
-        toShip,
-        myRestocks: Object.fromEntries(
-          mine.map((m) => [m.status, m._count._all]),
-        ),
-        stock: { units: stock._sum.quantity ?? 0, products: stock._count._all },
-        lastDeclaration: declaration,
-      };
-    });
   }
 
   private async vendeur(actor: Actor) {

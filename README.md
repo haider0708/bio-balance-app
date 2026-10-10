@@ -1,8 +1,8 @@
 # BioBalance
 
-The app that runs the BioBalance network of parapharmacies: points of sale and their teams, stock, restocks through grossistes, sales and the rewards salespeople earn. French and English. Android and iOS (Flutter), NestJS and PostgreSQL behind it.
+The app that runs the BioBalance network of parapharmacies: points of sale and their teams, stock, restocks through grossistes (warehouses), sales and the rewards salespeople earn. French and English. Android and iOS (Flutter), NestJS and PostgreSQL behind it.
 
-**Who uses it:** the *admin* approves and supervises everything; three *responsables* (Nord, Centre, Sud) run their region; *grossistes* supply stock; *team members* record sales and see what each sale earns them. See the [functional specification](docs/functional-specification.md).
+**Who uses it:** the *admin* approves and supervises everything; three *responsables* (Nord, Centre, Sud) run their region; *grossistes* are warehouses of a region, handled by the admin and the responsable (they have no account); *team members* record sales and see what each sale earns them. See the [functional specification](docs/functional-specification.md).
 
 ```
 apps/api      server: NestJS 12, Prisma 7, PostgreSQL 17 (row-level security keeps regions apart)
@@ -46,7 +46,7 @@ cd apps/api && FIXTURE_OUT=/tmp/fixture.json npx vitest run test/serve-fixture.t
 cd apps/mobile && CONTRACT_FIXTURE=/tmp/fixture.json flutter test test/contract
 ```
 
-The **on-device flow** drives the real app on an emulator or phone against a real server (sign-in, selling and the Bravo screen, a responsable's region, a grossiste shipping, the admin approving). A seeding script builds the world through the server's public routes and passes it in:
+The **on-device flow** drives the real app on an emulator or phone against a real server (sign-in, selling and the Bravo screen, a responsable's region, a responsable shipping an order, the admin approving). A seeding script builds the world through the server's public routes and passes it in:
 
 ```sh
 flutter test integration_test -d <device> --dart-define=WORLD=<base64 json of the seeded world>

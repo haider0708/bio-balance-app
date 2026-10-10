@@ -171,9 +171,10 @@ class RegionScreen extends ConsumerWidget {
                     Padding(
                       padding: const EdgeInsets.only(bottom: 8),
                       child: AppCard(
+                        onTap: () => context.push('/depots/${dep.id}'),
                         child: Row(
                           children: [
-                            const Icon(LucideIcons.warehouse),
+                            const IconBadge(LucideIcons.warehouse),
                             const SizedBox(width: 12),
                             Expanded(
                               child: Column(
@@ -184,13 +185,20 @@ class RegionScreen extends ConsumerWidget {
                                     style: context.text.titleSmall,
                                   ),
                                   Text(
-                                    [?dep.grossisteName, dep.city].join(' · '),
+                                    dep.counted
+                                        ? '${dep.city} · ${t.depotHolds(dep.units, dep.products)}'
+                                        : '${dep.city} · ${t.depotNoStock}',
                                     style: context.text.bodySmall?.copyWith(
                                       color: context.status.muted,
                                     ),
                                   ),
                                 ],
                               ),
+                            ),
+                            Icon(
+                              LucideIcons.chevronRight,
+                              size: 18,
+                              color: context.status.muted,
                             ),
                           ],
                         ),

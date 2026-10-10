@@ -43,7 +43,6 @@ const login = async (a, otp) => (await call("POST", "/v1/auth/login", null, { em
 const admin = await login(world.admin, totp(world.admin.totpUri));
 const vendeur = await login(world.vendeur);
 const resp = await login(world.responsable);
-const gros = await login(world.grossiste);
 
 const me = (await call("GET", "/v1/me", vendeur)).body;
 const pdvId = me.pdv.id;
@@ -101,8 +100,6 @@ const levelOf = async (productId) => (await call("GET", `/v1/stock/locations/${p
   const adminOnly = ["/v1/approvals", "/v1/approvals/history", "/v1/reward-rules", "/v1/messages", "/v1/users", "/v1/reports/insights?from=2026-01-01&to=2026-12-31"];
   const asVendeur = await Promise.all(adminOnly.map((r) => call("GET", r, vendeur)));
   check("a team member is refused every admin and management route", asVendeur.every((r) => r.status === 403), asVendeur.map((r) => r.status).join(","));
-  const asGros = await Promise.all(adminOnly.map((r) => call("GET", r, gros)));
-  check("a grossiste is refused them too", asGros.every((r) => r.status === 403), asGros.map((r) => r.status).join(","));
   const noToken = await Promise.all(["/v1/me", "/v1/dashboard", "/v1/sales", "/v1/stock/locations/" + pdvId, "/v1/media/" + randomUUID()].map((r) => call("GET", r)));
   check("no token: always 401", noToken.every((r) => r.status === 401), noToken.map((r) => r.status).join(","));
   const forged = await call("GET", "/v1/me", "x".repeat(64));

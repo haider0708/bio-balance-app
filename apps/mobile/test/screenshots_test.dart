@@ -54,7 +54,6 @@ FakeServer server(String role) {
         name: switch (role) {
           'ADMIN' => 'Admin BioBalance',
           'RESPONSABLE' => 'Nora Ben Salah',
-          'GROSSISTE' => 'Hedi Trabelsi',
           _ => 'Amira Gharbi',
         },
         locale: 'fr',
@@ -407,14 +406,6 @@ FakeServer server(String role) {
         ],
         'totals': {'sales': 230, 'units': 630, 'rewardMillimes': 310000},
       });
-    case 'GROSSISTE':
-      s.on('GET /v1/dashboard', {
-        'role': 'GROSSISTE',
-        'toShip': 2,
-        'myRestocks': {'REQUESTED': 1},
-        'stock': {'units': 640, 'products': 38},
-        'lastDeclaration': {'id': 'd', 'status': 'APPROVED', 'kind': 'INITIAL'},
-      });
   }
   return s;
 }
@@ -609,10 +600,5 @@ void main() {
     await tester.tap(find.text('Nouvelle annonce').last);
     await settle(tester);
     await screenshot(tester, '28-admin-compose');
-  });
-
-  testWidgets('screens: grossiste', (tester) async {
-    await launch(tester, server('GROSSISTE'), language: 'fr');
-    await screenshot(tester, '40-grossiste-home');
   });
 }

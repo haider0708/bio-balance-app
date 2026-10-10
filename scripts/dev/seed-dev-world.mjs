@@ -59,9 +59,8 @@ const nord = regions.find((r) => r.code === "NORD").id;
 
 await call("POST", "/v1/users", admin, { role: "RESPONSABLE", regionId: nord, name: "Nora Ben Salah", email: "nora@example.test" });
 const resp = await activate("nora@example.test");
-await call("POST", "/v1/users", admin, { role: "GROSSISTE", regionId: nord, name: "Hedi Trabelsi", email: "hedi@example.test", phone: "20 111 222", depot: { name: "Dépôt Hedi", address: "Zone industrielle", city: "Ben Arous", phone: "20 111 222" } });
-const gros = await activate("hedi@example.test");
-const depotId = (await call("GET", "/v1/depots", gros))[0].id;
+// A grossiste is a warehouse of a region, not an account: the admin creates it and counts its first stock.
+const depotId = (await call("POST", "/v1/depots", admin, { regionId: nord, name: "Dépôt Hedi", address: "Zone industrielle", city: "Ben Arous", phone: "20 111 222" })).id;
 
 const group = await call("POST", "/v1/groups", resp, { name: "Groupe Tunis" });
 await call("POST", `/v1/groups/${group.id}/approve`, admin, {});
@@ -80,9 +79,7 @@ const lines = (n) => products.map((p, i) => ({ productId: p.id, quantity: n + (i
 
 const stock = await call("POST", "/v1/stock/declarations", resp, { locationId: pdv.id, photoIds: [await photo(resp)], lines: lines(20) });
 await call("POST", `/v1/stock/declarations/${stock.id}/approve`, admin, {});
-const dstock = await call("POST", "/v1/stock/declarations", gros, { locationId: depotId, photoIds: [await photo(gros)], lines: lines(60) });
-if (dstock.status === "REVIEW") await call("POST", `/v1/stock/declarations/${dstock.id}/review`, resp, { action: "approve" });
-await call("POST", `/v1/stock/declarations/${dstock.id}/approve`, admin, {});
+await call("POST", "/v1/stock/declarations", admin, { locationId: depotId, photoIds: [await photo(admin)], lines: lines(60) });
 
 const today = new Date().toISOString().slice(0, 10);
 await call("POST", "/v1/reward-rules", admin, { scope: "FAMILY", family: "Sérums", amountMillimes: 500, startsOn: today });
@@ -95,7 +92,6 @@ writeFileSync(outPath, JSON.stringify({
   api: API,
   admin: { email: setup.email, password: setup.password, totpUri: setup.totpUri },
   responsable: { email: "nora@example.test", password: PASSWORD },
-  grossiste: { email: "hedi@example.test", password: PASSWORD },
   vendeur: { email: "amira@example.test", password: PASSWORD },
 }, null, 2));
 console.log("world ready");

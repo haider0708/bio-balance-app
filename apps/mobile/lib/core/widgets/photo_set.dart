@@ -17,10 +17,13 @@ import 'feedback.dart';
 enum _Upload { sending, done, failed }
 
 class _Shot {
-  _Shot(this.bytes);
+  _Shot(this.bytes) : state = _Upload.sending;
 
-  final Uint8List bytes;
-  _Upload state = _Upload.sending;
+  /// A photo that is already on the server (editing something that has photos).
+  _Shot.saved(String this.id) : bytes = null, state = _Upload.done;
+
+  final Uint8List? bytes;
+  _Upload state;
   String? id;
 }
 
@@ -32,6 +35,7 @@ class PhotoSet extends ConsumerStatefulWidget {
     required this.onChanged,
     required this.label,
     this.max = 5,
+    this.initialIds = const [],
     super.key,
   });
 
@@ -39,12 +43,17 @@ class PhotoSet extends ConsumerStatefulWidget {
   final String label;
   final int max;
 
+  /// Photos that are already saved: shown first, and kept unless removed.
+  final List<String> initialIds;
+
   @override
   ConsumerState<PhotoSet> createState() => _PhotoSetState();
 }
 
 class _PhotoSetState extends ConsumerState<PhotoSet> {
-  final List<_Shot> _shots = [];
+  late final List<_Shot> _shots = [
+    for (final id in widget.initialIds) _Shot.saved(id),
+  ];
   int _running = 0;
   final List<_Shot> _queue = [];
 
@@ -67,7 +76,7 @@ class _PhotoSetState extends ConsumerState<PhotoSet> {
     try {
       final id = await ref
           .read(mediaRepositoryProvider)
-          .upload(shot.bytes, purpose: 'PROOF');
+          .upload(shot.bytes!, purpose: 'PROOF');
       shot
         ..id = id
         ..state = _Upload.done;
@@ -243,7 +252,9 @@ class _Thumb extends StatelessWidget {
         children: [
           ClipRRect(
             borderRadius: BorderRadius.circular(14),
-            child: Image.memory(shot.bytes, fit: BoxFit.cover, cacheWidth: 300),
+            child: shot.bytes == null
+                ? AuthImage(shot.id, width: 112, height: 112, radius: 0)
+                : Image.memory(shot.bytes!, fit: BoxFit.cover, cacheWidth: 300),
           ),
           if (shot.state == _Upload.sending)
             ClipRRect(

@@ -167,18 +167,12 @@ describe("dashboards", () => {
     expect(sneaky.sales.week.units).toBe(8);
   });
 
-  it("gives a team member their own numbers, a grossiste their orders", async () => {
+  it("gives a team member their own numbers", async () => {
     const { a } = await twoRegionsWithSales();
     const mine = (await a.get("/v1/dashboard")).body;
     expect(mine.week).toMatchObject({ sales: 2, units: 8 });
     expect(mine.wallet.balanceMillimes).toBe(5 * 500 + 2 * 500);
     expect(mine.latest).toHaveLength(2);
-    const g = (await w.g.get("/v1/dashboard")).body;
-    expect(g).toMatchObject({
-      role: "GROSSISTE",
-      toShip: 0,
-      stock: { units: 0 },
-    });
   });
 });
 
@@ -350,14 +344,14 @@ describe("announcements", () => {
     expect(
       (await w.a.post("/v1/messages/preview", { audience: { all: true } })).body
         .recipients,
-    ).toBe(5); // 2 responsables + grossiste + 2 team members
+    ).toBe(4); // 2 responsables + 2 team members
     expect(
       (
         await w.a.post("/v1/messages/preview", {
-          audience: { roles: ["RESPONSABLE", "GROSSISTE"] },
+          audience: { roles: ["RESPONSABLE"] },
         })
       ).body.recipients,
-    ).toBe(3);
+    ).toBe(2);
     expect(
       (
         await w.a.post("/v1/messages/preview", {
@@ -368,7 +362,7 @@ describe("announcements", () => {
     expect(
       (
         await w.a.post("/v1/messages/preview", {
-          audience: { userIds: [v1.id, v2.id, w.gros.id] },
+          audience: { userIds: [v1.id, v2.id, w.nord.id] },
         })
       ).body.recipients,
     ).toBe(3);
@@ -523,7 +517,6 @@ describe("training", () => {
     expect((await inNorth.get("/v1/courses")).body).toHaveLength(1);
     expect((await inSouth.get("/v1/courses")).body).toHaveLength(0);
     expect((await inSouth.get(`/v1/courses/${c.id}`)).status).toBe(404);
-    expect((await w.g.get("/v1/courses")).body).toHaveLength(0);
   });
 
   it("tracks each person's progress for the admin", async () => {

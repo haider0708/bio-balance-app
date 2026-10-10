@@ -142,18 +142,22 @@ class Person {
   }
 }
 
+/// A grossiste: a warehouse of a region with its own stock. It has no account.
 class Depot {
   const Depot({
     required this.id,
     required this.name,
     required this.address,
     required this.city,
+    required this.regionId,
+    required this.regionName,
+    required this.active,
     this.phone,
-    this.regionId,
-    this.regionName,
-    this.grossisteName,
-    this.grossistePhone,
-    this.grossisteEmail,
+    this.photoIds = const [],
+    this.units = 0,
+    this.products = 0,
+    this.counted = false,
+    this.countPending = false,
   });
 
   factory Depot.fromJson(Json j) => Depot(
@@ -162,11 +166,14 @@ class Depot {
     address: j.str('address'),
     city: j.str('city'),
     phone: j.strOrNull('phone'),
-    regionId: j.objOrNull('region')?.str('id'),
-    regionName: j.objOrNull('region')?.str('name'),
-    grossisteName: j.objOrNull('grossiste')?.str('name'),
-    grossistePhone: j.objOrNull('grossiste')?.strOrNull('phone'),
-    grossisteEmail: j.objOrNull('grossiste')?.str('email'),
+    regionId: j.obj('region').str('id'),
+    regionName: j.obj('region').str('name'),
+    active: j.str('status') == 'ACTIVE',
+    photoIds: [for (final p in j.list('photoIds')) p as String],
+    units: j.integer('units'),
+    products: j.integer('products'),
+    counted: j['counted'] == true,
+    countPending: j['countPending'] == true,
   );
 
   final String id;
@@ -174,9 +181,18 @@ class Depot {
   final String address;
   final String city;
   final String? phone;
-  final String? regionId;
-  final String? regionName;
-  final String? grossisteName;
-  final String? grossistePhone;
-  final String? grossisteEmail;
+  final String regionId;
+  final String regionName;
+  final bool active;
+
+  /// Up to five photos of the warehouse.
+  final List<String> photoIds;
+
+  /// What it holds now.
+  final int units;
+  final int products;
+
+  /// Whether its first stock was entered and approved, and whether a count waits for the admin.
+  final bool counted;
+  final bool countPending;
 }

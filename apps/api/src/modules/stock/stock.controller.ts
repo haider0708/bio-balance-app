@@ -21,10 +21,6 @@ const Approve = z.object({
   note: z.string().trim().max(500).optional(),
 });
 const Reject = z.object({ note: z.string().trim().min(2).max(500) });
-const Review = z.object({
-  action: z.enum(["approve", "reject"]),
-  note: z.string().trim().max(500).optional(),
-});
 const Recount = z.object({
   locationId: id,
   reason: z.string().trim().min(3).max(500),
@@ -43,13 +39,13 @@ const Decision = z.object({ note: z.string().trim().max(500).optional() });
 export class StockController {
   constructor(private readonly stock: StockService) {}
 
-  @Roles("ADMIN", "RESPONSABLE", "GROSSISTE", "VENDEUR")
+  @Roles("ADMIN", "RESPONSABLE", "VENDEUR")
   @Get("locations/:id")
   levels(@Req() r: AuthRequest, @Param("id") i: string) {
     return this.stock.levels(r.actor, parse(id, i));
   }
 
-  @Roles("ADMIN", "RESPONSABLE", "GROSSISTE")
+  @Roles("ADMIN", "RESPONSABLE")
   @Get("locations/:id/products/:productId/movements")
   movements(
     @Req() r: AuthRequest,
@@ -59,22 +55,20 @@ export class StockController {
     return this.stock.movements(r.actor, parse(id, i), parse(id, p));
   }
 
-  @Roles("RESPONSABLE", "GROSSISTE")
+  @Roles("ADMIN", "RESPONSABLE")
   @Post("declarations")
   declare(@Req() r: AuthRequest, @Body() b: unknown) {
     return this.stock.declare(r.actor, parse(Declare, b));
   }
 
-  @Roles("ADMIN", "RESPONSABLE", "GROSSISTE")
+  @Roles("ADMIN", "RESPONSABLE")
   @Get("declarations")
   list(@Req() r: AuthRequest, @Query() q: Record<string, string>) {
     return this.stock.list(
       r.actor,
       parse(
         z.object({
-          status: z
-            .enum(["PENDING", "REVIEW", "APPROVED", "REJECTED"])
-            .optional(),
+          status: z.enum(["PENDING", "APPROVED", "REJECTED"]).optional(),
           regionId: id.optional(),
           locationId: id.optional(),
         }),
@@ -83,7 +77,7 @@ export class StockController {
     );
   }
 
-  @Roles("ADMIN", "RESPONSABLE", "GROSSISTE")
+  @Roles("ADMIN", "RESPONSABLE")
   @Get("declarations/:id")
   get(@Req() r: AuthRequest, @Param("id") i: string) {
     return this.stock.get(r.actor, parse(id, i));
@@ -102,18 +96,12 @@ export class StockController {
   }
 
   @Roles("RESPONSABLE")
-  @Post("declarations/:id/review")
-  review(@Req() r: AuthRequest, @Param("id") i: string, @Body() b: unknown) {
-    return this.stock.review(r.actor, parse(id, i), parse(Review, b));
-  }
-
-  @Roles("RESPONSABLE", "GROSSISTE")
   @Post("recounts")
   requestRecount(@Req() r: AuthRequest, @Body() b: unknown) {
     return this.stock.requestRecount(r.actor, parse(Recount, b));
   }
 
-  @Roles("ADMIN", "RESPONSABLE", "GROSSISTE")
+  @Roles("ADMIN", "RESPONSABLE")
   @Get("recounts")
   recounts(@Req() r: AuthRequest, @Query() q: Record<string, string>) {
     return this.stock.listRecounts(

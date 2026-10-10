@@ -474,7 +474,6 @@ String _audience(AppLocalizations t, Course course) {
       .map(
         (r) => switch (r) {
           'RESPONSABLE' => t.roleResponsable,
-          'GROSSISTE' => t.roleGrossiste,
           _ => t.roleVendeurShort,
         },
       )

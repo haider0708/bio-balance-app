@@ -9,6 +9,7 @@ import {
   client,
   createAccount,
   fakeJpeg,
+  regionId,
   resetDatabase,
   startApi,
 } from "./helpers";
@@ -31,14 +32,8 @@ export async function serveFixture(out: string) {
     regionCode: "SUD",
     name: "Sami Sud",
   });
-  const gros = await createAccount({
-    role: "GROSSISTE",
-    name: "Hedi Grossiste",
-    depot: { name: "Depot Hedi" },
-  });
   const a = client(api, admin.token);
   const n = client(api, nord.token);
-  const g = client(api, gros.token);
   const products: string[] = [];
   for (const [reference, name, family] of [
     ["P1", "Serum Vitamin C", "Sérums"],
@@ -88,16 +83,29 @@ export async function serveFixture(out: string) {
     })
   ).body;
   await a.post(`/v1/stock/declarations/${stock.id}/approve`, {});
-  const depotId = (await g.get("/v1/depots")).body[0].id;
-  const depotStock = (
-    await g.post("/v1/stock/declarations", {
-      locationId: depotId,
-      photoId: await photo(gros.token),
-      lines: lines([50, 40, 30]),
+  const depotId = (
+    await a.post("/v1/depots", {
+      regionId: await regionId("NORD"),
+      name: "Depot Hedi",
+      address: "1 rue du Depot",
+      city: "Tunis",
+      phone: "71 111 111",
+    })
+  ).body.id;
+  // The admin counts the grossiste's first stock with a photo; it applies at once.
+  await a.post("/v1/stock/declarations", {
+    locationId: depotId,
+    photoId: await photo(admin.token),
+    lines: lines([50, 40, 30]),
+  });
+  // A recount the admin allowed, counted again and still waiting for her decision.
+  const recount = (
+    await n.post("/v1/stock/recounts", {
+      locationId: pdv.id,
+      reason: "Checking the shelves",
     })
   ).body;
-  await a.post(`/v1/stock/declarations/${depotStock.id}/approve`, {});
-  // A declaration that still waits, to review.
+  await a.post(`/v1/stock/recounts/${recount.id}/approve`, {});
   const pendingStock = (
     await n.post("/v1/stock/declarations", {
       locationId: pdv.id,
@@ -159,7 +167,7 @@ export async function serveFixture(out: string) {
     })
   ).body;
   await a.post(`/v1/restocks/${done.id}/assign`, { depotId });
-  await g.post(`/v1/restocks/${done.id}/ship`, { lines: lines([5, 5]) });
+  await n.post(`/v1/restocks/${done.id}/ship`, { lines: lines([5, 5]) });
   await n.put(`/v1/restocks/${done.id}/receiver`, { userId: memberAccount.id });
   await vendeur.post(`/v1/restocks/${done.id}/receipt`, {
     photoId: await photo(memberAccount.token),
@@ -207,7 +215,6 @@ export async function serveFixture(out: string) {
         admin: admin.token,
         responsable: nord.token,
         responsableSud: sud.token,
-        grossiste: gros.token,
         vendeur: memberAccount.token,
       },
       ids: {

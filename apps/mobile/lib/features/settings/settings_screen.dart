@@ -16,7 +16,6 @@ import '../auth/auth_widgets.dart';
 String roleLabel(AppLocalizations t, Role role) => switch (role) {
   Role.admin => t.roleAdmin,
   Role.responsable => t.roleResponsable,
-  Role.grossiste => t.roleGrossiste,
   Role.vendeur => t.roleVendeur,
 };
 
@@ -27,7 +26,7 @@ class SettingsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final t = AppLocalizations.of(context);
     final me = ref.watch(meProvider);
-    final where = me.pdv?.name ?? me.depot?.name ?? me.region?.name;
+    final where = me.pdv?.name ?? me.region?.name;
     return Scaffold(
       appBar: AppBar(title: Text(t.settingsTitle)),
       body: ListView(
@@ -341,7 +340,6 @@ class MoreScreen extends ConsumerWidget {
                           roleLabel(t, me.role),
                           ?me.region?.name,
                           ?me.pdv?.name,
-                          ?me.depot?.name,
                         ].join(' · '),
                         style: context.text.bodySmall?.copyWith(
                           color: context.status.muted,

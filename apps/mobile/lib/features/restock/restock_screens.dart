@@ -54,13 +54,8 @@ class _RestocksScreenState extends ConsumerState<RestocksScreen> {
     final me = ref.watch(meProvider);
     final orders = ref.watch(restocksProvider(_query));
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          me.role == Role.grossiste ? t.ordersTitle : t.restocksTitle,
-        ),
-      ),
-      floatingActionButton:
-          me.role == Role.responsable || me.role == Role.grossiste
+      appBar: AppBar(title: Text(t.restocksTitle)),
+      floatingActionButton: me.role == Role.responsable
           ? FloatingActionButton.extended(
               heroTag: null,
               onPressed: () async {
@@ -216,11 +211,11 @@ class _Steps extends StatelessWidget {
   }
 }
 
-/// Ask for products for a point of sale (responsable) or for the depot (grossiste).
+/// Ask BioBalance for products for a point of sale or a grossiste of the region (responsable).
 class RequestRestockScreen extends ConsumerStatefulWidget {
-  const RequestRestockScreen({this.pdvId, super.key});
+  const RequestRestockScreen({this.destId, super.key});
 
-  final String? pdvId;
+  final String? destId;
 
   @override
   ConsumerState<RequestRestockScreen> createState() =>
@@ -230,7 +225,7 @@ class RequestRestockScreen extends ConsumerStatefulWidget {
 class _RequestRestockScreenState extends ConsumerState<RequestRestockScreen> {
   final _quantities = QuantityController();
   final _note = TextEditingController();
-  late String? _pdvId = widget.pdvId;
+  late String? _destId = widget.destId;
 
   @override
   void dispose() {
@@ -246,7 +241,7 @@ class _RequestRestockScreenState extends ConsumerState<RequestRestockScreen> {
       () => ref
           .read(restockRepositoryProvider)
           .create(
-            destId: _pdvId,
+            destId: _destId!,
             note: _note.text.trim(),
             lines: _quantities.lines(skipZero: true),
           ),
@@ -262,67 +257,69 @@ class _RequestRestockScreenState extends ConsumerState<RequestRestockScreen> {
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
-    final me = ref.watch(meProvider);
-    final pdvs = me.role == Role.responsable
-        ? ref.watch(pdvsProvider(null))
-        : null;
+    final pdvs = ref.watch(pdvsProvider(null));
+    final depots = ref.watch(depotsProvider);
+    // Active points of sale and grossistes of the region, the place's own name first.
+    final places = <(String, String, IconData)>[
+      for (final p in pdvs.value ?? const <Pdv>[])
+        if (p.status == ItemStatus.active) (p.id, p.name, LucideIcons.store),
+      for (final d in depots.value ?? const <Depot>[])
+        if (d.active) (d.id, d.name, LucideIcons.warehouse),
+    ];
     return Scaffold(
       appBar: AppBar(title: Text(t.requestRestock)),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          if (me.role == Role.responsable)
-            AsyncBody(
-              value: pdvs!,
-              onRetry: () => ref.invalidate(pdvsProvider(null)),
-              builder: (list) {
-                final active = list
-                    .where((p) => p.status == ItemStatus.active)
-                    .toList();
-                if (active.isEmpty)
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 16),
-                    child: Text(
-                      t.noActivePdv,
-                      style: context.text.bodyMedium?.copyWith(
-                        color: context.status.muted,
-                      ),
-                    ),
-                  );
+          AsyncBody(
+            value: pdvs,
+            onRetry: () {
+              ref
+                ..invalidate(pdvsProvider(null))
+                ..invalidate(depotsProvider);
+            },
+            builder: (_) {
+              if (places.isEmpty) {
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 16),
-                  child: DropdownButtonFormField<String>(
-                    initialValue: active.any((p) => p.id == _pdvId)
-                        ? _pdvId
-                        : null,
-                    decoration: InputDecoration(labelText: t.deliverTo),
-                    items: [
-                      for (final p in active)
-                        DropdownMenuItem(value: p.id, child: Text(p.name)),
-                    ],
-                    onChanged: (v) => setState(() => _pdvId = v),
+                  child: Text(
+                    t.noActivePdv,
+                    style: context.text.bodyMedium?.copyWith(
+                      color: context.status.muted,
+                    ),
                   ),
                 );
-              },
-            )
-          else
-            Padding(
-              padding: const EdgeInsets.only(bottom: 16),
-              child: AppCard(
-                child: Row(
-                  children: [
-                    const Icon(LucideIcons.warehouse),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        me.depot?.name ?? '',
-                        style: context.text.titleSmall,
+              }
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 16),
+                child: DropdownButtonFormField<String>(
+                  initialValue: places.any((p) => p.$1 == _destId)
+                      ? _destId
+                      : null,
+                  decoration: InputDecoration(labelText: t.deliverTo),
+                  items: [
+                    for (final (id, name, icon) in places)
+                      DropdownMenuItem(
+                        value: id,
+                        child: Row(
+                          children: [
+                            Icon(icon, size: 18, color: context.status.muted),
+                            const SizedBox(width: 10),
+                            Flexible(
+                              child: Text(
+                                name,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
                   ],
+                  onChanged: (v) => setState(() => _destId = v),
                 ),
-              ),
-            ),
+              );
+            },
+          ),
           Text(t.productsNeeded, style: context.text.titleMedium),
           const Gap(8),
           QuantityEditor(controller: _quantities),
@@ -340,13 +337,125 @@ class _RequestRestockScreenState extends ConsumerState<RequestRestockScreen> {
             builder: (context, _) => AsyncButton(
               label: t.sendRequest,
               icon: LucideIcons.send,
-              onPressed:
-                  _quantities.total == 0 ||
-                      (me.role == Role.responsable && _pdvId == null)
+              onPressed: _quantities.total == 0 || _destId == null
                   ? null
                   : _send,
             ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The admin restocks a grossiste herself: she counts what BioBalance delivered and photographs it;
+/// the goods are added to its stock as soon as she saves.
+class RecordDeliveryScreen extends ConsumerStatefulWidget {
+  const RecordDeliveryScreen({
+    required this.depotId,
+    required this.depotName,
+    super.key,
+  });
+
+  final String depotId;
+  final String depotName;
+
+  @override
+  ConsumerState<RecordDeliveryScreen> createState() =>
+      _RecordDeliveryScreenState();
+}
+
+class _RecordDeliveryScreenState extends ConsumerState<RecordDeliveryScreen> {
+  final _quantities = QuantityController();
+  final _note = TextEditingController();
+  List<String> _photoIds = const [];
+  bool _photosBusy = false;
+
+  @override
+  void dispose() {
+    _quantities.dispose();
+    _note.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    final t = AppLocalizations.of(context);
+    final ok = await perform(
+      context,
+      () => ref
+          .read(restockRepositoryProvider)
+          .create(
+            destId: widget.depotId,
+            note: _note.text.trim(),
+            photoIds: _photoIds,
+            lines: _quantities.lines(skipZero: true),
+          ),
+      success: t.deliveryRecorded,
+    );
+    if (ok && mounted) {
+      ref
+        ..invalidate(restocksProvider)
+        ..invalidate(stockLevelsProvider(widget.depotId))
+        ..invalidate(depotsProvider);
+      context.pop();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    return Scaffold(
+      appBar: AppBar(title: Text(t.recordDeliveryTitle(widget.depotName))),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          Text(
+            t.recordDeliveryHint,
+            style: context.text.bodyMedium?.copyWith(
+              color: context.status.muted,
+            ),
+          ),
+          const Gap(16),
+          PhotoSet(
+            label: t.photoOfGoods,
+            onChanged: (ids, busy) => setState(() {
+              _photoIds = ids;
+              _photosBusy = busy;
+            }),
+          ),
+          SectionHeader(t.quantitiesReceived),
+          QuantityEditor(controller: _quantities, addLabel: t.addProduct),
+          const Gap(16),
+          TextField(
+            controller: _note,
+            maxLength: 300,
+            minLines: 1,
+            maxLines: 3,
+            decoration: InputDecoration(labelText: '${t.note} (${t.optional})'),
+          ),
+          const Gap(8),
+          ListenableBuilder(
+            listenable: _quantities,
+            builder: (context, _) => AsyncButton(
+              label: t.recordDeliverySave,
+              icon: LucideIcons.check,
+              onPressed:
+                  _photoIds.isEmpty || _photosBusy || _quantities.total == 0
+                  ? null
+                  : _save,
+            ),
+          ),
+          if (_photoIds.isEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Text(
+                t.photoRequiredHint,
+                textAlign: TextAlign.center,
+                style: context.text.bodySmall?.copyWith(
+                  color: context.status.muted,
+                ),
+              ),
+            ),
         ],
       ),
     );
@@ -427,7 +536,7 @@ class _RestockDetailScreenState extends ConsumerState<RestockDetailScreen> {
                         t.sentFrom,
                         o.source == 'BIOBALANCE'
                             ? 'BioBalance'
-                            : (o.supplier ?? t.roleGrossiste),
+                            : (o.supplier ?? t.grossisteLabel),
                       ),
                     if (o.receiver != null)
                       InfoRow(t.receivedBy, o.receiver!.name),
@@ -600,9 +709,10 @@ class _RestockDetailScreenState extends ConsumerState<RestockDetailScreen> {
       }
     }
 
-    if (me.role == Role.grossiste &&
+    // The responsable of the region (or the admin) ships from the grossiste.
+    if ((me.role == Role.responsable || me.role == Role.admin) &&
         o.status == RestockStatus.assigned &&
-        o.supplierId == me.depot?.id) {
+        o.supplierId != null) {
       w.add(
         AsyncButton(
           label: t.prepareAndShip,
@@ -622,8 +732,8 @@ class _RestockDetailScreenState extends ConsumerState<RestockDetailScreen> {
     final canReceive =
         o.status == RestockStatus.shipped &&
         (isReceiver ||
-            (me.role == Role.responsable && !o.toDepot) ||
-            (me.role == Role.grossiste && o.toDepot));
+            me.role == Role.responsable ||
+            (me.role == Role.admin && o.toDepot));
     if (canReceive) {
       w
         ..add(
@@ -807,9 +917,7 @@ class _DepotSheet extends StatelessWidget {
             ListTile(
               leading: const Icon(LucideIcons.warehouse),
               title: Text(d.name),
-              subtitle: Text(
-                [d.grossisteName, d.city].whereType<String>().join(' · '),
-              ),
+              subtitle: Text('${d.city} · ${d.regionName}'),
               onTap: () => Navigator.pop(context, d),
             ),
           const Gap(8),
@@ -866,7 +974,7 @@ class _ReceiverSheet extends StatelessWidget {
   }
 }
 
-/// The grossiste prepares the order: what is really leaving the depot.
+/// The responsable (or the admin) prepares the order: what is really leaving the grossiste.
 class ShipScreen extends ConsumerStatefulWidget {
   const ShipScreen({required this.order, super.key});
 
@@ -900,13 +1008,13 @@ class _ShipScreenState extends ConsumerState<ShipScreen> {
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
-    final me = ref.watch(meProvider);
-    final stock = ref.watch(stockLevelsProvider(me.depot?.id ?? ''));
+    final depotId = widget.order.supplierId ?? '';
+    final stock = ref.watch(stockLevelsProvider(depotId));
     return Scaffold(
       appBar: AppBar(title: Text(t.prepareAndShip)),
       body: AsyncBody(
         value: stock,
-        onRetry: () => ref.invalidate(stockLevelsProvider(me.depot?.id ?? '')),
+        onRetry: () => ref.invalidate(stockLevelsProvider(depotId)),
         builder: (levels) {
           final held = {for (final i in levels.items) i.productId: i.quantity};
           _quantities ??= QuantityController([
@@ -924,7 +1032,10 @@ class _ShipScreenState extends ConsumerState<ShipScreen> {
             padding: const EdgeInsets.all(16),
             children: [
               Text(
-                t.shipHint(widget.order.destination),
+                t.shipFromHint(
+                  widget.order.supplier ?? '',
+                  widget.order.destination,
+                ),
                 style: context.text.bodyMedium?.copyWith(
                   color: context.status.muted,
                 ),
@@ -1039,8 +1150,12 @@ class _ReceiveScreenState extends ConsumerState<ReceiveScreen> {
           ),
           const Gap(8),
           AsyncButton(
-            label: t.sendToAdmin,
-            icon: LucideIcons.send,
+            label: ref.watch(meProvider).role == Role.admin
+                ? t.recordDeliverySave
+                : t.sendToAdmin,
+            icon: ref.watch(meProvider).role == Role.admin
+                ? LucideIcons.check
+                : LucideIcons.send,
             onPressed: _photoIds.isEmpty || _photosBusy ? null : _send,
           ),
           if (_photoIds.isEmpty)

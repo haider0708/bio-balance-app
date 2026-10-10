@@ -94,7 +94,6 @@ class DeclarationLine {
 
 enum DeclarationStatus {
   pending,
-  review,
   approved,
   rejected;
 

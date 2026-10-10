@@ -860,12 +860,6 @@ abstract class AppLocalizations {
   /// **'Stock declaration'**
   String get declaration;
 
-  /// No description provided for @declarationRejectedRetry.
-  ///
-  /// In en, this message translates to:
-  /// **'Your last stock declaration was rejected. Declare it again.'**
-  String get declarationRejectedRetry;
-
   /// No description provided for @declarationSent.
   ///
   /// In en, this message translates to:
@@ -1202,12 +1196,6 @@ abstract class AppLocalizations {
   /// **'Your name (optional)'**
   String get fullNameOptional;
 
-  /// No description provided for @grossisteDeclareFirst.
-  ///
-  /// In en, this message translates to:
-  /// **'Declare your depot stock with a photo so BioBalance can approve it.'**
-  String get grossisteDeclareFirst;
-
   /// No description provided for @grossistesTitle.
   ///
   /// In en, this message translates to:
@@ -1466,12 +1454,6 @@ abstract class AppLocalizations {
   /// **'Region {name}'**
   String myRegion(String name);
 
-  /// No description provided for @myRestockRequests.
-  ///
-  /// In en, this message translates to:
-  /// **'{count, plural, =0{No restock request in progress} =1{1 of your restock requests is in progress} other{{count} of your restock requests are in progress}}'**
-  String myRestockRequests(int count);
-
   /// No description provided for @needsAttention.
   ///
   /// In en, this message translates to:
@@ -1706,12 +1688,6 @@ abstract class AppLocalizations {
   /// **'Announcements and updates will appear here.'**
   String get noNotificationsHint;
 
-  /// No description provided for @noOrdersToPrepare.
-  ///
-  /// In en, this message translates to:
-  /// **'No order to prepare'**
-  String get noOrdersToPrepare;
-
   /// No description provided for @noPayoutRequests.
   ///
   /// In en, this message translates to:
@@ -1873,18 +1849,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Or a video link'**
   String get orVideoLink;
-
-  /// No description provided for @ordersTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Orders'**
-  String get ordersTitle;
-
-  /// No description provided for @ordersToPrepare.
-  ///
-  /// In en, this message translates to:
-  /// **'{count, plural, =1{1 order to prepare} other{{count} orders to prepare}}'**
-  String ordersToPrepare(int count);
 
   /// No description provided for @overlapBody.
   ///
@@ -2630,18 +2594,6 @@ abstract class AppLocalizations {
   /// **'Administrator access only. Use your password and authenticator code.'**
   String get adminSignInSubtitle;
 
-  /// No description provided for @roleGrossiste.
-  ///
-  /// In en, this message translates to:
-  /// **'Grossiste'**
-  String get roleGrossiste;
-
-  /// No description provided for @roleGrossistePlural.
-  ///
-  /// In en, this message translates to:
-  /// **'Grossistes'**
-  String get roleGrossistePlural;
-
   /// No description provided for @roleResponsable.
   ///
   /// In en, this message translates to:
@@ -2912,12 +2864,6 @@ abstract class AppLocalizations {
   /// **'Settings'**
   String get settingsTitle;
 
-  /// No description provided for @shipHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Enter what leaves your depot for {destination}.'**
-  String shipHint(String destination);
-
   /// No description provided for @shippedReceived.
   ///
   /// In en, this message translates to:
@@ -3139,12 +3085,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Network'**
   String get tabNetwork;
-
-  /// No description provided for @tabOrders.
-  ///
-  /// In en, this message translates to:
-  /// **'Orders'**
-  String get tabOrders;
 
   /// No description provided for @tabPdvs.
   ///
@@ -3734,18 +3674,6 @@ abstract class AppLocalizations {
   /// **'{count} of {max} photos'**
   String photoCount(int count, int max);
 
-  /// No description provided for @statusWaitingResponsable.
-  ///
-  /// In en, this message translates to:
-  /// **'Waiting for the responsable'**
-  String get statusWaitingResponsable;
-
-  /// No description provided for @declarationWaitingResponsable.
-  ///
-  /// In en, this message translates to:
-  /// **'Your count is waiting for the responsable’s check, then the admin.'**
-  String get declarationWaitingResponsable;
-
   /// No description provided for @recountAsked2.
   ///
   /// In en, this message translates to:
@@ -3782,42 +3710,6 @@ abstract class AppLocalizations {
   /// **'Request sent to the admin'**
   String get recountRequested;
 
-  /// No description provided for @reviewHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Check the photos and the numbers. Sent to the admin, it still needs their approval.'**
-  String get reviewHint;
-
-  /// No description provided for @sentToAdmin.
-  ///
-  /// In en, this message translates to:
-  /// **'Sent to the admin'**
-  String get sentToAdmin;
-
-  /// No description provided for @sendBack.
-  ///
-  /// In en, this message translates to:
-  /// **'Send back'**
-  String get sendBack;
-
-  /// No description provided for @sentBack.
-  ///
-  /// In en, this message translates to:
-  /// **'Sent back to the grossiste'**
-  String get sentBack;
-
-  /// No description provided for @countsToCheck.
-  ///
-  /// In en, this message translates to:
-  /// **'Counts to check'**
-  String get countsToCheck;
-
-  /// No description provided for @nothingToCheck.
-  ///
-  /// In en, this message translates to:
-  /// **'Nothing to check right now'**
-  String get nothingToCheck;
-
   /// No description provided for @typeRecount.
   ///
   /// In en, this message translates to:
@@ -3829,12 +3721,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Recount requests'**
   String get attnRecounts;
-
-  /// No description provided for @attnGrossisteCounts.
-  ///
-  /// In en, this message translates to:
-  /// **'Grossiste counts to check'**
-  String get attnGrossisteCounts;
 
   /// No description provided for @approveRecountTitle.
   ///
@@ -3853,12 +3739,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Reason given'**
   String get recountReasonLabel;
-
-  /// No description provided for @grossisteHandledBy.
-  ///
-  /// In en, this message translates to:
-  /// **'This grossiste is looked after by the responsable of the region: they check the stock counts and photos before the admin approves.'**
-  String get grossisteHandledBy;
 
   /// No description provided for @outOfStockName.
   ///
@@ -4303,6 +4183,192 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Back to home'**
   String get backToHome;
+
+  /// No description provided for @depotNew.
+  ///
+  /// In en, this message translates to:
+  /// **'New grossiste'**
+  String get depotNew;
+
+  /// No description provided for @depotAddress.
+  ///
+  /// In en, this message translates to:
+  /// **'Address'**
+  String get depotAddress;
+
+  /// No description provided for @depotPhotos.
+  ///
+  /// In en, this message translates to:
+  /// **'Photos of the grossiste'**
+  String get depotPhotos;
+
+  /// No description provided for @depotPhotosAdd.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a photo of the grossiste'**
+  String get depotPhotosAdd;
+
+  /// No description provided for @depotNoStock.
+  ///
+  /// In en, this message translates to:
+  /// **'No stock entered yet'**
+  String get depotNoStock;
+
+  /// No description provided for @depotCountWaiting.
+  ///
+  /// In en, this message translates to:
+  /// **'Count waiting for approval'**
+  String get depotCountWaiting;
+
+  /// No description provided for @depotSuspendedLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Suspended'**
+  String get depotSuspendedLabel;
+
+  /// No description provided for @depotHolds.
+  ///
+  /// In en, this message translates to:
+  /// **'{units} units · {products} products'**
+  String depotHolds(int units, int products);
+
+  /// No description provided for @depotSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Grossiste saved'**
+  String get depotSaved;
+
+  /// No description provided for @depotSuspend.
+  ///
+  /// In en, this message translates to:
+  /// **'Suspend'**
+  String get depotSuspend;
+
+  /// No description provided for @depotReactivate.
+  ///
+  /// In en, this message translates to:
+  /// **'Reactivate'**
+  String get depotReactivate;
+
+  /// No description provided for @depotRemove.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove'**
+  String get depotRemove;
+
+  /// No description provided for @depotRemoved.
+  ///
+  /// In en, this message translates to:
+  /// **'Grossiste removed'**
+  String get depotRemoved;
+
+  /// No description provided for @depotRemoveTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove this grossiste?'**
+  String get depotRemoveTitle;
+
+  /// No description provided for @depotRemoveBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Only a grossiste that never held stock can be removed. Otherwise suspend it.'**
+  String get depotRemoveBody;
+
+  /// No description provided for @depotSuspendedHint.
+  ///
+  /// In en, this message translates to:
+  /// **'This grossiste is suspended: it cannot receive or give stock.'**
+  String get depotSuspendedHint;
+
+  /// No description provided for @depotFirstStockHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Count what it holds and take photos: the stock becomes official once approved.'**
+  String get depotFirstStockHint;
+
+  /// No description provided for @depotFirstStockAdminHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Count what it holds and take photos: the stock applies as soon as you save.'**
+  String get depotFirstStockAdminHint;
+
+  /// No description provided for @depotRestock.
+  ///
+  /// In en, this message translates to:
+  /// **'Restock'**
+  String get depotRestock;
+
+  /// No description provided for @depotCorrect.
+  ///
+  /// In en, this message translates to:
+  /// **'Correct the stock'**
+  String get depotCorrect;
+
+  /// No description provided for @stockSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Stock saved'**
+  String get stockSaved;
+
+  /// No description provided for @saveStock.
+  ///
+  /// In en, this message translates to:
+  /// **'Save the stock'**
+  String get saveStock;
+
+  /// No description provided for @stockCountedByYou.
+  ///
+  /// In en, this message translates to:
+  /// **'You are counting this place yourself: the stock applies as soon as you save.'**
+  String get stockCountedByYou;
+
+  /// No description provided for @recordDeliveryTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Restock {name}'**
+  String recordDeliveryTitle(String name);
+
+  /// No description provided for @recordDeliveryHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Count what BioBalance delivered and photograph it. The goods are added to the stock as soon as you save.'**
+  String get recordDeliveryHint;
+
+  /// No description provided for @recordDeliverySave.
+  ///
+  /// In en, this message translates to:
+  /// **'Add to the stock'**
+  String get recordDeliverySave;
+
+  /// No description provided for @deliveryRecorded.
+  ///
+  /// In en, this message translates to:
+  /// **'Stock added'**
+  String get deliveryRecorded;
+
+  /// No description provided for @photoOfGoods.
+  ///
+  /// In en, this message translates to:
+  /// **'Photo of the goods'**
+  String get photoOfGoods;
+
+  /// No description provided for @shipFromHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter what really leaves {depot} for {destination}.'**
+  String shipFromHint(String depot, String destination);
+
+  /// No description provided for @attnGrossisteUncounted.
+  ///
+  /// In en, this message translates to:
+  /// **'Grossistes without stock yet'**
+  String get attnGrossisteUncounted;
+
+  /// No description provided for @attnToShip.
+  ///
+  /// In en, this message translates to:
+  /// **'Orders to ship'**
+  String get attnToShip;
 }
 
 class _AppLocalizationsDelegate

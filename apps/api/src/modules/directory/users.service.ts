@@ -13,12 +13,6 @@ export interface NewMember {
   email: string;
   phone?: string | null;
 }
-export interface DepotInput {
-  name: string;
-  address: string;
-  city: string;
-  phone?: string | null;
-}
 
 const publicUser = {
   id: true,
@@ -40,17 +34,16 @@ function present<T extends { passwordHash: string | null }>(user: T) {
   return { ...rest, activated: passwordHash !== null };
 }
 
-/** People: responsables and grossistes (admin), team members (responsable, approved by the admin). */
+/** People: responsables (admin) and team members (responsable, approved by the admin). */
 @Injectable()
 export class UsersService {
   constructor(private readonly db: Database) {}
 
-  /** The admin creates a responsable or a grossiste. Both are active at once and receive an invitation. */
+  /** The admin creates a responsable or a team member. Both are active at once and receive an invitation. */
   async createByAdmin(
     actor: Actor,
     input:
       | ({ role: "RESPONSABLE"; regionId: string } & NewMember)
-      | ({ role: "GROSSISTE"; regionId: string; depot: DepotInput } & NewMember)
       | ({ role: "VENDEUR"; pdvId: string } & NewMember),
   ) {
     requireRule(
@@ -63,13 +56,6 @@ export class UsersService {
       await this.assertEmailFree(tx, input.email);
       let regionId: string | null = null;
       let pdvId: string | null = null;
-      if (input.role === "GROSSISTE")
-        requireRule(
-          await tx.region.findUnique({ where: { id: input.regionId } }),
-          "REGION_NOT_FOUND",
-          "Unknown region.",
-          404,
-        );
       if (input.role === "RESPONSABLE") {
         regionId = input.regionId;
         requireRule(
@@ -111,17 +97,6 @@ export class UsersService {
           decidedAt: new Date(),
         },
       });
-      if (input.role === "GROSSISTE")
-        await tx.depot.create({
-          data: {
-            userId: user.id,
-            regionId: input.regionId,
-            name: input.depot.name,
-            address: input.depot.address,
-            city: input.depot.city,
-            phone: input.depot.phone ?? null,
-          },
-        });
       await issueCode(tx, user.id, "invite");
       await audit(
         tx,
@@ -130,7 +105,7 @@ export class UsersService {
         "User",
         user.id,
         { role: input.role, email: input.email },
-        regionId ?? (input.role === "GROSSISTE" ? input.regionId : null),
+        regionId,
       );
       return present(user);
     });
@@ -439,26 +414,6 @@ export class UsersService {
         "This person already has an account. Deactivate it instead.",
         409,
       );
-      const depot = await tx.depot.findUnique({ where: { userId: id } });
-      if (depot) {
-        const used =
-          (await tx.stockDeclaration.count({
-            where: { locationId: depot.id },
-          })) +
-          (await tx.restockOrder.count({
-            where: {
-              OR: [{ supplierDepotId: depot.id }, { destId: depot.id }],
-            },
-          })) +
-          (await tx.stock.count({ where: { locationId: depot.id } }));
-        requireRule(
-          used === 0,
-          "ALREADY_ACTIVATED",
-          "This grossiste already has activity. Deactivate it instead.",
-          409,
-        );
-        await tx.depot.delete({ where: { id: depot.id } });
-      }
       await tx.accessToken.deleteMany({ where: { userId: id } });
       await tx.session.deleteMany({ where: { userId: id } });
       await tx.user.delete({ where: { id } });
@@ -472,63 +427,6 @@ export class UsersService {
         user.regionId,
       );
       return { ok: true };
-    });
-  }
-
-  // ───────────────────────── Depots ─────────────────────────
-
-  async listDepots(actor: Actor) {
-    requireRule(
-      ["ADMIN", "RESPONSABLE", "GROSSISTE"].includes(actor.role),
-      "FORBIDDEN",
-      "Not allowed.",
-      403,
-    );
-    return this.db.run(actor, async (tx) => {
-      const depots = await tx.depot.findMany({ orderBy: { name: "asc" } });
-      const owners = await tx.user.findMany({
-        where: { id: { in: depots.map((d) => d.userId) } },
-        select: {
-          id: true,
-          name: true,
-          email: true,
-          phone: true,
-          status: true,
-        },
-      });
-      const byId = new Map(owners.map((o) => [o.id, o]));
-      const regions = new Map(
-        (await tx.region.findMany()).map((r) => [r.id, r.name]),
-      );
-      return depots.map((d) => ({
-        ...d,
-        region: { id: d.regionId, name: regions.get(d.regionId) ?? "" },
-        grossiste: byId.get(d.userId) ?? null,
-      }));
-    });
-  }
-
-  async updateDepot(actor: Actor, id: string, input: Partial<DepotInput>) {
-    return this.db.run(actor, async (tx) => {
-      const depot = await tx.depot.findUnique({ where: { id } });
-      if (!depot) throw notFound("Depot");
-      requireRule(
-        actor.role === "ADMIN" || depot.userId === actor.id,
-        "FORBIDDEN",
-        "Not allowed.",
-        403,
-      );
-      const updated = await tx.depot.update({
-        where: { id },
-        data: {
-          ...(input.name !== undefined && { name: input.name }),
-          ...(input.address !== undefined && { address: input.address }),
-          ...(input.city !== undefined && { city: input.city }),
-          ...(input.phone !== undefined && { phone: input.phone }),
-        },
-      });
-      await audit(tx, actor, "depot.updated", "Depot", id, { ...input });
-      return updated;
     });
   }
 

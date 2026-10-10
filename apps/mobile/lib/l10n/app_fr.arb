@@ -242,7 +242,6 @@
   "deactivated": "Désactivé",
   "decision": "Décision",
   "declaration": "Déclaration de stock",
-  "declarationRejectedRetry": "Votre dernière déclaration de stock a été refusée. Déclarez-la à nouveau.",
   "declarationSent": "Envoyé à BioBalance pour approbation",
   "declarationWaiting": "Une déclaration de stock attend son approbation.",
   "declarations": "Déclarations",
@@ -327,7 +326,6 @@
   },
   "fullName": "Nom complet",
   "fullNameOptional": "Votre nom (facultatif)",
-  "grossisteDeclareFirst": "Déclarez le stock de votre dépôt avec une photo pour que BioBalance l’approuve.",
   "grossistesTitle": "Grossistes",
   "group": "Groupe",
   "groupCreated": "Groupe créé. Il attend son approbation.",
@@ -409,14 +407,6 @@
       }
     }
   },
-  "myRestockRequests": "{count, plural, =0{Aucune demande de réassort en cours} =1{1 de vos demandes de réassort est en cours} other{{count} de vos demandes de réassort sont en cours}}",
-  "@myRestockRequests": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
   "needsAttention": "À surveiller",
   "networkTitle": "Réseau",
   "navCollapseSidebar": "Réduire le panneau",
@@ -456,7 +446,6 @@
   "noLessonsYet": "Aucune leçon. Ajoutez-en une pour publier la formation.",
   "noNotifications": "Rien de nouveau",
   "noNotificationsHint": "Les annonces et mises à jour apparaîtront ici.",
-  "noOrdersToPrepare": "Aucune commande à préparer",
   "noPayoutRequests": "Aucune demande de paiement",
   "noPayoutsYet": "Aucun paiement pour l’instant",
   "noPdvs": "Aucun point de vente pour l’instant",
@@ -484,15 +473,6 @@
   "openVideo": "Voir la vidéo",
   "optional": "facultatif",
   "orVideoLink": "Ou un lien vidéo",
-  "ordersTitle": "Commandes",
-  "ordersToPrepare": "{count, plural, =1{1 commande à préparer} other{{count} commandes à préparer}}",
-  "@ordersToPrepare": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
   "overlapBody": "Ces jours sont déjà couverts :\n{details}\n\nLa remplacer par la nouvelle valeur ?",
   "@overlapBody": {
     "placeholders": {
@@ -714,8 +694,6 @@
   "adminConsoleTagline": "Pilotez le réseau BioBalance : magasins, stock, réassorts, récompenses et validations.",
   "adminSignInTitle": "Connexion à la console",
   "adminSignInSubtitle": "Accès administrateur uniquement. Mot de passe et code d’authentification.",
-  "roleGrossiste": "Grossiste",
-  "roleGrossistePlural": "Grossistes",
   "roleResponsable": "Responsable",
   "roleResponsablePlural": "Responsables",
   "roleVendeur": "Membre de l’équipe",
@@ -796,14 +774,6 @@
   "sentFrom": "Envoyé par",
   "setReward": "Fixer une récompense",
   "settingsTitle": "Réglages",
-  "shipHint": "Saisissez ce qui part de votre dépôt vers {destination}.",
-  "@shipHint": {
-    "placeholders": {
-      "destination": {
-        "type": "String"
-      }
-    }
-  },
   "shippedReceived": "Envoyé {shipped} · compté {received}",
   "@shippedReceived": {
     "placeholders": {
@@ -865,7 +835,6 @@
   "tabHome": "Accueil",
   "tabLearn": "Formation",
   "tabNetwork": "Réseau",
-  "tabOrders": "Commandes",
   "tabPdvs": "Magasins",
   "tabPeople": "Personnes",
   "tabReports": "Rapports",
@@ -1047,27 +1016,17 @@
       }
     }
   },
-  "statusWaitingResponsable": "En attente du responsable",
-  "declarationWaitingResponsable": "Votre comptage attend la vérification du responsable, puis l’admin.",
   "recountAsked2": "Nouveau comptage demandé : en attente de l’accord de l’admin.",
   "recountAllowed": "L’admin a autorisé un nouveau comptage. Recomptez avec le bouton ci-dessous.",
   "recountRequestTitle": "Demander un nouveau comptage",
   "recountRequestSend": "Envoyer la demande",
   "recountRequestHint": "Pourquoi ? (par exemple, du stock acheté ailleurs)",
   "recountRequested": "Demande envoyée à l’admin",
-  "reviewHint": "Vérifiez les photos et les chiffres. Envoyé à l’admin, il faut encore son accord.",
-  "sentToAdmin": "Envoyé à l’admin",
-  "sendBack": "Renvoyer",
-  "sentBack": "Renvoyé au grossiste",
-  "countsToCheck": "Comptages à vérifier",
-  "nothingToCheck": "Rien à vérifier pour l’instant",
   "typeRecount": "Demande de comptage",
   "attnRecounts": "Demandes de comptage",
-  "attnGrossisteCounts": "Comptages de grossistes à vérifier",
   "approveRecountTitle": "Autoriser un nouveau comptage ?",
   "allowRecount": "Autoriser",
   "recountReasonLabel": "Motif indiqué",
-  "grossisteHandledBy": "Ce grossiste est suivi par le responsable de la région : il vérifie les comptages et les photos avant l’approbation de l’admin.",
   "outOfStockName": "{name} est en rupture de stock",
   "@outOfStockName": {
     "placeholders": {
@@ -1330,5 +1289,63 @@
   "hidePassword": "Masquer le mot de passe",
   "pageNotFound": "Cette page n’existe pas",
   "pageNotFoundHint": "Le lien est peut-être ancien, ou la page a été ouverte depuis ailleurs.",
-  "backToHome": "Retour à l’accueil"
+  "backToHome": "Retour à l’accueil",
+  "depotNew": "Nouveau grossiste",
+  "depotAddress": "Adresse",
+  "depotPhotos": "Photos du grossiste",
+  "depotPhotosAdd": "Ajouter une photo du grossiste",
+  "depotNoStock": "Aucun stock saisi",
+  "depotCountWaiting": "Comptage en attente d’approbation",
+  "depotSuspendedLabel": "Suspendu",
+  "depotHolds": "{units} unités · {products} produits",
+  "@depotHolds": {
+    "placeholders": {
+      "units": {
+        "type": "int"
+      },
+      "products": {
+        "type": "int"
+      }
+    }
+  },
+  "depotSaved": "Grossiste enregistré",
+  "depotSuspend": "Suspendre",
+  "depotReactivate": "Réactiver",
+  "depotRemove": "Supprimer",
+  "depotRemoved": "Grossiste supprimé",
+  "depotRemoveTitle": "Supprimer ce grossiste ?",
+  "depotRemoveBody": "Seul un grossiste qui n’a jamais eu de stock peut être supprimé. Sinon, suspendez-le.",
+  "depotSuspendedHint": "Ce grossiste est suspendu : il ne peut ni recevoir ni fournir de stock.",
+  "depotFirstStockHint": "Comptez ce qu’il détient et prenez des photos : le stock devient officiel une fois approuvé.",
+  "depotFirstStockAdminHint": "Comptez ce qu’il détient et prenez des photos : le stock s’applique dès l’enregistrement.",
+  "depotRestock": "Réapprovisionner",
+  "depotCorrect": "Corriger le stock",
+  "stockSaved": "Stock enregistré",
+  "saveStock": "Enregistrer le stock",
+  "stockCountedByYou": "Vous comptez ce lieu vous-même : le stock s’applique dès l’enregistrement.",
+  "recordDeliveryTitle": "Réapprovisionner {name}",
+  "@recordDeliveryTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "recordDeliveryHint": "Comptez ce que BioBalance a livré et photographiez-le. Les produits sont ajoutés au stock dès l’enregistrement.",
+  "recordDeliverySave": "Ajouter au stock",
+  "deliveryRecorded": "Stock ajouté",
+  "photoOfGoods": "Photo des produits",
+  "shipFromHint": "Saisissez ce qui quitte vraiment {depot} pour {destination}.",
+  "@shipFromHint": {
+    "placeholders": {
+      "depot": {
+        "type": "String"
+      },
+      "destination": {
+        "type": "String"
+      }
+    }
+  },
+  "attnGrossisteUncounted": "Grossistes sans stock",
+  "attnToShip": "Commandes à expédier"
 }

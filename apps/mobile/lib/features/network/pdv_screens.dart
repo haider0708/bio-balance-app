@@ -572,7 +572,7 @@ class _AddMemberScreenState extends ConsumerState<AddMemberScreen> {
   }
 }
 
-/// The admin creates a responsable, a grossiste or a team member directly.
+/// The admin creates a responsable or a team member directly.
 class CreateAccountScreen extends ConsumerStatefulWidget {
   const CreateAccountScreen({super.key});
 
@@ -587,15 +587,12 @@ class _CreateAccountScreenState extends ConsumerState<CreateAccountScreen> {
   final _name = TextEditingController();
   final _email = TextEditingController();
   final _phone = TextEditingController();
-  final _depot = TextEditingController();
-  final _address = TextEditingController();
-  final _city = TextEditingController();
   String? _regionId;
   String? _pdvId;
 
   @override
   void dispose() {
-    for (final c in [_name, _email, _phone, _depot, _address, _city]) {
+    for (final c in [_name, _email, _phone]) {
       c.dispose();
     }
     super.dispose();
@@ -609,15 +606,8 @@ class _CreateAccountScreenState extends ConsumerState<CreateAccountScreen> {
       'name': _name.text.trim(),
       'email': _email.text.trim().toLowerCase(),
       if (_phone.text.trim().isNotEmpty) 'phone': _phone.text.trim(),
-      if (_role == Role.responsable || _role == Role.grossiste)
-        'regionId': _regionId,
+      if (_role == Role.responsable) 'regionId': _regionId,
       if (_role == Role.vendeur) 'pdvId': _pdvId,
-      if (_role == Role.grossiste)
-        'depot': {
-          'name': _depot.text.trim(),
-          'address': _address.text.trim(),
-          'city': _city.text.trim(),
-        },
     };
     final ok = await perform(
       context,
@@ -655,10 +645,6 @@ class _CreateAccountScreenState extends ConsumerState<CreateAccountScreen> {
                 ButtonSegment(
                   value: Role.responsable,
                   label: Text(t.roleResponsable),
-                ),
-                ButtonSegment(
-                  value: Role.grossiste,
-                  label: Text(t.roleGrossiste),
                 ),
                 ButtonSegment(
                   value: Role.vendeur,
@@ -702,7 +688,7 @@ class _CreateAccountScreenState extends ConsumerState<CreateAccountScreen> {
               ),
             ),
             const Gap(12),
-            if (_role == Role.responsable || _role == Role.grossiste)
+            if (_role == Role.responsable)
               DropdownButtonFormField<String>(
                 initialValue: _regionId,
                 decoration: InputDecoration(labelText: t.region),
@@ -712,16 +698,6 @@ class _CreateAccountScreenState extends ConsumerState<CreateAccountScreen> {
                 ],
                 onChanged: (v) => setState(() => _regionId = v),
                 validator: (v) => v == null ? t.fieldRequired : null,
-              ),
-            if (_role == Role.grossiste)
-              Padding(
-                padding: const EdgeInsets.only(top: 8),
-                child: Text(
-                  t.grossisteHandledBy,
-                  style: context.text.bodySmall?.copyWith(
-                    color: context.status.muted,
-                  ),
-                ),
               ),
             if (_role == Role.vendeur)
               DropdownButtonFormField<String>(
@@ -734,30 +710,6 @@ class _CreateAccountScreenState extends ConsumerState<CreateAccountScreen> {
                 onChanged: (v) => setState(() => _pdvId = v),
                 validator: (v) => v == null ? t.fieldRequired : null,
               ),
-            if (_role == Role.grossiste) ...[
-              TextFormField(
-                controller: _depot,
-                textCapitalization: TextCapitalization.words,
-                textInputAction: TextInputAction.next,
-                decoration: InputDecoration(labelText: t.depotName),
-                validator: required,
-              ),
-              const Gap(12),
-              TextFormField(
-                controller: _address,
-                textCapitalization: TextCapitalization.sentences,
-                textInputAction: TextInputAction.next,
-                decoration: InputDecoration(labelText: t.address),
-                validator: required,
-              ),
-              const Gap(12),
-              TextFormField(
-                controller: _city,
-                textCapitalization: TextCapitalization.words,
-                decoration: InputDecoration(labelText: t.city),
-                validator: required,
-              ),
-            ],
             const Gap(24),
             AsyncButton(
               label: t.createAndInvite,

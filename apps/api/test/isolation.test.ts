@@ -109,7 +109,7 @@ describe("regions never see each other's data", () => {
       expect([404, 403], route).toContain((await w.s.get(route)).status);
   });
 
-  it("a team member sees only their own sales, and a grossiste only their own orders", async () => {
+  it("a team member sees only their own sales, and nobody sees another region's orders", async () => {
     const nord = await nordWorld();
     const sud = await approvedPdv(w, "s", "Magasin Sud");
     await stockPlace(w, sud.id, w.sud, [20, 20, 20]);
@@ -131,21 +131,15 @@ describe("regions never see each other's data", () => {
       (await seller.get(`/v1/stock/locations/${nord.pdv.id}`)).status,
     );
 
-    const other = await createAccount({
-      role: "GROSSISTE",
-      regionCode: "SUD",
-      name: "Slim",
-      depot: { name: "Depot Sud" },
-    });
-    const g = client(api, other.token);
-    expect(JSON.stringify((await g.get("/v1/restocks")).body)).not.toContain(
+    // Another region's responsable sees nothing of this order or this grossiste either.
+    expect(JSON.stringify((await w.s.get("/v1/restocks")).body)).not.toContain(
       nord.order.id,
     );
     expect([403, 404]).toContain(
-      (await g.get(`/v1/restocks/${nord.order.id}`)).status,
+      (await w.s.get(`/v1/restocks/${nord.order.id}`)).status,
     );
     expect([403, 404]).toContain(
-      (await g.get(`/v1/stock/locations/${w.depotId}`)).status,
+      (await w.s.get(`/v1/stock/locations/${w.depotId}`)).status,
     );
   });
 });

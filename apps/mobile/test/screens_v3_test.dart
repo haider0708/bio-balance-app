@@ -21,13 +21,13 @@ void main() {
           'address': 'ZI',
           'city': 'Tunis',
           'phone': '20 111 222',
-          'regionId': 'r1',
+          'status': 'ACTIVE',
           'region': {'id': 'r1', 'name': 'Nord'},
-          'grossiste': {
-            'name': 'Hedi',
-            'email': 'h@x.tn',
-            'phone': '20 111 222',
-          },
+          'photoIds': <String>[],
+          'units': 120,
+          'products': 6,
+          'counted': true,
+          'countPending': false,
         },
       ])
       ..on('GET /v1/groups', [

@@ -233,50 +233,58 @@ void main() {
     await tester.tap(find.text('More').last);
     await pumpUntil(tester, find.text('Grossistes'));
     await tester.tap(find.text('Grossistes'));
-    await pumpUntil(tester, find.text('Dépôt Hedi'));
-    expect(find.text('20 111 222'), findsOneWidget);
+    await pumpUntil(tester, find.text('Depot Hedi'));
+    await tester.tap(find.text('Depot Hedi'));
+    // A grossiste is a warehouse: its details, its stock, and what the responsable may do about it.
+    await pumpUntil(
+      tester,
+      find.text('71 111 111'),
+      reason: 'the grossiste page',
+    );
+    expect(find.text('Restock'), findsOneWidget);
+    await tester.pageBack();
     await tester.pageBack();
   });
 
-  testWidgets('a grossiste prepares and ships the assigned order', (
-    tester,
-  ) async {
-    await start(tester);
-    await signIn(tester, world.obj('grossiste'));
-    await pumpUntil(
-      tester,
-      find.text('Hello, Hedi'),
-      reason: 'the grossiste home',
-    );
-    await pumpUntil(tester, find.text('1 order to prepare'));
-    await tester.tap(find.text('Orders').last);
-    await pumpUntil(tester, find.textContaining('RS-'));
-    await tester.tap(find.textContaining('RS-').first);
-    await pumpUntil(
-      tester,
-      find.text('Requested by'),
-      reason: 'the order detail',
-    );
-    await reveal(tester, find.text('Prepare and ship'));
-    await tester.tap(find.text('Prepare and ship'));
-    await pumpUntil(
-      tester,
-      find.text('Ship'),
-      reason: 'the ship screen',
-      timeout: const Duration(seconds: 3),
-    ).catchError((_) {});
-    await reveal(tester, find.text('Mark as shipped'));
-    await tester.tap(find.text('Mark as shipped'));
-    await settleFor(tester, 2500);
-    await tester.drag(find.byType(Scrollable).last, const Offset(0, 4000));
-    await settleFor(tester, 500);
-    await pumpUntil(
-      tester,
-      find.text('On its way'),
-      reason: 'the shipped status',
-    );
-    expect(find.text('Prepare and ship'), findsNothing);
-  });
+  testWidgets(
+    'a responsable prepares and ships the order given to a grossiste',
+    (tester) async {
+      await start(tester);
+      await signIn(tester, world.obj('responsable'));
+      await pumpUntil(
+        tester,
+        find.text('Hello, Nora'),
+        reason: 'the responsable home',
+      );
+      await tester.tap(find.text('Restocks').last);
+      await pumpUntil(tester, find.textContaining('RS-'));
+      await tester.tap(find.textContaining('RS-').first);
+      await pumpUntil(
+        tester,
+        find.text('Requested by'),
+        reason: 'the order detail',
+      );
+      await reveal(tester, find.text('Prepare and ship'));
+      await tester.tap(find.text('Prepare and ship'));
+      await pumpUntil(
+        tester,
+        find.text('Ship'),
+        reason: 'the ship screen',
+        timeout: const Duration(seconds: 3),
+      ).catchError((_) {});
+      await reveal(tester, find.text('Mark as shipped'));
+      await tester.tap(find.text('Mark as shipped'));
+      await settleFor(tester, 2500);
+      await tester.drag(find.byType(Scrollable).last, const Offset(0, 4000));
+      await settleFor(tester, 500);
+      await pumpUntil(
+        tester,
+        find.text('On its way'),
+        reason: 'the shipped status',
+      );
+      expect(find.text('Prepare and ship'), findsNothing);
+    },
+  );
 
   testWidgets(
     'the admin signs in with the authenticator and approves a point of sale',
@@ -364,36 +372,20 @@ void main() {
     },
   );
 
-  testWidgets(
-    'a grossiste has no catalogue, and a responsable reads the report tabs',
-    (tester) async {
-      await start(tester);
-      await signIn(tester, world.obj('grossiste'));
-      await pumpUntil(
-        tester,
-        find.text('Hello, Hedi'),
-        reason: 'the grossiste home',
-      );
-      await tester.tap(find.text('More').last);
-      await pumpUntil(tester, find.text('Settings'), reason: 'the More menu');
-      expect(find.text('Catalog'), findsNothing);
-      await tester.tap(find.text('Home').last);
-      await pumpUntil(tester, find.byTooltip('Settings'));
-      await signOut(tester);
-
-      await signIn(tester, world.obj('responsable'));
-      await pumpUntil(
-        tester,
-        find.text('Hello, Nora'),
-        reason: 'the responsable home',
-      );
-      await tester.tap(find.text('Reports').last);
-      await pumpUntil(tester, find.text('Overview'), reason: 'the report tabs');
-      for (final tab in ['Products', 'Team']) {
-        await tester.tap(find.text(tab).last);
-        await settleFor(tester, 1500);
-      }
-      expect(find.textContaining('unavailable'), findsNothing);
-    },
-  );
+  testWidgets('a responsable reads the report tabs', (tester) async {
+    await start(tester);
+    await signIn(tester, world.obj('responsable'));
+    await pumpUntil(
+      tester,
+      find.text('Hello, Nora'),
+      reason: 'the responsable home',
+    );
+    await tester.tap(find.text('Reports').last);
+    await pumpUntil(tester, find.text('Overview'), reason: 'the report tabs');
+    for (final tab in ['Products', 'Team']) {
+      await tester.tap(find.text(tab).last);
+      await settleFor(tester, 1500);
+    }
+    expect(find.textContaining('unavailable'), findsNothing);
+  });
 }

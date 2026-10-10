@@ -10,6 +10,7 @@ import {
   createAccount,
   fakeJpeg,
   owner,
+  regionId,
   resetDatabase,
   startApi,
   type Account,
@@ -76,30 +77,29 @@ describe("a month of activity", () => {
         .map((productId, i) => ({ productId, quantity: qty(i) }))
         .filter((l) => l.quantity > 0);
 
-    // Two grossistes with a depot each.
-    const grossistes: { acc: Account; depotId: string; code: string }[] = [];
+    // One grossiste (warehouse) per region, counted by the admin with a photo.
+    const grossistes: { depotId: string; code: string }[] = [];
     for (const [name, code] of [
       ["Hedi", "NORD"],
       ["Mounir", "CENTRE"],
       ["Slim", "SUD"],
     ] as const) {
-      const acc = await createAccount({
-        role: "GROSSISTE",
-        name,
-        regionCode: code,
-        depot: { name: `Depot ${name}` },
-      });
-      const depotId = (await client(api, acc.token).get("/v1/depots")).body[0]
-        .id;
-      const decl = (
-        await client(api, acc.token).post("/v1/stock/declarations", {
-          locationId: depotId,
-          photoId: await photo(acc),
-          lines: lines(() => 400),
+      const depotId = (
+        await a.post("/v1/depots", {
+          regionId: await regionId(code),
+          name: `Depot ${name}`,
+          address: "ZI",
+          city: "Tunis",
         })
-      ).body;
-      await a.post(`/v1/stock/declarations/${decl.id}/approve`, {});
-      grossistes.push({ acc, depotId, code });
+      ).body.id as string;
+      const counted = await a.post("/v1/stock/declarations", {
+        locationId: depotId,
+        photoIds: [await photo(admin)],
+        lines: lines(() => 400),
+      });
+      if (counted.status !== 201)
+        throw new Error(`count failed: ${JSON.stringify(counted.body)}`);
+      grossistes.push({ depotId, code });
     }
 
     // Three regions, two points of sale each, three vendeurs per point of sale.
@@ -201,7 +201,7 @@ describe("a month of activity", () => {
           await a.post(`/v1/restocks/${order.id}/assign`, {
             depotId: g.depotId,
           });
-          await client(api, g.acc.token).post(`/v1/restocks/${order.id}/ship`, {
+          await r.post(`/v1/restocks/${order.id}/ship`, {
             lines: lines((i) => 3 + (i % 4)),
           });
         } else await a.post(`/v1/restocks/${order.id}/send-direct`, {});

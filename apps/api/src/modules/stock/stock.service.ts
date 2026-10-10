@@ -37,9 +37,6 @@ export class StockService {
       (actor.role === "RESPONSABLE" &&
         location.stockRegionId !== null &&
         location.stockRegionId === actor.regionId) ||
-      (actor.role === "GROSSISTE" &&
-        location.kind === "DEPOT" &&
-        location.id === actor.depotId) ||
       // A team member reads their own store's stock (to see what can be sold), nothing else.
       (actor.role === "VENDEUR" &&
         location.kind === "PDV" &&
@@ -112,9 +109,9 @@ export class StockService {
     },
   ) {
     requireRule(
-      ["RESPONSABLE", "GROSSISTE"].includes(actor.role),
+      ["ADMIN", "RESPONSABLE"].includes(actor.role),
       "FORBIDDEN",
-      "Only a responsable or grossiste declares stock.",
+      "Only the admin or a responsable declares stock.",
       403,
     );
     return this.db.run(actor, async (tx) => {
@@ -130,7 +127,7 @@ export class StockService {
       const open = await tx.stockDeclaration.findFirst({
         where: {
           locationId: location.id,
-          status: { in: ["PENDING", "REVIEW"] },
+          status: "PENDING",
         },
       });
       requireRule(
@@ -142,6 +139,13 @@ export class StockService {
       const counted = await tx.stockDeclaration.findFirst({
         where: { locationId: location.id, status: "APPROVED" },
       });
+      // The admin counts a place once; later changes are corrections (see `adjust`).
+      requireRule(
+        actor.role !== "ADMIN" || !counted,
+        "ALREADY_COUNTED",
+        "This place was already counted: correct its stock instead.",
+        409,
+      );
       const permit = counted
         ? await tx.stockRecount.findFirst({
             where: {
@@ -166,6 +170,7 @@ export class StockService {
               actor,
               input.photoIds ?? (input.photoId ? [input.photoId] : []),
               "Add a photo of the stock.",
+              { regionId: location.stockRegionId },
             )
           : [];
       const ids = input.lines.map((l) => l.productId);
@@ -183,16 +188,13 @@ export class StockService {
         "Unknown or inactive product.",
         404,
       );
-      // A grossiste's count is checked by the responsable of the region before it reaches the admin.
-      const regionBoss =
-        actor.role === "GROSSISTE" && location.stockRegionId
-          ? await responsableIds(tx, location.stockRegionId)
-          : [];
-      const toReview = regionBoss.length > 0;
+      // The admin's own count needs nobody's approval; a responsable's goes to the admin.
+      const byAdmin = actor.role === "ADMIN";
       const declaration = await tx.stockDeclaration.create({
         data: {
           kind: counted ? "COUNT" : "INITIAL",
-          status: toReview ? "REVIEW" : "PENDING",
+          status: byAdmin ? "APPROVED" : "PENDING",
+          ...(byAdmin && { decidedById: actor.id, decidedAt: new Date() }),
           locationId: location.id,
           locationKind: location.kind,
           regionId: location.stockRegionId,
@@ -204,6 +206,7 @@ export class StockService {
             create: input.lines.map((l) => ({
               productId: l.productId,
               quantity: l.quantity,
+              ...(byAdmin && { approvedQuantity: l.quantity }),
             })),
           },
         },
@@ -223,18 +226,41 @@ export class StockService {
           where: { id: permit.id },
           data: { declarationId: declaration.id },
         });
-      const notice = {
-        key: toReview ? "stock.to_review" : "stock.submitted",
-        params: {
-          place: location.name,
-          by: actor.name,
-          kind: declaration.kind,
-        },
-        entityType: "StockDeclaration",
-        entityId: declaration.id,
-      };
-      if (toReview) await notify(tx, regionBoss, notice);
-      else await notifyAdmins(tx, notice);
+      if (byAdmin) {
+        for (const line of declaration.lines)
+          await setStock(tx, location, line.productId, line.quantity, {
+            reason: "DECLARATION",
+            refType: "StockDeclaration",
+            refId: declaration.id,
+            actorId: actor.id,
+          });
+        await audit(
+          tx,
+          actor,
+          "stock.approved",
+          "StockDeclaration",
+          declaration.id,
+          { amended: 0 },
+          location.stockRegionId,
+        );
+        if (location.stockRegionId)
+          await notify(tx, await responsableIds(tx, location.stockRegionId), {
+            key: "stock.approved",
+            params: { place: location.name, note: null, amended: 0 },
+            entityType: "StockDeclaration",
+            entityId: declaration.id,
+          });
+      } else
+        await notifyAdmins(tx, {
+          key: "stock.submitted",
+          params: {
+            place: location.name,
+            by: actor.name,
+            kind: declaration.kind,
+          },
+          entityType: "StockDeclaration",
+          entityId: declaration.id,
+        });
       return (await this.present(tx, [declaration]))[0]!;
     });
   }
@@ -244,7 +270,7 @@ export class StockService {
     filter: { status?: Approval; regionId?: string; locationId?: string },
   ) {
     requireRule(
-      ["ADMIN", "RESPONSABLE", "GROSSISTE"].includes(actor.role),
+      ["ADMIN", "RESPONSABLE"].includes(actor.role),
       "FORBIDDEN",
       "Not allowed.",
       403,
@@ -267,7 +293,7 @@ export class StockService {
 
   async get(actor: Actor, id: string) {
     requireRule(
-      ["ADMIN", "RESPONSABLE", "GROSSISTE"].includes(actor.role),
+      ["ADMIN", "RESPONSABLE"].includes(actor.role),
       "FORBIDDEN",
       "Not allowed.",
       403,
@@ -295,12 +321,7 @@ export class StockService {
       403,
     );
     return this.db.run(actor, async (tx) => {
-      const declaration = await this.lockDeclaration(
-        tx,
-        id,
-        "PENDING",
-        "This declaration was already decided.",
-      );
+      const declaration = await this.lockDeclaration(tx, id);
       const overrides = new Map(
         (input.lines ?? []).map((l) => [l.productId, l.quantity]),
       );
@@ -366,12 +387,7 @@ export class StockService {
       403,
     );
     return this.db.run(actor, async (tx) => {
-      const declaration = await this.lockDeclaration(
-        tx,
-        id,
-        "PENDING",
-        "This declaration was already decided.",
-      );
+      const declaration = await this.lockDeclaration(tx, id);
       const location = await findLocation(tx, declaration.locationId);
       const updated = await tx.stockDeclaration.update({
         where: { id },
@@ -400,86 +416,6 @@ export class StockService {
         note,
         0,
       );
-      return (await this.present(tx, [updated]))[0]!;
-    });
-  }
-
-  /**
-   * The responsable of the region checks a grossiste's count (photos and numbers)
-   * and passes it to the admin, or sends it back.
-   */
-  review(
-    actor: Actor,
-    id: string,
-    input: { action: "approve" | "reject"; note?: string },
-  ) {
-    requireRule(
-      actor.role === "RESPONSABLE" && actor.regionId,
-      "FORBIDDEN",
-      "Only the responsable of the region checks this.",
-      403,
-    );
-    requireRule(
-      input.action === "approve" || input.note?.trim(),
-      "NOTE_REQUIRED",
-      "Explain what is wrong.",
-    );
-    return this.db.run(actor, async (tx) => {
-      const declaration = await this.lockDeclaration(
-        tx,
-        id,
-        "REVIEW",
-        "This count is not waiting for your check.",
-      );
-      // Another region's count is invisible to this responsable, as if it did not exist.
-      if (declaration.regionId !== actor.regionId)
-        throw notFound("Stock declaration");
-      const location = await findLocation(tx, declaration.locationId);
-      const passed = input.action === "approve";
-      const updated = await tx.stockDeclaration.update({
-        where: { id },
-        data: {
-          status: passed ? "PENDING" : "REJECTED",
-          reviewedById: actor.id,
-          reviewedAt: new Date(),
-          reviewNote: input.note?.trim() || null,
-          ...(passed
-            ? {}
-            : {
-                decidedById: actor.id,
-                decidedAt: new Date(),
-                decisionNote: input.note?.trim(),
-              }),
-        },
-        include: { lines: true },
-      });
-      await audit(
-        tx,
-        actor,
-        passed ? "stock.reviewed" : "stock.review_rejected",
-        "StockDeclaration",
-        id,
-        { note: input.note ?? null },
-        declaration.regionId,
-      );
-      if (passed)
-        await notifyAdmins(tx, {
-          key: "stock.submitted",
-          params: {
-            place: location.name,
-            by: actor.name,
-            kind: declaration.kind,
-          },
-          entityType: "StockDeclaration",
-          entityId: id,
-        });
-      else
-        await notify(tx, [declaration.createdById], {
-          key: "stock.rejected",
-          params: { place: location.name, note: input.note ?? null },
-          entityType: "StockDeclaration",
-          entityId: id,
-        });
       return (await this.present(tx, [updated]))[0]!;
     });
   }
@@ -539,19 +475,11 @@ export class StockService {
         location.stockRegionId,
       );
       if (changed > 0) {
-        const owner =
-          location.kind === "DEPOT"
-            ? (await tx.depot.findUnique({ where: { id: location.id } }))
-                ?.userId
-            : null;
         await notify(
           tx,
-          [
-            ...(owner ? [owner] : []),
-            ...(location.stockRegionId
-              ? await responsableIds(tx, location.stockRegionId)
-              : []),
-          ],
+          location.stockRegionId
+            ? await responsableIds(tx, location.stockRegionId)
+            : [],
           {
             key: "stock.adjusted",
             params: {
@@ -572,12 +500,7 @@ export class StockService {
 
   /** Ask the admin for permission to count a place again. */
   requestRecount(actor: Actor, input: { locationId: string; reason: string }) {
-    requireRule(
-      ["RESPONSABLE", "GROSSISTE"].includes(actor.role),
-      "FORBIDDEN",
-      "Not allowed.",
-      403,
-    );
+    requireRule(actor.role === "RESPONSABLE", "FORBIDDEN", "Not allowed.", 403);
     return this.db.run(actor, async (tx) => {
       const location = await this.authorize(tx, actor, input.locationId);
       requireRule(
@@ -592,7 +515,7 @@ export class StockService {
         !(await tx.stockDeclaration.findFirst({
           where: {
             locationId: location.id,
-            status: { in: ["PENDING", "REVIEW"] },
+            status: "PENDING",
           },
         })),
         "DECLARATION_PENDING",
@@ -646,7 +569,7 @@ export class StockService {
     filter: { status?: Approval; locationId?: string },
   ) {
     requireRule(
-      ["ADMIN", "RESPONSABLE", "GROSSISTE"].includes(actor.role),
+      ["ADMIN", "RESPONSABLE"].includes(actor.role),
       "FORBIDDEN",
       "Not allowed.",
       403,
@@ -771,13 +694,8 @@ export class StockService {
     }));
   }
 
-  /** Locks a declaration for a decision and checks it is still at the expected step. */
-  private async lockDeclaration(
-    tx: Tx,
-    id: string,
-    status: "PENDING" | "REVIEW",
-    alreadyDone: string,
-  ) {
+  /** Locks a declaration for the admin's decision and checks nobody decided it yet. */
+  private async lockDeclaration(tx: Tx, id: string) {
     await this.db.lock(tx, "StockDeclaration", id);
     const declaration = await tx.stockDeclaration.findUnique({
       where: { id },
@@ -785,9 +703,9 @@ export class StockService {
     });
     if (!declaration) throw notFound("Stock declaration");
     requireRule(
-      declaration.status === status,
+      declaration.status === "PENDING",
       "INVALID_STATE",
-      alreadyDone,
+      "This declaration was already decided.",
       409,
     );
     return declaration;
@@ -870,8 +788,6 @@ export class StockService {
         : null,
       decidedAt: r.decidedAt,
       decisionNote: r.decisionNote,
-      reviewedAt: r.reviewedAt,
-      reviewNote: r.reviewNote,
       lines: r.lines
         .map((l) => ({
           productId: l.productId,

@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Patch,
@@ -10,6 +11,7 @@ import {
 } from "@nestjs/common";
 import { z } from "zod";
 import { type AuthRequest, Roles, parse } from "../../core/http";
+import { DepotsService } from "./depots.service";
 import { StructureService } from "./structure.service";
 import { UsersService } from "./users.service";
 
@@ -39,19 +41,6 @@ const AdminUser = z.discriminatedUnion("role", [
     phone,
   }),
   z.object({
-    role: z.literal("GROSSISTE"),
-    regionId: id,
-    name: text(100),
-    email,
-    phone,
-    depot: z.object({
-      name: text(),
-      address: text(200),
-      city: text(80),
-      phone,
-    }),
-  }),
-  z.object({
     role: z.literal("VENDEUR"),
     pdvId: id,
     name: text(100),
@@ -64,11 +53,22 @@ const UserPatch = z.object({
   phone,
   pdvId: id.optional(),
 });
+const Photos = z.array(id).max(5);
+const NewDepot = z.object({
+  regionId: id,
+  name: text(),
+  address: text(200),
+  city: text(80),
+  phone,
+  photoIds: Photos.optional(),
+});
 const DepotPatch = z.object({
   name: text().optional(),
   address: text(200).optional(),
   city: text(80).optional(),
   phone,
+  photoIds: Photos.optional(),
+  status: z.enum(["ACTIVE", "SUSPENDED"]).optional(),
 });
 
 @Controller("v1")
@@ -76,6 +76,7 @@ export class DirectoryController {
   constructor(
     private readonly structure: StructureService,
     private readonly users: UsersService,
+    private readonly depotsService: DepotsService,
   ) {}
 
   @Get("regions") regions() {
@@ -264,9 +265,7 @@ export class DirectoryController {
       r.actor,
       parse(
         z.object({
-          role: z
-            .enum(["ADMIN", "RESPONSABLE", "GROSSISTE", "VENDEUR"])
-            .optional(),
+          role: z.enum(["ADMIN", "RESPONSABLE", "VENDEUR"]).optional(),
           status: Status.optional(),
           regionId: id.optional(),
           pdvId: id.optional(),
@@ -349,19 +348,47 @@ export class DirectoryController {
     return this.users.cancelInvite(r.actor, parse(id, i));
   }
 
-  // Depots
-  @Roles("ADMIN", "RESPONSABLE", "GROSSISTE")
+  // Grossistes (warehouses)
+  @Roles("ADMIN", "RESPONSABLE")
   @Get("depots")
-  depots(@Req() r: AuthRequest) {
-    return this.users.listDepots(r.actor);
+  depots(@Req() r: AuthRequest, @Query() q: Record<string, string>) {
+    return this.depotsService.list(
+      r.actor,
+      parse(
+        z.object({
+          regionId: id.optional(),
+          status: Status.optional(),
+        }),
+        q,
+      ),
+    );
   }
-  @Roles("ADMIN", "GROSSISTE")
+  @Roles("ADMIN", "RESPONSABLE")
+  @Get("depots/:id")
+  depot(@Req() r: AuthRequest, @Param("id") i: string) {
+    return this.depotsService.get(r.actor, parse(id, i));
+  }
+  @Roles("ADMIN")
+  @Post("depots")
+  createDepot(@Req() r: AuthRequest, @Body() b: unknown) {
+    return this.depotsService.create(r.actor, parse(NewDepot, b));
+  }
+  @Roles("ADMIN")
   @Patch("depots/:id")
   updateDepot(
     @Req() r: AuthRequest,
     @Param("id") i: string,
     @Body() b: unknown,
   ) {
-    return this.users.updateDepot(r.actor, parse(id, i), parse(DepotPatch, b));
+    return this.depotsService.update(
+      r.actor,
+      parse(id, i),
+      parse(DepotPatch, b),
+    );
+  }
+  @Roles("ADMIN")
+  @Delete("depots/:id")
+  removeDepot(@Req() r: AuthRequest, @Param("id") i: string) {
+    return this.depotsService.remove(r.actor, parse(id, i));
   }
 }

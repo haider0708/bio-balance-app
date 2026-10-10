@@ -226,7 +226,6 @@ class _CourseEditorScreenState extends ConsumerState<CourseEditorScreen> {
                 children: [
                   for (final (value, label) in [
                     ('RESPONSABLE', t.roleResponsablePlural),
-                    ('GROSSISTE', t.roleGrossistePlural),
                     ('VENDEUR', t.roleVendeurPlural),
                   ])
                     FilterChip(

@@ -420,15 +420,6 @@ class _ComposeMessageScreenState extends ConsumerState<ComposeMessageScreen> {
                   ),
                 ),
                 chip(
-                  t.roleGrossistePlural,
-                  _audience.roles.contains('GROSSISTE'),
-                  () => _change(
-                    _audience.copyWith(
-                      roles: _toggle(_audience.roles, 'GROSSISTE'),
-                    ),
-                  ),
-                ),
-                chip(
                   t.roleVendeurPlural,
                   _audience.roles.contains('VENDEUR'),
                   () => _change(

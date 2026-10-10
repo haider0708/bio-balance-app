@@ -61,8 +61,7 @@ export class Database extends PrismaClient implements OnModuleDestroy {
               await tx.$executeRaw`SELECT set_config('app.role',${actor.role},true),
                 set_config('app.user_id',${actor.id},true),
                 set_config('app.region_id',${actor.regionId ?? ""},true),
-                set_config('app.pdv_id',${actor.pdvId ?? ""},true),
-                set_config('app.depot_id',${actor.depotId ?? ""},true)`;
+                set_config('app.pdv_id',${actor.pdvId ?? ""},true)`;
             return work(tx);
           },
           { isolationLevel, maxWait: 5000, timeout: 15000 },

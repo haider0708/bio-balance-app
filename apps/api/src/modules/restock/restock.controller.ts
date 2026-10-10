@@ -23,9 +23,10 @@ const Lines = (q: z.ZodNumber) =>
 const Note = z.string().trim().max(500);
 
 const Create = z.object({
-  destId: id.optional(),
+  destId: id,
   note: Note.optional(),
   lines: Lines(positive),
+  photoIds: z.array(id).max(5).optional(),
 });
 const Assign = z.object({ depotId: id, lines: Lines(positive).optional() });
 const Direct = z.object({ lines: Lines(positive).optional() });
@@ -55,7 +56,7 @@ const Status = z.enum([
 export class RestockController {
   constructor(private readonly restocks: RestockService) {}
 
-  @Roles("RESPONSABLE", "GROSSISTE")
+  @Roles("ADMIN", "RESPONSABLE")
   @Post()
   create(@Req() r: AuthRequest, @Body() b: unknown) {
     return this.restocks.create(r.actor, parse(Create, b));
@@ -97,7 +98,7 @@ export class RestockController {
       parse(Direct, b ?? {}),
     );
   }
-  @Roles("GROSSISTE")
+  @Roles("ADMIN", "RESPONSABLE")
   @Post(":id/ship")
   ship(@Req() r: AuthRequest, @Param("id") i: string, @Body() b: unknown) {
     return this.restocks.ship(r.actor, parse(id, i), parse(Ship, b));
@@ -111,7 +112,7 @@ export class RestockController {
       parse(Receiver, b).userId,
     );
   }
-  @Roles("RESPONSABLE", "GROSSISTE", "VENDEUR")
+  @Roles("ADMIN", "RESPONSABLE", "VENDEUR")
   @Post(":id/receipt")
   receive(@Req() r: AuthRequest, @Param("id") i: string, @Body() b: unknown) {
     return this.restocks.receive(r.actor, parse(id, i), parse(Receive, b));

@@ -3,7 +3,6 @@ import '../api/json.dart';
 enum Role {
   admin,
   responsable,
-  grossiste,
   vendeur;
 
   static Role parse(String value) => Role.values.firstWhere(
@@ -45,7 +44,6 @@ class Me {
     this.phone,
     this.region,
     this.pdv,
-    this.depot,
   });
 
   factory Me.fromJson(Json j) => Me(
@@ -59,7 +57,6 @@ class Me {
         ? null
         : Region.fromJson(j.obj('region')),
     pdv: j.objOrNull('pdv') == null ? null : Place.fromJson(j.obj('pdv')),
-    depot: j.objOrNull('depot') == null ? null : Place.fromJson(j.obj('depot')),
   );
 
   final String id;
@@ -70,7 +67,6 @@ class Me {
   final String locale;
   final Region? region;
   final Place? pdv;
-  final Place? depot;
 
   /// The first letters of the name, for avatars.
   String get initials {

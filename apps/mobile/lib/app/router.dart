@@ -18,7 +18,6 @@ import '../features/auth/admin_login_screen.dart';
 import '../features/auth/login_screen.dart';
 import '../features/catalog/catalog_screens.dart';
 import '../features/catalog/product.dart';
-import '../features/dashboard/grossiste_home.dart';
 import '../features/dashboard/management_home.dart';
 import '../features/dashboard/vendeur_home.dart';
 import '../features/media/photo_viewer.dart';
@@ -100,10 +99,6 @@ final routerProvider = Provider<GoRouter>((ref) {
         }
       }
       if (_publicPaths.contains(path) || path == '/splash') return '/home';
-      if (path.startsWith('/catalog') &&
-          session.value?.me.role == Role.grossiste) {
-        return '/home';
-      }
       return null;
     },
     routes: [
@@ -173,7 +168,6 @@ StatefulShellRoute _shell(List<TabSpec> tabs) =>
 List<RouteBase> _roleRoutes(Role role) => switch (role) {
   Role.vendeur => [..._vendeur(), ..._shared()],
   Role.responsable => [..._responsable(), ..._shared()],
-  Role.grossiste => [..._grossiste(), ..._shared()],
   // On the phone the admin has bottom tabs; in a browser, a sidebar around every page.
   Role.admin =>
     kIsWeb
@@ -298,35 +292,6 @@ List<RouteBase> _responsable() => [
   ]),
 ];
 
-List<RouteBase> _grossiste() => [
-  _shell([
-    TabSpec(
-      LucideIcons.house,
-      (t) => t.tabHome,
-      '/home',
-      () => const GrossisteHome(),
-    ),
-    TabSpec(
-      LucideIcons.boxes,
-      (t) => t.stockTitle,
-      '/stock',
-      () => const _OwnStock(),
-    ),
-    TabSpec(
-      LucideIcons.truck,
-      (t) => t.tabOrders,
-      '/orders',
-      () => const RestocksScreen(),
-    ),
-    TabSpec(
-      LucideIcons.menu,
-      (t) => t.moreTitle,
-      '/more',
-      () => _more(Role.grossiste),
-    ),
-  ]),
-];
-
 /// The admin's bottom tabs on the phone.
 List<RouteBase> _adminTabs() => [
   _shell([
@@ -367,10 +332,19 @@ List<RouteBase> _adminTabs() => [
 List<RouteBase> _admin() => [
   GoRoute(path: '/payouts', builder: (_, _) => const PayoutsScreen()),
   GoRoute(path: '/reports', builder: (_, _) => const ReportsScreen()),
-  _withExtra<Depot>(
-    '/depots/:id',
+  GoRoute(path: '/depots/new', builder: (_, _) => const DepotFormScreen()),
+  _withExtra<String>(
+    '/depots/:id/restock',
     '/depots',
-    (_, depot) => DepotScreen(depot: depot),
+    (state, name) => RecordDeliveryScreen(
+      depotId: state.pathParameters['id']!,
+      depotName: name,
+    ),
+  ),
+  _withExtra<Depot>(
+    '/depots/:id/edit',
+    '/depots',
+    (_, depot) => DepotFormScreen(existing: depot),
   ),
   GoRoute(
     path: '/stock/:id/adjust',
@@ -462,6 +436,10 @@ List<RouteBase> _shared() => [
     builder: (_, _) => const StockAttentionScreen(),
   ),
   GoRoute(path: '/depots', builder: (_, _) => const DepotsScreen()),
+  GoRoute(
+    path: '/depots/:id',
+    builder: (_, state) => DepotScreen(depotId: state.pathParameters['id']!),
+  ),
   GoRoute(path: '/training', builder: (_, _) => const CoursesScreen()),
   GoRoute(
     path: '/training/:id',
@@ -504,10 +482,6 @@ List<RouteBase> _shared() => [
     builder: (_, state) => AddMemberScreen(pdvId: state.pathParameters['id']!),
   ),
   GoRoute(
-    path: '/stock/review',
-    builder: (_, _) => const CountsToReviewScreen(),
-  ),
-  GoRoute(
     path: '/stock/declarations/:id',
     builder: (_, state) =>
         DeclarationScreen(declarationId: state.pathParameters['id']!),
@@ -528,7 +502,7 @@ List<RouteBase> _shared() => [
   ),
   GoRoute(
     path: '/restocks/new',
-    builder: (_, state) => RequestRestockScreen(pdvId: state.extra as String?),
+    builder: (_, state) => RequestRestockScreen(destId: state.extra as String?),
   ),
   GoRoute(
     path: '/restocks/:id',
@@ -617,22 +591,6 @@ Widget _more(Role role) => Builder(
           tone: Tone.muted,
         ),
       ],
-      // A grossiste works from orders and stock: no catalogue page.
-      Role.grossiste => [
-        MoreEntry(LucideIcons.graduationCap, t.trainingTitle, '/training'),
-        MoreEntry(
-          LucideIcons.bell,
-          t.notificationsTitle,
-          '/notifications',
-          tone: Tone.warning,
-        ),
-        MoreEntry(
-          LucideIcons.settings,
-          t.settingsTitle,
-          '/settings',
-          tone: Tone.muted,
-        ),
-      ],
       _ => [
         MoreEntry(LucideIcons.package, t.catalogTitle, '/catalog'),
         MoreEntry(LucideIcons.graduationCap, t.trainingTitle, '/training'),
@@ -653,20 +611,6 @@ Widget _more(Role role) => Builder(
     return MoreScreen(entries: entries);
   },
 );
-
-class _OwnStock extends ConsumerWidget {
-  const _OwnStock();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final me = ref.watch(meProvider);
-    return StockScreen(
-      locationId: me.depot?.id ?? '',
-      title: me.depot?.name,
-      embedded: true,
-    );
-  }
-}
 
 class _CatalogEntry extends ConsumerWidget {
   const _CatalogEntry();

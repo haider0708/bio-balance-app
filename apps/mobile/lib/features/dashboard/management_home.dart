@@ -255,23 +255,12 @@ List<Widget> attentionSections(
   final restocks = data.obj('restocks');
   final attention = data.obj('attention');
   final payouts = data.objOrNull('payouts');
+  final grossistes = data.objOrNull('grossistes');
+  final uncounted = grossistes?.integer('uncounted') ?? 0;
   final locale = t.localeName;
   void approvals_() => context.go('/approvals');
   return [
     SectionHeader(t.needsAttention),
-    if (!admin)
-      AttentionGroup(
-        title: t.toApprove,
-        rows: [
-          AttentionLine(
-            icon: LucideIcons.warehouse,
-            tone: Tone.warning,
-            label: t.attnGrossisteCounts,
-            count: approvals.integer('REVIEW'),
-            onTap: () => context.push('/stock/review'),
-          ),
-        ],
-      ),
     if (admin) ...[
       AttentionGroup(
         title: t.toApprove,
@@ -340,9 +329,31 @@ List<Widget> attentionSections(
         ),
       ],
     ),
+    if (uncounted > 0)
+      AttentionGroup(
+        title: t.grossistesTitle,
+        rows: [
+          AttentionLine(
+            icon: LucideIcons.warehouse,
+            tone: Tone.warning,
+            label: t.attnGrossisteUncounted,
+            count: uncounted,
+            onTap: () => context.push('/depots'),
+          ),
+        ],
+      ),
     AttentionGroup(
       title: t.restocksSection,
       rows: [
+        // The responsable ships the orders the admin gave to a grossiste.
+        if (!admin)
+          AttentionLine(
+            icon: LucideIcons.packageCheck,
+            tone: Tone.warning,
+            label: t.attnToShip,
+            count: restocks.integer('ASSIGNED'),
+            onTap: () => context.go('/restocks'),
+          ),
         AttentionLine(
           icon: LucideIcons.truck,
           tone: Tone.info,
@@ -371,7 +382,7 @@ List<Widget> attentionSections(
         ],
       ),
     if ((approvals.integer('total') == 0 || !admin) &&
-        (admin || approvals.integer('REVIEW') == 0) &&
+        uncounted == 0 &&
         attention.integer('negativeStock') == 0 &&
         attention.integer('lowStock') == 0 &&
         restocks.integer('REQUESTED') +

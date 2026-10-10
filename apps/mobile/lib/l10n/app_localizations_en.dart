@@ -490,10 +490,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get declaration => 'Stock declaration';
 
   @override
-  String get declarationRejectedRetry =>
-      'Your last stock declaration was rejected. Declare it again.';
-
-  @override
   String get declarationSent => 'Sent to BioBalance for approval';
 
   @override
@@ -684,10 +680,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get fullNameOptional => 'Your name (optional)';
 
   @override
-  String get grossisteDeclareFirst =>
-      'Declare your depot stock with a photo so BioBalance can approve it.';
-
-  @override
   String get grossistesTitle => 'Grossistes';
 
   @override
@@ -828,18 +820,6 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String myRestockRequests(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count of your restock requests are in progress',
-      one: '1 of your restock requests is in progress',
-      zero: 'No restock request in progress',
-    );
-    return '$_temp0';
-  }
-
-  @override
   String get needsAttention => 'Needs attention';
 
   @override
@@ -965,9 +945,6 @@ class AppLocalizationsEn extends AppLocalizations {
       'Announcements and updates will appear here.';
 
   @override
-  String get noOrdersToPrepare => 'No order to prepare';
-
-  @override
   String get noPayoutRequests => 'No payout request';
 
   @override
@@ -1052,20 +1029,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get orVideoLink => 'Or a video link';
-
-  @override
-  String get ordersTitle => 'Orders';
-
-  @override
-  String ordersToPrepare(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count orders to prepare',
-      one: '1 order to prepare',
-    );
-    return '$_temp0';
-  }
 
   @override
   String overlapBody(String details) {
@@ -1493,12 +1456,6 @@ class AppLocalizationsEn extends AppLocalizations {
       'Administrator access only. Use your password and authenticator code.';
 
   @override
-  String get roleGrossiste => 'Grossiste';
-
-  @override
-  String get roleGrossistePlural => 'Grossistes';
-
-  @override
   String get roleResponsable => 'Responsable';
 
   @override
@@ -1669,11 +1626,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsTitle => 'Settings';
 
   @override
-  String shipHint(String destination) {
-    return 'Enter what leaves your depot for $destination.';
-  }
-
-  @override
   String shippedReceived(int shipped, int received) {
     return 'Sent $shipped · counted $received';
   }
@@ -1790,9 +1742,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get tabNetwork => 'Network';
-
-  @override
-  String get tabOrders => 'Orders';
 
   @override
   String get tabPdvs => 'Stores';
@@ -2146,13 +2095,6 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get statusWaitingResponsable => 'Waiting for the responsable';
-
-  @override
-  String get declarationWaitingResponsable =>
-      'Your count is waiting for the responsable’s check, then the admin.';
-
-  @override
   String get recountAsked2 =>
       'Recount requested: waiting for the admin to allow it.';
 
@@ -2174,32 +2116,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get recountRequested => 'Request sent to the admin';
 
   @override
-  String get reviewHint =>
-      'Check the photos and the numbers. Sent to the admin, it still needs their approval.';
-
-  @override
-  String get sentToAdmin => 'Sent to the admin';
-
-  @override
-  String get sendBack => 'Send back';
-
-  @override
-  String get sentBack => 'Sent back to the grossiste';
-
-  @override
-  String get countsToCheck => 'Counts to check';
-
-  @override
-  String get nothingToCheck => 'Nothing to check right now';
-
-  @override
   String get typeRecount => 'Recount request';
 
   @override
   String get attnRecounts => 'Recount requests';
-
-  @override
-  String get attnGrossisteCounts => 'Grossiste counts to check';
 
   @override
   String get approveRecountTitle => 'Allow a recount?';
@@ -2209,10 +2129,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get recountReasonLabel => 'Reason given';
-
-  @override
-  String get grossisteHandledBy =>
-      'This grossiste is looked after by the responsable of the region: they check the stock counts and photos before the admin approves.';
 
   @override
   String outOfStockName(String name) {
@@ -2488,4 +2404,109 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get backToHome => 'Back to home';
+
+  @override
+  String get depotNew => 'New grossiste';
+
+  @override
+  String get depotAddress => 'Address';
+
+  @override
+  String get depotPhotos => 'Photos of the grossiste';
+
+  @override
+  String get depotPhotosAdd => 'Add a photo of the grossiste';
+
+  @override
+  String get depotNoStock => 'No stock entered yet';
+
+  @override
+  String get depotCountWaiting => 'Count waiting for approval';
+
+  @override
+  String get depotSuspendedLabel => 'Suspended';
+
+  @override
+  String depotHolds(int units, int products) {
+    return '$units units · $products products';
+  }
+
+  @override
+  String get depotSaved => 'Grossiste saved';
+
+  @override
+  String get depotSuspend => 'Suspend';
+
+  @override
+  String get depotReactivate => 'Reactivate';
+
+  @override
+  String get depotRemove => 'Remove';
+
+  @override
+  String get depotRemoved => 'Grossiste removed';
+
+  @override
+  String get depotRemoveTitle => 'Remove this grossiste?';
+
+  @override
+  String get depotRemoveBody =>
+      'Only a grossiste that never held stock can be removed. Otherwise suspend it.';
+
+  @override
+  String get depotSuspendedHint =>
+      'This grossiste is suspended: it cannot receive or give stock.';
+
+  @override
+  String get depotFirstStockHint =>
+      'Count what it holds and take photos: the stock becomes official once approved.';
+
+  @override
+  String get depotFirstStockAdminHint =>
+      'Count what it holds and take photos: the stock applies as soon as you save.';
+
+  @override
+  String get depotRestock => 'Restock';
+
+  @override
+  String get depotCorrect => 'Correct the stock';
+
+  @override
+  String get stockSaved => 'Stock saved';
+
+  @override
+  String get saveStock => 'Save the stock';
+
+  @override
+  String get stockCountedByYou =>
+      'You are counting this place yourself: the stock applies as soon as you save.';
+
+  @override
+  String recordDeliveryTitle(String name) {
+    return 'Restock $name';
+  }
+
+  @override
+  String get recordDeliveryHint =>
+      'Count what BioBalance delivered and photograph it. The goods are added to the stock as soon as you save.';
+
+  @override
+  String get recordDeliverySave => 'Add to the stock';
+
+  @override
+  String get deliveryRecorded => 'Stock added';
+
+  @override
+  String get photoOfGoods => 'Photo of the goods';
+
+  @override
+  String shipFromHint(String depot, String destination) {
+    return 'Enter what really leaves $depot for $destination.';
+  }
+
+  @override
+  String get attnGrossisteUncounted => 'Grossistes without stock yet';
+
+  @override
+  String get attnToShip => 'Orders to ship';
 }

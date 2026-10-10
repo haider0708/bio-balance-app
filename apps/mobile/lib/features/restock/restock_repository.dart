@@ -32,15 +32,19 @@ class RestockRepository {
     await _ref.read(apiClientProvider).get('/v1/restocks/$id') as Json,
   );
 
+  /// A request for goods (responsable), or, for the admin restocking a grossiste, the delivery
+  /// itself with its photos: it is added to the stock at once.
   Future<RestockOrder> create({
-    String? destId,
+    required String destId,
     String? note,
     required List<Map<String, Object>> lines,
+    List<String> photoIds = const [],
   }) async => RestockOrder.fromJson(
     await _ref.read(apiClientProvider).post('/v1/restocks', {
-      'destId': ?destId,
+      'destId': destId,
       if (note != null && note.isNotEmpty) 'note': note,
       'lines': lines,
+      if (photoIds.isNotEmpty) 'photoIds': photoIds,
     }) as Json,
   );
 

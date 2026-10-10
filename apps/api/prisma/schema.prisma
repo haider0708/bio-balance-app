@@ -11,7 +11,6 @@ datasource db {
 enum Role {
   ADMIN
   RESPONSABLE
-  GROSSISTE
   VENDEUR
 }
 
@@ -25,8 +24,6 @@ enum Status {
 
 enum Approval {
   PENDING
-  /// A grossiste's count waiting for the responsable's check.
-  REVIEW
   APPROVED
   REJECTED
 }
@@ -200,15 +197,17 @@ model Pdv {
 }
 
 /// A grossiste's depot. Created by the admin together with the account.
+/// A grossiste: a warehouse of a region that holds stock. It has no account; the
+/// admin and the region's responsable manage it and its stock.
 model Depot {
   id        String   @id @default(uuid()) @db.Uuid
-  userId    String   @unique @db.Uuid
-  /// The region this grossiste serves; its responsable handles them.
   regionId  String   @db.Uuid
   name      String
   address   String
   city      String
   phone     String?
+  /// One to five photos of the warehouse (media ids), shown on its page.
+  photoIds  String[] @db.Uuid @default([])
   status    Status   @default(ACTIVE)
   createdAt DateTime @default(now())
 
@@ -245,7 +244,7 @@ model Stock {
   locationId   String       @db.Uuid
   productId    String       @db.Uuid
   locationKind LocationKind
-  /// Null for depots: they are not part of a region.
+  /// The region that owns the stock: a point of sale's, or the grossiste's.
   regionId     String?      @db.Uuid
   quantity     Int          @default(0)
   updatedAt    DateTime     @default(now()) @updatedAt
@@ -273,7 +272,7 @@ model StockMovement {
   @@index([refType, refId])
 }
 
-/// Stock entered by a responsable (or grossiste) with a photo, approved by the admin.
+/// Stock counted by a responsable or the admin with photos; the admin approves a responsable's count.
 model StockDeclaration {
   id           String          @id @default(uuid()) @db.Uuid
   kind         DeclarationKind
@@ -290,9 +289,6 @@ model StockDeclaration {
   decidedById  String?         @db.Uuid
   decidedAt    DateTime?
   decisionNote String?
-  reviewedById String?         @db.Uuid
-  reviewedAt   DateTime?
-  reviewNote   String?
   lines        StockDeclarationLine[]
 
   @@index([status, createdAt])
@@ -318,7 +314,7 @@ model RestockOrder {
   id             String      @id @default(uuid()) @db.Uuid
   /// RS-2026-000001
   number         String      @unique
-  /// Region of the destination point of sale; null when the destination is a depot.
+  /// Region of the destination: a point of sale's, or the grossiste's.
   regionId       String?     @db.Uuid
   destKind       LocationKind
   destId         String      @db.Uuid

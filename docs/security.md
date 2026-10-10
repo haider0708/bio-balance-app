@@ -1,6 +1,6 @@
 # Security
 
-- **Regions are isolated by the database.** Row-level security (forced, with a database role that cannot bypass it) limits every query to the caller's role, region, point of sale or depot. A forgotten filter in the code cannot leak another region's data; tests forge filters to prove it.
+- **Regions are isolated by the database.** Row-level security (forced, with a database role that cannot bypass it) limits every query to the caller's role, region or point of sale. Grossistes have no accounts: their stock belongs to a region. A forgotten filter in the code cannot leak another region's data; tests forge filters to prove it.
 - **Sign-in.** Argon2id passwords (admission-controlled so a flood cannot exhaust the server), random 256-bit session tokens stored hashed, 30-day sessions (12 hours for the admin), attempt limits per address and per email, identical answers for unknown and wrong accounts. The admin also needs a TOTP code from an authenticator app; each code works once. The secret is stored encrypted with `MFA_ENCRYPTION_KEY`.
 - **Invitations and recovery** use one-time 8-character codes, valid only together with the person's email, stored hashed, expiring (72 hours / 30 minutes) and removed from the job queue once handled.
 - **Approvals are enforced by the server**, not by the screens: a pending point of sale cannot sell, a pending member cannot sign in, unapproved stock is not stock.

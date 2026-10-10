@@ -51,7 +51,6 @@ describe("media", () => {
     expect((await fetchAs(w.nord.token)).status).toBe(200);
     expect((await fetchAs(w.admin.token)).status).toBe(200);
     expect((await fetchAs(w.sud.token)).status).toBe(404);
-    expect((await fetchAs(w.gros.token)).status).toBe(404);
   });
 });
 
@@ -167,23 +166,60 @@ describe("initial stock", () => {
     expect((await w.s.get(`/v1/stock/locations/${pdv.id}`)).status).toBe(404);
   });
 
-  it("a grossiste declares the depot stock the same way", async () => {
-    await stockPlace(w, w.depotId, w.gros, [50, 40, 30]);
-    expect(await levels(w, w.depotId)).toEqual({
-      "Serum Vitamin C": 50,
-      "Serum Niacinamide": 40,
-      "Shampoo Argan": 30,
+  it("the responsable counts a grossiste's first stock; the admin approves it", async () => {
+    const declared = await w.n.post("/v1/stock/declarations", {
+      locationId: w.depotId,
+      photoIds: [await photo(w, w.nord)],
+      lines: [{ productId: w.products[0]!.id, quantity: 50 }],
     });
-    expect((await w.g.get(`/v1/stock/locations/${w.depotId}`)).status).toBe(
-      200,
+    expect(declared.body).toMatchObject({ status: "PENDING", kind: "INITIAL" });
+    expect(await levels(w, w.depotId)).toEqual({});
+    await w.a.post(`/v1/stock/declarations/${declared.body.id}/approve`, {});
+    expect(await levels(w, w.depotId)).toEqual({ "Serum Vitamin C": 50 });
+    // Another region's responsable does not even see it.
+    expect((await w.s.get(`/v1/stock/locations/${w.depotId}`)).status).toBe(
+      404,
     );
+  });
+
+  it("the admin counts a grossiste's first stock herself, with photos, and it applies at once", async () => {
+    const lines = [{ productId: w.products[0]!.id, quantity: 12 }];
+    const noPhoto = await w.a.post("/v1/stock/declarations", {
+      locationId: w.depotId,
+      lines,
+    });
+    expect(noPhoto.body.code).toBe("PHOTO_REQUIRED");
+    const counted = await w.a.post("/v1/stock/declarations", {
+      locationId: w.depotId,
+      photoIds: [await photo(w, w.admin)],
+      lines,
+    });
+    expect(counted.body).toMatchObject({ status: "APPROVED", kind: "INITIAL" });
+    expect(await levels(w, w.depotId)).toEqual({ "Serum Vitamin C": 12 });
+    // Later changes are corrections, not a second count.
+    const again = await w.a.post("/v1/stock/declarations", {
+      locationId: w.depotId,
+      photoIds: [await photo(w, w.admin)],
+      lines,
+    });
+    expect(again.body.code).toBe("ALREADY_COUNTED");
+    // The region's responsable can look at the photos the admin filed.
+    const proof = counted.body.photoIds[0];
+    const seen = await fetch(`${api.url}/v1/media/${proof}`, {
+      headers: { Authorization: `Bearer ${w.nord.token}` },
+    });
+    expect(seen.status).toBe(200);
+    const other = await fetch(`${api.url}/v1/media/${proof}`, {
+      headers: { Authorization: `Bearer ${w.sud.token}` },
+    });
+    expect(other.status).toBe(404);
   });
 });
 
 describe("restock through a grossiste", () => {
   it("runs request → assign → ship → receipt with photo → admin approval", async () => {
     const pdv = await approvedPdv(w);
-    await stockPlace(w, w.depotId, w.gros, [50, 40, 30]);
+    await stockPlace(w, w.depotId, w.nord, [50, 40, 30]);
     await stockPlace(w, pdv.id, w.nord, [1, 0, 0]);
     const [p1, p2] = w.products;
 
@@ -209,14 +245,14 @@ describe("restock through a grossiste", () => {
       source: "GROSSISTE",
     });
     // The grossiste now sees it; the other region does not.
-    expect((await w.g.get("/v1/restocks")).body).toHaveLength(1);
+    expect((await w.n.get("/v1/restocks")).body).toHaveLength(1);
     expect((await w.s.get("/v1/restocks")).body).toHaveLength(0);
 
-    const tooMany = await w.g.post(`/v1/restocks/${order.id}/ship`, {
+    const tooMany = await w.n.post(`/v1/restocks/${order.id}/ship`, {
       lines: [{ productId: p1!.id, quantity: 11 }],
     });
     expect(tooMany.body.code).toBe("TOO_MANY");
-    const shipped = await w.g.post(`/v1/restocks/${order.id}/ship`, {
+    const shipped = await w.n.post(`/v1/restocks/${order.id}/ship`, {
       lines: [
         { productId: p1!.id, quantity: 10 },
         { productId: p2!.id, quantity: 5 },
@@ -293,7 +329,7 @@ describe("restock through a grossiste", () => {
 
   it("refuses to ship what the depot does not hold", async () => {
     const pdv = await approvedPdv(w);
-    await stockPlace(w, w.depotId, w.gros, [3, 0, 0]);
+    await stockPlace(w, w.depotId, w.nord, [3, 0, 0]);
     const order = (
       await w.n.post("/v1/restocks", {
         destId: pdv.id,
@@ -301,7 +337,7 @@ describe("restock through a grossiste", () => {
       })
     ).body;
     await w.a.post(`/v1/restocks/${order.id}/assign`, { depotId: w.depotId });
-    const res = await w.g.post(`/v1/restocks/${order.id}/ship`, {
+    const res = await w.n.post(`/v1/restocks/${order.id}/ship`, {
       lines: [{ productId: w.products[0]!.id, quantity: 10 }],
     });
     expect(res.body.code).toBe("INSUFFICIENT_STOCK");
@@ -323,7 +359,7 @@ describe("restock through a grossiste", () => {
     expect((await w.s.get("/v1/depots")).body).toEqual([]);
   });
 
-  it("only the assigned grossiste can ship", async () => {
+  it("only the responsable of the region (or the admin) ships", async () => {
     const pdv = await approvedPdv(w);
     const order = (
       await w.n.post("/v1/restocks", {
@@ -332,14 +368,9 @@ describe("restock through a grossiste", () => {
       })
     ).body;
     await w.a.post(`/v1/restocks/${order.id}/assign`, { depotId: w.depotId });
-    const other = await createAccount({
-      role: "GROSSISTE",
-      depot: { name: "Other depot" },
+    const res = await w.s.post(`/v1/restocks/${order.id}/ship`, {
+      lines: [{ productId: w.products[0]!.id, quantity: 1 }],
     });
-    const res = await client(api, other.token).post(
-      `/v1/restocks/${order.id}/ship`,
-      { lines: [{ productId: w.products[0]!.id, quantity: 1 }] },
-    );
     expect(res.status).toBe(404);
   });
 });
@@ -347,7 +378,7 @@ describe("restock through a grossiste", () => {
 describe("direct restock from BioBalance", () => {
   it("ships from unlimited stock and leaves every depot untouched", async () => {
     const pdv = await approvedPdv(w);
-    await stockPlace(w, w.depotId, w.gros, [5, 5, 5]);
+    await stockPlace(w, w.depotId, w.nord, [5, 5, 5]);
     const order = (
       await w.n.post("/v1/restocks", {
         destId: pdv.id,
@@ -368,16 +399,27 @@ describe("direct restock from BioBalance", () => {
     expect((await levels(w, w.depotId))["Serum Vitamin C"]).toBe(5);
   });
 
-  it("the grossiste can ask BioBalance for stock too", async () => {
+  it("the responsable can ask BioBalance for stock for a grossiste of the region", async () => {
     const order = (
-      await w.g.post("/v1/restocks", {
+      await w.n.post("/v1/restocks", {
+        destId: w.depotId,
         lines: [{ productId: w.products[1]!.id, quantity: 60 }],
       })
     ).body;
     expect(order).toMatchObject({
       status: "REQUESTED",
+      regionId: expect.any(String),
       destination: { id: w.depotId, kind: "DEPOT" },
     });
+    // Another region's responsable cannot order for it.
+    expect(
+      (
+        await w.s.post("/v1/restocks", {
+          destId: w.depotId,
+          lines: [{ productId: w.products[1]!.id, quantity: 1 }],
+        })
+      ).status,
+    ).toBe(404);
     expect(
       (
         await w.a.post(`/v1/restocks/${order.id}/assign`, {
@@ -386,12 +428,41 @@ describe("direct restock from BioBalance", () => {
       ).status,
     ).toBe(409);
     await w.a.post(`/v1/restocks/${order.id}/send-direct`, {});
-    await w.g.post(`/v1/restocks/${order.id}/receipt`, {
-      photoId: await photo(w, w.gros),
+    await w.n.post(`/v1/restocks/${order.id}/receipt`, {
+      photoId: await photo(w, w.nord),
       lines: [{ productId: w.products[1]!.id, quantity: 60 }],
     });
+    // Nothing is added until the admin approves.
+    expect((await levels(w, w.depotId))["Serum Niacinamide"]).toBeUndefined();
     await w.a.post(`/v1/restocks/${order.id}/approve`, {});
     expect((await levels(w, w.depotId))["Serum Niacinamide"]).toBe(60);
+  });
+
+  it("the admin restocks a grossiste herself: counted with photos, applied at once, the responsable told", async () => {
+    const lines = [{ productId: w.products[0]!.id, quantity: 25 }];
+    expect(
+      (await w.a.post("/v1/restocks", { destId: w.depotId, lines })).body.code,
+    ).toBe("PHOTO_REQUIRED");
+    const done = await w.a.post("/v1/restocks", {
+      destId: w.depotId,
+      photoIds: [await photo(w, w.admin)],
+      lines,
+    });
+    expect(done.body).toMatchObject({
+      status: "COMPLETED",
+      source: "BIOBALANCE",
+      lines: [{ requested: 25, shipped: 25, received: 25, approved: 25 }],
+    });
+    expect((await levels(w, w.depotId))["Serum Vitamin C"]).toBe(25);
+    const told = (await w.n.get("/v1/notifications")).body.items.map(
+      (n: any) => n.key,
+    );
+    expect(told).toContain("restock.completed");
+    // Stores order through their responsable, not from the admin.
+    const pdv = await approvedPdv(w);
+    expect(
+      (await w.a.post("/v1/restocks", { destId: pdv.id, lines })).status,
+    ).toBe(403);
   });
 
   it("can be cancelled by its requester only while waiting", async () => {
@@ -459,83 +530,39 @@ describe("several photos", () => {
   });
 });
 
-describe("the grossiste's count goes through the responsable", () => {
-  const count = async (photoIds: string[]) => ({
-    locationId: w.depotId,
-    photoIds,
-    lines: [{ productId: w.products[0]!.id, quantity: 30 }],
-  });
-
-  it("is checked by the responsable of the region, then approved by the admin", async () => {
-    const declared = await w.g.post(
-      "/v1/stock/declarations",
-      await count([await photo(w, w.gros)]),
-    );
-    expect(declared.status).toBe(201);
-    expect(declared.body.status).toBe("REVIEW");
-    // The admin cannot skip the check; the other region cannot see it.
-    expect(
-      (await w.a.post(`/v1/stock/declarations/${declared.body.id}/approve`, {}))
-        .status,
-    ).toBe(409);
+describe("a grossiste's count", () => {
+  it("goes from the responsable to the admin; a count waiting blocks a second one", async () => {
+    const lines = [{ productId: w.products[0]!.id, quantity: 30 }];
+    const declared = await w.n.post("/v1/stock/declarations", {
+      locationId: w.depotId,
+      photoIds: [await photo(w, w.nord)],
+      lines,
+    });
+    expect(declared.body.status).toBe("PENDING");
+    // The other region cannot see it; the admin decides it.
     expect([403, 404]).toContain(
       (await w.s.get(`/v1/stock/declarations/${declared.body.id}`)).status,
     );
-    // The responsable sees the numbers and the photos, and the depot's levels.
-    const seen = await w.n.get(`/v1/stock/declarations/${declared.body.id}`);
-    expect(seen.body.photoIds).toHaveLength(1);
     expect(
-      (await w.n.get("/v1/stock/declarations?status=REVIEW")).body,
+      (await w.n.get(`/v1/stock/declarations?locationId=${w.depotId}`)).body,
     ).toHaveLength(1);
-    expect((await w.n.get(`/v1/stock/locations/${w.depotId}`)).status).toBe(
-      200,
-    );
-    expect((await w.s.get(`/v1/stock/locations/${w.depotId}`)).status).toBe(
-      404,
-    );
-    // Sent back with a reason, the grossiste can count again at once.
-    const refused = await w.n.post(
-      `/v1/stock/declarations/${declared.body.id}/review`,
-      { action: "reject" },
-    );
-    expect(refused.body.code).toBe("NOTE_REQUIRED");
-    await w.n.post(`/v1/stock/declarations/${declared.body.id}/review`, {
-      action: "reject",
+    const twice = await w.n.post("/v1/stock/declarations", {
+      locationId: w.depotId,
+      photoIds: [await photo(w, w.nord)],
+      lines,
+    });
+    expect(twice.body.code).toBe("ALREADY_COUNTED");
+    await w.a.post(`/v1/stock/declarations/${declared.body.id}/reject`, {
       note: "Photo too dark",
     });
-    const again = await w.g.post(
-      "/v1/stock/declarations",
-      await count([await photo(w, w.gros)]),
-    );
-    expect(again.body.status).toBe("REVIEW");
-    const passed = await w.n.post(
-      `/v1/stock/declarations/${again.body.id}/review`,
-      { action: "approve" },
-    );
-    expect(passed.body.status).toBe("PENDING");
-    const done = await w.a.post(
-      `/v1/stock/declarations/${again.body.id}/approve`,
-      {},
-    );
-    expect(done.body.status).toBe("APPROVED");
+    const again = await w.n.post("/v1/stock/declarations", {
+      locationId: w.depotId,
+      photoIds: [await photo(w, w.nord)],
+      lines,
+    });
+    expect(again.body.status).toBe("PENDING");
+    await w.a.post(`/v1/stock/declarations/${again.body.id}/approve`, {});
     expect(await levels(w, w.depotId)).toEqual({ "Serum Vitamin C": 30 });
-    // Only the responsable of that region reviews.
-    expect(
-      (
-        await w.s.post(`/v1/stock/declarations/${again.body.id}/review`, {
-          action: "approve",
-        })
-      ).status,
-    ).toBe(404);
-  });
-
-  it("goes straight to the admin when the responsable declares it", async () => {
-    const declared = await w.n.post(
-      "/v1/stock/declarations",
-      await count([await photo(w, w.nord)]),
-    );
-    expect(declared.status).toBe(201);
-    expect(declared.body.status).toBe("PENDING");
   });
 });
 
@@ -606,20 +633,20 @@ describe("counting again needs the admin's permission", () => {
         .body.code,
     ).toBe("ALREADY_COUNTED");
 
-    // A grossiste recounts the same way, and the recount goes through the responsable.
-    await stockPlace(w, w.depotId, w.gros, [20, 20, 20]);
-    const g = await w.g.post("/v1/stock/recounts", {
+    // A grossiste is recounted the same way: the responsable asks, the admin allows once.
+    await stockPlace(w, w.depotId, w.nord, [20, 20, 20]);
+    const g = await w.n.post("/v1/stock/recounts", {
       locationId: w.depotId,
       reason: "Bought stock elsewhere",
     });
     expect(g.status).toBe(201);
     await w.a.post(`/v1/stock/recounts/${g.body.id}/approve`, {});
-    const gcount = await w.g.post("/v1/stock/declarations", {
+    const gcount = await w.n.post("/v1/stock/declarations", {
       locationId: w.depotId,
-      photoIds: [await photo(w, w.gros)],
+      photoIds: [await photo(w, w.nord)],
       lines: [{ productId: w.products[0]!.id, quantity: 45 }],
     });
-    expect(gcount.body.status).toBe("REVIEW");
+    expect(gcount.body.status).toBe("PENDING");
     expect(gcount.body.kind).toBe("COUNT");
   });
 
@@ -647,7 +674,7 @@ describe("counting again needs the admin's permission", () => {
 
 describe("the admin corrects stock", () => {
   it("sets quantities with a reason, keeps the history and tells the people in charge", async () => {
-    await stockPlace(w, w.depotId, w.gros, [20, 20, 20]);
+    await stockPlace(w, w.depotId, w.nord, [20, 20, 20]);
     const res = await w.a.post("/v1/stock/adjust", {
       locationId: w.depotId,
       reason: "Damaged in transport",
@@ -668,7 +695,7 @@ describe("the admin corrects stock", () => {
     });
     expect(
       (
-        await w.g.post("/v1/stock/adjust", {
+        await w.n.post("/v1/stock/adjust", {
           locationId: w.depotId,
           reason: "mine",
           lines: [{ productId: w.products[0]!.id, quantity: 99 }],
@@ -684,7 +711,7 @@ describe("the admin corrects stock", () => {
         })
       ).status,
     ).toBe(400);
-    const told = await client(api, w.gros.token).get("/v1/notifications");
+    const told = await w.n.get("/v1/notifications");
     expect(told.body.items.some((n: any) => n.key === "stock.adjusted")).toBe(
       true,
     );
@@ -694,7 +721,7 @@ describe("the admin corrects stock", () => {
 describe("goods on the road", () => {
   it("leave the depot when shipped, come back if the order is cancelled, and every decision is in the history", async () => {
     const pdv = await approvedPdv(w);
-    await stockPlace(w, w.depotId, w.gros, [20, 20, 20]);
+    await stockPlace(w, w.depotId, w.nord, [20, 20, 20]);
     const order = (
       await w.n.post("/v1/restocks", {
         destId: pdv.id,
@@ -702,7 +729,7 @@ describe("goods on the road", () => {
       })
     ).body;
     await w.a.post(`/v1/restocks/${order.id}/assign`, { depotId: w.depotId });
-    await w.g.post(`/v1/restocks/${order.id}/ship`, {
+    await w.n.post(`/v1/restocks/${order.id}/ship`, {
       lines: [{ productId: w.products[0]!.id, quantity: 8 }],
     });
     expect((await levels(w, w.depotId))["Serum Vitamin C"]).toBe(12);
@@ -716,7 +743,7 @@ describe("goods on the road", () => {
     await w.a.post(`/v1/restocks/${second.id}/assign`, { depotId: w.depotId });
     expect(
       (
-        await w.g.post(`/v1/restocks/${second.id}/ship`, {
+        await w.n.post(`/v1/restocks/${second.id}/ship`, {
           lines: [{ productId: w.products[0]!.id, quantity: 15 }],
         })
       ).body.code,

@@ -29,7 +29,7 @@ Scan the `totpUri` in an authenticator app. Then, from a checkout, load the cata
 API_URL=https://api.galylio.com ADMIN_EMAIL=… ADMIN_PASSWORD=… ADMIN_OTP=123456 node scripts/import-catalog.mjs
 ```
 
-Create the three responsables (one per region) and the grossistes from the app: **Network → New account**. They receive an email with an activation code.
+Create the three responsables (one per region) from the app: **Network → New account**. They receive an email with an activation code. Grossistes are not accounts: create them from **More → Grossistes → New grossiste** (name, address, phone, region, photos), then count their first stock.
 
 ### An administrator lost their phone or password
 

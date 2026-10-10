@@ -10,8 +10,6 @@ export interface Actor {
   regionId: string | null;
   /** Vendeurs. */
   pdvId: string | null;
-  /** Grossistes. */
-  depotId: string | null;
   locale: "fr" | "en";
   sessionId?: string;
 }

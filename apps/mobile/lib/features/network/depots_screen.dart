@@ -4,29 +4,46 @@ import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../core/auth/me.dart';
+import '../../core/auth/session.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/async_body.dart';
 import '../../core/widgets/components.dart';
+import '../../core/widgets/feedback.dart';
+import '../../core/widgets/photo_set.dart';
 import '../../core/widgets/states.dart';
 import '../../l10n/app_localizations.dart';
-import '../../core/auth/me.dart';
-import '../../core/auth/session.dart';
-import '../../core/widgets/feedback.dart';
-import '../stock/stock_repository.dart';
-import '../stock/stock_screens.dart' show StockTile;
+import '../media/media_repository.dart';
+import '../stock/stock_screens.dart' show StockScreen;
 import 'network_models.dart';
 import 'network_repository.dart';
 
-/// The grossistes and their depots, with a phone number to call when stock is needed.
+void _call(String phone) =>
+    launchUrl(Uri(scheme: 'tel', path: phone.replaceAll(' ', '')));
+
+/// The grossistes: warehouses of the regions, with their stock. Responsables see their region's;
+/// the admin sees them all and creates them.
 class DepotsScreen extends ConsumerWidget {
   const DepotsScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final t = AppLocalizations.of(context);
+    final admin = ref.watch(meProvider).role == Role.admin;
     final depots = ref.watch(depotsProvider);
     return Scaffold(
       appBar: AppBar(title: Text(t.grossistesTitle)),
+      floatingActionButton: admin
+          ? FloatingActionButton.extended(
+              heroTag: null,
+              onPressed: () async {
+                await context.push('/depots/new');
+                ref.invalidate(depotsProvider);
+              },
+              icon: const Icon(LucideIcons.plus),
+              label: Text(t.depotNew),
+            )
+          : null,
       body: RefreshIndicator(
         onRefresh: () async {
           ref.invalidate(depotsProvider);
@@ -41,232 +58,371 @@ class DepotsScreen extends ConsumerWidget {
               EmptyState(
                 icon: LucideIcons.warehouse,
                 title: t.noGrossisteShort,
+                message: admin ? t.noGrossisteYet : null,
               ),
             ],
           ),
-          builder: (list) => ListView.separated(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-            itemCount: list.length,
-            separatorBuilder: (_, _) => const Gap(8),
-            itemBuilder: (context, i) {
-              final d = list[i];
-              final phone = d.grossistePhone ?? d.phone;
-              return AppCard(
-                onTap: () => ref.read(meProvider).role == Role.admin
-                    ? context.push('/depots/${d.id}', extra: d)
-                    : context.push('/stock/${d.id}', extra: d.name),
-                child: Row(
-                  children: [
-                    const IconBadge(LucideIcons.warehouse, size: 44),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(d.name, style: context.text.titleSmall),
-                          Text(
-                            [
-                              ?d.grossisteName,
-                              d.city,
-                              ?d.regionName,
-                            ].join(' · '),
-                            style: context.text.bodySmall?.copyWith(
-                              color: context.status.muted,
-                            ),
-                          ),
-                          if (phone != null)
-                            Text(phone, style: context.text.bodySmall),
-                        ],
-                      ),
+          builder: (list) {
+            final regions = {for (final d in list) d.regionName}.toList()
+              ..sort();
+            return ListView(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 96),
+              children: [
+                for (final region in regions) ...[
+                  // One region (a responsable's own) needs no heading.
+                  if (regions.length > 1) SectionHeader(region),
+                  for (final d in list.where((d) => d.regionName == region))
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: _DepotTile(depot: d),
                     ),
-                    if (phone != null)
-                      IconButton.filledTonal(
-                        tooltip: t.call,
-                        onPressed: () => launchUrl(
-                          Uri(scheme: 'tel', path: phone.replaceAll(' ', '')),
-                        ),
-                        icon: const Icon(LucideIcons.phone),
-                      ),
-                  ],
-                ),
-              );
-            },
-          ),
+                ],
+              ],
+            );
+          },
         ),
       ),
     );
   }
 }
 
-/// A grossiste as the admin sees them: details to edit, and the stock to correct.
-class DepotScreen extends ConsumerWidget {
-  const DepotScreen({required this.depot, super.key});
+class _DepotTile extends ConsumerWidget {
+  const _DepotTile({required this.depot});
 
   final Depot depot;
-
-  Future<void> _edit(BuildContext context, WidgetRef ref) async {
-    final t = AppLocalizations.of(context);
-    final name = TextEditingController(text: depot.name);
-    final address = TextEditingController(text: depot.address);
-    final city = TextEditingController(text: depot.city);
-    final phone = TextEditingController(text: depot.phone ?? '');
-    final save = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(t.editDepot),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: name,
-                decoration: InputDecoration(labelText: t.depotName),
-              ),
-              const Gap(10),
-              TextField(
-                controller: address,
-                decoration: InputDecoration(labelText: t.address),
-              ),
-              const Gap(10),
-              TextField(
-                controller: city,
-                decoration: InputDecoration(labelText: t.city),
-              ),
-              const Gap(10),
-              TextField(
-                controller: phone,
-                keyboardType: TextInputType.phone,
-                decoration: InputDecoration(labelText: t.phone),
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text(t.cancel),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: Text(t.save),
-          ),
-        ],
-      ),
-    );
-    if (save != true || !context.mounted) return;
-    if (await perform(
-      context,
-      () => ref
-          .read(networkRepositoryProvider)
-          .updateDepot(
-            depot.id,
-            name: name.text.trim(),
-            address: address.text.trim(),
-            city: city.text.trim(),
-            phone: phone.text.trim().isEmpty ? null : phone.text.trim(),
-          ),
-      success: t.saved,
-    )) {
-      ref.invalidate(depotsProvider);
-      if (context.mounted) context.pop();
-    }
-  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final t = AppLocalizations.of(context);
-    final levels = ref.watch(stockLevelsProvider(depot.id));
-    final phone = depot.grossistePhone ?? depot.phone;
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(depot.name),
-        actions: [
-          IconButton(
-            tooltip: t.editDepot,
-            onPressed: () => _edit(context, ref),
-            icon: const Icon(LucideIcons.pencil),
+    final d = depot;
+    final phone = d.phone;
+    return AppCard(
+      onTap: () async {
+        await context.push('/depots/${d.id}');
+        ref.invalidate(depotsProvider);
+      },
+      child: Row(
+        children: [
+          d.photoIds.isEmpty
+              ? const IconBadge(LucideIcons.warehouse, size: 52)
+              : AuthImage(
+                  d.photoIds.first,
+                  width: 52,
+                  height: 52,
+                  radius: 14,
+                  placeholderIcon: LucideIcons.warehouse,
+                ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(d.name, style: context.text.titleSmall),
+                Text(
+                  d.city,
+                  style: context.text.bodySmall?.copyWith(
+                    color: context.status.muted,
+                  ),
+                ),
+                const Gap(6),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 4,
+                  children: [
+                    if (!d.active)
+                      StatusChip(t.depotSuspendedLabel, tone: Tone.muted)
+                    else if (!d.counted && !d.countPending)
+                      StatusChip(t.depotNoStock, tone: Tone.warning)
+                    else if (d.countPending)
+                      StatusChip(t.depotCountWaiting, tone: Tone.info)
+                    else
+                      StatusChip(
+                        t.depotHolds(d.units, d.products),
+                        tone: Tone.success,
+                      ),
+                  ],
+                ),
+              ],
+            ),
           ),
+          if (phone != null)
+            IconButton.filledTonal(
+              tooltip: t.call,
+              onPressed: () => _call(phone),
+              icon: const Icon(LucideIcons.phone),
+            ),
         ],
       ),
-      body: RefreshIndicator(
-        onRefresh: () async {
-          ref.invalidate(stockLevelsProvider(depot.id));
-          await ref.read(stockLevelsProvider(depot.id).future);
-        },
+    );
+  }
+}
+
+/// One grossiste: its details and photos on top, then its stock and what each person may do about it.
+class DepotScreen extends ConsumerWidget {
+  const DepotScreen({required this.depotId, super.key});
+
+  final String depotId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final t = AppLocalizations.of(context);
+    final admin = ref.watch(meProvider).role == Role.admin;
+    final depot = ref.watch(depotProvider(depotId));
+    return depot.when(
+      loading: () => Scaffold(appBar: AppBar(), body: const LoadingState()),
+      error: (error, _) => Scaffold(
+        appBar: AppBar(),
+        body: ErrorState(
+          error: error,
+          onRetry: () => ref.invalidate(depotProvider(depotId)),
+        ),
+      ),
+      data: (d) => StockScreen(
+        locationId: d.id,
+        title: d.name,
+        isDepot: true,
+        suspended: !d.active,
+        header: [
+          _DepotCard(depot: d),
+          const Gap(12),
+        ],
+        appBarActions: admin
+            ? [
+                IconButton(
+                  tooltip: t.editDepot,
+                  onPressed: () async {
+                    await context.push('/depots/${d.id}/edit', extra: d);
+                    ref.invalidate(depotProvider(depotId));
+                  },
+                  icon: const Icon(LucideIcons.pencil),
+                ),
+                _DepotMenu(depot: d),
+              ]
+            : const [],
+      ),
+    );
+  }
+}
+
+class _DepotCard extends StatelessWidget {
+  const _DepotCard({required this.depot});
+
+  final Depot depot;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    final phone = depot.phone;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (depot.photoIds.isNotEmpty) ...[
+          PhotoStrip(ids: depot.photoIds),
+          const Gap(12),
+        ],
+        AppCard(
+          child: Column(
+            children: [
+              InfoRow(t.region, depot.regionName),
+              InfoRow(t.address, '${depot.address}, ${depot.city}'),
+              if (phone != null) InfoRow(t.phone, phone),
+            ],
+          ),
+        ),
+        if (phone != null) ...[
+          const Gap(8),
+          OutlinedButton.icon(
+            onPressed: () => _call(phone),
+            icon: const Icon(LucideIcons.phone),
+            label: Text(t.call),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+/// The admin's less common actions on a grossiste: suspend it, bring it back, or remove it.
+class _DepotMenu extends ConsumerWidget {
+  const _DepotMenu({required this.depot});
+
+  final Depot depot;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final t = AppLocalizations.of(context);
+    final repo = ref.read(networkRepositoryProvider);
+    return PopupMenuButton<String>(
+      onSelected: (action) async {
+        if (action == 'toggle') {
+          if (await perform(
+            context,
+            () => repo.setDepotActive(depot.id, active: !depot.active),
+            success: t.depotSaved,
+          )) {
+            ref
+              ..invalidate(depotProvider(depot.id))
+              ..invalidate(depotsProvider);
+          }
+        } else if (action == 'remove') {
+          final yes = await confirm(
+            context,
+            title: t.depotRemoveTitle,
+            message: t.depotRemoveBody,
+            confirmLabel: t.depotRemove,
+            destructive: true,
+          );
+          if (!yes || !context.mounted) return;
+          if (await perform(
+                context,
+                () => repo.deleteDepot(depot.id),
+                success: t.depotRemoved,
+              ) &&
+              context.mounted) {
+            ref.invalidate(depotsProvider);
+            context.pop();
+          }
+        }
+      },
+      itemBuilder: (context) => [
+        PopupMenuItem(
+          value: 'toggle',
+          child: Text(depot.active ? t.depotSuspend : t.depotReactivate),
+        ),
+        PopupMenuItem(value: 'remove', child: Text(t.depotRemove)),
+      ],
+    );
+  }
+}
+
+/// Create or edit a grossiste (admin): its details and up to five photos.
+class DepotFormScreen extends ConsumerStatefulWidget {
+  const DepotFormScreen({this.existing, super.key});
+
+  final Depot? existing;
+
+  @override
+  ConsumerState<DepotFormScreen> createState() => _DepotFormScreenState();
+}
+
+class _DepotFormScreenState extends ConsumerState<DepotFormScreen> {
+  final _form = GlobalKey<FormState>();
+  late final _name = TextEditingController(text: widget.existing?.name);
+  late final _address = TextEditingController(text: widget.existing?.address);
+  late final _city = TextEditingController(text: widget.existing?.city);
+  late final _phone = TextEditingController(text: widget.existing?.phone);
+  late String? _regionId = widget.existing?.regionId;
+  late List<String> _photoIds = widget.existing?.photoIds ?? const [];
+  bool _photosBusy = false;
+
+  @override
+  void dispose() {
+    for (final c in [_name, _address, _city, _phone]) {
+      c.dispose();
+    }
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    if (!_form.currentState!.validate()) return;
+    final t = AppLocalizations.of(context);
+    final existing = widget.existing;
+    final phone = _phone.text.trim();
+    final ok = await perform(
+      context,
+      () => ref
+          .read(networkRepositoryProvider)
+          .saveDepot(
+            existing?.id,
+            name: _name.text.trim(),
+            address: _address.text.trim(),
+            city: _city.text.trim(),
+            phone: phone.isEmpty ? null : phone,
+            regionId: _regionId,
+            photoIds: _photoIds,
+          ),
+      success: t.depotSaved,
+    );
+    if (!ok || !mounted) return;
+    ref.invalidate(depotsProvider);
+    if (existing != null) ref.invalidate(depotProvider(existing.id));
+    context.pop();
+  }
+
+  String? _required(String? v) => (v == null || v.trim().isEmpty)
+      ? AppLocalizations.of(context).fieldRequired
+      : null;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    final editing = widget.existing != null;
+    final regions = ref.watch(regionsProvider);
+    return Scaffold(
+      appBar: AppBar(title: Text(editing ? t.editDepot : t.depotNew)),
+      body: Form(
+        key: _form,
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+          padding: const EdgeInsets.all(16),
           children: [
-            AppCard(
-              child: Column(
-                children: [
-                  InfoRow(t.grossisteLabel, depot.grossisteName ?? '—'),
-                  if (depot.regionName != null)
-                    InfoRow(t.region, depot.regionName!),
-                  InfoRow(t.address, '${depot.address}, ${depot.city}'),
-                  if (depot.grossisteEmail != null)
-                    InfoRow(t.email, depot.grossisteEmail!),
-                  if (phone != null) InfoRow(t.phone, phone),
-                ],
+            TextFormField(
+              controller: _name,
+              textCapitalization: TextCapitalization.words,
+              decoration: InputDecoration(labelText: t.depotName),
+              validator: _required,
+            ),
+            const Gap(12),
+            if (!editing) ...[
+              AsyncBody(
+                value: regions,
+                onRetry: () => ref.invalidate(regionsProvider),
+                builder: (list) => DropdownButtonFormField<String>(
+                  initialValue: _regionId,
+                  decoration: InputDecoration(labelText: t.region),
+                  items: [
+                    for (final r in list)
+                      DropdownMenuItem(value: r.id, child: Text(r.name)),
+                  ],
+                  validator: (v) => v == null ? t.fieldRequired : null,
+                  onChanged: (v) => setState(() => _regionId = v),
+                ),
+              ),
+              const Gap(12),
+            ],
+            TextFormField(
+              controller: _address,
+              decoration: InputDecoration(labelText: t.depotAddress),
+              validator: _required,
+            ),
+            const Gap(12),
+            TextFormField(
+              controller: _city,
+              textCapitalization: TextCapitalization.words,
+              decoration: InputDecoration(labelText: t.city),
+              validator: _required,
+            ),
+            const Gap(12),
+            TextFormField(
+              controller: _phone,
+              keyboardType: TextInputType.phone,
+              decoration: InputDecoration(
+                labelText: '${t.phone} (${t.optional})',
               ),
             ),
-            if (phone != null) ...[
-              const Gap(8),
-              OutlinedButton.icon(
-                onPressed: () => launchUrl(
-                  Uri(scheme: 'tel', path: phone.replaceAll(' ', '')),
-                ),
-                icon: const Icon(LucideIcons.phone),
-                label: Text(t.call),
-              ),
-            ],
-            SectionHeader(t.stockLevels),
-            AsyncBody(
-              value: levels,
-              onRetry: () => ref.invalidate(stockLevelsProvider(depot.id)),
-              builder: (data) => Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: StatTile(
-                          icon: LucideIcons.boxes,
-                          label: t.totalUnits,
-                          value: '${data.units}',
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: StatTile(
-                          icon: LucideIcons.package,
-                          label: t.products,
-                          value: '${data.items.length}',
-                        ),
-                      ),
-                    ],
-                  ),
-                  const Gap(8),
-                  FilledButton.tonalIcon(
-                    onPressed: () async {
-                      await context.push(
-                        '/stock/${depot.id}/adjust',
-                        extra: depot.name,
-                      );
-                      ref.invalidate(stockLevelsProvider(depot.id));
-                    },
-                    icon: const Icon(LucideIcons.slidersHorizontal),
-                    label: Text(t.adjustStock),
-                  ),
-                  const Gap(8),
-                  if (data.items.isEmpty)
-                    EmptyState(icon: LucideIcons.boxes, title: t.noStockYet),
-                  for (final item in data.items)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: StockTile(item: item),
-                    ),
-                ],
-              ),
+            SectionHeader(t.depotPhotos),
+            PhotoSet(
+              label: t.depotPhotosAdd,
+              initialIds: widget.existing?.photoIds ?? const [],
+              onChanged: (ids, busy) => setState(() {
+                _photoIds = ids;
+                _photosBusy = busy;
+              }),
+            ),
+            const Gap(24),
+            AsyncButton(
+              label: t.save,
+              icon: LucideIcons.check,
+              onPressed: _photosBusy ? null : _save,
             ),
           ],
         ),

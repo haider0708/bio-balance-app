@@ -242,7 +242,6 @@
   "deactivated": "Deactivated",
   "decision": "Decision",
   "declaration": "Stock declaration",
-  "declarationRejectedRetry": "Your last stock declaration was rejected. Declare it again.",
   "declarationSent": "Sent to BioBalance for approval",
   "declarationWaiting": "A stock declaration is waiting for approval.",
   "declarations": "Declarations",
@@ -327,7 +326,6 @@
   },
   "fullName": "Full name",
   "fullNameOptional": "Your name (optional)",
-  "grossisteDeclareFirst": "Declare your depot stock with a photo so BioBalance can approve it.",
   "grossistesTitle": "Grossistes",
   "group": "Group",
   "groupCreated": "Group created. It is waiting for approval.",
@@ -409,14 +407,6 @@
       }
     }
   },
-  "myRestockRequests": "{count, plural, =0{No restock request in progress} =1{1 of your restock requests is in progress} other{{count} of your restock requests are in progress}}",
-  "@myRestockRequests": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
   "needsAttention": "Needs attention",
   "networkTitle": "Network",
   "navCollapseSidebar": "Collapse sidebar",
@@ -456,7 +446,6 @@
   "noLessonsYet": "No lesson yet. Add one to publish the course.",
   "noNotifications": "Nothing new",
   "noNotificationsHint": "Announcements and updates will appear here.",
-  "noOrdersToPrepare": "No order to prepare",
   "noPayoutRequests": "No payout request",
   "noPayoutsYet": "No payout yet",
   "noPdvs": "No point of sale yet",
@@ -484,15 +473,6 @@
   "openVideo": "Watch the video",
   "optional": "optional",
   "orVideoLink": "Or a video link",
-  "ordersTitle": "Orders",
-  "ordersToPrepare": "{count, plural, =1{1 order to prepare} other{{count} orders to prepare}}",
-  "@ordersToPrepare": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
   "overlapBody": "These days are already covered:\n{details}\n\nReplace it with the new value?",
   "@overlapBody": {
     "placeholders": {
@@ -714,8 +694,6 @@
   "adminConsoleTagline": "Manage the BioBalance network: stores, stock, restocks, rewards and approvals.",
   "adminSignInTitle": "Sign in to the console",
   "adminSignInSubtitle": "Administrator access only. Use your password and authenticator code.",
-  "roleGrossiste": "Grossiste",
-  "roleGrossistePlural": "Grossistes",
   "roleResponsable": "Responsable",
   "roleResponsablePlural": "Responsables",
   "roleVendeur": "Team member",
@@ -796,14 +774,6 @@
   "sentFrom": "Sent from",
   "setReward": "Set a reward",
   "settingsTitle": "Settings",
-  "shipHint": "Enter what leaves your depot for {destination}.",
-  "@shipHint": {
-    "placeholders": {
-      "destination": {
-        "type": "String"
-      }
-    }
-  },
   "shippedReceived": "Sent {shipped} · counted {received}",
   "@shippedReceived": {
     "placeholders": {
@@ -865,7 +835,6 @@
   "tabHome": "Home",
   "tabLearn": "Learn",
   "tabNetwork": "Network",
-  "tabOrders": "Orders",
   "tabPdvs": "Stores",
   "tabPeople": "People",
   "tabReports": "Reports",
@@ -1047,27 +1016,17 @@
       }
     }
   },
-  "statusWaitingResponsable": "Waiting for the responsable",
-  "declarationWaitingResponsable": "Your count is waiting for the responsable’s check, then the admin.",
   "recountAsked2": "Recount requested: waiting for the admin to allow it.",
   "recountAllowed": "The admin allowed a recount. Count again with the button below.",
   "recountRequestTitle": "Ask to count again",
   "recountRequestSend": "Send the request",
   "recountRequestHint": "Why? (for example, you bought stock elsewhere)",
   "recountRequested": "Request sent to the admin",
-  "reviewHint": "Check the photos and the numbers. Sent to the admin, it still needs their approval.",
-  "sentToAdmin": "Sent to the admin",
-  "sendBack": "Send back",
-  "sentBack": "Sent back to the grossiste",
-  "countsToCheck": "Counts to check",
-  "nothingToCheck": "Nothing to check right now",
   "typeRecount": "Recount request",
   "attnRecounts": "Recount requests",
-  "attnGrossisteCounts": "Grossiste counts to check",
   "approveRecountTitle": "Allow a recount?",
   "allowRecount": "Allow",
   "recountReasonLabel": "Reason given",
-  "grossisteHandledBy": "This grossiste is looked after by the responsable of the region: they check the stock counts and photos before the admin approves.",
   "outOfStockName": "{name} is out of stock",
   "@outOfStockName": {
     "placeholders": {
@@ -1330,5 +1289,63 @@
   "hidePassword": "Hide password",
   "pageNotFound": "This page does not exist",
   "pageNotFoundHint": "The link may be old, or the page was opened from somewhere else.",
-  "backToHome": "Back to home"
+  "backToHome": "Back to home",
+  "depotNew": "New grossiste",
+  "depotAddress": "Address",
+  "depotPhotos": "Photos of the grossiste",
+  "depotPhotosAdd": "Add a photo of the grossiste",
+  "depotNoStock": "No stock entered yet",
+  "depotCountWaiting": "Count waiting for approval",
+  "depotSuspendedLabel": "Suspended",
+  "depotHolds": "{units} units · {products} products",
+  "@depotHolds": {
+    "placeholders": {
+      "units": {
+        "type": "int"
+      },
+      "products": {
+        "type": "int"
+      }
+    }
+  },
+  "depotSaved": "Grossiste saved",
+  "depotSuspend": "Suspend",
+  "depotReactivate": "Reactivate",
+  "depotRemove": "Remove",
+  "depotRemoved": "Grossiste removed",
+  "depotRemoveTitle": "Remove this grossiste?",
+  "depotRemoveBody": "Only a grossiste that never held stock can be removed. Otherwise suspend it.",
+  "depotSuspendedHint": "This grossiste is suspended: it cannot receive or give stock.",
+  "depotFirstStockHint": "Count what it holds and take photos: the stock becomes official once approved.",
+  "depotFirstStockAdminHint": "Count what it holds and take photos: the stock applies as soon as you save.",
+  "depotRestock": "Restock",
+  "depotCorrect": "Correct the stock",
+  "stockSaved": "Stock saved",
+  "saveStock": "Save the stock",
+  "stockCountedByYou": "You are counting this place yourself: the stock applies as soon as you save.",
+  "recordDeliveryTitle": "Restock {name}",
+  "@recordDeliveryTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "recordDeliveryHint": "Count what BioBalance delivered and photograph it. The goods are added to the stock as soon as you save.",
+  "recordDeliverySave": "Add to the stock",
+  "deliveryRecorded": "Stock added",
+  "photoOfGoods": "Photo of the goods",
+  "shipFromHint": "Enter what really leaves {depot} for {destination}.",
+  "@shipFromHint": {
+    "placeholders": {
+      "depot": {
+        "type": "String"
+      },
+      "destination": {
+        "type": "String"
+      }
+    }
+  },
+  "attnGrossisteUncounted": "Grossistes without stock yet",
+  "attnToShip": "Orders to ship"
 }

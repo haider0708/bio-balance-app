@@ -14,7 +14,7 @@ const long =
 void main() {
   for (final scale in [1.0, 1.6, 2.2]) {
     for (final size in [const Size(320, 568), const Size(412, 892)]) {
-      for (final role in ['VENDEUR', 'RESPONSABLE', 'ADMIN', 'GROSSISTE']) {
+      for (final role in ['VENDEUR', 'RESPONSABLE', 'ADMIN']) {
         testWidgets('$role home at ${size.width.toInt()}px, text ×$scale', (
           tester,
         ) async {

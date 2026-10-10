@@ -40,8 +40,11 @@ Every route is under `https://api.galylio.com`, JSON in and out, `Authorization:
 
 | Method | Path | Who |
 |---|---|---|
-| GET | `/v1/depots` | admin, responsable, grossiste |
-| PATCH | `/v1/depots/:id` | admin, grossiste |
+| GET | `/v1/depots` | admin, responsable (own region) |
+| GET | `/v1/depots/:id` | admin, responsable (own region) |
+| POST | `/v1/depots` | admin |
+| PATCH | `/v1/depots/:id` | admin |
+| DELETE | `/v1/depots/:id` | admin (only if never used) |
 | GET | `/v1/groups` | admin, responsable |
 | POST | `/v1/groups` | responsable |
 | PATCH | `/v1/groups/:id` | admin, responsable |
@@ -111,11 +114,11 @@ Every route is under `https://api.galylio.com`, JSON in and out, `Authorization:
 | POST | `/v1/restocks/:id/approve` | admin |
 | POST | `/v1/restocks/:id/assign` | admin |
 | POST | `/v1/restocks/:id/cancel` | admin, responsable |
-| POST | `/v1/restocks/:id/receipt` | responsable, grossiste, vendeur |
+| POST | `/v1/restocks/:id/receipt` | admin (grossiste orders), responsable, vendeur |
 | PUT | `/v1/restocks/:id/receiver` | responsable |
 | POST | `/v1/restocks/:id/reject-receipt` | admin |
 | POST | `/v1/restocks/:id/send-direct` | admin |
-| POST | `/v1/restocks/:id/ship` | grossiste |
+| POST | `/v1/restocks/:id/ship` | admin, responsable |
 
 ## rewards
 
@@ -146,13 +149,13 @@ Every route is under `https://api.galylio.com`, JSON in and out, `Authorization:
 
 | Method | Path | Who |
 |---|---|---|
-| GET | `/v1/stock/declarations` | admin, responsable, grossiste |
-| POST | `/v1/stock/declarations` | responsable, grossiste |
-| GET | `/v1/stock/declarations/:id` | admin, responsable, grossiste |
+| GET | `/v1/stock/declarations` | admin, responsable |
+| POST | `/v1/stock/declarations` | admin (applied at once), responsable |
+| GET | `/v1/stock/declarations/:id` | admin, responsable |
 | POST | `/v1/stock/declarations/:id/approve` | admin |
 | POST | `/v1/stock/declarations/:id/reject` | admin |
-| GET | `/v1/stock/locations/:id` | admin, responsable, grossiste |
-| GET | `/v1/stock/locations/:id/products/:productId/movements` | admin, responsable, grossiste |
+| GET | `/v1/stock/locations/:id` | admin, responsable, vendeur (own store) |
+| GET | `/v1/stock/locations/:id/products/:productId/movements` | admin, responsable |
 
 ## training
 

@@ -19,7 +19,6 @@ export interface Me {
   locale: "fr" | "en";
   region: { id: string; code: string; name: string } | null;
   pdv: { id: string; name: string } | null;
-  depot: { id: string; name: string } | null;
 }
 
 @Injectable()
@@ -151,10 +150,8 @@ export class AuthService {
           pdvId: string | null;
           status: string;
           sessionId: string;
-          depotId: string | null;
         }[]
-      >`SELECT u.id,u.name,u.email,u.role,u.locale,u."regionId",u."pdvId",u.status,s.id AS "sessionId",
-        (SELECT d.id FROM "Depot" d WHERE d."userId"=u.id AND d.status='ACTIVE') AS "depotId"
+      >`SELECT u.id,u.name,u.email,u.role,u.locale,u."regionId",u."pdvId",u.status,s.id AS "sessionId"
       FROM "Session" s JOIN "User" u ON u.id=s."userId"
       WHERE s."tokenHash"=${tokenHash(token)} AND s."revokedAt" IS NULL
         AND s."expiresAt">(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')`,
@@ -173,7 +170,6 @@ export class AuthService {
       role: row.role,
       regionId: row.regionId,
       pdvId: row.pdvId,
-      depotId: row.depotId,
       locale: row.locale === "en" ? "en" : "fr",
       sessionId: row.sessionId,
     };
@@ -182,7 +178,7 @@ export class AuthService {
   async me(userId: string): Promise<Me> {
     return this.db.run("SYSTEM", async (tx) => {
       const user = await tx.user.findUniqueOrThrow({ where: { id: userId } });
-      const [region, pdv, depot] = await Promise.all([
+      const [region, pdv] = await Promise.all([
         user.regionId
           ? tx.region.findUnique({ where: { id: user.regionId } })
           : null,
@@ -191,9 +187,6 @@ export class AuthService {
               where: { id: user.pdvId },
               select: { id: true, name: true },
             })
-          : null,
-        user.role === "GROSSISTE"
-          ? tx.depot.findUnique({ where: { userId } })
           : null,
       ]);
       return {
@@ -209,7 +202,6 @@ export class AuthService {
           name: region.name,
         },
         pdv: pdv && { id: pdv.id, name: pdv.name },
-        depot: depot && { id: depot.id, name: depot.name },
       };
     });
   }
