@@ -5,11 +5,12 @@ import '../../core/api/json.dart';
 import '../../core/theme/app_theme.dart';
 import '../../l10n/app_localizations.dart';
 
-/// Units sold per day over the last two weeks.
+/// Units sold per day over the last two weeks. A day can be tapped to open it.
 class TrendChart extends StatelessWidget {
-  const TrendChart({required this.days, super.key});
+  const TrendChart({required this.days, this.onTapDay, super.key});
 
   final List<Json> days;
+  final void Function(String day)? onTapDay;
 
   @override
   Widget build(BuildContext context) {
@@ -61,6 +62,12 @@ class TrendChart extends StatelessWidget {
               ),
             ),
             barTouchData: BarTouchData(
+              touchCallback: (event, response) {
+                final spot = response?.spot;
+                if (onTapDay != null && spot != null && event is FlTapUpEvent) {
+                  onTapDay!(days[spot.touchedBarGroupIndex].str('day'));
+                }
+              },
               touchTooltipData: BarTouchTooltipData(
                 getTooltipItem: (group, _, rod, _) => BarTooltipItem(
                   '${days[group.x].str('day').substring(5)}\n${t.units(rod.toY.round())}',

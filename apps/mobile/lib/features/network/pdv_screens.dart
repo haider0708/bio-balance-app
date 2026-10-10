@@ -6,6 +6,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../core/auth/me.dart';
 import '../../core/auth/session.dart';
 import '../../core/theme/app_theme.dart';
+import '../analytics/lens.dart';
 import '../../core/widgets/async_body.dart';
 import '../../core/widgets/components.dart';
 import '../../core/widgets/feedback.dart';
@@ -161,10 +162,28 @@ class PdvDetailScreen extends ConsumerWidget {
               ],
               if (me.role != Role.vendeur) ...[
                 const Gap(8),
-                OutlinedButton.icon(
-                  onPressed: () => context.push('/pdvs/${p.id}/sales'),
-                  icon: const Icon(LucideIcons.receipt),
-                  label: Text(t.viewSales),
+                Row(
+                  children: [
+                    Expanded(
+                      child: FilledButton.tonalIcon(
+                        onPressed: () => context.push(
+                          Lens.lastDays(30)
+                              .withFacet(Facet.pdv, p.id)
+                              .location(),
+                        ),
+                        icon: const Icon(LucideIcons.chartColumnBig),
+                        label: Text(t.analyticsTitle),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () => context.push('/pdvs/${p.id}/sales'),
+                        icon: const Icon(LucideIcons.receipt),
+                        label: Text(t.viewSales),
+                      ),
+                    ),
+                  ],
                 ),
               ],
               SectionHeader(

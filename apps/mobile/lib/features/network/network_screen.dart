@@ -6,6 +6,8 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../core/auth/me.dart';
 import '../../core/auth/session.dart';
 import '../../core/theme/app_theme.dart';
+import '../analytics/analytics_widgets.dart' show AnalyticsButton;
+import '../analytics/lens.dart' show Facet;
 import '../../core/widgets/async_body.dart';
 import '../../core/widgets/components.dart';
 import '../../core/widgets/feedback.dart';
@@ -436,6 +438,7 @@ class GroupScreen extends ConsumerWidget {
       appBar: AppBar(
         title: Text(group.name),
         actions: [
+          AnalyticsButton(facet: Facet.group, id: group.id),
           if (canEdit)
             IconButton(
               tooltip: t.renameGroup,

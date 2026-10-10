@@ -1444,5 +1444,241 @@
     }
   },
   "chooseGrossisteOtherRegions": "Grossistes of other regions can supply it too.",
-  "regionEmpty": "Empty"
+  "regionEmpty": "Empty",
+  "analyticsTitle": "Analytics",
+  "analyticsDetails": "Details",
+  "regionAnalytics": "Analytics of the region",
+  "kpiUnits": "Units sold",
+  "kpiSales": "Sales",
+  "kpiRewards": "Rewards",
+  "kpiPerSale": "Units per sale",
+  "kpiProductsCount": "{count, plural, =0{No product} =1{1 product} other{{count} products}}",
+  "@kpiProductsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "kpiStores": "Active stores",
+  "kpiSilent": "{count} without a sale",
+  "@kpiSilent": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "kpiSellers": "Active sellers",
+  "comparedWith": "Changes compare with {period}.",
+  "@comparedWith": {
+    "placeholders": {
+      "period": {
+        "type": "String"
+      }
+    }
+  },
+  "weekOf": "Week of {date}",
+  "@weekOf": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "chartByHour": "Hour by hour",
+  "chartByDay": "Day by day",
+  "chartByWeek": "Week by week",
+  "whenPeopleBuy": "When customers buy (hour)",
+  "noSalesInPeriodHint": "Choose a longer period or remove a filter.",
+  "anWhoWhereWhat": "Where, who and what",
+  "anRegions": "Regions",
+  "anStores": "Points of sale",
+  "anProducts": "Products",
+  "anSellers": "Team members",
+  "anGroups": "Groups",
+  "anFamilies": "Families",
+  "allStoresBoard": "All points of sale",
+  "qualityVoided": "{count, plural, =1{1 sale cancelled} other{{count} sales cancelled}}",
+  "@qualityVoided": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "qualityCorrected": "{count, plural, =1{1 sale corrected} other{{count} sales corrected}}",
+  "@qualityCorrected": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "qualityLate": "{count, plural, =1{1 sale sent later (offline)} other{{count} sales sent later (offline)}}",
+  "@qualityLate": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "sentLater": "sent later",
+  "memberSince": "Since {date}",
+  "@memberSince": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "openStorePage": "Store page",
+  "openProductSheet": "Product sheet",
+  "openRegionPage": "Region page",
+  "facetRegion": "Region",
+  "facetGroup": "Group",
+  "facetStore": "Point of sale",
+  "facetSeller": "Team member",
+  "facetProduct": "Product",
+  "facetFamily": "Family",
+  "addFilter": "Filter",
+  "removeFilter": "Remove this filter",
+  "filterBy": "Filter by",
+  "noResults": "Nothing found",
+  "period7": "7 days",
+  "period30": "30 days",
+  "period90": "90 days",
+  "stockWhere": "Where the stock is",
+  "stockInStores": "{count} in points of sale",
+  "@stockInStores": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "stockInGrossistes": "{count} at grossistes",
+  "@stockInGrossistes": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "stockNowhere": "No stock recorded.",
+  "stockHere": "Stock of this point of sale",
+  "stockHealth": "Stock health",
+  "perDay": "{value} a day",
+  "@perDay": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "noRecentSales": "No sale in 4 weeks",
+  "moneyTitle": "Rewards in money",
+  "moneyOwed": "Owed to team members",
+  "moneyOwedHint": "Their wallets today",
+  "moneyPending": "Waiting for payment",
+  "moneyPaid": "Paid in the period",
+  "moneyRequests": "{count, plural, =0{No request} =1{1 request} other{{count} requests}}",
+  "@moneyRequests": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "seeAllSales": "See all",
+  "storesBoardTitle": "Points of sale",
+  "searchStores": "Search a point of sale, a city…",
+  "sortBy": "Sort",
+  "sortUnits": "Units sold",
+  "sortChange": "Biggest drop first",
+  "sortLastSale": "Longest without a sale",
+  "sortName": "Name",
+  "boardAll": "All · {count}",
+  "@boardAll": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "boardSelling": "Selling · {count}",
+  "@boardSelling": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "boardSilent": "No sale · {count}",
+  "@boardSilent": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "boardLowStock": "Stock running low · {count}",
+  "@boardLowStock": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "boardPending": "Waiting for approval · {count}",
+  "@boardPending": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "boardNoSale": "No sale in the period",
+  "neverSold": "No sale yet",
+  "lastSaleOn": "Last sale: {date}",
+  "@lastSaleOn": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "ledgerTitle": "Sales",
+  "ledgerAll": "All",
+  "ledgerVoidedOnly": "Cancelled",
+  "insBestHour": "Most sales happen around {hour}: {share} % of units.",
+  "@insBestHour": {
+    "placeholders": {
+      "hour": {
+        "type": "String"
+      },
+      "share": {
+        "type": "int"
+      }
+    }
+  },
+  "insSilentStores": "{count, plural, =1{1 active point of sale sold nothing in this period.} other{{count} active points of sale sold nothing in this period.}}",
+  "@insSilentStores": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "facetChip": "{label}: {name}",
+  "@facetChip": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      },
+      "name": {
+        "type": "String"
+      }
+    }
+  }
 }

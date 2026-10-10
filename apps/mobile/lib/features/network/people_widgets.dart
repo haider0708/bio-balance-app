@@ -6,6 +6,8 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../core/auth/me.dart';
 import '../../core/auth/session.dart';
 import '../../core/theme/app_theme.dart';
+import '../analytics/analytics_widgets.dart' show AnalyticsButton;
+import '../analytics/lens.dart' show Facet;
 import '../../core/widgets/async_body.dart';
 import '../../core/widgets/components.dart';
 import '../../core/widgets/feedback.dart';
@@ -257,7 +259,13 @@ class PersonDetailScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
-      appBar: AppBar(title: Text(person.name)),
+      appBar: AppBar(
+        title: Text(person.name),
+        actions: [
+          if (person.role == Role.vendeur)
+            AnalyticsButton(facet: Facet.seller, id: person.id),
+        ],
+      ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [

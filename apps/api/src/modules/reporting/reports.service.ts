@@ -146,7 +146,16 @@ export class ReportsService {
   /** One line per product sold, for spreadsheets. */
   async salesCsv(
     actor: Actor,
-    f: { from: string; to: string; regionId?: string; pdvId?: string },
+    f: {
+      from: string;
+      to: string;
+      regionId?: string;
+      groupId?: string;
+      pdvId?: string;
+      sellerId?: string;
+      productId?: string;
+      family?: string;
+    },
   ) {
     requireRule(
       ["ADMIN", "RESPONSABLE"].includes(actor.role),
@@ -174,6 +183,10 @@ export class ReportsService {
       WHERE s.status = 'ACTIVE' AND s.day BETWEEN ${dayToDate(f.from)} AND ${dayToDate(f.to)}
         ${f.regionId ? Prisma.sql`AND s."regionId" = ${f.regionId}::uuid` : Prisma.empty}
         ${f.pdvId ? Prisma.sql`AND s."pdvId" = ${f.pdvId}::uuid` : Prisma.empty}
+        ${f.groupId ? Prisma.sql`AND pd."groupId" = ${f.groupId}::uuid` : Prisma.empty}
+        ${f.sellerId ? Prisma.sql`AND s."sellerId" = ${f.sellerId}::uuid` : Prisma.empty}
+        ${f.productId ? Prisma.sql`AND l."productId" = ${f.productId}::uuid` : Prisma.empty}
+        ${f.family ? Prisma.sql`AND p.family = ${f.family}` : Prisma.empty}
       ORDER BY s."occurredAt", s.id LIMIT 100000`,
     );
     const cell = (v: string | number | bigint) => {

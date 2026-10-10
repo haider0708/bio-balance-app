@@ -4567,6 +4567,504 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Empty'**
   String get regionEmpty;
+
+  /// No description provided for @analyticsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Analytics'**
+  String get analyticsTitle;
+
+  /// No description provided for @analyticsDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Details'**
+  String get analyticsDetails;
+
+  /// No description provided for @regionAnalytics.
+  ///
+  /// In en, this message translates to:
+  /// **'Analytics of the region'**
+  String get regionAnalytics;
+
+  /// No description provided for @kpiUnits.
+  ///
+  /// In en, this message translates to:
+  /// **'Units sold'**
+  String get kpiUnits;
+
+  /// No description provided for @kpiSales.
+  ///
+  /// In en, this message translates to:
+  /// **'Sales'**
+  String get kpiSales;
+
+  /// No description provided for @kpiRewards.
+  ///
+  /// In en, this message translates to:
+  /// **'Rewards'**
+  String get kpiRewards;
+
+  /// No description provided for @kpiPerSale.
+  ///
+  /// In en, this message translates to:
+  /// **'Units per sale'**
+  String get kpiPerSale;
+
+  /// No description provided for @kpiProductsCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{No product} =1{1 product} other{{count} products}}'**
+  String kpiProductsCount(int count);
+
+  /// No description provided for @kpiStores.
+  ///
+  /// In en, this message translates to:
+  /// **'Active stores'**
+  String get kpiStores;
+
+  /// No description provided for @kpiSilent.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} without a sale'**
+  String kpiSilent(int count);
+
+  /// No description provided for @kpiSellers.
+  ///
+  /// In en, this message translates to:
+  /// **'Active sellers'**
+  String get kpiSellers;
+
+  /// No description provided for @comparedWith.
+  ///
+  /// In en, this message translates to:
+  /// **'Changes compare with {period}.'**
+  String comparedWith(String period);
+
+  /// No description provided for @weekOf.
+  ///
+  /// In en, this message translates to:
+  /// **'Week of {date}'**
+  String weekOf(String date);
+
+  /// No description provided for @chartByHour.
+  ///
+  /// In en, this message translates to:
+  /// **'Hour by hour'**
+  String get chartByHour;
+
+  /// No description provided for @chartByDay.
+  ///
+  /// In en, this message translates to:
+  /// **'Day by day'**
+  String get chartByDay;
+
+  /// No description provided for @chartByWeek.
+  ///
+  /// In en, this message translates to:
+  /// **'Week by week'**
+  String get chartByWeek;
+
+  /// No description provided for @whenPeopleBuy.
+  ///
+  /// In en, this message translates to:
+  /// **'When customers buy (hour)'**
+  String get whenPeopleBuy;
+
+  /// No description provided for @noSalesInPeriodHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a longer period or remove a filter.'**
+  String get noSalesInPeriodHint;
+
+  /// No description provided for @anWhoWhereWhat.
+  ///
+  /// In en, this message translates to:
+  /// **'Where, who and what'**
+  String get anWhoWhereWhat;
+
+  /// No description provided for @anRegions.
+  ///
+  /// In en, this message translates to:
+  /// **'Regions'**
+  String get anRegions;
+
+  /// No description provided for @anStores.
+  ///
+  /// In en, this message translates to:
+  /// **'Points of sale'**
+  String get anStores;
+
+  /// No description provided for @anProducts.
+  ///
+  /// In en, this message translates to:
+  /// **'Products'**
+  String get anProducts;
+
+  /// No description provided for @anSellers.
+  ///
+  /// In en, this message translates to:
+  /// **'Team members'**
+  String get anSellers;
+
+  /// No description provided for @anGroups.
+  ///
+  /// In en, this message translates to:
+  /// **'Groups'**
+  String get anGroups;
+
+  /// No description provided for @anFamilies.
+  ///
+  /// In en, this message translates to:
+  /// **'Families'**
+  String get anFamilies;
+
+  /// No description provided for @allStoresBoard.
+  ///
+  /// In en, this message translates to:
+  /// **'All points of sale'**
+  String get allStoresBoard;
+
+  /// No description provided for @qualityVoided.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 sale cancelled} other{{count} sales cancelled}}'**
+  String qualityVoided(int count);
+
+  /// No description provided for @qualityCorrected.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 sale corrected} other{{count} sales corrected}}'**
+  String qualityCorrected(int count);
+
+  /// No description provided for @qualityLate.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 sale sent later (offline)} other{{count} sales sent later (offline)}}'**
+  String qualityLate(int count);
+
+  /// No description provided for @sentLater.
+  ///
+  /// In en, this message translates to:
+  /// **'sent later'**
+  String get sentLater;
+
+  /// No description provided for @memberSince.
+  ///
+  /// In en, this message translates to:
+  /// **'Since {date}'**
+  String memberSince(String date);
+
+  /// No description provided for @openStorePage.
+  ///
+  /// In en, this message translates to:
+  /// **'Store page'**
+  String get openStorePage;
+
+  /// No description provided for @openProductSheet.
+  ///
+  /// In en, this message translates to:
+  /// **'Product sheet'**
+  String get openProductSheet;
+
+  /// No description provided for @openRegionPage.
+  ///
+  /// In en, this message translates to:
+  /// **'Region page'**
+  String get openRegionPage;
+
+  /// No description provided for @facetRegion.
+  ///
+  /// In en, this message translates to:
+  /// **'Region'**
+  String get facetRegion;
+
+  /// No description provided for @facetGroup.
+  ///
+  /// In en, this message translates to:
+  /// **'Group'**
+  String get facetGroup;
+
+  /// No description provided for @facetStore.
+  ///
+  /// In en, this message translates to:
+  /// **'Point of sale'**
+  String get facetStore;
+
+  /// No description provided for @facetSeller.
+  ///
+  /// In en, this message translates to:
+  /// **'Team member'**
+  String get facetSeller;
+
+  /// No description provided for @facetProduct.
+  ///
+  /// In en, this message translates to:
+  /// **'Product'**
+  String get facetProduct;
+
+  /// No description provided for @facetFamily.
+  ///
+  /// In en, this message translates to:
+  /// **'Family'**
+  String get facetFamily;
+
+  /// No description provided for @addFilter.
+  ///
+  /// In en, this message translates to:
+  /// **'Filter'**
+  String get addFilter;
+
+  /// No description provided for @removeFilter.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove this filter'**
+  String get removeFilter;
+
+  /// No description provided for @filterBy.
+  ///
+  /// In en, this message translates to:
+  /// **'Filter by'**
+  String get filterBy;
+
+  /// No description provided for @noResults.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing found'**
+  String get noResults;
+
+  /// No description provided for @period7.
+  ///
+  /// In en, this message translates to:
+  /// **'7 days'**
+  String get period7;
+
+  /// No description provided for @period30.
+  ///
+  /// In en, this message translates to:
+  /// **'30 days'**
+  String get period30;
+
+  /// No description provided for @period90.
+  ///
+  /// In en, this message translates to:
+  /// **'90 days'**
+  String get period90;
+
+  /// No description provided for @stockWhere.
+  ///
+  /// In en, this message translates to:
+  /// **'Where the stock is'**
+  String get stockWhere;
+
+  /// No description provided for @stockInStores.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} in points of sale'**
+  String stockInStores(int count);
+
+  /// No description provided for @stockInGrossistes.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} at grossistes'**
+  String stockInGrossistes(int count);
+
+  /// No description provided for @stockNowhere.
+  ///
+  /// In en, this message translates to:
+  /// **'No stock recorded.'**
+  String get stockNowhere;
+
+  /// No description provided for @stockHere.
+  ///
+  /// In en, this message translates to:
+  /// **'Stock of this point of sale'**
+  String get stockHere;
+
+  /// No description provided for @stockHealth.
+  ///
+  /// In en, this message translates to:
+  /// **'Stock health'**
+  String get stockHealth;
+
+  /// No description provided for @perDay.
+  ///
+  /// In en, this message translates to:
+  /// **'{value} a day'**
+  String perDay(String value);
+
+  /// No description provided for @noRecentSales.
+  ///
+  /// In en, this message translates to:
+  /// **'No sale in 4 weeks'**
+  String get noRecentSales;
+
+  /// No description provided for @moneyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Rewards in money'**
+  String get moneyTitle;
+
+  /// No description provided for @moneyOwed.
+  ///
+  /// In en, this message translates to:
+  /// **'Owed to team members'**
+  String get moneyOwed;
+
+  /// No description provided for @moneyOwedHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Their wallets today'**
+  String get moneyOwedHint;
+
+  /// No description provided for @moneyPending.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting for payment'**
+  String get moneyPending;
+
+  /// No description provided for @moneyPaid.
+  ///
+  /// In en, this message translates to:
+  /// **'Paid in the period'**
+  String get moneyPaid;
+
+  /// No description provided for @moneyRequests.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{No request} =1{1 request} other{{count} requests}}'**
+  String moneyRequests(int count);
+
+  /// No description provided for @seeAllSales.
+  ///
+  /// In en, this message translates to:
+  /// **'See all'**
+  String get seeAllSales;
+
+  /// No description provided for @storesBoardTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Points of sale'**
+  String get storesBoardTitle;
+
+  /// No description provided for @searchStores.
+  ///
+  /// In en, this message translates to:
+  /// **'Search a point of sale, a city…'**
+  String get searchStores;
+
+  /// No description provided for @sortBy.
+  ///
+  /// In en, this message translates to:
+  /// **'Sort'**
+  String get sortBy;
+
+  /// No description provided for @sortUnits.
+  ///
+  /// In en, this message translates to:
+  /// **'Units sold'**
+  String get sortUnits;
+
+  /// No description provided for @sortChange.
+  ///
+  /// In en, this message translates to:
+  /// **'Biggest drop first'**
+  String get sortChange;
+
+  /// No description provided for @sortLastSale.
+  ///
+  /// In en, this message translates to:
+  /// **'Longest without a sale'**
+  String get sortLastSale;
+
+  /// No description provided for @sortName.
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get sortName;
+
+  /// No description provided for @boardAll.
+  ///
+  /// In en, this message translates to:
+  /// **'All · {count}'**
+  String boardAll(int count);
+
+  /// No description provided for @boardSelling.
+  ///
+  /// In en, this message translates to:
+  /// **'Selling · {count}'**
+  String boardSelling(int count);
+
+  /// No description provided for @boardSilent.
+  ///
+  /// In en, this message translates to:
+  /// **'No sale · {count}'**
+  String boardSilent(int count);
+
+  /// No description provided for @boardLowStock.
+  ///
+  /// In en, this message translates to:
+  /// **'Stock running low · {count}'**
+  String boardLowStock(int count);
+
+  /// No description provided for @boardPending.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting for approval · {count}'**
+  String boardPending(int count);
+
+  /// No description provided for @boardNoSale.
+  ///
+  /// In en, this message translates to:
+  /// **'No sale in the period'**
+  String get boardNoSale;
+
+  /// No description provided for @neverSold.
+  ///
+  /// In en, this message translates to:
+  /// **'No sale yet'**
+  String get neverSold;
+
+  /// No description provided for @lastSaleOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Last sale: {date}'**
+  String lastSaleOn(String date);
+
+  /// No description provided for @ledgerTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sales'**
+  String get ledgerTitle;
+
+  /// No description provided for @ledgerAll.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get ledgerAll;
+
+  /// No description provided for @ledgerVoidedOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancelled'**
+  String get ledgerVoidedOnly;
+
+  /// No description provided for @insBestHour.
+  ///
+  /// In en, this message translates to:
+  /// **'Most sales happen around {hour}: {share} % of units.'**
+  String insBestHour(String hour, int share);
+
+  /// No description provided for @insSilentStores.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 active point of sale sold nothing in this period.} other{{count} active points of sale sold nothing in this period.}}'**
+  String insSilentStores(int count);
+
+  /// No description provided for @facetChip.
+  ///
+  /// In en, this message translates to:
+  /// **'{label}: {name}'**
+  String facetChip(String label, String name);
 }
 
 class _AppLocalizationsDelegate

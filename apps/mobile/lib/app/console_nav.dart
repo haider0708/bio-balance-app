@@ -84,7 +84,7 @@ List<ConsoleNavEntry> _responsableEntries(AppLocalizations t) => [
     icon: LucideIcons.chartNoAxesColumn,
     label: t.tabReports,
     path: '/reports',
-    matchPrefixes: ['/stock-attention'],
+    matchPrefixes: ['/stock-attention', '/explore'],
   ),
   ConsoleNavEntry.section(t.navSectionCommerce),
   ConsoleNavEntry.item(
@@ -151,7 +151,7 @@ List<ConsoleNavEntry> _adminEntries(AppLocalizations t) => [
     icon: LucideIcons.chartNoAxesColumn,
     label: t.tabReports,
     path: '/reports',
-    matchPrefixes: ['/stock-attention'],
+    matchPrefixes: ['/stock-attention', '/explore'],
   ),
   ConsoleNavEntry.section(t.navSectionCommerce),
   ConsoleNavEntry.item(

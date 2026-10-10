@@ -5,6 +5,7 @@ import 'package:flutter/material.dart' show BackButton, TextFormField;
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'support/analytics_fixture.dart';
 import 'support/fake_server.dart';
 import 'support/harness.dart';
 
@@ -387,25 +388,7 @@ FakeServer server(String role) {
           line('SÉRUM NIACINAMIDE', 10, shipped: 10, received: 10),
         ],
       });
-      s.on('GET /v1/reports/sales', {
-        'rows': [
-          {
-            'key': 'a',
-            'label': 'Para Lac',
-            'sales': 140,
-            'units': 380,
-            'rewardMillimes': 190000,
-          },
-          {
-            'key': 'b',
-            'label': 'Pharma Marsa',
-            'sales': 90,
-            'units': 250,
-            'rewardMillimes': 120000,
-          },
-        ],
-        'totals': {'sales': 230, 'units': 630, 'rewardMillimes': 310000},
-      });
+      s.on('GET /v1/analytics/overview', overviewFixture());
   }
   return s;
 }

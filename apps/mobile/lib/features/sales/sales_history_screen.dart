@@ -462,12 +462,16 @@ class SaleTile extends StatelessWidget {
   const SaleTile({
     required this.sale,
     this.showSeller = false,
+    this.showDate = false,
     this.flat = false,
     super.key,
   });
 
   final Sale sale;
   final bool showSeller;
+
+  /// In a list that spans several days: the date with the time.
+  final bool showDate;
 
   /// Inside a day card: no frame of its own.
   final bool flat;
@@ -516,9 +520,12 @@ class SaleTile extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   [
-                    Dates.time(sale.occurredAt, t.localeName),
+                    showDate
+                        ? Dates.dateTime(sale.occurredAt, t.localeName)
+                        : Dates.time(sale.occurredAt, t.localeName),
                     if (showSeller) t.units(sale.units),
                     if (sale.version > 1) t.corrected,
+                    if (sale.sentLater) t.sentLater,
                   ].join(' · '),
                   style: context.text.bodySmall?.copyWith(
                     color: context.status.muted,

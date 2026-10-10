@@ -14,6 +14,8 @@ import 'package:biobalance/features/messages/messages_repository.dart';
 import 'package:biobalance/features/network/network_models.dart';
 import 'package:biobalance/features/network/network_repository.dart';
 import 'package:biobalance/features/notifications/notifications_repository.dart';
+import 'package:biobalance/features/analytics/analytics_repository.dart';
+import 'package:biobalance/features/analytics/lens.dart';
 import 'package:biobalance/features/reports/reports_repository.dart';
 import 'package:biobalance/features/restock/restock_models.dart';
 import 'package:biobalance/features/restock/restock_repository.dart';
@@ -217,17 +219,33 @@ void main() {
       expect(dashboard.list('trend'), hasLength(14));
       expect(dashboard.obj('approvals').integer('PDV'), 1);
 
-      final report = await c.read(reportsRepositoryProvider).sales((
-        from: _day(DateTime.now().subtract(const Duration(days: 30))),
-        to: _day(DateTime.now().add(const Duration(days: 1))),
-        groupBy: 'family',
+      // The analytics behind the dashboard: the same totals, rankings, stock and sales.
+      final analytics = c.read(analyticsRepositoryProvider);
+      final month = Lens.lastDays(30);
+      final overview = await analytics.overview(month);
+      expect(overview.obj('totals').integer('units'), greaterThan(0));
+      expect(overview.list('series'), hasLength(30));
+      expect(overview.list('hours'), hasLength(24));
+      expect(
+        overview.obj('breakdowns').list('families').map((r) => r.str('name')),
+        contains('Sérums'),
+      );
+      expect(overview.obj('stock').str('kind'), 'network');
+      final store = overview.obj('breakdowns').list('stores').first;
+      final narrowed = await analytics.overview(
+        month.withFacet(Facet.pdv, store.str('id')),
+      );
+      expect(narrowed.obj('subject').obj('pdv').str('name'), store.str('name'));
+      expect(narrowed.obj('stock').str('kind'), 'store');
+      final board = await analytics.stores((
+        from: month.from,
+        to: month.to,
         regionId: null,
-        pdvId: null,
-        sellerId: null,
-        productId: null,
-        family: null,
+        groupId: null,
       ));
-      expect(report.rows.map((r) => r.label), contains('Sérums'));
+      expect(board.list('rows'), isNotEmpty);
+      final ledger = await analytics.sales(month);
+      expect(ledger.items, isNotEmpty);
       await c.read(reportsRepositoryProvider).attention();
     });
 
@@ -378,5 +396,3 @@ class Sale2 {
   final bool replay;
   final int balance;
 }
-
-String _day(DateTime d) => d.toIso8601String().substring(0, 10);

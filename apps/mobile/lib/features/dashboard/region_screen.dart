@@ -10,6 +10,8 @@ import '../../core/util/money.dart';
 import '../../core/widgets/async_body.dart';
 import '../../core/widgets/components.dart';
 import '../../l10n/app_localizations.dart';
+import '../analytics/explorer_screen.dart' show storesBoardLocation;
+import '../analytics/lens.dart';
 import '../network/network_models.dart';
 import '../network/network_repository.dart';
 import '../network/region_moves.dart';
@@ -154,6 +156,13 @@ class RegionScreen extends ConsumerWidget {
             final boss = region?.objOrNull('responsable');
             final sales = d.obj('sales');
             final locale = t.localeName;
+            final day = d.str('today', tunisToday());
+            Lens here(int days, {Metric sort = Metric.units}) => Lens.lastDays(
+              days,
+              today: day,
+              sort: sort,
+            ).withFacet(Facet.region, regionId);
+            void open(Lens lens) => context.push(lens.location());
             return ListView(
               padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
               children: [
@@ -204,17 +213,20 @@ class RegionScreen extends ConsumerWidget {
                       icon: LucideIcons.store,
                       label: t.regionStores,
                       value: '${region?.integer('pdvs') ?? 0}',
+                      onTap: () => context.push(storesBoardLocation(here(30))),
                     ),
                     StatTile(
                       icon: LucideIcons.users,
                       label: t.tabPeople,
                       value: '${region?.integer('members') ?? 0}',
+                      onTap: () => open(here(30)),
                     ),
                     StatTile(
                       icon: LucideIcons.receipt,
                       label: t.last7Days,
                       value: t.units(sales.obj('week').integer('units')),
                       hint: t.salesCount(sales.obj('week').integer('sales')),
+                      onTap: () => open(here(7)),
                     ),
                     StatTile(
                       icon: LucideIcons.banknote,
@@ -223,19 +235,41 @@ class RegionScreen extends ConsumerWidget {
                         sales.obj('month').integer('rewardMillimes'),
                         locale,
                       ),
+                      onTap: () => open(here(30, sort: Metric.reward)),
                     ),
                   ],
                 ),
+                const Gap(12),
+                FilledButton.tonalIcon(
+                  onPressed: () => open(here(30)),
+                  icon: const Icon(LucideIcons.chartColumnBig),
+                  label: Text(t.regionAnalytics),
+                ),
                 SectionHeader(t.salesLast14Days),
-                AppCard(child: TrendChart(days: d.list('trend'))),
+                AppCard(
+                  child: TrendChart(
+                    days: d.list('trend'),
+                    onTapDay: (x) =>
+                        open(Lens.day(x).withFacet(Facet.region, regionId)),
+                  ),
+                ),
                 ...attentionSections(context, t, d, admin: true),
                 if (d.list('topProducts').isNotEmpty) ...[
                   SectionHeader(t.topProducts),
-                  TopProducts(items: d.list('topProducts')),
+                  TopProducts(
+                    items: d.list('topProducts'),
+                    onTap: (p) => open(
+                      here(30).withFacet(Facet.product, p.str('productId')),
+                    ),
+                  ),
                 ],
                 if (d.list('topPdvs').isNotEmpty) ...[
                   SectionHeader(t.topPdvs),
-                  TopPlaces(items: d.list('topPdvs')),
+                  TopPlaces(
+                    items: d.list('topPdvs'),
+                    onTap: (p) =>
+                        open(here(30).withFacet(Facet.pdv, p.str('pdvId'))),
+                  ),
                 ],
                 if (groups.isNotEmpty) ...[
                   SectionHeader(t.regionGroups),
@@ -243,6 +277,8 @@ class RegionScreen extends ConsumerWidget {
                     Padding(
                       padding: const EdgeInsets.only(bottom: 8),
                       child: AppCard(
+                        onTap: () =>
+                            open(here(30).withFacet(Facet.group, g.id)),
                         child: Row(
                           children: [
                             const Icon(LucideIcons.layers),
@@ -258,6 +294,12 @@ class RegionScreen extends ConsumerWidget {
                               style: context.text.bodySmall?.copyWith(
                                 color: context.status.muted,
                               ),
+                            ),
+                            const SizedBox(width: 4),
+                            Icon(
+                              LucideIcons.chevronRight,
+                              size: 18,
+                              color: context.status.muted,
                             ),
                           ],
                         ),
@@ -312,12 +354,6 @@ class RegionScreen extends ConsumerWidget {
                       ),
                     ),
                 ],
-                const Gap(8),
-                OutlinedButton.icon(
-                  onPressed: () => context.push('/reports'),
-                  icon: const Icon(LucideIcons.chartNoAxesColumn),
-                  label: Text(t.reportsTitle),
-                ),
               ],
             );
           },

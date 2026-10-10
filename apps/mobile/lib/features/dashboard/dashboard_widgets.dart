@@ -120,9 +120,17 @@ class AttentionLine extends StatelessWidget {
 
 /// The best sellers with their picture, name and units, bars scaled to the leader.
 class TopProducts extends StatefulWidget {
-  const TopProducts({required this.items, this.initial = 5, super.key});
+  const TopProducts({
+    required this.items,
+    this.onTap,
+    this.initial = 5,
+    super.key,
+  });
 
   final List<Json> items;
+
+  /// Opens the analytics of a product.
+  final void Function(Json item)? onTap;
   final int initial;
 
   @override
@@ -146,8 +154,10 @@ class _TopProductsState extends State<TopProducts> {
       child: Column(
         children: [
           for (var i = 0; i < items.length; i++)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8),
+            _Tappable(
+              onTap: widget.onTap == null
+                  ? null
+                  : () => widget.onTap!(items[i]),
               child: Row(
                 children: [
                   SizedBox(
@@ -196,6 +206,7 @@ class _TopProductsState extends State<TopProducts> {
                     t.units(items[i].integer('units')),
                     style: context.text.titleSmall,
                   ),
+                  if (widget.onTap != null) const _Chevron(),
                 ],
               ),
             ),
@@ -209,6 +220,38 @@ class _TopProductsState extends State<TopProducts> {
       ),
     );
   }
+}
+
+/// A ranking row that opens what it is about; a plain row when it does not.
+class _Tappable extends StatelessWidget {
+  const _Tappable({required this.child, this.onTap});
+
+  final Widget child;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) => InkWell(
+    borderRadius: BorderRadius.circular(12),
+    onTap: onTap,
+    child: Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: child,
+    ),
+  );
+}
+
+class _Chevron extends StatelessWidget {
+  const _Chevron();
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsetsDirectional.only(start: 4),
+    child: Icon(
+      LucideIcons.chevronRight,
+      size: 16,
+      color: context.status.muted,
+    ),
+  );
 }
 
 /// "See more (30)" / "See less" under a ranking.
@@ -238,12 +281,16 @@ class TopPlaces extends StatefulWidget {
   const TopPlaces({
     required this.items,
     this.icon = LucideIcons.store,
+    this.onTap,
     this.initial = 5,
     super.key,
   });
 
   final List<Json> items;
   final IconData icon;
+
+  /// Opens the analytics of a store or a group.
+  final void Function(Json item)? onTap;
   final int initial;
 
   @override
@@ -268,8 +315,10 @@ class _TopPlacesState extends State<TopPlaces> {
       child: Column(
         children: [
           for (var i = 0; i < items.length; i++)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8),
+            _Tappable(
+              onTap: widget.onTap == null
+                  ? null
+                  : () => widget.onTap!(items[i]),
               child: Row(
                 children: [
                   SizedBox(
@@ -319,6 +368,7 @@ class _TopPlacesState extends State<TopPlaces> {
                     t.units(items[i].integer('units')),
                     style: context.text.titleSmall,
                   ),
+                  if (widget.onTap != null) const _Chevron(),
                 ],
               ),
             ),

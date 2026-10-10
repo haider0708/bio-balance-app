@@ -100,6 +100,10 @@ class Sale {
   final WalletSummary? wallet;
   final bool replay;
 
+  /// Recorded without a connection and sent more than an hour after it happened.
+  bool get sentLater =>
+      createdAt.difference(occurredAt) > const Duration(hours: 1);
+
   /// A seller may correct their own sale for 48 hours.
   bool get sellerCanCorrect =>
       !voided &&

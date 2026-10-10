@@ -78,7 +78,10 @@ class SalesRepository {
     String? pdvId,
     String? sellerId,
     String? regionId,
+    String? groupId,
     String? productId,
+    String? family,
+    String? status,
     int limit = 30,
   }) async {
     final data =
@@ -94,7 +97,10 @@ class SalesRepository {
                     'pdvId': pdvId,
                     'sellerId': sellerId,
                     'regionId': regionId,
+                    'groupId': groupId,
                     'productId': productId,
+                    'family': family,
+                    'status': status,
                   },
                 )
             as Json;

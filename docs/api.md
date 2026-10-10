@@ -108,11 +108,16 @@ Every route is under `https://api.galylio.com`, JSON in and out, `Authorization:
 |---|---|---|
 | GET | `/v1/approvals` | admin |
 | GET | `/v1/audit` | admin |
+| GET | `/v1/analytics/overview` | admin, responsable |
+| GET | `/v1/analytics/stores` | admin, responsable |
 | GET | `/v1/dashboard` | any signed-in role |
+| GET | `/v1/reports/insights` | admin, responsable (legacy: apps up to 2.7) |
 | GET | `/v1/reports/sales` | admin, responsable |
 | GET | `/v1/reports/sales.csv` | admin, responsable |
 | GET | `/v1/reports/stock` | admin, responsable |
 | GET | `/v1/reports/stock/attention` | admin, responsable |
+
+**Analytics.** `GET /v1/analytics/overview` takes a *lens*: `from`, `to` (at most 400 days) and any of `regionId`, `groupId`, `pdvId`, `sellerId`, `productId`, `family`, plus `sort` (`units` | `sales` | `reward`). It answers, for that lens: `subject` (the names and details behind the ids; 404 when one is not visible to the caller), `totals` (sales, units, reward, stores, sellers, products, units per sale, silent stores, and voided / corrected / sent-late sales), `previousTotals` and `change` against the period just before, `series` (per hour for one day, per day up to 62 days, per week beyond), `hours` (Tunis clock), `weekdays`, `breakdowns` (regions, groups, stores, sellers, products, families — up to 100 rows each, with the three measures now and before; a breakdown the lens already fixes is left out), `stock` (for a product: where it sits, stores and grossistes; for a store: what it holds; otherwise what runs out within a week and what does not move; days left at the pace of four weeks), `money` (admin only: owed to the team, waiting payouts, payouts approved in the period) and `insights` (keys the app words). A responsable always gets their own region. `GET /v1/analytics/stores` lists every store of a region or group (pending and suspended too) with its sales, change, team, last sale and stock alerts. `GET /v1/sales` accepts `groupId`, `family` and `status`, and `GET /v1/reports/sales.csv` accepts the whole lens, so the ledger and the spreadsheet show exactly the numbers on screen.
 
 ## restock
 

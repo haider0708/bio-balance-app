@@ -13,6 +13,8 @@ import '../../core/util/money.dart';
 import '../../core/widgets/async_body.dart';
 import '../../core/widgets/components.dart';
 import '../../l10n/app_localizations.dart';
+import '../analytics/explorer_screen.dart' show storesBoardLocation;
+import '../analytics/lens.dart';
 import '../notifications/notifications_repository.dart';
 import 'dashboard_repository.dart';
 import 'dashboard_widgets.dart';
@@ -66,6 +68,9 @@ class _Body extends ConsumerWidget {
     final restocks = data.obj('restocks');
     final regions = data.list('regions');
     final waiting = approvals.integer('total');
+    // Every number opens what it is made of, counted on the same Tunis day as the dashboard.
+    final day = data.str('today', tunisToday());
+    void open(Lens lens) => context.push(lens.location());
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
       children: [
@@ -103,18 +108,22 @@ class _Body extends ConsumerWidget {
               label: t.today,
               value: t.units(today.integer('units')),
               hint: t.salesCount(today.integer('sales')),
+              onTap: () => open(Lens.day(day)),
             ),
             StatTile(
               icon: LucideIcons.calendarDays,
               label: t.last7Days,
               value: t.units(week.integer('units')),
               hint: t.salesCount(week.integer('sales')),
+              onTap: () => open(Lens.lastDays(7, today: day)),
             ),
             StatTile(
               icon: LucideIcons.banknote,
               label: t.rewardsMonth,
               value: Money.format(month.integer('rewardMillimes'), locale),
               hint: t.units(month.integer('units')),
+              onTap: () =>
+                  open(Lens.lastDays(30, today: day, sort: Metric.reward)),
             ),
             StatTile(
               icon: LucideIcons.store,
@@ -123,11 +132,22 @@ class _Body extends ConsumerWidget {
               hint: data.obj('pdvs').integer('pending') > 0
                   ? t.pendingCount(data.obj('pdvs').integer('pending'))
                   : null,
+              onTap: () => context.push(
+                storesBoardLocation(Lens.lastDays(30, today: day)),
+              ),
             ),
           ],
         ),
-        SectionHeader(t.salesLast14Days),
-        AppCard(child: TrendChart(days: data.list('trend'))),
+        SectionHeader(
+          t.salesLast14Days,
+          trailing: _SeeAll(onTap: () => open(Lens.lastDays(14, today: day))),
+        ),
+        AppCard(
+          child: TrendChart(
+            days: data.list('trend'),
+            onTapDay: (d) => open(Lens.day(d)),
+          ),
+        ),
         if (admin && regions.isNotEmpty) ...[
           SectionHeader(t.regions),
           AutoGrid(
@@ -213,16 +233,51 @@ class _Body extends ConsumerWidget {
           LowByStore(items: data.list('lowByPlace'), canOrder: !admin),
         ],
         if (data.list('topProducts').isNotEmpty) ...[
-          SectionHeader(t.topProducts),
-          TopProducts(items: data.list('topProducts')),
+          SectionHeader(
+            t.topProducts,
+            trailing: _SeeAll(onTap: () => open(Lens.lastDays(30, today: day))),
+          ),
+          TopProducts(
+            items: data.list('topProducts'),
+            onTap: (p) => open(
+              Lens.lastDays(
+                30,
+                today: day,
+              ).withFacet(Facet.product, p.str('productId')),
+            ),
+          ),
         ],
         if (data.list('topPdvs').isNotEmpty) ...[
-          SectionHeader(admin ? t.topPdvs : t.bestStores),
-          TopPlaces(items: data.list('topPdvs')),
+          SectionHeader(
+            admin ? t.topPdvs : t.bestStores,
+            trailing: _SeeAll(
+              onTap: () => context.push(
+                storesBoardLocation(Lens.lastDays(30, today: day)),
+              ),
+            ),
+          ),
+          TopPlaces(
+            items: data.list('topPdvs'),
+            onTap: (p) => open(
+              Lens.lastDays(
+                30,
+                today: day,
+              ).withFacet(Facet.pdv, p.str('pdvId')),
+            ),
+          ),
         ],
         if (!admin && data.list('topGroups').isNotEmpty) ...[
           SectionHeader(t.bestGroups),
-          TopPlaces(items: data.list('topGroups'), icon: LucideIcons.layers),
+          TopPlaces(
+            items: data.list('topGroups'),
+            icon: LucideIcons.layers,
+            onTap: (g) => open(
+              Lens.lastDays(
+                30,
+                today: day,
+              ).withFacet(Facet.group, g.str('groupId')),
+            ),
+          ),
         ],
       ],
     );
@@ -241,6 +296,21 @@ class _Body extends ConsumerWidget {
     ];
     return parts.join(' · ');
   }
+}
+
+/// "See all" at the end of a section title: opens the analytics behind it.
+class _SeeAll extends StatelessWidget {
+  const _SeeAll({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => TextButton.icon(
+    onPressed: onTap,
+    iconAlignment: IconAlignment.end,
+    icon: const Icon(LucideIcons.chevronRight, size: 16),
+    label: Text(AppLocalizations.of(context).analyticsDetails),
+  );
 }
 
 /// "Needs attention", split by what it is about, so each kind of work has its own place.

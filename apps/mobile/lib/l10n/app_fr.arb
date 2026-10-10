@@ -1444,5 +1444,241 @@
     }
   },
   "chooseGrossisteOtherRegions": "Les grossistes des autres régions peuvent aussi le fournir.",
-  "regionEmpty": "Vide"
+  "regionEmpty": "Vide",
+  "analyticsTitle": "Analyses",
+  "analyticsDetails": "Détails",
+  "regionAnalytics": "Analyses de la région",
+  "kpiUnits": "Unités vendues",
+  "kpiSales": "Ventes",
+  "kpiRewards": "Récompenses",
+  "kpiPerSale": "Unités par vente",
+  "kpiProductsCount": "{count, plural, =0{Aucun produit} =1{1 produit} other{{count} produits}}",
+  "@kpiProductsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "kpiStores": "PDV actifs",
+  "kpiSilent": "{count} sans vente",
+  "@kpiSilent": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "kpiSellers": "Vendeurs actifs",
+  "comparedWith": "Les évolutions comparent avec {period}.",
+  "@comparedWith": {
+    "placeholders": {
+      "period": {
+        "type": "String"
+      }
+    }
+  },
+  "weekOf": "Semaine du {date}",
+  "@weekOf": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "chartByHour": "Heure par heure",
+  "chartByDay": "Jour par jour",
+  "chartByWeek": "Semaine par semaine",
+  "whenPeopleBuy": "Quand les clients achètent (heure)",
+  "noSalesInPeriodHint": "Choisissez une période plus longue ou retirez un filtre.",
+  "anWhoWhereWhat": "Où, qui et quoi",
+  "anRegions": "Régions",
+  "anStores": "Points de vente",
+  "anProducts": "Produits",
+  "anSellers": "Vendeurs",
+  "anGroups": "Groupes",
+  "anFamilies": "Familles",
+  "allStoresBoard": "Tous les points de vente",
+  "qualityVoided": "{count, plural, =1{1 vente annulée} other{{count} ventes annulées}}",
+  "@qualityVoided": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "qualityCorrected": "{count, plural, =1{1 vente corrigée} other{{count} ventes corrigées}}",
+  "@qualityCorrected": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "qualityLate": "{count, plural, =1{1 vente envoyée plus tard (hors ligne)} other{{count} ventes envoyées plus tard (hors ligne)}}",
+  "@qualityLate": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "sentLater": "envoyée plus tard",
+  "memberSince": "Depuis le {date}",
+  "@memberSince": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "openStorePage": "Fiche du point de vente",
+  "openProductSheet": "Fiche produit",
+  "openRegionPage": "Page de la région",
+  "facetRegion": "Région",
+  "facetGroup": "Groupe",
+  "facetStore": "Point de vente",
+  "facetSeller": "Vendeur",
+  "facetProduct": "Produit",
+  "facetFamily": "Famille",
+  "addFilter": "Filtrer",
+  "removeFilter": "Retirer ce filtre",
+  "filterBy": "Filtrer par",
+  "noResults": "Aucun résultat",
+  "period7": "7 jours",
+  "period30": "30 jours",
+  "period90": "90 jours",
+  "stockWhere": "Où se trouve le stock",
+  "stockInStores": "{count} en points de vente",
+  "@stockInStores": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "stockInGrossistes": "{count} chez les grossistes",
+  "@stockInGrossistes": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "stockNowhere": "Aucun stock enregistré.",
+  "stockHere": "Stock de ce point de vente",
+  "stockHealth": "Santé du stock",
+  "perDay": "{value} par jour",
+  "@perDay": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "noRecentSales": "Aucune vente en 4 semaines",
+  "moneyTitle": "Récompenses en argent",
+  "moneyOwed": "Dû aux vendeurs",
+  "moneyOwedHint": "Leurs portefeuilles aujourd'hui",
+  "moneyPending": "En attente de paiement",
+  "moneyPaid": "Payé sur la période",
+  "moneyRequests": "{count, plural, =0{Aucune demande} =1{1 demande} other{{count} demandes}}",
+  "@moneyRequests": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "seeAllSales": "Tout voir",
+  "storesBoardTitle": "Points de vente",
+  "searchStores": "Chercher un point de vente, une ville…",
+  "sortBy": "Trier",
+  "sortUnits": "Unités vendues",
+  "sortChange": "Plus forte baisse d'abord",
+  "sortLastSale": "Plus longtemps sans vente",
+  "sortName": "Nom",
+  "boardAll": "Tous · {count}",
+  "@boardAll": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "boardSelling": "Qui vendent · {count}",
+  "@boardSelling": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "boardSilent": "Sans vente · {count}",
+  "@boardSilent": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "boardLowStock": "Stock bas · {count}",
+  "@boardLowStock": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "boardPending": "En attente · {count}",
+  "@boardPending": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "boardNoSale": "Aucune vente sur la période",
+  "neverSold": "Aucune vente pour le moment",
+  "lastSaleOn": "Dernière vente : {date}",
+  "@lastSaleOn": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "ledgerTitle": "Ventes",
+  "ledgerAll": "Toutes",
+  "ledgerVoidedOnly": "Annulées",
+  "insBestHour": "La plupart des ventes ont lieu vers {hour} : {share} % des unités.",
+  "@insBestHour": {
+    "placeholders": {
+      "hour": {
+        "type": "String"
+      },
+      "share": {
+        "type": "int"
+      }
+    }
+  },
+  "insSilentStores": "{count, plural, =1{1 point de vente actif n’a rien vendu sur cette période.} other{{count} points de vente actifs n’ont rien vendu sur cette période.}}",
+  "@insSilentStores": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "facetChip": "{label} : {name}",
+  "@facetChip": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      },
+      "name": {
+        "type": "String"
+      }
+    }
+  }
 }

@@ -10,6 +10,10 @@ import '../core/auth/me.dart';
 import '../core/auth/session.dart';
 import '../core/widgets/components.dart';
 import '../core/widgets/states.dart';
+import '../features/analytics/explorer_screen.dart';
+import '../features/analytics/ledger_screen.dart';
+import '../features/analytics/lens.dart';
+import '../features/analytics/stores_board_screen.dart';
 import '../features/approvals/approvals_screen.dart';
 import '../features/auth/activate_screen.dart';
 import '../features/dashboard/region_screen.dart';
@@ -31,7 +35,7 @@ import '../features/network/people_widgets.dart';
 import '../features/notifications/notifications_screen.dart';
 import '../features/restock/restock_models.dart';
 import '../features/restock/restock_screens.dart';
-import '../features/reports/reports_screens.dart';
+import '../features/reports/stock_attention_screen.dart';
 import '../features/rewards/rewards_screens.dart';
 import '../features/sales/celebration_screen.dart';
 import '../features/sales/new_sale_screen.dart';
@@ -188,13 +192,14 @@ List<RouteBase> _roleRoutes(Role role) => switch (role) {
                 ),
                 GoRoute(
                   path: '/reports',
-                  builder: (_, _) => const ReportsScreen(),
+                  builder: (_, _) => ExplorerScreen.root(),
                 ),
+                ..._analytics(),
                 ..._shared(),
               ],
             ),
           ]
-        : [..._responsable(), ..._shared()],
+        : [..._responsable(), ..._analytics(), ..._shared()],
   // On the phone the admin and the responsable have bottom tabs; in a browser, a sidebar around every page.
   Role.admin =>
     kIsWeb
@@ -219,11 +224,12 @@ List<RouteBase> _roleRoutes(Role role) => switch (role) {
                   builder: (_, _) => const RestocksScreen(),
                 ),
                 ..._admin(),
+                ..._analytics(),
                 ..._shared(),
               ],
             ),
           ]
-        : [..._adminTabs(), ..._admin(), ..._shared()],
+        : [..._adminTabs(), ..._admin(), ..._analytics(), ..._shared()],
 };
 
 /// A page built from an object handed over by the previous screen. Opened without it
@@ -272,15 +278,27 @@ List<RouteBase> _vendeur() => [
     '/home',
     (_, outcome) => CelebrationScreen(outcome: outcome),
   ),
+];
+
+/// The analytics behind every number, for the admin and the responsables. The question
+/// travels in the address, so a page can be reloaded, bookmarked or shared on the web.
+List<RouteBase> _analytics() => [
   GoRoute(
-    path: '/sales/:id',
+    path: '/explore',
     builder: (_, state) =>
-        SaleDetailScreen(saleId: state.pathParameters['id']!),
+        ExplorerScreen(lens: Lens.fromQuery(state.uri.queryParameters)),
   ),
-  _withExtra<Sale>(
-    '/sales/:id/correct',
-    '/sales',
-    (_, sale) => CorrectSaleScreen(sale: sale),
+  GoRoute(
+    path: '/explore/stores',
+    builder: (_, state) =>
+        StoresBoardScreen.fromQuery(state.uri.queryParameters),
+  ),
+  GoRoute(
+    path: '/explore/sales',
+    builder: (_, state) => LedgerScreen(
+      lens: Lens.fromQuery(state.uri.queryParameters),
+      voidedOnly: state.uri.queryParameters['show'] == 'voided',
+    ),
   ),
 ];
 
@@ -308,7 +326,7 @@ List<RouteBase> _responsable() => [
       LucideIcons.chartNoAxesColumn,
       (t) => t.tabReports,
       '/reports',
-      () => const ReportsScreen(),
+      ExplorerScreen.root,
     ),
     TabSpec(
       LucideIcons.menu,
@@ -358,7 +376,7 @@ List<RouteBase> _adminTabs() => [
 /// Screens only the admin opens, the same on the phone and on the web.
 List<RouteBase> _admin() => [
   GoRoute(path: '/payouts', builder: (_, _) => const PayoutsScreen()),
-  GoRoute(path: '/reports', builder: (_, _) => const ReportsScreen()),
+  GoRoute(path: '/reports', builder: (_, _) => ExplorerScreen.root()),
   GoRoute(path: '/depots/new', builder: (_, _) => const DepotFormScreen()),
   GoRoute(path: '/regions', builder: (_, _) => const RegionsScreen()),
   _withExtra<String>(
@@ -452,6 +470,17 @@ List<RouteBase> _shared() => [
   GoRoute(
     path: '/notifications',
     builder: (_, _) => const NotificationsScreen(),
+  ),
+  // A sale opened from any list: the seller's history, a store's sales, the analytics.
+  GoRoute(
+    path: '/sales/:id',
+    builder: (_, state) =>
+        SaleDetailScreen(saleId: state.pathParameters['id']!),
+  ),
+  _withExtra<Sale>(
+    '/sales/:id/correct',
+    '/home',
+    (_, sale) => CorrectSaleScreen(sale: sale),
   ),
   GoRoute(path: '/settings', builder: (_, _) => const SettingsScreen()),
   _withExtra<(List<String>, int)>('/photos', '/home', (_, extra) {

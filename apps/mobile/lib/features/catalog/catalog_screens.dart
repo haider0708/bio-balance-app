@@ -5,6 +5,8 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../core/api/json.dart';
 import '../../core/theme/app_theme.dart';
+import '../analytics/analytics_widgets.dart' show AnalyticsButton;
+import '../analytics/lens.dart' show Facet;
 import '../../core/widgets/async_body.dart';
 import '../../core/widgets/components.dart';
 import '../../core/widgets/feedback.dart';
@@ -224,6 +226,7 @@ class ProductScreen extends ConsumerWidget {
       appBar: AppBar(
         title: Text(product.name),
         actions: [
+          AnalyticsButton(facet: Facet.product, id: product.id),
           if (editable)
             IconButton(
               icon: const Icon(LucideIcons.pencil),

@@ -169,6 +169,8 @@ export class DashboardService {
       const day = trend.at(-1);
       return {
         role: actor.role,
+        // The day the numbers count as "today" (Tunis), so a screen elsewhere opens the same day.
+        today,
         approvals: await countPending(tx, scope),
         sales: {
           today: day

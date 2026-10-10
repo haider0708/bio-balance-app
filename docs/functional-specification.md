@@ -76,7 +76,25 @@ Rewards credit the team member's wallet. They can **request a payout** up to wha
 
 ## Reports and history
 
-Dashboards per role, sales reports grouped by day, region, point of sale, seller, product or family with a spreadsheet export, a stock-attention list (nearly out, each with an Order button for the responsable). Reports compare with the previous period, draw a daily chart and let you tap a row to narrow it (store → seller → product). The admin's home splits "needs attention" by kind and opens a page per region (responsable, numbers, groups, stores, grossistes, top products and stores). The audit log of who changed what is kept for the developer only; it is not in the app.
+### Analytics: every number opens what it is made of
+
+Every number of the admin's and the responsable's dashboards can be tapped (phone and web): units sold today, the last 7 days, rewards of 30 days, active points of sale, each bar of the daily chart, each top product, store and group, and every number on a region's page. It opens the **analytics** for that question: a period (today, yesterday, 7, 30 or 90 days, this or last month, or any dates up to 400 days) narrowed to any of region, group, point of sale, team member, product and family.
+
+The analytics page shows, for that question:
+- **Headline numbers** — units, sales, rewards, units per sale, selling stores, selling team members — each against the period just before. Tapping units, sales or rewards decides what the curve and the rankings show.
+- **What changed after the fact** — sales cancelled, corrected, or sent later from a phone without connection — each opening the sales concerned.
+- **The curve** hour by hour (one day), day by day, or week by week; a day or a week opens on its own. **When customers buy**: by hour (Tunis clock) and by day of the week.
+- **What the numbers say**: plain sentences (best family, stores going up or down, stores that sold nothing, best hour and weekday, best seller, products running out, stock that does not move, reward per unit).
+- **Where, who and what**: rankings of regions, groups, points of sale, team members, products and families, with share and change. Each row opens the same question narrowed to it, so the admin goes from the network to a region, a store, a seller and a product in a few taps; each filter shows as a chip that can be removed, and "Filter" adds one.
+- **Stock**: for a product, where it sits (each store and grossiste, days left at the current pace); for a store, what it holds and how long each product lasts; otherwise what runs out within a week and what does not move.
+- **Rewards in money** (admin): owed to the team members, waiting for payment, paid in the period.
+- **The sales themselves**, newest first, cancelled ones included, each opening the sale with its products and corrections. A spreadsheet export gives exactly the same lines.
+
+Store, group, product and team member pages have a chart button to their analytics; the region page has "Analytics of the region". **All points of sale** lists every store of the scope side by side — selling, without a sale, stock running low, waiting for approval — with units, change, team, last sale and stock alerts, searchable and sortable (biggest drop, longest without a sale). On the web each question has its own address (`/explore?…`), so it can be bookmarked or sent to a colleague. The Reports tab is this analytics page for the whole scope, starting with this month. Groups count their stores' sales including those made before the store joined.
+
+### History
+
+The stock-attention list (nearly out, each with an Order button for the responsable). The admin's home splits "needs attention" by kind and opens a page per region (responsable, numbers, groups, stores, grossistes, top products and stores). The audit log of who changed what is kept for the developer only; it is not in the app.
 
 **Sales history** is read by month and day (totals per day, open a day for its sales, search by product), so a list of hundreds stays readable. **Rewards:** a product's own rate always overrides its family's rate. **Notifications:** the responsable is told about every sale of their stores; phones check for new notifications about every 15 minutes even when the app is closed (no push service needed).
 
@@ -85,7 +103,7 @@ Dashboards per role, sales reports grouped by day, region, point of sale, seller
 - **Approvals** has a Pending and a History tab (who decided, when, why). Nothing is shown when nothing waits.
 - **Stock:** old negative rows were brought to zero by correction entries; the admin can correct any place's quantities with a reason (kept in the history, the people in charge are told). A grossiste's count is checked by the responsable of the region before the admin approves; a recount needs the admin's permission, used once.
 - **Dashboards:** top 5 products and stores with "see more" (30 and 10), stock warnings summarised per store, group pages list their stores, the buttons follow the tab (new store, new group, new member).
-- **Reports** have tabs (Overview, Stores, Products, Team, Stock, Details): comparison with the previous period, plain-language insights, weekday and family mix, rankings with share and change, days of stock left at the current pace, and stock that does not move.
+- **Reports** compare with the previous period and explain the numbers (replaced in 2.8 by the analytics above).
 - **Notifications** can be filtered (unread, sales, stock, restocks, payments, network, announcements).
 - **Invitations** can be cancelled before the account exists; after that the account is deactivated.
 

@@ -2639,4 +2639,335 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get regionEmpty => 'Vide';
+
+  @override
+  String get analyticsTitle => 'Analyses';
+
+  @override
+  String get analyticsDetails => 'Détails';
+
+  @override
+  String get regionAnalytics => 'Analyses de la région';
+
+  @override
+  String get kpiUnits => 'Unités vendues';
+
+  @override
+  String get kpiSales => 'Ventes';
+
+  @override
+  String get kpiRewards => 'Récompenses';
+
+  @override
+  String get kpiPerSale => 'Unités par vente';
+
+  @override
+  String kpiProductsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count produits',
+      one: '1 produit',
+      zero: 'Aucun produit',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get kpiStores => 'PDV actifs';
+
+  @override
+  String kpiSilent(int count) {
+    return '$count sans vente';
+  }
+
+  @override
+  String get kpiSellers => 'Vendeurs actifs';
+
+  @override
+  String comparedWith(String period) {
+    return 'Les évolutions comparent avec $period.';
+  }
+
+  @override
+  String weekOf(String date) {
+    return 'Semaine du $date';
+  }
+
+  @override
+  String get chartByHour => 'Heure par heure';
+
+  @override
+  String get chartByDay => 'Jour par jour';
+
+  @override
+  String get chartByWeek => 'Semaine par semaine';
+
+  @override
+  String get whenPeopleBuy => 'Quand les clients achètent (heure)';
+
+  @override
+  String get noSalesInPeriodHint =>
+      'Choisissez une période plus longue ou retirez un filtre.';
+
+  @override
+  String get anWhoWhereWhat => 'Où, qui et quoi';
+
+  @override
+  String get anRegions => 'Régions';
+
+  @override
+  String get anStores => 'Points de vente';
+
+  @override
+  String get anProducts => 'Produits';
+
+  @override
+  String get anSellers => 'Vendeurs';
+
+  @override
+  String get anGroups => 'Groupes';
+
+  @override
+  String get anFamilies => 'Familles';
+
+  @override
+  String get allStoresBoard => 'Tous les points de vente';
+
+  @override
+  String qualityVoided(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count ventes annulées',
+      one: '1 vente annulée',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String qualityCorrected(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count ventes corrigées',
+      one: '1 vente corrigée',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String qualityLate(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count ventes envoyées plus tard (hors ligne)',
+      one: '1 vente envoyée plus tard (hors ligne)',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get sentLater => 'envoyée plus tard';
+
+  @override
+  String memberSince(String date) {
+    return 'Depuis le $date';
+  }
+
+  @override
+  String get openStorePage => 'Fiche du point de vente';
+
+  @override
+  String get openProductSheet => 'Fiche produit';
+
+  @override
+  String get openRegionPage => 'Page de la région';
+
+  @override
+  String get facetRegion => 'Région';
+
+  @override
+  String get facetGroup => 'Groupe';
+
+  @override
+  String get facetStore => 'Point de vente';
+
+  @override
+  String get facetSeller => 'Vendeur';
+
+  @override
+  String get facetProduct => 'Produit';
+
+  @override
+  String get facetFamily => 'Famille';
+
+  @override
+  String get addFilter => 'Filtrer';
+
+  @override
+  String get removeFilter => 'Retirer ce filtre';
+
+  @override
+  String get filterBy => 'Filtrer par';
+
+  @override
+  String get noResults => 'Aucun résultat';
+
+  @override
+  String get period7 => '7 jours';
+
+  @override
+  String get period30 => '30 jours';
+
+  @override
+  String get period90 => '90 jours';
+
+  @override
+  String get stockWhere => 'Où se trouve le stock';
+
+  @override
+  String stockInStores(int count) {
+    return '$count en points de vente';
+  }
+
+  @override
+  String stockInGrossistes(int count) {
+    return '$count chez les grossistes';
+  }
+
+  @override
+  String get stockNowhere => 'Aucun stock enregistré.';
+
+  @override
+  String get stockHere => 'Stock de ce point de vente';
+
+  @override
+  String get stockHealth => 'Santé du stock';
+
+  @override
+  String perDay(String value) {
+    return '$value par jour';
+  }
+
+  @override
+  String get noRecentSales => 'Aucune vente en 4 semaines';
+
+  @override
+  String get moneyTitle => 'Récompenses en argent';
+
+  @override
+  String get moneyOwed => 'Dû aux vendeurs';
+
+  @override
+  String get moneyOwedHint => 'Leurs portefeuilles aujourd\'hui';
+
+  @override
+  String get moneyPending => 'En attente de paiement';
+
+  @override
+  String get moneyPaid => 'Payé sur la période';
+
+  @override
+  String moneyRequests(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count demandes',
+      one: '1 demande',
+      zero: 'Aucune demande',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get seeAllSales => 'Tout voir';
+
+  @override
+  String get storesBoardTitle => 'Points de vente';
+
+  @override
+  String get searchStores => 'Chercher un point de vente, une ville…';
+
+  @override
+  String get sortBy => 'Trier';
+
+  @override
+  String get sortUnits => 'Unités vendues';
+
+  @override
+  String get sortChange => 'Plus forte baisse d\'abord';
+
+  @override
+  String get sortLastSale => 'Plus longtemps sans vente';
+
+  @override
+  String get sortName => 'Nom';
+
+  @override
+  String boardAll(int count) {
+    return 'Tous · $count';
+  }
+
+  @override
+  String boardSelling(int count) {
+    return 'Qui vendent · $count';
+  }
+
+  @override
+  String boardSilent(int count) {
+    return 'Sans vente · $count';
+  }
+
+  @override
+  String boardLowStock(int count) {
+    return 'Stock bas · $count';
+  }
+
+  @override
+  String boardPending(int count) {
+    return 'En attente · $count';
+  }
+
+  @override
+  String get boardNoSale => 'Aucune vente sur la période';
+
+  @override
+  String get neverSold => 'Aucune vente pour le moment';
+
+  @override
+  String lastSaleOn(String date) {
+    return 'Dernière vente : $date';
+  }
+
+  @override
+  String get ledgerTitle => 'Ventes';
+
+  @override
+  String get ledgerAll => 'Toutes';
+
+  @override
+  String get ledgerVoidedOnly => 'Annulées';
+
+  @override
+  String insBestHour(String hour, int share) {
+    return 'La plupart des ventes ont lieu vers $hour : $share % des unités.';
+  }
+
+  @override
+  String insSilentStores(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count points de vente actifs n’ont rien vendu sur cette période.',
+      one: '1 point de vente actif n’a rien vendu sur cette période.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String facetChip(String label, String name) {
+    return '$label : $name';
+  }
 }

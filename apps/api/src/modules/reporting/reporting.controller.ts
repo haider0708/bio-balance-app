@@ -3,6 +3,7 @@ import type { Response } from "express";
 import { z } from "zod";
 import { type AuthRequest, Roles, parse } from "../../core/http";
 import { PageQuery } from "../../core/pagination";
+import { AnalyticsService } from "./analytics.service";
 import { ApprovalsService } from "./approvals.service";
 import { DashboardService } from "./dashboard.service";
 import { InsightsService } from "./insights.service";
@@ -17,6 +18,15 @@ const Period = z
     (p) => Date.parse(p.to) - Date.parse(p.from) <= 400 * 86400_000,
     "A report covers at most 400 days",
   );
+/** Any narrowing of the sales: the same filters for the analytics, the ledger and the spreadsheet. */
+const LensFilters = z.object({
+  regionId: id.optional(),
+  groupId: id.optional(),
+  pdvId: id.optional(),
+  sellerId: id.optional(),
+  productId: id.optional(),
+  family: z.string().trim().min(1).max(80).optional(),
+});
 
 @Controller("v1")
 export class ReportingController {
@@ -25,7 +35,36 @@ export class ReportingController {
     private readonly approvals: ApprovalsService,
     private readonly reports: ReportsService,
     private readonly insights: InsightsService,
+    private readonly analytics: AnalyticsService,
   ) {}
+
+  @Roles("ADMIN", "RESPONSABLE")
+  @Get("analytics/overview")
+  analyticsOverview(@Req() r: AuthRequest, @Query() q: Record<string, string>) {
+    return this.analytics.overview(
+      r.actor,
+      parse(
+        LensFilters.extend({
+          sort: z.enum(["units", "sales", "reward"]).default("units"),
+        }).and(Period),
+        q,
+      ),
+    );
+  }
+
+  @Roles("ADMIN", "RESPONSABLE")
+  @Get("analytics/stores")
+  analyticsStores(@Req() r: AuthRequest, @Query() q: Record<string, string>) {
+    return this.analytics.stores(
+      r.actor,
+      parse(
+        z
+          .object({ regionId: id.optional(), groupId: id.optional() })
+          .and(Period),
+        q,
+      ),
+    );
+  }
 
   @Get("dashboard")
   dash(@Req() r: AuthRequest, @Query("regionId") region?: string) {
@@ -121,10 +160,7 @@ export class ReportingController {
     @Query() q: Record<string, string>,
     @Res() res: Response,
   ) {
-    const v = parse(
-      z.object({ regionId: id.optional(), pdvId: id.optional() }).and(Period),
-      q,
-    );
+    const v = parse(LensFilters.and(Period), q);
     const csv = await this.reports.salesCsv(r.actor, v);
     res.setHeader(
       "Content-Disposition",

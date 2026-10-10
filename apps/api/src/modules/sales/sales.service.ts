@@ -302,7 +302,10 @@ export class SalesService {
       pdvId?: string;
       sellerId?: string;
       regionId?: string;
+      groupId?: string;
       productId?: string;
+      family?: string;
+      status?: "ACTIVE" | "VOIDED";
       limit: number;
       cursor?: string;
     },
@@ -315,6 +318,27 @@ export class SalesService {
     );
     return this.db.run(actor, async (tx) => {
       const after = decodeCursor(filter.cursor);
+      // A family is its products, a group its stores; a product or a store named as well narrows further.
+      const products = filter.productId
+        ? [filter.productId]
+        : filter.family
+          ? (
+              await tx.product.findMany({
+                where: { family: filter.family },
+                select: { id: true },
+              })
+            ).map((p) => p.id)
+          : null;
+      const stores = filter.pdvId
+        ? [filter.pdvId]
+        : filter.groupId
+          ? (
+              await tx.pdv.findMany({
+                where: { groupId: filter.groupId },
+                select: { id: true },
+              })
+            ).map((p) => p.id)
+          : null;
       const rows = await tx.sale.findMany({
         where: {
           ...((filter.from || filter.to) && {
@@ -323,10 +347,9 @@ export class SalesService {
               ...(filter.to && { lte: dayToDate(filter.to) }),
             },
           }),
-          ...(filter.productId && {
-            lines: { some: { productId: filter.productId } },
-          }),
-          ...(filter.pdvId && { pdvId: filter.pdvId }),
+          ...(products && { lines: { some: { productId: { in: products } } } }),
+          ...(stores && { pdvId: { in: stores } }),
+          ...(filter.status && { status: filter.status }),
           // The database already hides what is not theirs; naming it lets it use the indexes.
           ...(actor.role === "VENDEUR" && { sellerId: actor.id }),
           ...(actor.role === "RESPONSABLE" &&
