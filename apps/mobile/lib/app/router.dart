@@ -45,6 +45,7 @@ import '../features/sales/sales_models.dart';
 import '../features/sales/sales_repository.dart';
 import '../features/sales/scanner_screen.dart';
 import '../features/settings/settings_screen.dart';
+import '../features/splash/splash_screen.dart';
 import '../features/stock/stock_screens.dart';
 import '../features/training/training_admin_screens.dart';
 import '../features/training/training_models.dart';
@@ -57,19 +58,22 @@ import 'nav_shell.dart';
 
 const _publicPaths = {'/login', '/activate', '/forgot', '/code'};
 
-/// The page the browser was opened on (a bookmark, a reload): after the saved session is checked the
-/// app goes there, once, instead of always landing on the home tab.
+/// The page the app was opened on (a bookmark or a reload in the browser, a code link from an
+/// email on the phone): once the saved session is checked and the opening has played, the app
+/// goes there, once, instead of always landing on the home tab.
 String? _landing;
 
-/// Called once at start, before the first screen replaces the browser's address.
+/// Called once at start, before the first screen replaces the address.
 void rememberLanding() {
-  if (kIsWeb) _landing = PlatformDispatcher.instance.defaultRouteName;
+  final route = PlatformDispatcher.instance.defaultRouteName;
+  if (route != '/' && route.isNotEmpty) _landing = route;
 }
 
 /// The app's routes. They depend on who is signed in, so a new router is built at sign-in and sign-out.
 final routerProvider = Provider<GoRouter>((ref) {
   final refresh = ValueNotifier<int>(0);
   ref.listen(sessionProvider, (_, _) => refresh.value++);
+  ref.listen(splashDoneProvider, (_, _) => refresh.value++);
   ref.onDispose(refresh.dispose);
   final role = ref.watch(sessionProvider.select((s) => s.value?.me.role));
 
@@ -79,8 +83,19 @@ final routerProvider = Provider<GoRouter>((ref) {
     redirect: (context, state) {
       final session = ref.read(sessionProvider);
       final path = state.uri.path;
-      if (session.isLoading) return path == '/splash' ? null : '/splash';
+      // The opening plays to its end, even when the session is known sooner.
+      if (session.isLoading || !ref.read(splashDoneProvider)) {
+        return path == '/splash' ? null : '/splash';
+      }
       final signedIn = session.value != null;
+      // A code link that opened the app while it was closed.
+      if (path == '/splash' && _landing != null && !signedIn) {
+        final uri = Uri.tryParse(_landing!);
+        if (uri != null && _publicPaths.contains(uri.path)) {
+          _landing = null;
+          return uri.toString();
+        }
+      }
       // A code opened from the email: straight to the screen that uses it.
       if (path == '/code') {
         final code = state.uri.queryParameters['c'] ?? '';
@@ -107,10 +122,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       return null;
     },
     routes: [
-      GoRoute(
-        path: '/splash',
-        builder: (_, _) => const Scaffold(body: LoadingState()),
-      ),
+      GoRoute(path: '/splash', builder: (_, _) => const SplashScreen()),
       GoRoute(
         path: '/login',
         builder: (_, state) {

@@ -227,6 +227,7 @@ class ProductScreen extends ConsumerWidget {
           AnalyticsButton(facet: Facet.product, id: product.id),
           if (editable)
             IconButton(
+              tooltip: AppLocalizations.of(context).edit,
               icon: const Icon(LucideIcons.pencil),
               onPressed: () => context.pushReplacement(
                 '/catalog/${product.id}/edit',

@@ -132,6 +132,18 @@ export class MediaService {
     }
   }
 
+  /** What a file is without downloading it (a photo or a document), for the same people. */
+  async info(actor: Actor, id: string) {
+    const asset = await this.db.run(actor, (tx) =>
+      tx.mediaAsset.findUnique({
+        where: { id },
+        select: { id: true, mime: true, fileName: true, size: true },
+      }),
+    );
+    if (!asset) throw notFound("File");
+    return { ...asset, size: Number(asset.size) };
+  }
+
   /** The file to send back; row-level security decides whether this person may see it. */
   async open(actor: Actor, id: string) {
     const asset = await this.db.run(actor, (tx) =>

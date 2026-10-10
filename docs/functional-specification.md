@@ -127,3 +127,8 @@ The administrator can work from a browser at https://admin.galylio.com/ with the
 - **Nothing lost by mistake:** leaving a sale being built, a stock count or a restock order by the back button or gesture asks first.
 - **Code links** from the emails open the app on iPhone too.
 - The version in Settings is the one of the build.
+
+## Opening and documents (3.1)
+
+- **Opening animation:** when the app starts, the leaf drops into water (a dip, two ripples, a light across the leaves), bubbles rise, and "BioBalance — Back to nature" appears letter by letter. It starts exactly where the phone's own launch screen leaves off, follows light and dark mode, lasts under two seconds (about one on the web) and becomes a still image when the phone asks for reduced motion. A code link that opened the app while it was closed is still followed afterwards.
+- **Documents as proof:** wherever photos prove goods (stock counts, grossiste photos, restock orders, shipments and deliveries), a PDF can be added too — a delivery note or an invoice, up to 12 MB, with the photos (five in all). Documents show as a "PDF" card with their name and open in the phone's viewer (a new tab on the web); photos still open full screen.

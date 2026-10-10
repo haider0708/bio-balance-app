@@ -94,7 +94,7 @@ class SettingsScreen extends ConsumerWidget {
                 Expanded(
                   child: Text(t.language, style: context.text.titleSmall),
                 ),
-                const LanguageToggle(),
+                const LanguageToggle(icon: false),
               ],
             ),
           ),

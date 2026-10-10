@@ -535,7 +535,8 @@ class _RewardFormScreenState extends ConsumerState<RewardFormScreen> {
       firstDate: DateTime.now().subtract(const Duration(days: 30)),
       lastDate: DateTime.now().add(const Duration(days: 730)),
     );
-    if (picked != null) setState(() => start ? _start = picked : _end = picked);
+    if (picked == null || !mounted) return;
+    setState(() => start ? _start = picked : _end = picked);
   }
 
   @override
@@ -582,7 +583,7 @@ class _RewardFormScreenState extends ConsumerState<RewardFormScreen> {
                   context,
                   single: true,
                 );
-                if (picked != null)
+                if (picked != null && mounted)
                   setState(() {
                     _productId = picked.first.id;
                     _productName = picked.first.name;
@@ -644,6 +645,7 @@ class _RewardFormScreenState extends ConsumerState<RewardFormScreen> {
               ),
               if (_end != null)
                 IconButton(
+                  tooltip: AppLocalizations.of(context).clearDate,
                   onPressed: () => setState(() => _end = null),
                   icon: const Icon(LucideIcons.x),
                 ),

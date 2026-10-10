@@ -481,6 +481,7 @@ class _LessonEditorScreenState extends ConsumerState<LessonEditorScreen> {
         actions: [
           if (widget.lesson != null)
             IconButton(
+              tooltip: t.delete,
               icon: const Icon(LucideIcons.trash2),
               onPressed: () async {
                 if (!await confirm(

@@ -21,6 +21,7 @@ Future<ProviderContainer> launch(
   Size size = const Size(412, 892),
   String? language,
   double pixelRatio = 2,
+  bool wait = true,
 }) async {
   tester.view.physicalSize = size * pixelRatio;
   tester.view.devicePixelRatio = pixelRatio;
@@ -40,7 +41,7 @@ Future<ProviderContainer> launch(
       child: RepaintBoundary(key: appBoundary, child: const BioBalanceApp()),
     ),
   );
-  await settle(tester);
+  if (wait) await settle(tester);
   return container;
 }
 

@@ -10,6 +10,23 @@ Everything the stores check inside the app is done (see [mobile-release.md](mobi
 4. **The support mailbox.** The privacy, terms and deletion pages show `biobalance@galylio.com` (set `SUPPORT_EMAIL` in `/etc/biobalance/backend.env` to change it). Someone must read it: the stores and the law expect answers to data requests.
 5. **Accounts for the reviewers.** Create, in production, a separate demo setup so reviewers never touch real data: a region "Démo", a store "Para Démo" with some stock, a **responsable** and a **team member** with simple passwords. Do not give an admin account (it needs the authenticator code). Give both accounts in the review notes below. Keep them active while the review lasts.
 
+## Rules in force in 2026 (checked October 2026)
+
+| Store | Rule | BioBalance |
+|---|---|---|
+| Apple | Builds must come from **Xcode 26** with the iOS 26 SDK (since 28 April 2026) | Install Xcode 26 on the Mac before `flutter build ipa` |
+| Apple | The **new age-rating questionnaire** (4+, 9+, 13+, 16+, 18+) must be answered, or submissions are blocked | Answer "none" everywhere → **4+** |
+| Apple | **Trader status** (EU Digital Services Act) must be declared for every account, even outside the EU | Declare **trader** (a company): address, phone and email shown on the EU page; or leave the EU out of the countries |
+| Apple | Unlisted distribution is only granted to an app already **submitted to App Review**; say it in the review notes | The review notes below already say it |
+| Apple | Account deletion in the app (5.1.1(v)), privacy manifest, purpose texts for camera/photos, test account (2.1) | Done in the app; give the accounts |
+| Google | New apps and updates must **target API 36** (Android 16) from 31 August 2026 | Targets 36 |
+| Google | **16 KB memory pages** for native code | All libraries aligned |
+| Google | **Android developer verification**: package names registered to a verified developer (Play apps are registered automatically; enforced country by country from 30 Sept 2026, everywhere in 2027) | Publish `tn.biobalance.app` from the organization account. The test copies (`tn.biobalance.app.resp1`…) install with `adb`, which stays allowed |
+| Google | Photo/video permissions only for apps whose core is media; foreground-service declaration; data safety; account-deletion link; financial-features declaration | No media permission; short service only; answers below |
+| Google | New **personal** developer accounts: closed test with 12 testers for 14 days before production | Use an **organization** account (D-U-N-S) |
+
+Most rejections (Apple's own figures) come from crashes, broken links and **missing or dead test accounts**: keep the review accounts working and the pages below reachable during the whole review.
+
 ## Listing
 
 | | Français | English |
@@ -79,12 +96,14 @@ Not collected: location, contacts, health, financial info, browsing, search hist
 > • Team member (records sales): [email] / [password]
 > • Regional manager (stock, restocks, region analytics): [email] / [password]
 >
+> The app is intended for unlisted distribution to the members of our network (we will send the unlisted distribution request once this build is in review).
+>
 > To try it: sign in as the team member, tap “New sale”, add a product and record the sale: the reward is shown. Sign in as the regional manager to see the region's dashboard; every number opens its analytics.
 > The camera is used to scan product barcodes and to photograph stock as proof. Account deletion: Settings → Delete my account.
 
 ## Checklist for each release
 
-1. Raise `version:` in `pubspec.yaml` (`3.0.1+36`…), run `flutter analyze && flutter test` and the API tests.
+1. Raise `version:` in `pubspec.yaml` (`3.1.1+37`…), run `flutter analyze && flutter test` and the API tests.
 2. Deploy the API first (`scripts/deploy-vps.sh`): the new app may use new endpoints.
 3. Android: `flutter build appbundle --release` → Play Console → a testing track first, then Production.
 4. iOS: `flutter build ipa --release` on the Mac → Transporter → TestFlight → submit.

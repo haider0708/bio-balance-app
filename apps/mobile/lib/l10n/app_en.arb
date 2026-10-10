@@ -545,10 +545,10 @@
   "photo": "Photo",
   "photoChoose": "Choose from gallery",
   "photoHint": "Tap to take a photo",
-  "photoOfPaper": "Photo of the delivery paper",
+  "photoOfPaper": "Delivery paper: photo or PDF",
   "photoOfStock": "Photo of the stock",
   "photoReady": "Photo ready",
-  "photoRequiredHint": "Take the photo to send.",
+  "photoRequiredHint": "Add a photo or a document to send.",
   "photoRetake": "Retake",
   "photoTake": "Take a photo",
   "photoUploading": "Sending…",
@@ -999,7 +999,7 @@
   "cancelInvitationBody": "The code stops working and the email address becomes free again. You can invite someone else.",
   "invitationCancelled": "Invitation cancelled",
   "photoAddAnother": "Add another",
-  "photoCount": "{count} of {max} photos",
+  "photoCount": "{count} of {max} photos or documents",
   "@photoCount": {
     "placeholders": {
       "count": {
@@ -1663,5 +1663,12 @@
   "deleteAccountDone": "Your account was deleted.",
   "deleteAccountLearnMore": "What is deleted and what is kept",
   "leaveTitle": "Leave without saving?",
-  "leaveMessage": "What you entered on this page will be lost."
+  "leaveMessage": "What you entered on this page will be lost.",
+  "photoChooseDocument": "Choose a document",
+  "photoChooseDocumentHint": "A delivery note or an invoice, as a PDF",
+  "documentLabel": "Document",
+  "documentTooLarge": "This document is larger than 12 MB.",
+  "play": "Play",
+  "pause": "Pause",
+  "clearDate": "Remove the date"
 }

@@ -1149,7 +1149,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get photoHint => 'Tap to take a photo';
 
   @override
-  String get photoOfPaper => 'Photo of the delivery paper';
+  String get photoOfPaper => 'Delivery paper: photo or PDF';
 
   @override
   String get photoOfStock => 'Photo of the stock';
@@ -1158,7 +1158,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get photoReady => 'Photo ready';
 
   @override
-  String get photoRequiredHint => 'Take the photo to send.';
+  String get photoRequiredHint => 'Add a photo or a document to send.';
 
   @override
   String get photoRetake => 'Retake';
@@ -2073,7 +2073,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String photoCount(int count, int max) {
-    return '$count of $max photos';
+    return '$count of $max photos or documents';
   }
 
   @override
@@ -2944,4 +2944,26 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get leaveMessage => 'What you entered on this page will be lost.';
+
+  @override
+  String get photoChooseDocument => 'Choose a document';
+
+  @override
+  String get photoChooseDocumentHint =>
+      'A delivery note or an invoice, as a PDF';
+
+  @override
+  String get documentLabel => 'Document';
+
+  @override
+  String get documentTooLarge => 'This document is larger than 12 MB.';
+
+  @override
+  String get play => 'Play';
+
+  @override
+  String get pause => 'Pause';
+
+  @override
+  String get clearDate => 'Remove the date';
 }

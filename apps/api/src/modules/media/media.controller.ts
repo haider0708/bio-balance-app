@@ -21,6 +21,11 @@ export class MediaController {
     return this.media.upload(req.actor, v.purpose, v.filename, req);
   }
 
+  @Get(":id/info")
+  info(@Req() req: AuthRequest, @Param("id") id: string) {
+    return this.media.info(req.actor, parse(z.uuid(), id));
+  }
+
   @Get(":id")
   async get(
     @Req() req: AuthRequest,

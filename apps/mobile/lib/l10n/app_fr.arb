@@ -545,10 +545,10 @@
   "photo": "Photo",
   "photoChoose": "Choisir dans la galerie",
   "photoHint": "Touchez pour prendre une photo",
-  "photoOfPaper": "Photo du bon de livraison",
+  "photoOfPaper": "Bon de livraison : photo ou PDF",
   "photoOfStock": "Photo du stock",
   "photoReady": "Photo prête",
-  "photoRequiredHint": "Prenez la photo pour envoyer.",
+  "photoRequiredHint": "Ajoutez une photo ou un document pour envoyer.",
   "photoRetake": "Reprendre",
   "photoTake": "Prendre une photo",
   "photoUploading": "Envoi en cours…",
@@ -999,7 +999,7 @@
   "cancelInvitationBody": "Le code ne fonctionnera plus et l’adresse email redevient libre. Vous pourrez inviter quelqu’un d’autre.",
   "invitationCancelled": "Invitation annulée",
   "photoAddAnother": "Ajouter une autre",
-  "photoCount": "{count} photo(s) sur {max}",
+  "photoCount": "{count} sur {max} photos ou documents",
   "@photoCount": {
     "placeholders": {
       "count": {
@@ -1663,5 +1663,12 @@
   "deleteAccountDone": "Votre compte a été supprimé.",
   "deleteAccountLearnMore": "Ce qui est supprimé et ce qui est gardé",
   "leaveTitle": "Quitter sans enregistrer ?",
-  "leaveMessage": "Ce que vous avez saisi sur cette page sera perdu."
+  "leaveMessage": "Ce que vous avez saisi sur cette page sera perdu.",
+  "photoChooseDocument": "Choisir un document",
+  "photoChooseDocumentHint": "Un bon de livraison ou une facture, en PDF",
+  "documentLabel": "Document",
+  "documentTooLarge": "Ce document dépasse 12 Mo.",
+  "play": "Lire",
+  "pause": "Pause",
+  "clearDate": "Retirer la date"
 }

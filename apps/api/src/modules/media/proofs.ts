@@ -5,8 +5,8 @@ import { requireRule } from "../../core/errors";
 export const MAX_PROOF_PHOTOS = 5;
 
 /**
- * The photos a person attaches to a count, a delivery or a place: distinct proof
- * photos they uploaded themselves, one to five unless `min` says otherwise.
+ * The proofs a person attaches to a count, a delivery or a place: distinct proof
+ * photos or documents (PDF) they uploaded themselves, one to five unless `min` says otherwise.
  * Returned in the order they chose. An admin's photos are filed under `regionId`
  * so the responsable of that region can see them too.
  */
@@ -21,7 +21,7 @@ export async function ownedProofs(
   requireRule(
     ids.length <= MAX_PROOF_PHOTOS && new Set(ids).size === ids.length,
     "TOO_MANY_PHOTOS",
-    `Add between 1 and ${MAX_PROOF_PHOTOS} different photos.`,
+    `Add between 1 and ${MAX_PROOF_PHOTOS} different photos or documents.`,
     422,
   );
   const found = await tx.mediaAsset.findMany({

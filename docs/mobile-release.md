@@ -9,7 +9,7 @@ flutter analyze && flutter test
 flutter build apk --debug          # a quick install on a test phone
 ```
 
-The version is `version:` in `pubspec.yaml` (`3.0.0+35`): raise the number after `+` for **every** upload to either store. The app reads it from the build (Settings → About), so it can never disagree with the stores.
+The version is `version:` in `pubspec.yaml` (`3.1.0+36`): raise the number after `+` for **every** upload to either store. The app reads it from the build (Settings → About), so it can never disagree with the stores.
 
 ## Android (Google Play)
 
@@ -31,7 +31,7 @@ The build refuses to produce an unsigned release. What the bundle already satisf
 
 ## iOS (App Store) — on the Mac
 
-Install Xcode (latest, from the App Store) and Flutter, then:
+Install **Xcode 26** or later (required by Apple since April 2026) and Flutter, then:
 
 ```sh
 cd apps/mobile

@@ -432,6 +432,9 @@ class _VideoState extends ConsumerState<_Video> {
         ValueListenableBuilder(
           valueListenable: c,
           builder: (context, value, _) => IconButton.filledTonal(
+            tooltip: value.isPlaying
+                ? AppLocalizations.of(context).pause
+                : AppLocalizations.of(context).play,
             iconSize: 32,
             onPressed: () => value.isPlaying ? c.pause() : c.play(),
             icon: Icon(value.isPlaying ? LucideIcons.pause : LucideIcons.play),

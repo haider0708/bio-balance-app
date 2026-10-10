@@ -144,78 +144,90 @@ class _StoresBoardScreenState extends ConsumerState<StoresBoardScreen> {
                   1,
                   (m, r) => r.integer('units') > m ? r.integer('units') : m,
                 );
-            return ListView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.fromLTRB(16, 6, 16, 32),
-              children: [
-                PeriodChips(
-                  from: _from,
-                  to: _to,
-                  onChanged: (from, to) => setState(() {
-                    _from = from;
-                    _to = to;
-                  }),
+            final header = <Widget>[
+              PeriodChips(
+                from: _from,
+                to: _to,
+                onChanged: (from, to) => setState(() {
+                  _from = from;
+                  _to = to;
+                }),
+              ),
+              const Gap(8),
+              TextField(
+                decoration: InputDecoration(
+                  prefixIcon: const Icon(LucideIcons.search),
+                  hintText: t.searchStores,
                 ),
-                const Gap(8),
-                TextField(
-                  decoration: InputDecoration(
-                    prefixIcon: const Icon(LucideIcons.search),
-                    hintText: t.searchStores,
-                  ),
-                  onChanged: (v) =>
-                      setState(() => _query = v.trim().toLowerCase()),
+                onChanged: (v) =>
+                    setState(() => _query = v.trim().toLowerCase()),
+              ),
+              const Gap(8),
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    for (final (show, label) in [
+                      (_Show.all, t.boardAll(s.integer('total'))),
+                      (_Show.selling, t.boardSelling(s.integer('selling'))),
+                      (_Show.silent, t.boardSilent(s.integer('silent'))),
+                      (_Show.lowStock, t.boardLowStock(s.integer('lowStock'))),
+                      (_Show.pending, t.boardPending(s.integer('pending'))),
+                    ])
+                      Padding(
+                        padding: const EdgeInsetsDirectional.only(end: 8),
+                        child: FilterChip(
+                          label: Text(label),
+                          selected: _show == show,
+                          showCheckmark: false,
+                          onSelected: (_) => setState(() => _show = show),
+                        ),
+                      ),
+                  ],
                 ),
-                const Gap(8),
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: [
-                      for (final (show, label) in [
-                        (_Show.all, t.boardAll(s.integer('total'))),
-                        (_Show.selling, t.boardSelling(s.integer('selling'))),
-                        (_Show.silent, t.boardSilent(s.integer('silent'))),
-                        (
-                          _Show.lowStock,
-                          t.boardLowStock(s.integer('lowStock')),
-                        ),
-                        (_Show.pending, t.boardPending(s.integer('pending'))),
-                      ])
-                        Padding(
-                          padding: const EdgeInsetsDirectional.only(end: 8),
-                          child: FilterChip(
-                            label: Text(label),
-                            selected: _show == show,
-                            showCheckmark: false,
-                            onSelected: (_) => setState(() => _show = show),
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-                const Gap(8),
-                if (rows.isEmpty)
-                  EmptyState(icon: LucideIcons.store, title: t.noResults)
-                else
-                  AutoGrid(
-                    minItemWidth: 420,
-                    maxColumns: 2,
-                    spacing: 10,
-                    children: [
-                      for (final r in rows)
-                        _StoreRow(
-                          row: r,
-                          top: top,
-                          onTap: () => context.push(
-                            Lens(
-                              from: _from,
-                              to: _to,
-                              pdvId: r.str('id'),
-                            ).location(),
-                          ),
-                        ),
-                    ],
-                  ),
-              ],
+              ),
+              const Gap(8),
+              if (rows.isEmpty)
+                EmptyState(icon: LucideIcons.store, title: t.noResults),
+            ];
+            Widget store(Json r) => _StoreRow(
+              row: r,
+              top: top,
+              onTap: () => context.push(
+                Lens(from: _from, to: _to, pdvId: r.str('id')).location(),
+              ),
+            );
+            // Hundreds of stores stay smooth: only the rows on screen are built.
+            return LayoutBuilder(
+              builder: (context, box) {
+                final columns = box.maxWidth >= 900 ? 2 : 1;
+                final lines = (rows.length / columns).ceil();
+                return ListView.builder(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.fromLTRB(16, 6, 16, 32),
+                  itemCount: header.length + lines,
+                  itemBuilder: (context, i) {
+                    if (i < header.length) return header[i];
+                    final first = (i - header.length) * columns;
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          for (var c = 0; c < columns; c++) ...[
+                            if (c > 0) const SizedBox(width: 10),
+                            Expanded(
+                              child: first + c < rows.length
+                                  ? store(rows[first + c])
+                                  : const SizedBox.shrink(),
+                            ),
+                          ],
+                        ],
+                      ),
+                    );
+                  },
+                );
+              },
             );
           },
         ),

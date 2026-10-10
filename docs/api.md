@@ -87,6 +87,8 @@ Every route is under `https://api.galylio.com`, JSON in and out, `Authorization:
 |---|---|---|
 | GET | `/v1/media/:id` | any signed-in role |
 
+**Media.** Proof files (`purpose=PROOF`) may be JPEG, PNG, WebP or **PDF** (12 MB). `GET /v1/media/:id/info` returns `{ id, mime, fileName, size }` for whoever may open the file, so a client can show a document card without downloading it.
+
 ## messaging
 
 | Method | Path | Who |

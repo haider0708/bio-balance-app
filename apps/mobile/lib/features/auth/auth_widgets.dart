@@ -88,7 +88,10 @@ class AuthScaffold extends StatelessWidget {
 
 /// FR | EN, saved on the phone.
 class LanguageToggle extends ConsumerWidget {
-  const LanguageToggle({super.key});
+  const LanguageToggle({this.icon = true, super.key});
+
+  /// The languages icon in front (left out where the row already shows one).
+  final bool icon;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -122,8 +125,10 @@ class LanguageToggle extends ConsumerWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(LucideIcons.languages, size: 18, color: context.status.muted),
-        const SizedBox(width: 6),
+        if (icon) ...[
+          Icon(LucideIcons.languages, size: 18, color: context.status.muted),
+          const SizedBox(width: 6),
+        ],
         option('fr', 'Français'),
         option('en', 'English'),
       ],

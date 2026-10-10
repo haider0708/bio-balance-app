@@ -3,11 +3,12 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../features/media/media_repository.dart';
+import '../../features/media/proof_thumb.dart';
 import '../../l10n/app_localizations.dart';
 import '../config.dart';
 import '../theme/app_theme.dart';
@@ -16,20 +17,32 @@ import 'feedback.dart';
 
 enum _Upload { sending, done, failed }
 
-class _Shot {
-  _Shot(this.bytes) : state = _Upload.sending;
+enum _Source { camera, gallery, document }
 
-  /// A photo that is already on the server (editing something that has photos).
-  _Shot.saved(String this.id) : bytes = null, state = _Upload.done;
+class _Shot {
+  _Shot(this.bytes, {this.document}) : state = _Upload.sending;
+
+  /// A file that is already on the server (editing something that has proofs).
+  _Shot.saved(String this.id)
+    : bytes = null,
+      document = null,
+      state = _Upload.done;
 
   final Uint8List? bytes;
+
+  /// The file name when this is a document (a PDF) rather than a photo.
+  final String? document;
   _Upload state;
   String? id;
 }
 
-/// One to five photos: take or choose, each is shrunk on the phone, uploaded two at a
-/// time in the background, and can be retried or removed. Reports the ids that are
-/// ready (in the order shown) and whether anything is still uploading.
+/// The largest document the server takes as proof.
+const _maxDocumentBytes = 12 * 1024 * 1024;
+
+/// One to five proofs, photos or documents: take a photo, choose photos, or choose a PDF (a
+/// delivery note, an invoice). Photos are shrunk on the phone; files are uploaded two at a time
+/// in the background and can be retried or removed. Reports the ids that are ready (in the
+/// order shown) and whether anything is still uploading.
 class PhotoSet extends ConsumerStatefulWidget {
   const PhotoSet({
     required this.onChanged,
@@ -76,7 +89,11 @@ class _PhotoSetState extends ConsumerState<PhotoSet> {
     try {
       final id = await ref
           .read(mediaRepositoryProvider)
-          .upload(shot.bytes!, purpose: 'PROOF');
+          .upload(
+            shot.bytes!,
+            purpose: 'PROOF',
+            filename: shot.document ?? 'photo.jpg',
+          );
       shot
         ..id = id
         ..state = _Upload.done;
@@ -92,8 +109,8 @@ class _PhotoSetState extends ConsumerState<PhotoSet> {
     }
   }
 
-  void _add(Uint8List bytes) {
-    final shot = _Shot(bytes);
+  void _add(Uint8List bytes, {String? document}) {
+    final shot = _Shot(bytes, document: document);
     setState(() => _shots.add(shot));
     _queue.add(shot);
     _report();
@@ -121,9 +138,25 @@ class _PhotoSetState extends ConsumerState<PhotoSet> {
     }
   }
 
+  Future<void> _document() async {
+    final t = AppLocalizations.of(context);
+    final picked = await FilePicker.pickFile(
+      type: FileType.custom,
+      allowedExtensions: const ['pdf'],
+    );
+    if (picked == null || !mounted) return;
+    final bytes = await picked.readAsBytes();
+    if (!mounted) return;
+    if (bytes.length > _maxDocumentBytes) {
+      showMessage(context, t.documentTooLarge, error: true);
+      return;
+    }
+    _add(bytes, document: picked.name);
+  }
+
   Future<void> _addMenu() async {
     final t = AppLocalizations.of(context);
-    final take = await showModalBottomSheet<bool>(
+    final choice = await showModalBottomSheet<_Source>(
       context: context,
       builder: (context) => SafeArea(
         child: Column(
@@ -132,21 +165,31 @@ class _PhotoSetState extends ConsumerState<PhotoSet> {
             ListTile(
               leading: const Icon(LucideIcons.camera),
               title: Text(t.photoTake),
-              onTap: () => Navigator.pop(context, true),
+              onTap: () => Navigator.pop(context, _Source.camera),
             ),
             ListTile(
               leading: const Icon(LucideIcons.images),
               title: Text(t.photoChoose),
-              onTap: () => Navigator.pop(context, false),
+              onTap: () => Navigator.pop(context, _Source.gallery),
+            ),
+            ListTile(
+              leading: const Icon(LucideIcons.fileText),
+              title: Text(t.photoChooseDocument),
+              subtitle: Text(t.photoChooseDocumentHint),
+              onTap: () => Navigator.pop(context, _Source.document),
             ),
             const Gap(8),
           ],
         ),
       ),
     );
-    if (take == null) return;
+    if (choice == null) return;
     try {
-      await (take ? _take() : _choose());
+      await switch (choice) {
+        _Source.camera => _take(),
+        _Source.gallery => _choose(),
+        _Source.document => _document(),
+      };
     } catch (error) {
       if (mounted) showError(context, error);
     }
@@ -201,7 +244,9 @@ class _PhotoSetState extends ConsumerState<PhotoSet> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Icon(
-                          LucideIcons.camera,
+                          _shots.isEmpty
+                              ? LucideIcons.camera
+                              : LucideIcons.plus,
                           size: 30,
                           color: context.colors.primary,
                         ),
@@ -253,7 +298,14 @@ class _Thumb extends StatelessWidget {
           ClipRRect(
             borderRadius: BorderRadius.circular(14),
             child: shot.bytes == null
-                ? AuthImage(shot.id, width: 112, height: 112, radius: 0)
+                ? ProofThumb(shot.id!, width: 112, height: 112, radius: 0)
+                : shot.document != null
+                ? DocumentCard(
+                    name: shot.document!,
+                    width: 112,
+                    height: 112,
+                    radius: 0,
+                  )
                 : Image.memory(shot.bytes!, fit: BoxFit.cover, cacheWidth: 300),
           ),
           if (shot.state == _Upload.sending)
@@ -316,14 +368,15 @@ class _Thumb extends StatelessWidget {
   }
 }
 
-/// The photos of a count or a delivery, side by side; tap one to swipe through them full screen.
-class PhotoStrip extends StatelessWidget {
+/// The proofs of a count or a delivery, side by side: tap a photo to swipe through the photos
+/// full screen, a document to open it.
+class PhotoStrip extends ConsumerWidget {
   const PhotoStrip({required this.ids, super.key});
 
   final List<String> ids;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     if (ids.isEmpty) return const SizedBox.shrink();
     return SizedBox(
       height: ids.length == 1 ? 200 : 130,
@@ -332,12 +385,11 @@ class PhotoStrip extends StatelessWidget {
         itemCount: ids.length,
         separatorBuilder: (_, _) => const SizedBox(width: 10),
         itemBuilder: (context, i) => GestureDetector(
-          onTap: () => context.push('/photos', extra: (ids, i)),
-          child: AuthImage(
+          onTap: () => openProof(context, ref, ids, i),
+          child: ProofThumb(
             ids[i],
             width: ids.length == 1 ? 300 : 130,
             height: ids.length == 1 ? 200 : 130,
-            radius: 14,
           ),
         ),
       ),

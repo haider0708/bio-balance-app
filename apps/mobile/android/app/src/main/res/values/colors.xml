@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Behind the launch screen: the same colour the animated splash of the app starts on. -->
+    <color name="splash_background">#FFFFFF</color>
+</resources>

@@ -2033,7 +2033,7 @@ abstract class AppLocalizations {
   /// No description provided for @photoOfPaper.
   ///
   /// In en, this message translates to:
-  /// **'Photo of the delivery paper'**
+  /// **'Delivery paper: photo or PDF'**
   String get photoOfPaper;
 
   /// No description provided for @photoOfStock.
@@ -2051,7 +2051,7 @@ abstract class AppLocalizations {
   /// No description provided for @photoRequiredHint.
   ///
   /// In en, this message translates to:
-  /// **'Take the photo to send.'**
+  /// **'Add a photo or a document to send.'**
   String get photoRequiredHint;
 
   /// No description provided for @photoRetake.
@@ -3635,7 +3635,7 @@ abstract class AppLocalizations {
   /// No description provided for @photoCount.
   ///
   /// In en, this message translates to:
-  /// **'{count} of {max} photos'**
+  /// **'{count} of {max} photos or documents'**
   String photoCount(int count, int max);
 
   /// No description provided for @recountAsked2.
@@ -5023,6 +5023,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'What you entered on this page will be lost.'**
   String get leaveMessage;
+
+  /// No description provided for @photoChooseDocument.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a document'**
+  String get photoChooseDocument;
+
+  /// No description provided for @photoChooseDocumentHint.
+  ///
+  /// In en, this message translates to:
+  /// **'A delivery note or an invoice, as a PDF'**
+  String get photoChooseDocumentHint;
+
+  /// No description provided for @documentLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Document'**
+  String get documentLabel;
+
+  /// No description provided for @documentTooLarge.
+  ///
+  /// In en, this message translates to:
+  /// **'This document is larger than 12 MB.'**
+  String get documentTooLarge;
+
+  /// No description provided for @play.
+  ///
+  /// In en, this message translates to:
+  /// **'Play'**
+  String get play;
+
+  /// No description provided for @pause.
+  ///
+  /// In en, this message translates to:
+  /// **'Pause'**
+  String get pause;
+
+  /// No description provided for @clearDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove the date'**
+  String get clearDate;
 }
 
 class _AppLocalizationsDelegate

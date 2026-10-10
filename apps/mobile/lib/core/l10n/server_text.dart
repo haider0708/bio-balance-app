@@ -90,8 +90,8 @@ class ServerText {
       'Ce grossiste travaille pour une autre région.',
     ),
     'TOO_MANY_PHOTOS': (
-      'Add between 1 and 5 different photos.',
-      'Ajoutez entre 1 et 5 photos différentes.',
+      'Add between 1 and 5 different photos or documents.',
+      'Ajoutez entre 1 et 5 photos ou documents différents.',
     ),
     'WEB_STAFF_ONLY': (
       'This page is for administrators and responsables. Please use the BioBalance app on your phone.',
@@ -179,7 +179,10 @@ class ServerText {
       'A stock declaration is already waiting for approval.',
       'Une déclaration de stock attend déjà son approbation.',
     ),
-    'PHOTO_REQUIRED': ('Add a photo first.', 'Ajoutez d’abord une photo.'),
+    'PHOTO_REQUIRED': (
+      'Add a photo or a document first.',
+      'Ajoutez d’abord une photo ou un document.',
+    ),
     'PRODUCT_NOT_FOUND': (
       'That product is not available.',
       'Ce produit n’est pas disponible.',
@@ -284,12 +287,12 @@ class ServerText {
       'L’ordre doit lister chaque élément une fois.',
     ),
     'FILE_TOO_LARGE': (
-      'This file is too large.',
-      'Ce fichier est trop volumineux.',
+      'This file is too large (12 MB at most for a photo or a document).',
+      'Ce fichier est trop volumineux (12 Mo au plus pour une photo ou un document).',
     ),
     'UNSUPPORTED_FILE': (
-      'This file type is not supported.',
-      'Ce type de fichier n’est pas pris en charge.',
+      'This file type is not supported. Use a photo (JPEG, PNG) or a PDF.',
+      'Ce type de fichier n’est pas pris en charge. Utilisez une photo (JPEG, PNG) ou un PDF.',
     ),
     'EMPTY_FILE': ('The file is empty.', 'Le fichier est vide.'),
     'STORAGE_LOW': (

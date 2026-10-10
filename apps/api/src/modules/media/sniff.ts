@@ -33,8 +33,9 @@ const MiB = 1024 * 1024;
 
 /** Allowed formats and the largest size for each use of a file. */
 export const mediaRules = {
+  /** Proof of goods: a photo, or a document such as a delivery note or an invoice (PDF). */
   PROOF: {
-    mimes: ["image/jpeg", "image/png", "image/webp"],
+    mimes: ["image/jpeg", "image/png", "image/webp", "application/pdf"],
     maxBytes: 12 * MiB,
   },
   PRODUCT: {

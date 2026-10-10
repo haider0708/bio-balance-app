@@ -1152,7 +1152,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get photoHint => 'Touchez pour prendre une photo';
 
   @override
-  String get photoOfPaper => 'Photo du bon de livraison';
+  String get photoOfPaper => 'Bon de livraison : photo ou PDF';
 
   @override
   String get photoOfStock => 'Photo du stock';
@@ -1161,7 +1161,8 @@ class AppLocalizationsFr extends AppLocalizations {
   String get photoReady => 'Photo prête';
 
   @override
-  String get photoRequiredHint => 'Prenez la photo pour envoyer.';
+  String get photoRequiredHint =>
+      'Ajoutez une photo ou un document pour envoyer.';
 
   @override
   String get photoRetake => 'Reprendre';
@@ -2080,7 +2081,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String photoCount(int count, int max) {
-    return '$count photo(s) sur $max';
+    return '$count sur $max photos ou documents';
   }
 
   @override
@@ -2957,4 +2958,26 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get leaveMessage =>
       'Ce que vous avez saisi sur cette page sera perdu.';
+
+  @override
+  String get photoChooseDocument => 'Choisir un document';
+
+  @override
+  String get photoChooseDocumentHint =>
+      'Un bon de livraison ou une facture, en PDF';
+
+  @override
+  String get documentLabel => 'Document';
+
+  @override
+  String get documentTooLarge => 'Ce document dépasse 12 Mo.';
+
+  @override
+  String get play => 'Lire';
+
+  @override
+  String get pause => 'Pause';
+
+  @override
+  String get clearDate => 'Retirer la date';
 }

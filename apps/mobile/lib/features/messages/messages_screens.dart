@@ -316,7 +316,7 @@ class _ComposeMessageScreenState extends ConsumerState<ComposeMessageScreen> {
       context: context,
       initialTime: const TimeOfDay(hour: 9, minute: 0),
     );
-    if (time == null) return;
+    if (time == null || !mounted) return;
     setState(
       () => _scheduledFor = DateTime(
         date.year,
@@ -516,6 +516,7 @@ class _ComposeMessageScreenState extends ConsumerState<ComposeMessageScreen> {
             trailing: _scheduledFor == null
                 ? TextButton(onPressed: _schedule, child: Text(t.schedule))
                 : IconButton(
+                    tooltip: AppLocalizations.of(context).clearDate,
                     onPressed: () => setState(() => _scheduledFor = null),
                     icon: const Icon(LucideIcons.x),
                   ),

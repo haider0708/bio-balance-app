@@ -37,7 +37,29 @@ class MediaRepository {
   Future<Uint8List> bytes(String id) async => Uint8List.fromList(
     await _ref.read(apiClientProvider).bytes('/v1/media/$id'),
   );
+
+  /// What a stored file is (a photo or a document), without downloading it.
+  Future<MediaInfo> info(String id) async => MediaInfo.fromJson(
+    await _ref.read(apiClientProvider).get('/v1/media/$id/info') as Json,
+  );
 }
+
+class MediaInfo {
+  const MediaInfo({required this.mime, required this.fileName});
+
+  factory MediaInfo.fromJson(Json j) =>
+      MediaInfo(mime: j.str('mime'), fileName: j.str('fileName'));
+
+  final String mime;
+  final String fileName;
+
+  bool get isDocument => mime == 'application/pdf';
+}
+
+/// The kind of each proof file, kept while the app runs (it never changes).
+final mediaInfoProvider = FutureProvider.family<MediaInfo, String>(
+  (ref, id) => ref.watch(mediaRepositoryProvider).info(id),
+);
 
 final mediaRepositoryProvider = Provider<MediaRepository>(MediaRepository.new);
 

@@ -45,6 +45,7 @@ class _PhotoFieldState extends ConsumerState<PhotoField> {
     );
     if (picked == null) return;
     final bytes = await picked.readAsBytes();
+    if (!mounted) return;
     setState(() {
       _preview = bytes;
       _uploading = true;
