@@ -263,9 +263,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get barcodeUnknown => 'This barcode is not in the catalog.';
 
   @override
-  String get byDay => 'day';
-
-  @override
   String get byFamily => 'By family';
 
   @override
@@ -274,19 +271,10 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get byPdv => 'point of sale';
-
-  @override
   String get byProduct => 'By product';
 
   @override
-  String get byProductShort => 'product';
-
-  @override
   String get byRegion => 'region';
-
-  @override
-  String get bySeller => 'seller';
 
   @override
   String get call => 'Call';
@@ -690,9 +678,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get groupName => 'Group name';
-
-  @override
-  String get groupedBy => 'By';
 
   @override
   String get haveCode => 'I already have a code';
@@ -1507,9 +1492,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get salesTitle => 'My sales';
 
   @override
-  String get salesTitleShort => 'Sales';
-
-  @override
   String salesWaiting(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
@@ -2227,37 +2209,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get filterMessages => 'Announcements';
 
   @override
-  String get reportOverview => 'Overview';
-
-  @override
-  String get reportProducts => 'Products';
-
-  @override
-  String get reportTeam => 'Team';
-
-  @override
-  String get reportStock => 'Stock';
-
-  @override
-  String get reportDetails => 'Details';
-
-  @override
   String get whatTheNumbersSay => 'What the numbers say';
 
   @override
-  String get dailySales => 'Units sold per day';
-
-  @override
-  String get bestDay => 'Best day';
-
-  @override
-  String get slowestDay => 'Slowest day';
-
-  @override
   String get byWeekday => 'Units by day of the week';
-
-  @override
-  String get salesByFamily => 'Share by family';
 
   @override
   String vsPrevious(int count) {
@@ -2267,19 +2222,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String unitsPerSale(String value) {
     return '$value units per sale';
-  }
-
-  @override
-  String get activeStoresLabel => 'Selling stores';
-
-  @override
-  String sellersCount(int count) {
-    return '$count sellers';
-  }
-
-  @override
-  String shareOfTotal(int share) {
-    return '$share % of the total';
   }
 
   @override
@@ -2346,11 +2288,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String daysLeft(int count) {
     return '$count days left';
-  }
-
-  @override
-  String stockAtPace(int stock, String perDay) {
-    return '$stock in stock · $perDay a day';
   }
 
   @override
@@ -2535,10 +2472,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get regionSaved => 'Region saved';
-
-  @override
-  String get regionNotEmptyHint =>
-      'Move its stores, groups, grossistes and people elsewhere before deleting it.';
 
   @override
   String regionHolds(int pdvs, int groups, int grossistes) {
@@ -2959,4 +2892,56 @@ class AppLocalizationsEn extends AppLocalizations {
   String facetChip(String label, String name) {
     return '$label: $name';
   }
+
+  @override
+  String get privacyPolicy => 'Privacy policy';
+
+  @override
+  String get termsOfUse => 'Terms of use';
+
+  @override
+  String get deleteAccount => 'Delete my account';
+
+  @override
+  String get deleteAccountTitle => 'Delete your account?';
+
+  @override
+  String get deleteAccountBody =>
+      'Your name, email, phone, password and notifications are erased at once and you can no longer sign in. This cannot be undone.';
+
+  @override
+  String get deleteAccountKept =>
+      'The sales, stock counts and rewards already paid stay in the records of the network, without your name.';
+
+  @override
+  String deleteAccountBalance(String amount) {
+    return 'You still have $amount to be paid. Ask for a payout before deleting your account: waiting requests are cancelled.';
+  }
+
+  @override
+  String deleteAccountWaitingSales(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count sales are still waiting to be sent. Connect to the internet and send them first.',
+      one: '1 sale is still waiting to be sent. Connect to the internet and send it first.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get deleteAccountConfirm => 'Delete my account for good';
+
+  @override
+  String get deleteAccountDone => 'Your account was deleted.';
+
+  @override
+  String get deleteAccountLearnMore => 'What is deleted and what is kept';
+
+  @override
+  String get leaveTitle => 'Leave without saving?';
+
+  @override
+  String get leaveMessage => 'What you entered on this page will be lost.';
 }

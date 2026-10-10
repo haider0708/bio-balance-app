@@ -163,7 +163,7 @@ class _FamilyCard extends StatelessWidget {
                 padding: const EdgeInsets.fromLTRB(16, 14, 12, 14),
                 child: Row(
                   children: [
-                    const IconBadge(LucideIcons.layers, size: 40),
+                    const IconBadge(LucideIcons.layers),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Column(

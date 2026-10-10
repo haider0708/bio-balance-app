@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/config.dart';
+import '../../core/app_version.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/components.dart';
 import '../../l10n/app_localizations.dart';
+import '../settings/legal.dart';
 import 'auth_widgets.dart';
 import 'login_screen.dart';
 
@@ -68,13 +70,13 @@ class AdminLoginScreen extends StatelessWidget {
   }
 }
 
-class _BrandPanel extends StatelessWidget {
+class _BrandPanel extends ConsumerWidget {
   const _BrandPanel({this.compact = false});
 
   final bool compact;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final t = AppLocalizations.of(context);
     const onDark = Colors.white;
     return DecoratedBox(
@@ -169,7 +171,7 @@ class _BrandPanel extends StatelessWidget {
                   ),
                   const Spacer(),
                   Text(
-                    'v${AppConfig.version}',
+                    'v${ref.watch(appVersionProvider).value ?? ''}',
                     style: TextStyle(
                       color: onDark.withValues(alpha: 0.45),
                       fontSize: 12,
@@ -251,6 +253,8 @@ class _Card extends StatelessWidget {
         ),
         const Gap(28),
         SignInForm(email: email, icons: true),
+        const Gap(12),
+        const LegalLinks(),
       ],
     );
   }

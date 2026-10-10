@@ -46,12 +46,17 @@ class QuantityController extends ChangeNotifier {
 
   final Map<String, QuantityItem> _items = {};
 
+  /// True once the person changed something (rows put in beforehand do not count).
+  bool get edited => _edited;
+  bool _edited = false;
+
   List<QuantityItem> get items => _items.values.toList();
   bool get isEmpty => _items.isEmpty;
   int get total => _items.values.fold(0, (sum, i) => sum + i.quantity);
   bool contains(String productId) => _items.containsKey(productId);
 
   void addProduct(Product product, {int quantity = 1}) {
+    _edited = true;
     _items.putIfAbsent(
       product.id,
       () => QuantityItem(
@@ -75,11 +80,13 @@ class QuantityController extends ChangeNotifier {
     final item = _items[productId];
     if (item == null) return;
     item.quantity = quantity.clamp(0, item.max ?? 100000);
+    _edited = true;
     notifyListeners();
   }
 
   void remove(String productId) {
     _items.remove(productId);
+    _edited = true;
     notifyListeners();
   }
 

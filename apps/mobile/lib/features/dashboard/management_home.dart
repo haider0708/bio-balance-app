@@ -492,18 +492,18 @@ class _Hero extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final fg = highlight ? context.colors.onPrimary : context.colors.primary;
-    return Container(
+    final fg = highlight ? context.status.onHero : context.colors.primary;
+    return DecoratedBox(
       decoration: BoxDecoration(
         color: highlight
-            ? context.colors.primary
+            ? context.status.hero
             : context.colors.primaryContainer,
         borderRadius: BorderRadius.circular(16),
         border: highlight ? null : Border.all(color: context.status.hairline),
         boxShadow: highlight
             ? [
                 BoxShadow(
-                  color: context.colors.primary.withValues(alpha: 0.18),
+                  color: context.status.hero.withValues(alpha: 0.18),
                   blurRadius: 16,
                   offset: const Offset(0, 6),
                 ),

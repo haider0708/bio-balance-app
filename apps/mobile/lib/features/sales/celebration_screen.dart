@@ -30,7 +30,7 @@ class _CelebrationScreenState extends State<CelebrationScreen> {
   @override
   void initState() {
     super.initState();
-    HapticFeedback.mediumImpact();
+    unawaited(HapticFeedback.mediumImpact());
     // Light ticks while the amount counts up, then a firm one when it lands.
     final outcome = widget.outcome;
     if (outcome is SaleRecorded) {
@@ -38,9 +38,9 @@ class _CelebrationScreenState extends State<CelebrationScreen> {
       _ticks = Timer.periodic(const Duration(milliseconds: 140), (timer) {
         n++;
         if (n < 8) {
-          HapticFeedback.selectionClick();
+          unawaited(HapticFeedback.selectionClick());
         } else {
-          HapticFeedback.heavyImpact();
+          unawaited(HapticFeedback.heavyImpact());
           timer.cancel();
         }
       });

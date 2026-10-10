@@ -501,7 +501,7 @@ void main() {
     await tester.tap(find.text('Enregistrer la vente'));
     await settle(tester, frames: 12);
     await screenshot(tester, '13-vendeur-bravo');
-    await settle(tester, frames: 30);
+    await settle(tester);
     await tester.tap(find.text('Terminé'));
     await settle(tester);
     await tester.tap(find.text('Portefeuille').last);

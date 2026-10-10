@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import 'states.dart';
@@ -12,7 +14,7 @@ class PageResult<T> {
 /// Loads a cursor-paginated list a page at a time and keeps the rows.
 class PagedController<T> extends ChangeNotifier {
   PagedController(this._fetch) {
-    load();
+    unawaited(load());
   }
 
   final Future<PageResult<T>> Function(String? cursor) _fetch;
@@ -98,7 +100,9 @@ class _PagedListState<T> extends State<PagedList<T>> {
           onRefresh: c.refresh,
           child: NotificationListener<ScrollNotification>(
             onNotification: (n) {
-              if (n.metrics.pixels > n.metrics.maxScrollExtent - 300) c.load();
+              if (n.metrics.pixels > n.metrics.maxScrollExtent - 300) {
+                unawaited(c.load());
+              }
               return false;
             },
             child: ListView.builder(

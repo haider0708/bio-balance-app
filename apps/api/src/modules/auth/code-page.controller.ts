@@ -27,7 +27,9 @@ else{
  const copy=document.getElementById("copy");copy.hidden=false;copy.textContent=words.copy;
  copy.onclick=async()=>{try{await navigator.clipboard.writeText(shown);}catch(e){const r=document.createRange();r.selectNodeContents(box);const s=getSelection();s.removeAllRanges();s.addRange(r);document.execCommand("copy");}copy.textContent=words.copied;};
  const open=document.getElementById("open");open.hidden=false;open.textContent=words.open;
- open.href="intent://app/code?k="+kind+"&c="+code+"#Intent;scheme=biobalance;package=tn.biobalance.app;end";
+ const path="app/code?k="+kind+"&c="+code;
+ const apple=/iPhone|iPad|iPod/.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
+ open.href=apple?"biobalance://"+path:"intent://"+path+"#Intent;scheme=biobalance;package=tn.biobalance.app;end";
  document.getElementById("hint").textContent=words.hint;
 }`;
 

@@ -3,5 +3,5 @@ html,body{margin:0;height:100%;background:#fff}
 #splash{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px}
 #splash img{border-radius:20px}
 .bar{width:120px;height:4px;border-radius:4px;background:rgba(11,122,75,.18);overflow:hidden}
-.bar i{display:block;width:40%;height:100%;border-radius:4px;background:#0B7A4B;animation:slide 1.1s ease-in-out infinite}
+.bar i{display:block;width:40%;height:100%;border-radius:4px;background:#0C6B45;animation:slide 1.1s ease-in-out infinite}
 @keyframes slide{0%{transform:translateX(-100%)}100%{transform:translateX(260%)}}

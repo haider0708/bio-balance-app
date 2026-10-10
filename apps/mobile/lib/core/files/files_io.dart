@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:typed_data';
+import 'dart:ui' show Offset, PlatformDispatcher, Rect;
 
 import 'package:open_filex/open_filex.dart';
 import 'package:path_provider/path_provider.dart';
@@ -17,8 +18,17 @@ Future<void> exportFile(
     ShareParams(
       files: [XFile(path, mimeType: mime)],
       subject: subject,
+      sharePositionOrigin: _anchor(),
     ),
   );
+}
+
+/// On an iPad the share sheet is a popover and needs a point to come from: the middle
+/// of the screen (a phone ignores it).
+Rect _anchor() {
+  final view = PlatformDispatcher.instance.views.first;
+  final size = view.physicalSize / view.devicePixelRatio;
+  return Rect.fromCenter(center: size.center(Offset.zero), width: 1, height: 1);
 }
 
 /// Show a downloaded document (a PDF) in whatever app on the phone opens it.

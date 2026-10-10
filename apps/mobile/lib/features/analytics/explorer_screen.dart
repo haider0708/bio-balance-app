@@ -553,7 +553,7 @@ class SubjectCards extends ConsumerWidget {
     final cards = <Widget>[
       if (seller != null)
         _SubjectCard(
-          leading: Avatar(_initials(seller.str('name')), size: 44),
+          leading: Avatar(_initials(seller.str('name'))),
           title: seller.str('name'),
           lines: [
             [
@@ -634,7 +634,6 @@ class SubjectCards extends ConsumerWidget {
             product.strOrNull('imageId'),
             width: 52,
             height: 52,
-            radius: 12,
             placeholderIcon: LucideIcons.package,
           ),
           title: product.str('name'),
@@ -737,7 +736,7 @@ class _SubjectCard extends StatelessWidget {
     final t = AppLocalizations.of(context);
     final chip = switch (status) {
       'PENDING' => StatusChip(t.statusPending, tone: Tone.warning),
-      'SUSPENDED' => StatusChip(t.statusSuspended, tone: Tone.muted),
+      'SUSPENDED' => StatusChip(t.statusSuspended),
       'REJECTED' => StatusChip(t.statusRejected, tone: Tone.danger),
       _ => null,
     };

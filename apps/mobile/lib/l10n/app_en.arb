@@ -142,7 +142,6 @@
   "balanceShort": "Balance",
   "barcode": "Barcode",
   "barcodeUnknown": "This barcode is not in the catalog.",
-  "byDay": "day",
   "byFamily": "By family",
   "byName": "by {name}",
   "@byName": {
@@ -152,11 +151,8 @@
       }
     }
   },
-  "byPdv": "point of sale",
   "byProduct": "By product",
-  "byProductShort": "product",
   "byRegion": "region",
-  "bySeller": "seller",
   "call": "Call",
   "cameraUnavailable": "The camera is not available. Check the permission in your phone settings.",
   "cancel": "Cancel",
@@ -330,7 +326,6 @@
   "group": "Group",
   "groupCreated": "Group created. It is waiting for approval.",
   "groupName": "Group name",
-  "groupedBy": "By",
   "haveCode": "I already have a code",
   "helloName": "Hello, {name}",
   "@helloName": {
@@ -715,7 +710,6 @@
   },
   "salesLast14Days": "Units sold, last 14 days",
   "salesTitle": "My sales",
-  "salesTitleShort": "Sales",
   "salesWaiting": "{count, plural, =1{1 sale is waiting to be sent} other{{count} sales are waiting to be sent}}",
   "@salesWaiting": {
     "placeholders": {
@@ -1090,17 +1084,8 @@
   "filterPayments": "Payments",
   "filterNetwork": "Network",
   "filterMessages": "Announcements",
-  "reportOverview": "Overview",
-  "reportProducts": "Products",
-  "reportTeam": "Team",
-  "reportStock": "Stock",
-  "reportDetails": "Details",
   "whatTheNumbersSay": "What the numbers say",
-  "dailySales": "Units sold per day",
-  "bestDay": "Best day",
-  "slowestDay": "Slowest day",
   "byWeekday": "Units by day of the week",
-  "salesByFamily": "Share by family",
   "vsPrevious": "before: {count}",
   "@vsPrevious": {
     "placeholders": {
@@ -1114,23 +1099,6 @@
     "placeholders": {
       "value": {
         "type": "String"
-      }
-    }
-  },
-  "activeStoresLabel": "Selling stores",
-  "sellersCount": "{count} sellers",
-  "@sellersCount": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
-  "shareOfTotal": "{share} % of the total",
-  "@shareOfTotal": {
-    "placeholders": {
-      "share": {
-        "type": "int"
       }
     }
   },
@@ -1243,17 +1211,6 @@
       }
     }
   },
-  "stockAtPace": "{stock} in stock · {perDay} a day",
-  "@stockAtPace": {
-    "placeholders": {
-      "stock": {
-        "type": "int"
-      },
-      "perDay": {
-        "type": "String"
-      }
-    }
-  },
   "notMoving": "Not moving: {count} products",
   "@notMoving": {
     "placeholders": {
@@ -1363,7 +1320,6 @@
   "regionDeleteBody": "The region is empty. This cannot be undone.",
   "regionDeleted": "Region deleted",
   "regionSaved": "Region saved",
-  "regionNotEmptyHint": "Move its stores, groups, grossistes and people elsewhere before deleting it.",
   "regionHolds": "{pdvs} stores · {groups} groups · {grossistes} grossistes",
   "@regionHolds": {
     "placeholders": {
@@ -1680,5 +1636,32 @@
         "type": "String"
       }
     }
-  }
+  },
+  "privacyPolicy": "Privacy policy",
+  "termsOfUse": "Terms of use",
+  "deleteAccount": "Delete my account",
+  "deleteAccountTitle": "Delete your account?",
+  "deleteAccountBody": "Your name, email, phone, password and notifications are erased at once and you can no longer sign in. This cannot be undone.",
+  "deleteAccountKept": "The sales, stock counts and rewards already paid stay in the records of the network, without your name.",
+  "deleteAccountBalance": "You still have {amount} to be paid. Ask for a payout before deleting your account: waiting requests are cancelled.",
+  "@deleteAccountBalance": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "deleteAccountWaitingSales": "{count, plural, =1{1 sale is still waiting to be sent. Connect to the internet and send it first.} other{{count} sales are still waiting to be sent. Connect to the internet and send them first.}}",
+  "@deleteAccountWaitingSales": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "deleteAccountConfirm": "Delete my account for good",
+  "deleteAccountDone": "Your account was deleted.",
+  "deleteAccountLearnMore": "What is deleted and what is kept",
+  "leaveTitle": "Leave without saving?",
+  "leaveMessage": "What you entered on this page will be lost."
 }

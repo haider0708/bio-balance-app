@@ -394,7 +394,7 @@ class _VideoState extends ConsumerState<_Video> {
 
   @override
   void dispose() {
-    _controller?.dispose();
+    unawaited(_controller?.dispose());
     super.dispose();
   }
 

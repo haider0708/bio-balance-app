@@ -1,5 +1,3 @@
 #include "Generated.xcconfig"
 
-AUTH_LINK_HOST = account-links.invalid
-#include? "AccountLinks.xcconfig"
 #include? "Signing.xcconfig"

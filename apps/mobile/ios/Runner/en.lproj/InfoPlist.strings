@@ -1,0 +1,3 @@
+/* Why the app asks for the camera and the photos, in the person's language. */
+"NSCameraUsageDescription" = "BioBalance uses the camera to scan product barcodes and to photograph stock and delivery papers as proof.";
+"NSPhotoLibraryUsageDescription" = "Choose a photo of your stock or of a delivery paper to attach it as proof.";

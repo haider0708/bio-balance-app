@@ -8,21 +8,20 @@ Every route is under `https://api.galylio.com`, JSON in and out, `Authorization:
 | Method | Path | Who |
 |---|---|---|
 | POST | `/v1/auth/activate` | anyone |
-| POST | `/v1/auth/activate` | anyone |
-| POST | `/v1/auth/forgot-password` | anyone |
 | POST | `/v1/auth/forgot-password` | anyone |
 | POST | `/v1/auth/login` | anyone |
-| POST | `/v1/auth/login` | anyone |
-| POST | `/v1/auth/logout` | any signed-in role |
 | POST | `/v1/auth/logout` | any signed-in role |
 | POST | `/v1/auth/reset-password` | anyone |
-| POST | `/v1/auth/reset-password` | anyone |
-| GET | `/v1/me` | any signed-in role |
 | GET | `/v1/me` | any signed-in role |
 | PATCH | `/v1/me` | any signed-in role |
-| PATCH | `/v1/me` | any signed-in role |
 | POST | `/v1/me/password` | any signed-in role |
-| POST | `/v1/me/password` | any signed-in role |
+| POST | `/v1/me/delete` | any signed-in role (deletes their own account) |
+
+`POST /v1/me/delete` with `{ password }` erases what identifies the person (name, email, phone, password, two-step secret, sessions, codes, notifications, training progress), cancels their waiting payout requests and suspends the account for good; sales, stock and rewards stay, under "Compte supprimé #XXXX". The last active admin gets `LAST_ADMIN`. A deleted account cannot be reactivated, invited, edited or moved (`ACCOUNT_DELETED`); the admins are notified (`account.deleted`).
+
+## Public pages
+
+`GET /privacy`, `/terms`, `/support`, `/account-deletion` (*anyone*): HTML in French or English (`?lang=fr|en`, else the browser's language), no script. The contact address is `SUPPORT_EMAIL`. `GET /c` is the page the code emails link to (opens the app on Android and iPhone).
 
 ## catalog
 

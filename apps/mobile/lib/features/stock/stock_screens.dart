@@ -10,6 +10,7 @@ import '../../core/util/dates.dart';
 import '../../core/widgets/amend_sheet.dart';
 import '../../core/widgets/async_body.dart';
 import '../../core/widgets/components.dart';
+import '../../core/widgets/leave_guard.dart';
 import '../../core/widgets/feedback.dart';
 import '../../core/widgets/photo_set.dart';
 import '../../core/widgets/quantity_editor.dart';
@@ -482,79 +483,86 @@ class _DeclareStockScreenState extends ConsumerState<DeclareStockScreen> {
     final t = AppLocalizations.of(context);
     final levels = ref.watch(stockLevelsProvider(widget.locationId));
     final admin = ref.watch(meProvider).role == Role.admin;
-    return Scaffold(
-      appBar: AppBar(title: Text(widget.locationName ?? t.declareStock)),
-      body: AsyncBody(
-        value: levels,
-        onRetry: () => ref.invalidate(stockLevelsProvider(widget.locationId)),
-        builder: (data) {
-          _seed(data);
-          final first = data.items.isEmpty;
-          return ListView(
-            padding: const EdgeInsets.all(16),
-            children: [
-              Text(
-                admin
-                    ? t.stockCountedByYou
-                    : first
-                    ? t.declareFirstHint
-                    : t.recountHint,
-                style: context.text.bodyMedium?.copyWith(
-                  color: context.status.muted,
-                ),
-              ),
-              const Gap(16),
-              PhotoSet(
-                label: t.photoOfStock,
-                onChanged: (ids, busy) => setState(() {
-                  _photoIds = ids;
-                  _photosBusy = busy;
-                }),
-              ),
-              SectionHeader(t.countedProducts),
-              QuantityEditor(controller: _quantities, addLabel: t.addProduct),
-              const Gap(16),
-              TextField(
-                controller: _note,
-                maxLength: 300,
-                minLines: 1,
-                maxLines: 3,
-                decoration: InputDecoration(
-                  labelText: '${t.note} (${t.optional})',
-                ),
-              ),
-              const Gap(8),
-              ListenableBuilder(
-                listenable: _quantities,
-                builder: (context, _) => AsyncButton(
-                  label: admin ? t.saveStock : t.sendToAdmin,
-                  icon: admin ? LucideIcons.check : LucideIcons.send,
-                  onPressed:
-                      _photoIds.isEmpty || _photosBusy || _quantities.isEmpty
-                      ? null
-                      : _submit,
-                ),
-              ),
-              if (_photoIds.isEmpty)
-                Padding(
-                  padding: const EdgeInsets.only(top: 8),
-                  child: Text(
-                    t.photoRequiredHint,
-                    textAlign: TextAlign.center,
-                    style: context.text.bodySmall?.copyWith(
-                      color: context.status.muted,
-                    ),
+    return ListenableBuilder(
+      listenable: _quantities,
+      builder: (context, child) => LeaveGuard(
+        dirty: _quantities.edited || _photoIds.isNotEmpty,
+        child: child!,
+      ),
+      child: Scaffold(
+        appBar: AppBar(title: Text(widget.locationName ?? t.declareStock)),
+        body: AsyncBody(
+          value: levels,
+          onRetry: () => ref.invalidate(stockLevelsProvider(widget.locationId)),
+          builder: (data) {
+            _seed(data);
+            final first = data.items.isEmpty;
+            return ListView(
+              padding: const EdgeInsets.all(16),
+              children: [
+                Text(
+                  admin
+                      ? t.stockCountedByYou
+                      : first
+                      ? t.declareFirstHint
+                      : t.recountHint,
+                  style: context.text.bodyMedium?.copyWith(
+                    color: context.status.muted,
                   ),
                 ),
-              const Gap(8),
-              TextButton.icon(
-                onPressed: _declareEmpty,
-                icon: const Icon(LucideIcons.packageOpen),
-                label: Text(t.noStockHere),
-              ),
-            ],
-          );
-        },
+                const Gap(16),
+                PhotoSet(
+                  label: t.photoOfStock,
+                  onChanged: (ids, busy) => setState(() {
+                    _photoIds = ids;
+                    _photosBusy = busy;
+                  }),
+                ),
+                SectionHeader(t.countedProducts),
+                QuantityEditor(controller: _quantities, addLabel: t.addProduct),
+                const Gap(16),
+                TextField(
+                  controller: _note,
+                  maxLength: 300,
+                  minLines: 1,
+                  maxLines: 3,
+                  decoration: InputDecoration(
+                    labelText: '${t.note} (${t.optional})',
+                  ),
+                ),
+                const Gap(8),
+                ListenableBuilder(
+                  listenable: _quantities,
+                  builder: (context, _) => AsyncButton(
+                    label: admin ? t.saveStock : t.sendToAdmin,
+                    icon: admin ? LucideIcons.check : LucideIcons.send,
+                    onPressed:
+                        _photoIds.isEmpty || _photosBusy || _quantities.isEmpty
+                        ? null
+                        : _submit,
+                  ),
+                ),
+                if (_photoIds.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Text(
+                      t.photoRequiredHint,
+                      textAlign: TextAlign.center,
+                      style: context.text.bodySmall?.copyWith(
+                        color: context.status.muted,
+                      ),
+                    ),
+                  ),
+                const Gap(8),
+                TextButton.icon(
+                  onPressed: _declareEmpty,
+                  icon: const Icon(LucideIcons.packageOpen),
+                  label: Text(t.noStockHere),
+                ),
+              ],
+            );
+          },
+        ),
       ),
     );
   }

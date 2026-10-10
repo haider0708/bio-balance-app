@@ -1,4 +1,7 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+
+import '../layout/layout.dart';
 
 /// BioBalance colours. Surfaces stay neutral; emerald is reserved for accents.
 class Palette {
@@ -39,6 +42,8 @@ class StatusColors extends ThemeExtension<StatusColors> {
     required this.card,
     required this.hairline,
     required this.shadow,
+    required this.hero,
+    required this.onHero,
   });
 
   final Color success;
@@ -57,6 +62,11 @@ class StatusColors extends ThemeExtension<StatusColors> {
   final Color hairline;
   final Color shadow;
 
+  /// The solid surface of the headline cards (today's earnings, what waits, the wallet) and
+  /// what is written on it. Deep emerald in both themes: bright mint would glare in the dark.
+  final Color hero;
+  final Color onHero;
+
   static const light = StatusColors(
     success: Color(0xFF0C6B45),
     successSoft: Color(0xFFEEF8F3),
@@ -71,6 +81,8 @@ class StatusColors extends ThemeExtension<StatusColors> {
     card: Colors.white,
     hairline: Color(0xFFE6E8EC),
     shadow: Color(0x0A000000),
+    hero: Palette.emerald,
+    onHero: Colors.white,
   );
 
   static const dark = StatusColors(
@@ -87,14 +99,36 @@ class StatusColors extends ThemeExtension<StatusColors> {
     card: Color(0xFF141518),
     hairline: Color(0xFF2A2C31),
     shadow: Color(0x66000000),
+    hero: Color(0xFF0F4A33),
+    onHero: Color(0xFFEFFFF6),
   );
 
   @override
   StatusColors copyWith() => this;
 
+  /// Colours blend while the theme changes (light ↔ dark), like the rest of the theme.
   @override
-  StatusColors lerp(StatusColors? other, double t) =>
-      t < 0.5 ? this : (other ?? this);
+  StatusColors lerp(StatusColors? other, double t) {
+    if (other == null) return this;
+    Color c(Color a, Color b) => Color.lerp(a, b, t)!;
+    return StatusColors(
+      success: c(success, other.success),
+      successSoft: c(successSoft, other.successSoft),
+      warning: c(warning, other.warning),
+      warningSoft: c(warningSoft, other.warningSoft),
+      danger: c(danger, other.danger),
+      dangerSoft: c(dangerSoft, other.dangerSoft),
+      info: c(info, other.info),
+      infoSoft: c(infoSoft, other.infoSoft),
+      muted: c(muted, other.muted),
+      mutedSoft: c(mutedSoft, other.mutedSoft),
+      card: c(card, other.card),
+      hairline: c(hairline, other.hairline),
+      shadow: c(shadow, other.shadow),
+      hero: c(hero, other.hero),
+      onHero: c(onHero, other.onHero),
+    );
+  }
 }
 
 extension ThemeContext on BuildContext {
@@ -128,7 +162,34 @@ class _SoftPageTransitions extends PageTransitionsBuilder {
           begin: const Offset(0, 0.03),
           end: Offset.zero,
         ).animate(curved),
-        child: child,
+        child: PageFrame(path: route.settings.name, child: child),
+      ),
+    );
+  }
+}
+
+/// On a tablet a page keeps a readable width: forms a narrow column, other pages at most
+/// [contentMaxWidth], centred. Phones are untouched, and the web console sizes its own pages.
+class PageFrame extends StatelessWidget {
+  const PageFrame({required this.path, required this.child, super.key});
+
+  /// The route pattern of the page (`/pdvs/:id/edit`), null for the tab shell.
+  final String? path;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final width = MediaQuery.sizeOf(context).width;
+    if (kIsWeb || path == null || width < wideBreakpoint) return child;
+    final max = isFormPath(path!) ? formMaxWidth : contentMaxWidth;
+    if (width <= max) return child;
+    return ColoredBox(
+      color: Theme.of(context).scaffoldBackgroundColor,
+      child: Center(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: max),
+          child: child,
+        ),
       ),
     );
   }
@@ -141,10 +202,7 @@ class AppTheme {
   static const _control = 14.0;
 
   static ThemeData light() => _build(
-    ColorScheme.fromSeed(
-      seedColor: Palette.emerald,
-      brightness: Brightness.light,
-    ).copyWith(
+    ColorScheme.fromSeed(seedColor: Palette.emerald).copyWith(
       primary: Palette.emerald,
       onPrimary: Colors.white,
       primaryContainer: const Color(0xFFEEF8F3),
@@ -196,7 +254,8 @@ class AppTheme {
       fontFamily: 'Inter',
       scaffoldBackgroundColor: scaffold,
       extensions: [status],
-      splashFactory: InkSparkle.splashFactory,
+      // A plain ripple: light on every device, no shader to compile on the first tap.
+      splashFactory: InkRipple.splashFactory,
     );
     final control = RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(_control),
@@ -209,11 +268,10 @@ class AppTheme {
     );
     final t = base.textTheme;
     return base.copyWith(
-      pageTransitionsTheme: const PageTransitionsTheme(
+      pageTransitionsTheme: PageTransitionsTheme(
         builders: {
-          TargetPlatform.android: _SoftPageTransitions(),
-          TargetPlatform.iOS: _SoftPageTransitions(),
-          TargetPlatform.linux: _SoftPageTransitions(),
+          for (final p in TargetPlatform.values)
+            p: const _SoftPageTransitions(),
         },
       ),
       textTheme: t.copyWith(
@@ -298,7 +356,7 @@ class AppTheme {
         style: OutlinedButton.styleFrom(
           minimumSize: const Size.fromHeight(52),
           shape: control,
-          side: BorderSide(color: status.hairline, width: 1),
+          side: BorderSide(color: status.hairline),
           backgroundColor: status.card,
           foregroundColor: scheme.onSurface,
           textStyle: buttonText,

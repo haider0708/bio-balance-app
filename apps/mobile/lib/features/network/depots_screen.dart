@@ -136,7 +136,7 @@ class _DepotTile extends ConsumerWidget {
                   runSpacing: 4,
                   children: [
                     if (!d.active)
-                      StatusChip(t.depotSuspendedLabel, tone: Tone.muted)
+                      StatusChip(t.depotSuspendedLabel)
                     else if (!d.counted && !d.countPending)
                       StatusChip(t.depotNoStock, tone: Tone.warning)
                     else if (d.countPending)

@@ -175,7 +175,6 @@ class _TopProductsState extends State<TopProducts> {
                     items[i].strOrNull('imageId'),
                     width: 52,
                     height: 52,
-                    radius: 12,
                     placeholderIcon: LucideIcons.package,
                   ),
                   const SizedBox(width: 12),
@@ -332,7 +331,7 @@ class _TopPlacesState extends State<TopPlaces> {
                       ),
                     ),
                   ),
-                  IconBadge(icon, size: 40),
+                  IconBadge(icon),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(

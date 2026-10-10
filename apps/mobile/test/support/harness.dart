@@ -20,9 +20,10 @@ Future<ProviderContainer> launch(
   bool signedIn = true,
   Size size = const Size(412, 892),
   String? language,
+  double pixelRatio = 2,
 }) async {
-  tester.view.physicalSize = size * 2;
-  tester.view.devicePixelRatio = 2;
+  tester.view.physicalSize = size * pixelRatio;
+  tester.view.devicePixelRatio = pixelRatio;
   addTearDown(tester.view.reset);
   final container = ProviderContainer(
     overrides: server.overrides(
@@ -51,12 +52,16 @@ Future<void> settle(WidgetTester tester, {int frames = 30}) async {
 }
 
 /// Save what is on screen as a PNG (build/screenshots/NAME.png) for a visual review.
-Future<void> screenshot(WidgetTester tester, String name) async {
+Future<void> screenshot(
+  WidgetTester tester,
+  String name, {
+  double pixelRatio = 2,
+}) async {
   await tester.runAsync(() async {
     final boundary =
         appBoundary.currentContext!.findRenderObject()!
             as RenderRepaintBoundary;
-    final image = await boundary.toImage(pixelRatio: 2);
+    final image = await boundary.toImage(pixelRatio: pixelRatio);
     final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
     final file = File('build/screenshots/$name.png')
       ..createSync(recursive: true);

@@ -1,3 +1,4 @@
+import { refuseDeleted } from "../auth/deleted";
 import { Injectable } from "@nestjs/common";
 import type { Role, Status } from "@prisma/client";
 import type { Actor } from "../../core/actor";
@@ -234,6 +235,7 @@ export class UsersService {
         (actor.role === "ADMIN" ||
           (user.role === "VENDEUR" && user.regionId === actor.regionId));
       if (!user || !visible) throw notFound("User");
+      refuseDeleted(user);
       if (input.pdvId) {
         requireRule(
           user.role === "VENDEUR",
@@ -292,6 +294,7 @@ export class UsersService {
         (actor.role === "ADMIN" ||
           (user.role === "VENDEUR" && user.regionId === actor.regionId));
       if (!user || !visible) throw notFound("User");
+      refuseDeleted(user);
       requireRule(
         user.id !== actor.id,
         "SELF_ACTION",
@@ -377,6 +380,7 @@ export class UsersService {
         (actor.role === "ADMIN" ||
           (user.role === "VENDEUR" && user.regionId === actor.regionId));
       if (!user || !visible) throw notFound("User");
+      refuseDeleted(user);
       requireRule(
         user.status === "ACTIVE" && !user.passwordHash,
         "INVALID_STATE",
@@ -408,6 +412,7 @@ export class UsersService {
         (actor.role === "ADMIN" ||
           (user.role === "VENDEUR" && user.regionId === actor.regionId));
       if (!user || !visible) throw notFound("User");
+      refuseDeleted(user);
       requireRule(
         !user.passwordHash && user.role !== "ADMIN",
         "ALREADY_ACTIVATED",

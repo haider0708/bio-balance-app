@@ -26,7 +26,6 @@ class ApiClient {
       connectTimeout: const Duration(seconds: 12),
       receiveTimeout: const Duration(seconds: 30),
       sendTimeout: const Duration(seconds: 60),
-      responseType: ResponseType.json,
     ),
   );
 

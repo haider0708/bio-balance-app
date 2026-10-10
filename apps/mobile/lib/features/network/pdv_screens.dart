@@ -475,10 +475,7 @@ class _PdvFormScreenState extends ConsumerState<PdvFormScreen> {
                   labelText: '${t.group} (${t.optional})',
                 ),
                 items: [
-                  DropdownMenuItem<String?>(
-                    value: null,
-                    child: Text(t.noGroup),
-                  ),
+                  DropdownMenuItem<String?>(child: Text(t.noGroup)),
                   for (final g in list)
                     DropdownMenuItem<String?>(value: g.id, child: Text(g.name)),
                 ],

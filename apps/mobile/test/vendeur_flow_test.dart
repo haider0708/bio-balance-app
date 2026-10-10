@@ -117,10 +117,11 @@ void main() {
     await sending;
     expect(container.read(salesOutboxProvider), isEmpty);
     expect(
-      server.calls
-          .where((c) => c.method == 'POST' && c.path == '/v1/sales')
-          .last
-          .data['id'],
+      (server.calls
+              .where((c) => c.method == 'POST' && c.path == '/v1/sales')
+              .last
+              .data
+          as Map<String, dynamic>)['id'],
       id,
     );
   });

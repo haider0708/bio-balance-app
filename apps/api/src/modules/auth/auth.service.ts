@@ -4,6 +4,8 @@ import type { Actor } from "../../core/actor";
 import { Database, type Tx } from "../../core/database";
 import { DomainError, requireRule } from "../../core/errors";
 import { audit } from "../../core/audit";
+import { notifyAdmins } from "../../core/notifier";
+import { deletedEmail } from "./deleted";
 import { hashCode, issueCode, normalizeCode, tokenHash } from "./codes";
 import { decryptSecret, matchTotp } from "./mfa";
 import { PasswordHasher } from "./password-hasher";
@@ -254,6 +256,79 @@ export class AuthService {
       });
       await this.queuePasswordChanged(tx, actor.id);
       await audit(tx, actor, "auth.password_changed", "User", actor.id);
+    });
+    return { ok: true };
+  }
+
+  /**
+   * A person deletes their own account. What identifies them is erased at once — name, email,
+   * phone, password, two-step secret, sessions, codes, notifications and training progress — and
+   * the account can never sign in again. The business records they took part in (sales, stock
+   * counts, deliveries, rewards paid) are kept for the accounts, under "Compte supprimé".
+   * Payout requests still waiting are cancelled. The last admin cannot leave the network
+   * without an admin.
+   */
+  async deleteAccount(actor: Actor, password: string) {
+    await this.throttle(`delete:${actor.id}`, 5);
+    const user = await this.db.user.findUniqueOrThrow({
+      where: { id: actor.id },
+    });
+    requireRule(
+      user.passwordHash &&
+        (await this.passwords.verify(user.passwordHash, password)),
+      "INVALID_CREDENTIALS",
+      "Your password is incorrect.",
+      401,
+    );
+    await this.db.run("SYSTEM", async (tx) => {
+      if (user.role === "ADMIN") {
+        const others = await tx.user.count({
+          where: { role: "ADMIN", status: "ACTIVE", id: { not: user.id } },
+        });
+        requireRule(
+          others > 0,
+          "LAST_ADMIN",
+          "Another admin must exist before this account can be deleted.",
+          409,
+        );
+      }
+      const tag = user.id.slice(0, 4).toUpperCase();
+      await tx.payoutRequest.updateMany({
+        where: { userId: user.id, status: "PENDING" },
+        data: {
+          status: "CANCELLED",
+          decidedAt: new Date(),
+          decisionNote: "Account deleted",
+        },
+      });
+      await tx.session.deleteMany({ where: { userId: user.id } });
+      await tx.accessToken.deleteMany({ where: { userId: user.id } });
+      await tx.notification.deleteMany({ where: { userId: user.id } });
+      await tx.lessonProgress.deleteMany({ where: { userId: user.id } });
+      await tx.loginAttempt.deleteMany({
+        where: { key: { contains: user.email } },
+      });
+      await tx.user.update({
+        where: { id: user.id },
+        data: {
+          name: `Compte supprimé #${tag}`,
+          email: deletedEmail(user.id),
+          phone: null,
+          passwordHash: null,
+          mfaSecret: null,
+          status: "SUSPENDED",
+          decisionNote: "Deleted by its owner",
+        },
+      });
+      await audit(tx, actor, "auth.account_deleted", "User", user.id, {
+        role: user.role,
+      });
+      await notifyAdmins(tx, {
+        key: "account.deleted",
+        params: { name: user.name, role: user.role },
+        entityType: "User",
+        entityId: user.id,
+      });
     });
     return { ok: true };
   }

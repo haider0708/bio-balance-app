@@ -15,7 +15,8 @@ describe("the page a code email links to", () => {
     expect(res.status).toBe(200);
     expect(res.headers.get("content-type")).toContain("text/html");
     expect(html).toContain('id="copy"');
-    expect(html).toContain("intent://app/code");
+    expect(html).toContain('"intent://"+path');
+    expect(html).toContain('"biobalance://"+path');
     expect(res.headers.get("content-security-policy")).toMatch(
       /script-src 'sha256-[A-Za-z0-9+/=]+'/,
     );

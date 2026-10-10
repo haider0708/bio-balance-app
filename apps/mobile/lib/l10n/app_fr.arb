@@ -142,7 +142,6 @@
   "balanceShort": "Solde",
   "barcode": "Code-barres",
   "barcodeUnknown": "Ce code-barres n’est pas dans le catalogue.",
-  "byDay": "jour",
   "byFamily": "Par famille",
   "byName": "par {name}",
   "@byName": {
@@ -152,11 +151,8 @@
       }
     }
   },
-  "byPdv": "point de vente",
   "byProduct": "Par produit",
-  "byProductShort": "produit",
   "byRegion": "région",
-  "bySeller": "vendeur",
   "call": "Appeler",
   "cameraUnavailable": "L’appareil photo n’est pas disponible. Vérifiez l’autorisation dans les réglages du téléphone.",
   "cancel": "Annuler",
@@ -330,7 +326,6 @@
   "group": "Groupe",
   "groupCreated": "Groupe créé. Il attend son approbation.",
   "groupName": "Nom du groupe",
-  "groupedBy": "Par",
   "haveCode": "J’ai déjà un code",
   "helloName": "Bonjour, {name}",
   "@helloName": {
@@ -715,7 +710,6 @@
   },
   "salesLast14Days": "Unités vendues, 14 derniers jours",
   "salesTitle": "Mes ventes",
-  "salesTitleShort": "Ventes",
   "salesWaiting": "{count, plural, =1{1 vente attend d’être envoyée} other{{count} ventes attendent d’être envoyées}}",
   "@salesWaiting": {
     "placeholders": {
@@ -1090,17 +1084,8 @@
   "filterPayments": "Paiements",
   "filterNetwork": "Réseau",
   "filterMessages": "Annonces",
-  "reportOverview": "Aperçu",
-  "reportProducts": "Produits",
-  "reportTeam": "Équipe",
-  "reportStock": "Stock",
-  "reportDetails": "Détails",
   "whatTheNumbersSay": "Ce que disent les chiffres",
-  "dailySales": "Unités vendues par jour",
-  "bestDay": "Meilleur jour",
-  "slowestDay": "Jour le plus calme",
   "byWeekday": "Unités par jour de la semaine",
-  "salesByFamily": "Part par famille",
   "vsPrevious": "avant : {count}",
   "@vsPrevious": {
     "placeholders": {
@@ -1114,23 +1099,6 @@
     "placeholders": {
       "value": {
         "type": "String"
-      }
-    }
-  },
-  "activeStoresLabel": "Magasins actifs",
-  "sellersCount": "{count} vendeurs",
-  "@sellersCount": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
-  "shareOfTotal": "{share} % du total",
-  "@shareOfTotal": {
-    "placeholders": {
-      "share": {
-        "type": "int"
       }
     }
   },
@@ -1243,17 +1211,6 @@
       }
     }
   },
-  "stockAtPace": "{stock} en stock · {perDay} par jour",
-  "@stockAtPace": {
-    "placeholders": {
-      "stock": {
-        "type": "int"
-      },
-      "perDay": {
-        "type": "String"
-      }
-    }
-  },
   "notMoving": "Qui ne bougent pas : {count} produits",
   "@notMoving": {
     "placeholders": {
@@ -1363,7 +1320,6 @@
   "regionDeleteBody": "La région est vide. Cette action est définitive.",
   "regionDeleted": "Région supprimée",
   "regionSaved": "Région enregistrée",
-  "regionNotEmptyHint": "Déplacez d’abord ses magasins, groupes, grossistes et personnes avant de la supprimer.",
   "regionHolds": "{pdvs} magasins · {groups} groupes · {grossistes} grossistes",
   "@regionHolds": {
     "placeholders": {
@@ -1680,5 +1636,32 @@
         "type": "String"
       }
     }
-  }
+  },
+  "privacyPolicy": "Politique de confidentialité",
+  "termsOfUse": "Conditions d'utilisation",
+  "deleteAccount": "Supprimer mon compte",
+  "deleteAccountTitle": "Supprimer votre compte ?",
+  "deleteAccountBody": "Votre nom, votre email, votre téléphone, votre mot de passe et vos notifications sont effacés immédiatement et vous ne pourrez plus vous connecter. C'est définitif.",
+  "deleteAccountKept": "Les ventes, comptages de stock et récompenses déjà payées restent dans les registres du réseau, sans votre nom.",
+  "deleteAccountBalance": "Il vous reste {amount} à recevoir. Demandez un paiement avant de supprimer votre compte : les demandes en attente sont annulées.",
+  "@deleteAccountBalance": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "deleteAccountWaitingSales": "{count, plural, =1{1 vente attend encore d'être envoyée. Connectez-vous à internet et envoyez-la d'abord.} other{{count} ventes attendent encore d'être envoyées. Connectez-vous à internet et envoyez-les d'abord.}}",
+  "@deleteAccountWaitingSales": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "deleteAccountConfirm": "Supprimer définitivement mon compte",
+  "deleteAccountDone": "Votre compte a été supprimé.",
+  "deleteAccountLearnMore": "Ce qui est supprimé et ce qui est gardé",
+  "leaveTitle": "Quitter sans enregistrer ?",
+  "leaveMessage": "Ce que vous avez saisi sur cette page sera perdu."
 }

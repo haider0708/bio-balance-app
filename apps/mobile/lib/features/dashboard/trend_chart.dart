@@ -27,7 +27,6 @@ class TrendChart extends StatelessWidget {
             maxY: max == 0 ? 5 : max * 1.2,
             alignment: BarChartAlignment.spaceBetween,
             gridData: FlGridData(
-              show: true,
               drawVerticalLine: false,
               horizontalInterval: max == 0 ? 1 : (max / 3).ceilToDouble(),
               getDrawingHorizontalLine: (_) =>
@@ -41,7 +40,6 @@ class TrendChart extends StatelessWidget {
               bottomTitles: AxisTitles(
                 sideTitles: SideTitles(
                   showTitles: true,
-                  reservedSize: 22,
                   getTitlesWidget: (value, meta) {
                     final i = value.toInt();
                     if (i < 0 ||

@@ -24,6 +24,7 @@ const Profile = z.object({
   phone: z.string().trim().max(30).nullable().optional(),
   locale: z.enum(["fr", "en"]).optional(),
 });
+const DeleteAccount = z.object({ password: z.string().min(1).max(128) });
 const ChangePassword = z.object({
   current: z.string().min(1).max(128),
   next: password,
@@ -79,6 +80,15 @@ export class AuthController {
   @Patch("me")
   update(@Req() req: AuthRequest, @Body() raw: unknown) {
     return this.auth.updateProfile(req.actor, parse(Profile, raw));
+  }
+
+  /** Deletes the caller's own account (asked by the app stores): see AuthService.deleteAccount. */
+  @Post("me/delete")
+  deleteAccount(@Req() req: AuthRequest, @Body() raw: unknown) {
+    return this.auth.deleteAccount(
+      req.actor,
+      parse(DeleteAccount, raw).password,
+    );
   }
 
   @Post("me/password")

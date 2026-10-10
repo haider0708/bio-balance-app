@@ -446,12 +446,6 @@ abstract class AppLocalizations {
   /// **'This barcode is not in the catalog.'**
   String get barcodeUnknown;
 
-  /// No description provided for @byDay.
-  ///
-  /// In en, this message translates to:
-  /// **'day'**
-  String get byDay;
-
   /// No description provided for @byFamily.
   ///
   /// In en, this message translates to:
@@ -464,35 +458,17 @@ abstract class AppLocalizations {
   /// **'by {name}'**
   String byName(String name);
 
-  /// No description provided for @byPdv.
-  ///
-  /// In en, this message translates to:
-  /// **'point of sale'**
-  String get byPdv;
-
   /// No description provided for @byProduct.
   ///
   /// In en, this message translates to:
   /// **'By product'**
   String get byProduct;
 
-  /// No description provided for @byProductShort.
-  ///
-  /// In en, this message translates to:
-  /// **'product'**
-  String get byProductShort;
-
   /// No description provided for @byRegion.
   ///
   /// In en, this message translates to:
   /// **'region'**
   String get byRegion;
-
-  /// No description provided for @bySeller.
-  ///
-  /// In en, this message translates to:
-  /// **'seller'**
-  String get bySeller;
 
   /// No description provided for @call.
   ///
@@ -1219,12 +1195,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Group name'**
   String get groupName;
-
-  /// No description provided for @groupedBy.
-  ///
-  /// In en, this message translates to:
-  /// **'By'**
-  String get groupedBy;
 
   /// No description provided for @haveCode.
   ///
@@ -2678,12 +2648,6 @@ abstract class AppLocalizations {
   /// **'My sales'**
   String get salesTitle;
 
-  /// No description provided for @salesTitleShort.
-  ///
-  /// In en, this message translates to:
-  /// **'Sales'**
-  String get salesTitleShort;
-
   /// No description provided for @salesWaiting.
   ///
   /// In en, this message translates to:
@@ -3908,71 +3872,17 @@ abstract class AppLocalizations {
   /// **'Announcements'**
   String get filterMessages;
 
-  /// No description provided for @reportOverview.
-  ///
-  /// In en, this message translates to:
-  /// **'Overview'**
-  String get reportOverview;
-
-  /// No description provided for @reportProducts.
-  ///
-  /// In en, this message translates to:
-  /// **'Products'**
-  String get reportProducts;
-
-  /// No description provided for @reportTeam.
-  ///
-  /// In en, this message translates to:
-  /// **'Team'**
-  String get reportTeam;
-
-  /// No description provided for @reportStock.
-  ///
-  /// In en, this message translates to:
-  /// **'Stock'**
-  String get reportStock;
-
-  /// No description provided for @reportDetails.
-  ///
-  /// In en, this message translates to:
-  /// **'Details'**
-  String get reportDetails;
-
   /// No description provided for @whatTheNumbersSay.
   ///
   /// In en, this message translates to:
   /// **'What the numbers say'**
   String get whatTheNumbersSay;
 
-  /// No description provided for @dailySales.
-  ///
-  /// In en, this message translates to:
-  /// **'Units sold per day'**
-  String get dailySales;
-
-  /// No description provided for @bestDay.
-  ///
-  /// In en, this message translates to:
-  /// **'Best day'**
-  String get bestDay;
-
-  /// No description provided for @slowestDay.
-  ///
-  /// In en, this message translates to:
-  /// **'Slowest day'**
-  String get slowestDay;
-
   /// No description provided for @byWeekday.
   ///
   /// In en, this message translates to:
   /// **'Units by day of the week'**
   String get byWeekday;
-
-  /// No description provided for @salesByFamily.
-  ///
-  /// In en, this message translates to:
-  /// **'Share by family'**
-  String get salesByFamily;
 
   /// No description provided for @vsPrevious.
   ///
@@ -3985,24 +3895,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{value} units per sale'**
   String unitsPerSale(String value);
-
-  /// No description provided for @activeStoresLabel.
-  ///
-  /// In en, this message translates to:
-  /// **'Selling stores'**
-  String get activeStoresLabel;
-
-  /// No description provided for @sellersCount.
-  ///
-  /// In en, this message translates to:
-  /// **'{count} sellers'**
-  String sellersCount(int count);
-
-  /// No description provided for @shareOfTotal.
-  ///
-  /// In en, this message translates to:
-  /// **'{share} % of the total'**
-  String shareOfTotal(int share);
 
   /// No description provided for @insTopFamily.
   ///
@@ -4087,12 +3979,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{count} days left'**
   String daysLeft(int count);
-
-  /// No description provided for @stockAtPace.
-  ///
-  /// In en, this message translates to:
-  /// **'{stock} in stock · {perDay} a day'**
-  String stockAtPace(int stock, String perDay);
 
   /// No description provided for @notMoving.
   ///
@@ -4417,12 +4303,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Region saved'**
   String get regionSaved;
-
-  /// No description provided for @regionNotEmptyHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Move its stores, groups, grossistes and people elsewhere before deleting it.'**
-  String get regionNotEmptyHint;
 
   /// No description provided for @regionHolds.
   ///
@@ -5065,6 +4945,84 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{label}: {name}'**
   String facetChip(String label, String name);
+
+  /// No description provided for @privacyPolicy.
+  ///
+  /// In en, this message translates to:
+  /// **'Privacy policy'**
+  String get privacyPolicy;
+
+  /// No description provided for @termsOfUse.
+  ///
+  /// In en, this message translates to:
+  /// **'Terms of use'**
+  String get termsOfUse;
+
+  /// No description provided for @deleteAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete my account'**
+  String get deleteAccount;
+
+  /// No description provided for @deleteAccountTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete your account?'**
+  String get deleteAccountTitle;
+
+  /// No description provided for @deleteAccountBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Your name, email, phone, password and notifications are erased at once and you can no longer sign in. This cannot be undone.'**
+  String get deleteAccountBody;
+
+  /// No description provided for @deleteAccountKept.
+  ///
+  /// In en, this message translates to:
+  /// **'The sales, stock counts and rewards already paid stay in the records of the network, without your name.'**
+  String get deleteAccountKept;
+
+  /// No description provided for @deleteAccountBalance.
+  ///
+  /// In en, this message translates to:
+  /// **'You still have {amount} to be paid. Ask for a payout before deleting your account: waiting requests are cancelled.'**
+  String deleteAccountBalance(String amount);
+
+  /// No description provided for @deleteAccountWaitingSales.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 sale is still waiting to be sent. Connect to the internet and send it first.} other{{count} sales are still waiting to be sent. Connect to the internet and send them first.}}'**
+  String deleteAccountWaitingSales(int count);
+
+  /// No description provided for @deleteAccountConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete my account for good'**
+  String get deleteAccountConfirm;
+
+  /// No description provided for @deleteAccountDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Your account was deleted.'**
+  String get deleteAccountDone;
+
+  /// No description provided for @deleteAccountLearnMore.
+  ///
+  /// In en, this message translates to:
+  /// **'What is deleted and what is kept'**
+  String get deleteAccountLearnMore;
+
+  /// No description provided for @leaveTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave without saving?'**
+  String get leaveTitle;
+
+  /// No description provided for @leaveMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'What you entered on this page will be lost.'**
+  String get leaveMessage;
 }
 
 class _AppLocalizationsDelegate

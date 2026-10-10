@@ -147,15 +147,14 @@ class VendeurHome extends ConsumerWidget {
                             ),
                           ),
                           const SizedBox(width: 12),
-                          Flexible(
-                            child: FittedBox(
-                              fit: BoxFit.scaleDown,
-                              child: Text(
-                                '+ ${Money.format(s.integer('rewardMillimes'), locale)}',
-                                style: context.text.titleSmall?.copyWith(
-                                  color: context.colors.primary,
-                                ),
-                              ),
+                          // The reward sits at the end of the row, whatever the width.
+                          Text(
+                            '+ ${Money.format(s.integer('rewardMillimes'), locale)}',
+                            style: context.text.titleSmall?.copyWith(
+                              color: context.colors.primary,
+                              fontFeatures: const [
+                                FontFeature.tabularFigures(),
+                              ],
                             ),
                           ),
                         ],
@@ -183,11 +182,11 @@ class _TodayCard extends StatelessWidget {
       padding: const EdgeInsets.all(22),
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        color: context.colors.primary,
+        color: context.status.hero,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: context.colors.primary.withValues(alpha: 0.18),
+            color: context.status.hero.withValues(alpha: 0.18),
             blurRadius: 18,
             offset: const Offset(0, 8),
           ),
@@ -200,12 +199,12 @@ class _TodayCard extends StatelessWidget {
           Positioned(
             right: -70,
             top: -80,
-            child: _Ring(size: 200, color: context.colors.onPrimary),
+            child: _Ring(size: 200, color: context.status.onHero),
           ),
           Positioned(
             right: 30,
             bottom: -90,
-            child: _Ring(size: 140, color: context.colors.onPrimary),
+            child: _Ring(size: 140, color: context.status.onHero),
           ),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -213,7 +212,7 @@ class _TodayCard extends StatelessWidget {
               Text(
                 t.earnedToday,
                 style: TextStyle(
-                  color: context.colors.onPrimary.withValues(alpha: 0.85),
+                  color: context.status.onHero.withValues(alpha: 0.85),
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -223,7 +222,7 @@ class _TodayCard extends StatelessWidget {
                 child: CountUpText(
                   Money.format(wallet.today.rewardMillimes, t.localeName),
                   style: context.text.displaySmall?.copyWith(
-                    color: context.colors.onPrimary,
+                    color: context.status.onHero,
                     fontWeight: FontWeight.w800,
                     letterSpacing: -0.5,
                   ),
@@ -233,7 +232,7 @@ class _TodayCard extends StatelessWidget {
               Text(
                 '${t.salesCount(wallet.today.sales)} · ${t.units(wallet.today.units)}',
                 style: TextStyle(
-                  color: context.colors.onPrimary.withValues(alpha: 0.9),
+                  color: context.status.onHero.withValues(alpha: 0.9),
                 ),
               ),
             ],

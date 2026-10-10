@@ -10,6 +10,7 @@ import '../../core/util/dates.dart';
 import '../../core/widgets/amend_sheet.dart';
 import '../../core/widgets/async_body.dart';
 import '../../core/widgets/components.dart';
+import '../../core/widgets/leave_guard.dart';
 import '../../core/widgets/feedback.dart';
 import '../../core/widgets/photo_set.dart';
 import '../../core/widgets/quantity_editor.dart';
@@ -266,83 +267,90 @@ class _RequestRestockScreenState extends ConsumerState<RequestRestockScreen> {
       for (final d in depots.value ?? const <Depot>[])
         if (d.active) (d.id, d.name, LucideIcons.warehouse),
     ];
-    return Scaffold(
-      appBar: AppBar(title: Text(t.requestRestock)),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          AsyncBody(
-            value: pdvs,
-            onRetry: () {
-              ref
-                ..invalidate(pdvsProvider(null))
-                ..invalidate(depotsProvider);
-            },
-            builder: (_) {
-              if (places.isEmpty) {
+    return ListenableBuilder(
+      listenable: _quantities,
+      builder: (context, child) =>
+          LeaveGuard(dirty: _quantities.edited, child: child!),
+      child: Scaffold(
+        appBar: AppBar(title: Text(t.requestRestock)),
+        body: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            AsyncBody(
+              value: pdvs,
+              onRetry: () {
+                ref
+                  ..invalidate(pdvsProvider(null))
+                  ..invalidate(depotsProvider);
+              },
+              builder: (_) {
+                if (places.isEmpty) {
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 16),
+                    child: Text(
+                      t.noActivePdv,
+                      style: context.text.bodyMedium?.copyWith(
+                        color: context.status.muted,
+                      ),
+                    ),
+                  );
+                }
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 16),
-                  child: Text(
-                    t.noActivePdv,
-                    style: context.text.bodyMedium?.copyWith(
-                      color: context.status.muted,
-                    ),
+                  child: DropdownButtonFormField<String>(
+                    initialValue: places.any((p) => p.$1 == _destId)
+                        ? _destId
+                        : null,
+                    decoration: InputDecoration(labelText: t.deliverTo),
+                    items: [
+                      for (final (id, name, icon) in places)
+                        DropdownMenuItem(
+                          value: id,
+                          child: Row(
+                            children: [
+                              Icon(icon, size: 18, color: context.status.muted),
+                              const SizedBox(width: 10),
+                              Flexible(
+                                child: Text(
+                                  name,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                    ],
+                    onChanged: (v) => setState(() => _destId = v),
                   ),
                 );
-              }
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 16),
-                child: DropdownButtonFormField<String>(
-                  initialValue: places.any((p) => p.$1 == _destId)
-                      ? _destId
-                      : null,
-                  decoration: InputDecoration(labelText: t.deliverTo),
-                  items: [
-                    for (final (id, name, icon) in places)
-                      DropdownMenuItem(
-                        value: id,
-                        child: Row(
-                          children: [
-                            Icon(icon, size: 18, color: context.status.muted),
-                            const SizedBox(width: 10),
-                            Flexible(
-                              child: Text(
-                                name,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                  ],
-                  onChanged: (v) => setState(() => _destId = v),
-                ),
-              );
-            },
-          ),
-          Text(t.productsNeeded, style: context.text.titleMedium),
-          const Gap(8),
-          QuantityEditor(controller: _quantities),
-          const Gap(16),
-          TextField(
-            controller: _note,
-            maxLength: 300,
-            minLines: 1,
-            maxLines: 3,
-            decoration: InputDecoration(labelText: '${t.note} (${t.optional})'),
-          ),
-          const Gap(8),
-          ListenableBuilder(
-            listenable: _quantities,
-            builder: (context, _) => AsyncButton(
-              label: t.sendRequest,
-              icon: LucideIcons.send,
-              onPressed: _quantities.total == 0 || _destId == null
-                  ? null
-                  : _send,
+              },
             ),
-          ),
-        ],
+            Text(t.productsNeeded, style: context.text.titleMedium),
+            const Gap(8),
+            QuantityEditor(controller: _quantities),
+            const Gap(16),
+            TextField(
+              controller: _note,
+              maxLength: 300,
+              minLines: 1,
+              maxLines: 3,
+              decoration: InputDecoration(
+                labelText: '${t.note} (${t.optional})',
+              ),
+            ),
+            const Gap(8),
+            ListenableBuilder(
+              listenable: _quantities,
+              builder: (context, _) => AsyncButton(
+                label: t.sendRequest,
+                icon: LucideIcons.send,
+                onPressed: _quantities.total == 0 || _destId == null
+                    ? null
+                    : _send,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1116,7 +1124,6 @@ class _ReceiveScreenState extends ConsumerState<ReceiveScreen> {
         name: l.name,
         family: l.family,
         quantity: l.shipped ?? 0,
-        hint: null,
       ),
   ]);
   final _note = TextEditingController();

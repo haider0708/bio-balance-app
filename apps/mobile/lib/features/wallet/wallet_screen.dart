@@ -110,11 +110,11 @@ class _BalanceCard extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: context.colors.primary,
+        color: context.status.hero,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: context.colors.primary.withValues(alpha: 0.18),
+            color: context.status.hero.withValues(alpha: 0.18),
             blurRadius: 16,
             offset: const Offset(0, 6),
           ),
@@ -126,7 +126,7 @@ class _BalanceCard extends ConsumerWidget {
           Text(
             t.availableBalance,
             style: TextStyle(
-              color: context.colors.onPrimary.withValues(alpha: 0.85),
+              color: context.status.onHero.withValues(alpha: 0.85),
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -136,7 +136,7 @@ class _BalanceCard extends ConsumerWidget {
             child: Text(
               Money.format(wallet.availableMillimes, locale),
               style: context.text.displaySmall?.copyWith(
-                color: context.colors.onPrimary,
+                color: context.status.onHero,
                 fontWeight: FontWeight.w800,
                 letterSpacing: -0.5,
               ),
@@ -147,7 +147,7 @@ class _BalanceCard extends ConsumerWidget {
             Text(
               t.pendingPayout(Money.format(wallet.pendingMillimes, locale)),
               style: TextStyle(
-                color: context.colors.onPrimary.withValues(alpha: 0.85),
+                color: context.status.onHero.withValues(alpha: 0.85),
               ),
             ),
           ],
@@ -157,8 +157,8 @@ class _BalanceCard extends ConsumerWidget {
                 ? () => _request(context, ref, wallet.availableMillimes)
                 : null,
             style: FilledButton.styleFrom(
-              backgroundColor: context.colors.onPrimary,
-              foregroundColor: context.colors.primary,
+              backgroundColor: context.status.onHero,
+              foregroundColor: context.status.hero,
               minimumSize: const Size.fromHeight(48),
             ),
             icon: const Icon(LucideIcons.banknote),

@@ -119,7 +119,6 @@ class RegionsScreen extends ConsumerWidget {
               AutoGrid(
                 minItemWidth: 320,
                 maxColumns: 3,
-                spacing: 12,
                 children: [for (final r in list) _RegionCard(region: r)],
               ),
             ],
@@ -198,10 +197,7 @@ class _RegionCard extends ConsumerWidget {
               color: context.status.muted,
             ),
           ),
-          if (region.deletable) ...[
-            const Gap(8),
-            StatusChip(t.regionEmpty, tone: Tone.muted),
-          ],
+          if (region.deletable) ...[const Gap(8), StatusChip(t.regionEmpty)],
         ],
       ),
     );

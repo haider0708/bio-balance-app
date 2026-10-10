@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -105,7 +107,7 @@ class _SalesHistoryScreenState extends ConsumerState<SalesHistoryScreen> {
       if ((previous?.length ?? 0) > next.length) {
         ref.invalidate(salesDaysProvider);
         ref.invalidate(salesOfDayProvider);
-        _byProduct?.refresh();
+        unawaited(_byProduct?.refresh());
       }
     });
     return Scaffold(
@@ -542,7 +544,7 @@ class SaleTile extends StatelessWidget {
             ),
           ),
           if (sale.voided)
-            StatusChip(t.saleVoided, tone: Tone.muted)
+            StatusChip(t.saleVoided)
           else if (sale.rewardMillimes > 0)
             Text(
               '+ ${Money.format(sale.rewardMillimes, t.localeName)}',

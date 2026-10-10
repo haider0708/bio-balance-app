@@ -7,7 +7,11 @@ class AppConfig {
     defaultValue: 'https://api.galylio.com',
   );
 
-  static const version = '2.7.0';
+  /// Where the privacy policy, the terms and the account-deletion page live.
+  static const publicSiteUrl = String.fromEnvironment(
+    'PUBLIC_SITE_URL',
+    defaultValue: 'https://api.galylio.com',
+  );
 
   /// Photos are resized on the phone before upload.
   static const photoMaxWidth = 1400.0;

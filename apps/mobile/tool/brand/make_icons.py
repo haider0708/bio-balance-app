@@ -1,0 +1,105 @@
+"""Renders every app icon from the vector leaf mark (assets/brand/leaf-mark.svg).
+
+    python tool/brand/make_icons.py      (needs pycairo; run from apps/mobile)
+
+App Store / iPhone / iPad icons, Android launcher, adaptive and themed (monochrome) icons, the
+Android notification icon, and the web icons. Sharp at every size because nothing is upscaled.
+"""
+import os
+import re
+
+import cairo
+
+SVG = open('assets/brand/leaf-mark.svg').read()
+VB_W, VB_H = map(float, re.search(r'viewBox="0 0 ([\d.]+) ([\d.]+)"', SVG).groups())
+PATHS = re.findall(r'<path fill="(#[0-9A-Fa-f]{6})" fill-rule="evenodd" d="([^"]+)"', SVG)
+LEAF, VEIN = PATHS[0][1], PATHS[1][1]
+WHITE = (1, 1, 1)
+
+
+def rgb(hex_):
+    return tuple(int(hex_[i:i + 2], 16) / 255 for i in (1, 3, 5))
+
+
+def path(ctx, d):
+    for cmd, args in re.findall(r'([MLCZ])([^MLCZ]*)', d):
+        n = [float(v) for v in re.findall(r'-?[\d.]+', args)]
+        if cmd == 'M':
+            ctx.move_to(*n)
+        elif cmd == 'L':
+            ctx.line_to(*n)
+        elif cmd == 'C':
+            ctx.curve_to(*n)
+        else:
+            ctx.close_path()
+
+
+def mark(ctx, size, width_share, mono=None):
+    """The leaf mark centred on a size×size canvas, `width_share` of its width."""
+    scale = size * width_share / VB_W
+    ctx.save()
+    ctx.translate((size - VB_W * scale) / 2, (size - VB_H * scale) / 2 + size * 0.01)
+    ctx.scale(scale, scale)
+    ctx.set_fill_rule(cairo.FILL_RULE_EVEN_ODD)
+    path(ctx, LEAF)
+    ctx.set_source_rgb(*(mono or rgb(PATHS[0][0])))
+    ctx.fill()
+    path(ctx, VEIN)
+    if mono:
+        # A single-colour icon keeps the veins as see-through lines.
+        ctx.set_operator(cairo.OPERATOR_CLEAR)
+        ctx.fill()
+        ctx.set_operator(cairo.OPERATOR_OVER)
+    else:
+        ctx.set_source_rgb(*rgb(PATHS[1][0]))
+        ctx.fill()
+    ctx.restore()
+
+
+def render(out, size, width_share, background=None, mono=None):
+    surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, size, size)
+    ctx = cairo.Context(surface)
+    ctx.set_antialias(cairo.ANTIALIAS_BEST)
+    if background:
+        ctx.set_source_rgb(*background)
+        ctx.paint()
+    mark(ctx, size, width_share, mono)
+    surface.write_to_png(out)
+    if background:
+        # Store icons must have no transparency at all.
+        from PIL import Image  # noqa: PLC0415
+        Image.open(out).convert('RGB').save(out)
+
+
+def main():
+    # iOS: a full square on white (the system rounds the corners).
+    ios = 'ios/Runner/Assets.xcassets/AppIcon.appiconset/'
+    for name, px in [
+        ('1024x1024@1x', 1024), ('20x20@1x', 20), ('20x20@2x', 40), ('20x20@3x', 60),
+        ('29x29@1x', 29), ('29x29@2x', 58), ('29x29@3x', 87), ('40x40@1x', 40),
+        ('40x40@2x', 80), ('40x40@3x', 120), ('60x60@2x', 120), ('60x60@3x', 180),
+        ('76x76@1x', 76), ('76x76@2x', 152), ('83.5x83.5@2x', 167),
+    ]:
+        render(f'{ios}Icon-App-{name}.png', px, 0.64, background=WHITE)
+
+    res = 'android/app/src/main/res/'
+    for density, k in [('mdpi', 1), ('hdpi', 1.5), ('xhdpi', 2), ('xxhdpi', 3), ('xxxhdpi', 4)]:
+        # Older launchers: a square icon.
+        render(f'{res}mipmap-{density}/ic_launcher.png', round(48 * k), 0.70, background=WHITE)
+        # Adaptive icon (108 dp, only the middle 66 dp is sure to show) and its themed version.
+        render(f'{res}mipmap-{density}/ic_launcher_foreground.png', round(108 * k), 0.50)
+        render(f'{res}mipmap-{density}/ic_launcher_monochrome.png', round(108 * k), 0.50, mono=WHITE)
+        # Status-bar icon: white on transparent, as Android requires.
+        os.makedirs(f'{res}drawable-{density}', exist_ok=True)
+        render(f'{res}drawable-{density}/ic_stat_biobalance.png', round(24 * k), 0.92, mono=WHITE)
+
+    render('web/favicon.png', 64, 0.80, background=WHITE)
+    render('web/icons/Icon-192.png', 192, 0.70, background=WHITE)
+    render('web/icons/Icon-512.png', 512, 0.70, background=WHITE)
+    render('web/icons/Icon-maskable-192.png', 192, 0.56, background=WHITE)
+    render('web/icons/Icon-maskable-512.png', 512, 0.56, background=WHITE)
+    print('icons written')
+
+
+if __name__ == '__main__':
+    main()

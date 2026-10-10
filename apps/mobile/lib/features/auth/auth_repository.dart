@@ -42,6 +42,11 @@ class AuthRepository {
     'next': next,
   });
 
+  /// Deletes the signed-in person's own account, for good.
+  Future<void> deleteAccount(String password) => _ref
+      .read(apiClientProvider)
+      .post('/v1/me/delete', {'password': password});
+
   Future<void> updateProfile({String? name, String? phone, String? locale}) =>
       _ref.read(apiClientProvider).patch('/v1/me', {
         'name': ?name,

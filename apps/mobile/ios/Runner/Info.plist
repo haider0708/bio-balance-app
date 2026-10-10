@@ -7,7 +7,19 @@
         <key>NSAllowsArbitraryLoadsForMedia</key><false/>
         <key>NSAllowsLocalNetworking</key><false/>
     </dict>
-    <key>FlutterDeepLinkingEnabled</key><false/>
+    <!-- biobalance://app/code?... opens the activation or reset screen from the code page. -->
+    <key>FlutterDeepLinkingEnabled</key><true/>
+    <key>CFBundleURLTypes</key>
+    <array>
+        <dict>
+            <key>CFBundleURLName</key><string>tn.biobalance.app</string>
+            <key>CFBundleURLSchemes</key><array><string>biobalance</string></array>
+        </dict>
+    </array>
+    <!-- Only standard HTTPS: no export-compliance questions at each upload. -->
+    <key>ITSAppUsesNonExemptEncryption</key><false/>
+    <key>CFBundleLocalizations</key>
+    <array><string>en</string><string>fr</string></array>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>CFBundleDevelopmentRegion</key>
@@ -62,8 +74,6 @@
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
-		<string>UIInterfaceOrientationLandscapeLeft</string>
-		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
 	<key>UISupportedInterfaceOrientations~ipad</key>
 	<array>
@@ -72,8 +82,10 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
-<key>NSCameraUsageDescription</key><string>BioBalance uses the camera to scan product barcodes and to photograph stock and delivery papers. / BioBalance utilise l’appareil photo pour scanner les codes-barres et photographier le stock et les bons de livraison.</string>
-<key>NSPhotoLibraryUsageDescription</key><string>Choose a photo of your stock or delivery paper. / Choisissez une photo de votre stock ou de votre bon de livraison.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>BioBalance uses the camera to scan product barcodes and to photograph stock and delivery papers as proof.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Choose a photo of your stock or of a delivery paper to attach it as proof.</string>
 
 </dict>
 </plist>

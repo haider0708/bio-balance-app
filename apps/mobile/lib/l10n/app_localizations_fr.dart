@@ -263,9 +263,6 @@ class AppLocalizationsFr extends AppLocalizations {
   String get barcodeUnknown => 'Ce code-barres n’est pas dans le catalogue.';
 
   @override
-  String get byDay => 'jour';
-
-  @override
   String get byFamily => 'Par famille';
 
   @override
@@ -274,19 +271,10 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String get byPdv => 'point de vente';
-
-  @override
   String get byProduct => 'Par produit';
 
   @override
-  String get byProductShort => 'produit';
-
-  @override
   String get byRegion => 'région';
-
-  @override
-  String get bySeller => 'vendeur';
 
   @override
   String get call => 'Appeler';
@@ -691,9 +679,6 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get groupName => 'Nom du groupe';
-
-  @override
-  String get groupedBy => 'Par';
 
   @override
   String get haveCode => 'J’ai déjà un code';
@@ -1512,9 +1497,6 @@ class AppLocalizationsFr extends AppLocalizations {
   String get salesTitle => 'Mes ventes';
 
   @override
-  String get salesTitleShort => 'Ventes';
-
-  @override
   String salesWaiting(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
@@ -2235,37 +2217,10 @@ class AppLocalizationsFr extends AppLocalizations {
   String get filterMessages => 'Annonces';
 
   @override
-  String get reportOverview => 'Aperçu';
-
-  @override
-  String get reportProducts => 'Produits';
-
-  @override
-  String get reportTeam => 'Équipe';
-
-  @override
-  String get reportStock => 'Stock';
-
-  @override
-  String get reportDetails => 'Détails';
-
-  @override
   String get whatTheNumbersSay => 'Ce que disent les chiffres';
 
   @override
-  String get dailySales => 'Unités vendues par jour';
-
-  @override
-  String get bestDay => 'Meilleur jour';
-
-  @override
-  String get slowestDay => 'Jour le plus calme';
-
-  @override
   String get byWeekday => 'Unités par jour de la semaine';
-
-  @override
-  String get salesByFamily => 'Part par famille';
 
   @override
   String vsPrevious(int count) {
@@ -2275,19 +2230,6 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String unitsPerSale(String value) {
     return '$value unités par vente';
-  }
-
-  @override
-  String get activeStoresLabel => 'Magasins actifs';
-
-  @override
-  String sellersCount(int count) {
-    return '$count vendeurs';
-  }
-
-  @override
-  String shareOfTotal(int share) {
-    return '$share % du total';
   }
 
   @override
@@ -2354,11 +2296,6 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String daysLeft(int count) {
     return '$count jours restants';
-  }
-
-  @override
-  String stockAtPace(int stock, String perDay) {
-    return '$stock en stock · $perDay par jour';
   }
 
   @override
@@ -2545,10 +2482,6 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get regionSaved => 'Région enregistrée';
-
-  @override
-  String get regionNotEmptyHint =>
-      'Déplacez d’abord ses magasins, groupes, grossistes et personnes avant de la supprimer.';
 
   @override
   String regionHolds(int pdvs, int groups, int grossistes) {
@@ -2970,4 +2903,58 @@ class AppLocalizationsFr extends AppLocalizations {
   String facetChip(String label, String name) {
     return '$label : $name';
   }
+
+  @override
+  String get privacyPolicy => 'Politique de confidentialité';
+
+  @override
+  String get termsOfUse => 'Conditions d\'utilisation';
+
+  @override
+  String get deleteAccount => 'Supprimer mon compte';
+
+  @override
+  String get deleteAccountTitle => 'Supprimer votre compte ?';
+
+  @override
+  String get deleteAccountBody =>
+      'Votre nom, votre email, votre téléphone, votre mot de passe et vos notifications sont effacés immédiatement et vous ne pourrez plus vous connecter. C\'est définitif.';
+
+  @override
+  String get deleteAccountKept =>
+      'Les ventes, comptages de stock et récompenses déjà payées restent dans les registres du réseau, sans votre nom.';
+
+  @override
+  String deleteAccountBalance(String amount) {
+    return 'Il vous reste $amount à recevoir. Demandez un paiement avant de supprimer votre compte : les demandes en attente sont annulées.';
+  }
+
+  @override
+  String deleteAccountWaitingSales(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count ventes attendent encore d\'être envoyées. Connectez-vous à internet et envoyez-les d\'abord.',
+      one: '1 vente attend encore d\'être envoyée. Connectez-vous à internet et envoyez-la d\'abord.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get deleteAccountConfirm => 'Supprimer définitivement mon compte';
+
+  @override
+  String get deleteAccountDone => 'Votre compte a été supprimé.';
+
+  @override
+  String get deleteAccountLearnMore =>
+      'Ce qui est supprimé et ce qui est gardé';
+
+  @override
+  String get leaveTitle => 'Quitter sans enregistrer ?';
+
+  @override
+  String get leaveMessage =>
+      'Ce que vous avez saisi sur cette page sera perdu.';
 }

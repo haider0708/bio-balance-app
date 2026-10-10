@@ -48,6 +48,14 @@ class ServerText {
   }
 
   static const _errors = <String, _Text>{
+    'ACCOUNT_DELETED': (
+      'This account was deleted by its owner and cannot be used again.',
+      'Ce compte a été supprimé par son titulaire et ne peut plus être utilisé.',
+    ),
+    'LAST_ADMIN': (
+      'You are the only admin. Create another admin account before deleting yours.',
+      'Vous êtes le seul administrateur. Créez un autre compte administrateur avant de supprimer le vôtre.',
+    ),
     'REGION_NOT_EMPTY': (
       'This region still holds stores, groups, grossistes or people. Move them elsewhere first.',
       'Cette région contient encore des magasins, groupes, grossistes ou personnes. Déplacez-les d’abord.',
@@ -316,6 +324,10 @@ class ServerText {
   };
 
   static const _notifications = <String, _Text>{
+    'account.deleted': (
+      '{name} deleted their account. Their sales and history stay, without their name.',
+      '{name} a supprimé son compte. Ses ventes et son historique restent, sans son nom.',
+    ),
     'pdv.moved.in': (
       '{name} joined your region, from {from}, with its team and stock.',
       '{name} rejoint votre région, depuis {from}, avec son équipe et son stock.',

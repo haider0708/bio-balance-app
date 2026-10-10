@@ -1,0 +1,3 @@
+/* Pourquoi l'application demande l'appareil photo et les photos. */
+"NSCameraUsageDescription" = "BioBalance utilise l’appareil photo pour scanner les codes-barres des produits et photographier le stock et les bons de livraison comme preuve.";
+"NSPhotoLibraryUsageDescription" = "Choisissez une photo de votre stock ou d’un bon de livraison pour la joindre comme preuve.";

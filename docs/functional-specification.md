@@ -118,3 +118,12 @@ The administrator can work from a browser at https://admin.galylio.com/ with the
 - Every page has its own address: reload, bookmarks and the browser's back and forward buttons work. A detail page opened without its context (for example a person's page after a reload) returns to its list; an unknown address shows a "page not found" screen.
 - Dashboards use the width: four figures per row and regions side by side on a large screen.
 - Alerts when the page is closed are not available (they need the phone).
+
+## Phones, tablets and the app stores (3.0)
+
+- **Account deletion.** Everyone can delete their own account in Settings → Delete my account, with their password. Their name, email, phone, password, notifications and training progress are erased at once and they can no longer sign in; sales, stock counts and rewards already paid stay in the records under "Compte supprimé". Waiting payout requests are cancelled (the sheet shows the balance still to be paid), and sales still waiting on the phone must be sent first. The last admin cannot delete their account. The admins are told.
+- **Privacy, terms, help and deletion pages** in French and English at `https://api.galylio.com/privacy`, `/terms`, `/support`, `/account-deletion`, linked from the sign-in screen and Settings.
+- **Tablets (iPad, Android tablets):** a side rail replaces the bottom bar, pages keep a readable width and forms a narrow column; every orientation. **Phones** stay upright.
+- **Nothing lost by mistake:** leaving a sale being built, a stock count or a restock order by the back button or gesture asks first.
+- **Code links** from the emails open the app on iPhone too.
+- The version in Settings is the one of the build.

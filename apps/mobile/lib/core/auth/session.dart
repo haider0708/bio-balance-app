@@ -17,7 +17,7 @@ const _meKey = 'session.me';
 const _localeKey = 'app.locale';
 
 final secureStorageProvider = Provider<FlutterSecureStorage>(
-  (_) => const FlutterSecureStorage(aOptions: AndroidOptions()),
+  (_) => const FlutterSecureStorage(),
 );
 
 final preferencesProvider = FutureProvider<SharedPreferences>(

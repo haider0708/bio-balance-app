@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:ui' show Color;
 
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
@@ -45,7 +46,9 @@ class BackgroundAlerts {
     try {
       await _notifications.initialize(
         const InitializationSettings(
-          android: AndroidInitializationSettings('@mipmap/ic_launcher'),
+          android: AndroidInitializationSettings(
+            '@drawable/ic_stat_biobalance',
+          ),
         ),
       );
       await _notifications
@@ -135,7 +138,7 @@ Future<void> checkForAlerts({
 Future<void> _show(int id, String title, String body) async {
   await _notifications.initialize(
     const InitializationSettings(
-      android: AndroidInitializationSettings('@mipmap/ic_launcher'),
+      android: AndroidInitializationSettings('@drawable/ic_stat_biobalance'),
     ),
   );
   await _notifications.show(
@@ -149,6 +152,8 @@ Future<void> _show(int id, String title, String body) async {
         channelDescription: 'Sales, deliveries and messages',
         importance: Importance.high,
         priority: Priority.high,
+        // The white leaf in the status bar, tinted with the brand colour in the shade.
+        color: Color(0xFF0C6B45),
       ),
     ),
   );

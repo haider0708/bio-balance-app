@@ -52,7 +52,7 @@ class SaleDetailScreen extends ConsumerWidget {
                           ),
                         ),
                         if (sale.voided)
-                          StatusChip(t.saleVoided, tone: Tone.muted)
+                          StatusChip(t.saleVoided)
                         else if (sale.version > 1)
                           StatusChip(t.corrected, tone: Tone.info),
                       ],

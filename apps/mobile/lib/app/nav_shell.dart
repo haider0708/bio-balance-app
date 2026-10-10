@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 
+import '../core/layout/layout.dart';
 import '../core/theme/app_theme.dart';
 
 class NavDestination {
@@ -12,21 +15,71 @@ class NavDestination {
   final int? badge;
 }
 
-/// Docked bottom bar: flush, hairline top, solid selected state. No float, no blur.
+/// The tabs of the app. On a phone a docked bottom bar (flush, hairline top, solid selected
+/// state); on a tablet a rail down the side, with the page at a readable width beside it.
 class NavShell extends StatelessWidget {
   const NavShell({required this.shell, required this.destinations, super.key});
 
   final StatefulNavigationShell shell;
   final List<NavDestination> destinations;
 
+  void _go(int i) {
+    unawaited(HapticFeedback.selectionClick());
+    shell.goBranch(i, initialLocation: i == shell.currentIndex);
+  }
+
   @override
   Widget build(BuildContext context) {
     final s = context.status;
+    if (MediaQuery.sizeOf(context).width >= wideBreakpoint) {
+      return Scaffold(
+        body: Row(
+          children: [
+            Material(
+              color: s.card,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  border: Border(right: BorderSide(color: s.hairline)),
+                ),
+                child: SafeArea(
+                  right: false,
+                  child: SizedBox(
+                    width: 96,
+                    child: Column(
+                      children: [
+                        const SizedBox(height: 12),
+                        for (var i = 0; i < destinations.length; i++)
+                          SizedBox(
+                            height: 76,
+                            child: _Tab(
+                              destination: destinations[i],
+                              selected: i == shell.currentIndex,
+                              onTap: () => _go(i),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            Expanded(
+              child: Align(
+                alignment: Alignment.topCenter,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: contentMaxWidth),
+                  child: shell,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
     return Scaffold(
       body: shell,
       bottomNavigationBar: Material(
         color: s.card,
-        elevation: 0,
         child: DecoratedBox(
           decoration: BoxDecoration(
             border: Border(top: BorderSide(color: s.hairline)),
@@ -43,13 +96,7 @@ class NavShell extends StatelessWidget {
                       child: _Tab(
                         destination: destinations[i],
                         selected: i == shell.currentIndex,
-                        onTap: () {
-                          HapticFeedback.selectionClick();
-                          shell.goBranch(
-                            i,
-                            initialLocation: i == shell.currentIndex,
-                          );
-                        },
+                        onTap: () => _go(i),
                       ),
                     ),
                 ],

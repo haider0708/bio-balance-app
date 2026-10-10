@@ -1,3 +1,4 @@
+import { refuseDeleted } from "../auth/deleted";
 import { Injectable } from "@nestjs/common";
 import type { Actor } from "../../core/actor";
 import { audit } from "../../core/audit";
@@ -191,6 +192,7 @@ export class RegionsService {
         "Only a responsable can be moved.",
         422,
       );
+      refuseDeleted(user!);
       const target = await tx.region.findUnique({ where: { id: regionId } });
       requireRule(target, "REGION_NOT_FOUND", "Unknown region.", 404);
       requireRule(

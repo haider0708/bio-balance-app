@@ -7,6 +7,7 @@ import '../../core/auth/session.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/async_body.dart';
 import '../../core/widgets/components.dart';
+import '../../core/widgets/leave_guard.dart';
 import '../../core/widgets/feedback.dart';
 import '../../core/widgets/quantity_editor.dart' show QtyStepper;
 import '../../core/widgets/states.dart';
@@ -98,112 +99,118 @@ class _NewSaleScreenState extends ConsumerState<NewSaleScreen> {
       for (final i in levels?.value?.items ?? const <StockItem>[])
         i.productId: i.quantity,
     };
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(t.newSale),
-        actions: [
-          IconButton(
-            tooltip: t.scanTitle,
-            onPressed: products.hasValue ? () => _scan(products.value!) : null,
-            icon: const Icon(LucideIcons.scanBarcode),
-          ),
-        ],
-      ),
-      body: AsyncBody(
-        // Wait for the stock too, so nothing looks sellable before we know what the store holds.
-        value: levels != null && levels.isLoading && !levels.hasValue
-            ? const AsyncLoading<List<Product>>()
-            : products,
-        onRetry: () => ref.invalidate(productsProvider),
-        builder: (everything) {
-          // Only what the store holds can be sold, so only that is shown.
-          final all = everything.where((p) => _most(p.id) > 0).toList();
-          final families = {for (final p in all) p.family}.toList()..sort();
-          final shown = all
-              .where((p) => _family == null || p.family == _family)
-              .where(
-                (p) =>
-                    _query.isEmpty ||
-                    p.name.toLowerCase().contains(_query) ||
-                    (p.barcode ?? '').contains(_query),
-              )
-              .toList();
-          return Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-                child: TextField(
-                  decoration: InputDecoration(
-                    hintText: t.searchProducts,
-                    prefixIcon: const Icon(LucideIcons.search, size: 20),
-                  ),
-                  onChanged: (v) =>
-                      setState(() => _query = v.trim().toLowerCase()),
-                ),
-              ),
-              SizedBox(
-                height: 44,
-                child: ListView(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  children: [
-                    Padding(
-                      padding: const EdgeInsetsDirectional.only(end: 8),
-                      child: ChoiceChip(
-                        label: Text(t.all),
-                        selected: _family == null,
-                        onSelected: (_) => setState(() => _family = null),
-                      ),
+    return LeaveGuard(
+      dirty: _cart.isNotEmpty,
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(t.newSale),
+          actions: [
+            IconButton(
+              tooltip: t.scanTitle,
+              onPressed: products.hasValue
+                  ? () => _scan(products.value!)
+                  : null,
+              icon: const Icon(LucideIcons.scanBarcode),
+            ),
+          ],
+        ),
+        body: AsyncBody(
+          // Wait for the stock too, so nothing looks sellable before we know what the store holds.
+          value: levels != null && levels.isLoading && !levels.hasValue
+              ? const AsyncLoading<List<Product>>()
+              : products,
+          onRetry: () => ref.invalidate(productsProvider),
+          builder: (everything) {
+            // Only what the store holds can be sold, so only that is shown.
+            final all = everything.where((p) => _most(p.id) > 0).toList();
+            final families = {for (final p in all) p.family}.toList()..sort();
+            final shown = all
+                .where((p) => _family == null || p.family == _family)
+                .where(
+                  (p) =>
+                      _query.isEmpty ||
+                      p.name.toLowerCase().contains(_query) ||
+                      (p.barcode ?? '').contains(_query),
+                )
+                .toList();
+            return Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+                  child: TextField(
+                    decoration: InputDecoration(
+                      hintText: t.searchProducts,
+                      prefixIcon: const Icon(LucideIcons.search, size: 20),
                     ),
-                    for (final f in families)
+                    onChanged: (v) =>
+                        setState(() => _query = v.trim().toLowerCase()),
+                  ),
+                ),
+                SizedBox(
+                  height: 44,
+                  child: ListView(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    children: [
                       Padding(
                         padding: const EdgeInsetsDirectional.only(end: 8),
                         child: ChoiceChip(
-                          label: Text(f),
-                          selected: _family == f,
-                          onSelected: (_) =>
-                              setState(() => _family = _family == f ? null : f),
+                          label: Text(t.all),
+                          selected: _family == null,
+                          onSelected: (_) => setState(() => _family = null),
                         ),
                       ),
-                  ],
-                ),
-              ),
-              Expanded(
-                child: shown.isEmpty
-                    ? EmptyState(
-                        icon: LucideIcons.packageSearch,
-                        title: all.isEmpty
-                            ? t.nothingInStock
-                            : t.noProductsFound,
-                        message: all.isEmpty ? t.nothingInStockHint : null,
-                      )
-                    : ListView.separated(
-                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-                        itemCount: shown.length,
-                        separatorBuilder: (_, _) => const Gap(8),
-                        itemBuilder: (context, i) => _ProductTile(
-                          product: shown[i],
-                          stock: _most(shown[i].id),
-                          quantity: _cart[shown[i].id] ?? 0,
-                          onChanged: (q) => _set(shown[i], q),
+                      for (final f in families)
+                        Padding(
+                          padding: const EdgeInsetsDirectional.only(end: 8),
+                          child: ChoiceChip(
+                            label: Text(f),
+                            selected: _family == f,
+                            onSelected: (_) => setState(
+                              () => _family = _family == f ? null : f,
+                            ),
+                          ),
                         ),
-                      ),
-              ),
-              if (_cart.isNotEmpty)
-                SafeArea(
-                  top: false,
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-                    child: FilledButton.icon(
-                      onPressed: () => _review(all),
-                      icon: const Icon(LucideIcons.shoppingBasket),
-                      label: Text(t.reviewSale(_units)),
-                    ),
+                    ],
                   ),
                 ),
-            ],
-          );
-        },
+                Expanded(
+                  child: shown.isEmpty
+                      ? EmptyState(
+                          icon: LucideIcons.packageSearch,
+                          title: all.isEmpty
+                              ? t.nothingInStock
+                              : t.noProductsFound,
+                          message: all.isEmpty ? t.nothingInStockHint : null,
+                        )
+                      : ListView.separated(
+                          padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+                          itemCount: shown.length,
+                          separatorBuilder: (_, _) => const Gap(8),
+                          itemBuilder: (context, i) => _ProductTile(
+                            product: shown[i],
+                            stock: _most(shown[i].id),
+                            quantity: _cart[shown[i].id] ?? 0,
+                            onChanged: (q) => _set(shown[i], q),
+                          ),
+                        ),
+                ),
+                if (_cart.isNotEmpty)
+                  SafeArea(
+                    top: false,
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                      child: FilledButton.icon(
+                        onPressed: () => _review(all),
+                        icon: const Icon(LucideIcons.shoppingBasket),
+                        label: Text(t.reviewSale(_units)),
+                      ),
+                    ),
+                  ),
+              ],
+            );
+          },
+        ),
       ),
     );
   }
@@ -236,7 +243,6 @@ class _ProductTile extends StatelessWidget {
             product.imageId,
             width: 56,
             height: 56,
-            radius: 12,
             placeholderIcon: LucideIcons.package,
           ),
           const SizedBox(width: 12),

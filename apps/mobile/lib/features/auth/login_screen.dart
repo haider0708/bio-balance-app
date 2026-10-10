@@ -10,6 +10,7 @@ import '../../core/theme/app_theme.dart';
 import '../../core/widgets/components.dart';
 import '../../core/widgets/feedback.dart';
 import '../../l10n/app_localizations.dart';
+import '../settings/legal.dart';
 import 'auth_widgets.dart';
 
 /// Sign-in on the phone. The web console wraps the same [SignInForm] in its own layout.
@@ -37,6 +38,8 @@ class LoginScreen extends StatelessWidget {
           onPressed: () => context.push('/activate'),
           child: Text(t.activateAccount),
         ),
+        const Gap(16),
+        const LegalLinks(),
       ],
     );
   }

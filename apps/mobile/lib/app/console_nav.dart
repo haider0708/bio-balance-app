@@ -4,20 +4,11 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../core/auth/me.dart';
 import '../l10n/app_localizations.dart';
 
+export '../core/layout/layout.dart'
+    show contentMaxWidth, formMaxWidth, isFormPath;
+
 /// Width under which the console uses a drawer instead of a persistent sidebar.
 const consoleWideBreakpoint = 900.0;
-
-/// The widest the page content grows on a large monitor.
-const consoleContentMaxWidth = 1120.0;
-
-/// Forms and settings read better narrow: inputs stretched over a monitor are hard to follow.
-const consoleFormMaxWidth = 680.0;
-
-/// Pages that are a form (create, edit, count, ship, receive...), not a list or a dashboard.
-bool isFormPath(String path) =>
-    path == '/settings' ||
-    RegExp(r'/(new|edit|declare|adjust|ship|receive|restock|correct)$')
-        .hasMatch(path);
 
 const consoleSidebarExpandedWidth = 248.0;
 const consoleSidebarCollapsedWidth = 72.0;

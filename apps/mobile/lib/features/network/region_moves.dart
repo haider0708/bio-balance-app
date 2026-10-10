@@ -118,7 +118,7 @@ class _MoveSheetState extends ConsumerState<_MoveSheet> {
               initialValue: _groupId,
               decoration: InputDecoration(labelText: t.moveGroupInNewRegion),
               items: [
-                DropdownMenuItem(value: null, child: Text(t.moveNoGroup)),
+                DropdownMenuItem(child: Text(t.moveNoGroup)),
                 for (final g in groups)
                   DropdownMenuItem(value: g.id, child: Text(g.name)),
               ],

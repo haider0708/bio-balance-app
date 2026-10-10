@@ -146,7 +146,6 @@ class _CatalogScreenState extends ConsumerState<CatalogScreen> {
                                     p.imageId,
                                     width: 56,
                                     height: 56,
-                                    radius: 12,
                                     placeholderIcon: LucideIcons.package,
                                   ),
                                   const SizedBox(width: 12),
@@ -175,8 +174,7 @@ class _CatalogScreenState extends ConsumerState<CatalogScreen> {
                                       ],
                                     ),
                                   ),
-                                  if (!p.active)
-                                    StatusChip(t.inactive, tone: Tone.muted),
+                                  if (!p.active) StatusChip(t.inactive),
                                 ],
                               ),
                             );

@@ -322,11 +322,7 @@ class PdvTile extends StatelessWidget {
             spacing: 6,
             runSpacing: 6,
             children: [
-              StatusChip(
-                t.teamCount(pdv.memberCount),
-                tone: Tone.muted,
-                icon: LucideIcons.users,
-              ),
+              StatusChip(t.teamCount(pdv.memberCount), icon: LucideIcons.users),
               StatusChip(
                 switch (pdv.initialStock) {
                   'APPROVED' => t.stockApproved,

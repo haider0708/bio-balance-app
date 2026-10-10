@@ -122,8 +122,8 @@ class _ConsoleShellState extends ConsumerState<ConsoleShell> {
                   child: ConstrainedBox(
                     constraints: BoxConstraints(
                       maxWidth: isFormPath(Uri.parse(location).path)
-                          ? consoleFormMaxWidth
-                          : consoleContentMaxWidth,
+                          ? formMaxWidth
+                          : contentMaxWidth,
                     ),
                     child: widget.child,
                   ),

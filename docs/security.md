@@ -10,3 +10,5 @@
 - **Transport and edge:** HTTPS only (Cloudflare Full-strict, origin restricted to Cloudflare), HSTS, request rate limits, small JSON bodies, `no-store` on API responses, containers read-only with dropped capabilities.
 - **CSV exports** neutralise cells that start with `=`, `+`, `-` or `@`.
 - **Secrets** (`backend.env`, signing keys, the admin setup file) never enter the repository.
+- **Account deletion** erases personal data at once, in one transaction (identity, password, MFA secret, sessions, codes, notifications), keeps the business records without a name, and can never be undone or reactivated. It asks for the password and is rate-limited.
+- **On the phone:** the session token is in the system keychain (iOS) / encrypted storage (Android); business data and the offline outbox are excluded from cloud backups; screenshots and the recents preview are blocked in Android release builds and covered on iOS when the app goes to the background. No analytics or tracking SDK is included.
