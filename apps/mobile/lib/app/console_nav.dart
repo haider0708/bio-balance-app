@@ -134,7 +134,7 @@ List<ConsoleNavEntry> _adminEntries(AppLocalizations t) => [
     icon: LucideIcons.network,
     label: t.tabNetwork,
     path: '/network',
-    matchPrefixes: ['/pdvs', '/groups', '/people', '/regions'],
+    matchPrefixes: ['/pdvs', '/groups', '/people'],
   ),
   ConsoleNavEntry.item(
     icon: LucideIcons.truck,

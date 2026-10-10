@@ -31,7 +31,7 @@ class _BioBalanceAppState extends ConsumerState<BioBalanceApp> {
       builder: (context, snapshot) => MaterialApp.router(
         onGenerateTitle: (context) {
           final t = AppLocalizations.of(context);
-          return kIsWeb ? '${t.appName} · ${t.adminConsoleTitle}' : t.appName;
+          return kIsWeb ? t.adminConsoleTitle : t.appName;
         },
         debugShowCheckedModeBanner: false,
         theme: AppTheme.light(),
