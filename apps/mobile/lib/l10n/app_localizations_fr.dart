@@ -2636,4 +2636,7 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get chooseGrossisteOtherRegions =>
       'Les grossistes des autres régions peuvent aussi le fournir.';
+
+  @override
+  String get regionEmpty => 'Vide';
 }

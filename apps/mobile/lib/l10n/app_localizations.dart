@@ -4561,6 +4561,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Grossistes of other regions can supply it too.'**
   String get chooseGrossisteOtherRegions;
+
+  /// No description provided for @regionEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Empty'**
+  String get regionEmpty;
 }
 
 class _AppLocalizationsDelegate

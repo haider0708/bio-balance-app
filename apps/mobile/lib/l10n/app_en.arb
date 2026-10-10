@@ -1443,5 +1443,6 @@
       }
     }
   },
-  "chooseGrossisteOtherRegions": "Grossistes of other regions can supply it too."
+  "chooseGrossisteOtherRegions": "Grossistes of other regions can supply it too.",
+  "regionEmpty": "Empty"
 }

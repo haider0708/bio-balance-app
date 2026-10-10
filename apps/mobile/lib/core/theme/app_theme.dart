@@ -406,6 +406,8 @@ class AppTheme {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       ),
       bottomSheetTheme: BottomSheetThemeData(
+        // On a big screen a sheet stays a readable column instead of spanning the window.
+        constraints: const BoxConstraints(maxWidth: 640),
         backgroundColor: status.card,
         surfaceTintColor: Colors.transparent,
         showDragHandle: true,

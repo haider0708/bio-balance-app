@@ -1443,5 +1443,6 @@
       }
     }
   },
-  "chooseGrossisteOtherRegions": "Les grossistes des autres régions peuvent aussi le fournir."
+  "chooseGrossisteOtherRegions": "Les grossistes des autres régions peuvent aussi le fournir.",
+  "regionEmpty": "Vide"
 }

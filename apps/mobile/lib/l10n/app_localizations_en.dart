@@ -2626,4 +2626,7 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get chooseGrossisteOtherRegions =>
       'Grossistes of other regions can supply it too.';
+
+  @override
+  String get regionEmpty => 'Empty';
 }

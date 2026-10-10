@@ -200,7 +200,7 @@ class _RegionCard extends ConsumerWidget {
           ),
           if (region.deletable) ...[
             const Gap(8),
-            StatusChip(t.regionNoneYet, tone: Tone.muted),
+            StatusChip(t.regionEmpty, tone: Tone.muted),
           ],
         ],
       ),
