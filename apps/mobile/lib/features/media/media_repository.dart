@@ -64,10 +64,16 @@ class MediaInfo {
   bool get isDocument => mime == 'application/pdf';
 }
 
-/// The kind of each proof file, kept while the app runs (it never changes).
-final mediaInfoProvider = FutureProvider.family<MediaInfo, String>(
-  (ref, id) => ref.watch(mediaRepositoryProvider).info(id),
-);
+/// The kind of each proof file. Kept while the app runs once known (it never changes); a failed
+/// lookup (no connection) is not kept, so the next screen asks again.
+final mediaInfoProvider = FutureProvider.autoDispose.family<MediaInfo, String>((
+  ref,
+  id,
+) async {
+  final info = await ref.watch(mediaRepositoryProvider).info(id);
+  ref.keepAlive();
+  return info;
+});
 
 final mediaRepositoryProvider = Provider<MediaRepository>(MediaRepository.new);
 

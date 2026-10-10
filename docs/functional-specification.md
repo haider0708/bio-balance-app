@@ -132,3 +132,9 @@ The administrator can work from a browser at https://admin.galylio.com/ with the
 
 - **Opening animation:** when the app starts, the leaf drops into water (a dip, two ripples, a light across the leaves), bubbles rise, and "BioBalance — Back to nature" appears letter by letter. It starts exactly where the phone's own launch screen leaves off, follows light and dark mode, lasts under two seconds (about one on the web) and becomes a still image when the phone asks for reduced motion. A code link that opened the app while it was closed is still followed afterwards.
 - **Documents as proof:** wherever photos prove goods (stock counts, grossiste photos, restock orders, shipments and deliveries), a PDF can be added too — a delivery note or an invoice, up to 12 MB, with the photos (five in all). Documents show as a "PDF" card with their name and open in the phone's viewer (a new tab on the web); photos still open full screen.
+
+## Platform notes (3.1.1)
+
+- **Alerts while the app is closed** work on Android (the phone checks every 15 minutes). On iPhone, notifications appear when the app is opened; real-time alerts on a closed iPhone need Apple push notifications (an APNs key from the Apple account), a later step.
+- **iPhone and iPad** use the system page slide with the swipe from the left edge to go back; while a sale, a count or an order is being filled in, the back button asks before leaving (the swipe is off until then).
+- **Photos and documents** opened once are kept on the phone (up to 200 MB, files over 15 MB are not kept), so they open at once and spare mobile data; signing out removes them.

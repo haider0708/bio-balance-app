@@ -11,6 +11,7 @@ class MediaCache {
   const MediaCache._();
 
   static const _limit = 200 * 1024 * 1024;
+  static const _largest = 15 * 1024 * 1024;
   static Directory? _dir;
   static int _writesSincePrune = 0;
 
@@ -32,8 +33,11 @@ class MediaCache {
       final file = File('${(await _folder()).path}/$id');
       if (!file.existsSync()) return null;
       final bytes = await file.readAsBytes();
-      // Touch it: recently used files are the last to be pruned.
-      await file.setLastModified(DateTime.now());
+      // Touch it (at most once a day): recently used files are the last to be pruned.
+      final now = DateTime.now();
+      if (now.difference(file.lastModifiedSync()).inHours >= 24) {
+        await file.setLastModified(now);
+      }
       return bytes;
     } catch (_) {
       // No folder (a test, a locked phone): the file comes from the server instead.
@@ -42,7 +46,8 @@ class MediaCache {
   }
 
   static Future<void> write(String id, Uint8List bytes) async {
-    if (!_safe(id)) return;
+    // Photos and proof documents are kept; a large training video or PDF is not worth the room.
+    if (!_safe(id) || bytes.length > _largest) return;
     try {
       final dir = await _folder();
       final temp = File('${dir.path}/$id.part');

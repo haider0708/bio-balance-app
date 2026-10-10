@@ -262,7 +262,8 @@ export class AuthService {
 
   /**
    * A person deletes their own account. What identifies them is erased at once — name, email,
-   * phone, password, two-step secret, sessions, codes, notifications and training progress — and
+   * phone, password, two-step secret, sessions, codes, notifications and training progress (the
+   * sign-in attempt counters hold only a hash of the email and expire on their own) — and
    * the account can never sign in again. The business records they took part in (sales, stock
    * counts, deliveries, rewards paid) are kept for the accounts, under "Compte supprimé".
    * Payout requests still waiting are cancelled. The last admin cannot leave the network
@@ -281,6 +282,8 @@ export class AuthService {
       401,
     );
     await this.db.run("SYSTEM", async (tx) => {
+      // The same lock as payouts and sale corrections: nothing changes the wallet meanwhile.
+      await this.db.lock(tx, "User", user.id);
       if (user.role === "ADMIN") {
         const others = await tx.user.count({
           where: { role: "ADMIN", status: "ACTIVE", id: { not: user.id } },
@@ -305,9 +308,6 @@ export class AuthService {
       await tx.accessToken.deleteMany({ where: { userId: user.id } });
       await tx.notification.deleteMany({ where: { userId: user.id } });
       await tx.lessonProgress.deleteMany({ where: { userId: user.id } });
-      await tx.loginAttempt.deleteMany({
-        where: { key: { contains: user.email } },
-      });
       await tx.user.update({
         where: { id: user.id },
         data: {

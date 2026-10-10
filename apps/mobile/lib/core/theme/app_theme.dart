@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/cupertino.dart' show CupertinoPageTransitionsBuilder;
 import 'package:flutter/material.dart';
 
 import '../layout/layout.dart';
@@ -168,6 +169,28 @@ class _SoftPageTransitions extends PageTransitionsBuilder {
   }
 }
 
+/// The system transition of iOS (with the edge swipe back), around the same page frame.
+class _ApplePageTransitions extends PageTransitionsBuilder {
+  const _ApplePageTransitions();
+
+  static const _cupertino = CupertinoPageTransitionsBuilder();
+
+  @override
+  Widget buildTransitions<T>(
+    PageRoute<T> route,
+    BuildContext context,
+    Animation<double> animation,
+    Animation<double> secondaryAnimation,
+    Widget child,
+  ) => _cupertino.buildTransitions(
+    route,
+    context,
+    animation,
+    secondaryAnimation,
+    PageFrame(path: route.settings.name, child: child),
+  );
+}
+
 /// On a tablet a page keeps a readable width: forms a narrow column, other pages at most
 /// [contentMaxWidth], centred. Phones are untouched, and the web console sizes its own pages.
 class PageFrame extends StatelessWidget {
@@ -271,7 +294,10 @@ class AppTheme {
       pageTransitionsTheme: PageTransitionsTheme(
         builders: {
           for (final p in TargetPlatform.values)
-            p: const _SoftPageTransitions(),
+            // iPhone and iPad keep their own slide, and the swipe from the edge to go back.
+            p: p == TargetPlatform.iOS || p == TargetPlatform.macOS
+                ? const _ApplePageTransitions()
+                : const _SoftPageTransitions(),
         },
       ),
       textTheme: t.copyWith(

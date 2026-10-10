@@ -128,11 +128,17 @@ Future<void> openProof(
     });
     return;
   }
-  // The gallery swipes through the photos only.
-  final photos = <String>[];
-  for (final other in ids) {
-    final kind = ref.read(mediaInfoProvider(other)).value;
-    if (!(kind?.isDocument ?? false)) photos.add(other);
-  }
+  // The gallery swipes through the photos only: what each file is, known for all of them first.
+  final kinds = await Future.wait([
+    for (final other in ids)
+      ref
+          .read(mediaInfoProvider(other).future)
+          .then((i) => i.isDocument, onError: (Object _) => false),
+  ]);
+  if (!context.mounted) return;
+  final photos = [
+    for (var i = 0; i < ids.length; i++)
+      if (!kinds[i]) ids[i],
+  ];
   await context.push('/photos', extra: (photos, photos.indexOf(id)));
 }

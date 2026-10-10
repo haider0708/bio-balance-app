@@ -33,10 +33,9 @@ class SplashScreen extends ConsumerStatefulWidget {
 class _SplashScreenState extends ConsumerState<SplashScreen>
     with TickerProviderStateMixin {
   late final AnimationController _intro;
-  late final AnimationController _bubbles = AnimationController(
-    vsync: this,
-    duration: const Duration(seconds: 12),
-  );
+
+  /// Only made when the phone allows motion.
+  AnimationController? _bubbles;
   late final List<_Bubble> _field = _Bubble.field(28);
   bool _started = false;
 
@@ -63,7 +62,10 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     if (MediaQuery.of(context).disableAnimations) {
       _intro.duration = const Duration(milliseconds: 400);
     } else {
-      _bubbles.repeat();
+      _bubbles = AnimationController(
+        vsync: this,
+        duration: const Duration(seconds: 12),
+      )..repeat();
     }
     _intro.forward();
   }
@@ -71,7 +73,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   @override
   void dispose() {
     _intro.dispose();
-    _bubbles.dispose();
+    _bubbles?.dispose();
     super.dispose();
   }
 
@@ -86,12 +88,12 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
       body: Stack(
         fit: StackFit.expand,
         children: [
-          if (!still)
+          if (!still && _bubbles != null)
             RepaintBoundary(
               child: CustomPaint(
                 painter: _BubblesPainter(
                   bubbles: _field,
-                  time: _bubbles,
+                  time: _bubbles!,
                   appear: _intro,
                   color: water,
                 ),
