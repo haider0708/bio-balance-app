@@ -45,9 +45,6 @@ const pct = (now: number, before: number) =>
 const length = (p: Period) =>
   Math.round((Date.parse(p.to) - Date.parse(p.from)) / 86400_000) + 1;
 
-/** The hour of a sale on the Tunis clock (sales are stored in UTC). */
-const HOUR = Prisma.sql`EXTRACT(HOUR FROM (s."occurredAt" AT TIME ZONE 'UTC') AT TIME ZONE 'Africa/Tunis')::int`;
-
 /** One sale line joined to its sale and product: every measure is a sum over these. */
 const LINES = Prisma.sql`"Sale" s JOIN "SaleLine" l ON l."saleId" = s.id JOIN "Product" p ON p.id = l."productId"`;
 
@@ -75,18 +72,19 @@ export class AnalyticsService {
     return this.db.run(actor, async (tx) => {
       const subject = await this.subject(tx, f);
       const dims = this.dimensions(actor, f);
+      await this.prepare(tx, f, previous);
       const [now, before, series, hours, weekdays, quality, silent, ...rest] =
         await Promise.all([
-          this.totals(tx, f, f),
-          this.totals(tx, f, previous),
+          this.totals(tx, true),
+          this.totals(tx, false),
           granularity === "hour"
             ? Promise.resolve(null)
             : this.series(tx, f, granularity),
-          this.hours(tx, f),
-          this.weekdays(tx, f),
+          this.hours(tx),
+          this.weekdays(tx),
           this.quality(tx, f),
           this.silentStores(tx, f),
-          ...dims.map((d) => this.breakdown(tx, d, f, previous)),
+          ...dims.map((d) => this.breakdown(tx, d, f.sort)),
         ]);
       const breakdowns = Object.fromEntries(
         dims.map((d, i) => [d, rest[i]]),
@@ -193,13 +191,13 @@ export class AnalyticsService {
         FROM "Pdv" pd JOIN "Region" r ON r.id = pd."regionId" LEFT JOIN "Group" g ON g.id = pd."groupId"
         LEFT JOIN (
           SELECT s."pdvId",
-            SUM(s.units) FILTER (WHERE s.day >= ${dayToDate(f.from)}) AS units,
-            COUNT(*) FILTER (WHERE s.day >= ${dayToDate(f.from)}) AS sales,
-            SUM(s."rewardMillimes") FILTER (WHERE s.day >= ${dayToDate(f.from)}) AS reward,
-            SUM(s.units) FILTER (WHERE s.day < ${dayToDate(f.from)}) AS before,
-            COUNT(DISTINCT s."sellerId") FILTER (WHERE s.day >= ${dayToDate(f.from)}) AS sellers
+            SUM(s.units) FILTER (WHERE s.day >= ${dayToDate(f.from)}::date) AS units,
+            COUNT(*) FILTER (WHERE s.day >= ${dayToDate(f.from)}::date) AS sales,
+            SUM(s."rewardMillimes") FILTER (WHERE s.day >= ${dayToDate(f.from)}::date) AS reward,
+            SUM(s.units) FILTER (WHERE s.day < ${dayToDate(f.from)}::date) AS before,
+            COUNT(DISTINCT s."sellerId") FILTER (WHERE s.day >= ${dayToDate(f.from)}::date) AS sellers
           FROM "Sale" s
-          WHERE s.status = 'ACTIVE' AND s.day BETWEEN ${dayToDate(previous.from)} AND ${dayToDate(f.to)}
+          WHERE s.status = 'ACTIVE' AND s.day BETWEEN ${dayToDate(previous.from)}::date AND ${dayToDate(f.to)}::date
             ${f.regionId ? Prisma.sql`AND s."regionId" = ${f.regionId}::uuid` : Prisma.empty}
           GROUP BY s."pdvId"
         ) x ON x."pdvId" = pd.id
@@ -258,7 +256,7 @@ export class AnalyticsService {
 
   /** The conditions of a lens over a period, on sales `s`, lines `l` and products `p`. */
   private where(f: Lens, p: Period) {
-    return Prisma.sql`s.status = 'ACTIVE' AND s.day BETWEEN ${dayToDate(p.from)} AND ${dayToDate(p.to)}
+    return Prisma.sql`s.status = 'ACTIVE' AND s.day BETWEEN ${dayToDate(p.from)}::date AND ${dayToDate(p.to)}::date
       ${f.regionId ? Prisma.sql`AND s."regionId" = ${f.regionId}::uuid` : Prisma.empty}
       ${f.pdvId ? Prisma.sql`AND s."pdvId" = ${f.pdvId}::uuid` : Prisma.empty}
       ${f.sellerId ? Prisma.sql`AND s."sellerId" = ${f.sellerId}::uuid` : Prisma.empty}
@@ -368,14 +366,41 @@ export class AnalyticsService {
 
   // ───────────────────────── Measures ─────────────────────────
 
-  private async totals(tx: Tx, f: Lens, p: Period) {
+  /**
+   * Reads the lens's sale lines once — this period and the one before — into two working tables
+   * of this transaction (dropped when it ends). Every measure below is computed from them instead
+   * of going back to the sales, which keeps a year of a large network fast. Row-level security
+   * applies while they are filled, so they never hold more than the caller may see.
+   */
+  private async prepare(tx: Tx, f: Lens, previous: Period) {
+    // Grouping a year of sales in memory instead of on disk; only for this transaction.
+    await tx.$executeRaw`SET LOCAL work_mem = '64MB'`;
+    await tx.$executeRaw`CREATE TEMP TABLE lens_line (sale uuid, region uuid, pdv uuid,
+      seller uuid, day date, at timestamp(3), now boolean, product uuid, family text,
+      units int, reward bigint) ON COMMIT DROP`;
+    await tx.$executeRaw`INSERT INTO lens_line
+      SELECT s.id, s."regionId", s."pdvId", s."sellerId", s.day, s."occurredAt",
+        s.day >= ${dayToDate(f.from)}::date, l."productId", p.family, l.quantity,
+        l.quantity * l."unitRewardMillimes"
+      FROM ${LINES} WHERE ${this.where(f, { from: previous.from, to: f.to })}`;
+    await tx.$executeRaw`CREATE TEMP TABLE lens_sale ON COMMIT DROP AS
+      SELECT sale, region, pdv, seller, day, at, now,
+        -- The hour on the Tunis clock, once per sale rather than per line.
+        EXTRACT(HOUR FROM (at AT TIME ZONE 'UTC') AT TIME ZONE 'Africa/Tunis')::int AS hour,
+        SUM(units)::int AS units, SUM(reward)::bigint AS reward
+      FROM lens_line GROUP BY sale, region, pdv, seller, day, at, now`;
+    await tx.$executeRaw`ANALYZE lens_line, lens_sale`;
+  }
+
+  /** Totals of the period (`now`) or of the one before. */
+  private async totals(tx: Tx, now: boolean) {
     const [row] = await tx.$queryRaw<
       (Measures & { stores: number; sellers: number; products: number })[]
-    >`SELECT COUNT(DISTINCT s.id)::int AS sales, COALESCE(SUM(l.quantity), 0)::int AS units,
-        COALESCE(SUM(l.quantity * l."unitRewardMillimes"), 0)::bigint AS "rewardMillimes",
-        COUNT(DISTINCT s."pdvId")::int AS stores, COUNT(DISTINCT s."sellerId")::int AS sellers,
-        COUNT(DISTINCT l."productId")::int AS products
-      FROM ${LINES} WHERE ${this.where(f, p)}`;
+    >`SELECT COUNT(*)::int AS sales, COALESCE(SUM(units), 0)::int AS units,
+        COALESCE(SUM(reward), 0)::bigint AS "rewardMillimes",
+        COUNT(DISTINCT pdv)::int AS stores, COUNT(DISTINCT seller)::int AS sellers,
+        (SELECT COUNT(DISTINCT product) FROM lens_line WHERE now = ${now})::int AS products
+      FROM lens_sale WHERE now = ${now}`;
     return {
       sales: row?.sales ?? 0,
       units: row?.units ?? 0,
@@ -390,12 +415,12 @@ export class AnalyticsService {
   private async series(tx: Tx, f: Lens, granularity: "day" | "week") {
     const key =
       granularity === "day"
-        ? Prisma.sql`to_char(s.day, 'YYYY-MM-DD')`
-        : Prisma.sql`to_char(date_trunc('week', s.day), 'YYYY-MM-DD')`;
+        ? Prisma.sql`to_char(day, 'YYYY-MM-DD')`
+        : Prisma.sql`to_char(date_trunc('week', day), 'YYYY-MM-DD')`;
     const rows = await tx.$queryRaw<(Measures & { key: string })[]>`
-      SELECT ${key} AS key, COUNT(DISTINCT s.id)::int AS sales, SUM(l.quantity)::int AS units,
-        SUM(l.quantity * l."unitRewardMillimes")::bigint AS "rewardMillimes"
-      FROM ${LINES} WHERE ${this.where(f, f)} GROUP BY 1`;
+      SELECT ${key} AS key, COUNT(*)::int AS sales, SUM(units)::int AS units,
+        SUM(reward)::bigint AS "rewardMillimes"
+      FROM lens_sale WHERE now GROUP BY 1`;
     const byKey = new Map(rows.map((r) => [r.key, r]));
     const points: (Measures & { key: string })[] = [];
     // Weeks start on Monday, like date_trunc('week').
@@ -413,11 +438,11 @@ export class AnalyticsService {
   }
 
   /** When in the day people buy, on the Tunis clock. */
-  private async hours(tx: Tx, f: Lens) {
+  private async hours(tx: Tx) {
     const rows = await tx.$queryRaw<(Measures & { hour: number })[]>`
-      SELECT ${HOUR} AS hour, COUNT(DISTINCT s.id)::int AS sales, SUM(l.quantity)::int AS units,
-        SUM(l.quantity * l."unitRewardMillimes")::bigint AS "rewardMillimes"
-      FROM ${LINES} WHERE ${this.where(f, f)} GROUP BY 1`;
+      SELECT hour, COUNT(*)::int AS sales, SUM(units)::int AS units,
+        SUM(reward)::bigint AS "rewardMillimes"
+      FROM lens_sale WHERE now GROUP BY 1`;
     const byHour = new Map(rows.map((r) => [r.hour, r]));
     return Array.from(
       { length: 24 },
@@ -427,10 +452,10 @@ export class AnalyticsService {
   }
 
   /** Which days of the week sell: 0 is Sunday. */
-  private async weekdays(tx: Tx, f: Lens) {
+  private async weekdays(tx: Tx) {
     const rows = await tx.$queryRaw<{ weekday: number; units: number }[]>`
-      SELECT EXTRACT(DOW FROM s.day)::int AS weekday, SUM(l.quantity)::int AS units
-      FROM ${LINES} WHERE ${this.where(f, f)} GROUP BY 1`;
+      SELECT EXTRACT(DOW FROM day)::int AS weekday, SUM(units)::int AS units
+      FROM lens_sale WHERE now GROUP BY 1`;
     const byDay = new Map(rows.map((r) => [r.weekday, r.units]));
     return Array.from({ length: 7 }, (_, weekday) => ({
       weekday,
@@ -451,7 +476,7 @@ export class AnalyticsService {
         COUNT(*) FILTER (WHERE s.status = 'ACTIVE' AND s.version > 1)::int AS corrected,
         COUNT(*) FILTER (WHERE s."createdAt" - s."occurredAt" > interval '1 hour')::int AS late
       FROM "Sale" s
-      WHERE s.day BETWEEN ${dayToDate(f.from)} AND ${dayToDate(f.to)}
+      WHERE s.day BETWEEN ${dayToDate(f.from)}::date AND ${dayToDate(f.to)}::date
         ${f.regionId ? Prisma.sql`AND s."regionId" = ${f.regionId}::uuid` : Prisma.empty}
         ${f.pdvId ? Prisma.sql`AND s."pdvId" = ${f.pdvId}::uuid` : Prisma.empty}
         ${f.sellerId ? Prisma.sql`AND s."sellerId" = ${f.sellerId}::uuid` : Prisma.empty}
@@ -471,87 +496,74 @@ export class AnalyticsService {
       WHERE pd.status = 'ACTIVE'
         ${f.regionId ? Prisma.sql`AND pd."regionId" = ${f.regionId}::uuid` : Prisma.empty}
         ${f.groupId ? Prisma.sql`AND pd."groupId" = ${f.groupId}::uuid` : Prisma.empty}
-        AND NOT EXISTS (SELECT 1 FROM "Sale" s WHERE s."pdvId" = pd.id AND s.status = 'ACTIVE'
-          AND s.day BETWEEN ${dayToDate(f.from)} AND ${dayToDate(f.to)})`;
+        AND pd.id NOT IN (SELECT pdv FROM lens_sale WHERE now)`;
     return row?.count ?? 0;
   }
 
   /**
    * One ranking: the rows of a dimension with their three measures now and in the period before,
-   * ordered by the measure the person looks at.
+   * ordered by the measure the person looks at. Summed from the working tables first, named after.
    */
-  private async breakdown(tx: Tx, dim: Dimension, f: Lens, previous: Period) {
+  private async breakdown(tx: Tx, dim: Dimension, sort: Metric) {
+    // `source` has one row per sale (or per sale and product, or sale and family), so counting
+    // rows counts sales.
     const d = {
       regions: {
-        key: Prisma.sql`s."regionId"::text`,
+        source: Prisma.sql`lens_sale x`,
+        key: Prisma.sql`x.region`,
+        names: Prisma.sql`JOIN "Region" r ON r.id = agg.id`,
         name: Prisma.sql`r.name`,
         sub: Prisma.sql`NULL::text`,
         image: Prisma.sql`NULL::text`,
-        joins: Prisma.sql`JOIN "Region" r ON r.id = s."regionId"`,
-        group: [Prisma.sql`s."regionId"`, Prisma.sql`r.name`],
       },
       groups: {
-        key: Prisma.sql`g.id::text`,
+        source: Prisma.sql`lens_sale x JOIN "Pdv" pd ON pd.id = x.pdv AND pd."groupId" IS NOT NULL`,
+        key: Prisma.sql`pd."groupId"`,
+        names: Prisma.sql`JOIN "Group" g ON g.id = agg.id JOIN "Region" gr ON gr.id = g."regionId"`,
         name: Prisma.sql`g.name`,
         sub: Prisma.sql`gr.name`,
         image: Prisma.sql`NULL::text`,
-        joins: Prisma.sql`JOIN "Pdv" pd ON pd.id = s."pdvId" JOIN "Group" g ON g.id = pd."groupId" JOIN "Region" gr ON gr.id = g."regionId"`,
-        group: [Prisma.sql`g.id`, Prisma.sql`g.name`, Prisma.sql`gr.name`],
       },
       stores: {
-        key: Prisma.sql`s."pdvId"::text`,
+        source: Prisma.sql`lens_sale x`,
+        key: Prisma.sql`x.pdv`,
+        names: Prisma.sql`JOIN "Pdv" pd ON pd.id = agg.id`,
         name: Prisma.sql`pd.name`,
         sub: Prisma.sql`pd.city`,
         image: Prisma.sql`NULL::text`,
-        joins: Prisma.sql`JOIN "Pdv" pd ON pd.id = s."pdvId"`,
-        group: [
-          Prisma.sql`s."pdvId"`,
-          Prisma.sql`pd.name`,
-          Prisma.sql`pd.city`,
-        ],
       },
       sellers: {
-        key: Prisma.sql`s."sellerId"::text`,
+        source: Prisma.sql`lens_sale x`,
+        key: Prisma.sql`x.seller`,
+        names: Prisma.sql`JOIN "User" u ON u.id = agg.id LEFT JOIN "Pdv" up ON up.id = u."pdvId"`,
         name: Prisma.sql`u.name`,
         sub: Prisma.sql`up.name`,
         image: Prisma.sql`NULL::text`,
-        joins: Prisma.sql`JOIN "User" u ON u.id = s."sellerId" LEFT JOIN "Pdv" up ON up.id = u."pdvId"`,
-        group: [
-          Prisma.sql`s."sellerId"`,
-          Prisma.sql`u.name`,
-          Prisma.sql`up.name`,
-        ],
       },
       products: {
-        key: Prisma.sql`l."productId"::text`,
+        source: Prisma.sql`lens_line x`,
+        key: Prisma.sql`x.product`,
+        names: Prisma.sql`JOIN "Product" p ON p.id = agg.id`,
         name: Prisma.sql`p.name`,
         sub: Prisma.sql`p.family`,
         image: Prisma.sql`p."imageId"::text`,
-        joins: Prisma.empty,
-        group: [
-          Prisma.sql`l."productId"`,
-          Prisma.sql`p.name`,
-          Prisma.sql`p.family`,
-          Prisma.sql`p."imageId"`,
-        ],
       },
       families: {
-        key: Prisma.sql`p.family`,
-        name: Prisma.sql`p.family`,
+        source: Prisma.sql`(SELECT family, now, at, SUM(units) AS units, SUM(reward) AS reward
+          FROM lens_line GROUP BY sale, family, now, at) x`,
+        key: Prisma.sql`x.family`,
+        names: Prisma.empty,
+        name: Prisma.sql`agg.id::text`,
         sub: Prisma.sql`NULL::text`,
         image: Prisma.sql`NULL::text`,
-        joins: Prisma.empty,
-        group: [Prisma.sql`p.family`],
       },
     }[dim];
-    const now = Prisma.sql`s.day >= ${dayToDate(f.from)}`;
-    const was = Prisma.sql`s.day < ${dayToDate(f.from)}`;
     const order = {
       units: Prisma.sql`units`,
       sales: Prisma.sql`sales`,
       reward: Prisma.sql`"rewardMillimes"`,
-    }[f.sort];
-    const rows = await tx.$queryRaw<
+    }[sort];
+    return tx.$queryRaw<
       {
         id: string;
         name: string;
@@ -565,20 +577,24 @@ export class AnalyticsService {
         beforeRewardMillimes: bigint;
         lastAt: Date | null;
       }[]
-    >`SELECT ${d.key} AS id, ${d.name} AS name, ${d.sub} AS sub, ${d.image} AS "imageId",
-        COALESCE(SUM(l.quantity) FILTER (WHERE ${now}), 0)::int AS units,
-        COUNT(DISTINCT s.id) FILTER (WHERE ${now})::int AS sales,
-        COALESCE(SUM(l.quantity * l."unitRewardMillimes") FILTER (WHERE ${now}), 0)::bigint AS "rewardMillimes",
-        COALESCE(SUM(l.quantity) FILTER (WHERE ${was}), 0)::int AS "beforeUnits",
-        COUNT(DISTINCT s.id) FILTER (WHERE ${was})::int AS "beforeSales",
-        COALESCE(SUM(l.quantity * l."unitRewardMillimes") FILTER (WHERE ${was}), 0)::bigint AS "beforeRewardMillimes",
-        MAX(s."occurredAt") FILTER (WHERE ${now}) AS "lastAt"
-      FROM ${LINES} ${d.joins}
-      WHERE ${this.where(f, { from: previous.from, to: f.to })}
-      GROUP BY ${Prisma.join(d.group)}
-      HAVING COALESCE(SUM(l.quantity) FILTER (WHERE ${now}), 0) > 0
+    >`WITH agg AS (
+        SELECT ${d.key} AS id,
+          COALESCE(SUM(x.units) FILTER (WHERE x.now), 0)::int AS units,
+          COUNT(*) FILTER (WHERE x.now)::int AS sales,
+          COALESCE(SUM(x.reward) FILTER (WHERE x.now), 0)::bigint AS "rewardMillimes",
+          COALESCE(SUM(x.units) FILTER (WHERE NOT x.now), 0)::int AS "beforeUnits",
+          COUNT(*) FILTER (WHERE NOT x.now)::int AS "beforeSales",
+          COALESCE(SUM(x.reward) FILTER (WHERE NOT x.now), 0)::bigint AS "beforeRewardMillimes",
+          MAX(x.at) FILTER (WHERE x.now) AS "lastAt"
+        FROM ${d.source}
+        GROUP BY 1
+        HAVING COALESCE(SUM(x.units) FILTER (WHERE x.now), 0) > 0
+      )
+      SELECT agg.id::text AS id, ${d.name} AS name, ${d.sub} AS sub, ${d.image} AS "imageId",
+        agg.units, agg.sales, agg."rewardMillimes", agg."beforeUnits", agg."beforeSales",
+        agg."beforeRewardMillimes", agg."lastAt"
+      FROM agg ${d.names}
       ORDER BY ${order} DESC, name LIMIT 100`;
-    return rows;
   }
 
   // ───────────────────────── Stock and money ─────────────────────────
@@ -611,10 +627,13 @@ export class AnalyticsService {
         }[]
       >`SELECT st."locationId", st."locationKind"::text AS kind, COALESCE(pd.name, d.name) AS name,
           COALESCE(pd.city, d.city) AS city, r.name AS region, st.quantity,
-          COALESCE((SELECT SUM(l.quantity) FROM "SaleLine" l JOIN "Sale" s ON s.id = l."saleId"
-            WHERE l."productId" = st."productId" AND s."pdvId" = st."locationId" AND s.status = 'ACTIVE' AND s.day >= ${since}), 0)::int AS sold
+          COALESCE(sold.q, 0)::int AS sold
         FROM "Stock" st LEFT JOIN "Pdv" pd ON pd.id = st."locationId" LEFT JOIN "Depot" d ON d.id = st."locationId"
         LEFT JOIN "Region" r ON r.id = st."regionId"
+        LEFT JOIN (SELECT s."pdvId" AS loc, SUM(l.quantity) AS q
+          FROM "Sale" s JOIN "SaleLine" l ON l."saleId" = s.id
+          WHERE l."productId" = ${f.productId}::uuid AND s.status = 'ACTIVE' AND s.day >= ${since}
+          GROUP BY 1) sold ON sold.loc = st."locationId"
         WHERE st."productId" = ${f.productId}::uuid
           ${f.regionId ? Prisma.sql`AND st."regionId" = ${f.regionId}::uuid` : Prisma.empty}
           ${f.groupId ? Prisma.sql`AND pd."groupId" = ${f.groupId}::uuid` : Prisma.empty}
@@ -643,9 +662,12 @@ export class AnalyticsService {
           sold: number;
         }[]
       >`SELECT st."productId", p.name, p.family, p."imageId", st.quantity,
-          COALESCE((SELECT SUM(l.quantity) FROM "SaleLine" l JOIN "Sale" s ON s.id = l."saleId"
-            WHERE l."productId" = st."productId" AND s."pdvId" = st."locationId" AND s.status = 'ACTIVE' AND s.day >= ${since}), 0)::int AS sold
+          COALESCE(sold.q, 0)::int AS sold
         FROM "Stock" st JOIN "Product" p ON p.id = st."productId"
+        LEFT JOIN (SELECT l."productId" AS product, SUM(l.quantity) AS q
+          FROM "Sale" s JOIN "SaleLine" l ON l."saleId" = s.id
+          WHERE s."pdvId" = ${f.pdvId}::uuid AND s.status = 'ACTIVE' AND s.day >= ${since}
+          GROUP BY 1) sold ON sold.product = st."productId"
         WHERE st."locationId" = ${f.pdvId}::uuid AND p.active
           ${f.family ? Prisma.sql`AND p.family = ${f.family}` : Prisma.empty}
         ORDER BY st.quantity, p.name`;
@@ -672,15 +694,21 @@ export class AnalyticsService {
         sold: number;
       }[]
     >`SELECT p.id, p.name, p.family, p."imageId",
-        COALESCE((SELECT SUM(st.quantity) FROM "Stock" st JOIN "Pdv" pd ON pd.id = st."locationId"
-          WHERE st."productId" = p.id
-            ${f.regionId ? Prisma.sql`AND st."regionId" = ${f.regionId}::uuid` : Prisma.empty}
-            ${f.groupId ? Prisma.sql`AND pd."groupId" = ${f.groupId}::uuid` : Prisma.empty}), 0)::int AS quantity,
-        COALESCE((SELECT SUM(l.quantity) FROM "SaleLine" l JOIN "Sale" s ON s.id = l."saleId"
-          WHERE l."productId" = p.id AND s.status = 'ACTIVE' AND s.day >= ${since}
-            ${f.regionId ? Prisma.sql`AND s."regionId" = ${f.regionId}::uuid` : Prisma.empty}
-            ${f.groupId ? Prisma.sql`AND s."pdvId" IN (SELECT id FROM "Pdv" WHERE "groupId" = ${f.groupId}::uuid)` : Prisma.empty}), 0)::int AS sold
-      FROM "Product" p WHERE p.active ${f.family ? Prisma.sql`AND p.family = ${f.family}` : Prisma.empty}`;
+        COALESCE(held.q, 0)::int AS quantity, COALESCE(sold.q, 0)::int AS sold
+      FROM "Product" p
+      LEFT JOIN (SELECT st."productId" AS product, SUM(st.quantity) AS q
+        FROM "Stock" st JOIN "Pdv" pd ON pd.id = st."locationId"
+        WHERE TRUE
+          ${f.regionId ? Prisma.sql`AND st."regionId" = ${f.regionId}::uuid` : Prisma.empty}
+          ${f.groupId ? Prisma.sql`AND pd."groupId" = ${f.groupId}::uuid` : Prisma.empty}
+        GROUP BY 1) held ON held.product = p.id
+      LEFT JOIN (SELECT l."productId" AS product, SUM(l.quantity) AS q
+        FROM "Sale" s JOIN "SaleLine" l ON l."saleId" = s.id
+        WHERE s.status = 'ACTIVE' AND s.day >= ${since}
+          ${f.regionId ? Prisma.sql`AND s."regionId" = ${f.regionId}::uuid` : Prisma.empty}
+          ${f.groupId ? Prisma.sql`AND s."pdvId" IN (SELECT id FROM "Pdv" WHERE "groupId" = ${f.groupId}::uuid)` : Prisma.empty}
+        GROUP BY 1) sold ON sold.product = p.id
+      WHERE p.active ${f.family ? Prisma.sql`AND p.family = ${f.family}` : Prisma.empty}`;
     const all = rows.map(pace);
     const dead = all.filter((r) => r.quantity > LOW_STOCK && r.sold === 0);
     return {
@@ -724,9 +752,9 @@ export class AnalyticsService {
         (SELECT COUNT(*) FROM "PayoutRequest" q WHERE q.status = 'PENDING' AND q."userId" IN (SELECT id FROM people))::int AS "pendingCount",
         COALESCE((SELECT SUM(q."amountMillimes") FROM "PayoutRequest" q WHERE q.status = 'PENDING' AND q."userId" IN (SELECT id FROM people)), 0)::bigint AS "pendingAmount",
         (SELECT COUNT(*) FROM "PayoutRequest" q WHERE q.status = 'APPROVED' AND q."userId" IN (SELECT id FROM people)
-          AND ${paidDay} BETWEEN ${dayToDate(f.from)} AND ${dayToDate(f.to)})::int AS "paidCount",
+          AND ${paidDay} BETWEEN ${dayToDate(f.from)}::date AND ${dayToDate(f.to)}::date)::int AS "paidCount",
         COALESCE((SELECT SUM(q."amountMillimes") FROM "PayoutRequest" q WHERE q.status = 'APPROVED' AND q."userId" IN (SELECT id FROM people)
-          AND ${paidDay} BETWEEN ${dayToDate(f.from)} AND ${dayToDate(f.to)}), 0)::bigint AS "paidAmount"`;
+          AND ${paidDay} BETWEEN ${dayToDate(f.from)}::date AND ${dayToDate(f.to)}::date), 0)::bigint AS "paidAmount"`;
     return {
       owedMillimes: row?.owed ?? 0n,
       pending: {

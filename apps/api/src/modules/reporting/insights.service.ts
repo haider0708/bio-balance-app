@@ -190,7 +190,7 @@ export class InsightsService {
     >`SELECT COUNT(*)::int AS sales, COALESCE(SUM(s.units),0)::int AS units,
         COALESCE(SUM(s."rewardMillimes"),0)::bigint AS reward,
         COUNT(DISTINCT s."pdvId")::int AS stores, COUNT(DISTINCT s."sellerId")::int AS sellers
-      FROM "Sale" s WHERE s.status='ACTIVE' AND s.day BETWEEN ${dayToDate(p.from)} AND ${dayToDate(p.to)} ${region("s")}`;
+      FROM "Sale" s WHERE s.status='ACTIVE' AND s.day BETWEEN ${dayToDate(p.from)}::date AND ${dayToDate(p.to)}::date ${region("s")}`;
     return {
       sales: row?.sales ?? 0,
       units: row?.units ?? 0,
@@ -203,7 +203,7 @@ export class InsightsService {
   private async daily(tx: Tx, p: Period, region: (a: string) => Prisma.Sql) {
     return tx.$queryRaw<{ day: string; units: number; weekday: number }[]>`
       SELECT to_char(s.day,'YYYY-MM-DD') AS day, SUM(s.units)::int AS units, EXTRACT(DOW FROM s.day)::int AS weekday
-      FROM "Sale" s WHERE s.status='ACTIVE' AND s.day BETWEEN ${dayToDate(p.from)} AND ${dayToDate(p.to)} ${region("s")}
+      FROM "Sale" s WHERE s.status='ACTIVE' AND s.day BETWEEN ${dayToDate(p.from)}::date AND ${dayToDate(p.to)}::date ${region("s")}
       GROUP BY s.day ORDER BY s.day`;
   }
 
@@ -223,11 +223,11 @@ export class InsightsService {
         reward: bigint;
       }[]
     >`SELECT s."pdvId" AS id, pd.name, pd.city,
-        COALESCE(SUM(s.units) FILTER (WHERE s.day BETWEEN ${dayToDate(p.from)} AND ${dayToDate(p.to)}),0)::int AS units,
-        COALESCE(SUM(s.units) FILTER (WHERE s.day BETWEEN ${dayToDate(q.from)} AND ${dayToDate(q.to)}),0)::int AS before,
-        COALESCE(SUM(s."rewardMillimes") FILTER (WHERE s.day BETWEEN ${dayToDate(p.from)} AND ${dayToDate(p.to)}),0)::bigint AS reward
+        COALESCE(SUM(s.units) FILTER (WHERE s.day BETWEEN ${dayToDate(p.from)}::date AND ${dayToDate(p.to)}::date),0)::int AS units,
+        COALESCE(SUM(s.units) FILTER (WHERE s.day BETWEEN ${dayToDate(q.from)}::date AND ${dayToDate(q.to)}::date),0)::int AS before,
+        COALESCE(SUM(s."rewardMillimes") FILTER (WHERE s.day BETWEEN ${dayToDate(p.from)}::date AND ${dayToDate(p.to)}::date),0)::bigint AS reward
       FROM "Sale" s JOIN "Pdv" pd ON pd.id = s."pdvId"
-      WHERE s.status='ACTIVE' AND s.day BETWEEN ${dayToDate(q.from)} AND ${dayToDate(p.to)} ${region("s")}
+      WHERE s.status='ACTIVE' AND s.day BETWEEN ${dayToDate(q.from)}::date AND ${dayToDate(p.to)}::date ${region("s")}
       GROUP BY s."pdvId", pd.name, pd.city ORDER BY units DESC, pd.name LIMIT 30`;
     const total = rows.reduce((t, r) => t + r.units, 0);
     return rows.map((r) => ({
@@ -258,12 +258,12 @@ export class InsightsService {
         before: number;
       }[]
     >`SELECT p.id, p.name, p.family, p."imageId",
-        COALESCE(SUM(l.quantity) FILTER (WHERE s.day BETWEEN ${dayToDate(p.from)} AND ${dayToDate(p.to)}),0)::int AS units,
-        COALESCE(SUM(l.quantity) FILTER (WHERE s.day BETWEEN ${dayToDate(q.from)} AND ${dayToDate(q.to)}),0)::int AS before
+        COALESCE(SUM(l.quantity) FILTER (WHERE s.day BETWEEN ${dayToDate(p.from)}::date AND ${dayToDate(p.to)}::date),0)::int AS units,
+        COALESCE(SUM(l.quantity) FILTER (WHERE s.day BETWEEN ${dayToDate(q.from)}::date AND ${dayToDate(q.to)}::date),0)::int AS before
       FROM "Sale" s JOIN "SaleLine" l ON l."saleId" = s.id JOIN "Product" p ON p.id = l."productId"
-      WHERE s.status='ACTIVE' AND s.day BETWEEN ${dayToDate(q.from)} AND ${dayToDate(p.to)} ${region("s")}
+      WHERE s.status='ACTIVE' AND s.day BETWEEN ${dayToDate(q.from)}::date AND ${dayToDate(p.to)}::date ${region("s")}
       GROUP BY p.id, p.name, p.family, p."imageId"
-      HAVING COALESCE(SUM(l.quantity) FILTER (WHERE s.day BETWEEN ${dayToDate(p.from)} AND ${dayToDate(p.to)}),0) > 0
+      HAVING COALESCE(SUM(l.quantity) FILTER (WHERE s.day BETWEEN ${dayToDate(p.from)}::date AND ${dayToDate(p.to)}::date),0) > 0
       ORDER BY units DESC, p.name`;
     return rows.map((r) => ({ ...r, change: pct(r.units, r.before) }));
   }
@@ -279,7 +279,7 @@ export class InsightsService {
       }[]
     >`SELECT s."sellerId" AS id, u.name, pd.name AS store, SUM(s.units)::int AS units, COUNT(*)::int AS sales
       FROM "Sale" s JOIN "User" u ON u.id = s."sellerId" JOIN "Pdv" pd ON pd.id = s."pdvId"
-      WHERE s.status='ACTIVE' AND s.day BETWEEN ${dayToDate(p.from)} AND ${dayToDate(p.to)} ${region("s")}
+      WHERE s.status='ACTIVE' AND s.day BETWEEN ${dayToDate(p.from)}::date AND ${dayToDate(p.to)}::date ${region("s")}
       GROUP BY s."sellerId", u.name, pd.name ORDER BY units DESC, u.name LIMIT 10`;
   }
 

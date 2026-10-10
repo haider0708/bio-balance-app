@@ -401,7 +401,7 @@ export class SalesService {
       >`
         SELECT to_char(s.day,'YYYY-MM-DD') AS day, COUNT(*)::int AS sales, SUM(s.units)::int AS units, SUM(s."rewardMillimes")::bigint AS "rewardMillimes"
         FROM "Sale" s
-        WHERE s.status='ACTIVE' AND s.day BETWEEN ${dayToDate(filter.from)} AND ${dayToDate(filter.to)}
+        WHERE s.status='ACTIVE' AND s.day BETWEEN ${dayToDate(filter.from)}::date AND ${dayToDate(filter.to)}::date
           ${filter.pdvId ? Prisma.sql`AND s."pdvId" = ${filter.pdvId}::uuid` : Prisma.empty}
           ${actor.role === "VENDEUR" ? Prisma.sql`AND s."sellerId" = ${actor.id}::uuid` : Prisma.empty}
           ${actor.role === "RESPONSABLE" && actor.regionId ? Prisma.sql`AND s."regionId" = ${actor.regionId}::uuid` : Prisma.empty}

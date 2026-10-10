@@ -1,3 +1,5 @@
+import '../files/media_cache.dart';
+
 import 'dart:async';
 import 'dart:convert';
 
@@ -192,6 +194,7 @@ class SessionNotifier extends AsyncNotifier<Session?> {
     final storage = ref.read(secureStorageProvider);
     await storage.delete(key: _tokenKey);
     await storage.delete(key: _meKey);
+    await MediaCache.clear();
   }
 
   Json _meJson(Me me) => {

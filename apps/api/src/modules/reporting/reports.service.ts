@@ -97,7 +97,7 @@ export class ReportsService {
       f.groupBy === "family" ||
       !!f.productId ||
       !!f.family;
-    const where = Prisma.sql`s.status = 'ACTIVE' AND s.day BETWEEN ${dayToDate(f.from)} AND ${dayToDate(f.to)}
+    const where = Prisma.sql`s.status = 'ACTIVE' AND s.day BETWEEN ${dayToDate(f.from)}::date AND ${dayToDate(f.to)}::date
         ${f.regionId ? Prisma.sql`AND s."regionId" = ${f.regionId}::uuid` : Prisma.empty}
         ${f.pdvId ? Prisma.sql`AND s."pdvId" = ${f.pdvId}::uuid` : Prisma.empty}
         ${f.sellerId ? Prisma.sql`AND s."sellerId" = ${f.sellerId}::uuid` : Prisma.empty}
@@ -180,7 +180,7 @@ export class ReportsService {
         (l.quantity * l."unitRewardMillimes")::bigint AS reward
       FROM "Sale" s JOIN "SaleLine" l ON l."saleId" = s.id JOIN "Product" p ON p.id = l."productId"
       JOIN "Region" r ON r.id = s."regionId" JOIN "Pdv" pd ON pd.id = s."pdvId" JOIN "User" u ON u.id = s."sellerId"
-      WHERE s.status = 'ACTIVE' AND s.day BETWEEN ${dayToDate(f.from)} AND ${dayToDate(f.to)}
+      WHERE s.status = 'ACTIVE' AND s.day BETWEEN ${dayToDate(f.from)}::date AND ${dayToDate(f.to)}::date
         ${f.regionId ? Prisma.sql`AND s."regionId" = ${f.regionId}::uuid` : Prisma.empty}
         ${f.pdvId ? Prisma.sql`AND s."pdvId" = ${f.pdvId}::uuid` : Prisma.empty}
         ${f.groupId ? Prisma.sql`AND pd."groupId" = ${f.groupId}::uuid` : Prisma.empty}

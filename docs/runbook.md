@@ -85,3 +85,20 @@ Only for a deliberate wipe, with a fresh dump taken first. Stop `api1 api2 worke
 `scripts/dev/stress.mjs` (races, replays, abuse, hostile input, uploads, load) and `scripts/dev/timing.mjs` (every main screen's request, cold and warm) run against a **local** server only. `scripts/dev/volume.sql` fills the local database with 300 000 sales (a year of heavy activity) first.
 
 With that volume (local laptop, one API process): a month of reports or the home of any role answers in about 20 ms; a full year of reports by store, seller or day in 0.25–0.6 s; a full year by product or insights in 2–3 s (the database checks row-level security on 600 000 sale lines). Reports cover at most 400 days. If years of data ever make this slow, add a daily summary table per store and product, filled by the same code that records sales.
+
+## Load test
+
+Checks that the dashboards and analytics stay fast on a large network (300 stores, a year of 300 000 sales), against a scratch database — never a real one:
+
+```sh
+P="docker compose -f infrastructure/development/compose.yml exec -T postgres psql -U biobalance -q"
+$P -d postgres -c 'CREATE DATABASE biobalance_perf_test'
+(cd apps/api && DATABASE_URL=postgresql://biobalance:local-development-only@localhost:54329/biobalance_perf_test npx prisma migrate deploy)
+$P -d biobalance_perf_test -v app_password=local-app-only < scripts/provision-role.sql
+$P -d biobalance_perf_test < scripts/perf-seed.sql
+cd apps/api && TEST_DATABASE_URL=postgresql://biobalance_app:local-app-only@localhost:54329/biobalance_perf_test \
+  TEST_OWNER_DATABASE_URL=postgresql://biobalance:local-development-only@localhost:54329/biobalance_perf_test \
+  PERF=1 npx vitest run test/perf.test.ts --disableConsoleIntercept
+```
+
+Measured 2026-10-10: dashboards 0.3–0.6 s, analytics of 30 days 0.8 s (a region 0.5 s), a whole year against the year before 4 s, stores board 0.08 s, sales ledger 0.03 s. The analytics read the lens's sale lines once into transaction-scoped working tables (`lens_line`, `lens_sale`) and compute every ranking from them; raw SQL compares `day` columns with `::date` parameters so the day indexes are used.

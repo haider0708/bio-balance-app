@@ -103,7 +103,7 @@ Not collected: location, contacts, health, financial info, browsing, search hist
 
 ## Checklist for each release
 
-1. Raise `version:` in `pubspec.yaml` (`3.1.1+37`…), run `flutter analyze && flutter test` and the API tests.
+1. Raise `version:` in `pubspec.yaml` (`3.1.2+38`…), run `flutter analyze && flutter test` and the API tests.
 2. Deploy the API first (`scripts/deploy-vps.sh`): the new app may use new endpoints.
 3. Android: `flutter build appbundle --release` → Play Console → a testing track first, then Production.
 4. iOS: `flutter build ipa --release` on the Mac → Transporter → TestFlight → submit.

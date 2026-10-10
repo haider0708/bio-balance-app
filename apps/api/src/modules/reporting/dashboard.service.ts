@@ -96,7 +96,7 @@ export class DashboardService {
         >`
           SELECT l."productId", p.name, p.family, p."imageId", SUM(l.quantity)::int AS units
           FROM "Sale" s JOIN "SaleLine" l ON l."saleId" = s.id JOIN "Product" p ON p.id = l."productId"
-          WHERE s.status='ACTIVE' AND s.day >= ${dayToDate(addDays(today, -29))} ${sale}
+          WHERE s.status='ACTIVE' AND s.day >= ${dayToDate(addDays(today, -29))}::date ${sale}
           GROUP BY l."productId", p.name, p.family, p."imageId" ORDER BY units DESC LIMIT 30`,
         tx.$queryRaw<
           {
@@ -109,7 +109,7 @@ export class DashboardService {
         >`
           SELECT s."pdvId", pd.name, pd.city, SUM(s.units)::int AS units, SUM(s."rewardMillimes")::bigint AS "rewardMillimes"
           FROM "Sale" s JOIN "Pdv" pd ON pd.id = s."pdvId"
-          WHERE s.status='ACTIVE' AND s.day >= ${dayToDate(addDays(today, -29))} ${sale}
+          WHERE s.status='ACTIVE' AND s.day >= ${dayToDate(addDays(today, -29))}::date ${sale}
           GROUP BY s."pdvId", pd.name, pd.city ORDER BY units DESC LIMIT 10`,
         tx.$queryRaw<{ negative: number; low: number }[]>`
           SELECT COUNT(*) FILTER (WHERE quantity < 0)::int AS negative,
@@ -137,7 +137,7 @@ export class DashboardService {
         tx.$queryRaw<{ groupId: string; name: string; units: number }[]>`
           SELECT g.id AS "groupId", g.name, SUM(s.units)::int AS units
           FROM "Sale" s JOIN "Pdv" pd ON pd.id = s."pdvId" JOIN "Group" g ON g.id = pd."groupId"
-          WHERE s.status='ACTIVE' AND s.day >= ${dayToDate(addDays(today, -29))} ${sale}
+          WHERE s.status='ACTIVE' AND s.day >= ${dayToDate(addDays(today, -29))}::date ${sale}
           GROUP BY g.id, g.name ORDER BY units DESC LIMIT 3`,
         // The stores with products running out, one line per store.
         tx.$queryRaw<
@@ -257,9 +257,9 @@ export class DashboardService {
     >`SELECT r.id, r.code, r.name,
         (SELECT COUNT(*) FROM "Pdv" p WHERE p."regionId"=r.id AND p.status='ACTIVE')::int AS pdvs,
         (SELECT COUNT(*) FROM "User" u WHERE u."regionId"=r.id AND u.role='VENDEUR' AND u.status='ACTIVE')::int AS members,
-        COALESCE((SELECT COUNT(*) FROM "Sale" s WHERE s."regionId"=r.id AND s.status='ACTIVE' AND s.day >= ${dayToDate(addDays(today, -6))}),0)::int AS sales,
-        COALESCE((SELECT SUM(s.units) FROM "Sale" s WHERE s."regionId"=r.id AND s.status='ACTIVE' AND s.day >= ${dayToDate(addDays(today, -6))}),0)::int AS units,
-        COALESCE((SELECT SUM(s."rewardMillimes") FROM "Sale" s WHERE s."regionId"=r.id AND s.status='ACTIVE' AND s.day >= ${dayToDate(addDays(today, -6))}),0)::bigint AS "rewardMillimes",
+        COALESCE((SELECT COUNT(*) FROM "Sale" s WHERE s."regionId"=r.id AND s.status='ACTIVE' AND s.day >= ${dayToDate(addDays(today, -6))}::date),0)::int AS sales,
+        COALESCE((SELECT SUM(s.units) FROM "Sale" s WHERE s."regionId"=r.id AND s.status='ACTIVE' AND s.day >= ${dayToDate(addDays(today, -6))}::date),0)::int AS units,
+        COALESCE((SELECT SUM(s."rewardMillimes") FROM "Sale" s WHERE s."regionId"=r.id AND s.status='ACTIVE' AND s.day >= ${dayToDate(addDays(today, -6))}::date),0)::bigint AS "rewardMillimes",
         ((SELECT COUNT(*) FROM "Pdv" p WHERE p."regionId"=r.id AND p.status='PENDING')
           + (SELECT COUNT(*) FROM "Group" g WHERE g."regionId"=r.id AND g.status='PENDING')
           + (SELECT COUNT(*) FROM "User" u WHERE u."regionId"=r.id AND u.status='PENDING')
@@ -308,7 +308,7 @@ export class DashboardService {
       { day: string; sales: number; units: number; rewardMillimes: bigint }[]
     >`
       SELECT to_char(s.day,'YYYY-MM-DD') AS day, COUNT(*)::int AS sales, SUM(s.units)::int AS units, SUM(s."rewardMillimes")::bigint AS "rewardMillimes"
-      FROM "Sale" s WHERE s.status='ACTIVE' AND s.day BETWEEN ${dayToDate(from)} AND ${dayToDate(to)} ${scope} GROUP BY 1`;
+      FROM "Sale" s WHERE s.status='ACTIVE' AND s.day BETWEEN ${dayToDate(from)}::date AND ${dayToDate(to)}::date ${scope} GROUP BY 1`;
     const byDay = new Map(rows.map((r) => [r.day, r]));
     const days: {
       day: string;
@@ -334,6 +334,6 @@ async function window(
 ): Promise<Window> {
   const [row] = await tx.$queryRaw<Window[]>`
     SELECT COUNT(*)::int AS sales, COALESCE(SUM(s.units),0)::int AS units, COALESCE(SUM(s."rewardMillimes"),0)::bigint AS "rewardMillimes"
-    FROM "Sale" s WHERE s.status='ACTIVE' AND s.day BETWEEN ${dayToDate(from)} AND ${dayToDate(to)} ${scope}`;
+    FROM "Sale" s WHERE s.status='ACTIVE' AND s.day BETWEEN ${dayToDate(from)}::date AND ${dayToDate(to)}::date ${scope}`;
   return row ?? empty();
 }

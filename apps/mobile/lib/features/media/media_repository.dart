@@ -9,6 +9,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../core/api/json.dart';
 import '../../core/auth/session.dart';
 import '../../core/config.dart';
+import '../../core/files/media_cache.dart';
 import '../../core/theme/app_theme.dart';
 
 class MediaRepository {
@@ -34,9 +35,16 @@ class MediaRepository {
     return response.str('id');
   }
 
-  Future<Uint8List> bytes(String id) async => Uint8List.fromList(
-    await _ref.read(apiClientProvider).bytes('/v1/media/$id'),
-  );
+  /// A file's bytes: from the phone when it was downloaded before, else from the server.
+  Future<Uint8List> bytes(String id) async {
+    final kept = await MediaCache.read(id);
+    if (kept != null) return kept;
+    final bytes = Uint8List.fromList(
+      await _ref.read(apiClientProvider).bytes('/v1/media/$id'),
+    );
+    await MediaCache.write(id, bytes);
+    return bytes;
+  }
 
   /// What a stored file is (a photo or a document), without downloading it.
   Future<MediaInfo> info(String id) async => MediaInfo.fromJson(

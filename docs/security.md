@@ -12,3 +12,4 @@
 - **Secrets** (`backend.env`, signing keys, the admin setup file) never enter the repository.
 - **Account deletion** erases personal data at once, in one transaction (identity, password, MFA secret, sessions, codes, notifications), keeps the business records without a name, and can never be undone or reactivated. It asks for the password and is rate-limited.
 - **On the phone:** the session token is in the system keychain (iOS) / encrypted storage (Android); business data and the offline outbox are excluded from cloud backups; screenshots and the recents preview are blocked in Android release builds and covered on iOS when the app goes to the background. No analytics or tracking SDK is included.
+- **Photos and documents kept on the phone** (to open at once and spare mobile data) live in the app's private folder, excluded from backups, capped at 200 MB, and are deleted at sign-out and account deletion.
