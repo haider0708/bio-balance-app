@@ -215,6 +215,7 @@ class _Card extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Row(
+          spacing: 8,
           children: [
             Expanded(
               child: Text(

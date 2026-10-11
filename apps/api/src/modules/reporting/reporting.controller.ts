@@ -6,7 +6,6 @@ import { PageQuery } from "../../core/pagination";
 import { AnalyticsService } from "./analytics.service";
 import { ApprovalsService } from "./approvals.service";
 import { DashboardService } from "./dashboard.service";
-import { InsightsService } from "./insights.service";
 import { ReportsService } from "./reports.service";
 
 const id = z.uuid();
@@ -34,7 +33,6 @@ export class ReportingController {
     private readonly dashboard: DashboardService,
     private readonly approvals: ApprovalsService,
     private readonly reports: ReportsService,
-    private readonly insights: InsightsService,
     private readonly analytics: AnalyticsService,
   ) {}
 
@@ -142,15 +140,6 @@ export class ReportingController {
       q,
     );
     return this.reports.sales(r.actor, v);
-  }
-
-  @Roles("ADMIN", "RESPONSABLE")
-  @Get("reports/insights")
-  insightsReport(@Req() r: AuthRequest, @Query() q: Record<string, string>) {
-    return this.insights.report(
-      r.actor,
-      parse(z.object({ regionId: id.optional() }).and(Period), q),
-    );
   }
 
   @Roles("ADMIN", "RESPONSABLE")

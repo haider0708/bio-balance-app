@@ -1,10 +1,11 @@
-# BioBalance mobile
+# BioBalance app
 
-Application Flutter Android/iOS en français : vente hors ligne, stock par lot, équipes, récompenses et formation.
+The Flutter app for phones, tablets and the web console (French and English).
 
-- `lib/domain` : modèles et règles ; `lib/data` : API et Drift ; `lib/ui` : vues et view models Provider.
-- Outils et commandes : [README du dépôt](../../README.md).
-- Configuration, signature et packaging : [livraison mobile](../../docs/mobile-release.md).
-- Tests métier et widgets : `flutter test`. Parcours natifs : [harnais isolés](../../tests/journeys/README.md).
+- `lib/app` — the router, the phone and tablet navigation, the web console shell.
+- `lib/core` — the API client, the session, alerts (background check and iPhone push), drafts, files and the on-phone cache, the theme and shared widgets.
+- `lib/features/<feature>` — each feature's models, repository and screens.
+- `test` — widget tests against a fake server, screenshots for visual review, the contract test against a real API (`test/contract`); `integration_test` drives the real app on a device.
+- `tool/brand` — renders every icon and store graphic from the vector leaf mark.
 
-`lib/main.dart` est la seule entrée de diffusion. `lib/main_test.dart` reste nécessaire aux tests de performance et ne doit pas être distribué. Les secrets et données de test générées ne sont jamais versionnés.
+Commands: the [repository README](../../README.md). Building, signing and store assets: [mobile-release.md](../../docs/mobile-release.md).

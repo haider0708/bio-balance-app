@@ -97,7 +97,7 @@ const levelOf = async (productId) => (await call("GET", `/v1/stock/locations/${p
 
 // ───────── 5. Nobody reaches what is not theirs
 {
-  const adminOnly = ["/v1/approvals", "/v1/approvals/history", "/v1/reward-rules", "/v1/messages", "/v1/users", "/v1/reports/insights?from=2026-01-01&to=2026-12-31"];
+  const adminOnly = ["/v1/approvals", "/v1/approvals/history", "/v1/reward-rules", "/v1/messages", "/v1/users", "/v1/analytics/stores?from=2026-01-01&to=2026-12-31"];
   const asVendeur = await Promise.all(adminOnly.map((r) => call("GET", r, vendeur)));
   check("a team member is refused every admin and management route", asVendeur.every((r) => r.status === 403), asVendeur.map((r) => r.status).join(","));
   const noToken = await Promise.all(["/v1/me", "/v1/dashboard", "/v1/sales", "/v1/stock/locations/" + pdvId, "/v1/media/" + randomUUID()].map((r) => call("GET", r)));
@@ -131,7 +131,7 @@ const levelOf = async (productId) => (await call("GET", `/v1/stock/locations/${p
     ["GET", "/v1/products?q=%27%3B%20DROP%20TABLE%20%22User%22%3B--", admin],
     ["GET", "/v1/users?q=" + encodeURIComponent("%'; SELECT pg_sleep(5);--"), admin],
     ["GET", "/v1/reports/sales?groupBy=pdv;DROP&from=2026-01-01&to=2026-12-31", admin],
-    ["GET", "/v1/reports/insights?from=1900-01-01&to=2999-12-31", admin],
+    ["GET", "/v1/analytics/overview?from=1900-01-01&to=2999-12-31", admin],
     ["GET", "/v1/stock/locations/not-a-uuid", admin],
     ["GET", "/v1/media/../../etc/passwd", admin],
     ["GET", "/v1/media/" + randomUUID(), admin],
@@ -193,7 +193,7 @@ const levelOf = async (productId) => (await call("GET", `/v1/stock/locations/${p
     check(`${name}: ${n} requests, no errors, p95 under 1.5 s`, errors === 0 && p(0.95) < 1500, `p50=${p(0.5)}ms p95=${p(0.95)}ms p99=${p(0.99)}ms ${Math.round(n / wall)} req/s`);
   };
   await run("admin dashboard", "/v1/dashboard", admin, 300);
-  await run("insights report", "/v1/reports/insights?from=2026-09-01&to=2026-10-31", admin, 150);
+  await run("analytics", "/v1/analytics/overview?from=2026-09-01&to=2026-10-31", admin, 150);
   await run("seller home", "/v1/dashboard", vendeur, 400);
   await run("product catalogue", "/v1/products", vendeur, 400);
   await run("sales days", "/v1/sales/days?from=2026-01-01&to=2026-12-31", vendeur, 300);

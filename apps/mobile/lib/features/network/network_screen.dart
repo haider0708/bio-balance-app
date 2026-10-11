@@ -305,6 +305,7 @@ class PdvTile extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            spacing: 8,
             children: [
               Expanded(child: Text(pdv.name, style: context.text.titleMedium)),
               ItemStatusChip(pdv.status),

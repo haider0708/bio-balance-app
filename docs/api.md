@@ -115,7 +115,6 @@ Every route is under `https://api.galylio.com`, JSON in and out, `Authorization:
 | GET | `/v1/analytics/overview` | admin, responsable |
 | GET | `/v1/analytics/stores` | admin, responsable |
 | GET | `/v1/dashboard` | any signed-in role |
-| GET | `/v1/reports/insights` | admin, responsable (legacy: apps up to 2.7) |
 | GET | `/v1/reports/sales` | admin, responsable |
 | GET | `/v1/reports/sales.csv` | admin, responsable |
 | GET | `/v1/reports/stock` | admin, responsable |
@@ -196,4 +195,4 @@ Every route is under `https://api.galylio.com`, JSON in and out, `Authorization:
 
 Other changes: `GET /c` (public) is the page the code emails link to, with a Copy button; `GET /v1/stock/locations/:id` also serves a team member for their own store; grossistes carry a `regionId` (`POST /v1/users` needs it); `GET /v1/sales` accepts `productId`; `GET /v1/reports/sales` returns `previous` and `trend`; `GET /v1/reward-rules/effective` returns `source`.
 
-Round three: `GET /v1/approvals/history`, `GET /v1/reports/insights`, `POST /v1/stock/adjust`, `POST /v1/stock/declarations/:id/review`, `POST|GET /v1/stock/recounts` (+ `/:id/approve|reject`), `POST /v1/users/:id/cancel-invite`; `GET /v1/notifications` accepts `category`.
+Round three: `GET /v1/approvals/history`, `POST /v1/stock/adjust`, `POST /v1/stock/declarations/:id/review`, `POST|GET /v1/stock/recounts` (+ `/:id/approve|reject`), `POST /v1/users/:id/cancel-invite`; `GET /v1/notifications` accepts `category`.

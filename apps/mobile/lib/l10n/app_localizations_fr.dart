@@ -2989,4 +2989,9 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get startOverBody => 'Ce que vous avez saisi ici sera effacé.';
+
+  @override
+  String vsPreviousText(String value) {
+    return 'avant : $value';
+  }
 }

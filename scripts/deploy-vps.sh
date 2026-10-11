@@ -58,10 +58,18 @@ if [ "$proxy_before" != "$proxy_after" ]; then
 fi
 
 echo "== Waiting for health"
+healthy=false
 for _ in $(seq 1 40); do
-  if [ "$(curl -s -m 5 "$url" || true)" = '{"status":"ok"}' ]; then echo "Healthy: $sha is live."; exit 0; fi
+  if [ "$(curl -s -m 5 "$url" || true)" = '{"status":"ok"}' ]; then healthy=true; break; fi
   sleep 3
 done
-echo "Not healthy after two minutes. Previous image was: $previous" >&2
-echo "Roll back: put API_IMAGE=$previous back in /etc/biobalance/backend.env and run: sudo biobalance-compose up -d" >&2
-exit 1
+if [ "$healthy" != true ]; then
+  echo "Not healthy after two minutes. Previous image was: $previous" >&2
+  echo "Roll back: put API_IMAGE=$previous back in /etc/biobalance/backend.env and run: sudo biobalance-compose up -d" >&2
+  exit 1
+fi
+echo "Healthy: $sha is live."
+
+echo "== Tidying: this image and the previous one (for a rollback), the last ten pre-deploy dumps"
+ssh "$host" "docker images --format '{{.Repository}}:{{.Tag}}' biobalance-api | grep -vx -e 'biobalance-api:$sha' -e '$previous' | xargs -r docker rmi >/dev/null 2>&1 || true"
+ssh "$host" "sudo sh -c 'ls -1t /srv/biobalance-backups/pre-deploy/*.dump 2>/dev/null | tail -n +11 | xargs -r rm -f'"

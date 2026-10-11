@@ -262,6 +262,7 @@ class StockScreen extends ConsumerWidget {
                         onTap: () =>
                             context.push('/stock/declarations/${d.id}'),
                         child: Row(
+                          spacing: 8,
                           children: [
                             Expanded(
                               child: Column(
@@ -653,6 +654,7 @@ class DeclarationScreen extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
+                    spacing: 8,
                     children: [
                       Expanded(
                         child: Text(
@@ -683,6 +685,7 @@ class DeclarationScreen extends ConsumerWidget {
                 child: AppCard(
                   padding: const EdgeInsets.all(12),
                   child: Row(
+                    spacing: 8,
                     children: [
                       Expanded(
                         child: Text(l.name, style: context.text.titleSmall),

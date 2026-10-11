@@ -59,7 +59,7 @@ class LeafMarkPainter extends CustomPainter {
       canvas.save();
       canvas.clipPath(LeafMark.leaf);
       canvas.drawRect(
-        const Offset(0, 0) & const Size(leafMarkWidth, leafMarkHeight),
+        Offset.zero & const Size(leafMarkWidth, leafMarkHeight),
         Paint()
           ..shader =
               LinearGradient(
@@ -71,7 +71,7 @@ class LeafMarkPainter extends CustomPainter {
                 stops: const [0.35, 0.5, 0.65],
                 transform: _Shift(x),
               ).createShader(
-                const Offset(0, 0) & const Size(leafMarkWidth, leafMarkHeight),
+                Offset.zero & const Size(leafMarkWidth, leafMarkHeight),
               ),
       );
       canvas.restore();

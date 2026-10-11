@@ -83,6 +83,7 @@ class PdvDetailScreen extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
+                      spacing: 8,
                       children: [
                         Expanded(
                           child: Text(p.name, style: context.text.titleLarge),

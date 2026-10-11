@@ -3,7 +3,6 @@ import { AnalyticsService } from "./analytics.service";
 import { ApprovalsService } from "./approvals.service";
 import { DashboardService } from "./dashboard.service";
 import { ReportingController } from "./reporting.controller";
-import { InsightsService } from "./insights.service";
 import { ReportsService } from "./reports.service";
 
 @Module({
@@ -12,7 +11,6 @@ import { ReportsService } from "./reports.service";
     AnalyticsService,
     ApprovalsService,
     DashboardService,
-    InsightsService,
     ReportsService,
   ],
 })

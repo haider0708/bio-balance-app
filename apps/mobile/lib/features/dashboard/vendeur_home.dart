@@ -85,25 +85,22 @@ class VendeurHome extends ConsumerWidget {
                 label: Text(t.newSale),
               ),
               const Gap(12),
-              Row(
+              AutoGrid(
+                minItemWidth: 120,
+                maxColumns: 2,
                 children: [
-                  Expanded(
-                    child: StatTile(
-                      icon: LucideIcons.wallet,
-                      label: t.balanceShort,
-                      value: Money.format(wallet.balanceMillimes, locale),
-                      tone: Tone.success,
-                      onTap: () => context.go('/wallet'),
-                    ),
+                  StatTile(
+                    icon: LucideIcons.wallet,
+                    label: t.balanceShort,
+                    value: Money.format(wallet.balanceMillimes, locale),
+                    tone: Tone.success,
+                    onTap: () => context.go('/wallet'),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: StatTile(
-                      icon: LucideIcons.calendarDays,
-                      label: t.thisWeek,
-                      value: Money.format(week.rewardMillimes, locale),
-                      hint: t.units(week.units),
-                    ),
+                  StatTile(
+                    icon: LucideIcons.calendarDays,
+                    label: t.thisWeek,
+                    value: Money.format(week.rewardMillimes, locale),
+                    hint: t.units(week.units),
                   ),
                 ],
               ),

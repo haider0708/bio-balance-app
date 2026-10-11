@@ -1,4 +1,5 @@
 // Renders the main screens of every role to build/screenshots for a visual review.
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart' show BackButton, TextFormField;
@@ -403,13 +404,27 @@ Future<void> loadFonts() async {
     await loader.load();
   }
 
+  // Found the same way on any machine: the Flutter SDK that runs the tests, and the icon
+  // package where pub put it.
+  final flutter = Platform.environment['FLUTTER_ROOT']!;
+  final packages =
+      (jsonDecode(File('.dart_tool/package_config.json').readAsStringSync())
+              as Map<String, dynamic>)['packages']
+          as List<dynamic>;
+  final lucideRoot = Uri.parse(
+    '${packages.cast<Map<String, dynamic>>().firstWhere((p) => p['name'] == 'lucide_icons_flutter')['rootUri']}/',
+  );
+  final lucide = File.fromUri(
+    (lucideRoot.isAbsolute
+            ? lucideRoot
+            : Directory('.dart_tool').absolute.uri.resolveUri(lucideRoot))
+        .resolve('assets/lucide.ttf'),
+  ).path;
   await load('Inter', 'assets/fonts/Inter.ttf');
   await load(
     'MaterialIcons',
-    '${Platform.environment['HOME']}/development/flutter/bin/cache/artifacts/material_fonts/MaterialIcons-Regular.otf',
+    '$flutter/bin/cache/artifacts/material_fonts/MaterialIcons-Regular.otf',
   );
-  const lucide =
-      '/home/haydar/.pub-cache/hosted/pub.dev/lucide_icons_flutter-3.1.20/assets/lucide.ttf';
   await load('Lucide', lucide);
   await load('packages/lucide_icons_flutter/Lucide', lucide);
 }
@@ -458,7 +473,16 @@ void main() {
   });
 
   testWidgets('screens: celebration and wallet', (tester) async {
+    String day(int back) => DateTime.now()
+        .subtract(Duration(days: back))
+        .toIso8601String()
+        .substring(0, 10);
     final s = server('VENDEUR')
+      ..on('GET /v1/sales/days', [
+        {'day': day(0), 'sales': 3, 'units': 9, 'rewardMillimes': 5200},
+        {'day': day(2), 'sales': 5, 'units': 14, 'rewardMillimes': 7600},
+        {'day': day(3), 'sales': 2, 'units': 4, 'rewardMillimes': 2100},
+      ])
       ..handle(
         'POST /v1/sales',
         (r) => (

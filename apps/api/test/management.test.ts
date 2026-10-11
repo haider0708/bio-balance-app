@@ -617,83 +617,10 @@ describe("training", () => {
   });
 });
 
-describe("insights", () => {
-  it("explains the numbers: comparison, mix, ranking, stock pace, plain sentences", async () => {
-    await twoRegionsWithSales();
-    const from = addDays(tunisDay(new Date()), -13);
-    const to = tunisDay(new Date());
-    const r = (await w.a.get(`/v1/reports/insights?from=${from}&to=${to}`))
-      .body;
-    expect(r.totals).toMatchObject({
-      units: 12,
-      sales: 3,
-      activeStores: 2,
-      activeSellers: 2,
-    });
-    expect(r.totals.previousUnits).toBe(0);
-    expect(r.totals.unitsChange).toBeNull();
-    expect(r.families.map((f: any) => [f.name, f.units])).toEqual([
-      ["Serums", 11],
-      ["Hair", 1],
-    ]);
-    expect(r.stores.map((s: any) => [s.name, s.units, s.share])).toEqual([
-      ["Para Nord", 8, 67],
-      ["Para Sud", 4, 33],
-    ]);
-    expect(r.products[0]).toMatchObject({
-      name: "Serum Niacinamide",
-      units: 6,
-    });
-    expect(r.sellers[0]).toMatchObject({ name: "Anis", units: 8 });
-    expect(r.weekdays.reduce((t: number, d: any) => t + d.units, 0)).toBe(12);
-    expect(r.bestDay.units).toBe(12);
-    // 5 left at about 0.2 a day is nearly a month of stock.
-    expect(r.stock.runningOut).toEqual([]);
-    expect(r.insights.map((i: any) => i.key)).toEqual(
-      expect.arrayContaining([
-        "TOP_FAMILY",
-        "BEST_WEEKDAY",
-        "TOP_SELLER",
-        "REWARD_PER_UNIT",
-      ]),
-    );
-    // A responsable only gets their own region.
-    const mine = (await w.n.get(`/v1/reports/insights?from=${from}&to=${to}`))
-      .body;
-    expect(mine.totals.units).toBe(8);
-    expect(mine.stores.map((s: any) => s.name)).toEqual(["Para Nord"]);
-    expect(
-      (
-        await w.s.get(`/v1/reports/insights?from=${from}&to=${to}`)
-      ).body.stores.map((s: any) => s.name),
-    ).toEqual(["Para Sud"]);
-  });
-
-  it("warns when a product will run out within a week at its current pace", async () => {
-    const { a } = await twoRegionsWithSales();
-    await a.post("/v1/sales", {
-      id: randomUUID(),
-      lines: [{ productId: w.products[0]!.id, quantity: 5 }],
-    }); // the last five of Vitamin C in Nord
-    const from = addDays(tunisDay(new Date()), -13);
-    const r = (
-      await w.n.get(
-        `/v1/reports/insights?from=${from}&to=${tunisDay(new Date())}`,
-      )
-    ).body;
-    expect(r.stock.runningOut[0]).toMatchObject({
-      name: "Serum Vitamin C",
-      stock: 0,
-      days: 0,
-    });
-    expect(r.insights.some((i: any) => i.key === "RUNNING_OUT")).toBe(true);
-  });
-});
-
 describe("report limits", () => {
   it("refuses a range longer than 400 days and a backwards one, cleanly", async () => {
     const long = await w.a.get(
-      "/v1/reports/insights?from=2020-01-01&to=2026-12-31",
+      "/v1/reports/sales?groupBy=day&from=2020-01-01&to=2026-12-31",
     );
     expect(long.status).toBe(400);
     const back = await w.a.get(
@@ -701,7 +628,7 @@ describe("report limits", () => {
     );
     expect(back.status).toBe(400);
     const ok = await w.a.get(
-      "/v1/reports/insights?from=2026-01-01&to=2026-12-31",
+      "/v1/reports/sales?groupBy=day&from=2026-01-01&to=2026-12-31",
     );
     expect(ok.status).toBe(200);
   });

@@ -254,26 +254,18 @@ class _SalesHistoryScreenState extends ConsumerState<SalesHistoryScreen> {
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
+                  AutoGrid(
+                    minItemWidth: 120,
+                    maxColumns: 2,
                     children: [
-                      Expanded(
-                        child: StatTile(
-                          label: t.totalUnits,
-                          value: '$units',
-                          hint: t.salesCount(sales),
-                        ),
+                      StatTile(
+                        label: t.totalUnits,
+                        value: '$units',
+                        hint: t.salesCount(sales),
                       ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: StatTile(
-                          label: t.reward,
-                          value: Money.format(
-                            reward,
-                            t.localeName,
-                            unit: false,
-                          ),
-                          hint: 'TND',
-                        ),
+                      StatTile(
+                        label: t.reward,
+                        value: Money.format(reward, t.localeName),
                       ),
                     ],
                   ),
@@ -543,6 +535,7 @@ class SaleTile extends StatelessWidget {
               ],
             ),
           ),
+          const SizedBox(width: 8),
           if (sale.voided)
             StatusChip(t.saleVoided)
           else if (sale.rewardMillimes > 0)

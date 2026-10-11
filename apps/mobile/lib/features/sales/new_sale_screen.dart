@@ -113,9 +113,12 @@ class _NewSaleScreenState extends ConsumerState<NewSaleScreen> {
   }
 
   Future<void> _review(List<Product> products) async {
+    // A product taken out of the catalogue meanwhile simply drops out of the sale.
+    final byId = {for (final p in products) p.id: p};
+    _cart.removeWhere((id, _) => !byId.containsKey(id));
+    if (_cart.isEmpty) return setState(() {});
     final lines = [
-      for (final e in _cart.entries)
-        CartLine(products.firstWhere((p) => p.id == e.key), e.value),
+      for (final e in _cart.entries) CartLine(byId[e.key]!, e.value),
     ];
     final outcome = await showModalBottomSheet<SaleOutcome>(
       context: context,
@@ -412,6 +415,7 @@ class _ReviewSheetState extends ConsumerState<_ReviewSheet> {
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: 6),
                     child: Row(
+                      spacing: 8,
                       children: [
                         Expanded(
                           child: Text(
@@ -437,6 +441,7 @@ class _ReviewSheetState extends ConsumerState<_ReviewSheet> {
           ),
           const Divider(height: 24),
           Row(
+            spacing: 8,
             children: [
               Expanded(
                 child: Text(t.totalUnits, style: context.text.titleMedium),

@@ -5083,6 +5083,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'What you entered here is cleared.'**
   String get startOverBody;
+
+  /// No description provided for @vsPreviousText.
+  ///
+  /// In en, this message translates to:
+  /// **'before: {value}'**
+  String vsPreviousText(String value);
 }
 
 class _AppLocalizationsDelegate

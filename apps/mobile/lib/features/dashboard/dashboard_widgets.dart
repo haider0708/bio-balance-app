@@ -521,6 +521,7 @@ class StockAttentionTile extends ConsumerWidget {
       child: AppCard(
         padding: const EdgeInsets.all(12),
         child: Row(
+          spacing: 8,
           children: [
             Expanded(
               child: Column(

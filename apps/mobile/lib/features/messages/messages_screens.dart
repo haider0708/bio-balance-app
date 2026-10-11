@@ -63,6 +63,7 @@ class MessagesScreen extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
+                      spacing: 8,
                       children: [
                         Expanded(
                           child: Text(m.title, style: context.text.titleSmall),

@@ -647,6 +647,7 @@ class CourseProgressScreen extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
+                        spacing: 8,
                         children: [
                           Expanded(
                             child: Text(r.name, style: context.text.titleSmall),

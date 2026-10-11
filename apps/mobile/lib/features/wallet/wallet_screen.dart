@@ -71,7 +71,7 @@ class WalletScreen extends ConsumerWidget {
                 hint:
                     '${t.salesCount(w.month.sales)} · ${t.units(w.month.units)}',
               ),
-              if (payouts.value?.isNotEmpty == true) ...[
+              if (payouts.value?.isNotEmpty ?? false) ...[
                 SectionHeader(t.payouts),
                 for (final p in payouts.value!.take(5)) _PayoutTile(payout: p),
               ],
@@ -323,6 +323,7 @@ class _PayoutTile extends ConsumerWidget {
       padding: const EdgeInsets.only(bottom: 8),
       child: AppCard(
         child: Row(
+          spacing: 8,
           children: [
             Expanded(
               child: Column(

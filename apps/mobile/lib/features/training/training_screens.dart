@@ -109,6 +109,7 @@ class CourseCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
+                  spacing: 8,
                   children: [
                     Expanded(
                       child: Text(

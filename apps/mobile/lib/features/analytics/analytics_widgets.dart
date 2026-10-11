@@ -145,6 +145,7 @@ class KpiTile extends StatelessWidget {
             ),
             const SizedBox(height: 4),
             Row(
+              spacing: 8,
               children: [
                 Expanded(
                   child: Text(

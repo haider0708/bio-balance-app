@@ -103,9 +103,6 @@ class DraftKeeper {
     if (prefs == null || account == null) return;
     Drafts.write(prefs, account, name, null).ignore();
   }
-
-  /// Starting over is allowed again after [discard] (the person cleared the form).
-  void reopen() => _done = false;
 }
 
 /// "Your unfinished entry is back", with a way to start over.

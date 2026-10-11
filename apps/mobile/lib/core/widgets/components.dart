@@ -123,6 +123,7 @@ class SectionHeader extends StatelessWidget {
     return Padding(
       padding: padding ?? const EdgeInsets.fromLTRB(4, 26, 4, 12),
       child: Row(
+        spacing: 8,
         children: [
           Expanded(
             child: Text(
@@ -337,6 +338,7 @@ class InfoRow extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
+        spacing: 8,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Expanded(
@@ -610,18 +612,21 @@ class AutoGrid extends StatelessWidget {
         children: [
           for (var start = 0; start < children.length; start += columns) ...[
             if (start > 0) SizedBox(height: spacing),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                for (var i = start; i < start + columns; i++) ...[
-                  if (i > start) SizedBox(width: spacing),
-                  Expanded(
-                    child: i < children.length
-                        ? children[i]
-                        : const SizedBox.shrink(),
-                  ),
+            // Cards of a row share one height, whatever each one holds.
+            IntrinsicHeight(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  for (var i = start; i < start + columns; i++) ...[
+                    if (i > start) SizedBox(width: spacing),
+                    Expanded(
+                      child: i < children.length
+                          ? children[i]
+                          : const SizedBox.shrink(),
+                    ),
+                  ],
                 ],
-              ],
+              ),
             ),
           ],
         ],

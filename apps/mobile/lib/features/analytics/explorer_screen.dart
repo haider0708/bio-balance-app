@@ -274,9 +274,10 @@ class _Answer extends ConsumerWidget {
               value: Money.format(
                 totals.integer('rewardMillimes'),
                 t.localeName,
-                unit: false,
               ),
-              hint: 'TND',
+              hint: t.vsPreviousText(
+                Money.format(before.integer('rewardMillimes'), t.localeName),
+              ),
               change: change.integerOrNull('reward'),
               selected: metric == Metric.reward,
               onTap: () => onChange(lens.copyWith(sort: Metric.reward)),

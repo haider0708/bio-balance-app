@@ -141,6 +141,7 @@ class RestockTile extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            spacing: 8,
             children: [
               Expanded(
                 child: Text(order.number, style: context.text.titleSmall),
@@ -579,6 +580,7 @@ class _RestockDetailScreenState extends ConsumerState<RestockDetailScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
+                      spacing: 8,
                       children: [
                         Expanded(
                           child: Text(
@@ -799,7 +801,7 @@ class _RestockDetailScreenState extends ConsumerState<RestockDetailScreen> {
               '/restocks/${o.id}/ship',
               extra: o,
             );
-            if (shipped == true) _reload();
+            if (shipped ?? false) _reload();
           },
         ),
       );
@@ -822,7 +824,7 @@ class _RestockDetailScreenState extends ConsumerState<RestockDetailScreen> {
                 '/restocks/${o.id}/receive',
                 extra: o,
               );
-              if (sent == true) _reload();
+              if (sent ?? false) _reload();
             },
           ),
         )
@@ -960,6 +962,7 @@ class _Lines extends StatelessWidget {
             child: AppCard(
               padding: const EdgeInsets.all(12),
               child: Row(
+                spacing: 8,
                 children: [
                   Expanded(child: Text(l.name, style: context.text.titleSmall)),
                   cell(t.colRequested, l.requested),

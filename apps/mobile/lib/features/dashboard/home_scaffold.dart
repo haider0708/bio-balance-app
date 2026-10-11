@@ -37,6 +37,7 @@ class HomeScaffold extends ConsumerWidget {
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 12, 12, 8),
               child: Row(
+                spacing: 8,
                 children: [
                   Expanded(
                     child: Column(

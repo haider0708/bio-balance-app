@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
 import '../../core/theme/app_theme.dart';
@@ -44,7 +45,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
         actions: [
           IconButton(
             onPressed: _controller.toggleTorch,
-            icon: const Icon(Icons.flashlight_on_outlined),
+            icon: const Icon(LucideIcons.flashlight),
             tooltip: t.torch,
           ),
         ],

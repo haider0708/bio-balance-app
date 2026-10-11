@@ -47,3 +47,7 @@ linter:
     use_super_parameters: true
     only_throw_errors: true
     discarded_futures: true
+    unnecessary_null_checks: true
+    avoid_void_async: true
+    use_named_constants: true
+    no_self_assignments: true

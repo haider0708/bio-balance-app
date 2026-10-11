@@ -1673,5 +1673,13 @@
   "draftKept": "Kept as a draft: finish it later.",
   "startOver": "Start over",
   "startOverTitle": "Start over?",
-  "startOverBody": "What you entered here is cleared."
+  "startOverBody": "What you entered here is cleared.",
+  "vsPreviousText": "before: {value}",
+  "@vsPreviousText": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  }
 }

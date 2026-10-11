@@ -12,7 +12,7 @@ data          the initial catalog (51 products with photos)
 
 A modular monolith. Each module owns its routes, rules and queries:
 
-`auth` (sessions, MFA for the admin, activation and reset codes) · `directory` (groups, points of sale, people, grossistes: warehouses without accounts) · `catalog` · `media` (streamed uploads, content checked by real bytes) · `stock` (ledger and declarations) · `restock` · `rewards` (rules and wallet) · `sales` · `messaging` (notifications and announcements) · `training` · `reporting` (dashboards, approvals inbox, reports, audit).
+`auth` (sessions, MFA for the admin, activation and reset codes) · `directory` (groups, points of sale, people, grossistes: warehouses without accounts) · `catalog` · `media` (streamed uploads, content checked by real bytes) · `stock` (ledger and declarations) · `restock` · `rewards` (rules and wallet) · `sales` · `messaging` (notifications and announcements) · `training` · `reporting` (dashboards, approvals inbox, analytics, reports, audit) · `legal` (privacy, terms, help and account-deletion pages).
 
 Shared kernel in `core/`: errors, the `Database` wrapper, auth guard and roles, audit, notifications, dates, money.
 
@@ -30,7 +30,7 @@ Shared kernel in `core/`: errors, the `Database` wrapper, auth guard and roles, 
 
 ### Background work
 
-A small PostgreSQL job queue (`FOR UPDATE SKIP LOCKED`, leases, retries with backoff) delivers emails (French/English), scheduled announcements and cleanup. Emails carry one-time 8-character codes valid only with the person's email address; the code is removed from the job once handled.
+A small PostgreSQL job queue (`FOR UPDATE SKIP LOCKED`, leases, retries with backoff) delivers emails (French/English), scheduled announcements and cleanup. The worker also pushes each new notification once to iPhones (Apple push over HTTP/2, `src/push`), when the Apple key is configured. Emails carry one-time 8-character codes valid only with the person's email address; the code is removed from the job once handled.
 
 ## Mobile app
 
@@ -38,7 +38,9 @@ Feature-first folders (`features/<feature>`: models, repository, screens), River
 
 - **Online first.** Reads go to the server; the catalog is cached on the phone.
 - **Offline selling.** A sale made without a connection is saved in a small outbox and sent when the server answers, with the same identifier, so it can never be counted twice. Everything else (approvals, stock, payouts) needs a connection by design.
-- **Photos** are resized on the phone and uploaded before the form is sent.
+- **Photos** are resized on the phone and uploaded before the form is sent; photos and documents once opened are kept in a bounded on-phone cache.
+- **Drafts.** A sale being built, a stock count and a restock request are saved on the phone at every change, per account, and come back when the screen is opened again.
+- **Alerts.** Android checks for new notifications in the background every 15 minutes; iPhones receive Apple push alerts (or check when iOS allows).
 - **Tests:** widget tests with a fake server (sign-in, selling, offline outbox, language), screenshot rendering for visual review, and a **contract test** that runs the app's real repositories against a real API with a realistic world and checks every response parses and means what it should.
 
 ## Deployment

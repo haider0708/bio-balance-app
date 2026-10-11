@@ -103,6 +103,7 @@ class _RequestCard extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            spacing: 8,
             children: [
               Expanded(
                 child: Text(
@@ -335,6 +336,7 @@ class _Wallets extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
+                  spacing: 8,
                   children: [
                     Expanded(
                       child: Text(w.name, style: context.text.titleSmall),

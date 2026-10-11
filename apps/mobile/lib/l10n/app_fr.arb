@@ -1673,5 +1673,13 @@
   "draftKept": "Gardé en brouillon : vous pourrez le terminer plus tard.",
   "startOver": "Recommencer",
   "startOverTitle": "Recommencer ?",
-  "startOverBody": "Ce que vous avez saisi ici sera effacé."
+  "startOverBody": "Ce que vous avez saisi ici sera effacé.",
+  "vsPreviousText": "avant : {value}",
+  "@vsPreviousText": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  }
 }

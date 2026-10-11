@@ -631,6 +631,7 @@ class _RewardFormScreenState extends ConsumerState<RewardFormScreen> {
           ),
           const Gap(8),
           Row(
+            spacing: 8,
             children: [
               Expanded(
                 child: OutlinedButton.icon(

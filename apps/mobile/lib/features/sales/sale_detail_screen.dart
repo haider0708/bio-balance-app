@@ -44,6 +44,7 @@ class SaleDetailScreen extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
+                      spacing: 8,
                       children: [
                         Expanded(
                           child: Text(

@@ -2975,4 +2975,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get startOverBody => 'What you entered here is cleared.';
+
+  @override
+  String vsPreviousText(String value) {
+    return 'before: $value';
+  }
 }
