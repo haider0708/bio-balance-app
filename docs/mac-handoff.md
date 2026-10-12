@@ -2,6 +2,13 @@
 
 Read this first. It says where the project stands and what the Mac session is for. There are no secrets in it.
 
+## Start here
+
+1. Run `bash scripts/mac-setup.sh` (installs and checks everything, prepares signing and the server connection, builds the app once). It prints a public SSH key for the owner to give to the Linux session.
+2. Follow [app-store-steps.md](app-store-steps.md): every step to the App Store, with who does what and the exact answers for each form.
+3. Obey the rules in "One codebase, two stores" below.
+4. Secrets (reviewer passwords, server access) are in the private file the owner hands you; they are not in this repository.
+
 ## The project
 
 BioBalance: sales, stock, restocks and rewards for a parapharmacy network. Flutter app (`apps/mobile`, phone, tablet and web console), NestJS 12 + Prisma 7 + PostgreSQL 17 server (`apps/api`). Production: https://api.galylio.com (server), https://admin.galylio.com (web console). Repository: github.com/haider0708/bio-balance-app, branch `main`, current release `v3.3.0` (app version `3.3.0+40` in `apps/mobile/pubspec.yaml`). Everything is documented in `docs/` (start with `mobile-release.md` and `store-publishing.md`).
@@ -12,14 +19,9 @@ BioBalance: sales, stock, restocks and rewards for a parapharmacy network. Flutt
 - **Server:** deployed (push alerts for Android through Firebase, a demo region "Démo" with reviewer accounts). Deploys are done from the Linux PC, not from here (`scripts/deploy-vps.sh` needs ssh access to the server).
 - **iPhone app: compiles, never run.** It was written on Linux, where Xcode does not exist, but the GitHub check `ios` (a Mac machine, Xcode 26.6, `flutter build ios --release --no-codesign`) **builds it successfully** on every push (`Runner.app`, about 30 MB). What has *not* been exercised: signing and capabilities (push), archiving, and running on a real iPhone or in the simulator. Expect the real problems there, not in compilation.
 
-## What this session is for, in order
+## What this session is for
 
-0. Tools on the Mac: Xcode 26 or later (open it once, accept the licence, install the iOS platform), Flutter 3.47.5 (`flutter --version`), **CocoaPods** (`brew install cocoapods`: the plugin `open_filex` still needs it), git. Check with `flutter doctor`.
-1. `cd apps/mobile && flutter pub get --enforce-lockfile && flutter build ios --release --no-codesign` (this already passes in CI, so it should work; if it does not, the Mac setup is the cause). Then `flutter analyze && flutter test`. Then run the app in the **iOS simulator** (`flutter run`) and sign in with a reviewer account to see the screens, the launch animation, camera and photo prompts.
-2. Signing: `cp ios/Flutter/Signing.xcconfig.example ios/Flutter/Signing.xcconfig`, put the Apple Team ID in it (the file is git-ignored). Xcode 26 or later is required; Xcode → Settings → Accounts with the Apple Developer account. Bundle identifier `tn.biobalance.app`, iOS 15+, iPhone portrait, iPad all orientations.
-3. `flutter build ipa --release`, upload with Transporter, test through TestFlight (internal testers need no review).
-4. App Store Connect: create the app (name BioBalance; if taken, a close variant), listing texts and privacy answers from `docs/store-publishing.md`, screenshots already made in `~/.biobalance/store/iphone-6.9` and `ipad-13` on the Linux PC (regenerate on the Mac with `STORE_SHOTS=1 flutter test test/store_screenshots_test.dart` if needed; they land in `build/store`), review notes, then submit for review and ask Apple for **Unlisted App Distribution** (the app is invitation-only; Apple often refuses such apps in the public store).
-5. Push alerts for iPhone: the server code is ready (`apps/api/src/push/apns.ts`); it needs an Apple push key (.p8) configured on the server (`docs/runbook.md`, "iPhone alerts"). The Linux session does that part.
+Get the iPhone app signed, tested on a simulator and a real iPhone, uploaded to TestFlight, submitted to App Review, and distributed as an **unlisted** app. The full procedure, with the answers to give in App Store Connect, is [app-store-steps.md](app-store-steps.md). Android is already in a Google Play closed test and is not this session's concern.
 
 ## Things the iPhone app does that Apple will look at
 

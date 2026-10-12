@@ -73,7 +73,7 @@ Data **linked to the user**, used **only for App Functionality**, **not used for
 | Apple category | What |
 |---|---|
 | Contact Info → Name, Email Address, Phone Number | the account |
-| Identifiers → User ID | the account |
+| Identifiers → User ID, Device ID | the account; the phone's push-alert token |
 | User Content → Photos or Videos | proof photos of stock and delivery papers |
 | User Content → Other User Content | sales, stock counts, restocks |
 
@@ -81,7 +81,7 @@ Not collected: location, contacts, health, financial info, browsing, search hist
 
 ## Google Play “Data safety”
 
-- Data collected: **Personal info** (name, email address, phone number, user IDs), **Photos**, **App activity → Other user-generated content** (sales, counts). All **required for app functionality**, **not shared** with third parties, **encrypted in transit**, and **deletable by the user** (in the app and at `/account-deletion`).
+- Data collected: **Personal info** (name, email address, phone number, user IDs), **Photos**, **Files and docs** (PDF proofs), **App activity → Other user-generated content** (sales, counts), **Device or other IDs** (the push-alert token). All **required for app functionality**, **not shared** with third parties, **encrypted in transit**, and **deletable by the user** (in the app and at `/account-deletion`).
 - No data sold, no ads (**Contains ads: No**), no location.
 - **App access**: all functionality needs an account → give the reviewer accounts (decision 5).
 - **Content rating**: questionnaire → no violence, no user-to-user chat, no gambling → *Everyone*.
