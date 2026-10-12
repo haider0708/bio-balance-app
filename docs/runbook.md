@@ -54,9 +54,18 @@ The administrator can also work from a browser: **https://admin.galylio.com/**. 
 `API_PUBLIC_URL` (for example `https://api.galylio.com`) is used by the API and the worker to put the "copy your code" link in emails.
 
 
-`API_IMAGE` (set by the deploy script), `DATABASE_URL` (restricted application role), `MIGRATION_DATABASE_URL` (owner), `POSTGRES_USER`/`POSTGRES_PASSWORD`/`POSTGRES_DB`, `MFA_ENCRYPTION_KEY` (32 random bytes, base64 — losing it locks the admin's authenticator), `SMTP_HOST`/`SMTP_PORT`/`SMTP_SECURE`/`SMTP_REQUIRE_TLS`/`SMTP_FROM`/`SMTP_USER`/`SMTP_PASSWORD`, `WORKER_CONCURRENCY`, `SUPPORT_EMAIL`, and for iPhone alerts `APNS_KEY_ID`/`APNS_TEAM_ID`/`APNS_KEY_P8`/`APNS_TOPIC` (below).
+`API_IMAGE` (set by the deploy script), `DATABASE_URL` (restricted application role), `MIGRATION_DATABASE_URL` (owner), `POSTGRES_USER`/`POSTGRES_PASSWORD`/`POSTGRES_DB`, `MFA_ENCRYPTION_KEY` (32 random bytes, base64 — losing it locks the admin's authenticator), `SMTP_HOST`/`SMTP_PORT`/`SMTP_SECURE`/`SMTP_REQUIRE_TLS`/`SMTP_FROM`/`SMTP_USER`/`SMTP_PASSWORD`, `WORKER_CONCURRENCY`, `SUPPORT_EMAIL`, and for push alerts `FCM_SERVICE_ACCOUNT` (Android) and `APNS_KEY_ID`/`APNS_TEAM_ID`/`APNS_KEY_P8`/`APNS_TOPIC` (iPhone), below.
 
-### iPhone alerts (Apple push)
+### Push alerts
+
+The worker sends each new notification to the person's phones within milliseconds: the database signals it (`LISTEN notification_new`, a trigger on `Notification`), it claims the new rows, words them in the person's language and hands them to Google (Android) or Apple (iPhone). A slow 30-second timer covers a missed signal. A phone whose platform has no key on the server keeps using its own 15-minute background check, so nothing is ever left silent.
+
+**Android (Firebase Cloud Messaging)** — set up on 2026-10-12 with the Firebase project `bio-balance-8b7c4`:
+- The app carries the project's public identifiers in code (`lib/core/alerts/fcm_io.dart`), so no Gradle plugin or `google-services.json` is needed to build it.
+- The server holds the service-account key: `FCM_SERVICE_ACCOUNT` in `/etc/biobalance/backend.env` is the downloaded JSON key, base64 encoded (`base64 -w0 key.json`). To replace it: Firebase console → Project settings → Service accounts → Generate new private key, put the new value in the file, `sudo biobalance-compose up -d`, then delete the old key in Google Cloud → IAM → Service accounts. A backup of the file before this change is `/etc/biobalance/backend.env.before-fcm` (it holds the other secrets: remove it when no longer needed).
+- Check: sign in on an Android phone, allow notifications, record a sale from another phone: the responsable's phone shows it at once. A refused key shows as `PUSH_FAILED` in `docker logs biobalance-worker-1`.
+
+#### iPhone alerts (Apple push)
 
 Without these keys iPhones check for alerts by themselves when iOS lets them (a few times a day), and see everything when the app opens. With them, an alert reaches a closed iPhone within seconds. Once the Apple developer account exists:
 

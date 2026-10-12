@@ -12,6 +12,7 @@ import '../api/api_client.dart';
 import '../auth/secure_storage.dart';
 import '../config.dart';
 import '../l10n/server_text.dart';
+import 'fcm.dart';
 import 'push.dart';
 
 const _taskName = 'biobalance.alerts';
@@ -33,17 +34,20 @@ const _settings = InitializationSettings(
 
 final _notifications = FlutterLocalNotificationsPlugin();
 
-/// Phone alerts. Every fifteen minutes or so (the shortest the system allows; on iPhone, when
-/// iOS decides) the phone asks the server for new notifications and shows them, even when the
-/// app is closed. A responsable hears about each sale of their stores this way. On an iPhone
-/// whose server sends Apple push alerts ([Push]), the push does it at once and this check stays
-/// quiet, so nothing is announced twice.
+/// Phone alerts, two ways. **Push** (Apple on iPhone, Firebase on Android): the server sends each
+/// new notification at once, the phone's system shows it even with the app closed, and no code runs
+/// on the phone. **Background check** (the fallback, used while the server has no push key for this
+/// phone, or the phone has no Google services): every fifteen minutes or so the phone asks the
+/// server for new notifications and shows them. Once push is registered the check stays quiet, so
+/// nothing is announced twice.
 class BackgroundAlerts {
   const BackgroundAlerts._();
 
   static String? _enabledFor;
+  static ApiClient? _api;
   static VoidCallback? _opened;
   static bool _initialized = false;
+  static bool _listening = false;
 
   /// Prepares the phone's alerts once in the app, with what a tap on one does.
   static Future<void> _initialize() async {
@@ -52,6 +56,19 @@ class BackgroundAlerts {
       _settings,
       onDidReceiveNotificationResponse: (_) => _opened?.call(),
     );
+    // Push alerts name this channel; it exists before the first one arrives.
+    await _notifications
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >()
+        ?.createNotificationChannel(
+          const AndroidNotificationChannel(
+            _channelId,
+            'BioBalance',
+            description: 'Sales, deliveries and messages',
+            importance: Importance.high,
+          ),
+        );
     _initialized = true;
   }
 
@@ -80,12 +97,13 @@ class BackgroundAlerts {
     }
   }
 
-  /// Runs [opened] when the person taps an alert (a push on iPhone, a background alert on both),
-  /// including the one that started the app.
+  /// Runs [opened] when the person taps an alert (push or background), including the one that
+  /// started the app.
   static Future<void> onOpened(VoidCallback opened) async {
     if (!_phone) return;
     _opened = opened;
     await Push.onOpened(opened);
+    await Fcm.watchOpened(opened);
     try {
       await _initialize();
       final launch = await _notifications.getNotificationAppLaunchDetails();
@@ -95,33 +113,72 @@ class BackgroundAlerts {
     }
   }
 
-  /// Once per account on this phone: asks whether alerts may be shown (Android 13+, iPhone)
-  /// and, on an iPhone, registers it for push alerts.
+  /// Once per account on this phone: asks whether alerts may be shown (Android 13+, iPhone) and
+  /// registers the phone for push alerts.
   static Future<void> enable(String account, ApiClient api) async {
     if (!_phone || _enabledFor == account) return;
     _enabledFor = account;
+    _api = api;
     try {
-      if (defaultTargetPlatform == TargetPlatform.android) {
+      final android = defaultTargetPlatform == TargetPlatform.android;
+      if (android) {
         await _initialize();
         await _notifications
             .resolvePlatformSpecificImplementation<
               AndroidFlutterLocalNotificationsPlugin
             >()
             ?.requestNotificationsPermission();
+      }
+      final token = android ? await Fcm.token() : await Push.token();
+      final prefs = await SharedPreferences.getInstance();
+      if (token == null) {
+        // Alerts refused, or no Google services here: the background check does the work.
+        await prefs.setBool(_pushedKey, false);
         return;
       }
-      final token = await Push.token();
-      if (token == null) return;
-      final answer = await api.post('/v1/me/push-device', {
-        'token': token,
-        'platform': 'IOS',
-        // Builds run from Xcode talk to Apple's test servers.
-        'sandbox': !kReleaseMode,
-      });
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setBool(_pushedKey, answer is Map && answer['push'] == true);
+      await prefs.setBool(_pushedKey, await _register(api, token, android));
+      if (android && !_listening) {
+        _listening = true;
+        // Firebase may replace the token later: the server must always have the current one.
+        await Fcm.watchToken((fresh) => unawaited(_refreshed(fresh)));
+        // An alert that arrives while the app is open is shown by the app itself.
+        Fcm.foreground.listen((m) {
+          final body = m.body;
+          if (body != null && body.isNotEmpty) {
+            unawaited(
+              _show(body.hashCode & 0x7fffffff, m.title ?? 'BioBalance', body),
+            );
+          }
+        });
+      }
     } catch (_) {
       // No notification support here (a test, an old phone, offline): try at the next start.
+      _enabledFor = null;
+    }
+  }
+
+  /// Tells the server about this phone; true when the server really sends push alerts to it.
+  static Future<bool> _register(
+    ApiClient api,
+    String token,
+    bool android,
+  ) async {
+    final answer = await api.post('/v1/me/push-device', {
+      'token': token,
+      'platform': android ? 'ANDROID' : 'IOS',
+      // iPhone builds run from Xcode talk to Apple's test servers.
+      if (!android) 'sandbox': !kReleaseMode,
+    });
+    return answer is Map && answer['push'] == true;
+  }
+
+  static Future<void> _refreshed(String token) async {
+    final api = _api;
+    if (api == null || _enabledFor == null) return;
+    try {
+      await _register(api, token, true);
+    } catch (_) {
+      // Offline: the next start registers it.
       _enabledFor = null;
     }
   }

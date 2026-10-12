@@ -25,15 +25,27 @@ const Profile = z.object({
   locale: z.enum(["fr", "en"]).optional(),
 });
 const DeleteAccount = z.object({ password: z.string().min(1).max(128) });
-const PushDevice = z.object({
-  token: z
-    .string()
-    .trim()
-    .toLowerCase()
-    .regex(/^[0-9a-f]{32,200}$/),
-  platform: z.literal("IOS"),
-  sandbox: z.boolean().default(false),
-});
+const PushDevice = z.discriminatedUnion("platform", [
+  z.object({
+    platform: z.literal("IOS"),
+    // Apple's device token, in hexadecimal.
+    token: z
+      .string()
+      .trim()
+      .toLowerCase()
+      .regex(/^[0-9a-f]{32,200}$/),
+    sandbox: z.boolean().default(false),
+  }),
+  z.object({
+    platform: z.literal("ANDROID"),
+    // Firebase's registration token.
+    token: z
+      .string()
+      .trim()
+      .regex(/^[A-Za-z0-9_:.-]{40,4096}$/),
+    sandbox: z.boolean().default(false),
+  }),
+]);
 const ChangePassword = z.object({
   current: z.string().min(1).max(128),
   next: password,

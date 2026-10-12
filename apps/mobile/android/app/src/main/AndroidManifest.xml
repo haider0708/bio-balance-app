@@ -48,6 +48,17 @@
                 <data android:scheme="biobalance" android:host="app"/>
             </intent-filter>
         </activity>
+        <!-- What a push alert looks like when the server does not say (the server does, these are the
+             fallback): the white leaf, the brand green, and the channel the app creates. -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_icon"
+            android:resource="@drawable/ic_stat_biobalance" />
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_color"
+            android:resource="@color/notification_color" />
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="biobalance_alerts" />
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data

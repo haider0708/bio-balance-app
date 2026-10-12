@@ -2,4 +2,6 @@
 <resources>
     <!-- Behind the launch screen: the same colour the animated splash of the app starts on. -->
     <color name="splash_background">#FFFFFF</color>
+    <!-- The tint of alerts in the notification shade. -->
+    <color name="notification_color">#0C6B45</color>
 </resources>

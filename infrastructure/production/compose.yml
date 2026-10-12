@@ -12,6 +12,8 @@ x-api-environment: &api-env
   APNS_TEAM_ID: ${APNS_TEAM_ID:-}
   APNS_KEY_P8: ${APNS_KEY_P8:-}
   APNS_TOPIC: ${APNS_TOPIC:-tn.biobalance.app}
+  # Firebase push for Android phones: the service-account JSON key, base64 encoded.
+  FCM_SERVICE_ACCOUNT: ${FCM_SERVICE_ACCOUNT:-}
 x-app: &app
   image: ${API_IMAGE:?Set an immutable API image tag or digest}
   restart: unless-stopped
@@ -74,6 +76,7 @@ services:
       APNS_TEAM_ID: ${APNS_TEAM_ID:-}
       APNS_KEY_P8: ${APNS_KEY_P8:-}
       APNS_TOPIC: ${APNS_TOPIC:-tn.biobalance.app}
+      FCM_SERVICE_ACCOUNT: ${FCM_SERVICE_ACCOUNT:-}
     healthcheck:
       test: [CMD, node, -e, "const fs=require('fs');process.exit(Date.now()-Number(fs.readFileSync('/tmp/biobalance-worker-heartbeat','utf8'))<60000?0:1)"]
       interval: 30s

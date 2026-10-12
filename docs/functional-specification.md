@@ -148,3 +148,8 @@ The administrator can work from a browser at https://admin.galylio.com/ with the
 - The admin's "rewards in effect today" follows the Tunis day (it showed the day before between midnight and 1 am).
 - The note of a stock correction is no longer written twice in its notification.
 
+## Push alerts on Android (3.3)
+
+- **Instant alerts on Android**: a new notification (a sale in a responsable's region, an approval, a delivery, an announcement) reaches the phone within a second or two, in the person's language, even with the app closed and without any battery cost (Android shows it itself). Tapping it opens the notifications. While the app is open the bell updates at once and the alert shows as a banner.
+- Phones without Google services, or whose person refused notifications, keep the 15-minute background check. Nobody receives an alert twice: once push is registered the background check stays quiet.
+

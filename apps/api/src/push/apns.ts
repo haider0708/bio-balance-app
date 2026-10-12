@@ -23,10 +23,6 @@ export interface PushTransport {
   close(): void;
 }
 
-/** Whether this server sends push alerts (the Apple key is configured). */
-export const pushConfigured = (env: NodeJS.ProcessEnv = process.env) =>
-  Boolean(env.APNS_KEY_ID && env.APNS_TEAM_ID && env.APNS_KEY_P8);
-
 const b64url = (data: Buffer | string) =>
   Buffer.from(data).toString("base64url");
 

@@ -9,7 +9,7 @@ import { deletedEmail } from "./deleted";
 import { hashCode, issueCode, normalizeCode, tokenHash } from "./codes";
 import { decryptSecret, matchTotp } from "./mfa";
 import { PasswordHasher } from "./password-hasher";
-import { pushConfigured } from "../../push/apns";
+import { type PushPlatform, pushConfigured } from "../../push/transports";
 
 const SESSION_HOURS = { ADMIN: 12, default: 24 * 30 };
 
@@ -132,12 +132,12 @@ export class AuthService {
   }
 
   /**
-   * Registers the phone behind this session for Apple push alerts. A token moves to whoever
+   * Registers the phone behind this session for push alerts (Apple or Firebase). A token moves to whoever
    * signs in on that phone last; a person keeps at most ten phones.
    */
   async registerPushDevice(
     actor: Actor,
-    device: { token: string; platform: "IOS"; sandbox: boolean },
+    device: { token: string; platform: PushPlatform; sandbox: boolean },
   ) {
     requireRule(
       actor.sessionId,
@@ -153,7 +153,7 @@ export class AuthService {
       await tx.$executeRaw`DELETE FROM "PushDevice" WHERE "userId" = ${actor.id}::uuid AND token NOT IN (
         SELECT token FROM "PushDevice" WHERE "userId" = ${actor.id}::uuid ORDER BY "updatedAt" DESC LIMIT 10)`;
     });
-    return { push: pushConfigured() };
+    return { push: pushConfigured(device.platform) };
   }
 
   /** Resolve a bearer token to the person making the request. */

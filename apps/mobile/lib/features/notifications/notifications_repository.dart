@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/json.dart';
 import '../../core/alerts/background_alerts.dart';
+import '../../core/alerts/fcm.dart';
 import '../../core/alerts/push.dart';
 import '../../core/auth/session.dart';
 import 'notification_models.dart';
@@ -78,6 +79,9 @@ class UnreadCount extends Notifier<int> {
     // The number on the iPhone icon follows the one in the app.
     listenSelf((_, unread) => unawaited(Push.badge(unread)));
     final every = ref.watch(unreadPollIntervalProvider);
+    // A push alert that arrives while the app is open updates the bell at once.
+    final pushed = Fcm.foreground.listen((_) => unawaited(check()));
+    ref.onDispose(pushed.cancel);
     if (every != null) {
       final timer = Timer.periodic(every, (_) {
         if (_inFront) unawaited(check());

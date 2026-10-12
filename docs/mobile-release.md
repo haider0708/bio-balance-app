@@ -9,7 +9,7 @@ flutter analyze && flutter test
 flutter build apk --debug          # a quick install on a test phone
 ```
 
-The version is `version:` in `pubspec.yaml` (`3.2.1+39`): raise the number after `+` for **every** upload to either store. The app reads it from the build (Settings → About), so it can never disagree with the stores.
+The version is `version:` in `pubspec.yaml` (`3.3.0+40`): raise the number after `+` for **every** upload to either store. The app reads it from the build (Settings → About), so it can never disagree with the stores.
 
 ## Android (Google Play)
 
@@ -24,7 +24,7 @@ flutter build apk --release         # a signed APK for installing by hand
 The build refuses to produce an unsigned release. What the bundle already satisfies:
 
 - **Target API 36** (Android 16), minimum Android 7.0 (API 24); **16 KB memory pages**: every native library is 16 KB aligned (required for new apps and updates).
-- **Permissions**: internet, camera (barcodes and proof photos), notifications, and the background check for alerts. No access to photos, videos, audio or files: pictures come through the system photo picker (Play refuses broad media access for this kind of app). The background check uses a *short service* only, which needs no foreground-service declaration.
+- **Permissions**: internet and network state, camera (barcodes and proof photos), notifications, push receive (Firebase), and the background check for alerts. No access to photos, videos, audio or files: pictures come through the system photo picker (Play refuses broad media access for this kind of app). The background check uses a *short service* only, which needs no foreground-service declaration.
 - **Icons**: adaptive icon, themed (monochrome) icon for Android 13+, a white status-bar icon for alerts.
 - **Account deletion** in the app (Settings → Delete my account) and on the web (`/account-deletion`), as Play requires.
 - Screenshots of the app are blocked in release builds (commercial data).

@@ -1,6 +1,7 @@
 import type { Database } from "../core/database";
 import { noticeText } from "../core/notice-text";
-import type { PushMessage, PushTransport } from "./apns";
+import type { PushMessage } from "./apns";
+import type { PushTransports } from "./transports";
 
 interface Claimed {
   id: string;
@@ -9,12 +10,14 @@ interface Claimed {
   key: string | null;
   params: Record<string, unknown> | null;
   title: string | null;
+  createdAt: Date;
   /** Created in the last half hour: older ones are only marked, never pushed. */
   fresh: boolean;
 }
 
 interface Device {
   token: string;
+  platform: "IOS" | "ANDROID";
   userId: string;
   sandbox: boolean;
   locale: string;
@@ -33,7 +36,7 @@ const PARALLEL = 20;
 export class PushDelivery {
   constructor(
     private readonly db: Database,
-    private readonly transport: PushTransport | null,
+    private readonly transports: PushTransports,
   ) {}
 
   /** Returns how many notifications were handled (0 when there is nothing new). */
@@ -46,11 +49,14 @@ export class PushDelivery {
         WHERE id IN (
           SELECT id FROM "Notification" WHERE "pushedAt" IS NULL
           ORDER BY "createdAt" LIMIT 200 FOR UPDATE SKIP LOCKED)
-        RETURNING id, "userId", kind, key, params, title,
+        RETURNING id, "userId", kind, key, params, title, "createdAt",
           "createdAt" > (CURRENT_TIMESTAMP AT TIME ZONE 'UTC') - interval '30 minutes' AS fresh`,
     );
+    // The database does not promise the order of what an update returns: oldest first.
+    claimed.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
     const fresh = claimed.filter((n) => n.fresh);
-    if (this.transport && fresh.length) await this.send(fresh);
+    if (fresh.length && Object.keys(this.transports).length)
+      await this.send(fresh);
     return claimed.length;
   }
 
@@ -58,7 +64,7 @@ export class PushDelivery {
     const users = [...new Set(notices.map((n) => n.userId))];
     const { devices, unread } = await this.db.run("SYSTEM", async (tx) => ({
       devices: await tx.$queryRaw<Device[]>`
-        SELECT d.token, d."userId", d.sandbox, u.locale FROM "PushDevice" d
+        SELECT d.token, d.platform, d."userId", d.sandbox, u.locale FROM "PushDevice" d
         JOIN "Session" s ON s.id = d."sessionId" JOIN "User" u ON u.id = d."userId"
         WHERE d."userId" = ANY(${users}::uuid[]) AND u.status = 'ACTIVE'
           AND s."revokedAt" IS NULL AND s."expiresAt" > (CURRENT_TIMESTAMP AT TIME ZONE 'UTC')`,
@@ -71,20 +77,28 @@ export class PushDelivery {
     const jobs: (() => Promise<void>)[] = [];
     const gone: string[] = [];
     for (const device of devices) {
+      const transport = this.transports[device.platform];
+      // A platform this server has no key for keeps using the phone's own background check.
+      if (!transport) continue;
       const locale = device.locale === "en" ? "en" : "fr";
       const mine = notices.filter((n) => n.userId === device.userId);
       const messages =
         mine.length > MAX_SEPARATE
           ? [summary(locale, mine.length)]
           : mine.map((n) => message(locale, n));
-      for (const m of messages)
-        jobs.push(async () => {
-          const outcome = await this.transport!.send(device, {
+      // One phone's alerts go out in order; different phones go out together.
+      jobs.push(async () => {
+        for (const m of messages) {
+          const outcome = await transport.send(device, {
             ...m,
             badge: badge.get(device.userId) ?? 0,
           });
-          if (outcome === "gone") gone.push(device.token);
-        });
+          if (outcome === "gone") {
+            gone.push(device.token);
+            return;
+          }
+        }
+      });
     }
     for (let i = 0; i < jobs.length; i += PARALLEL)
       await Promise.all(jobs.slice(i, i + PARALLEL).map((job) => job()));

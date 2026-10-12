@@ -1,7 +1,7 @@
 name: biobalance
 description: "BioBalance: stock, sales and rewards for the BioBalance partner network."
 publish_to: 'none'
-version: 3.2.1+39
+version: 3.3.0+40
 
 environment:
   sdk: ^3.13.4
@@ -34,6 +34,8 @@ dependencies:
   workmanager: ^0.10.10
   flutter_local_notifications: ^19.0.0
   package_info_plus: ^10.2.2
+  firebase_core: ^4.15.0
+  firebase_messaging: ^16.7.0
 
 dev_dependencies:
   flutter_lints: ^6.0.0

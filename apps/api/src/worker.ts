@@ -6,15 +6,17 @@ import { SmtpEmailTransport } from "./email/smtp";
 import { type JobExecutor, JobRunner } from "./jobs/job-runner";
 import { cleanup, scheduleCleanup } from "./jobs/maintenance";
 import { MessagingService } from "./modules/messaging/messaging.service";
-import { ApnsTransport } from "./push/apns";
 import { PushDelivery } from "./push/push-delivery";
+import { NotificationSignal } from "./push/signal";
+import { transportsFromEnv } from "./push/transports";
 
 const db = new Database();
 const smtp = new SmtpEmailTransport();
 const emails = new EmailDelivery(db, smtp);
 const messages = new MessagingService(db);
-const apns = ApnsTransport.fromEnv();
-const pushes = new PushDelivery(db, apns);
+const transports = transportsFromEnv();
+const pushes = new PushDelivery(db, transports);
+const wake = new NotificationSignal(process.env.DATABASE_URL ?? "");
 let stopping = false;
 
 const execute: JobExecutor = async (job, stillOwned) => {
@@ -37,7 +39,10 @@ const execute: JobExecutor = async (job, stillOwned) => {
 };
 
 for (const signal of ["SIGINT", "SIGTERM"])
-  process.on(signal, () => (stopping = true));
+  process.on(signal, () => {
+    stopping = true;
+    wake.signal();
+  });
 
 async function main() {
   const runner = new JobRunner(
@@ -82,12 +87,16 @@ async function main() {
       }
     })(),
   );
-  // New notifications reach phones within a few seconds.
+  // New notifications reach phones at once: the database signals the worker, which sends them.
+  wake.start();
   const push = (async () => {
     while (!stopping) {
       try {
+        // Keep going while there is a backlog; then sleep until the next signal. A slow timer
+        // covers a missed signal (and a database without the listener) with little cost.
         if (!(await pushes.tick()))
-          await new Promise((r) => setTimeout(r, apns ? 3000 : 15_000));
+          await wake.wait(wake.listening ? 30_000 : 3_000);
+        else await new Promise((r) => setTimeout(r, 25));
       } catch {
         console.error(JSON.stringify({ level: "error", code: "PUSH_LOOP" }));
         await new Promise((r) => setTimeout(r, 5000));
@@ -96,7 +105,8 @@ async function main() {
   })();
   await Promise.all([...loops, push]);
   clearInterval(heartbeat);
-  apns?.close();
+  await wake.stop();
+  for (const transport of Object.values(transports)) transport.close();
   smtp.close();
   await db.$disconnect();
 }
