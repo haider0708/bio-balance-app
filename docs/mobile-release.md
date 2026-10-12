@@ -58,7 +58,7 @@ python3 tool/brand/make_store_graphics.py                         # feature grap
 | App Store | iPhone 6.9" screenshots (3–10) | 1290 × 2796 | `build/store/iphone-6.9/` |
 | App Store | iPad 13" screenshots (3–10) | 2064 × 2752 | `build/store/ipad-13/` |
 | App Store | Icon | 1024 × 1024 | already in the build |
-| Google Play | Phone screenshots (2–8) | 1080 × 2160 | `build/store/android-phone/` |
+| Google Play | Phone screenshots (2–8) | 1080 × 1920 | `build/store/android-phone/` |
 | Google Play | Tablet screenshots (optional) | 2064 × 2752 | `build/store/ipad-13/` |
 | Google Play | App icon | 512 × 512 | `build/store/play-icon-512.png` |
 | Google Play | Feature graphic | 1024 × 500 | `build/store/feature-graphic.png` |

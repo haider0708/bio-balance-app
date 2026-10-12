@@ -20,8 +20,8 @@ const devices = {
   // App Store: iPhone 6.9" (1290 × 2796) and iPad 13" (2064 × 2752).
   'iphone-6.9': (Size(430, 932), 3.0),
   'ipad-13': (Size(1032, 1376), 2.0),
-  // Google Play phone (1080 × 2160; the long side may be at most twice the short one).
-  'android-phone': (Size(360, 720), 3.0),
+  // Google Play phone (1080 × 1920, exactly 9:16: the Play Console form asks for 16:9 or 9:16).
+  'android-phone': (Size(360, 640), 3.0),
 };
 
 FakeServer _seller() => base.server('VENDEUR')
