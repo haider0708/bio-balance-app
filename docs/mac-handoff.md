@@ -26,9 +26,29 @@ BioBalance: sales, stock, restocks and rewards for a parapharmacy network. Flutt
 - Privacy manifest `ios/Runner/PrivacyInfo.xcprivacy` (no tracking). Age rating 4+. No export-compliance question (`ITSAppUsesNonExemptEncryption` is false). EU trader status must be declared in App Store Connect.
 - Reviewer accounts (the same two as for Google Play, in the demo region): team member `demo-vendeur@galylio.com`, regional manager `demo-responsable@galylio.com`. The passwords, the server access and where everything lives are in a **private file that is not in this repository** (the repository is public): the owner gives it to you directly (`mac-handoff-private.md`).
 
+## One codebase, two stores: how not to break Android while fixing iPhone
+
+Both apps are built from the **same Dart code** in `apps/mobile/lib`. Only the native shells differ.
+
+| Where | Shared by | Rule |
+|---|---|---|
+| `apps/mobile/lib/**` (screens, logic, API calls) | Android, iPhone, web console | A change here ships to **all three**. Keep it platform-neutral; if iPhone needs different behaviour use `defaultTargetPlatform == TargetPlatform.iOS` (or `Platform`), never remove the Android path. |
+| `apps/mobile/ios/**` (Swift, Info.plist, entitlements, Xcode project) | iPhone only | Free to change. Android cannot be affected. |
+| `apps/mobile/android/**` | Android only | **Do not touch** from the Mac session unless the owner asks. |
+| `apps/mobile/pubspec.yaml` / `pubspec.lock` | all | A new package or a version bump affects every platform: prefer none; if unavoidable, say so and check the Android build. |
+| `apps/api/**`, `infrastructure/**`, `scripts/**` | the server | Not for the Mac session. Tell the owner and the Linux session instead. |
+
+Before every commit, run `flutter analyze && flutter test` (the tests are platform-neutral and cover both). The GitHub checks (`.github/workflows/ci.yml`) then build **both** apps on every push: the Android build on Linux (`android` job) and the iPhone build on a Mac machine (`ios` job). **Do not merge or release while either is red.** A change in shared code that was only tried on iPhone is not finished until the Android job is green.
+
+Version numbers are shared: `version: 3.3.0+40` in `pubspec.yaml` gives Android its version code and iPhone its build number. Raise the number after `+` for every upload to either store (and the part before it for a real new version). Android is already in a Google Play test under `3.3.0+40`: do not change shared behaviour casually, since the testers are using it.
+
+Native code that exists for one platform must stay inert on the other:
+- iPhone push (`AppDelegate.swift`, channel `biobalance/push`) is only called when `defaultTargetPlatform == iOS` (`lib/core/alerts/push.dart`).
+- Android push (Firebase, `lib/core/alerts/fcm_io.dart`) is only used on Android, and the web build uses a stand-in (`fcm_stub.dart`).
+
 ## Working agreements
 
 - Use plain language in summaries. Think before implementing; test everything; keep the code clean, matching the surrounding style.
-- Commit and push every fix from the Mac to `main`; then on the Linux PC `git pull`, so the two stay equal. Never commit secrets, signing files or `Signing.xcconfig`.
+- Commit and push every fix from the Mac to `main` (small commits, one concern each); then on the Linux PC `git pull`, so the two stay equal. Never commit secrets, signing files or `Signing.xcconfig`.
 - The Apple Team ID, Apple ID and certificates stay on the Mac.
 - The API and the web console are deployed from the Linux PC only.
