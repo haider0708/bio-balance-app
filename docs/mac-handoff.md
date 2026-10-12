@@ -4,6 +4,7 @@ Read this first. It says where the project stands and what the Mac session is fo
 
 ## Start here
 
+0. `git pull`, then read `CLAUDE.md` (the shared rules and the start-of-session / end-of-session routine) and `docs/project-status.md` (where things stand). Claude reads `CLAUDE.md` by itself when the project is opened.
 1. Run `bash scripts/mac-setup.sh` (installs and checks everything, prepares signing and the server connection, builds the app once). It prints a public SSH key for the owner to give to the Linux session.
 2. Follow [app-store-steps.md](app-store-steps.md): every step to the App Store, with who does what and the exact answers for each form.
 3. Obey the rules in "One codebase, two stores" below.

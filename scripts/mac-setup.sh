@@ -34,6 +34,16 @@ else
   brew install cocoapods && green "✓ CocoaPods installed" || fail "CocoaPods did not install."
 fi
 
+step "2b Git (so pulling and pushing stay smooth)"
+if [ -z "$(git config --global user.name)" ]; then
+  printf "Your name for commits: "; read -r gname; [ -n "$gname" ] && git config --global user.name "$gname"
+fi
+if [ -z "$(git config --global user.email)" ]; then
+  printf "Your email for commits: "; read -r gmail; [ -n "$gmail" ] && git config --global user.email "$gmail"
+fi
+git config --global pull.rebase true
+green "✓ git: $(git config --global user.name) <$(git config --global user.email)>, pull = rebase"
+
 step "3/7 Flutter"
 if command -v flutter >/dev/null 2>&1; then
   have=$(flutter --version 2>/dev/null | head -1 | sed -E 's/Flutter ([0-9.]+).*/\1/')
