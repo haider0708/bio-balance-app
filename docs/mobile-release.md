@@ -31,7 +31,7 @@ The build refuses to produce an unsigned release. What the bundle already satisf
 
 ## iOS (App Store) — on the Mac
 
-Install **Xcode 26** or later (required by Apple since April 2026) and Flutter, then:
+Install **Xcode 26** or later (required by Apple since April 2026), Flutter 3.47.5 and CocoaPods (`brew install cocoapods`), then:
 
 ```sh
 cd apps/mobile
@@ -39,7 +39,7 @@ cp ios/Flutter/Signing.xcconfig.example ios/Flutter/Signing.xcconfig   # put you
 flutter build ipa --release        # build/ios/ipa/*.ipa
 ```
 
-Upload the `.ipa` with Apple's **Transporter** app (or Xcode → Window → Organizer → Distribute App). Plugins come through Swift Package Manager: no CocoaPods needed. Bundle identifier: `tn.biobalance.app`; iOS 15 or later; iPhone and iPad.
+Upload the `.ipa` with Apple's **Transporter** app (or Xcode → Window → Organizer → Distribute App). Plugins come through Swift Package Manager, except one (`open_filex`), which still needs **CocoaPods**: `brew install cocoapods` on the Mac before the first build. Bundle identifier: `tn.biobalance.app`; iOS 15 or later; iPhone and iPad.
 
 Already in the project: the camera and photo texts in French and English, the **privacy manifest** (`PrivacyInfo.xcprivacy`: no tracking, the data collected and why), **no export-compliance question** (`ITSAppUsesNonExemptEncryption = false`, the app only uses standard HTTPS), the `biobalance://` link that opens a code from the email, **push alerts** (`Runner.entitlements`, added to the App ID by automatic signing; the server key is in docs/runbook.md) and the background check for alerts (`fetch` background mode, task `biobalance.alerts`), portrait on iPhone and every orientation on iPad (with a side rail), and the share sheet anchored correctly on iPad.
 
