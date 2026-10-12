@@ -1,16 +1,17 @@
 #!/usr/bin/env bash
 # Deploy the current commit to the shared go2code VPS:
 #   upload the source → build the image there → back up the database → migrate → restart → check health.
-# Usage: scripts/deploy-vps.sh            (needs `ssh go2code`, sudo rights there, and a clean git tree)
+# Usage: scripts/deploy-vps.sh            (needs `ssh go2code`, sudo rights there, and a clean checkout equal to GitHub's main:
+#         see scripts/deploy-guard.sh; works the same from the Linux PC and the Mac)
 set -euo pipefail
 host=${DEPLOY_HOST:-go2code}
 url=${DEPLOY_HEALTH_URL:-https://api.galylio.com/health}
 cd "$(dirname "$0")/.."
 
-git diff --quiet && git diff --cached --quiet || { echo "Commit your changes first: the image is built from HEAD." >&2; exit 1; }
+source scripts/deploy-guard.sh
+guard_start api "$host"
 sha=$(git rev-parse --short=8 HEAD)
 src=/opt/biobalance-src-$sha
-echo "== Deploying $sha to $host"
 
 ssh "$host" "sudo rm -rf $src && sudo mkdir -p $src"
 git archive HEAD apps/api infrastructure scripts docs package.json package-lock.json .npmrc .nvmrc | ssh "$host" "sudo tar -x -C $src"
@@ -69,6 +70,7 @@ if [ "$healthy" != true ]; then
   exit 1
 fi
 echo "Healthy: $sha is live."
+guard_done
 
 echo "== Tidying: this image and the previous one (for a rollback), the last ten pre-deploy dumps"
 ssh "$host" "docker images --format '{{.Repository}}:{{.Tag}}' biobalance-api | grep -vx -e 'biobalance-api:$sha' -e '$previous' | xargs -r docker rmi >/dev/null 2>&1 || true"
