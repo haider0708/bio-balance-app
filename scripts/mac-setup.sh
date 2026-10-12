@@ -96,8 +96,11 @@ if [ "$seen" = "$expected" ]; then
 else
   fail "The server's fingerprint is not the expected one ($seen). Do NOT connect; tell the owner."
 fi
+cp "$key.pub" ~/Desktop/mac-public-key.txt 2>/dev/null || true
+command -v pbcopy >/dev/null 2>&1 && pbcopy < "$key.pub"
 echo
-echo "   Send this line (it is public, safe to paste in a chat) to the Linux session, so it can allow this Mac:"
+echo "   >>> YOUR PUBLIC KEY (safe to share). It is copied to your clipboard and saved on the Desktop"
+echo "   >>> as mac-public-key.txt. Paste it to Claude on the Linux PC so it can allow this Mac:"
 echo
 cat "$key.pub"
 echo
