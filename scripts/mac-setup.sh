@@ -44,6 +44,19 @@ fi
 git config --global pull.rebase true
 green "✓ git: $(git config --global user.name) <$(git config --global user.email)>, pull = rebase"
 
+step "2c GitHub (so this Mac can push)"
+if ! command -v gh >/dev/null 2>&1 && command -v brew >/dev/null 2>&1; then brew install gh >/dev/null 2>&1; fi
+if ! command -v gh >/dev/null 2>&1; then
+  fail "GitHub's tool 'gh' is missing: run 'brew install gh', then this script again."
+else
+  if ! gh auth status >/dev/null 2>&1; then
+    echo "A browser window opens: sign in to GitHub as haider0708 and confirm the code."
+    gh auth login --hostname github.com --git-protocol https --web || true
+  fi
+  if gh auth status >/dev/null 2>&1; then gh auth setup-git >/dev/null 2>&1; green "✓ GitHub: $(gh api user --jq .login 2>/dev/null) (push works from this Mac)"
+  else fail "Not signed in to GitHub: run 'gh auth login', then this script again."; fi
+fi
+
 step "3/7 Flutter"
 if command -v flutter >/dev/null 2>&1; then
   have=$(flutter --version 2>/dev/null | head -1 | sed -E 's/Flutter ([0-9.]+).*/\1/')
