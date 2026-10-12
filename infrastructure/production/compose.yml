@@ -128,6 +128,19 @@ services:
       ADMIN_SETUP_FILE: /setup/admin-setup.json
     healthcheck: {disable: true}
     volumes: [./setup:/setup]
+  # The demonstration region (docs/runbook.md): `compose run --rm demo node dist/demo.js seed|purge`.
+  demo:
+    <<: *app
+    profiles: [maintenance]
+    restart: 'no'
+    command: [node,dist/demo.js]
+    environment:
+      <<: *api-env
+      MIGRATION_DATABASE_URL: ${MIGRATION_DATABASE_URL:?Set migration owner connection}
+      DEMO_RESPONSABLE_PASSWORD: ${DEMO_RESPONSABLE_PASSWORD:-}
+      DEMO_VENDEUR_PASSWORD: ${DEMO_VENDEUR_PASSWORD:-}
+      DEMO_DAYS: ${DEMO_DAYS:-60}
+    healthcheck: {disable: true}
   reset-admin:
     <<: *app
     profiles: [maintenance]

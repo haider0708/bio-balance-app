@@ -128,3 +128,26 @@ Measured 2026-10-10: dashboards 0.3–0.6 s, analytics of 30 days 0.8 s (a regio
 - Photo downloads have their own, higher limit than uploads: a page full of photos no longer hits "too many requests".
 - The Apache log lines start with the time (`biobalance-access.log`).
 
+## The demonstration region
+
+For the store reviewers and for showing the app: a region **Démo** with a responsable, four stores and their teams, a grossiste, stock, 60 days of sales with their rewards, a restock, payouts and an announcement. It is built with the server's own services (so stock, wallets and rewards add up) and its dates are then put where they belong. It is a real region in the real database: **the admin's totals, "owed to the team" included, count it** (filter by region to leave it out), until it is removed.
+
+Build it (take a database dump first; the passwords are what the reviewers type, so they are set in the shell and never on a command line). The worker is stopped meanwhile so that nothing built here can alert or mail anyone:
+
+```sh
+sudo bash -s <<'SCRIPT'
+export DEMO_RESPONSABLE_PASSWORD=... DEMO_VENDEUR_PASSWORD=...
+biobalance-compose stop worker
+biobalance-compose run --rm -e DEMO_RESPONSABLE_PASSWORD -e DEMO_VENDEUR_PASSWORD demo node dist/demo.js seed
+biobalance-compose start worker
+SCRIPT
+```
+
+Remove all of it (the database is left exactly as it was before; tested):
+
+```sh
+sudo biobalance-compose run --rm demo node dist/demo.js purge
+```
+
+Accounts: `demo-responsable@galylio.com` and `demo-vendeur@galylio.com` (the store *Para Démo Lac*); the four other team members have no known password. The seeding needs the database owner (`MIGRATION_DATABASE_URL`) because the history is append-only. For the demo only, it adds earlier periods of the reward rates already in force (note "Historique de démonstration") so the old sales earned rewards; the removal takes them away with the rest.
+
