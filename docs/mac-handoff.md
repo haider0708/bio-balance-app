@@ -24,7 +24,7 @@ BioBalance: sales, stock, restocks and rewards for a parapharmacy network. Flutt
 
 - Account deletion inside the app (Settings → Delete my account) and at `https://api.galylio.com/account-deletion`; privacy policy `https://api.galylio.com/privacy`; terms `/terms`; support `/support`.
 - Privacy manifest `ios/Runner/PrivacyInfo.xcprivacy` (no tracking). Age rating 4+. No export-compliance question (`ITSAppUsesNonExemptEncryption` is false). EU trader status must be declared in App Store Connect.
-- Reviewer accounts (the same two as for Google Play, in the demo region): team member `demo-vendeur@galylio.com`, regional manager `demo-responsable@galylio.com`. The passwords are in the git-ignored file `.local-credentials-v2/demo-accounts.json` on the Linux PC; ask the owner for them.
+- Reviewer accounts (the same two as for Google Play, in the demo region): team member `demo-vendeur@galylio.com`, regional manager `demo-responsable@galylio.com`. The passwords, the server access and where everything lives are in a **private file that is not in this repository** (the repository is public): the owner gives it to you directly (`mac-handoff-private.md`).
 
 ## Working agreements
 
