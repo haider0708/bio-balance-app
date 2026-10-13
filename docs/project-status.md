@@ -1,12 +1,12 @@
 # Project status (the living file: both machines update it)
 
-Last updated: 2026-10-13 (late night), by the Mac session.
+Last updated: 2026-10-13 (night), by the Linux session.
 
 ## Versions and what runs
 
 | Part | Version | Where |
 |---|---|---|
-| App code | `3.3.1+41` | iPhone: 3.3.1 (41) submitted to App Review on 2026-10-13 (App Store Connect app 6822445997); web console: https://admin.galylio.com (runs 3.3.1, deployed with server fa37aa85); Android: the Play closed test still has `3.3.0+40` |
+| App code | `3.3.2+42` (iPhone 3.3.1+41, Android Play test 3.3.0+40: see below) | iPhone: 3.3.1 (41) submitted to App Review on 2026-10-13 (App Store Connect app 6822445997); web console: https://admin.galylio.com (runs 3.3.1, deployed with server fa37aa85); Android: the Play closed test still has `3.3.0+40` |
 | Server (API + worker) | commit `fa37aa85` | https://api.galylio.com (the deploy guard records what runs: `/opt/biobalance-deployed-api`) |
 | GitHub release | `v3.3.0` (APK + AAB + checksums) | github.com/haider0708/bio-balance-app/releases |
 
@@ -24,7 +24,7 @@ The network was emptied for its real start (`docs/runbook.md`, "The test region"
 
 1. Owner: create the app in App Store Connect; then the Mac uploads the build (`scripts/ios-release.sh --upload`), and TestFlight on any iPhone (sign-in, a sale, camera, push with the app closed).
 2. Owner (Cloudflare, optional): remove the stray `v=DMARC1; p=none;` TXT on `galylio.com` itself (the real one is on `_dmarc`); later raise DMARC to `quarantine`.
-3. Android: the next Play upload (`3.3.1+41` or later) carries every fix since 3.3.0 (Linux PC, with the upload key) after the Data safety update.
+3. Android: **`3.3.2+42` is built and signed, ready to upload to the Play closed test** (`~/.biobalance/releases/BioBalance-3.3.2.aab` on the Linux PC; release notes in the log below). **Before uploading, the owner updates the Data safety form** (add *App info and performance → Crash logs*, not linked to the user; see `docs/store-publishing.md`). After uploading, the testers get the update from Play; the 14-day clock is not reset by an update.
 4. Once the minimum version matters (old builds must stop): set `MIN_APP_BUILD` on the server, and `IOS_STORE_URL` once the App Store page exists.
 5. After both stores approve: keep the test region for later reviews, or remove it (`demo.js purge`).
 
@@ -35,6 +35,8 @@ The network was emptied for its real start (`docs/runbook.md`, "The test region"
 - Plugin `open_filex` has no Swift Package support yet, so the iPhone build still needs CocoaPods.
 
 ## Log
+
+- 2026-10-13 (Linux, night): **Android `3.3.2+42` built** for the Play closed test: version raised (build 41 went to the iPhone), all four GitHub checks green (backend, mobile, ios, android), `flutter analyze` clean and 104 app tests passing, signed App Bundle built against `https://api.galylio.com` with the upload key (certificate SHA-256 `67:EF:65:E6:…:A8:48:12`, as before), and checked on the matching APK: versionCode 42, versionName 3.3.2, targetSdk 36, 16 KB aligned. Files: `~/.biobalance/releases/BioBalance-3.3.2.aab` (78 MB) and `.apk`. Not uploaded yet (the owner uploads in the Play Console). Release notes for the testers: French "Livraisons : confirmation avec la photo du bon et une note, sans compter ; alertes plus calmes (résumé chaque soir à 20 h 30) ; chiffres plus lisibles ; écran « Mise à jour requise » et rapport d'erreurs ; catalogue aux noms clairs et photos nettes." English: the same in English. The server was not deployed (already up to date).
 
 - 2026-10-13 (Mac, night): **iPhone app submitted to App Review** (3.3.1 build 41), all through the App Store Connect API key except App Privacy and the review contact (owner): French listing (an English page is refused, the name BioBalance is taken in English), Business, 4+, free, **Tunisia only** (no EU trader declaration needed), review notes with both demo accounts, 6 iPhone 6.9" and 6 iPad 13" screenshots of the real catalogue, manual release. Next: the unlisted distribution request (owner, text in `docs/app-store-steps.md` step 8), then release after approval.
 - 2026-10-13 (Mac, late night): **Product catalogue** cleaned and refreshed in production (`docs/runbook.md`, "The product catalogue"): clear names, sharp photos cropped to the product, every barcode checked against the supplier list and Tunisian/Gulf shops; `catalog.js refresh` replaces the import script. **Deployed** server `fa37aa85` (audit fixes, simpler delivery receipt with its migration, catalogue) and the web console. App reviewed on the iPhone simulator and the Android emulator against a local server. Backup before: `before-fa37aa85.dump`.
