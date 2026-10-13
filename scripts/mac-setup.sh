@@ -25,13 +25,20 @@ else
   echo "   (If it only needs its licence: sudo xcodebuild -license accept && sudo xcodebuild -runFirstLaunch)"
 fi
 
-step "2/7 Homebrew and CocoaPods"
-if ! command -v brew >/dev/null 2>&1; then
-  fail "Homebrew is missing. Install it from https://brew.sh (one command), then run this again."
-elif command -v pod >/dev/null 2>&1; then green "✓ CocoaPods $(pod --version)"
-else
+step "2/7 CocoaPods (with Homebrew or MacPorts)"
+# CocoaPods runs on Ruby, which wants a UTF-8 terminal and (MacPorts' Ruby) the system certificates.
+profile=~/.zprofile
+grep -q '^export LANG=' "$profile" 2>/dev/null || echo 'export LANG="en_US.UTF-8"' >> "$profile"
+grep -q '^export SSL_CERT_FILE=' "$profile" 2>/dev/null || echo 'export SSL_CERT_FILE="/etc/ssl/cert.pem"' >> "$profile"
+export LANG="en_US.UTF-8" SSL_CERT_FILE="/etc/ssl/cert.pem"
+if command -v pod >/dev/null 2>&1; then green "✓ CocoaPods $(pod --version 2>/dev/null)"
+elif command -v brew >/dev/null 2>&1; then
   echo "Installing CocoaPods (one plugin of the app needs it)..."
   brew install cocoapods && green "✓ CocoaPods installed" || fail "CocoaPods did not install."
+elif command -v port >/dev/null 2>&1; then
+  fail "CocoaPods is missing: run 'sudo port install cocoapods', then this script again."
+else
+  fail "Neither Homebrew nor MacPorts is installed. Install one (https://brew.sh or https://www.macports.org), then run this again."
 fi
 
 step "2b Git (so pulling and pushing stay smooth)"
@@ -47,7 +54,7 @@ green "✓ git: $(git config --global user.name) <$(git config --global user.ema
 step "2c GitHub (so this Mac can push)"
 if ! command -v gh >/dev/null 2>&1 && command -v brew >/dev/null 2>&1; then brew install gh >/dev/null 2>&1; fi
 if ! command -v gh >/dev/null 2>&1; then
-  fail "GitHub's tool 'gh' is missing: run 'brew install gh', then this script again."
+  fail "GitHub's tool 'gh' is missing: run 'brew install gh' (or 'sudo port install gh'), then this script again."
 else
   if ! gh auth status >/dev/null 2>&1; then
     echo "A browser window opens: sign in to GitHub as haider0708 and confirm the code."
