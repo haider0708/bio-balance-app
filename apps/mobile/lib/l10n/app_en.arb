@@ -682,7 +682,7 @@
   "reviewTitle": "Review the sale",
   "reward": "Reward",
   "rewardSaved": "Reward saved",
-  "rewardsMonth": "Rewards, 30 days",
+  "rewardsMonth": "30-day rewards",
   "rewardsTitle": "Rewards",
   "roleAdmin": "Administrator",
   "adminConsoleTitle": "BioBalance console",
@@ -873,7 +873,8 @@
   "@units": {
     "placeholders": {
       "count": {
-        "type": "int"
+        "type": "int",
+        "format": "decimalPattern"
       }
     }
   },

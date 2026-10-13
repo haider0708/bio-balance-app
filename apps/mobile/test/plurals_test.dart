@@ -3,6 +3,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:biobalance/l10n/app_localizations_en.dart';
 import 'package:biobalance/l10n/app_localizations_fr.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -14,6 +15,11 @@ void main() {
     expect(t.units(3), '3 unités');
     expect(t.waitingForYou(0), '0 élément vous attend');
     expect(t.salesCount(0), 'Aucune vente');
+  });
+
+  test('unit counts are grouped by thousands, as amounts are', () {
+    expect(AppLocalizationsFr().units(3812), '3 812 unités');
+    expect(AppLocalizationsEn().units(3812), '3,812 units');
   });
 
   test('no French singular wording writes the number 1 itself', () {

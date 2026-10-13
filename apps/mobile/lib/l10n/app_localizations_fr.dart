@@ -1822,11 +1822,15 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String units(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count unités',
-      one: '$count unité',
+      other: '$countString unités',
+      one: '$countString unité',
     );
     return '$_temp0';
   }

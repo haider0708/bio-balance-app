@@ -1418,7 +1418,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get rewardSaved => 'Reward saved';
 
   @override
-  String get rewardsMonth => 'Rewards, 30 days';
+  String get rewardsMonth => '30-day rewards';
 
   @override
   String get rewardsTitle => 'Rewards';
@@ -1816,10 +1816,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String units(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count units',
+      other: '$countString units',
       one: '1 unit',
     );
     return '$_temp0';

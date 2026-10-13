@@ -2525,7 +2525,7 @@ abstract class AppLocalizations {
   /// No description provided for @rewardsMonth.
   ///
   /// In en, this message translates to:
-  /// **'Rewards, 30 days'**
+  /// **'30-day rewards'**
   String get rewardsMonth;
 
   /// No description provided for @rewardsTitle.

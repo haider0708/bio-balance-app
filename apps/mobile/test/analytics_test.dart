@@ -180,7 +180,7 @@ void main() {
     expect([week['from'], week['to']], [lens.from, lens.to]);
     await tester.pageBack();
     await settle(tester);
-    await tester.tap(find.text('Rewards, 30 days').first);
+    await tester.tap(find.text('30-day rewards').first);
     await settle(tester);
     final month = lastQuery(s, '/v1/analytics/overview');
     expect(month['sort'], 'reward');
