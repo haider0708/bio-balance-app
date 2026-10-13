@@ -4,9 +4,10 @@
 //   STORE_SHOTS=1 flutter test test/store_screenshots_test.dart
 //
 // Written to build/store/<device>/<language>/.
+import 'dart:convert';
 import 'dart:io';
 
-import 'package:flutter/material.dart' show BackButton, Size;
+import 'package:flutter/material.dart' show BackButton, Size, SizedBox;
 import 'package:biobalance/core/widgets/components.dart' show StatTile;
 import 'package:flutter_test/flutter_test.dart';
 
@@ -24,7 +25,72 @@ const devices = {
   'android-phone': (Size(360, 640), 3.0),
 };
 
-FakeServer _seller() => base.server('VENDEUR')
+/// A few products of the real catalogue (apps/api/catalog), with their photos.
+const _shown = [
+  '8697711600760', // Super Serum Pure Vitamine C
+  '8697711602030', // Super Plump
+  '8697711621819', // Hello Clean eau micellaire
+  '8697711011269', // Lipojen Candy Crush
+  '8697711700187', // Shampoing Aloe Vera
+  '8697711600777', // Super Serum Hyaluronic 3D
+];
+
+FakeServer _catalog(FakeServer s) {
+  final all = (jsonDecode(
+    File('../api/catalog/products.json').readAsStringSync(),
+  ) as List).cast<Map<String, dynamic>>();
+  final products = [
+    for (final b in _shown) all.firstWhere((p) => p['barcode'] == b),
+  ];
+  for (final p in products) {
+    s.files['/v1/media/${p['barcode']}'] = File('../api/catalog/${p['image']}')
+        .readAsBytesSync();
+  }
+  return s
+    ..on('GET /v1/products', [
+      for (final p in products)
+        {
+          'id': p['barcode'],
+          'reference': p['reference'],
+          'name': p['name'],
+          'family': p['family'],
+          'barcode': p['barcode'],
+          'imageId': p['barcode'],
+          'active': true,
+        },
+    ])
+    ..on('GET /v1/stock/locations/p1', {
+      'location': {
+        'id': 'p1',
+        'kind': 'PDV',
+        'name': 'Para Lac',
+        'status': 'ACTIVE',
+      },
+      'items': [
+        for (final p in products)
+          {
+            'productId': p['barcode'],
+            'name': p['name'],
+            'family': p['family'],
+            'imageId': p['barcode'],
+            'quantity': 24,
+            'level': 'OK',
+          },
+      ],
+    });
+}
+
+/// Lets the engine decode the product photos before a screenshot.
+Future<void> _photos(WidgetTester tester) async {
+  for (var i = 0; i < 3; i++) {
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 300)),
+    );
+    await tester.pump(const Duration(milliseconds: 100));
+  }
+}
+
+FakeServer _seller() => _catalog(base.server('VENDEUR'))
   ..handle(
     'POST /v1/sales',
     (r) => (
@@ -42,8 +108,8 @@ FakeServer _seller() => base.server('VENDEUR')
         'pdv': {'id': 'p1', 'name': 'Para Lac'},
         'lines': [
           {
-            'productId': 'a',
-            'name': 'SÉRUM VITAMINE C',
+            'productId': '8697711600760',
+            'name': 'SUPER SERUM PURE VITAMINE C 30ML',
             'quantity': 1,
             'rewardMillimes': 800,
           },
@@ -76,8 +142,10 @@ void main() {
         await shot(tester, '01-home');
         await tester.tap(find.text(fr ? 'Nouvelle vente' : 'New sale').first);
         await settle(tester);
-        await tester.tap(find.text('BIOBALANCE SÉRUM VITAMINE C 30ML'));
+        await _photos(tester);
+        await tester.tap(find.text('SUPER SERUM PURE VITAMINE C 30ML'));
         await settle(tester, frames: 5);
+        await _photos(tester);
         await shot(tester, '02-new-sale');
         await tester.tap(
           find.textContaining(fr ? 'Vérifier la vente' : 'Review sale'),
@@ -88,6 +156,9 @@ void main() {
         );
         await settle(tester, frames: 14);
         await shot(tester, '03-reward');
+        // Photos stay cached for five minutes after their screen closes: let that time pass.
+        await tester.pumpWidget(const SizedBox());
+        await tester.pump(const Duration(minutes: 6));
       });
 
       testWidgets('store: admin, $device, $lang', skip: skip, (tester) async {

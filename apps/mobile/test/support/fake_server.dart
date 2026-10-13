@@ -16,6 +16,9 @@ typedef Handler = ({int status, Object? body}) Function(RequestOptions request);
 class FakeServer implements HttpClientAdapter {
   final Map<String, Handler> routes = {};
   final List<RequestOptions> calls = [];
+
+  /// Files served as they are (product photos), by path.
+  final Map<String, Uint8List> files = {};
   bool offline = false;
 
   void on(String route, Object? body, {int status = 200}) =>
@@ -36,6 +39,16 @@ class FakeServer implements HttpClientAdapter {
       throw DioException(
         requestOptions: options,
         type: DioExceptionType.connectionError,
+      );
+    }
+    final file = files[options.path];
+    if (file != null) {
+      return ResponseBody.fromBytes(
+        file,
+        200,
+        headers: {
+          Headers.contentTypeHeader: ['image/jpeg'],
+        },
       );
     }
     final handler = routes['${options.method} ${options.path}'];
