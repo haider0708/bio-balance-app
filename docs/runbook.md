@@ -23,11 +23,7 @@ sudo ADMIN_EMAIL=admin@example.com biobalance-compose run --rm bootstrap-admin
 sudo cat setup/admin-setup.json   # password + authenticator link; copy it somewhere safe, then delete the file
 ```
 
-Scan the `totpUri` in an authenticator app. Then, from a checkout, load the catalog (safe to repeat):
-
-```bash
-API_URL=https://api.galylio.com ADMIN_EMAIL=… ADMIN_PASSWORD=… ADMIN_OTP=123456 node scripts/import-catalog.mjs
-```
+Scan the `totpUri` in an authenticator app. Then load the product catalogue (see "The product catalogue").
 
 Create the three responsables (one per region) from the app: **Network → New account**. They receive an email with an activation code. Grossistes are not accounts: create them from **More → Grossistes → New grossiste** (name, address, phone, region, photos), then count their first stock.
 
@@ -158,3 +154,16 @@ sudo biobalance-compose run --rm demo node dist/demo.js purge
 Build it on an empty network instead: `demo.js seed` with `DEMO_RESPONSABLE_PASSWORD` and `DEMO_VENDEUR_PASSWORD` set in the shell (never on a command line). These commands need the database owner (`MIGRATION_DATABASE_URL`) because the history is append-only.
 
 Done on 2026-10-13: the network was emptied (backup: `/srv/biobalance-backups/pre-deploy/before-fresh-start-20261013T150508Z*`) and the test region rebuilt; production then held the admin, the two review accounts, the catalogue (51 products) and the reward rates.
+
+## The product catalogue
+
+The products live in `apps/api/catalog`: `products.json` (one entry per barcode: name, family, line, size, description, use, ingredients, and the `sources` where each fact and photo was checked) and `images/<barcode>.jpg` (1000×1000, the product cropped to fill the frame on white). Names follow the supplier list's style without the brand prefix (`SUPER SERUM PURE VITAMINE C 30ML`). Every barcode is checked against the supplier list and at least one shop (pharma-shop.tn shows it in the address; lifepharmacy.com ends its addresses with its last digits).
+
+To change a product: edit the file (and its photo), commit, deploy, then on the server:
+
+```sh
+sudo biobalance-compose run --rm catalog                                   # shows what would change
+sudo biobalance-compose run --rm catalog node dist/catalog.js refresh --apply
+```
+
+It matches by barcode, never touches stock, sales, rates or whether a product is active, creates a product for a new barcode, and changes nothing when run again. Locally: `cd apps/api && npm run catalog -- --apply`.
