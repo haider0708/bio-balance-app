@@ -4,6 +4,7 @@ import '../../l10n/app_localizations.dart';
 import '../theme/app_theme.dart';
 import 'components.dart';
 import 'quantity_editor.dart';
+import '../layout/layout.dart';
 
 /// A bottom sheet to correct quantities before deciding (an approval, an order). Returns the lines.
 Future<List<Map<String, Object>>?> amendQuantities(
@@ -48,7 +49,7 @@ class _AmendSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
     return Padding(
-      padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
+      padding: EdgeInsets.only(bottom: sheetBottomInset(context)),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,

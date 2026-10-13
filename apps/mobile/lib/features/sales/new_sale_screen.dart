@@ -18,6 +18,7 @@ import '../media/media_repository.dart';
 import '../stock/stock_models.dart';
 import '../stock/stock_repository.dart';
 import 'sales_repository.dart';
+import '../../core/layout/layout.dart';
 
 /// Pick products, adjust quantities, record the sale. Built to be done with one hand at the till.
 /// Stands for "no limit known" while the phone cannot read the stock.
@@ -316,12 +317,15 @@ class _ProductTile extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 2),
+                // One line, the stock first: the row keeps its height when the stepper appears.
                 Text(
                   stock >= _unknownStock
                       ? product.family
                       : stock > 0
-                      ? '${product.family} · ${t.inStockCount(stock)}'
-                      : '${product.family} · ${t.outOfStock}',
+                      ? '${t.inStockCount(stock)} · ${product.family}'
+                      : '${t.outOfStock} · ${product.family}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: context.text.bodySmall?.copyWith(
                     color: stock > 0
                         ? context.status.muted
@@ -395,12 +399,7 @@ class _ReviewSheetState extends ConsumerState<_ReviewSheet> {
     final t = AppLocalizations.of(context);
     final units = _quantities.values.fold(0, (a, b) => a + b);
     return Padding(
-      padding: EdgeInsets.fromLTRB(
-        16,
-        0,
-        16,
-        12 + MediaQuery.viewInsetsOf(context).bottom,
-      ),
+      padding: EdgeInsets.fromLTRB(16, 0, 16, 12 + sheetBottomInset(context)),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,

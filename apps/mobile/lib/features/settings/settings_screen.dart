@@ -17,6 +17,7 @@ import '../auth/auth_widgets.dart';
 import '../sales/sales_outbox.dart';
 import '../wallet/wallet_repository.dart';
 import 'legal.dart';
+import '../../core/layout/layout.dart';
 
 String roleLabel(AppLocalizations t, Role role) => switch (role) {
   Role.admin => t.roleAdmin,
@@ -590,12 +591,7 @@ class _SheetBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) => SafeArea(
     child: SingleChildScrollView(
-      padding: EdgeInsets.fromLTRB(
-        20,
-        0,
-        20,
-        20 + MediaQuery.viewInsetsOf(context).bottom,
-      ),
+      padding: EdgeInsets.fromLTRB(20, 0, 20, 20 + sheetBottomInset(context)),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,

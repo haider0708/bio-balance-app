@@ -14,6 +14,7 @@ import '../catalog/catalog_repository.dart';
 import '../network/network_models.dart';
 import '../network/network_repository.dart';
 import 'lens.dart';
+import '../../core/layout/layout.dart';
 
 String presetLabel(AppLocalizations t, PeriodPreset p) => switch (p) {
   PeriodPreset.today => t.today,
@@ -384,6 +385,7 @@ class _OptionSheetState extends State<_OptionSheet> {
                 }
                 return ListView.builder(
                   controller: scroll,
+                  padding: EdgeInsets.only(bottom: sheetBottomInset(context)),
                   itemCount: shown.length,
                   itemBuilder: (context, i) => ListTile(
                     title: Text(shown[i].title),

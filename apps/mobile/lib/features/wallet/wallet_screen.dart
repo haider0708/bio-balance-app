@@ -12,6 +12,7 @@ import '../../core/widgets/states.dart';
 import '../../l10n/app_localizations.dart';
 import 'wallet_models.dart';
 import 'wallet_repository.dart';
+import '../../core/layout/layout.dart';
 
 final walletEntriesProvider = FutureProvider.autoDispose<WalletPage>(
   (ref) => ref.watch(walletRepositoryProvider).entries(),
@@ -219,12 +220,7 @@ class _PayoutSheetState extends State<_PayoutSheet> {
     final amount = Money.parse(_controller.text);
     final valid = amount != null && amount > 0 && amount <= widget.available;
     return Padding(
-      padding: EdgeInsets.fromLTRB(
-        20,
-        0,
-        20,
-        20 + MediaQuery.viewInsetsOf(context).bottom,
-      ),
+      padding: EdgeInsets.fromLTRB(20, 0, 20, 20 + sheetBottomInset(context)),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,

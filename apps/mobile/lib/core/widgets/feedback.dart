@@ -4,6 +4,7 @@ import '../../l10n/app_localizations.dart';
 import '../theme/app_theme.dart';
 import 'async_body.dart';
 import 'components.dart';
+import '../layout/layout.dart';
 
 void showMessage(BuildContext context, String message, {bool error = false}) {
   final messenger = ScaffoldMessenger.of(context);
@@ -119,12 +120,7 @@ class _NoteSheetState extends State<_NoteSheet> {
   Widget build(BuildContext context) {
     final valid = !widget.required || _controller.text.trim().length >= 2;
     return Padding(
-      padding: EdgeInsets.fromLTRB(
-        20,
-        0,
-        20,
-        20 + MediaQuery.viewInsetsOf(context).bottom,
-      ),
+      padding: EdgeInsets.fromLTRB(20, 0, 20, 20 + sheetBottomInset(context)),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,

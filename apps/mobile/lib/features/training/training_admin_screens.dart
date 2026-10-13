@@ -16,6 +16,7 @@ import '../network/network_repository.dart';
 import 'training_models.dart';
 import 'training_repository.dart';
 import 'training_screens.dart';
+import '../../core/layout/layout.dart';
 
 /// The admin's list of courses, drafts included.
 class ManageCoursesScreen extends ConsumerWidget {
@@ -81,12 +82,7 @@ class ManageCoursesScreen extends ConsumerWidget {
       context: context,
       isScrollControlled: true,
       builder: (context) => Padding(
-        padding: EdgeInsets.fromLTRB(
-          20,
-          0,
-          20,
-          20 + MediaQuery.viewInsetsOf(context).bottom,
-        ),
+        padding: EdgeInsets.fromLTRB(20, 0, 20, 20 + sheetBottomInset(context)),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,

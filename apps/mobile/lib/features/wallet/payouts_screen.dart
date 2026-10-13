@@ -13,6 +13,7 @@ import '../../l10n/app_localizations.dart';
 import '../approvals/approvals_repository.dart';
 import 'wallet_models.dart';
 import 'wallet_repository.dart';
+import '../../core/layout/layout.dart';
 
 final _payoutsProvider = FutureProvider.autoDispose
     .family<List<Payout>, String?>(
@@ -198,7 +199,7 @@ class _RequestCard extends ConsumerWidget {
             20,
             0,
             20,
-            20 + MediaQuery.viewInsetsOf(context).bottom,
+            20 + sheetBottomInset(context),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,

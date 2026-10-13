@@ -19,6 +19,7 @@ import '../shared/status_chips.dart';
 import 'network_models.dart';
 import 'network_repository.dart';
 import 'region_moves.dart';
+import '../../core/layout/layout.dart';
 
 /// Ask for one short piece of text.
 Future<String?> askText(
@@ -72,12 +73,7 @@ class _TextSheetState extends State<_TextSheet> {
 
   @override
   Widget build(BuildContext context) => Padding(
-    padding: EdgeInsets.fromLTRB(
-      20,
-      0,
-      20,
-      20 + MediaQuery.viewInsetsOf(context).bottom,
-    ),
+    padding: EdgeInsets.fromLTRB(20, 0, 20, 20 + sheetBottomInset(context)),
     child: Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,

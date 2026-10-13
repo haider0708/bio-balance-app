@@ -13,6 +13,7 @@ import '../../core/widgets/async_body.dart';
 import '../../core/widgets/states.dart';
 import '../reports/reports_repository.dart';
 import '../restock/restock_repository.dart';
+import '../../core/layout/layout.dart';
 
 /// A titled group of attention rows, shown only when it has something to say.
 class AttentionGroup extends StatelessWidget {
@@ -481,7 +482,12 @@ Future<void> showStoreStock(
             final mine = all.where((r) => r.locationId == pdvId).toList();
             return ListView(
               controller: scroll,
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+              padding: EdgeInsets.fromLTRB(
+                16,
+                0,
+                16,
+                24 + sheetBottomInset(context),
+              ),
               children: [
                 Text(place, style: context.text.titleLarge),
                 const Gap(12),
@@ -623,12 +629,7 @@ class _OrderSheetState extends State<_OrderSheet> {
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
     return Padding(
-      padding: EdgeInsets.fromLTRB(
-        20,
-        0,
-        20,
-        16 + MediaQuery.viewInsetsOf(context).bottom,
-      ),
+      padding: EdgeInsets.fromLTRB(20, 0, 20, 16 + sheetBottomInset(context)),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,

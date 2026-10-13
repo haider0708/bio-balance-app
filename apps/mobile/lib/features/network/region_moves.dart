@@ -12,6 +12,7 @@ import '../dashboard/dashboard_repository.dart';
 import '../stock/stock_repository.dart';
 import 'network_models.dart';
 import 'network_repository.dart';
+import '../../core/layout/layout.dart';
 
 /// Everything that shows a region's content is stale after a move: refresh it all.
 void refreshAfterMove(WidgetRef ref) {
@@ -81,12 +82,7 @@ class _MoveSheetState extends ConsumerState<_MoveSheet> {
         ? (ref.watch(groupsProvider(_regionId)).value ?? const <Group>[])
         : const <Group>[];
     return Padding(
-      padding: EdgeInsets.fromLTRB(
-        20,
-        0,
-        20,
-        20 + MediaQuery.viewInsetsOf(context).bottom,
-      ),
+      padding: EdgeInsets.fromLTRB(20, 0, 20, 20 + sheetBottomInset(context)),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
