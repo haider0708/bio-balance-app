@@ -138,7 +138,7 @@ export class RestockService {
           actor.id,
         );
       } else
-        await notifyAdmins(tx, {
+        await notifyAdmins(tx, order.regionId, {
           key: "restock.requested",
           params: { number, place: dest.name, by: actor.name },
           entityType: "RestockOrder",
@@ -342,7 +342,7 @@ export class RestockService {
         actor.id,
       );
       if (actor.role !== "ADMIN")
-        await notifyAdmins(tx, {
+        await notifyAdmins(tx, order.regionId, {
           key: "restock.shipped_info",
           params: { number: order.number, by: actor.name },
           entityType: "RestockOrder",
@@ -495,7 +495,7 @@ export class RestockService {
       );
       // The admin counting a delivery is also the one who approves it.
       if (actor.role === "ADMIN") return this.settle(tx, actor, updated);
-      await notifyAdmins(tx, {
+      await notifyAdmins(tx, order.regionId, {
         key: "restock.received",
         params: { number: order.number, by: actor.name },
         entityType: "RestockOrder",

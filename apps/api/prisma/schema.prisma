@@ -101,6 +101,9 @@ model Region {
   /// Internal, generated from the name when the region is created; never shown.
   code String @unique
   name String
+  /// The test region of the store reviewers' accounts (at most one): hidden from the admin unless
+  /// asked for, and nothing done in it reaches the real network.
+  sandbox Boolean @default(false)
 }
 
 model User {

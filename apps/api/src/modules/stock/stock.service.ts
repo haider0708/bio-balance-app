@@ -251,7 +251,7 @@ export class StockService {
             entityId: declaration.id,
           });
       } else
-        await notifyAdmins(tx, {
+        await notifyAdmins(tx, location.stockRegionId, {
           key: "stock.submitted",
           params: {
             place: location.name,
@@ -554,7 +554,7 @@ export class StockService {
         { place: location.name },
         location.stockRegionId,
       );
-      await notifyAdmins(tx, {
+      await notifyAdmins(tx, location.stockRegionId, {
         key: "recount.requested",
         params: { place: location.name, by: actor.name },
         entityType: "StockRecount",

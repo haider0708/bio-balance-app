@@ -12,6 +12,10 @@ export interface Actor {
   pdvId: string | null;
   locale: "fr" | "en";
   sessionId?: string;
+  /** Belongs to the test region (the store reviewers' accounts): nothing they do reaches the real network. */
+  sandbox?: boolean;
+  /** An admin who asked to see the test region (the app's "Show the test region" setting). */
+  showSandbox?: boolean;
 }
 
 /** Trusted server work (jobs, notifications) that acts for nobody in particular. */

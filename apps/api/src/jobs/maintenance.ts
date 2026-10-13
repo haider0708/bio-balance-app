@@ -26,6 +26,13 @@ export async function cleanup(db: Database, now = new Date()) {
     () =>
       db.$executeRaw`DELETE FROM "Job" WHERE id IN (SELECT id FROM "Job" WHERE status = 'completed' AND "createdAt" < ${new Date(now.getTime() - 14 * DAY)} LIMIT 1000)`,
   );
+  // The test region's routine jobs (every minute) are not worth keeping past a day.
+  await purge(
+    () =>
+      db.$executeRaw`DELETE FROM "Job" WHERE id IN (SELECT id FROM "Job" WHERE status = 'completed' AND kind IN ('sandbox-approve','sandbox-sell') AND "createdAt" < ${day} LIMIT 1000)`,
+  );
+  // A restored demonstration account's job carried its password hash: not kept once done.
+  await db.$executeRaw`UPDATE "Job" SET payload = '{}'::jsonb WHERE kind = 'demo-restore' AND status = 'completed' AND payload <> '{}'::jsonb`;
   // Failed email jobs may still carry a code from older attempts.
   await db.$executeRaw`UPDATE "Job" SET payload = '{}'::jsonb WHERE kind = 'email' AND status = 'failed' AND payload <> '{}'::jsonb`;
 }

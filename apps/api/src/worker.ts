@@ -4,6 +4,14 @@ import { Database } from "./core/database";
 import { EmailDelivery } from "./email/delivery";
 import { SmtpEmailTransport } from "./email/smtp";
 import { type JobExecutor, JobRunner } from "./jobs/job-runner";
+import {
+  approveSandbox,
+  keepSandboxSelling,
+  restoreDemoAccount,
+  sandboxServices,
+  scheduleSandbox,
+  type RestorePayload,
+} from "./demo/sandbox";
 import { cleanup, scheduleCleanup } from "./jobs/maintenance";
 import { MessagingService } from "./modules/messaging/messaging.service";
 import { PushDelivery } from "./push/push-delivery";
@@ -16,6 +24,7 @@ const emails = new EmailDelivery(db, smtp);
 const messages = new MessagingService(db);
 const transports = transportsFromEnv();
 const pushes = new PushDelivery(db, transports);
+const sandbox = sandboxServices(db);
 const wake = new NotificationSignal(process.env.DATABASE_URL ?? "");
 let stopping = false;
 
@@ -33,6 +42,14 @@ const execute: JobExecutor = async (job, stillOwned) => {
       return messages.deliverScheduled(String(job.payload.messageId));
     case "cleanup":
       return cleanup(db);
+    case "sandbox-approve":
+      await approveSandbox(sandbox);
+      return;
+    case "sandbox-sell":
+      await keepSandboxSelling(sandbox);
+      return;
+    case "demo-restore":
+      return restoreDemoAccount(db, job.payload as unknown as RestorePayload);
     default:
       throw new Error("UNKNOWN_JOB");
   }
@@ -47,7 +64,14 @@ for (const signal of ["SIGINT", "SIGTERM"])
 async function main() {
   const runner = new JobRunner(
     db,
-    ["email", "message-send", "cleanup"],
+    [
+      "email",
+      "message-send",
+      "cleanup",
+      "sandbox-approve",
+      "sandbox-sell",
+      "demo-restore",
+    ],
     execute,
   );
   const concurrency = Math.max(
@@ -55,6 +79,7 @@ async function main() {
     Math.min(4, Number(process.env.WORKER_CONCURRENCY) || 2),
   );
   let nextSchedule = 0;
+  let nextSandbox = 0;
   let lastHealthy = Date.now();
   // The container health check reads this file; it stops updating if the worker stops making progress.
   const heartbeat = setInterval(() => {
@@ -71,6 +96,10 @@ async function main() {
           if (index === 0 && Date.now() >= nextSchedule) {
             await scheduleCleanup(db);
             nextSchedule = Date.now() + 3_600_000;
+          }
+          if (index === 0 && Date.now() >= nextSandbox) {
+            await scheduleSandbox(db);
+            nextSandbox = Date.now() + 60_000;
           }
           const worked = await runner.tick();
           lastHealthy = Date.now();

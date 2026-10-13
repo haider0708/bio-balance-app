@@ -58,10 +58,16 @@ export class Database extends PrismaClient implements OnModuleDestroy {
             if (actor === SYSTEM)
               await tx.$executeRaw`SELECT set_config('app.role','SYSTEM',true)`;
             else
+              // The admin does not see the test region unless they asked to (app_admin_sees).
               await tx.$executeRaw`SELECT set_config('app.role',${actor.role},true),
                 set_config('app.user_id',${actor.id},true),
                 set_config('app.region_id',${actor.regionId ?? ""},true),
-                set_config('app.pdv_id',${actor.pdvId ?? ""},true)`;
+                set_config('app.pdv_id',${actor.pdvId ?? ""},true),
+                set_config('app.hidden_region',${
+                  actor.role === "ADMIN" && !actor.showSandbox
+                    ? Prisma.sql`COALESCE((SELECT id::text FROM "Region" WHERE sandbox), '')`
+                    : Prisma.sql`''`
+                },true)`;
             return work(tx);
           },
           { isolationLevel, maxWait: 5000, timeout: 15000 },

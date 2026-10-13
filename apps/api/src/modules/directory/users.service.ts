@@ -145,7 +145,7 @@ export class UsersService {
         { pdvId, name: input.name },
         pdv.regionId,
       );
-      await notifyAdmins(tx, {
+      await notifyAdmins(tx, pdv.regionId, {
         key: "member.submitted",
         params: { name: user.name, pdv: pdv.name, by: actor.name },
         entityType: "User",
@@ -205,10 +205,9 @@ export class UsersService {
       "Not allowed.",
       403,
     );
-    const user = await this.db.user.findUnique({
-      where: { id },
-      select: publicUser,
-    });
+    const user = await this.db.run(actor, (tx) =>
+      tx.user.findUnique({ where: { id }, select: publicUser }),
+    );
     const visible =
       user &&
       (actor.role === "ADMIN" ||

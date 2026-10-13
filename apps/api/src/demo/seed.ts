@@ -1,4 +1,4 @@
-import { randomBytes, randomUUID } from "node:crypto";
+import { randomUUID } from "node:crypto";
 import { Readable } from "node:stream";
 import argon2 from "argon2";
 import type { Client } from "pg";
@@ -63,8 +63,10 @@ export function demoServices(app: {
 export interface DemoOptions {
   /** How many days of sales, ending today. */
   days: number;
-  /** The password of the demo responsable and of the demo team member. */
-  passwords: { responsable: string; vendeur: string };
+  /** The password of the demo responsable and of the demo team member... */
+  passwords?: { responsable: string; vendeur: string };
+  /** ...or the password hashes they already have (rebuilding keeps what the stores were given). */
+  passwordHashes?: { responsable: string; vendeur: string };
   log?: (message: string) => void;
 }
 
@@ -102,34 +104,14 @@ function generator(seed: number) {
   };
 }
 
+/** The test shop: its one seller is the account the reviewers sign in with. */
 const STORES = [
   {
     name: "Para Démo Lac",
     city: "Les Berges du Lac, Tunis",
     address: "12 rue du Lac Léman",
     weight: 1.3,
-    sellers: ["Amine Trabelsi", "Sarra Jlassi"],
-  },
-  {
-    name: "Pharma Démo Marsa",
-    city: "La Marsa",
-    address: "5 avenue Habib Bourguiba",
-    weight: 1.0,
-    sellers: ["Yassine Mejri"],
-  },
-  {
-    name: "Para Démo Centre",
-    city: "Tunis",
-    address: "27 avenue de Paris",
-    weight: 0.8,
-    sellers: ["Ines Gharbi"],
-  },
-  {
-    name: "Pharma Démo Nord",
-    city: "Bizerte",
-    address: "3 rue de la Corniche",
-    weight: 0.9,
-    sellers: ["Walid Ayari"],
+    sellers: ["Amine Trabelsi"],
   },
 ];
 
@@ -142,15 +124,6 @@ const REVIEW_RESPONSABLE = {
   name: "Nadia Ben Salem",
   email: "demo-responsable@galylio.com",
 };
-
-const emailOf = (name: string) =>
-  `demo-${
-    name
-      .toLowerCase()
-      .normalize("NFD")
-      .replace(/[^a-z ]/g, "")
-      .split(" ")[0]
-  }@galylio.com`;
 
 /** 1 for a quiet day, up to 1.2 for the busiest (Sunday is the quietest). */
 const WEEKDAY = [0.5, 1, 1, 1.05, 1.1, 1.2, 1.15];
@@ -196,10 +169,11 @@ function adminActor(admin: { id: string; name: string; email: string }): Actor {
 }
 
 /**
- * Builds a believable region for the store reviewers and for showing the app: a region with a
- * responsable, four stores with their teams, a grossiste, stock, a restock, payouts, an
- * announcement and `days` days of sales with the rewards they earned. It is made with the real
- * services (so stock, wallets and rewards add up), then its dates are put where they belong.
+ * Builds the test region for the store reviewers: a region with its responsable, a group, a shop
+ * and its team member, a grossiste, stock, restocks, payouts, an announcement and `days` days of
+ * sales with the rewards they earned. It is made with the real services (so stock, wallets and
+ * rewards add up), then its dates are put where they belong and it becomes the test region, which
+ * the admin does not see (docs/runbook.md, "The test region").
  * `owner` is a connection as the database owner, needed to move dates in the append-only history.
  */
 export async function seedDemo(
@@ -270,16 +244,11 @@ export async function seedDemo(
   }
 
   const accounts: DemoAccount[] = [];
-  const unusable = await argon2.hash(randomBytes(24).toString("base64url"), {
-    type: argon2.argon2id,
-  });
-  const hashes = {
-    responsable: await argon2.hash(options.passwords.responsable, {
-      type: argon2.argon2id,
-    }),
-    vendeur: await argon2.hash(options.passwords.vendeur, {
-      type: argon2.argon2id,
-    }),
+  const hash = (password: string) =>
+    argon2.hash(password, { type: argon2.argon2id });
+  const hashes = options.passwordHashes ?? {
+    responsable: await hash(options.passwords!.responsable),
+    vendeur: await hash(options.passwords!.vendeur),
   };
   const createUser = async (
     role: "RESPONSABLE" | "VENDEUR",
@@ -313,13 +282,12 @@ export async function seedDemo(
   const sellers: { id: string; storeIndex: number }[][] = STORES.map(() => []);
   for (const [i, store] of STORES.entries())
     for (const name of store.sellers) {
-      const review = name === REVIEW_VENDEUR.name;
       const id = await createUser(
         "VENDEUR",
         name,
-        review ? REVIEW_VENDEUR.email : emailOf(name),
+        REVIEW_VENDEUR.email,
         stores[i]!.id,
-        review ? hashes.vendeur : unusable,
+        hashes.vendeur,
         store.name,
       );
       sellers[i]!.push({ id, storeIndex: i });
@@ -528,38 +496,30 @@ export async function seedDemo(
   });
   await s.restock.approve(admin, order.id, {});
   await s.restock.create(responsable, {
-    destId: stores[1]!.id,
+    destId: lac.id,
     note: "Rupture sur les sérums",
     lines: picks.slice(2, 7).map((p) => ({ productId: p.id, quantity: 25 })),
   });
 
-  for (const [i, share] of [
-    [0, 0.35],
-    [1, 0.3],
-  ] as const) {
-    const actor =
-      actors.get(sellers[i]![0]!.id) ??
-      (await actorOfSeller(sellers[i]![0]!.id));
-    const wallet = (await s.wallet.mine(actor)) as {
-      availableMillimes: number | bigint;
-    };
-    const balance = Number(wallet.availableMillimes);
-    const paid = Math.floor((balance * share) / 1000) * 1000;
-    if (paid >= 1000) {
-      const request = (await s.wallet.request(actor, paid)) as { id: string };
-      await s.wallet.approve(admin, request.id, {
-        paidAt: new Date(now.getTime() - 6 * 86_400_000),
-        reference: `DEMO-${i + 1}`,
-      });
-    }
-    if (i === 0) {
-      const left = Math.floor((balance * 0.1) / 1000) * 1000;
-      if (left >= 1000) await s.wallet.request(actor, left);
-    }
+  // A payout paid last week and a smaller one waiting.
+  const seller = await actorOfSeller(sellers[0]![0]!.id);
+  const wallet = (await s.wallet.mine(seller)) as {
+    availableMillimes: number | bigint;
+  };
+  const balance = Number(wallet.availableMillimes);
+  const paid = Math.floor((balance * 0.35) / 1000) * 1000;
+  if (paid >= 1000) {
+    const request = (await s.wallet.request(seller, paid)) as { id: string };
+    await s.wallet.approve(admin, request.id, {
+      paidAt: new Date(now.getTime() - 6 * 86_400_000),
+      reference: "DEMO-1",
+    });
   }
+  const left = Math.floor((balance * 0.1) / 1000) * 1000;
+  if (left >= 1000) await s.wallet.request(seller, left);
   await s.messaging.send(admin, {
     title: "Bienvenue dans la région Démo",
-    body: "Voici une région d'exemple : quatre points de vente, des ventes sur deux mois, des récompenses et des réassorts. Explorez librement.",
+    body: "Voici une région d'exemple : un point de vente et son équipe, des ventes sur deux mois, des récompenses et des réassorts. Explorez librement.",
     audience: { regionIds: [region.id] },
     pinned: true,
   });
@@ -661,6 +621,10 @@ async function tidy(
       `UPDATE "User" SET "createdAt" = ${opening} - interval '1 day', "decidedAt" = ${opening} - interval '1 day' WHERE "regionId" = $1`,
       [regionId],
     );
+    // Done: from now on it is the test region, which the admin does not see.
+    await owner.query(`UPDATE "Region" SET sandbox = true WHERE id = $1`, [
+      regionId,
+    ]);
     await owner.query("COMMIT");
   } catch (error) {
     await owner.query("ROLLBACK");

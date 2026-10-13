@@ -84,7 +84,7 @@ export class WalletService {
         { amountMillimes },
         actor.regionId,
       );
-      await notifyAdmins(tx, {
+      await notifyAdmins(tx, actor.regionId, {
         key: "payout.requested",
         params: { name: actor.name, amountMillimes },
         entityType: "PayoutRequest",

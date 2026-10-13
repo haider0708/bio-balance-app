@@ -88,8 +88,8 @@ export class DirectoryController {
     private readonly regionsService: RegionsService,
   ) {}
 
-  @Get("regions") regions() {
-    return this.structure.regions();
+  @Get("regions") regions(@Req() r: AuthRequest) {
+    return this.structure.regions(r.actor);
   }
 
   // Groups

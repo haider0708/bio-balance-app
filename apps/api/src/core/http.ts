@@ -47,6 +47,11 @@ export class AuthGuard implements CanActivate {
     request.bearer =
       request.headers.authorization?.replace(/^Bearer /, "") ?? "";
     request.actor = await this.auth.authenticate(request.bearer);
+    if (
+      request.actor.role === "ADMIN" &&
+      request.headers["x-biobalance-sandbox"] === "show"
+    )
+      request.actor.showSandbox = true;
     const roles = this.reflector.getAllAndOverride<Role[] | undefined>(
       "roles",
       targets,

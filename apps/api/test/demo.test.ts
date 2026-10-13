@@ -92,12 +92,17 @@ describe("the demonstration region", () => {
         days: 12,
         passwords: PASSWORDS,
       });
-      expect(result.sales).toBeGreaterThan(150);
+      expect(result.sales).toBeGreaterThan(60);
       expect(
         result.accounts.filter((a) => a.role === "RESPONSABLE"),
       ).toHaveLength(1);
       expect(result.accounts.filter((a) => a.role === "VENDEUR")).toHaveLength(
-        5,
+        1,
+      );
+      // It is the test region: the admin does not see it.
+      const regions = (await w.a.get("/v1/regions")).body;
+      expect((regions.items ?? regions).map((r: any) => r.id)).not.toContain(
+        result.regionId,
       );
 
       // The reviewers sign in with the given passwords.

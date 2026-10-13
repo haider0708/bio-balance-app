@@ -105,6 +105,10 @@ class ServerText {
       'Incorrect email or password.',
       'E-mail ou mot de passe incorrect.',
     ),
+    'DEMO_ACCOUNT': (
+      'This is a demonstration account: its password cannot be changed.',
+      'Ceci est un compte de démonstration : son mot de passe ne peut pas être modifié.',
+    ),
     'MFA_REQUIRED': (
       'Enter the code from your authenticator app.',
       'Saisissez le code de votre application d’authentification.',

@@ -20,8 +20,10 @@ export interface PlaceInput {
 export class StructureService {
   constructor(private readonly db: Database) {}
 
-  regions() {
-    return this.db.region.findMany({ orderBy: { name: "asc" } });
+  regions(actor: Actor) {
+    return this.db.run(actor, (tx) =>
+      tx.region.findMany({ orderBy: { name: "asc" } }),
+    );
   }
 
   // ───────────────────────── Groups ─────────────────────────
@@ -76,7 +78,7 @@ export class StructureService {
           entityId: group.id,
         });
       else
-        await notifyAdmins(tx, {
+        await notifyAdmins(tx, group.regionId, {
           key: "group.submitted",
           params: { name: group.name, by: actor.name },
           entityType: "Group",
@@ -204,7 +206,7 @@ export class StructureService {
           entityId: pdv.id,
         });
       else
-        await notifyAdmins(tx, {
+        await notifyAdmins(tx, pdv.regionId, {
           key: "pdv.submitted",
           params: { name: pdv.name, by: actor.name },
           entityType: "Pdv",
@@ -365,7 +367,7 @@ export class StructureService {
       entityId: id,
     });
     if (isOwnerAction)
-      await notifyAdmins(tx, {
+      await notifyAdmins(tx, row.regionId, {
         key,
         params: { name: row.name, by: actor.name },
         entityType: entity,

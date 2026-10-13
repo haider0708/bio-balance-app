@@ -336,25 +336,28 @@ export class TrainingService {
   }
 
   /** Who finished what: every person the course is for, with their progress. */
-  async progress(id: string) {
+  async progress(actor: Actor, id: string) {
     const course = await this.db.course.findUnique({
       where: { id },
       include: { lessons: { select: { id: true } } },
     });
     if (!course) throw notFound("Course");
     const audience = course.audience as CourseAudience;
-    const people = await this.db.user.findMany({
-      where: {
-        status: "ACTIVE",
-        role: { not: "ADMIN" },
-        ...(audience.roles?.length && { role: { in: audience.roles } }),
-        ...(audience.regionIds?.length && {
-          regionId: { in: audience.regionIds },
-        }),
-      },
-      select: { id: true, name: true, role: true, regionId: true },
-      orderBy: { name: "asc" },
-    });
+    // As the admin: people of the hidden test region are not listed.
+    const people = await this.db.run(actor, (tx) =>
+      tx.user.findMany({
+        where: {
+          status: "ACTIVE",
+          role: { not: "ADMIN" },
+          ...(audience.roles?.length && { role: { in: audience.roles } }),
+          ...(audience.regionIds?.length && {
+            regionId: { in: audience.regionIds },
+          }),
+        },
+        select: { id: true, name: true, role: true, regionId: true },
+        orderBy: { name: "asc" },
+      }),
+    );
     const done = await this.db.lessonProgress.groupBy({
       by: ["userId"],
       where: { lessonId: { in: course.lessons.map((l) => l.id) } },

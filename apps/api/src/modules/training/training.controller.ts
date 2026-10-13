@@ -102,9 +102,10 @@ export class TrainingController {
     return this.training.deleteCourse(r.actor, parse(id, i));
   }
   @Roles("ADMIN") @Get("courses/:id/progress") progress(
+    @Req() r: AuthRequest,
     @Param("id") i: string,
   ) {
-    return this.training.progress(parse(id, i));
+    return this.training.progress(r.actor, parse(id, i));
   }
   @Roles("ADMIN") @Post("courses/:id/lessons") addLesson(
     @Req() r: AuthRequest,

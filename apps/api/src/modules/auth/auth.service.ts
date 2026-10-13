@@ -4,7 +4,8 @@ import type { Actor } from "../../core/actor";
 import { Database, type Tx } from "../../core/database";
 import { DomainError, requireRule } from "../../core/errors";
 import { audit } from "../../core/audit";
-import { notifyAdmins } from "../../core/notifier";
+import { isSandbox, notifyAdmins } from "../../core/notifier";
+import { RESTORE_DELAY_MS, type RestorePayload } from "../../demo/sandbox";
 import { deletedEmail } from "./deleted";
 import { hashCode, issueCode, normalizeCode, tokenHash } from "./codes";
 import { decryptSecret, matchTotp } from "./mfa";
@@ -178,9 +179,10 @@ export class AuthService {
           pdvId: string | null;
           status: string;
           sessionId: string;
+          sandbox: boolean | null;
         }[]
-      >`SELECT u.id,u.name,u.email,u.role,u.locale,u."regionId",u."pdvId",u.status,s.id AS "sessionId"
-      FROM "Session" s JOIN "User" u ON u.id=s."userId"
+      >`SELECT u.id,u.name,u.email,u.role,u.locale,u."regionId",u."pdvId",u.status,s.id AS "sessionId",r.sandbox
+      FROM "Session" s JOIN "User" u ON u.id=s."userId" LEFT JOIN "Region" r ON r.id=u."regionId"
       WHERE s."tokenHash"=${tokenHash(token)} AND s."revokedAt" IS NULL
         AND s."expiresAt">(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')`,
     );
@@ -200,6 +202,7 @@ export class AuthService {
       pdvId: row.pdvId,
       locale: row.locale === "en" ? "en" : "fr",
       sessionId: row.sessionId,
+      sandbox: row.sandbox === true,
     };
   }
 
@@ -258,6 +261,13 @@ export class AuthService {
   }
 
   async changePassword(actor: Actor, current: string, next: string) {
+    // The store reviewers share these accounts: one reviewer must not lock out the next.
+    requireRule(
+      !actor.sandbox,
+      "DEMO_ACCOUNT",
+      "The password of a demonstration account cannot be changed.",
+      403,
+    );
     await this.throttle(`password:${actor.id}`, 8);
     const user = await this.db.user.findUniqueOrThrow({
       where: { id: actor.id },
@@ -322,6 +332,24 @@ export class AuthService {
         );
       }
       const tag = user.id.slice(0, 4).toUpperCase();
+      // A store reviewer may try deletion on a demonstration account: it is deleted like any
+      // other, then comes back a few minutes later so the next reviewer can still sign in.
+      if (actor.sandbox && user.passwordHash)
+        await tx.job.create({
+          data: {
+            kind: "demo-restore",
+            key: `demo-restore:${user.id}:${Date.now()}`,
+            availableAt: new Date(Date.now() + RESTORE_DELAY_MS),
+            payload: {
+              userId: user.id,
+              name: user.name,
+              email: user.email,
+              phone: user.phone,
+              passwordHash: user.passwordHash,
+              locale: user.locale,
+            } satisfies RestorePayload,
+          },
+        });
       await tx.payoutRequest.updateMany({
         where: { userId: user.id, status: "PENDING" },
         data: {
@@ -349,7 +377,7 @@ export class AuthService {
       await audit(tx, actor, "auth.account_deleted", "User", user.id, {
         role: user.role,
       });
-      await notifyAdmins(tx, {
+      await notifyAdmins(tx, user.regionId, {
         key: "account.deleted",
         params: { name: user.name, role: user.role },
         entityType: "User",
@@ -392,7 +420,13 @@ export class AuthService {
     await this.throttle(`reset:${tokenHash(email)}`, 3);
     await this.db.run("SYSTEM", async (tx) => {
       const user = await tx.user.findUnique({ where: { email } });
-      if (user && user.status === "ACTIVE" && user.passwordHash)
+      // Demonstration accounts get no reset code (their password stays the one the stores know).
+      if (
+        user &&
+        user.status === "ACTIVE" &&
+        user.passwordHash &&
+        !(user.regionId && (await isSandbox(tx, user.regionId)))
+      )
         await issueCode(tx, user.id, "reset");
     });
     // Same answer whether or not the account exists.

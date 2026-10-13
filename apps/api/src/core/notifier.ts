@@ -32,8 +32,26 @@ export async function adminIds(tx: Tx): Promise<string[]> {
   return admins.map((a) => a.id);
 }
 
-export async function notifyAdmins(tx: Tx, notice: SystemNotice) {
+/**
+ * Tells the admins about something that happened in `regionId`. Nothing done in the test region
+ * (the store reviewers' accounts) reaches them.
+ */
+export async function notifyAdmins(
+  tx: Tx,
+  regionId: string | null | undefined,
+  notice: SystemNotice,
+) {
+  if (regionId && (await isSandbox(tx, regionId))) return;
   await notify(tx, await adminIds(tx), notice);
+}
+
+/** Whether a region is the test region. */
+export async function isSandbox(tx: Tx, regionId: string) {
+  const region = await tx.region.findUnique({
+    where: { id: regionId },
+    select: { sandbox: true },
+  });
+  return region?.sandbox === true;
 }
 
 /** The active responsable of a region (there is one per region). */
