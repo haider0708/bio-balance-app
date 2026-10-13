@@ -9,7 +9,7 @@ flutter analyze && flutter test
 flutter build apk --debug          # a quick install on a test phone
 ```
 
-The version is `version:` in `pubspec.yaml` (`3.3.0+40`): raise the number after `+` for **every** upload to either store. The app reads it from the build (Settings → About), so it can never disagree with the stores.
+The version is `version:` in `pubspec.yaml` (`3.3.2+42`): raise the number after `+` for **every** upload to either store. The app reads it from the build (Settings → About), so it can never disagree with the stores.
 
 ## Android (Google Play)
 
