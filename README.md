@@ -29,7 +29,7 @@ ADMIN_EMAIL=you@example.com ADMIN_SETUP_FILE=/tmp/admin.json node --env-file=app
 cd apps/mobile && flutter pub get && flutter run --dart-define=API_BASE_URL=http://10.0.2.2:3000
 ```
 
-Mailpit shows the emails on `http://localhost:8029`. Load the catalog with `node scripts/import-catalog.mjs`.
+Mailpit shows the emails on `http://localhost:8029`. Load the product catalogue (`apps/api/catalog`) with `cd apps/api && npm run catalog -- --apply`.
 
 ## Check it
 
