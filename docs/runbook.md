@@ -79,7 +79,7 @@ The app registers for push in Xcode automatically: with automatic signing, the P
 
 ## Backups and restore
 
-`biobalance-backup.timer` takes a dump and a copy of the media volume each night into `/srv/biobalance-backups` (budget and retention in `backup.env`). `scripts/verify-restore.sh` restores the latest copy into a throwaway database and counts rows: run it after any change to the schema or the backup scripts. Backups on this VPS do not survive losing the whole server; copy them elsewhere if that matters.
+`biobalance-backup.timer` takes a dump and a copy of the media volume each night into `/srv/biobalance-backups` (budget and retention in `backup.env`). `scripts/verify-restore.sh` restores the latest copy into a throwaway database and counts rows: run it after any change to the schema or the backup scripts. Backups on this VPS do not survive losing the whole server, so a copy leaves it every day: `scripts/pull-backups.sh` copies the newest finished backup to `~/.biobalance/backups` on the Mac (checked against its checksums, the last 14 kept, FileVault-encrypted disk); `scripts/pull-backups.sh --install` makes the Mac do it at 09:30 each day (log: `~/.biobalance/backups/pull.log`). To restore from such a copy, send its `database.dump` and `media.tar.gz` back to the server and follow the steps below.
 
 To restore by hand: stop `api1 api2 worker`, `pg_restore --clean --if-exists` the dump into the database as the owner, restore the media volume, start the services.
 
