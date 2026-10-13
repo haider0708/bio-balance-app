@@ -172,7 +172,7 @@ class _Body extends ConsumerWidget {
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Text(
-                          (r.str('name')).substring(0, 1),
+                          r.str('name').characters.firstOrNull ?? '·',
                           style: context.text.titleMedium?.copyWith(
                             color: context.colors.primary,
                           ),
@@ -193,6 +193,7 @@ class _Body extends ConsumerWidget {
                           ],
                         ),
                       ),
+                      const SizedBox(width: 12),
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [

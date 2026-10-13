@@ -84,7 +84,7 @@ FakeServer server(String role) {
   final trend = [
     for (var i = 0; i < 14; i++)
       {
-        'day': '2026-09-${23 + i % 8}'.padRight(10, '0').substring(0, 10),
+        'day': '2026-09-${15 + i}',
         'sales': i % 5,
         'units': [4, 7, 5, 9, 12, 6, 3, 8, 11, 14, 9, 10, 13, 17][i],
         'rewardMillimes': 0,
