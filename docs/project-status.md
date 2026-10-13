@@ -1,13 +1,13 @@
 # Project status (the living file: both machines update it)
 
-Last updated: 2026-10-13 (night), by the Mac session.
+Last updated: 2026-10-13 (late night), by the Mac session.
 
 ## Versions and what runs
 
 | Part | Version | Where |
 |---|---|---|
-| App code | `3.3.1+41` | iPhone: built and signed, not uploaded yet; web console: https://admin.galylio.com (runs 3.3.1); Android: the Play closed test still has `3.3.0+40` |
-| Server (API + worker) | commit `8fa240c7` (the audit fixes and the simpler delivery receipt are in `main`, **not deployed yet**; they include a migration) | https://api.galylio.com (the deploy guard records what runs: `/opt/biobalance-deployed-api`) |
+| App code | `3.3.1+41` | iPhone: built and signed, not uploaded yet; web console: https://admin.galylio.com (runs 3.3.1, deployed with server fa37aa85); Android: the Play closed test still has `3.3.0+40` |
+| Server (API + worker) | commit `fa37aa85` | https://api.galylio.com (the deploy guard records what runs: `/opt/biobalance-deployed-api`) |
 | GitHub release | `v3.3.0` (APK + AAB + checksums) | github.com/haider0708/bio-balance-app/releases |
 
 ## Production data (since 2026-10-13)
@@ -22,12 +22,11 @@ The network was emptied for its real start (`docs/runbook.md`, "The test region"
 
 ## Next steps, in order
 
-1. Deploy (`scripts/deploy-vps.sh`, once the owner says so): the audit fixes (until then, a reviewer deactivating the demo seller locks it out and tells the real admin) and the simpler delivery receipt. The web console follows with `scripts/deploy-web.sh`; phones get it with the next store builds.
-2. Owner: create the app in App Store Connect; then the Mac uploads the build (`scripts/ios-release.sh --upload`), and TestFlight on any iPhone (sign-in, a sale, camera, push with the app closed).
-3. Owner (Cloudflare, optional): remove the stray `v=DMARC1; p=none;` TXT on `galylio.com` itself (the real one is on `_dmarc`); later raise DMARC to `quarantine`.
-4. Android: the next Play upload (`3.3.1+41` or later) carries every fix since 3.3.0 (Linux PC, with the upload key) after the Data safety update.
-5. Once the minimum version matters (old builds must stop): set `MIN_APP_BUILD` on the server, and `IOS_STORE_URL` once the App Store page exists.
-6. After both stores approve: keep the test region for later reviews, or remove it (`demo.js purge`).
+1. Owner: create the app in App Store Connect; then the Mac uploads the build (`scripts/ios-release.sh --upload`), and TestFlight on any iPhone (sign-in, a sale, camera, push with the app closed).
+2. Owner (Cloudflare, optional): remove the stray `v=DMARC1; p=none;` TXT on `galylio.com` itself (the real one is on `_dmarc`); later raise DMARC to `quarantine`.
+3. Android: the next Play upload (`3.3.1+41` or later) carries every fix since 3.3.0 (Linux PC, with the upload key) after the Data safety update.
+4. Once the minimum version matters (old builds must stop): set `MIN_APP_BUILD` on the server, and `IOS_STORE_URL` once the App Store page exists.
+5. After both stores approve: keep the test region for later reviews, or remove it (`demo.js purge`).
 
 ## Things deliberately left as they are
 
@@ -37,6 +36,7 @@ The network was emptied for its real start (`docs/runbook.md`, "The test region"
 
 ## Log
 
+- 2026-10-13 (Mac, late night): **Product catalogue** cleaned and refreshed in production (`docs/runbook.md`, "The product catalogue"): clear names, sharp photos cropped to the product, every barcode checked against the supplier list and Tunisian/Gulf shops; `catalog.js refresh` replaces the import script. **Deployed** server `fa37aa85` (audit fixes, simpler delivery receipt with its migration, catalogue) and the web console. App reviewed on the iPhone simulator and the Android emulator against a local server. Backup before: `before-fa37aa85.dump`.
 - 2026-10-13 (Mac, late): **Restock receipt simplified** at the owner's request (`docs/functional-specification.md`, Restock): the store's responsable or the team member they choose confirms a delivery with the paper (photos or PDF) and a note, without counting; the admin enters the quantities received (starting at what was sent) and approves. Before giving an order to a grossiste, the admin sees each grossiste's stock for it. Older apps keep working (their counted quantities are pre-filled for the admin). Migration `202610190001_receipt_note`. Contract test run against a real server.
 - 2026-10-13 (Mac, night): **Full audit** of the server (security, row-level isolation checked on the live database as the app's own role, every module's rules), the app (sign-in, offline sales, crash-prone code, every screenshot on phone and tablet, light and dark) and today's work. Fixed: the test region could still reach the real admin (the demo responsable deactivating the demo seller alerted the admin, who created that account) and showed in the admin's announcements list; a reviewer could lock out the demo seller by deactivating it (now reactivated after a minute); a forged page cursor and a sale id clash answered 500; the responsable of a supplying region could pick the receiver at another region's store; tablet region cards ran two texts together. Server 177 tests, app 101, analyzer clean.
 - 2026-10-13 (Mac, afternoon): **Test region** (hidden from the admin by row-level security, nothing reaches the real network, self-approving, self-selling, demo accounts restored after deletion, password change refused); **production emptied and rebuilt** with it. Notifications: per-sale alerts inbox-only, evening summary at 20:30 (regions and network), new reward rates and new courses announced, correct singular/plural and dates (`docs/notifications.md`). Minimum app version (`/v1/app-config`, "Update required" screen). App error reports (Settings → App errors). Off-site backups to the Mac (`scripts/pull-backups.sh`, daily). Apple push key on the server. Fixes found by running the apps: bottom sheets' last button under the iPhone home bar, product rows growing when selected, a push race in the test shop, demo payout dates. Deploy removes its build-stage image. Privacy policy names the alert token, error reports, Apple and Google. Server 8fa240c7 and web console deployed.
