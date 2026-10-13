@@ -17,6 +17,7 @@ import { WalletService } from "../modules/rewards/wallet.service";
 import { SalesService } from "../modules/sales/sales.service";
 import { StockService } from "../modules/stock/stock.service";
 import { proofPhoto } from "./proof-photo";
+import { SANDBOX_BUILD_LOCK } from "./sandbox";
 
 /** The name every demonstration photo and reward period carries, so they can be found and removed. */
 export const DEMO_FILE = "demo-proof.jpg";
@@ -179,6 +180,20 @@ function adminActor(admin: { id: string; name: string; email: string }): Actor {
  * `owner` is a connection as the database owner, needed to move dates in the append-only history.
  */
 export async function seedDemo(
+  s: DemoServices,
+  owner: Client,
+  options: DemoOptions,
+): Promise<DemoResult> {
+  // The worker leaves the test region alone until it is built (SANDBOX_BUILD_LOCK).
+  await owner.query(`SELECT pg_advisory_lock($1)`, [SANDBOX_BUILD_LOCK]);
+  try {
+    return await build(s, owner, options);
+  } finally {
+    await owner.query(`SELECT pg_advisory_unlock($1)`, [SANDBOX_BUILD_LOCK]);
+  }
+}
+
+async function build(
   s: DemoServices,
   owner: Client,
   options: DemoOptions,

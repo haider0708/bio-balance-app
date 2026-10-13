@@ -37,6 +37,23 @@ export function sandboxServices(db: Database): SandboxServices {
   };
 }
 
+/**
+ * Held by the builder of the test region (seedDemo) for as long as it works: the worker leaves
+ * the region alone meanwhile (it would otherwise sell from a shop still being stocked).
+ */
+export const SANDBOX_BUILD_LOCK = 20_261_013;
+
+/** True while the test region is being built. */
+async function beingBuilt(db: Database) {
+  const [row] = await db.run(
+    "SYSTEM",
+    (tx) =>
+      tx.$queryRaw<{ free: boolean }[]>`
+      SELECT pg_try_advisory_xact_lock_shared(${SANDBOX_BUILD_LOCK}) AS free`,
+  );
+  return row?.free !== true;
+}
+
 /** Submissions wait this long before they are approved, so the reviewer sees them wait. */
 const APPROVAL_DELAY_MS = 60_000;
 /** A deleted demonstration account comes back after this long. */
@@ -83,7 +100,7 @@ async function attempt(work: () => Promise<unknown>) {
 /** Approve what the test region submitted more than a minute ago, as the admin would. */
 export async function approveSandbox(s: SandboxServices, now = new Date()) {
   const box = await sandbox(s.db);
-  if (!box) return 0;
+  if (!box || (await beingBuilt(s.db))) return 0;
   const before = new Date(now.getTime() - APPROVAL_DELAY_MS);
   const regionId = box.regionId;
   const waiting = await s.db.run("SYSTEM", (tx) =>
@@ -241,7 +258,7 @@ function planHour(
  */
 export async function keepSandboxSelling(s: SandboxServices, now = new Date()) {
   const box = await sandbox(s.db);
-  if (!box) return 0;
+  if (!box || (await beingBuilt(s.db))) return 0;
   const sellers = await s.db.run("SYSTEM", (tx) =>
     tx.user.findMany({
       where: {

@@ -6,6 +6,7 @@ import { Database } from "../src/core/database";
 import { addDays, tunisDay } from "../src/core/dates";
 import { reviewPasswordHashes, wipeNetwork } from "../src/demo/fresh-start";
 import {
+  SANDBOX_BUILD_LOCK,
   approveSandbox,
   keepSandboxSelling,
   restoreDemoAccount,
@@ -135,6 +136,29 @@ describe("the test shop keeps selling", () => {
     expect(await keepSandboxSelling(sandboxServices(db))).toBe(0);
     expect(await keepSandboxSelling(sandboxServices(db))).toBe(0);
     expect(await adminUnread()).toBe(0);
+  });
+});
+
+describe("while the test region is being built", () => {
+  it("the worker leaves it alone, and comes back once it is done", async () => {
+    const v = (await vendeur()).c;
+    expect((await v.post("/v1/payouts", { amountMillimes: 1000 })).status).toBe(
+      201,
+    );
+    const later = new Date(Date.now() + 3_600_000);
+    const services = sandboxServices(db);
+    const ownerDb = await owner();
+    try {
+      await ownerDb.query(`SELECT pg_advisory_lock($1)`, [SANDBOX_BUILD_LOCK]);
+      expect(await approveSandbox(services, later)).toBe(0);
+      expect(await keepSandboxSelling(services)).toBe(0);
+      await ownerDb.query(`SELECT pg_advisory_unlock($1)`, [
+        SANDBOX_BUILD_LOCK,
+      ]);
+    } finally {
+      await ownerDb.end();
+    }
+    expect(await approveSandbox(services, later)).toBe(1);
   });
 });
 
