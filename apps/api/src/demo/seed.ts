@@ -615,6 +615,12 @@ async function tidy(
        FROM "Sale" s WHERE n."entityType" = 'Sale' AND n."entityId" = s.id AND s."regionId" = $1`,
       [regionId],
     );
+    // The paid payout was asked for the day before it was paid, and decided then.
+    await owner.query(
+      `UPDATE "PayoutRequest" SET "createdAt" = "paidAt" - interval '1 day', "decidedAt" = "paidAt"
+       WHERE "regionId" = $1 AND "paidAt" IS NOT NULL`,
+      [regionId],
+    );
     // The first counts, the people and the places come before the first sale.
     await owner.query(
       `UPDATE "StockMovement" SET "createdAt" = ${opening} WHERE reason = 'DECLARATION' AND "createdAt" >= $2
