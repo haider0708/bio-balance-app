@@ -104,9 +104,8 @@ describe("push alerts", () => {
       `SELECT "userId", sandbox FROM "PushDevice"`,
     );
     expect(rows).toEqual([{ userId: sami.id, sandbox: true }]);
-    // Signing out ends the session; the device row goes with it once sessions are purged.
+    // Signing out ends the session and forgets the phone at once.
     await client(api, sami.token).post("/v1/auth/logout");
-    await sql(`DELETE FROM "Session" WHERE "revokedAt" IS NOT NULL`);
     expect(await sql(`SELECT 1 FROM "PushDevice"`)).toHaveLength(0);
   });
 
@@ -284,8 +283,9 @@ describe("push alerts", () => {
       token: fcmToken(2),
       platform: "ANDROID",
     });
-    await notice(nora.id, "restock.cancelled", { number: "R-1" });
-    await notice(nora.id, "restock.cancelled", { number: "R-2" });
+    // R-1 first: two alerts made in the same millisecond have no order of their own.
+    await notice(nora.id, "restock.cancelled", { number: "R-1" }, "2 seconds");
+    await notice(nora.id, "restock.cancelled", { number: "R-2" }, "1 second");
     const apple = new FakeApple();
     const google = new FakeApple();
     await new PushDelivery(db, { IOS: apple, ANDROID: google }).tick();
