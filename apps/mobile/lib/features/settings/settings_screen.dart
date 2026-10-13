@@ -138,6 +138,12 @@ class SettingsScreen extends ConsumerWidget {
                     ref.read(showTestRegionProvider.notifier).choose(show),
               ),
             ),
+            const Gap(8),
+            _Item(
+              icon: LucideIcons.bug,
+              label: t.appErrorsEntry,
+              onTap: () => context.push('/app-errors'),
+            ),
           ],
           SectionHeader(t.about),
           _Item(

@@ -11,11 +11,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'app/app.dart';
 import 'app/router.dart' show rememberLanding;
 import 'core/alerts/background_alerts.dart';
+import 'core/diagnostics/error_reporter.dart';
 
 Future<void> main() async {
   usePathUrlStrategy();
   rememberLanding();
   WidgetsFlutterBinding.ensureInitialized();
+  ErrorReporter.install();
   // In a browser the page is described to screen readers, and its text can be found and read.
   if (kIsWeb) SemanticsBinding.instance.ensureSemantics();
   // Phones stay upright (the screens are built for it); tablets turn freely.

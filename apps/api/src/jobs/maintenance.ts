@@ -26,6 +26,11 @@ export async function cleanup(db: Database, now = new Date()) {
     () =>
       db.$executeRaw`DELETE FROM "Job" WHERE id IN (SELECT id FROM "Job" WHERE status = 'completed' AND "createdAt" < ${new Date(now.getTime() - 14 * DAY)} LIMIT 1000)`,
   );
+  // App error reports are kept a month.
+  await purge(
+    () =>
+      db.$executeRaw`DELETE FROM "ClientError" WHERE id IN (SELECT id FROM "ClientError" WHERE "lastSeen" < ${new Date(now.getTime() - 30 * DAY)} LIMIT 1000)`,
+  );
   // The test region's routine jobs (every minute) are not worth keeping past a day.
   await purge(
     () =>

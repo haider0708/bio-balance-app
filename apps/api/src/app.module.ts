@@ -5,6 +5,7 @@ import { Public } from "./core/http";
 import { CatalogModule } from "./modules/catalog/catalog.module";
 import { DirectoryModule } from "./modules/directory/directory.module";
 import { MediaModule } from "./modules/media/media.module";
+import { DiagnosticsModule } from "./modules/diagnostics/diagnostics.module";
 import { MessagingModule } from "./modules/messaging/messaging.module";
 import { ReportingModule } from "./modules/reporting/reporting.module";
 import { RestockModule } from "./modules/restock/restock.module";
@@ -36,6 +37,7 @@ class HealthController {
     RewardsModule,
     SalesModule,
     MessagingModule,
+    DiagnosticsModule,
     TrainingModule,
     ReportingModule,
   ],

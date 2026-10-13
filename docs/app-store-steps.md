@@ -51,7 +51,11 @@ App Store Connect > App Privacy > Get Started. "Do you collect data?" **Yes**. T
 - Identifiers: User ID, **Device ID** (the push-alert token)
 - User Content: Photos or Videos, **Other User Content** (sales, stock counts, the PDF proofs)
 
-Nothing else (no location, contacts, health, financial info, browsing, search, diagnostics, advertising data). "Tracking": **No**. These match the file `ios/Runner/PrivacyInfo.xcprivacy`; keep both in step when the data changes.
+And one more, **not linked** to the user's identity (the app sends error reports without signing in), tracking **no**, purpose App Functionality:
+
+- Diagnostics: **Crash Data** (the app's own error reports, kept 30 days)
+
+Nothing else (no location, contacts, health, financial info, browsing, search, performance data, advertising data). "Tracking": **No**. These match the file `ios/Runner/PrivacyInfo.xcprivacy`; keep both in step when the data changes.
 
 ## 6. The version page (1.0 / 3.3.0)
 

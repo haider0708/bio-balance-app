@@ -2057,6 +2057,33 @@ class AppLocalizationsFr extends AppLocalizations {
   String get appearance => 'Apparence';
 
   @override
+  String get appErrorsTitle => 'Erreurs de l\'application';
+
+  @override
+  String get appErrorsEntry => 'Erreurs de l\'application';
+
+  @override
+  String get appErrorsNone => 'Aucune erreur';
+
+  @override
+  String get appErrorsHint =>
+      'Les erreurs rencontrées par l\'application sur les téléphones et dans la console s\'affichent ici pendant 30 jours, sans dire qui les a rencontrées.';
+
+  @override
+  String appErrorsTimes(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count fois',
+      one: '$count fois',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get appErrorsWeb => 'Console';
+
+  @override
   String get updateRequiredTitle => 'Mise à jour nécessaire';
 
   @override

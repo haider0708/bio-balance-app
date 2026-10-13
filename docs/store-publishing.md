@@ -77,11 +77,17 @@ Data **linked to the user**, used **only for App Functionality**, **not used for
 | User Content → Photos or Videos | proof photos of stock and delivery papers |
 | User Content → Other User Content | sales, stock counts, restocks |
 
-Not collected: location, contacts, health, financial info, browsing, search history, diagnostics, advertising data. **Tracking: No.** Age rating: 4+ (no objectionable content). The same answers are in the app's privacy manifest.
+And **not linked** to the user (sent without signing in), App Functionality, not for tracking:
+
+| Apple category | What |
+|---|---|
+| Diagnostics → Crash Data | the app's own error reports (platform, version, the error), kept 30 days |
+
+Not collected: location, contacts, health, financial info, browsing, search history, performance data, advertising data. **Tracking: No.** Age rating: 4+ (no objectionable content). The same answers are in the app's privacy manifest.
 
 ## Google Play “Data safety”
 
-- Data collected: **Personal info** (name, email address, phone number, user IDs), **Photos**, **Files and docs** (PDF proofs), **App activity → Other user-generated content** (sales, counts), **Device or other IDs** (the push-alert token). All **required for app functionality**, **not shared** with third parties, **encrypted in transit**, and **deletable by the user** (in the app and at `/account-deletion`).
+- Data collected: **Personal info** (name, email address, phone number, user IDs), **Photos**, **Files and docs** (PDF proofs), **App activity → Other user-generated content** (sales, counts), **Device or other IDs** (the push-alert token), **App info and performance → Crash logs** (the app's own error reports, without identity, kept 30 days). All **required for app functionality**, **not shared** with third parties, **encrypted in transit**, and **deletable by the user** (in the app and at `/account-deletion`).
 - No data sold, no ads (**Contains ads: No**), no location.
 - **App access**: all functionality needs an account → give the reviewer accounts (decision 5).
 - **Content rating**: questionnaire → no violence, no user-to-user chat, no gambling → *Everyone*.

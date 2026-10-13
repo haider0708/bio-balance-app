@@ -252,10 +252,19 @@ export class AuthService {
     return this.me(actor.id);
   }
 
+  /** Ends this session; the phone's alert token goes with it (no alert reaches a signed-out phone). */
   async logout(token: string) {
-    await this.db.session.updateMany({
-      where: { tokenHash: tokenHash(token), revokedAt: null },
-      data: { revokedAt: new Date() },
+    await this.db.run("SYSTEM", async (tx) => {
+      const sessions = await tx.session.findMany({
+        where: { tokenHash: tokenHash(token), revokedAt: null },
+        select: { id: true },
+      });
+      const ids = sessions.map((s) => s.id);
+      await tx.session.updateMany({
+        where: { id: { in: ids } },
+        data: { revokedAt: new Date() },
+      });
+      await tx.pushDevice.deleteMany({ where: { sessionId: { in: ids } } });
     });
     return { ok: true };
   }

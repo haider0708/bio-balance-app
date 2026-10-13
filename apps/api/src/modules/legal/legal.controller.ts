@@ -61,7 +61,8 @@ function privacy(lang: Lang, email: string): Page {
               "<b>Compte</b> : nom, adresse email, téléphone (facultatif), rôle, région et point de vente, langue choisie, mot de passe (enregistré uniquement sous forme chiffrée irréversible) et, pour les administrateurs, le secret de la validation en deux étapes (chiffré).",
               "<b>Activité professionnelle</b> : ventes enregistrées (produits, quantités, date et heure), stocks, comptages et réapprovisionnements, récompenses, portefeuille et demandes de paiement, annonces lues et progression des formations.",
               "<b>Photos</b> : photos de stock et de bons de livraison que vous choisissez de prendre comme preuve. L’appareil photo sert aussi à lire les codes-barres des produits ; les images de lecture ne sont pas enregistrées.",
-              "<b>Données techniques</b> : journaux de sécurité (adresse IP, date, résultat d’une connexion) pour protéger les comptes contre les tentatives répétées.",
+              "<b>Alertes</b> : un identifiant de notification propre à l’application sur votre téléphone, pour que les alertes vous parviennent ; il est supprimé à la déconnexion et à la suppression du compte.",
+              "<b>Données techniques</b> : journaux de sécurité (adresse IP, date, résultat d’une connexion) pour protéger les comptes contre les tentatives répétées, et rapports d’erreur de l’application (plateforme, version, description de l’erreur), envoyés sans aucune donnée qui vous identifie et gardés 30 jours.",
               "Nous n’utilisons ni publicité, ni pistage, ni outil d’analyse tiers, et nous ne vendons aucune donnée.",
             ],
           ],
@@ -75,7 +76,7 @@ function privacy(lang: Lang, email: string): Page {
             "Qui y a accès",
             [
               "Chaque personne voit ce que son rôle permet : un membre d’équipe ses propres ventes et son portefeuille, un responsable sa région, l’administrateur tout le réseau. La séparation est appliquée par la base de données elle-même.",
-              "Nos prestataires techniques, uniquement pour faire fonctionner le service : l’hébergement du serveur, la protection réseau (Cloudflare) et l’envoi des emails (codes d’invitation et de réinitialisation).",
+              "Nos prestataires techniques, uniquement pour faire fonctionner le service : l’hébergement du serveur, la protection réseau (Cloudflare), l’envoi des emails (codes d’invitation et de réinitialisation) et l’acheminement des alertes vers les téléphones (Apple pour l’iPhone, Google Firebase pour Android).",
             ],
           ],
           [
@@ -116,7 +117,8 @@ function privacy(lang: Lang, email: string): Page {
               "<b>Account</b>: name, email address, phone (optional), role, region and point of sale, chosen language, password (stored only as an irreversible hash) and, for administrators, the two-step verification secret (encrypted).",
               "<b>Business activity</b>: recorded sales (products, quantities, date and time), stock, counts and restocks, rewards, wallet and payout requests, announcements read and training progress.",
               "<b>Photos</b>: pictures of stock and delivery papers you choose to take as proof. The camera also reads product barcodes; scanning images are not stored.",
-              "<b>Technical data</b>: security logs (IP address, time, result of a sign-in) to protect accounts against repeated attempts.",
+              "<b>Alerts</b>: a notification identifier of the app on your phone, so alerts reach you; it is removed when you sign out or delete your account.",
+              "<b>Technical data</b>: security logs (IP address, time, result of a sign-in) to protect accounts against repeated attempts, and app error reports (platform, version, description of the error), sent without anything that identifies you and kept 30 days.",
               "We use no advertising, no tracking and no third-party analytics, and we sell no data.",
             ],
           ],
@@ -130,7 +132,7 @@ function privacy(lang: Lang, email: string): Page {
             "Who can see it",
             [
               "Each person sees what their role allows: a team member their own sales and wallet, a regional manager their region, the administrator the whole network. The separation is enforced by the database itself.",
-              "Our technical providers, only to run the service: server hosting, network protection (Cloudflare) and email delivery (invitation and reset codes).",
+              "Our technical providers, only to run the service: server hosting, network protection (Cloudflare), email delivery (invitation and reset codes) and the delivery of alerts to phones (Apple for iPhone, Google Firebase for Android).",
             ],
           ],
           [

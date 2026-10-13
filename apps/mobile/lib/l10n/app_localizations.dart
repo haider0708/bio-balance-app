@@ -3584,6 +3584,42 @@ abstract class AppLocalizations {
   /// **'Appearance'**
   String get appearance;
 
+  /// No description provided for @appErrorsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'App errors'**
+  String get appErrorsTitle;
+
+  /// No description provided for @appErrorsEntry.
+  ///
+  /// In en, this message translates to:
+  /// **'App errors'**
+  String get appErrorsEntry;
+
+  /// No description provided for @appErrorsNone.
+  ///
+  /// In en, this message translates to:
+  /// **'No errors'**
+  String get appErrorsNone;
+
+  /// No description provided for @appErrorsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Errors the app meets on phones and in the console appear here for 30 days, without saying who met them.'**
+  String get appErrorsHint;
+
+  /// No description provided for @appErrorsTimes.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{once} other{{count} times}}'**
+  String appErrorsTimes(int count);
+
+  /// No description provided for @appErrorsWeb.
+  ///
+  /// In en, this message translates to:
+  /// **'Console'**
+  String get appErrorsWeb;
+
   /// No description provided for @updateRequiredTitle.
   ///
   /// In en, this message translates to:
