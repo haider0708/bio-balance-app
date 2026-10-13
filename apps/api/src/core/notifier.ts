@@ -12,6 +12,10 @@ export interface SystemNotice {
 export async function notify(tx: Tx, userIds: string[], notice: SystemNotice) {
   const ids = [...new Set(userIds)];
   if (!ids.length) return;
+  // Automation acting for someone (Actor.quietAlerts): in the inbox, but never pushed to a phone.
+  const [setting] = await tx.$queryRaw<{ quiet: boolean }[]>`
+    SELECT current_setting('app.quiet_alerts', true) = 'on' AS quiet`;
+  const quiet = setting?.quiet === true;
   await tx.notification.createMany({
     data: ids.map((userId) => ({
       userId,
@@ -20,6 +24,7 @@ export async function notify(tx: Tx, userIds: string[], notice: SystemNotice) {
       params: json(notice.params ?? {}),
       entityType: notice.entityType ?? null,
       entityId: notice.entityId ?? null,
+      pushedAt: quiet ? new Date() : null,
     })),
   });
 }

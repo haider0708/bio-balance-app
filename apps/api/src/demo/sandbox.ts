@@ -251,8 +251,8 @@ export async function keepSandboxSelling(
       pdvId: seller.pdvId,
       locale: seller.locale === "en" ? "en" : "fr",
       sandbox: true,
+      quietAlerts: true,
     };
-    const ids: string[] = [];
     for (const occurredAt of times.sort((a, b) => a.getTime() - b.getTime())) {
       const lines = new Map<string, number>();
       for (let l = 1 + Math.floor(random() * 3); l > 0; l--) {
@@ -274,17 +274,8 @@ export async function keepSandboxSelling(
           quantity,
         })),
       });
-      ids.push(id);
       made++;
     }
-    // The responsable sees these sales in the inbox, at their own time; phones are not woken.
-    await s.db.run(
-      "SYSTEM",
-      (tx) =>
-        tx.$executeRaw`UPDATE "Notification" n SET "pushedAt" = (CURRENT_TIMESTAMP AT TIME ZONE 'UTC'),
-        "createdAt" = s."occurredAt" + interval '20 seconds'
-        FROM "Sale" s WHERE n."entityType" = 'Sale' AND n."entityId" = s.id AND s.id = ANY(${ids}::uuid[])`,
-    );
   }
   return made;
 }
