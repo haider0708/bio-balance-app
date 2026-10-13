@@ -125,6 +125,20 @@ class SettingsScreen extends ConsumerWidget {
                   ref.read(themeModeProvider.notifier).choose(s.first),
             ),
           ),
+          if (me.role == Role.admin) ...[
+            SectionHeader(t.testRegionTitle),
+            AppCard(
+              child: SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                secondary: const Icon(LucideIcons.flaskConical),
+                title: Text(t.showTestRegion),
+                subtitle: Text(t.showTestRegionHint),
+                value: ref.watch(showTestRegionProvider),
+                onChanged: (show) =>
+                    ref.read(showTestRegionProvider.notifier).choose(show),
+              ),
+            ),
+          ],
           SectionHeader(t.about),
           _Item(
             icon: LucideIcons.shieldCheck,

@@ -88,6 +88,8 @@ export class RegionsService {
           id: r.id,
           code: r.code,
           name: r.name,
+          /** The store reviewers' test region (only listed when the admin asks to see it). */
+          sandbox: r.sandbox,
           responsable,
           ...counts,
           /** Only a region with nothing left in it can be deleted. */

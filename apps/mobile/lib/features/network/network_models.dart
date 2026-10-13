@@ -25,11 +25,13 @@ class RegionInfo {
     required this.members,
     required this.deletable,
     this.responsable,
+    this.sandbox = false,
   });
 
   factory RegionInfo.fromJson(Json j) => RegionInfo(
     id: j.str('id'),
     name: j.str('name'),
+    sandbox: j['sandbox'] == true,
     pdvs: j.integer('pdvs'),
     groups: j.integer('groups'),
     grossistes: j.integer('grossistes'),
@@ -46,6 +48,9 @@ class RegionInfo {
 
   final String id;
   final String name;
+
+  /// The store reviewers' test region (listed only when the admin chose to see it).
+  final bool sandbox;
   final int pdvs;
   final int groups;
   final int grossistes;

@@ -3584,6 +3584,30 @@ abstract class AppLocalizations {
   /// **'Appearance'**
   String get appearance;
 
+  /// No description provided for @testRegionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Test region'**
+  String get testRegionTitle;
+
+  /// No description provided for @showTestRegion.
+  ///
+  /// In en, this message translates to:
+  /// **'Show the test region'**
+  String get showTestRegion;
+
+  /// No description provided for @showTestRegionHint.
+  ///
+  /// In en, this message translates to:
+  /// **'The store reviewers\' demonstration region. When it is hidden, nothing from it appears in your figures, lists or alerts.'**
+  String get showTestRegionHint;
+
+  /// No description provided for @testRegionBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'Test region'**
+  String get testRegionBadge;
+
   /// No description provided for @themeAuto.
   ///
   /// In en, this message translates to:

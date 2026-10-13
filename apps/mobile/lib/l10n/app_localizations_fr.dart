@@ -2057,6 +2057,19 @@ class AppLocalizationsFr extends AppLocalizations {
   String get appearance => 'Apparence';
 
   @override
+  String get testRegionTitle => 'Région de test';
+
+  @override
+  String get showTestRegion => 'Afficher la région de test';
+
+  @override
+  String get showTestRegionHint =>
+      'La région de démonstration des vérificateurs des stores. Masquée, rien d\'elle n\'apparaît dans vos chiffres, vos listes ni vos alertes.';
+
+  @override
+  String get testRegionBadge => 'Région de test';
+
+  @override
   String get themeAuto => 'Auto';
 
   @override

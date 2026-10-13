@@ -23,7 +23,7 @@ export interface PurgeResult {
 export async function purgeDemo(owner: Client): Promise<PurgeResult> {
   const counts: Record<string, number> = {};
   const { rows } = await owner.query<{ id: string }>(
-    `SELECT id FROM "Region" WHERE code = $1 AND name = $2`,
+    `SELECT id FROM "Region" WHERE sandbox OR (code = $1 AND name = $2)`,
     [DEMO_REGION_CODE, DEMO_REGION_NAME],
   );
   if (!rows[0]) return { found: false, files: [], counts };

@@ -74,13 +74,49 @@ final localeProvider = NotifierProvider<LocaleNotifier, String?>(
   LocaleNotifier.new,
 );
 
+/// The API client. Data providers watch it, so they all reload when the admin shows or hides
+/// the test region.
 final apiClientProvider = Provider<ApiClient>((ref) {
   return ApiClient(
     tokenReader: () => ref.read(tokenProvider),
     localeReader: () => ref.read(localeProvider) ?? 'fr',
     onUnauthorized: () => ref.read(sessionProvider.notifier).expire(),
+    headers: ref.watch(apiHeadersProvider),
   );
 });
+
+/// Headers sent with every request: asking for the test region, when the admin chose to see it
+/// (the switch is only offered to the admin, the server only listens to an admin, and signing out
+/// forgets the choice).
+final apiHeadersProvider = Provider<Map<String, String>>(
+  (ref) => ref.watch(showTestRegionProvider)
+      ? const {'X-BioBalance-Sandbox': 'show'}
+      : const {},
+);
+
+/// Whether the admin sees the store reviewers' test region (hidden by default). Remembered on
+/// this phone or browser.
+class ShowTestRegionNotifier extends Notifier<bool> {
+  static const _key = 'admin.showTestRegion';
+
+  @override
+  bool build() {
+    ref.listen(preferencesProvider, (_, next) {
+      final stored = next.value?.getBool(_key);
+      if (stored != null) state = stored;
+    }, fireImmediately: true);
+    return false;
+  }
+
+  Future<void> choose(bool show) async {
+    state = show;
+    await (await ref.read(preferencesProvider.future)).setBool(_key, show);
+  }
+}
+
+final showTestRegionProvider = NotifierProvider<ShowTestRegionNotifier, bool>(
+  ShowTestRegionNotifier.new,
+);
 
 class Session {
   const Session({required this.token, required this.me});
@@ -193,6 +229,7 @@ class SessionNotifier extends AsyncNotifier<Session?> {
 
   Future<void> _clear() async {
     ref.read(tokenProvider.notifier).set(null);
+    await ref.read(showTestRegionProvider.notifier).choose(false);
     BackgroundAlerts.reset();
     unawaited(Push.badge(0));
     final storage = ref.read(secureStorageProvider);

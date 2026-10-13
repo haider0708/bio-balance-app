@@ -2049,6 +2049,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get appearance => 'Appearance';
 
   @override
+  String get testRegionTitle => 'Test region';
+
+  @override
+  String get showTestRegion => 'Show the test region';
+
+  @override
+  String get showTestRegionHint =>
+      'The store reviewers\' demonstration region. When it is hidden, nothing from it appears in your figures, lists or alerts.';
+
+  @override
+  String get testRegionBadge => 'Test region';
+
+  @override
   String get themeAuto => 'Auto';
 
   @override

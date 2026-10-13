@@ -197,6 +197,10 @@ class _RegionCard extends ConsumerWidget {
               color: context.status.muted,
             ),
           ),
+          if (region.sandbox) ...[
+            const Gap(8),
+            StatusChip(t.testRegionBadge, tone: Tone.warning),
+          ],
           if (region.deletable) ...[const Gap(8), StatusChip(t.regionEmpty)],
         ],
       ),

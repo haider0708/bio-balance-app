@@ -12,12 +12,16 @@ class ApiClient {
     required this.tokenReader,
     required this.localeReader,
     required this.onUnauthorized,
+    this.headers = const {},
     Dio? dio,
   }) : _dio = dio ?? _build();
 
   final TokenReader tokenReader;
   final String Function() localeReader;
   final void Function() onUnauthorized;
+
+  /// Sent with every request (the admin's "Show the test region" choice).
+  final Map<String, String> headers;
   final Dio _dio;
 
   static Dio _build() => Dio(
@@ -36,6 +40,7 @@ class ApiClient {
       headers: {
         if (token != null) 'Authorization': 'Bearer $token',
         'Accept-Language': localeReader(),
+        ...this.headers,
         ...?headers,
       },
     );
