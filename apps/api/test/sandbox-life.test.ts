@@ -113,12 +113,9 @@ describe("the test shop keeps selling", () => {
     const before = Number(
       (await ownerDb.query(`SELECT count(*) FROM "Sale"`)).rows[0].count,
     );
-    const made = await keepSandboxSelling(
-      sandboxServices(db),
-      new Date(),
-      () => 0.9,
-    );
-    expect(made).toBeGreaterThan(5);
+    const made = await keepSandboxSelling(sandboxServices(db));
+    // A whole business day of planned sales (about nine a day).
+    expect(made).toBeGreaterThan(2);
     const { rows } = await ownerDb.query(
       `SELECT count(*)::int AS sales,
               count(*) FILTER (WHERE "occurredAt" > now() AT TIME ZONE 'UTC')::int AS future,
@@ -134,7 +131,8 @@ describe("the test shop keeps selling", () => {
       negative: 0,
       unpushed: 0,
     });
-    // Run again at once: nothing more to add.
+    // Run again at once, or as often as the worker likes: the same hours never sell twice.
+    expect(await keepSandboxSelling(sandboxServices(db))).toBe(0);
     expect(await keepSandboxSelling(sandboxServices(db))).toBe(0);
     expect(await adminUnread()).toBe(0);
   });

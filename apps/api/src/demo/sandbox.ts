@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import type { Actor } from "../core/actor";
 import type { Database } from "../core/database";
 import { StructureService } from "../modules/directory/structure.service";
@@ -166,16 +166,80 @@ const MAX_CATCH_UP_MS = 24 * 3_600_000;
 const HOUR_MS = 3_600_000;
 const TUNIS_OFFSET_MS = HOUR_MS;
 
+/** Sales the keeper makes start with this, so the history built at the start can be told apart. */
+const KEEPER_ID_PREFIX = "dec0de00";
+
+/** A random generator fixed by a text: the same hour always plans the same sales. */
+function seeded(text: string) {
+  let n = 0;
+  const next = () =>
+    parseInt(
+      createHash("sha256").update(`${text}:${n++}`).digest("hex").slice(0, 8),
+      16,
+    ) / 0x100000000;
+  return next;
+}
+
+/** A sale id fixed by the seller, the hour and the sale's rank in it (so it is made once). */
+function keeperSaleId(sellerId: string, hour: number, rank: number) {
+  const h = createHash("sha256")
+    .update(`${sellerId}:${hour}:${rank}`)
+    .digest("hex");
+  return `${KEEPER_ID_PREFIX}-${h.slice(8, 12)}-4${h.slice(13, 16)}-a${h.slice(17, 20)}-${h.slice(20, 32)}`;
+}
+
+interface PlannedSale {
+  id: string;
+  occurredAt: Date;
+  lines: { productId: string; quantity: number }[];
+}
+
 /**
- * The test region's sellers keep selling: the sales the hours since their last one would have
- * brought, at believable times, with the store's stock topped up when it runs low. Their
- * responsable finds them in the inbox; nothing is pushed to the phones.
+ * The sales a seller makes in one Tunis hour: always the same for the same seller and hour, so
+ * the keeper can run as often as it likes and never adds a sale twice (nor rolls the dice twice
+ * for a quiet hour).
  */
-export async function keepSandboxSelling(
-  s: SandboxServices,
-  now = new Date(),
-  random: () => number = Math.random,
-) {
+function planHour(
+  sellerId: string,
+  hourStart: number,
+  products: string[],
+): PlannedSale[] {
+  const local = new Date(hourStart + TUNIS_OFFSET_MS);
+  const share = HOURS[local.getUTCHours()];
+  if (!share || !products.length) return [];
+  const random = seeded(`${sellerId}:${hourStart}`);
+  const expected =
+    (DAILY_SALES * WEEKDAY[local.getUTCDay()]! * share) / HOUR_TOTAL;
+  const count = Math.floor(expected + random());
+  const plan: PlannedSale[] = [];
+  for (let rank = 0; rank < count; rank++) {
+    const lines = new Map<string, number>();
+    for (let l = 1 + Math.floor(random() * 3); l > 0; l--) {
+      // Earlier products sell more, the way a few products make most of a shelf's sales.
+      const productId = products[Math.floor(random() ** 2 * products.length)]!;
+      lines.set(
+        productId,
+        (lines.get(productId) ?? 0) + 1 + Math.floor(random() * 3),
+      );
+    }
+    plan.push({
+      id: keeperSaleId(sellerId, hourStart, rank),
+      occurredAt: new Date(hourStart + random() * HOUR_MS),
+      lines: [...lines].map(([productId, quantity]) => ({
+        productId,
+        quantity,
+      })),
+    });
+  }
+  return plan;
+}
+
+/**
+ * The test region's sellers keep selling through the day: each hour since the history built at
+ * the start (at most a day back) brings its planned sales, at believable times, with the store's
+ * stock topped up when it runs low. Their responsable finds them in the inbox; nothing is pushed.
+ */
+export async function keepSandboxSelling(s: SandboxServices, now = new Date()) {
   const box = await sandbox(s.db);
   if (!box) return 0;
   const sellers = await s.db.run("SYSTEM", (tx) =>
@@ -189,59 +253,61 @@ export async function keepSandboxSelling(
       },
     }),
   );
+  const end = now.getTime() - 2 * 60_000;
   let made = 0;
   for (const seller of sellers) {
     const pdv = await s.db.run("SYSTEM", (tx) =>
       tx.pdv.findUnique({ where: { id: seller.pdvId! } }),
     );
     if (pdv?.status !== "ACTIVE") continue;
-    const last = await s.db.run("SYSTEM", (tx) =>
-      tx.sale.findFirst({
-        where: { sellerId: seller.id },
-        orderBy: { occurredAt: "desc" },
-        select: { occurredAt: true },
-      }),
-    );
-    const end = now.getTime() - 2 * 60_000;
-    const start = Math.max(
-      last?.occurredAt.getTime() ?? end - HOUR_MS,
-      end - MAX_CATCH_UP_MS,
-    );
-    const times: Date[] = [];
-    // Walk the Tunis hours between the last sale and now.
-    for (
-      let hour = Math.floor((start + TUNIS_OFFSET_MS) / HOUR_MS) * HOUR_MS;
-      hour < end + TUNIS_OFFSET_MS;
-      hour += HOUR_MS
-    ) {
-      const local = new Date(hour);
-      const share = HOURS[local.getUTCHours()];
-      if (!share) continue;
-      const from = Math.max(hour - TUNIS_OFFSET_MS, start);
-      const to = Math.min(hour - TUNIS_OFFSET_MS + HOUR_MS, end);
-      if (to <= from) continue;
-      const expected =
-        DAILY_SALES *
-        WEEKDAY[local.getUTCDay()]! *
-        (share / HOUR_TOTAL) *
-        ((to - from) / HOUR_MS);
-      const count = Math.floor(expected + random());
-      for (let n = 0; n < count; n++)
-        times.push(new Date(from + random() * (to - from)));
-    }
-    if (!times.length) continue;
-    // What the store carries, best sellers first.
-    const products = await s.db.run(
+    // The keeper takes over where the history built at the start (or recorded by hand) ends.
+    const [built] = await s.db.run(
       "SYSTEM",
       (tx) =>
-        tx.$queryRaw<{ productId: string }[]>`
-        SELECT st."productId" FROM "Stock" st JOIN "Product" p ON p.id = st."productId"
-        LEFT JOIN (SELECT l."productId", SUM(l.quantity) AS sold FROM "SaleLine" l JOIN "Sale" x ON x.id = l."saleId"
-                   WHERE x."pdvId" = ${pdv.id}::uuid GROUP BY l."productId") v ON v."productId" = st."productId"
-        WHERE st."locationId" = ${pdv.id}::uuid AND p.active
-        ORDER BY COALESCE(v.sold, 0) DESC, p.name`,
+        tx.$queryRaw<{ last: Date | null }[]>`
+        SELECT max("occurredAt") AS last FROM "Sale"
+        WHERE "sellerId" = ${seller.id}::uuid AND id::text NOT LIKE ${`${KEEPER_ID_PREFIX}%`}`,
     );
-    if (!products.length) continue;
+    const start = Math.max(
+      built?.last?.getTime() ?? end - HOUR_MS,
+      end - MAX_CATCH_UP_MS,
+    );
+    // What the store carries, best sellers first.
+    const products = (
+      await s.db.run(
+        "SYSTEM",
+        (tx) =>
+          tx.$queryRaw<{ productId: string }[]>`
+          SELECT st."productId" FROM "Stock" st JOIN "Product" p ON p.id = st."productId"
+          LEFT JOIN (SELECT l."productId", SUM(l.quantity) AS sold FROM "SaleLine" l JOIN "Sale" x ON x.id = l."saleId"
+                     WHERE x."pdvId" = ${pdv.id}::uuid GROUP BY l."productId") v ON v."productId" = st."productId"
+          WHERE st."locationId" = ${pdv.id}::uuid AND p.active
+          ORDER BY COALESCE(v.sold, 0) DESC, p.name, st."productId"`,
+      )
+    ).map((p) => p.productId);
+    const due: PlannedSale[] = [];
+    for (
+      let hour = Math.floor(start / HOUR_MS) * HOUR_MS;
+      hour < end;
+      hour += HOUR_MS
+    )
+      for (const sale of planHour(seller.id, hour, products))
+        if (
+          sale.occurredAt.getTime() > start &&
+          sale.occurredAt.getTime() < end
+        )
+          due.push(sale);
+    if (!due.length) continue;
+    const done = new Set(
+      (
+        await s.db.run("SYSTEM", (tx) =>
+          tx.sale.findMany({
+            where: { id: { in: due.map((d) => d.id) } },
+            select: { id: true },
+          }),
+        )
+      ).map((d) => d.id),
+    );
     const actor: Actor = {
       id: seller.id,
       name: seller.name,
@@ -253,27 +319,12 @@ export async function keepSandboxSelling(
       sandbox: true,
       quietAlerts: true,
     };
-    for (const occurredAt of times.sort((a, b) => a.getTime() - b.getTime())) {
-      const lines = new Map<string, number>();
-      for (let l = 1 + Math.floor(random() * 3); l > 0; l--) {
-        // Earlier products sell more, the way a few products make most of a shelf's sales.
-        const index = Math.floor(random() ** 2 * products.length);
-        const productId = products[index]!.productId;
-        lines.set(
-          productId,
-          (lines.get(productId) ?? 0) + 1 + Math.floor(random() * 3),
-        );
-      }
-      await topUp(s, box.admin, pdv, lines);
-      const id = randomUUID();
-      await s.sales.create(actor, {
-        id,
-        occurredAt,
-        lines: [...lines].map(([productId, quantity]) => ({
-          productId,
-          quantity,
-        })),
-      });
+    for (const sale of due.sort(
+      (a, b) => a.occurredAt.getTime() - b.occurredAt.getTime(),
+    )) {
+      if (done.has(sale.id)) continue;
+      await topUp(s, box.admin, pdv, sale.lines);
+      await s.sales.create(actor, sale);
       made++;
     }
   }
@@ -285,10 +336,10 @@ async function topUp(
   s: SandboxServices,
   admin: Actor,
   pdv: { id: string; regionId: string },
-  lines: Map<string, number>,
+  lines: PlannedSale["lines"],
 ) {
   await s.db.run("SYSTEM", async (tx) => {
-    for (const [productId, quantity] of lines) {
+    for (const { productId, quantity } of lines) {
       const row = await tx.stock.findUnique({
         where: { locationId_productId: { locationId: pdv.id, productId } },
         select: { quantity: true },
