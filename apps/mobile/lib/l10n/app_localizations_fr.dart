@@ -2057,6 +2057,20 @@ class AppLocalizationsFr extends AppLocalizations {
   String get appearance => 'Apparence';
 
   @override
+  String get updateRequiredTitle => 'Mise à jour nécessaire';
+
+  @override
+  String get updateRequiredBody =>
+      'Cette version de BioBalance n\'est plus prise en charge. Installez la dernière version pour continuer.';
+
+  @override
+  String get updateRequiredFromStore =>
+      'Cette version de BioBalance n\'est plus prise en charge. Mettez-la à jour depuis votre magasin d\'applications pour continuer.';
+
+  @override
+  String get updateNow => 'Mettre à jour';
+
+  @override
   String get testRegionTitle => 'Région de test';
 
   @override

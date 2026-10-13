@@ -3584,6 +3584,30 @@ abstract class AppLocalizations {
   /// **'Appearance'**
   String get appearance;
 
+  /// No description provided for @updateRequiredTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Update required'**
+  String get updateRequiredTitle;
+
+  /// No description provided for @updateRequiredBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This version of BioBalance is no longer supported. Install the latest version to continue.'**
+  String get updateRequiredBody;
+
+  /// No description provided for @updateRequiredFromStore.
+  ///
+  /// In en, this message translates to:
+  /// **'This version of BioBalance is no longer supported. Update it from your app store to continue.'**
+  String get updateRequiredFromStore;
+
+  /// No description provided for @updateNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Update'**
+  String get updateNow;
+
   /// No description provided for @testRegionTitle.
   ///
   /// In en, this message translates to:

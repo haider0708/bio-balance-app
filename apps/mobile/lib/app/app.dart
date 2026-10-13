@@ -9,6 +9,7 @@ import 'package:intl/date_symbol_data_local.dart';
 import '../core/alerts/background_alerts.dart';
 import '../core/auth/session.dart';
 import '../core/theme/app_theme.dart';
+import '../core/update/app_update.dart';
 import '../features/splash/splash_screen.dart';
 import '../l10n/app_localizations.dart';
 import 'router.dart';
@@ -79,11 +80,11 @@ class _BioBalanceAppState extends ConsumerState<BioBalanceApp> {
           GlobalCupertinoLocalizations.delegate,
         ],
         routerConfig: router,
-        // On the web the administrator can select and copy any text (an email, a code, a total).
-        builder: kIsWeb
-            ? (context, child) =>
-                  SelectionArea(child: child ?? const SizedBox())
-            : null,
+        builder: (context, child) {
+          final page = UpdateGate(child: child ?? const SizedBox());
+          // On the web the administrator can select and copy any text (an email, a code, a total).
+          return kIsWeb ? SelectionArea(child: page) : page;
+        },
       ),
     );
   }

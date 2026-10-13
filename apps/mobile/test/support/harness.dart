@@ -7,6 +7,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 
 import 'fake_server.dart';
@@ -22,14 +23,18 @@ Future<ProviderContainer> launch(
   String? language,
   double pixelRatio = 2,
   bool wait = true,
+  List<Override> overrides = const [],
 }) async {
   tester.view.physicalSize = size * pixelRatio;
   tester.view.devicePixelRatio = pixelRatio;
   addTearDown(tester.view.reset);
   final container = ProviderContainer(
-    overrides: server.overrides(
-      token: signedIn ? 'a-valid-token-of-sufficient-length-123456' : null,
-    ),
+    overrides: [
+      ...server.overrides(
+        token: signedIn ? 'a-valid-token-of-sufficient-length-123456' : null,
+      ),
+      ...overrides,
+    ],
     retry: (_, _) => null,
   );
   addTearDown(container.dispose);

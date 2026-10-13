@@ -2049,6 +2049,20 @@ class AppLocalizationsEn extends AppLocalizations {
   String get appearance => 'Appearance';
 
   @override
+  String get updateRequiredTitle => 'Update required';
+
+  @override
+  String get updateRequiredBody =>
+      'This version of BioBalance is no longer supported. Install the latest version to continue.';
+
+  @override
+  String get updateRequiredFromStore =>
+      'This version of BioBalance is no longer supported. Update it from your app store to continue.';
+
+  @override
+  String get updateNow => 'Update';
+
+  @override
   String get testRegionTitle => 'Test region';
 
   @override

@@ -14,6 +14,9 @@ x-api-environment: &api-env
   APNS_TOPIC: ${APNS_TOPIC:-tn.biobalance.app}
   # Firebase push for Android phones: the service-account JSON key, base64 encoded.
   FCM_SERVICE_ACCOUNT: ${FCM_SERVICE_ACCOUNT:-}
+  # The oldest app build still allowed (older phones are asked to update), and the App Store page.
+  MIN_APP_BUILD: ${MIN_APP_BUILD:-0}
+  IOS_STORE_URL: ${IOS_STORE_URL:-}
 x-app: &app
   image: ${API_IMAGE:?Set an immutable API image tag or digest}
   restart: unless-stopped
