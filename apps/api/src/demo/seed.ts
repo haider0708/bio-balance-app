@@ -158,6 +158,7 @@ interface PlannedSale {
   lines: { productId: string; quantity: number }[];
 }
 
+/** The admin building the test region: they see it while it is built (it is hidden otherwise). */
 function adminActor(admin: { id: string; name: string; email: string }): Actor {
   return {
     ...admin,
@@ -165,6 +166,7 @@ function adminActor(admin: { id: string; name: string; email: string }): Actor {
     regionId: null,
     pdvId: null,
     locale: "fr",
+    showSandbox: true,
   };
 }
 
@@ -225,6 +227,10 @@ export async function seedDemo(
 
   // ── The place ────────────────────────────────────────────────────────────
   const region = await s.regions.create(admin, DEMO_REGION_NAME);
+  // The test region from its first moment: nothing built here alerts or mails the real people.
+  await owner.query(`UPDATE "Region" SET sandbox = true WHERE id = $1`, [
+    region.id,
+  ]);
   log(`region ${region.code}`);
   const group = (await s.structure.createGroup(admin, {
     name: "Groupe Démo",
@@ -621,10 +627,6 @@ async function tidy(
       `UPDATE "User" SET "createdAt" = ${opening} - interval '1 day', "decidedAt" = ${opening} - interval '1 day' WHERE "regionId" = $1`,
       [regionId],
     );
-    // Done: from now on it is the test region, which the admin does not see.
-    await owner.query(`UPDATE "Region" SET sandbox = true WHERE id = $1`, [
-      regionId,
-    ]);
     await owner.query("COMMIT");
   } catch (error) {
     await owner.query("ROLLBACK");
