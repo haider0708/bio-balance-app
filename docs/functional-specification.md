@@ -51,13 +51,13 @@ One quantity per product per place (point of sale or grossiste). **No lots, no e
 ## Restock
 
 1. The responsable asks for products for a point of sale **or a grossiste** of the region.
-2. For a store, the admin either **gives it to a grossiste** of the same region or **sends it directly** (BioBalance has unlimited stock); for a grossiste, the admin sends it directly. The admin can adjust quantities first.
-3. For an order given to a grossiste, the responsable (or the admin) says what really leaves it: stock leaves at that moment, and never more than requested or held.
-
-The admin can also restock a grossiste herself: she counts what BioBalance delivered, photographs it, and the goods are added at once.
-4. The responsable, **or a team member the responsable chooses**, photographs the signed delivery paper and enters the quantities actually received.
-5. The admin compares photo and numbers, then approves as counted, corrects, or asks for a recount.
+2. The admin handles it: **sends it directly** (BioBalance has unlimited stock), or **gives a store's order to any grossiste, of any region**. Before choosing, the admin sees each grossiste's stock for the order ("Has everything", or "Short of 1 product: Niacinamide 2/6"). The admin can adjust quantities first.
+3. For an order given to a grossiste, the responsable of the grossiste's region (or the admin) says what really leaves it: stock leaves at that moment, and never more than requested or held.
+4. The store's responsable, **or a team member the responsable chooses**, confirms the delivery with the signed paper (photos and/or a PDF) and an optional note. **No counting at the store.**
+5. The admin looks at the paper, **enters the quantities received** (each starts at what was sent) and approves, or asks for the paper again.
 6. **Only then does the destination gain stock**: the approved quantities are added. A grossiste that supplied the order lost them when they were shipped.
+
+The admin can also restock a grossiste herself: she enters what BioBalance delivered, adds photos or the paper, and the goods are added at once (the same when she receives a delivery to a grossiste).
 
 ## Sales and rewards
 

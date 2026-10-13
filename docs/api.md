@@ -127,13 +127,14 @@ Every route is under `https://api.galylio.com`, JSON in and out, `Authorization:
 | Method | Path | Who |
 |---|---|---|
 | GET | `/v1/restocks/:id` | any signed-in role |
-| POST | `/v1/restocks/:id/approve` | admin |
+| POST | `/v1/restocks/:id/approve` | admin: `lines` are the quantities received (what is left out is what was sent) |
 | POST | `/v1/restocks/:id/assign` | admin |
 | POST | `/v1/restocks/:id/cancel` | admin, responsable |
-| POST | `/v1/restocks/:id/receipt` | admin (grossiste orders), responsable, vendeur |
-| PUT | `/v1/restocks/:id/receiver` | responsable |
+| POST | `/v1/restocks/:id/receipt` | admin (grossiste orders), the store's responsable, the chosen team member: the paper (`photoIds`, photos or PDF) and a `note`; `lines` only from the admin (or older apps) |
+| PUT | `/v1/restocks/:id/receiver` | the store's responsable |
 | POST | `/v1/restocks/:id/reject-receipt` | admin |
 | POST | `/v1/restocks/:id/send-direct` | admin |
+| GET | `/v1/restocks/:id/suppliers` | admin: every active grossiste with what it holds of the order's products (`missing`, `lines[].held`) |
 | POST | `/v1/restocks/:id/ship` | admin, responsable of the grossiste's region |
 
 ## rewards

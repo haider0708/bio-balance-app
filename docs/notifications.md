@@ -51,8 +51,8 @@ Rules that apply to all of them:
 | `restock.shipped_info` | a responsable ships it | the admins | yes | the restock |
 | `restock.receiver_assigned` | a responsable picks who receives it | that person | yes | the restock |
 | `restock.received` | the delivery paper is sent | the admins | yes | the restock |
-| `restock.completed` | the admin approves the receipt (stock moves) | who asked, the receiver, both regions' responsables | yes | the restock |
-| `restock.receipt_rejected` | the admin asks for the receipt again | the receiver and who asked | yes | the restock |
+| `restock.completed` | the admin enters the quantities received and approves (stock moves) | who asked, the receiver, both regions' responsables | yes | the restock |
+| `restock.receipt_rejected` | the admin asks for the delivery paper again | the receiver and who asked | yes | the restock |
 | `restock.cancelled` | it is cancelled | everyone involved but who cancelled | yes | the restock |
 
 ## The network
