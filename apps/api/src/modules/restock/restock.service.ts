@@ -364,6 +364,13 @@ export class RestockService {
     );
     return this.db.run(actor, async (tx) => {
       const order = await this.load(tx, id);
+      // The store's own responsable, not the one of the grossiste's region who ships it.
+      requireRule(
+        order.regionId === actor.regionId,
+        "FORBIDDEN",
+        "Only the responsable of this store chooses who receives.",
+        403,
+      );
       requireRule(
         order.destKind === "PDV",
         "INVALID_STATE",

@@ -376,6 +376,11 @@ describe("restock through a grossiste", () => {
     expect((await w.n.get("/v1/dashboard")).body.toShip).toBe(1);
     const shipped = await w.n.post(`/v1/restocks/${order.id}/ship`, { lines });
     expect(shipped.body.status).toBe("SHIPPED");
+    // Who counts the goods at the store is the store's responsable's choice, not the shipper's.
+    expect(
+      (await w.n.put(`/v1/restocks/${order.id}/receiver`, { userId: null }))
+        .status,
+    ).toBe(403);
     expect((await levels(w, w.depotId))["Serum Vitamin C"]).toBe(46);
     // The store's own responsable counts it; the admin approves.
     await w.s.post(`/v1/restocks/${order.id}/receipt`, {

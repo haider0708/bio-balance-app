@@ -5,6 +5,8 @@ export const PageQuery = z.object({
   cursor: z.string().max(200).optional(),
 });
 
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 /** Keyset pagination over (createdAt, id): stable while rows are added. */
 export function encodeCursor(createdAt: Date, id: string): string {
   return Buffer.from(`${createdAt.toISOString()}|${id}`).toString("base64url");
@@ -17,7 +19,9 @@ export function decodeCursor(
   try {
     const [at, id] = Buffer.from(cursor, "base64url").toString().split("|");
     const createdAt = new Date(at ?? "");
-    if (!id || Number.isNaN(createdAt.getTime())) return undefined;
+    // A cursor the server did not write (edited or truncated) restarts at the first page.
+    if (!id || !UUID.test(id) || Number.isNaN(createdAt.getTime()))
+      return undefined;
     return { createdAt, id };
   } catch {
     return undefined;

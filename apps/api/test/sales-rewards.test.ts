@@ -199,6 +199,25 @@ describe("recording a sale", () => {
     expect((await m.get("/v1/sales")).body.items).toHaveLength(1);
   });
 
+  it("refuses an id another seller's sale already has, and pages from the start on a bad cursor", async () => {
+    const one = await shop();
+    const other = await shop();
+    const body = {
+      id: randomUUID(),
+      lines: [{ productId: w.products[0]!.id, quantity: 1 }],
+    };
+    expect((await one.m.post("/v1/sales", body)).status).toBe(201);
+    const clash = await other.m.post("/v1/sales", body);
+    expect(clash.status).toBe(409);
+    expect(clash.body.code).toBe("DUPLICATE");
+    const forged = Buffer.from(
+      `${new Date().toISOString()}|not-a-uuid`,
+    ).toString("base64url");
+    const listed = await one.m.get(`/v1/sales?cursor=${forged}`);
+    expect(listed.status).toBe(200);
+    expect(listed.body.items).toHaveLength(1);
+  });
+
   it("uses the value that applied on the day of the sale", async () => {
     const { m } = await shop();
     // The family pays 500 today; from tomorrow 5000. A sale made yesterday offline is paid at yesterday's value.

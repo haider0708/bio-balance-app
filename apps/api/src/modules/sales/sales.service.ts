@@ -52,10 +52,16 @@ export class SalesService {
     );
     return this.record(actor, input, occurredAt).catch(async (error) => {
       // The same sale sent twice at once: the loser of the race gets the winner's receipt.
-      if (error instanceof DomainError && error.code === "DUPLICATE")
+      if (error instanceof DomainError && error.code === "DUPLICATE") {
+        // An id already used by someone else's sale (never by a phone that follows the rules).
+        const mine = await this.db.run(actor, (tx) =>
+          tx.sale.findUnique({ where: { id: input.id }, select: { id: true } }),
+        );
+        if (!mine) throw error;
         return this.db.run(actor, (tx) =>
           this.receipt(tx, actor, input.id, true),
         );
+      }
       throw error;
     });
   }
