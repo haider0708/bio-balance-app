@@ -97,7 +97,7 @@ BioBalance (tn.biobalance.app) is a business app for the partner network of [com
 
 | Apple's reason | Answer |
 |---|---|
-| 2.1 App completeness: could not sign in | The reviewer accounts must work during the whole review (they are in the demonstration region; do not remove it, nor change the passwords, until approved). |
+| 2.1 App completeness: could not sign in | The reviewer accounts must work during the whole review (they are in the test region, which restores a deleted demo account by itself; do not remove it, nor change the passwords, until approved). |
 | 4.2 Minimum functionality / 3.2 Unacceptable business model, "limited audience" | The app is a full business tool for a defined network; ask for **Unlisted App Distribution** (step 8). |
 | 5.1.1(v) Account deletion | Settings > Delete my account (password required), and `https://api.galylio.com/account-deletion`. |
 | 5.1.1 Privacy: purpose strings, data collection | Camera and photo texts are in `ios/Runner/*.lproj/InfoPlist.strings` (French and English); the privacy manifest and the App Privacy answers match (step 5). |

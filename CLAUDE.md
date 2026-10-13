@@ -41,7 +41,7 @@ BioBalance runs a network of parapharmacies: points of sale and their teams, sto
 - Cloudflare breaks script-free pages that show email addresses unless wrapped in `<!--email_off-->`; the pages are sent `no-transform`.
 - Never `pkill -f` a pattern that appears in your own command line (it kills your own shell); never `pkill -f flutter`.
 - The server is **shared with other, unrelated sites**: touch only BioBalance's containers, images, volumes and folders.
-- The demonstration region "Démo" (reviewer accounts) is real data in production: do not remove it or change its passwords while a store review is open (`docs/runbook.md`).
+- The test region "Démo" holds the store reviewers' accounts in production. It is hidden from the admin and nothing done there reaches the real network, but do not remove it or change its passwords while a store review is open (`docs/runbook.md`, "The test region").
 
 ## How the owner likes to work
 

@@ -8,7 +8,7 @@ Everything the stores check inside the app is done (see [mobile-release.md](mobi
 2. **Who can find the app.** BioBalance is invitation-only: accounts are created by the admin or a responsable. Apple often refuses such apps in the public store ("limited audience", guideline 4.2/3.2). Ask Apple for **Unlisted App Distribution** (a form in App Store Connect after the first build is uploaded): the app passes the same review but is only reachable by its link, which you send to the network. On Google Play the app can be public (reviewers accept sign-in-only apps when they get a test account) or limited to testers.
 3. **The Android signing key.** The phones already have test copies signed with `~/.biobalance/signing/biobalance-release.jks`. When Play asks how to sign the app, choose **use your own app signing key** and upload this keystore (Play shows the exact command, `pepk`). Phones that installed an APK can then update from Play without reinstalling; otherwise they must uninstall the APK first.
 4. **The support mailbox.** The privacy, terms and deletion pages show `biobalance@galylio.com` (set `SUPPORT_EMAIL` in `/etc/biobalance/backend.env` to change it). Someone must read it: the stores and the law expect answers to data requests.
-5. **Accounts for the reviewers.** Create, in production, a separate demo setup so reviewers never touch real data: a region "Démo", a store "Para Démo" with some stock, a **responsable** and a **team member** with simple passwords. Do not give an admin account (it needs the authenticator code). Give both accounts in the review notes below. Keep them active while the review lasts.
+5. **Accounts for the reviewers.** Done: the test region "Démo" in production (`docs/runbook.md`, "The test region") holds a **responsable** and a **team member** with demonstration data; the admin never sees it and nothing done there reaches the real network. Give both accounts in the review notes below. Never give an admin account (it needs the authenticator code).
 
 ## Rules in force in 2026 (checked October 2026)
 
@@ -104,7 +104,7 @@ Not collected: location, contacts, health, financial info, browsing, search hist
 >
 > The app is intended for unlisted distribution to the members of our network (we will send the unlisted distribution request once this build is in review).
 >
-> To try it: sign in as the team member, tap “New sale”, add a product and record the sale: the reward is shown. Sign in as the regional manager to see the region's dashboard; every number opens its analytics.
+> To try it: sign in as the team member, tap “New sale”, add a product and record the sale: the reward is shown. Sign in as the regional manager to see the region's dashboard; every number opens its analytics. These two accounts are demonstration accounts: what they submit is approved automatically after a minute, and if one is deleted (Settings → Delete my account) it is restored a few minutes later so another reviewer can still sign in.
 > The camera is used to scan product barcodes and to photograph stock as proof. Account deletion: Settings → Delete my account.
 
 ## Checklist for each release
