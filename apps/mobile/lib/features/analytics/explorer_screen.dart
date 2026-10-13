@@ -246,9 +246,10 @@ class _Answer extends ConsumerWidget {
         LensBar(lens: lens, subject: subject, onChange: onChange),
         const Gap(12),
         SubjectCards(lens: lens, subject: subject),
+        // Two rows of three at most: six in a row cut the labels short on a tablet.
         AutoGrid(
           minItemWidth: 150,
-          maxColumns: 6,
+          maxColumns: 3,
           children: [
             KpiTile(
               icon: LucideIcons.package,
