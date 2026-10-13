@@ -219,7 +219,7 @@ export class StockService {
         "StockDeclaration",
         declaration.id,
         { location: location.name, lines: input.lines.length },
-        location.regionId,
+        location.stockRegionId,
       );
       if (permit)
         await tx.stockRecount.update({

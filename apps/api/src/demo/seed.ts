@@ -159,7 +159,10 @@ interface PlannedSale {
   lines: { productId: string; quantity: number }[];
 }
 
-/** The admin building the test region: they see it while it is built (it is hidden otherwise). */
+/**
+ * The admin building the test region: they see it while it is built (it is hidden otherwise), and
+ * hear nothing of what the build does there.
+ */
 function adminActor(admin: { id: string; name: string; email: string }): Actor {
   return {
     ...admin,
@@ -168,6 +171,7 @@ function adminActor(admin: { id: string; name: string; email: string }): Actor {
     pdvId: null,
     locale: "fr",
     showSandbox: true,
+    sandbox: true,
   };
 }
 

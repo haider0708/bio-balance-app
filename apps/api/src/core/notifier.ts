@@ -12,12 +12,20 @@ export interface SystemNotice {
 
 /** Drops a system notification into each person's inbox. */
 export async function notify(tx: Tx, userIds: string[], notice: SystemNotice) {
-  const ids = [...new Set(userIds)];
+  let ids = [...new Set(userIds)];
   if (!ids.length) return;
+  const [setting] = await tx.$queryRaw<{ quiet: boolean; sandbox: boolean }[]>`
+    SELECT current_setting('app.quiet_alerts', true) = 'on' AS quiet,
+      current_setting('app.sandbox', true) = 'on' AS sandbox`;
   // Automation acting for someone (Actor.quietAlerts): in the inbox, but never pushed to a phone.
-  const [setting] = await tx.$queryRaw<{ quiet: boolean }[]>`
-    SELECT current_setting('app.quiet_alerts', true) = 'on' AS quiet`;
   const quiet = setting?.quiet === true;
+  // Done in the test region (Actor.sandbox): no admin hears of it, even one who created the
+  // account or the place it concerns.
+  if (setting?.sandbox) {
+    const admins = new Set(await adminIds(tx));
+    ids = ids.filter((id) => !admins.has(id));
+    if (!ids.length) return;
+  }
   await tx.notification.createMany({
     data: ids.map((userId) => ({
       userId,

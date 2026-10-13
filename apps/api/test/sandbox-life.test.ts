@@ -188,6 +188,56 @@ describe("a demonstration account a reviewer deletes comes back", () => {
   });
 });
 
+describe("a demonstration account a reviewer deactivates comes back", () => {
+  it("is active again a minute later, and can still sign in", async () => {
+    const r = (await responsable()).c;
+    const people = (await r.get("/v1/users")).body as any[];
+    const seller = people.find((p) => p.email === "demo-vendeur@galylio.com");
+    expect((await r.post(`/v1/users/${seller.id}/suspend`, {})).status).toBe(
+      201,
+    );
+    expect((await vendeur()).status).not.toBe(201);
+
+    const services = sandboxServices(db);
+    await approveSandbox(services);
+    expect((await vendeur()).status).not.toBe(201); // not yet: a minute first
+    await approveSandbox(services, new Date(Date.now() + 2 * 60_000));
+    expect((await vendeur()).status).toBe(201);
+    expect(await adminUnread()).toBe(0);
+  });
+});
+
+describe("the admin's lists show nothing of it", () => {
+  it("has no trace in the audit log or the announcements", async () => {
+    const ownerDb = await owner();
+    const ids = new Set<string>(
+      (
+        await ownerDb.query(
+          `SELECT u.id FROM "User" u JOIN "Region" r ON r.id = u."regionId" WHERE r.sandbox
+           UNION SELECT d.id FROM "Depot" d JOIN "Region" r ON r.id = d."regionId" WHERE r.sandbox
+           UNION SELECT s.id FROM "StockDeclaration" s JOIN "Region" r ON r.id = s."regionId" WHERE r.sandbox`,
+        )
+      ).rows.map((row: { id: string }) => row.id),
+    );
+    await ownerDb.end();
+    const audit = (await w.a.get("/v1/audit?limit=100")).body.items as any[];
+    expect(
+      audit.filter((e) => ids.has(e.entityId) || ids.has(e.actorId ?? "")),
+    ).toEqual([]);
+    const messages = (await w.a.get("/v1/messages")).body as any[];
+    expect(messages.filter((m) => /Démo/.test(m.title))).toEqual([]);
+    // Shown again with the switch on.
+    const res = await fetch(`${api.url}/v1/messages`, {
+      headers: {
+        Authorization: `Bearer ${w.admin.token}`,
+        "x-biobalance-sandbox": "show",
+      },
+    });
+    const shown = (await res.json()) as any[];
+    expect(shown.some((m) => /Démo/.test(m.title))).toBe(true);
+  });
+});
+
 describe("the real start", () => {
   it("empties the network but the admins, the catalogue and the rates, and rebuilds the test region", async () => {
     const ownerDb = await owner();

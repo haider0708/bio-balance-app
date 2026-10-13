@@ -11,7 +11,8 @@ import { StockService } from "../modules/stock/stock.service";
 
 /**
  * The test region looks after itself, so a store reviewer always finds a living network:
- *  - what its people submit is approved a minute later (the admin never sees it),
+ *  - what its people submit is approved a minute later (the admin never sees it), and a demo
+ *    account a reviewer deactivated is active again a minute later,
  *  - its sellers keep selling through the day (sales of the last hours, with stock topped up),
  *  - a demonstration account deleted by a reviewer comes back a few minutes later, history intact.
  */
@@ -79,6 +80,7 @@ async function sandbox(db: Database) {
     pdvId: null,
     locale: "fr",
     showSandbox: true,
+    sandbox: true,
   };
   return { regionId: region.id, admin: actor };
 }
@@ -130,10 +132,29 @@ export async function approveSandbox(s: SandboxServices, now = new Date()) {
       tx.payoutRequest.findMany({
         where: { regionId, status: "PENDING", createdAt: { lt: before } },
       }),
+      // A reviewer signed in as the responsable may deactivate the demo seller: the account comes
+      // back, so the next reviewer can still sign in with it (deleted accounts have no password
+      // and come back through their own restore job).
+      tx.user.findMany({
+        where: {
+          regionId,
+          status: "SUSPENDED",
+          passwordHash: { not: null },
+          decidedAt: { lt: before },
+        },
+      }),
     ]),
   );
-  const [groups, pdvs, members, declarations, recounts, orders, payouts] =
-    waiting;
+  const [
+    groups,
+    pdvs,
+    members,
+    declarations,
+    recounts,
+    orders,
+    payouts,
+    suspended,
+  ] = waiting;
   const admin = box.admin;
   for (const g of groups)
     await attempt(() => s.structure.decideGroup(admin, g.id, "approve"));
@@ -156,6 +177,8 @@ export async function approveSandbox(s: SandboxServices, now = new Date()) {
     await attempt(() =>
       s.wallet.approve(admin, p.id, { paidAt: now, reference: "DEMO" }),
     );
+  for (const u of suspended)
+    await attempt(() => s.users.decide(admin, u.id, "reactivate"));
   return waiting.reduce((sum, list) => sum + list.length, 0);
 }
 

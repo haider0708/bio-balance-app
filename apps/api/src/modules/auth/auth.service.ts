@@ -300,7 +300,15 @@ export class AuthService {
         data: { revokedAt: new Date() },
       });
       await this.queuePasswordChanged(tx, actor.id);
-      await audit(tx, actor, "auth.password_changed", "User", actor.id);
+      await audit(
+        tx,
+        actor,
+        "auth.password_changed",
+        "User",
+        actor.id,
+        {},
+        actor.regionId,
+      );
     });
     return { ok: true };
   }
@@ -383,9 +391,15 @@ export class AuthService {
           decisionNote: "Deleted by its owner",
         },
       });
-      await audit(tx, actor, "auth.account_deleted", "User", user.id, {
-        role: user.role,
-      });
+      await audit(
+        tx,
+        actor,
+        "auth.account_deleted",
+        "User",
+        user.id,
+        { role: user.role },
+        user.regionId,
+      );
       await notifyAdmins(tx, user.regionId, {
         key: "account.deleted",
         params: { name: user.name, role: user.role },
@@ -419,7 +433,15 @@ export class AuthService {
         where: { id: user.id },
         data: { passwordHash, ...(name ? { name } : {}) },
       });
-      await audit(tx, null, "auth.activated", "User", user.id);
+      await audit(
+        tx,
+        null,
+        "auth.activated",
+        "User",
+        user.id,
+        {},
+        user.regionId,
+      );
     });
     return { ok: true };
   }
@@ -454,7 +476,15 @@ export class AuthService {
         data: { revokedAt: new Date() },
       });
       await this.queuePasswordChanged(tx, user.id);
-      await audit(tx, null, "auth.password_reset", "User", user.id);
+      await audit(
+        tx,
+        null,
+        "auth.password_reset",
+        "User",
+        user.id,
+        {},
+        user.regionId,
+      );
     });
     return { ok: true };
   }
