@@ -23,7 +23,7 @@ import workmanager_apple
         }
       }
     }
-    // Alerts are shown while the app is open too (each plugin answers for its own alerts).
+    // Alerts are shown while the app is open too (see userNotificationCenter(_:willPresent:)).
     UNUserNotificationCenter.current().delegate = self
     // The background check for new alerts (lib/core/alerts/background_alerts.dart): iOS runs
     // it when it sees fit, at most every fifteen minutes.
@@ -37,6 +37,18 @@ import workmanager_apple
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
 
+  /// An alert that arrives while the app is open (an Apple push, or the background check's).
+  /// Flutter hands it to every plugin in turn and the first answer counts; the Firebase plugin
+  /// (Android's push, unused on iPhone) comes first and answers "show nothing" for alerts that are
+  /// not its own. So the app answers here, once, and every alert is shown.
+  override func userNotificationCenter(
+    _ center: UNUserNotificationCenter,
+    willPresent notification: UNNotification,
+    withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
+  ) {
+    completionHandler([.banner, .list, .sound, .badge])
+  }
+
   func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {
     GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
     if let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "BioBalancePush") {
@@ -46,8 +58,7 @@ import workmanager_apple
 }
 
 /// Apple push alerts (lib/core/alerts/push.dart): asks permission, gives the device token to
-/// the app, keeps the icon number, shows alerts that arrive while the app is open, and tells
-/// the app when one is tapped.
+/// the app, keeps the icon number, and tells the app when one is tapped.
 final class PushPlugin: NSObject, FlutterPlugin {
   private var channel: FlutterMethodChannel?
   private var waiting: [FlutterResult] = []
@@ -110,16 +121,6 @@ final class PushPlugin: NSObject, FlutterPlugin {
     didFailToRegisterForRemoteNotificationsWithError error: Error
   ) {
     answer(nil)
-  }
-
-  func userNotificationCenter(
-    _ center: UNUserNotificationCenter,
-    willPresent notification: UNNotification,
-    withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
-  ) {
-    // Local alerts belong to flutter_local_notifications, which answers for them.
-    guard notification.request.trigger is UNPushNotificationTrigger else { return }
-    completionHandler([.banner, .list, .sound, .badge])
   }
 
   func userNotificationCenter(
