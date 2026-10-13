@@ -22,11 +22,11 @@ For the Mac session and the owner. The texts to paste (descriptions, keywords, r
 ## 2. Build and upload (Mac session)
 
 ```sh
-cd apps/mobile
-flutter build ipa --release
+scripts/ios-release.sh            # checks, archive, signing, build/ios/ipa/BioBalance.ipa
+scripts/ios-release.sh --upload   # the same, then sends it to App Store Connect (TestFlight)
 ```
 
-The file is in `build/ios/ipa/`. Upload it with the **Transporter** app (drag the `.ipa`), or Xcode > Window > Organizer > Distribute App. Apple processes it for 10 to 30 minutes and emails when done. Every upload needs a build number higher than the previous one: raise the number after `+` in `pubspec.yaml` (`version: 3.3.0+40` today; the build number is the part after the `+`), commit, then build again. The number is shared with Android: it only has to keep growing.
+Signing goes through an **App Store Connect API team key** (Admin), not an Apple ID in Xcode: the key and its IDs live in `~/.biobalance/appstore/` on the Mac (`env.sh`, never committed). The developer team has no registered device and no free distribution certificate (the other apps of the account use them), so the script archives unsigned, signs the archive with the Mac's development certificate and the app's entitlements, and lets Apple's cloud signing produce the App Store build; it refuses a build without the production push entitlement. Once an iPhone is registered, `flutter build ipa --release` with Xcode's automatic signing works as well. Apple processes it for 10 to 30 minutes and emails when done. Every upload needs a build number higher than the previous one: raise the number after `+` in `pubspec.yaml` (`version: 3.3.0+40` today; the build number is the part after the `+`), commit, then build again. The number is shared with Android: it only has to keep growing.
 
 ## 3. Create the app in App Store Connect (owner, in a browser; the Mac session can read the answers out)
 
