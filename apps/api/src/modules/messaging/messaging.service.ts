@@ -23,12 +23,12 @@ const starts = (...prefixes: string[]) => ({
   OR: prefixes.map((p) => ({ key: { startsWith: p } })),
 });
 const categoryFilter: Record<NotificationCategory, object> = {
-  SALES: starts("sale."),
+  SALES: starts("sale.", "day."),
   STOCK: starts("stock.", "recount."),
   RESTOCKS: starts("restock."),
-  PAYMENTS: starts("payout."),
+  PAYMENTS: starts("payout.", "reward."),
   NETWORK: starts("pdv.", "group.", "member."),
-  MESSAGES: { kind: "MESSAGE" },
+  MESSAGES: { OR: [{ kind: "MESSAGE" }, starts("course.")] },
 };
 
 @Injectable()

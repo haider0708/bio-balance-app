@@ -19,6 +19,8 @@ import 'notifications_repository.dart';
 
 /// Where a notification leads, for each kind of thing and each role. Null when nowhere useful.
 String? routeForEntity(Role role, String? type, String? id) {
+  // The evening summaries open the home screen, where the day's numbers are.
+  if (type == 'Region' || type == 'Network') return '/home';
   if (type == null || id == null) return null;
   return switch ((type, role)) {
     ('RestockOrder', _) => '/restocks/$id',
@@ -29,7 +31,10 @@ String? routeForEntity(Role role, String? type, String? id) {
     ('Pdv', Role.admin) || ('Pdv', Role.responsable) => '/pdvs/$id',
     ('Group', Role.admin) => '/approvals',
     ('User', Role.admin) => '/approvals',
-    ('Sale', Role.vendeur) => '/sales/$id',
+    ('Sale', Role.vendeur) || ('Sale', Role.responsable) => '/sales/$id',
+    ('Course', Role.admin) => '/training/manage/$id',
+    ('Course', _) => '/training/$id',
+    ('RewardRule', Role.vendeur) => '/wallet',
     ('PayoutRequest', Role.admin) => '/payouts',
     ('PayoutRequest', Role.vendeur) => '/wallet',
     _ => null,
@@ -222,6 +227,9 @@ class _Tile extends StatelessWidget {
             'User' => LucideIcons.userRound,
             'Sale' => LucideIcons.receipt,
             'PayoutRequest' => LucideIcons.banknote,
+            'RewardRule' => LucideIcons.badgePercent,
+            'Course' => LucideIcons.graduationCap,
+            'Region' || 'Network' => LucideIcons.chartColumn,
             _ => LucideIcons.bell,
           };
     return AppCard(

@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart' show visibleForTesting;
+import 'package:intl/intl.dart' show NumberFormat;
 
 import '../../l10n/app_localizations.dart';
 import '../api/api_exception.dart';
@@ -30,10 +31,22 @@ class ServerText {
     final text = _notifications[key];
     if (text == null) return fallback ?? key;
     final wording = locale == 'fr' ? text.$2 : text.$1;
-    var line = wording;
+    // `{units:unit|units}`: the count and the word that goes with it (French: 0 and 1 are singular).
+    var line = wording.replaceAllMapped(
+      RegExp(r'\{(\w+):([^|}]*)\|([^}]*)\}'),
+      (m) {
+        final n = num.tryParse('${params[m[1]!] ?? ''}');
+        if (n == null) return '';
+        final singular = locale == 'fr' ? n.abs() < 2 : n == 1;
+        return '${NumberFormat.decimalPattern(locale).format(n)} '
+            '${singular ? m[2] : m[3]}';
+      },
+    );
     params.forEach((name, value) {
       final shown = name == 'amountMillimes' && value is num
           ? Money.format(value.toInt(), locale)
+          : name == 'day' && value is String
+          ? value.split('-').reversed.join('/')
           : '${value ?? ''}';
       line = line.replaceAll(
         '{${name == 'amountMillimes' ? 'amount' : name}}',
@@ -437,8 +450,32 @@ class ServerText {
       '{name} est de nouveau actif(ve).',
     ),
     'sale.recorded': (
-      '{seller} sold {units} units at {place} · {amount} earned.',
-      '{seller} a vendu {units} unités à {place} · {amount} gagnés.',
+      '{seller} sold {units:unit|units} at {place} · {amount} earned.',
+      '{seller} a vendu {units:unité|unités} à {place} · {amount} gagnés.',
+    ),
+    'day.summary': (
+      'Today in {region}: {sales:sale|sales}, {units:unit|units}, {amount} in rewards.',
+      'Aujourd’hui, région {region} : {sales:vente|ventes}, {units:unité|unités}, {amount} de récompenses.',
+    ),
+    'day.summary_stock': (
+      'Today in {region}: {sales:sale|sales}, {units:unit|units}, {amount} in rewards. {outOfStock:product is|products are} out of stock in its stores.',
+      'Aujourd’hui, région {region} : {sales:vente|ventes}, {units:unité|unités}, {amount} de récompenses. {outOfStock:produit en rupture|produits en rupture} dans ses points de vente.',
+    ),
+    'day.summary_none': (
+      'No sale was recorded today in {region}.',
+      'Aucune vente enregistrée aujourd’hui, région {region}.',
+    ),
+    'day.network': (
+      'Today in the network: {sales:sale|sales}, {units:unit|units}, {amount} in rewards.',
+      'Aujourd’hui dans le réseau : {sales:vente|ventes}, {units:unité|unités}, {amount} de récompenses.',
+    ),
+    'course.published': (
+      'New training: {title}.',
+      'Nouvelle formation : {title}.',
+    ),
+    'reward.new': (
+      'New reward from {day}: {amount} per unit of {target}.',
+      'Nouvelle récompense à partir du {day} : {amount} par unité de {target}.',
     ),
     'stock.adjusted': (
       'The stock of {place} was corrected: {note}',

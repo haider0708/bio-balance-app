@@ -96,8 +96,8 @@
     "fr": "{name} est de nouveau actif(ve)."
   },
   "sale.recorded": {
-    "en": "{seller} sold {units} units at {place} · {amount} earned.",
-    "fr": "{seller} a vendu {units} unités à {place} · {amount} gagnés."
+    "en": "{seller} sold {units:unit|units} at {place} · {amount} earned.",
+    "fr": "{seller} a vendu {units:unité|unités} à {place} · {amount} gagnés."
   },
   "stock.adjusted": {
     "en": "The stock of {place} was corrected: {note}",
@@ -182,5 +182,29 @@
   "payout.rejected": {
     "en": "Your payout request of {amount} was declined.",
     "fr": "Votre demande de paiement de {amount} a été refusée."
+  },
+  "day.summary": {
+    "en": "Today in {region}: {sales:sale|sales}, {units:unit|units}, {amount} in rewards.",
+    "fr": "Aujourd’hui, région {region} : {sales:vente|ventes}, {units:unité|unités}, {amount} de récompenses."
+  },
+  "day.summary_stock": {
+    "en": "Today in {region}: {sales:sale|sales}, {units:unit|units}, {amount} in rewards. {outOfStock:product is|products are} out of stock in its stores.",
+    "fr": "Aujourd’hui, région {region} : {sales:vente|ventes}, {units:unité|unités}, {amount} de récompenses. {outOfStock:produit en rupture|produits en rupture} dans ses points de vente."
+  },
+  "day.summary_none": {
+    "en": "No sale was recorded today in {region}.",
+    "fr": "Aucune vente enregistrée aujourd’hui, région {region}."
+  },
+  "day.network": {
+    "en": "Today in the network: {sales:sale|sales}, {units:unit|units}, {amount} in rewards.",
+    "fr": "Aujourd’hui dans le réseau : {sales:vente|ventes}, {units:unité|unités}, {amount} de récompenses."
+  },
+  "course.published": {
+    "en": "New training: {title}.",
+    "fr": "Nouvelle formation : {title}."
+  },
+  "reward.new": {
+    "en": "New reward from {day}: {amount} per unit of {target}.",
+    "fr": "Nouvelle récompense à partir du {day} : {amount} par unité de {target}."
   }
 }

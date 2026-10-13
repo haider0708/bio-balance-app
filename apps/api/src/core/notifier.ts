@@ -6,6 +6,8 @@ export interface SystemNotice {
   params?: Record<string, unknown>;
   entityType?: string;
   entityId?: string;
+  /** False for what belongs in the inbox only (each sale of a region): no phone is woken. */
+  push?: boolean;
 }
 
 /** Drops a system notification into each person's inbox. */
@@ -24,7 +26,7 @@ export async function notify(tx: Tx, userIds: string[], notice: SystemNotice) {
       params: json(notice.params ?? {}),
       entityType: notice.entityType ?? null,
       entityId: notice.entityId ?? null,
-      pushedAt: quiet ? new Date() : null,
+      pushedAt: quiet || notice.push === false ? new Date() : null,
     })),
   });
 }

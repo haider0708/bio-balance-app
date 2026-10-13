@@ -5,6 +5,7 @@ import { audit } from "../../core/audit";
 import { Database, type Tx } from "../../core/database";
 import { DomainError, notFound, requireRule } from "../../core/errors";
 import { MAX_MILLIMES } from "../../core/money";
+import { notify } from "../../core/notifier";
 import { addDays, dateToDay, dayToDate, tunisDay } from "../../core/dates";
 import { rewardSources } from "./rules";
 
@@ -120,6 +121,31 @@ export class RewardsService {
         startsOn: input.startsOn,
         endsOn: input.endsOn ?? null,
       });
+      // What earns is what sellers want to know first: a rate that still applies is announced.
+      if (!input.endsOn || input.endsOn >= tunisDay(new Date())) {
+        const target = input.productId
+          ? (await tx.product.findUnique({ where: { id: input.productId } }))!
+              .name
+          : input.family!;
+        const sellers = await tx.user.findMany({
+          where: { role: "VENDEUR", status: "ACTIVE" },
+          select: { id: true },
+        });
+        await notify(
+          tx,
+          sellers.map((u) => u.id),
+          {
+            key: "reward.new",
+            params: {
+              day: input.startsOn,
+              amountMillimes: input.amountMillimes,
+              target,
+            },
+            entityType: "RewardRule",
+            entityId: rule.id,
+          },
+        );
+      }
       return this.present(tx, [rule]).then((r) => r[0]!);
     });
   }

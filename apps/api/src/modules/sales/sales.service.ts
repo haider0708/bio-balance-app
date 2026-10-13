@@ -130,9 +130,11 @@ export class SalesService {
             },
           ],
         });
-      // The responsable of the region hears about every sale of their stores.
+      // The responsable finds every sale of their stores in the inbox; their phone only gets the
+      // evening summary (day.summary), not a buzz per sale.
       await notify(tx, await responsableIds(tx, pdv.regionId), {
         key: "sale.recorded",
+        push: false,
         params: {
           seller: actor.name,
           place: pdv.name,

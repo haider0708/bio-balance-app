@@ -4,6 +4,7 @@ import type { Actor } from "../../core/actor";
 import { audit } from "../../core/audit";
 import { Database, json, type Tx } from "../../core/database";
 import { notFound, requireRule } from "../../core/errors";
+import { notify } from "../../core/notifier";
 
 export interface CourseAudience {
   roles?: Role[];
@@ -215,6 +216,32 @@ export class TrainingService {
         id,
         {},
       );
+      // A course that becomes available is announced to the people it is for.
+      if (published && course.status !== "PUBLISHED") {
+        const audience = course.audience as CourseAudience;
+        const people = await tx.user.findMany({
+          where: {
+            status: "ACTIVE",
+            role: audience.roles?.length
+              ? { in: audience.roles.filter((r) => r !== "ADMIN") }
+              : { not: "ADMIN" },
+            ...(audience.regionIds?.length && {
+              regionId: { in: audience.regionIds },
+            }),
+          },
+          select: { id: true },
+        });
+        await notify(
+          tx,
+          people.map((p) => p.id),
+          {
+            key: "course.published",
+            params: { title: course.title },
+            entityType: "Course",
+            entityId: id,
+          },
+        );
+      }
       return updated;
     });
   }

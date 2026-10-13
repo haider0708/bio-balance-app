@@ -12,6 +12,7 @@ import {
   scheduleSandbox,
   type RestorePayload,
 } from "./demo/sandbox";
+import { scheduleDaySummary, sendDaySummaries } from "./jobs/day-summary";
 import { cleanup, scheduleCleanup } from "./jobs/maintenance";
 import { MessagingService } from "./modules/messaging/messaging.service";
 import { PushDelivery } from "./push/push-delivery";
@@ -48,6 +49,8 @@ const execute: JobExecutor = async (job, stillOwned) => {
     case "sandbox-sell":
       await keepSandboxSelling(sandbox);
       return;
+    case "day-summary":
+      return sendDaySummaries(db, String(job.payload.day));
     case "demo-restore":
       return restoreDemoAccount(db, job.payload as unknown as RestorePayload);
     default:
@@ -71,6 +74,7 @@ async function main() {
       "sandbox-approve",
       "sandbox-sell",
       "demo-restore",
+      "day-summary",
     ],
     execute,
   );
@@ -99,6 +103,7 @@ async function main() {
           }
           if (index === 0 && Date.now() >= nextSandbox) {
             await scheduleSandbox(db);
+            await scheduleDaySummary(db);
             nextSandbox = Date.now() + 60_000;
           }
           const worked = await runner.tick();
