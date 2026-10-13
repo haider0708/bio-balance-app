@@ -31,7 +31,7 @@ The build refuses to produce an unsigned release. What the bundle already satisf
 
 ## iOS (App Store) — on the Mac
 
-Install **Xcode 26** or later (required by Apple since April 2026), Flutter 3.47.5 and CocoaPods (`brew install cocoapods`), then:
+Install **Xcode 26** or later (required by Apple since April 2026), Flutter 3.47.5 and CocoaPods (`brew install cocoapods` or `sudo port install cocoapods`; with MacPorts' Ruby set `SSL_CERT_FILE=/etc/ssl/cert.pem`, which `scripts/mac-setup.sh` does), then:
 
 ```sh
 cd apps/mobile
