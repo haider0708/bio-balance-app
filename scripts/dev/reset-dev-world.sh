@@ -14,11 +14,5 @@ python3 - "$setup" <<'PY'
 import json,sys
 p=sys.argv[1]; d=json.load(open(p)); d['password']='owner-password'; json.dump(d,open(p,'w'))
 PY
-otp=$(node -e "
-const {createHmac}=require('crypto');const u=new URL(require('$setup').totpUri);const s=u.searchParams.get('secret');
-const a='ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';let b='';for(const c of s.replace(/=+$/,''))b+=a.indexOf(c).toString(2).padStart(5,'0');
-const k=Buffer.from(b.match(/.{8}/g).map(x=>parseInt(x,2)));const t=Buffer.alloc(8);t.writeBigUInt64BE(BigInt(Math.floor(Date.now()/30000)));
-const h=createHmac('sha1',k).update(t).digest();const o=h[h.length-1]&15;console.log(String((h.readUInt32BE(o)&0x7fffffff)%1e6).padStart(6,'0'))")
-API_URL=http://localhost:3000 ADMIN_EMAIL=owner@example.test ADMIN_PASSWORD=owner-password ADMIN_OTP=$otp node scripts/import-catalog.mjs | tail -1
-sleep 31 # an authenticator code is accepted once: wait for the next 30-second step
+(cd apps/api && npm run catalog --silent -- --apply | tail -1)
 node scripts/dev/seed-dev-world.mjs "$setup" "$out"

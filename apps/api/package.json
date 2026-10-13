@@ -7,6 +7,7 @@
     "build": "tsc -p tsconfig.json",
     "start": "node dist/main.js",
     "worker": "npm run build && node --env-file=.env dist/worker.js",
+    "catalog": "npm run build && node --env-file=.env dist/catalog.js refresh",
     "test": "vitest run --maxWorkers=1 --testTimeout=30000",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate deploy",

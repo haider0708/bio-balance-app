@@ -144,6 +144,14 @@ services:
       DEMO_VENDEUR_PASSWORD: ${DEMO_VENDEUR_PASSWORD:-}
       DEMO_DAYS: ${DEMO_DAYS:-60}
     healthcheck: {disable: true}
+  # The product catalogue (docs/runbook.md, "The product catalogue"): `compose run --rm catalog` shows
+  # what would change, `compose run --rm catalog node dist/catalog.js refresh --apply` applies it.
+  catalog:
+    <<: *app
+    profiles: [maintenance]
+    restart: 'no'
+    command: [node,dist/catalog.js,refresh]
+    healthcheck: {disable: true}
   reset-admin:
     <<: *app
     profiles: [maintenance]
