@@ -141,7 +141,7 @@ class AppLocalizationsFr extends AppLocalizations {
       count,
       locale: localeName,
       other: '$count groupes',
-      one: '1 groupe',
+      one: '$count groupe',
     );
     return '$_temp0';
   }
@@ -152,7 +152,7 @@ class AppLocalizationsFr extends AppLocalizations {
       count,
       locale: localeName,
       other: '$count membres',
-      one: '1 membre',
+      one: '$count membre',
     );
     return '$_temp0';
   }
@@ -163,7 +163,7 @@ class AppLocalizationsFr extends AppLocalizations {
       count,
       locale: localeName,
       other: '$count paiements',
-      one: '1 paiement',
+      one: '$count paiement',
     );
     return '$_temp0';
   }
@@ -174,7 +174,7 @@ class AppLocalizationsFr extends AppLocalizations {
       count,
       locale: localeName,
       other: '$count points de vente',
-      one: '1 point de vente',
+      one: '$count point de vente',
     );
     return '$_temp0';
   }
@@ -185,7 +185,7 @@ class AppLocalizationsFr extends AppLocalizations {
       count,
       locale: localeName,
       other: '$count livraisons',
-      one: '1 livraison',
+      one: '$count livraison',
     );
     return '$_temp0';
   }
@@ -196,7 +196,7 @@ class AppLocalizationsFr extends AppLocalizations {
       count,
       locale: localeName,
       other: '$count demandes de réassort',
-      one: '1 demande de réassort',
+      one: '$count demande de réassort',
     );
     return '$_temp0';
   }
@@ -207,7 +207,7 @@ class AppLocalizationsFr extends AppLocalizations {
       count,
       locale: localeName,
       other: '$count stocks',
-      one: '1 stock',
+      one: '$count stock',
     );
     return '$_temp0';
   }
@@ -327,7 +327,7 @@ class AppLocalizationsFr extends AppLocalizations {
       count,
       locale: localeName,
       other: '$count unités vendues',
-      one: '1 unité vendue',
+      one: '$count unité vendue',
     );
     return '$_temp0';
   }
@@ -534,7 +534,7 @@ class AppLocalizationsFr extends AppLocalizations {
       count,
       locale: localeName,
       other: '$count livraisons à confirmer',
-      one: '1 livraison à confirmer',
+      one: '$count livraison à confirmer',
     );
     return '$_temp0';
   }
@@ -1115,7 +1115,7 @@ class AppLocalizationsFr extends AppLocalizations {
       count,
       locale: localeName,
       other: '$count points de vente choisis',
-      one: '1 point de vente choisi',
+      one: '$count point de vente choisi',
     );
     return '$_temp0';
   }
@@ -1409,7 +1409,7 @@ class AppLocalizationsFr extends AppLocalizations {
       count,
       locale: localeName,
       other: 'Vérifier la vente · $count unités',
-      one: 'Vérifier la vente · 1 unité',
+      one: 'Vérifier la vente · $count unité',
     );
     return '$_temp0';
   }
@@ -1503,7 +1503,7 @@ class AppLocalizationsFr extends AppLocalizations {
       count,
       locale: localeName,
       other: '$count ventes attendent d’être envoyées',
-      one: '1 vente attend d’être envoyée',
+      one: '$count vente attend d’être envoyée',
     );
     return '$_temp0';
   }
@@ -1526,7 +1526,7 @@ class AppLocalizationsFr extends AppLocalizations {
       count,
       locale: localeName,
       other: '$count unités seront envoyées',
-      one: '1 unité sera envoyée',
+      one: '$count unité sera envoyée',
     );
     return '$_temp0 dès que vous serez de nouveau connecté. Votre gain apparaîtra alors.';
   }
@@ -1590,7 +1590,7 @@ class AppLocalizationsFr extends AppLocalizations {
       count,
       locale: localeName,
       other: '$count personnes',
-      one: '1 personne',
+      one: '$count personne',
     );
     return 'Envoyer à $_temp0 ?';
   }
@@ -1826,7 +1826,7 @@ class AppLocalizationsFr extends AppLocalizations {
       count,
       locale: localeName,
       other: '$count unités',
-      one: '1 unité',
+      one: '$count unité',
     );
     return '$_temp0';
   }
@@ -1855,7 +1855,7 @@ class AppLocalizationsFr extends AppLocalizations {
       count,
       locale: localeName,
       other: '$count éléments attendent l’approbation de BioBalance',
-      one: '1 élément attend l’approbation de BioBalance',
+      one: '$count élément attend l’approbation de BioBalance',
     );
     return '$_temp0';
   }
@@ -1866,7 +1866,7 @@ class AppLocalizationsFr extends AppLocalizations {
       count,
       locale: localeName,
       other: '$count éléments vous attendent',
-      one: '1 élément vous attend',
+      one: '$count élément vous attend',
     );
     return '$_temp0';
   }
@@ -2674,7 +2674,7 @@ class AppLocalizationsFr extends AppLocalizations {
       count,
       locale: localeName,
       other: '$count ventes annulées',
-      one: '1 vente annulée',
+      one: '$count vente annulée',
     );
     return '$_temp0';
   }
@@ -2685,7 +2685,7 @@ class AppLocalizationsFr extends AppLocalizations {
       count,
       locale: localeName,
       other: '$count ventes corrigées',
-      one: '1 vente corrigée',
+      one: '$count vente corrigée',
     );
     return '$_temp0';
   }
@@ -2696,7 +2696,7 @@ class AppLocalizationsFr extends AppLocalizations {
       count,
       locale: localeName,
       other: '$count ventes envoyées plus tard (hors ligne)',
-      one: '1 vente envoyée plus tard (hors ligne)',
+      one: '$count vente envoyée plus tard (hors ligne)',
     );
     return '$_temp0';
   }
@@ -2895,7 +2895,7 @@ class AppLocalizationsFr extends AppLocalizations {
       locale: localeName,
       other:
           '$count points de vente actifs n’ont rien vendu sur cette période.',
-      one: '1 point de vente actif n’a rien vendu sur cette période.',
+      one: '$count point de vente actif n’a rien vendu sur cette période.',
     );
     return '$_temp0';
   }
@@ -2937,7 +2937,8 @@ class AppLocalizationsFr extends AppLocalizations {
       locale: localeName,
       other:
           '$count ventes attendent encore d\'être envoyées. Connectez-vous à internet et envoyez-les d\'abord.',
-      one: '1 vente attend encore d\'être envoyée. Connectez-vous à internet et envoyez-la d\'abord.',
+      one:
+          '$count vente attend encore d\'être envoyée. Connectez-vous à internet et envoyez-la d\'abord.',
     );
     return '$_temp0';
   }

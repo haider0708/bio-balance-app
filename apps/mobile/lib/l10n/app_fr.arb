@@ -57,7 +57,7 @@
   "announcementsTitle": "Annonces",
   "appName": "BioBalance",
   "appVersion": "Version",
-  "approvalGroups": "{count, plural, =1{1 groupe} other{{count} groupes}}",
+  "approvalGroups": "{count, plural, =1{{count} groupe} other{{count} groupes}}",
   "@approvalGroups": {
     "placeholders": {
       "count": {
@@ -65,7 +65,7 @@
       }
     }
   },
-  "approvalMembers": "{count, plural, =1{1 membre} other{{count} membres}}",
+  "approvalMembers": "{count, plural, =1{{count} membre} other{{count} membres}}",
   "@approvalMembers": {
     "placeholders": {
       "count": {
@@ -73,7 +73,7 @@
       }
     }
   },
-  "approvalPayouts": "{count, plural, =1{1 paiement} other{{count} paiements}}",
+  "approvalPayouts": "{count, plural, =1{{count} paiement} other{{count} paiements}}",
   "@approvalPayouts": {
     "placeholders": {
       "count": {
@@ -81,7 +81,7 @@
       }
     }
   },
-  "approvalPdvs": "{count, plural, =1{1 point de vente} other{{count} points de vente}}",
+  "approvalPdvs": "{count, plural, =1{{count} point de vente} other{{count} points de vente}}",
   "@approvalPdvs": {
     "placeholders": {
       "count": {
@@ -89,7 +89,7 @@
       }
     }
   },
-  "approvalReceipts": "{count, plural, =1{1 livraison} other{{count} livraisons}}",
+  "approvalReceipts": "{count, plural, =1{{count} livraison} other{{count} livraisons}}",
   "@approvalReceipts": {
     "placeholders": {
       "count": {
@@ -97,7 +97,7 @@
       }
     }
   },
-  "approvalRequests": "{count, plural, =1{1 demande de réassort} other{{count} demandes de réassort}}",
+  "approvalRequests": "{count, plural, =1{{count} demande de réassort} other{{count} demandes de réassort}}",
   "@approvalRequests": {
     "placeholders": {
       "count": {
@@ -105,7 +105,7 @@
       }
     }
   },
-  "approvalStock": "{count, plural, =1{1 stock} other{{count} stocks}}",
+  "approvalStock": "{count, plural, =1{{count} stock} other{{count} stocks}}",
   "@approvalStock": {
     "placeholders": {
       "count": {
@@ -167,7 +167,7 @@
   "cancelSaleBody": "Le stock est remis et le gain est retiré de votre portefeuille.",
   "cancelSaleTitle": "Annuler cette vente ?",
   "catalogTitle": "Catalogue",
-  "celebrateSubtitle": "{count, plural, =1{1 unité vendue} other{{count} unités vendues}}",
+  "celebrateSubtitle": "{count, plural, =1{{count} unité vendue} other{{count} unités vendues}}",
   "@celebrateSubtitle": {
     "placeholders": {
       "count": {
@@ -260,7 +260,7 @@
   "deleteCourseTitle": "Supprimer cette formation ?",
   "deleteLessonTitle": "Supprimer cette leçon ?",
   "deliverTo": "Livrer à",
-  "deliveriesToConfirm": "{count, plural, =1{1 livraison à confirmer} other{{count} livraisons à confirmer}}",
+  "deliveriesToConfirm": "{count, plural, =1{{count} livraison à confirmer} other{{count} livraisons à confirmer}}",
   "@deliveriesToConfirm": {
     "placeholders": {
       "count": {
@@ -514,7 +514,7 @@
   "pdvName": "Nom du point de vente",
   "pdvNotActive": "Votre point de vente attend son approbation. Vous pourrez vendre dès qu’il sera actif.",
   "pdvWaitingNotice": "En attente d’approbation par BioBalance. Vous pouvez déjà ajouter l’équipe et déclarer le stock.",
-  "pdvsChosen": "{count, plural, =1{1 point de vente choisi} other{{count} points de vente choisis}}",
+  "pdvsChosen": "{count, plural, =1{{count} point de vente choisi} other{{count} points de vente choisis}}",
   "@pdvsChosen": {
     "placeholders": {
       "count": {
@@ -671,7 +671,7 @@
   "resubmit": "Soumettre à nouveau",
   "resubmitted": "Soumis à nouveau",
   "retry": "Réessayer",
-  "reviewSale": "{count, plural, =1{Vérifier la vente · 1 unité} other{Vérifier la vente · {count} unités}}",
+  "reviewSale": "{count, plural, =1{Vérifier la vente · {count} unité} other{Vérifier la vente · {count} unités}}",
   "@reviewSale": {
     "placeholders": {
       "count": {
@@ -710,7 +710,7 @@
   },
   "salesLast14Days": "Unités vendues, 14 derniers jours",
   "salesTitle": "Mes ventes",
-  "salesWaiting": "{count, plural, =1{1 vente attend d’être envoyée} other{{count} ventes attendent d’être envoyées}}",
+  "salesWaiting": "{count, plural, =1{{count} vente attend d’être envoyée} other{{count} ventes attendent d’être envoyées}}",
   "@salesWaiting": {
     "placeholders": {
       "count": {
@@ -722,7 +722,7 @@
   "saveCorrection": "Enregistrer la correction",
   "saveReward": "Enregistrer la récompense",
   "saved": "Enregistré",
-  "savedOnPhoneBody": "{count, plural, =1{1 unité sera envoyée} other{{count} unités seront envoyées}} dès que vous serez de nouveau connecté. Votre gain apparaîtra alors.",
+  "savedOnPhoneBody": "{count, plural, =1{{count} unité sera envoyée} other{{count} unités seront envoyées}} dès que vous serez de nouveau connecté. Votre gain apparaîtra alors.",
   "@savedOnPhoneBody": {
     "placeholders": {
       "count": {
@@ -754,7 +754,7 @@
   "sendFromBiobalance": "Envoyer depuis BioBalance",
   "sendNow": "Envoyer",
   "sendNowOption": "Envoyer maintenant",
-  "sendNowTitle": "Envoyer à {count, plural, =1{1 personne} other{{count} personnes}} ?",
+  "sendNowTitle": "Envoyer à {count, plural, =1{{count} personne} other{{count} personnes}} ?",
   "@sendNowTitle": {
     "placeholders": {
       "count": {
@@ -869,7 +869,7 @@
   "typeReceipt": "Livraison",
   "typeRestockRequest": "Demande de réassort",
   "typeStock": "Stock",
-  "units": "{count, plural, =1{1 unité} other{{count} unités}}",
+  "units": "{count, plural, =1{{count} unité} other{{count} unités}}",
   "@units": {
     "placeholders": {
       "count": {
@@ -883,7 +883,7 @@
   "uploadVideo": "Téléverser une vidéo (MP4)",
   "videoUnavailable": "Cette vidéo ne peut pas être lue.",
   "viewSales": "Voir les ventes",
-  "waitingAdmin": "{count, plural, =1{1 élément attend l’approbation de BioBalance} other{{count} éléments attendent l’approbation de BioBalance}}",
+  "waitingAdmin": "{count, plural, =1{{count} élément attend l’approbation de BioBalance} other{{count} éléments attendent l’approbation de BioBalance}}",
   "@waitingAdmin": {
     "placeholders": {
       "count": {
@@ -891,7 +891,7 @@
       }
     }
   },
-  "waitingForYou": "{count, plural, =1{1 élément vous attend} other{{count} éléments vous attendent}}",
+  "waitingForYou": "{count, plural, =1{{count} élément vous attend} other{{count} éléments vous attendent}}",
   "@waitingForYou": {
     "placeholders": {
       "count": {
@@ -1455,7 +1455,7 @@
   "anGroups": "Groupes",
   "anFamilies": "Familles",
   "allStoresBoard": "Tous les points de vente",
-  "qualityVoided": "{count, plural, =1{1 vente annulée} other{{count} ventes annulées}}",
+  "qualityVoided": "{count, plural, =1{{count} vente annulée} other{{count} ventes annulées}}",
   "@qualityVoided": {
     "placeholders": {
       "count": {
@@ -1463,7 +1463,7 @@
       }
     }
   },
-  "qualityCorrected": "{count, plural, =1{1 vente corrigée} other{{count} ventes corrigées}}",
+  "qualityCorrected": "{count, plural, =1{{count} vente corrigée} other{{count} ventes corrigées}}",
   "@qualityCorrected": {
     "placeholders": {
       "count": {
@@ -1471,7 +1471,7 @@
       }
     }
   },
-  "qualityLate": "{count, plural, =1{1 vente envoyée plus tard (hors ligne)} other{{count} ventes envoyées plus tard (hors ligne)}}",
+  "qualityLate": "{count, plural, =1{{count} vente envoyée plus tard (hors ligne)} other{{count} ventes envoyées plus tard (hors ligne)}}",
   "@qualityLate": {
     "placeholders": {
       "count": {
@@ -1618,7 +1618,7 @@
       }
     }
   },
-  "insSilentStores": "{count, plural, =1{1 point de vente actif n’a rien vendu sur cette période.} other{{count} points de vente actifs n’ont rien vendu sur cette période.}}",
+  "insSilentStores": "{count, plural, =1{{count} point de vente actif n’a rien vendu sur cette période.} other{{count} points de vente actifs n’ont rien vendu sur cette période.}}",
   "@insSilentStores": {
     "placeholders": {
       "count": {
@@ -1651,7 +1651,7 @@
       }
     }
   },
-  "deleteAccountWaitingSales": "{count, plural, =1{1 vente attend encore d'être envoyée. Connectez-vous à internet et envoyez-la d'abord.} other{{count} ventes attendent encore d'être envoyées. Connectez-vous à internet et envoyez-les d'abord.}}",
+  "deleteAccountWaitingSales": "{count, plural, =1{{count} vente attend encore d'être envoyée. Connectez-vous à internet et envoyez-la d'abord.} other{{count} ventes attendent encore d'être envoyées. Connectez-vous à internet et envoyez-les d'abord.}}",
   "@deleteAccountWaitingSales": {
     "placeholders": {
       "count": {
