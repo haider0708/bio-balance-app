@@ -102,7 +102,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get amendReceiptHint =>
-      'Compare with the photo of the paper and correct a quantity if needed.';
+      'Check the paper and enter what really arrived. Each quantity starts at what was sent.';
 
   @override
   String get amendStockHint =>
@@ -222,7 +222,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get approveAndInvite => 'Approve and send invitation';
 
   @override
-  String get approveAsCounted => 'Approve as counted';
+  String get approveAsCounted => 'Approve the delivery';
 
   @override
   String approveGroupTitle(String name) {
@@ -233,7 +233,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get approved => 'Approved';
 
   @override
-  String get askRecount => 'Ask to count again';
+  String get askRecount => 'Ask for the paper again';
 
   @override
   String get assignToGrossiste => 'Assign to a grossiste';
@@ -342,7 +342,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get changePassword => 'Change password';
 
   @override
-  String get changeReceiver => 'Change who counts the goods';
+  String get changeReceiver => 'Change who receives the goods';
 
   @override
   String get chooseAudience => 'Choose who receives it';
@@ -357,7 +357,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get chooseProduct => 'Choose a product';
 
   @override
-  String get chooseReceiver => 'Choose who counts the goods';
+  String get chooseReceiver => 'Choose who receives the goods';
 
   @override
   String get city => 'City';
@@ -540,7 +540,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get deliveriesToConfirmHint =>
-      'Photograph the paper and count the goods.';
+      'Photograph the delivery paper and send it.';
 
   @override
   String get deliveryPaper => 'Delivery paper';
@@ -1253,10 +1253,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get receiveHint =>
-      'Photograph the signed delivery paper and enter what you really received for each product.';
+      'Photograph the signed delivery paper, or add it as a PDF. BioBalance checks it and enters the quantities received.';
 
   @override
-  String get receivedBy => 'Counted by';
+  String get receivedBy => 'Received by';
 
   @override
   String get receiverSaved => 'Saved';
@@ -1274,14 +1274,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get recount => 'Recount';
 
   @override
-  String get recountAsked => 'Sent back for a new count';
+  String get recountAsked => 'Sent back to the receiver';
 
   @override
   String get recountHint =>
       'The quantities below are what the system holds. Correct them to what you count, add a photo, and send.';
 
   @override
-  String get recountReasonHint => 'What does not match the paper?';
+  String get recountReasonHint => 'What is wrong with the paper?';
 
   @override
   String get recountStock => 'Recount the stock';
@@ -1887,11 +1887,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get wallets => 'Wallets';
 
   @override
-  String get whoCountsHint =>
-      'They will photograph the paper and enter the quantities.';
+  String get whoCountsHint => 'They will confirm the delivery with the paper.';
 
   @override
-  String get whoCountsTheGoods => 'Who counts the goods?';
+  String get whoCountsTheGoods => 'Who receives the goods?';
 
   @override
   String get whoIsItFor => 'Who is it for?';
@@ -3037,5 +3036,34 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String vsPreviousText(String value) {
     return 'before: $value';
+  }
+
+  @override
+  String get receiveHintAdmin =>
+      'Add the delivery paper and enter what really arrived: the stock is updated at once.';
+
+  @override
+  String sentQuantity(int count) {
+    return 'Sent: $count';
+  }
+
+  @override
+  String get receiverNote => 'Receiver’s note';
+
+  @override
+  String get whatWasSent => 'What was sent';
+
+  @override
+  String get supplierHasAll => 'Has everything';
+
+  @override
+  String supplierMissing(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Short of $count products',
+      one: 'Short of $count product',
+    );
+    return '$_temp0';
   }
 }

@@ -604,6 +604,8 @@ class _RestockDetailScreenState extends ConsumerState<RestockDetailScreen> {
                       ),
                     if (o.receiver != null)
                       InfoRow(t.receivedBy, o.receiver!.name),
+                    if (o.receiptNote != null)
+                      InfoRow(t.receiverNote, o.receiptNote!),
                     if (o.note != null) InfoRow(t.note, o.note!),
                     if (o.decisionNote != null)
                       InfoRow(t.decision, o.decisionNote!),
@@ -650,7 +652,7 @@ class _RestockDetailScreenState extends ConsumerState<RestockDetailScreen> {
                     () => repo.sendDirect(o.id, lines: _adjusted),
                     t.restockRouted,
                   );
-                final depot = await _pickDepot(context, o.regionId);
+                final depot = await _pickDepot(context, o);
                 if (depot == null) return;
                 await _act(
                   () => repo.assign(o.id, depotId: depot.id, lines: _adjusted),
@@ -703,28 +705,17 @@ class _RestockDetailScreenState extends ConsumerState<RestockDetailScreen> {
         );
       }
       if (o.status == RestockStatus.received) {
+        // The receiver sent the paper; the admin enters what arrived (from what was sent, or what
+        // an older app counted at the store) and approves: the stock goes into the store.
         w
           ..add(
             AsyncButton(
               label: t.approveAsCounted,
               icon: LucideIcons.check,
-              onPressed: () => _act(
-                () => repo.approve(o.id),
-                t.restockApproved,
-                leave: true,
-              ),
-            ),
-          )
-          ..add(gap)
-          ..add(
-            AsyncButton(
-              label: t.amendAndApprove,
-              icon: LucideIcons.pencil,
-              style: AsyncButtonStyle.outlined,
               onPressed: () async {
                 final lines = await amendQuantities(
                   context,
-                  title: t.amendAndApprove,
+                  title: t.approveAsCounted,
                   hint: t.amendReceiptHint,
                   items: [
                     for (final l in o.lines.where((l) => (l.shipped ?? 0) > 0))
@@ -732,11 +723,10 @@ class _RestockDetailScreenState extends ConsumerState<RestockDetailScreen> {
                         productId: l.productId,
                         name: l.name,
                         family: l.family,
-                        quantity: l.received ?? 0,
-                        hint: t.shippedReceived(
-                          l.shipped ?? 0,
-                          l.received ?? 0,
-                        ),
+                        quantity: l.received ?? l.shipped ?? 0,
+                        hint: l.received == null
+                            ? t.sentQuantity(l.shipped ?? 0)
+                            : t.shippedReceived(l.shipped ?? 0, l.received!),
                       ),
                   ],
                 );
@@ -811,7 +801,7 @@ class _RestockDetailScreenState extends ConsumerState<RestockDetailScreen> {
     final canReceive =
         o.status == RestockStatus.shipped &&
         (isReceiver ||
-            me.role == Role.responsable ||
+            (me.role == Role.responsable && o.regionId == me.region?.id) ||
             (me.role == Role.admin && o.toDepot));
     if (canReceive) {
       w
@@ -831,7 +821,7 @@ class _RestockDetailScreenState extends ConsumerState<RestockDetailScreen> {
         ..add(gap);
     }
 
-    if (me.role == Role.responsable && o.canChooseReceiver(me.role)) {
+    if (o.canChooseReceiver(me)) {
       w
         ..add(
           AsyncButton(
@@ -895,23 +885,40 @@ class _RestockDetailScreenState extends ConsumerState<RestockDetailScreen> {
     return w;
   }
 
-  /// Any active grossiste can supply the order, in its region or another; the order's own region comes first.
-  Future<Depot?> _pickDepot(BuildContext context, String? regionId) async {
-    final depots =
-        (await ref.read(networkRepositoryProvider).depots())
-            .where((d) => d.active)
-            .toList()
-          ..sort((a, b) {
-            final byRegion = (a.regionId == regionId ? 0 : 1).compareTo(
-              b.regionId == regionId ? 0 : 1,
-            );
-            return byRegion != 0 ? byRegion : a.name.compareTo(b.name);
-          });
+  /// Any active grossiste can supply the order, in its region or another. Each one shows what it
+  /// holds of the order's products (with the quantities as adjusted), so the admin picks one that
+  /// has them: those holding everything first, then the order's own region.
+  Future<SupplierOption?> _pickDepot(
+    BuildContext context,
+    RestockOrder order,
+  ) async {
+    final suppliers = await ref
+        .read(restockRepositoryProvider)
+        .suppliers(order.id);
+    final wanted = {
+      for (final l
+          in _adjusted ??
+              [
+                for (final l in order.lines)
+                  {'productId': l.productId, 'quantity': l.requested},
+              ])
+        l['productId']! as String: l['quantity']! as int,
+    };
+    final names = {for (final l in order.lines) l.productId: l.name};
+    suppliers.sort((a, b) {
+      final byMissing = a.missing(wanted).compareTo(b.missing(wanted));
+      if (byMissing != 0) return byMissing;
+      final byRegion = (a.regionId == order.regionId ? 0 : 1).compareTo(
+        b.regionId == order.regionId ? 0 : 1,
+      );
+      return byRegion != 0 ? byRegion : a.name.compareTo(b.name);
+    });
     if (!context.mounted) return null;
-    return showModalBottomSheet<Depot>(
+    return showModalBottomSheet<SupplierOption>(
       context: context,
       isScrollControlled: true,
-      builder: (context) => _DepotSheet(depots: depots, regionId: regionId),
+      builder: (context) =>
+          _DepotSheet(suppliers: suppliers, wanted: wanted, names: names),
     );
   }
 }
@@ -980,49 +987,94 @@ class _Lines extends StatelessWidget {
 }
 
 class _DepotSheet extends StatelessWidget {
-  const _DepotSheet({required this.depots, required this.regionId});
+  const _DepotSheet({
+    required this.suppliers,
+    required this.wanted,
+    required this.names,
+  });
 
-  final List<Depot> depots;
+  final List<SupplierOption> suppliers;
 
-  /// The order's region: its grossistes are listed first.
-  final String? regionId;
+  /// The quantities the order asks for, by product.
+  final Map<String, int> wanted;
+
+  /// Product names, by id.
+  final Map<String, String> names;
 
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
     return SafeArea(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
-            child: Text(t.chooseGrossiste, style: context.text.titleLarge),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
-            child: Text(
-              t.chooseGrossisteOtherRegions,
-              style: context.text.bodyMedium?.copyWith(
-                color: context.status.muted,
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.sizeOf(context).height * 0.85,
+        ),
+        child: ListView(
+          shrinkWrap: true,
+          padding: const EdgeInsets.only(bottom: 8),
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+              child: Text(t.chooseGrossiste, style: context.text.titleLarge),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+              child: Text(
+                t.chooseGrossisteOtherRegions,
+                style: context.text.bodyMedium?.copyWith(
+                  color: context.status.muted,
+                ),
               ),
             ),
+            if (suppliers.isEmpty)
+              Padding(
+                padding: const EdgeInsets.all(20),
+                child: Text(t.noGrossisteYet),
+              ),
+            for (final d in suppliers) _supplier(context, t, d),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _supplier(BuildContext context, AppLocalizations t, SupplierOption d) {
+    final missing = d.missing(wanted);
+    // What it is short of: "Serum C 2/6", so the admin sees how far it is.
+    final short = [
+      for (final e in wanted.entries)
+        if ((d.held[e.key] ?? 0) < e.value)
+          '${names[e.key] ?? ''} ${d.held[e.key] ?? 0}/${e.value}',
+    ].join(' · ');
+    return ListTile(
+      leading: const Icon(LucideIcons.warehouse),
+      title: Text(d.name),
+      subtitle: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('${d.city} · ${d.regionName}'),
+          const Gap(6),
+          StatusChip(
+            missing == 0 ? t.supplierHasAll : t.supplierMissing(missing),
+            tone: missing == 0 ? Tone.success : Tone.warning,
           ),
-          if (depots.isEmpty)
-            Padding(
-              padding: const EdgeInsets.all(20),
-              child: Text(t.noGrossisteYet),
+          if (missing > 0) ...[
+            const Gap(4),
+            Text(
+              short,
+              style: context.text.bodySmall?.copyWith(
+                color: context.status.warning,
+              ),
             ),
-          for (final d in depots)
-            ListTile(
-              leading: const Icon(LucideIcons.warehouse),
-              title: Text(d.name),
-              subtitle: Text('${d.city} · ${d.regionName}'),
-              onTap: () => Navigator.pop(context, d),
-            ),
-          const Gap(8),
+          ],
         ],
       ),
+      trailing: Icon(
+        LucideIcons.chevronRight,
+        size: 18,
+        color: context.status.muted,
+      ),
+      onTap: () => Navigator.pop(context, d),
     );
   }
 }
@@ -1163,7 +1215,9 @@ class _ShipScreenState extends ConsumerState<ShipScreen> {
   }
 }
 
-/// Photograph the signed paper and count what arrived.
+/// Confirm a delivery with its signed paper (photos or a PDF) and a note. The admin enters the
+/// quantities when approving; an admin receiving goods at a grossiste enters them here and the
+/// stock is updated at once.
 class ReceiveScreen extends ConsumerStatefulWidget {
   const ReceiveScreen({required this.order, super.key});
 
@@ -1203,7 +1257,7 @@ class _ReceiveScreenState extends ConsumerState<ReceiveScreen> {
           .receive(
             widget.order.id,
             photoIds: _photoIds,
-            lines: _quantities.lines(),
+            lines: _admin ? _quantities.lines() : null,
             note: _note.text.trim(),
           ),
       success: t.deliverySent,
@@ -1211,16 +1265,19 @@ class _ReceiveScreenState extends ConsumerState<ReceiveScreen> {
     if (ok && mounted) context.pop(true);
   }
 
+  bool get _admin => ref.read(meProvider).role == Role.admin;
+
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
+    final admin = ref.watch(meProvider).role == Role.admin;
     return Scaffold(
       appBar: AppBar(title: Text(t.confirmDelivery)),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
           Text(
-            t.receiveHint,
+            admin ? t.receiveHintAdmin : t.receiveHint,
             style: context.text.bodyMedium?.copyWith(
               color: context.status.muted,
             ),
@@ -1233,12 +1290,36 @@ class _ReceiveScreenState extends ConsumerState<ReceiveScreen> {
               _photosBusy = busy;
             }),
           ),
-          SectionHeader(t.quantitiesReceived),
-          QuantityEditor(
-            controller: _quantities,
-            allowAdd: false,
-            allowRemove: false,
-          ),
+          if (admin) ...[
+            SectionHeader(t.quantitiesReceived),
+            QuantityEditor(
+              controller: _quantities,
+              allowAdd: false,
+              allowRemove: false,
+            ),
+          ] else ...[
+            // What should be on the paper, to compare with it.
+            SectionHeader(t.whatWasSent),
+            AppCard(
+              child: Column(
+                children: [
+                  for (final l in widget.order.lines.where(
+                    (l) => (l.shipped ?? 0) > 0,
+                  ))
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 4),
+                      child: Row(
+                        spacing: 12,
+                        children: [
+                          Expanded(child: Text(l.name)),
+                          Text('${l.shipped}', style: context.text.titleSmall),
+                        ],
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ],
           const Gap(16),
           TextField(
             controller: _note,
@@ -1249,12 +1330,8 @@ class _ReceiveScreenState extends ConsumerState<ReceiveScreen> {
           ),
           const Gap(8),
           AsyncButton(
-            label: ref.watch(meProvider).role == Role.admin
-                ? t.recordDeliverySave
-                : t.sendToAdmin,
-            icon: ref.watch(meProvider).role == Role.admin
-                ? LucideIcons.check
-                : LucideIcons.send,
+            label: admin ? t.recordDeliverySave : t.sendToAdmin,
+            icon: admin ? LucideIcons.check : LucideIcons.send,
             onPressed: _photoIds.isEmpty || _photosBusy ? null : _send,
           ),
           if (_photoIds.isEmpty)

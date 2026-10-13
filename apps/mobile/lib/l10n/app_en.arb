@@ -46,7 +46,7 @@
   "allCaughtUp": "Everything is up to date.",
   "allRegions": "All regions",
   "amendAndApprove": "Correct and approve",
-  "amendReceiptHint": "Compare with the photo of the paper and correct a quantity if needed.",
+  "amendReceiptHint": "Check the paper and enter what really arrived. Each quantity starts at what was sent.",
   "amendStockHint": "Change a quantity if the photo shows something different.",
   "amountPerUnit": "Amount per unit sold",
   "amountPerUnitHint": "Example: 0.500",
@@ -116,7 +116,7 @@
   "approvalsTitle": "Approvals",
   "approve": "Approve",
   "approveAndInvite": "Approve and send invitation",
-  "approveAsCounted": "Approve as counted",
+  "approveAsCounted": "Approve the delivery",
   "approveGroupTitle": "Approve the group “{name}”?",
   "@approveGroupTitle": {
     "placeholders": {
@@ -126,7 +126,7 @@
     }
   },
   "approved": "Approved",
-  "askRecount": "Ask to count again",
+  "askRecount": "Ask for the paper again",
   "assignToGrossiste": "Assign to a grossiste",
   "authenticatorCode": "Authenticator code",
   "authenticatorCodeHelp": "The 6 digits from your authenticator app.",
@@ -178,12 +178,12 @@
   "celebrateTitle": "Great sale!",
   "celebrateToday": "Today so far",
   "changePassword": "Change password",
-  "changeReceiver": "Change who counts the goods",
+  "changeReceiver": "Change who receives the goods",
   "chooseAudience": "Choose who receives it",
   "chooseGrossiste": "Choose a grossiste",
   "choosePdvs": "Choose points of sale",
   "chooseProduct": "Choose a product",
-  "chooseReceiver": "Choose who counts the goods",
+  "chooseReceiver": "Choose who receives the goods",
   "city": "City",
   "codeInvalid": "Enter a valid code.",
   "colApproved": "Final",
@@ -268,7 +268,7 @@
       }
     }
   },
-  "deliveriesToConfirmHint": "Photograph the paper and count the goods.",
+  "deliveriesToConfirmHint": "Photograph the delivery paper and send it.",
   "deliveryPaper": "Delivery paper",
   "deliverySent": "Sent to BioBalance for approval",
   "depotName": "Depot name",
@@ -601,16 +601,16 @@
     }
   },
   "reasonRequired": "Reason (required)",
-  "receiveHint": "Photograph the signed delivery paper and enter what you really received for each product.",
-  "receivedBy": "Counted by",
+  "receiveHint": "Photograph the signed delivery paper, or add it as a PDF. BioBalance checks it and enters the quantities received.",
+  "receivedBy": "Received by",
   "receiverSaved": "Saved",
   "recent": "Recent",
   "recipients": "Recipients",
   "recordSale": "Record the sale",
   "recount": "Recount",
-  "recountAsked": "Sent back for a new count",
+  "recountAsked": "Sent back to the receiver",
   "recountHint": "The quantities below are what the system holds. Correct them to what you count, add a photo, and send.",
-  "recountReasonHint": "What does not match the paper?",
+  "recountReasonHint": "What is wrong with the paper?",
   "recountStock": "Recount the stock",
   "recoveryCode": "Recovery code",
   "reference": "Reference",
@@ -915,8 +915,8 @@
   },
   "walletTitle": "Wallet",
   "wallets": "Wallets",
-  "whoCountsHint": "They will photograph the paper and enter the quantities.",
-  "whoCountsTheGoods": "Who counts the goods?",
+  "whoCountsHint": "They will confirm the delivery with the paper.",
+  "whoCountsTheGoods": "Who receives the goods?",
   "whoIsItFor": "Who is it for?",
   "wholeNetwork": "Whole network",
   "willReach": "{count, plural, =0{Nobody would receive it} =1{1 person will receive it} other{{count} people will receive it}}",
@@ -1697,5 +1697,13 @@
         "type": "String"
       }
     }
-  }
+  },
+  "receiveHintAdmin": "Add the delivery paper and enter what really arrived: the stock is updated at once.",
+  "sentQuantity": "Sent: {count}",
+  "receiverNote": "Receiver’s note",
+  "whatWasSent": "What was sent",
+  "supplierHasAll": "Has everything",
+  "supplierMissing": "{count, plural, =1{Short of {count} product} other{Short of {count} products}}",
+  "@sentQuantity": {"placeholders": {"count": {"type": "int"}}},
+  "@supplierMissing": {"placeholders": {"count": {"type": "int"}}}
 }

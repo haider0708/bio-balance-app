@@ -78,6 +78,7 @@ class RestockOrder {
     this.note,
     this.receiptPhotoId,
     this.receiptPhotoIds = const [],
+    this.receiptNote,
     this.decisionNote,
     this.cancelReason,
     this.shippedAt,
@@ -107,6 +108,7 @@ class RestockOrder {
     receiptPhotoId: j.strOrNull('receiptPhotoId'),
     receiptPhotoIds: ((j['receiptPhotoIds'] as List<dynamic>?) ?? const [])
         .cast<String>(),
+    receiptNote: j.strOrNull('receiptNote'),
     decisionNote: j.strOrNull('decisionNote'),
     cancelReason: j.strOrNull('cancelReason'),
     lines: j.list('lines').map(RestockLine.fromJson).toList(),
@@ -136,6 +138,9 @@ class RestockOrder {
   final DateTime? decidedAt;
   final String? receiptPhotoId;
   final List<String> receiptPhotoIds;
+
+  /// What the receiver wrote when confirming the delivery.
+  final String? receiptNote;
   final String? decisionNote;
   final String? cancelReason;
   final List<RestockLine> lines;
@@ -145,11 +150,48 @@ class RestockOrder {
 
   bool get toDepot => destinationKind == 'DEPOT';
 
-  /// Can this person still choose who counts the delivery?
-  bool canChooseReceiver(Role role) =>
-      role == Role.responsable &&
+  /// Can this person still choose who confirms the delivery? The store's own responsable only.
+  bool canChooseReceiver(Me me) =>
+      me.role == Role.responsable &&
+      regionId == me.region?.id &&
       !toDepot &&
       (status == RestockStatus.assigned ||
           status == RestockStatus.shipped ||
           status == RestockStatus.requested);
+}
+
+/// A grossiste the admin can send an order from, with what it holds of the order's products.
+class SupplierOption {
+  const SupplierOption({
+    required this.id,
+    required this.name,
+    required this.city,
+    required this.regionId,
+    required this.regionName,
+    required this.held,
+  });
+
+  factory SupplierOption.fromJson(Json j) => SupplierOption(
+    id: j.str('id'),
+    name: j.str('name'),
+    city: j.str('city'),
+    regionId: j.str('regionId'),
+    regionName: j.str('regionName'),
+    held: {
+      for (final l in j.list('lines')) l.str('productId'): l.integer('held'),
+    },
+  );
+
+  final String id;
+  final String name;
+  final String city;
+  final String regionId;
+  final String regionName;
+
+  /// Units it holds, by product.
+  final Map<String, int> held;
+
+  /// The products it holds fewer of than `wanted` asks for.
+  int missing(Map<String, int> wanted) =>
+      wanted.entries.where((e) => (held[e.key] ?? 0) < e.value).length;
 }

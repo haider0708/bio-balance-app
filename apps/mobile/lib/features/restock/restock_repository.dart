@@ -69,16 +69,26 @@ class RestockRepository {
       .read(apiClientProvider)
       .put('/v1/restocks/$id/receiver', {'userId': userId});
 
+  /// The delivery paper (photos or documents) and a note. Quantities only when the admin receives
+  /// (they approve at once); anyone else leaves them to the admin's approval.
   Future<void> receive(
     String id, {
     required List<String> photoIds,
-    required List<Map<String, Object>> lines,
+    List<Map<String, Object>>? lines,
     String? note,
   }) => _ref.read(apiClientProvider).post('/v1/restocks/$id/receipt', {
     'photoIds': photoIds,
-    'lines': lines,
+    'lines': ?lines,
     if (note != null && note.isNotEmpty) 'note': note,
   });
+
+  /// Every active grossiste with what it holds of this order's products.
+  Future<List<SupplierOption>> suppliers(String id) async => [
+    for (final j in jsonList(
+      await _ref.read(apiClientProvider).get('/v1/restocks/$id/suppliers'),
+    ))
+      SupplierOption.fromJson(j),
+  ];
 
   Future<void> approve(
     String id, {

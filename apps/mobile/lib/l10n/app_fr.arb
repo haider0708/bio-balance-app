@@ -46,7 +46,7 @@
   "allCaughtUp": "Tout est à jour.",
   "allRegions": "Toutes les régions",
   "amendAndApprove": "Corriger et approuver",
-  "amendReceiptHint": "Comparez avec la photo du bon et corrigez une quantité si besoin.",
+  "amendReceiptHint": "Vérifiez le bon et saisissez ce qui est réellement arrivé. Chaque quantité part de ce qui a été envoyé.",
   "amendStockHint": "Modifiez une quantité si la photo montre autre chose.",
   "amountPerUnit": "Montant par unité vendue",
   "amountPerUnitHint": "Exemple : 0,500",
@@ -116,7 +116,7 @@
   "approvalsTitle": "Validations",
   "approve": "Approuver",
   "approveAndInvite": "Approuver et envoyer l’invitation",
-  "approveAsCounted": "Approuver comme compté",
+  "approveAsCounted": "Approuver la livraison",
   "approveGroupTitle": "Approuver le groupe « {name} » ?",
   "@approveGroupTitle": {
     "placeholders": {
@@ -126,7 +126,7 @@
     }
   },
   "approved": "Approuvé",
-  "askRecount": "Demander un nouveau comptage",
+  "askRecount": "Redemander le bon",
   "assignToGrossiste": "Confier à un grossiste",
   "authenticatorCode": "Code d’authentification",
   "authenticatorCodeHelp": "Les 6 chiffres de votre application d’authentification.",
@@ -178,12 +178,12 @@
   "celebrateTitle": "Belle vente !",
   "celebrateToday": "Aujourd’hui jusqu’ici",
   "changePassword": "Changer le mot de passe",
-  "changeReceiver": "Changer qui compte la marchandise",
+  "changeReceiver": "Changer qui reçoit la marchandise",
   "chooseAudience": "Choisissez qui la reçoit",
   "chooseGrossiste": "Choisir un grossiste",
   "choosePdvs": "Choisir des points de vente",
   "chooseProduct": "Choisir un produit",
-  "chooseReceiver": "Choisir qui compte la marchandise",
+  "chooseReceiver": "Choisir qui reçoit la marchandise",
   "city": "Ville",
   "codeInvalid": "Saisissez un code valide.",
   "colApproved": "Validé",
@@ -268,7 +268,7 @@
       }
     }
   },
-  "deliveriesToConfirmHint": "Photographiez le bon et comptez la marchandise.",
+  "deliveriesToConfirmHint": "Photographiez le bon de livraison et envoyez-le.",
   "deliveryPaper": "Bon de livraison",
   "deliverySent": "Envoyé à BioBalance pour approbation",
   "depotName": "Nom du dépôt",
@@ -601,16 +601,16 @@
     }
   },
   "reasonRequired": "Motif (obligatoire)",
-  "receiveHint": "Photographiez le bon de livraison signé et saisissez ce que vous avez réellement reçu pour chaque produit.",
-  "receivedBy": "Compté par",
+  "receiveHint": "Photographiez le bon de livraison signé, ou ajoutez-le en PDF. BioBalance le vérifie et saisit les quantités reçues.",
+  "receivedBy": "Reçu par",
   "receiverSaved": "Enregistré",
   "recent": "Récentes",
   "recipients": "Destinataires",
   "recordSale": "Enregistrer la vente",
   "recount": "Recomptage",
-  "recountAsked": "Renvoyé pour un nouveau comptage",
+  "recountAsked": "Renvoyé au destinataire",
   "recountHint": "Les quantités ci-dessous sont celles du système. Corrigez-les selon votre comptage, ajoutez une photo et envoyez.",
-  "recountReasonHint": "Qu’est-ce qui ne correspond pas au bon ?",
+  "recountReasonHint": "Qu’est-ce qui ne va pas avec le bon ?",
   "recountStock": "Recompter le stock",
   "recoveryCode": "Code de récupération",
   "reference": "Référence",
@@ -915,8 +915,8 @@
   },
   "walletTitle": "Portefeuille",
   "wallets": "Portefeuilles",
-  "whoCountsHint": "Cette personne photographiera le bon et saisira les quantités.",
-  "whoCountsTheGoods": "Qui compte la marchandise ?",
+  "whoCountsHint": "Cette personne confirmera la livraison avec le bon.",
+  "whoCountsTheGoods": "Qui reçoit la marchandise ?",
   "whoIsItFor": "À qui s’adresse-t-elle ?",
   "wholeNetwork": "Tout le réseau",
   "willReach": "{count, plural, =0{Personne ne la recevrait} =1{1 personne la recevra} other{{count} personnes la recevront}}",
@@ -1696,5 +1696,11 @@
         "type": "String"
       }
     }
-  }
+  },
+  "receiveHintAdmin": "Ajoutez le bon de livraison et saisissez ce qui est réellement arrivé : le stock est mis à jour aussitôt.",
+  "sentQuantity": "Envoyé : {count}",
+  "receiverNote": "Note du destinataire",
+  "whatWasSent": "Ce qui a été envoyé",
+  "supplierHasAll": "A tout en stock",
+  "supplierMissing": "{count, plural, =1{Manque {count} produit} other{Manque {count} produits}}"
 }

@@ -382,11 +382,12 @@ FakeServer server(String role) {
         'supplier': {'id': 'd1', 'name': 'Dépôt Hedi'},
         'requestedBy': {'id': 'x', 'name': 'Nora Ben Salah'},
         'receiver': {'id': 'u1', 'name': 'Amira Gharbi'},
+        'receiptNote': 'Un carton ouvert',
         'createdAt': DateTime.now().toIso8601String(),
         'receiptPhotoId': null,
         'lines': [
-          line('SÉRUM VITAMINE C 30ML', 20, shipped: 20, received: 18),
-          line('SÉRUM NIACINAMIDE', 10, shipped: 10, received: 10),
+          line('SÉRUM VITAMINE C 30ML', 20, shipped: 20),
+          line('SÉRUM NIACINAMIDE', 10, shipped: 10),
         ],
       });
       s.on('GET /v1/analytics/overview', overviewFixture());

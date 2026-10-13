@@ -212,6 +212,7 @@ void main() {
       expect(done.receiver?.name, 'Amira Vendeuse');
       expect(done.receiptPhotoId, isNotNull);
       expect(done.supplier, 'Depot Hedi');
+      expect(done.receiptNote, 'Carton complet');
 
       final dashboard =
           await c.read(apiClientProvider).get('/v1/dashboard') as Json;
@@ -316,6 +317,13 @@ void main() {
       expect(approvals.counts[ApprovalType.stock], 1);
       expect(approvals.counts[ApprovalType.restockRequest], 1);
       expect(approvals.counts[ApprovalType.payout], 1);
+      // Before giving the waiting order to a grossiste, the admin sees what each one holds.
+      final suppliers = await c
+          .read(restockRepositoryProvider)
+          .suppliers(id('requestedRestock'));
+      expect(suppliers.single.name, 'Depot Hedi');
+      expect(suppliers.single.regionName, 'Nord');
+      expect(suppliers.single.held.values.single, greaterThan(0));
       expect(
         approvals.items.firstWhere((i) => i.type == ApprovalType.pdv).by,
         'Nora Nord',

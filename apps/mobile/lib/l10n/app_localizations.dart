@@ -251,7 +251,7 @@ abstract class AppLocalizations {
   /// No description provided for @amendReceiptHint.
   ///
   /// In en, this message translates to:
-  /// **'Compare with the photo of the paper and correct a quantity if needed.'**
+  /// **'Check the paper and enter what really arrived. Each quantity starts at what was sent.'**
   String get amendReceiptHint;
 
   /// No description provided for @amendStockHint.
@@ -377,7 +377,7 @@ abstract class AppLocalizations {
   /// No description provided for @approveAsCounted.
   ///
   /// In en, this message translates to:
-  /// **'Approve as counted'**
+  /// **'Approve the delivery'**
   String get approveAsCounted;
 
   /// No description provided for @approveGroupTitle.
@@ -395,7 +395,7 @@ abstract class AppLocalizations {
   /// No description provided for @askRecount.
   ///
   /// In en, this message translates to:
-  /// **'Ask to count again'**
+  /// **'Ask for the paper again'**
   String get askRecount;
 
   /// No description provided for @assignToGrossiste.
@@ -581,7 +581,7 @@ abstract class AppLocalizations {
   /// No description provided for @changeReceiver.
   ///
   /// In en, this message translates to:
-  /// **'Change who counts the goods'**
+  /// **'Change who receives the goods'**
   String get changeReceiver;
 
   /// No description provided for @chooseAudience.
@@ -611,7 +611,7 @@ abstract class AppLocalizations {
   /// No description provided for @chooseReceiver.
   ///
   /// In en, this message translates to:
-  /// **'Choose who counts the goods'**
+  /// **'Choose who receives the goods'**
   String get chooseReceiver;
 
   /// No description provided for @city.
@@ -935,7 +935,7 @@ abstract class AppLocalizations {
   /// No description provided for @deliveriesToConfirmHint.
   ///
   /// In en, this message translates to:
-  /// **'Photograph the paper and count the goods.'**
+  /// **'Photograph the delivery paper and send it.'**
   String get deliveriesToConfirmHint;
 
   /// No description provided for @deliveryPaper.
@@ -2225,13 +2225,13 @@ abstract class AppLocalizations {
   /// No description provided for @receiveHint.
   ///
   /// In en, this message translates to:
-  /// **'Photograph the signed delivery paper and enter what you really received for each product.'**
+  /// **'Photograph the signed delivery paper, or add it as a PDF. BioBalance checks it and enters the quantities received.'**
   String get receiveHint;
 
   /// No description provided for @receivedBy.
   ///
   /// In en, this message translates to:
-  /// **'Counted by'**
+  /// **'Received by'**
   String get receivedBy;
 
   /// No description provided for @receiverSaved.
@@ -2267,7 +2267,7 @@ abstract class AppLocalizations {
   /// No description provided for @recountAsked.
   ///
   /// In en, this message translates to:
-  /// **'Sent back for a new count'**
+  /// **'Sent back to the receiver'**
   String get recountAsked;
 
   /// No description provided for @recountHint.
@@ -2279,7 +2279,7 @@ abstract class AppLocalizations {
   /// No description provided for @recountReasonHint.
   ///
   /// In en, this message translates to:
-  /// **'What does not match the paper?'**
+  /// **'What is wrong with the paper?'**
   String get recountReasonHint;
 
   /// No description provided for @recountStock.
@@ -3293,13 +3293,13 @@ abstract class AppLocalizations {
   /// No description provided for @whoCountsHint.
   ///
   /// In en, this message translates to:
-  /// **'They will photograph the paper and enter the quantities.'**
+  /// **'They will confirm the delivery with the paper.'**
   String get whoCountsHint;
 
   /// No description provided for @whoCountsTheGoods.
   ///
   /// In en, this message translates to:
-  /// **'Who counts the goods?'**
+  /// **'Who receives the goods?'**
   String get whoCountsTheGoods;
 
   /// No description provided for @whoIsItFor.
@@ -5173,6 +5173,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'before: {value}'**
   String vsPreviousText(String value);
+
+  /// No description provided for @receiveHintAdmin.
+  ///
+  /// In en, this message translates to:
+  /// **'Add the delivery paper and enter what really arrived: the stock is updated at once.'**
+  String get receiveHintAdmin;
+
+  /// No description provided for @sentQuantity.
+  ///
+  /// In en, this message translates to:
+  /// **'Sent: {count}'**
+  String sentQuantity(int count);
+
+  /// No description provided for @receiverNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Receiver’s note'**
+  String get receiverNote;
+
+  /// No description provided for @whatWasSent.
+  ///
+  /// In en, this message translates to:
+  /// **'What was sent'**
+  String get whatWasSent;
+
+  /// No description provided for @supplierHasAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Has everything'**
+  String get supplierHasAll;
+
+  /// No description provided for @supplierMissing.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Short of {count} product} other{Short of {count} products}}'**
+  String supplierMissing(int count);
 }
 
 class _AppLocalizationsDelegate

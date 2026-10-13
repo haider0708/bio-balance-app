@@ -102,7 +102,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get amendReceiptHint =>
-      'Comparez avec la photo du bon et corrigez une quantité si besoin.';
+      'Vérifiez le bon et saisissez ce qui est réellement arrivé. Chaque quantité part de ce qui a été envoyé.';
 
   @override
   String get amendStockHint =>
@@ -222,7 +222,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get approveAndInvite => 'Approuver et envoyer l’invitation';
 
   @override
-  String get approveAsCounted => 'Approuver comme compté';
+  String get approveAsCounted => 'Approuver la livraison';
 
   @override
   String approveGroupTitle(String name) {
@@ -233,7 +233,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get approved => 'Approuvé';
 
   @override
-  String get askRecount => 'Demander un nouveau comptage';
+  String get askRecount => 'Redemander le bon';
 
   @override
   String get assignToGrossiste => 'Confier à un grossiste';
@@ -342,7 +342,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get changePassword => 'Changer le mot de passe';
 
   @override
-  String get changeReceiver => 'Changer qui compte la marchandise';
+  String get changeReceiver => 'Changer qui reçoit la marchandise';
 
   @override
   String get chooseAudience => 'Choisissez qui la reçoit';
@@ -357,7 +357,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get chooseProduct => 'Choisir un produit';
 
   @override
-  String get chooseReceiver => 'Choisir qui compte la marchandise';
+  String get chooseReceiver => 'Choisir qui reçoit la marchandise';
 
   @override
   String get city => 'Ville';
@@ -541,7 +541,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get deliveriesToConfirmHint =>
-      'Photographiez le bon et comptez la marchandise.';
+      'Photographiez le bon de livraison et envoyez-le.';
 
   @override
   String get deliveryPaper => 'Bon de livraison';
@@ -1258,10 +1258,10 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get receiveHint =>
-      'Photographiez le bon de livraison signé et saisissez ce que vous avez réellement reçu pour chaque produit.';
+      'Photographiez le bon de livraison signé, ou ajoutez-le en PDF. BioBalance le vérifie et saisit les quantités reçues.';
 
   @override
-  String get receivedBy => 'Compté par';
+  String get receivedBy => 'Reçu par';
 
   @override
   String get receiverSaved => 'Enregistré';
@@ -1279,14 +1279,14 @@ class AppLocalizationsFr extends AppLocalizations {
   String get recount => 'Recomptage';
 
   @override
-  String get recountAsked => 'Renvoyé pour un nouveau comptage';
+  String get recountAsked => 'Renvoyé au destinataire';
 
   @override
   String get recountHint =>
       'Les quantités ci-dessous sont celles du système. Corrigez-les selon votre comptage, ajoutez une photo et envoyez.';
 
   @override
-  String get recountReasonHint => 'Qu’est-ce qui ne correspond pas au bon ?';
+  String get recountReasonHint => 'Qu’est-ce qui ne va pas avec le bon ?';
 
   @override
   String get recountStock => 'Recompter le stock';
@@ -1894,10 +1894,10 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get whoCountsHint =>
-      'Cette personne photographiera le bon et saisira les quantités.';
+      'Cette personne confirmera la livraison avec le bon.';
 
   @override
-  String get whoCountsTheGoods => 'Qui compte la marchandise ?';
+  String get whoCountsTheGoods => 'Qui reçoit la marchandise ?';
 
   @override
   String get whoIsItFor => 'À qui s’adresse-t-elle ?';
@@ -3052,5 +3052,34 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String vsPreviousText(String value) {
     return 'avant : $value';
+  }
+
+  @override
+  String get receiveHintAdmin =>
+      'Ajoutez le bon de livraison et saisissez ce qui est réellement arrivé : le stock est mis à jour aussitôt.';
+
+  @override
+  String sentQuantity(int count) {
+    return 'Envoyé : $count';
+  }
+
+  @override
+  String get receiverNote => 'Note du destinataire';
+
+  @override
+  String get whatWasSent => 'Ce qui a été envoyé';
+
+  @override
+  String get supplierHasAll => 'A tout en stock';
+
+  @override
+  String supplierMissing(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Manque $count produits',
+      one: 'Manque $count produit',
+    );
+    return '$_temp0';
   }
 }
