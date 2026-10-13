@@ -139,9 +139,9 @@ The store reviewers' accounts live in one region marked as the **test region** (
 What makes it a test region (tested in `test/sandbox.test.ts` and `test/sandbox-life.test.ts`):
 
 - **The admin does not see it**: every row-level policy hides it from the admin (`app_admin_sees`), so no screen, total, report, export, approval or list shows it. The admin can look at it with Settings → *Show the test region* (the app then sends `X-BioBalance-Sandbox: show`; only an admin is listened to).
-- **Nothing done there reaches the real network**: no alert to the admins, no email to its accounts, and the admin's announcements, courses and reward news do not reach it.
+- **Nothing done there reaches the real network**: no alert to any admin (enforced in `notify`: an action by its people or its automation never notifies an admin, even the one who created the account), no email to its accounts, its audit entries are filed under it (so the audit log leaves them out), announcements sent only to it are left out of the admin's list, and the admin's announcements, courses and reward news do not reach it.
 - Its accounts cannot change their password or get a reset code (`DEMO_ACCOUNT`), so one reviewer never locks out the next. If a reviewer deletes one, it is deleted like any account and **comes back three minutes later**, history intact (a `demo-restore` job).
-- **It looks after itself** (the worker): what it submits (stores, members, stock counts, recounts, restocks, payouts) is approved a minute later; its shop keeps selling through the day (a fixed plan per hour, stock topped up, nothing pushed).
+- **It looks after itself** (the worker): what it submits (stores, members, stock counts, recounts, restocks, payouts) is approved a minute later, and a demo account a reviewer deactivated (as the responsable) is active again a minute later; its shop keeps selling through the day (a fixed plan per hour, stock topped up, nothing pushed).
 
 Rebuild everything for the real start (take a dump first; it keeps the admins, the catalogue and the reward rates, empties everything else, and builds the test region again with the review accounts' **current** passwords; the worker leaves the region alone while it is built):
 
