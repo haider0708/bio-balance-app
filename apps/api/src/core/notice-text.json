@@ -156,8 +156,8 @@
     "fr": "Le réassort {number} est terminé et le stock est mis à jour."
   },
   "restock.receipt_rejected": {
-    "en": "The receipt of restock {number} must be redone.",
-    "fr": "La réception du réassort {number} est à refaire."
+    "en": "Send the delivery paper of restock {number} again.",
+    "fr": "Renvoyez le bon de livraison du réassort {number}."
   },
   "restock.cancelled": {
     "en": "Restock {number} was cancelled.",

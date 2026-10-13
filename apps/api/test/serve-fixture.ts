@@ -170,9 +170,10 @@ export async function serveFixture(out: string) {
   await a.post(`/v1/restocks/${done.id}/assign`, { depotId });
   await n.post(`/v1/restocks/${done.id}/ship`, { lines: lines([5, 5]) });
   await n.put(`/v1/restocks/${done.id}/receiver`, { userId: memberAccount.id });
+  // The chosen team member sends the paper only; the admin enters what arrived.
   await vendeur.post(`/v1/restocks/${done.id}/receipt`, {
     photoId: await photo(memberAccount.token),
-    lines: lines([5, 4]),
+    note: "Carton complet",
   });
   await a.post(`/v1/restocks/${done.id}/approve`, { lines: lines([5, 5]) });
   const requested = (

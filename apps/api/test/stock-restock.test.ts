@@ -327,6 +327,63 @@ describe("restock through a grossiste", () => {
     ).toBe(409);
   });
 
+  it("the receiver confirms with the paper only; the admin enters what arrived and approves", async () => {
+    const pdv = await approvedPdv(w);
+    await stockPlace(w, w.depotId, w.nord, [50, 2, 30]);
+    const [p1, p2] = w.products;
+    const order = (
+      await w.n.post("/v1/restocks", {
+        destId: pdv.id,
+        lines: [
+          { productId: p1!.id, quantity: 10 },
+          { productId: p2!.id, quantity: 6 },
+        ],
+      })
+    ).body;
+    // The admin sees what each grossiste holds of the order before choosing.
+    const suppliers = (await w.a.get(`/v1/restocks/${order.id}/suppliers`))
+      .body as any[];
+    const ours = suppliers.find((d) => d.id === w.depotId);
+    expect(ours).toMatchObject({ missing: 1 });
+    expect(ours.lines).toEqual([
+      expect.objectContaining({ productId: p1!.id, held: 50, requested: 10 }),
+      expect.objectContaining({ productId: p2!.id, held: 2, requested: 6 }),
+    ]);
+    expect((await w.n.get(`/v1/restocks/${order.id}/suppliers`)).status).toBe(
+      403,
+    );
+
+    await w.a.post(`/v1/restocks/${order.id}/assign`, { depotId: w.depotId });
+    await w.n.post(`/v1/restocks/${order.id}/ship`, {
+      lines: [
+        { productId: p1!.id, quantity: 10 },
+        { productId: p2!.id, quantity: 2 },
+      ],
+    });
+    // A paper and a note; no counting.
+    const received = await w.n.post(`/v1/restocks/${order.id}/receipt`, {
+      photoIds: [await photo(w, w.nord)],
+      note: "One box was opened",
+    });
+    expect(received.body).toMatchObject({
+      status: "RECEIVED",
+      receiptNote: "One box was opened",
+    });
+    expect(received.body.lines.map((l: any) => l.received)).toEqual([
+      null,
+      null,
+    ]);
+    // The admin enters what arrived (one serum short); what is not entered is what was sent.
+    const done = await w.a.post(`/v1/restocks/${order.id}/approve`, {
+      lines: [{ productId: p1!.id, quantity: 9 }],
+    });
+    expect(done.body.status).toBe("COMPLETED");
+    expect(await levels(w, pdv.id)).toMatchObject({
+      "Serum Vitamin C": 9,
+      "Serum Niacinamide": 2,
+    });
+  });
+
   it("refuses to ship what the depot does not hold", async () => {
     const pdv = await approvedPdv(w);
     await stockPlace(w, w.depotId, w.nord, [3, 0, 0]);

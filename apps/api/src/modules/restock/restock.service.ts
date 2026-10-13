@@ -150,6 +150,68 @@ export class RestockService {
 
   // ───────────────────────── Admin routes the order ─────────────────────────
 
+  /**
+   * Every active grossiste, of any region, with what it holds of the order's products: the admin
+   * sees who can send it before choosing. Those holding everything come first, then the order's
+   * own region.
+   */
+  suppliers(actor: Actor, id: string) {
+    requireRule(
+      actor.role === "ADMIN",
+      "FORBIDDEN",
+      "Only the admin chooses the grossiste.",
+      403,
+    );
+    return this.db.run(actor, async (tx) => {
+      const order = await tx.restockOrder.findUnique({
+        where: { id },
+        include: { lines: true },
+      });
+      if (!order) throw notFound("Restock");
+      const [depots, regions] = await Promise.all([
+        tx.depot.findMany({ where: { status: "ACTIVE" } }),
+        tx.region.findMany({ select: { id: true, name: true } }),
+      ]);
+      const stock = await tx.stock.findMany({
+        where: {
+          locationId: { in: depots.map((d) => d.id) },
+          productId: { in: order.lines.map((l) => l.productId) },
+        },
+        select: { locationId: true, productId: true, quantity: true },
+      });
+      const held = new Map(
+        stock.map((s) => [`${s.locationId}:${s.productId}`, s.quantity]),
+      );
+      const regionName = new Map(regions.map((r) => [r.id, r.name]));
+      return depots
+        .filter((d) => d.id !== order.destId)
+        .map((d) => {
+          const lines = order.lines.map((l) => ({
+            productId: l.productId,
+            requested: l.requested,
+            held: Math.max(0, held.get(`${d.id}:${l.productId}`) ?? 0),
+          }));
+          return {
+            id: d.id,
+            name: d.name,
+            city: d.city,
+            regionId: d.regionId,
+            regionName: regionName.get(d.regionId) ?? "",
+            /** Products of the order it holds fewer of than requested. */
+            missing: lines.filter((l) => l.held < l.requested).length,
+            lines,
+          };
+        })
+        .sort(
+          (a, b) =>
+            a.missing - b.missing ||
+            Number(b.regionId === order.regionId) -
+              Number(a.regionId === order.regionId) ||
+            a.name.localeCompare(b.name),
+        );
+    });
+  }
+
   /** The admin picks the grossiste the goods leave from, in any region. The admin may adjust the quantities first. */
   assign(
     actor: Actor,
@@ -420,14 +482,17 @@ export class RestockService {
     });
   }
 
-  /** Photo of the signed paper and the quantities actually counted. */
+  /**
+   * The receiver confirms the delivery with its paper (photos or documents). The admin then
+   * enters the quantities received and approves. An admin receiving goods settles at once.
+   */
   receive(
     actor: Actor,
     id: string,
     input: {
       photoId?: string;
       photoIds?: string[];
-      lines: QtyLine[];
+      lines?: QtyLine[];
       note?: string;
     },
   ) {
@@ -451,34 +516,37 @@ export class RestockService {
         "Add a photo of the delivery paper.",
         { regionId: order.regionId },
       );
-      const counted = new Map(
-        input.lines.map((l) => [l.productId, l.quantity]),
-      );
-      requireRule(
-        counted.size === input.lines.length,
-        "DUPLICATE_PRODUCT",
-        "A product appears twice.",
-      );
-      for (const l of input.lines)
-        requireRule(
-          order.lines.some(
-            (x) => x.productId === l.productId && (x.shipped ?? 0) > 0,
-          ),
-          "PRODUCT_NOT_FOUND",
-          "That product was not shipped.",
-          422,
+      // Quantities counted at the store, from apps that still send them: the admin starts from them.
+      if (input.lines) {
+        const counted = new Map(
+          input.lines.map((l) => [l.productId, l.quantity]),
         );
-      for (const line of order.lines.filter((x) => (x.shipped ?? 0) > 0))
         requireRule(
-          counted.has(line.productId),
-          "LINE_MISSING",
-          "Enter the quantity received for every product.",
+          counted.size === input.lines.length,
+          "DUPLICATE_PRODUCT",
+          "A product appears twice.",
         );
-      for (const line of order.lines)
-        await tx.restockLine.update({
-          where: { id: line.id },
-          data: { received: counted.get(line.productId) ?? 0 },
-        });
+        for (const l of input.lines)
+          requireRule(
+            order.lines.some(
+              (x) => x.productId === l.productId && (x.shipped ?? 0) > 0,
+            ),
+            "PRODUCT_NOT_FOUND",
+            "That product was not shipped.",
+            422,
+          );
+        for (const line of order.lines.filter((x) => (x.shipped ?? 0) > 0))
+          requireRule(
+            counted.has(line.productId),
+            "LINE_MISSING",
+            "Enter the quantity received for every product.",
+          );
+        for (const line of order.lines)
+          await tx.restockLine.update({
+            where: { id: line.id },
+            data: { received: counted.get(line.productId) ?? 0 },
+          });
+      }
       const updated = await tx.restockOrder.update({
         where: { id },
         data: {
@@ -486,6 +554,7 @@ export class RestockService {
           receiptPhotoId: photoIds[0],
           receiptPhotoIds: photoIds,
           receivedAt: new Date(),
+          receiptNote: input.note?.trim() || null,
           decisionNote: null,
           ...(isReceiver ? {} : { receiverId: actor.id }),
         },
@@ -551,8 +620,10 @@ export class RestockService {
     const dest = await findLocation(tx, order.destId);
     let amended = 0;
     for (const line of order.lines) {
-      const approved = overrides.get(line.productId) ?? line.received ?? 0;
-      if (approved !== (line.received ?? 0)) amended++;
+      // What the admin entered, else what the store counted (older apps), else what was sent.
+      const expected = line.received ?? line.shipped ?? 0;
+      const approved = overrides.get(line.productId) ?? expected;
+      if (approved !== expected) amended++;
       await tx.restockLine.update({
         where: { id: line.id },
         data: { approved },
@@ -915,6 +986,7 @@ export class RestockService {
         : o.receiptPhotoId
           ? [o.receiptPhotoId]
           : [],
+      receiptNote: o.receiptNote,
       decisionNote: o.decisionNote,
       cancelReason: o.cancelReason,
       lines: o.lines

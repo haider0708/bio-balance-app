@@ -352,13 +352,15 @@ model RestockOrder {
   updatedAt        DateTime      @updatedAt
   assignedAt       DateTime?
   shippedAt        DateTime?
-  /// The responsable, or the team member chosen by them, who counts the goods.
+  /// The responsable, or the team member chosen by them, who confirms the delivery with its paper.
   receiverId       String?       @db.Uuid
   receiptPhotoId   String?       @db.Uuid
   receiptPhotoIds  String[]      @default([]) @db.Uuid
   receivedAt       DateTime?
   decidedById      String?       @db.Uuid
   decidedAt        DateTime?
+  /// What the receiver wrote when confirming the delivery.
+  receiptNote      String?
   decisionNote     String?
   cancelReason     String?
   lines            RestockLine[]

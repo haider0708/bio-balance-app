@@ -534,8 +534,8 @@ class ServerText {
       'Le réassort {number} est terminé et le stock est mis à jour.',
     ),
     'restock.receipt_rejected': (
-      'The receipt of restock {number} must be redone.',
-      'La réception du réassort {number} est à refaire.',
+      'Send the delivery paper of restock {number} again.',
+      'Renvoyez le bon de livraison du réassort {number}.',
     ),
     'restock.cancelled': (
       'Restock {number} was cancelled.',

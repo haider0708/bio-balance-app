@@ -32,11 +32,13 @@ const Assign = z.object({ depotId: id, lines: Lines(positive).optional() });
 const Direct = z.object({ lines: Lines(positive).optional() });
 const Ship = z.object({ lines: Lines(qty) });
 const Receiver = z.object({ userId: id.nullable() });
+// The receiver confirms the delivery with its paper; the admin enters the quantities when approving.
+// Quantities are still taken from apps that send them (older versions counted at the store).
 const Receive = z.object({
   photoId: id.optional(),
   photoIds: z.array(id).max(5).optional(),
   note: Note.optional(),
-  lines: Lines(qty),
+  lines: Lines(qty).optional(),
 });
 const Approve = z.object({
   lines: Lines(qty).optional(),
@@ -79,6 +81,12 @@ export class RestockController {
   @Get(":id")
   get(@Req() r: AuthRequest, @Param("id") i: string) {
     return this.restocks.get(r.actor, parse(id, i));
+  }
+  /** Every active grossiste with what it holds of this order's products, to choose who sends it. */
+  @Roles("ADMIN")
+  @Get(":id/suppliers")
+  suppliers(@Req() r: AuthRequest, @Param("id") i: string) {
+    return this.restocks.suppliers(r.actor, parse(id, i));
   }
   @Roles("ADMIN")
   @Post(":id/assign")
