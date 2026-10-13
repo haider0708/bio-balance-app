@@ -74,4 +74,6 @@ guard_done
 
 echo "== Tidying: this image and the previous one (for a rollback), the last ten pre-deploy dumps"
 ssh "$host" "docker images --format '{{.Repository}}:{{.Tag}}' biobalance-api | grep -vx -e 'biobalance-api:$sha' -e '$previous' | xargs -r docker rmi >/dev/null 2>&1 || true"
+# The build stage stays behind as an unnamed image (about 850 MB): only BioBalance's carry this label.
+ssh "$host" "docker image prune -f --filter label=org.biobalance.stage=build >/dev/null 2>&1 || true"
 ssh "$host" "sudo sh -c 'ls -1t /srv/biobalance-backups/pre-deploy/*.dump 2>/dev/null | tail -n +11 | xargs -r rm -f'"

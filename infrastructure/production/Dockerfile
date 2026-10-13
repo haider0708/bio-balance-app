@@ -1,4 +1,6 @@
 FROM node:24.21.0-bookworm-slim AS build
+# Marks the build stage the server keeps after each deploy, so the deploy can remove it (and only it).
+LABEL org.biobalance.stage="build"
 WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends openssl ca-certificates && rm -rf /var/lib/apt/lists/*
 COPY package.json package-lock.json .npmrc ./
