@@ -21,6 +21,9 @@ x-app: &app
   image: ${API_IMAGE:?Set an immutable API image tag or digest}
   restart: unless-stopped
   networks: [private]
+  # Public resolvers, not the hosting provider's: its cache kept answering a domain's parked address for
+  # days after the domain was fixed (2026-10-15), and the worker could not reach the mail server.
+  dns: [1.1.1.1, 8.8.8.8]
   read_only: true
   security_opt: [no-new-privileges:true]
   cap_drop: [ALL]
