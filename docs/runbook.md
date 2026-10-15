@@ -95,6 +95,7 @@ The apps report the errors they meet (release builds; platform, version and the 
 | Nobody receives emails | `logs worker`; jobs table: `SELECT status, count(*) FROM "Job" GROUP BY 1` (failed email jobs keep a safe error code) |
 | Photos fail to upload | Apache `LimitRequestBody` and Nginx `client_max_body_size` for `/v1/media` (90 MiB); disk space under the `media` volume |
 | 429 on sign-in | Intended after repeated failures (15-minute window); clear with `DELETE FROM "LoginAttempt"` if a person is locked out by mistake |
+| Nothing reaches the server (apps and web console fail) but `sudo biobalance-compose ps` shows everything healthy | The **domain**: `dig +short api.galylio.com @1.1.1.1` must show Cloudflare addresses (104.21.x / 172.67.x), not `127.0.0.1`; `dig +short NS galylio.com @8.8.8.8` must show the Cloudflare nameservers; `curl -s https://rdap.verisign.com/com/v1/domain/galylio.com` shows the expiry. Parked nameservers (`parkpage.foundationapi.com`) mean the registration expired or is on hold: renew at the registrar (Gransy / Regtons). Expiry now 2027-10-14 |
 | Restart one thing | `sudo biobalance-compose up -d --force-recreate api1` (never `down -v`: it deletes the database) |
 
 ## Reset to an empty system
