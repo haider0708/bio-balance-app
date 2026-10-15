@@ -227,3 +227,187 @@ export async function clearRegion(
     throw error;
   }
 }
+
+export interface RemoveStoreResult {
+  files: string[];
+  counts: Record<string, number>;
+  store: { id: string; name: string; region: string };
+}
+
+/**
+ * Removes ONE point of sale and everything that hangs on it: its team members' accounts, sales,
+ * stock and stock movements, stock counts, restock orders for it, the photos of those, the alerts
+ * and the audit lines about them. The region, the group, the responsable, the other stores and
+ * everything else stay. A store of a test region is refused. Same guarantees as `clearRegion`: one
+ * transaction, the integrity checks stay on, the history guards are lifted only inside it.
+ */
+export async function removeStore(
+  owner: Client,
+  name: string,
+  regionCode: string,
+): Promise<RemoveStoreResult> {
+  const counts: Record<string, number> = {};
+  const found = await owner.query<{
+    id: string;
+    name: string;
+    sandbox: boolean;
+  }>(
+    `SELECT p.id, p.name, r.sandbox FROM "Pdv" p JOIN "Region" r ON r.id = p."regionId"
+     WHERE r.code = $1 AND p.name = $2`,
+    [regionCode, name],
+  );
+  if (found.rows.length === 0)
+    throw new Error(`There is no store "${name}" in the region ${regionCode}.`);
+  if (found.rows.length > 1)
+    throw new Error(`Several stores are called "${name}": nothing was done.`);
+  const store = found.rows[0]!;
+  if (store.sandbox)
+    throw new Error(
+      "This store belongs to a test region: use the purge command.",
+    );
+
+  const run = async (label: string, sql: string, values: unknown[]) => {
+    counts[label] = (await owner.query(sql, values)).rowCount ?? 0;
+  };
+  const list = async (sql: string, values: unknown[]) =>
+    (await owner.query<{ id: string }>(sql, values)).rows.map((r) => r.id);
+
+  await owner.query("BEGIN");
+  try {
+    for (const [table, trigger] of APPEND_ONLY)
+      await owner.query(`ALTER TABLE "${table}" DISABLE TRIGGER "${trigger}"`);
+    const p = store.id;
+    const users = await list(`SELECT id FROM "User" WHERE "pdvId" = $1`, [p]);
+    const sales = await list(`SELECT id FROM "Sale" WHERE "pdvId" = $1`, [p]);
+    const declarations = await list(
+      `SELECT id FROM "StockDeclaration" WHERE "locationId" = $1`,
+      [p],
+    );
+    const orders = await list(
+      `SELECT id FROM "RestockOrder" WHERE "destId" = $1`,
+      [p],
+    );
+    const used = await owner.query<{ id: string }>(
+      `SELECT unnest("photoIds") AS id FROM "StockDeclaration" WHERE id = ANY($1::uuid[])
+       UNION SELECT "photoId" FROM "StockDeclaration" WHERE id = ANY($1::uuid[]) AND "photoId" IS NOT NULL
+       UNION SELECT unnest("receiptPhotoIds") FROM "RestockOrder" WHERE id = ANY($2::uuid[])
+       UNION SELECT "receiptPhotoId" FROM "RestockOrder" WHERE id = ANY($2::uuid[]) AND "receiptPhotoId" IS NOT NULL`,
+      [declarations, orders],
+    );
+    const photos = (
+      await owner.query<{ id: string; path: string }>(
+        `SELECT id, path FROM "MediaAsset" WHERE purpose = 'PROOF'
+           AND ("ownerId" = ANY($1::uuid[]) OR id = ANY($2::uuid[]))`,
+        [users, used.rows.map((x) => x.id)],
+      )
+    ).rows;
+    const everything = [p, ...users, ...sales, ...declarations, ...orders];
+
+    await run(
+      "Notification",
+      `DELETE FROM "Notification" WHERE "userId" = ANY($1::uuid[]) OR "entityId" = ANY($2::uuid[])`,
+      [users, everything],
+    );
+    await run(
+      "LessonProgress",
+      `DELETE FROM "LessonProgress" WHERE "userId" = ANY($1::uuid[])`,
+      [users],
+    );
+    await run(
+      "PushDevice",
+      `DELETE FROM "PushDevice" WHERE "userId" = ANY($1::uuid[])`,
+      [users],
+    );
+    await run(
+      "Session",
+      `DELETE FROM "Session" WHERE "userId" = ANY($1::uuid[])`,
+      [users],
+    );
+    await run(
+      "AccessToken",
+      `DELETE FROM "AccessToken" WHERE "userId" = ANY($1::uuid[])`,
+      [users],
+    );
+    await run(
+      "Job",
+      `DELETE FROM "Job" WHERE payload->>'userId' = ANY($1::text[])`,
+      [users],
+    );
+    await run(
+      "SaleRevision",
+      `DELETE FROM "SaleRevision" WHERE "saleId" = ANY($1::uuid[])`,
+      [sales],
+    );
+    await run(
+      "SaleLine",
+      `DELETE FROM "SaleLine" WHERE "saleId" = ANY($1::uuid[])`,
+      [sales],
+    );
+    await run(
+      "WalletEntry",
+      `DELETE FROM "WalletEntry" WHERE "saleId" = ANY($1::uuid[]) OR "userId" = ANY($2::uuid[])`,
+      [sales, users],
+    );
+    await run("Sale", `DELETE FROM "Sale" WHERE id = ANY($1::uuid[])`, [sales]);
+    await run(
+      "PayoutRequest",
+      `DELETE FROM "PayoutRequest" WHERE "userId" = ANY($1::uuid[])`,
+      [users],
+    );
+    await run(
+      "StockMovement",
+      `DELETE FROM "StockMovement" WHERE "locationId" = $1`,
+      [p],
+    );
+    await run("Stock", `DELETE FROM "Stock" WHERE "locationId" = $1`, [p]);
+    await run(
+      "StockDeclarationLine",
+      `DELETE FROM "StockDeclarationLine" WHERE "declarationId" = ANY($1::uuid[])`,
+      [declarations],
+    );
+    await run(
+      "StockDeclaration",
+      `DELETE FROM "StockDeclaration" WHERE id = ANY($1::uuid[])`,
+      [declarations],
+    );
+    await run(
+      "StockRecount",
+      `DELETE FROM "StockRecount" WHERE "locationId" = $1`,
+      [p],
+    );
+    await run(
+      "RestockLine",
+      `DELETE FROM "RestockLine" WHERE "orderId" = ANY($1::uuid[])`,
+      [orders],
+    );
+    await run(
+      "RestockOrder",
+      `DELETE FROM "RestockOrder" WHERE id = ANY($1::uuid[])`,
+      [orders],
+    );
+    await run(
+      "AuditEntry",
+      `DELETE FROM "AuditEntry" WHERE "actorId" = ANY($1::uuid[]) OR "entityId" = ANY($2::text[])`,
+      [users, everything],
+    );
+    await run(
+      "MediaAsset",
+      `DELETE FROM "MediaAsset" WHERE id = ANY($1::uuid[])`,
+      [photos.map((x) => x.id)],
+    );
+    await run("User", `DELETE FROM "User" WHERE id = ANY($1::uuid[])`, [users]);
+    await run("Pdv", `DELETE FROM "Pdv" WHERE id = $1`, [p]);
+
+    for (const [table, trigger] of APPEND_ONLY)
+      await owner.query(`ALTER TABLE "${table}" ENABLE TRIGGER "${trigger}"`);
+    await owner.query("COMMIT");
+    return {
+      files: photos.map((x) => x.path),
+      counts,
+      store: { id: p, name: store.name, region: regionCode },
+    };
+  } catch (error) {
+    await owner.query("ROLLBACK");
+    throw error;
+  }
+}

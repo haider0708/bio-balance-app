@@ -4,7 +4,7 @@ import path from "node:path";
 import { NestFactory } from "@nestjs/core";
 import { Client } from "pg";
 import { AppModule } from "./app.module";
-import { clearRegion } from "./demo/clear-region";
+import { clearRegion, removeStore } from "./demo/clear-region";
 import { reviewPasswordHashes, wipeNetwork } from "./demo/fresh-start";
 import { purgeDemo } from "./demo/purge";
 import { type DemoOptions, demoServices, seedDemo } from "./demo/seed";
@@ -15,6 +15,8 @@ import { type DemoOptions, demoServices, seedDemo } from "./demo/seed";
  *   node dist/demo.js purge                            removes all of it, and nothing else
  *   node dist/demo.js clear-region CODE --delete-everything-in-it   empties ONE real region (keeps the region,
  *                                                      the admins, the catalogue, the rates and every other region)
+ *   node dist/demo.js remove-store REGION "NAME" --delete-everything-in-it   removes ONE store with its team,
+ *                                                      sales, stock, counts and restock orders (nothing else)
  *   node dist/demo.js fresh-start --delete-everything  empties the whole network but the admins, the
  *                                                      catalogue and the reward rates, then builds the
  *                                                      test region again with the reviewers' current passwords
@@ -31,6 +33,17 @@ async function main() {
       const result = await purgeDemo(owner);
       await removeFiles(result.files);
       console.log(JSON.stringify(result, null, 2));
+      return;
+    }
+    if (command === "remove-store") {
+      const [, , , region, name, confirm] = process.argv;
+      if (!region || !name || confirm !== "--delete-everything-in-it")
+        throw new Error(
+          'Use: remove-store REGION "STORE NAME" --delete-everything-in-it',
+        );
+      const removed = await removeStore(owner, name, region);
+      await removeFiles(removed.files);
+      console.log(JSON.stringify(removed, null, 2));
       return;
     }
     if (command === "clear-region") {
@@ -62,7 +75,7 @@ async function main() {
     }
     if (command !== "seed")
       throw new Error(
-        "Use: seed | purge | clear-region CODE --delete-everything-in-it | fresh-start --delete-everything",
+        "Use: seed | purge | clear-region CODE --delete-everything-in-it | remove-store REGION NAME --delete-everything-in-it | fresh-start --delete-everything",
       );
     await seed(owner, { passwords: passwordsFromEnv() });
   } finally {
