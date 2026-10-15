@@ -156,6 +156,18 @@ Build it on an empty network instead: `demo.js seed` with `DEMO_RESPONSABLE_PASS
 
 Done on 2026-10-13: the network was emptied (backup: `/srv/biobalance-backups/pre-deploy/before-fresh-start-20261013T150508Z*`) and the test region rebuilt; production then held the admin, the two review accounts, the catalogue (51 products) and the reward rates.
 
+### Emptying one real region
+
+`demo.js clear-region CODE --delete-everything-in-it` empties **one** real region (its stores, groups, grossistes, people, sales, stock, restocks, rewards earned, payouts, photos and every history line, with the admin's alerts about them) and keeps the region itself, the admins, the catalogue, the reward rates and **every other region, the test region included**. It refuses a test region (use `purge`). One transaction (all or nothing), the integrity checks stay on, the append-only guards of the history are lifted only inside it. Take a dump first:
+
+```sh
+sudo bash -s <<'SCRIPT'
+mkdir -p /srv/biobalance-backups/manual
+docker exec biobalance-postgres-1 sh -c 'pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Fc' > /srv/biobalance-backups/manual/before-clear-REGION-$(date -u +%Y%m%dT%H%M%SZ).dump
+biobalance-compose run --rm -T demo node dist/demo.js clear-region REGION --delete-everything-in-it </dev/null
+SCRIPT
+```
+
 ## The product catalogue
 
 The products live in `apps/api/catalog`: `products.json` (one entry per barcode: name, family, line, size, description, use, ingredients, and the `sources` where each fact and photo was checked) and `images/<barcode>.jpg` (1000×1000, the product cropped to fill the frame on white). Names follow the supplier list's style without the brand prefix (`SUPER SERUM PURE VITAMINE C 30ML`). Every barcode is checked against the supplier list and at least one shop (pharma-shop.tn shows it in the address; lifepharmacy.com ends its addresses with its last digits).

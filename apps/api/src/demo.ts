@@ -4,6 +4,7 @@ import path from "node:path";
 import { NestFactory } from "@nestjs/core";
 import { Client } from "pg";
 import { AppModule } from "./app.module";
+import { clearRegion } from "./demo/clear-region";
 import { reviewPasswordHashes, wipeNetwork } from "./demo/fresh-start";
 import { purgeDemo } from "./demo/purge";
 import { type DemoOptions, demoServices, seedDemo } from "./demo/seed";
@@ -12,6 +13,8 @@ import { type DemoOptions, demoServices, seedDemo } from "./demo/seed";
  * The test region of the store reviewers (docs/runbook.md, "The test region").
  *   node dist/demo.js seed                             builds it (DEMO_RESPONSABLE_PASSWORD, DEMO_VENDEUR_PASSWORD, DEMO_DAYS)
  *   node dist/demo.js purge                            removes all of it, and nothing else
+ *   node dist/demo.js clear-region CODE --delete-everything-in-it   empties ONE real region (keeps the region,
+ *                                                      the admins, the catalogue, the rates and every other region)
  *   node dist/demo.js fresh-start --delete-everything  empties the whole network but the admins, the
  *                                                      catalogue and the reward rates, then builds the
  *                                                      test region again with the reviewers' current passwords
@@ -28,6 +31,17 @@ async function main() {
       const result = await purgeDemo(owner);
       await removeFiles(result.files);
       console.log(JSON.stringify(result, null, 2));
+      return;
+    }
+    if (command === "clear-region") {
+      const code = process.argv[3];
+      if (!code || process.argv[4] !== "--delete-everything-in-it")
+        throw new Error(
+          "Use: clear-region CODE --delete-everything-in-it (it deletes that region's stores, people, sales, stock and photos).",
+        );
+      const cleared = await clearRegion(owner, code);
+      await removeFiles(cleared.files);
+      console.log(JSON.stringify(cleared, null, 2));
       return;
     }
     if (command === "fresh-start") {
@@ -47,7 +61,9 @@ async function main() {
       return;
     }
     if (command !== "seed")
-      throw new Error("Use: seed | purge | fresh-start --delete-everything");
+      throw new Error(
+        "Use: seed | purge | clear-region CODE --delete-everything-in-it | fresh-start --delete-everything",
+      );
     await seed(owner, { passwords: passwordsFromEnv() });
   } finally {
     await owner.end();
