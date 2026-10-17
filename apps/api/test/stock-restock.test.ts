@@ -363,10 +363,15 @@ describe("restock through a grossiste", () => {
       .body as any[];
     const ours = suppliers.find((d) => d.id === w.depotId);
     expect(ours).toMatchObject({ missing: 1 });
-    expect(ours.lines).toEqual([
-      expect.objectContaining({ productId: p1!.id, held: 50, requested: 10 }),
-      expect.objectContaining({ productId: p2!.id, held: 2, requested: 6 }),
-    ]);
+    expect(ours.lines).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ productId: p1!.id, held: 50, requested: 10 }),
+        expect.objectContaining({ productId: p2!.id, held: 2, requested: 6 }),
+      ]),
+    );
+    expect(ours.lines.map((l: any) => l.productId)).toEqual(
+      [p1!.id, p2!.id].sort(),
+    );
     expect((await w.n.get(`/v1/restocks/${order.id}/suppliers`)).status).toBe(
       403,
     );

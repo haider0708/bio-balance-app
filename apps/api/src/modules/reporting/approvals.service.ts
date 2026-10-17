@@ -1,6 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import type { Actor } from "../../core/actor";
 import { Database, type Tx } from "../../core/database";
+import { DECISION_WINDOW_MS, withinDecisionWindow } from "../../core/approval";
 import { requireRule } from "../../core/errors";
 
 export type ApprovalType =
@@ -84,15 +85,31 @@ export class ApprovalsService {
         tx.pdv.findMany({ where: { id: { in: ids("Pdv") } } }),
         tx.user.findMany({
           where: { id: { in: ids("User") } },
-          select: { id: true, name: true },
+          select: {
+            id: true,
+            name: true,
+            status: true,
+            role: true,
+            passwordHash: true,
+            decidedAt: true,
+          },
         }),
         tx.stockDeclaration.findMany({
           where: { id: { in: ids("StockDeclaration") } },
-          select: { id: true, locationId: true },
+          select: { id: true, locationId: true, status: true, decidedAt: true },
         }),
         tx.restockOrder.findMany({
           where: { id: { in: ids("RestockOrder") } },
-          select: { id: true, destId: true, number: true },
+          select: {
+            id: true,
+            destId: true,
+            number: true,
+            status: true,
+            source: true,
+            receivedAt: true,
+            assignedAt: true,
+            decidedAt: true,
+          },
         }),
         tx.payoutRequest.findMany({
           where: { id: { in: ids("PayoutRequest") } },
@@ -100,9 +117,24 @@ export class ApprovalsService {
         }),
         tx.stockRecount.findMany({
           where: { id: { in: ids("StockRecount") } },
-          select: { id: true, locationId: true },
+          select: {
+            id: true,
+            locationId: true,
+            status: true,
+            decidedAt: true,
+            declarationId: true,
+          },
         }),
       ]);
+      // A store that already sold something cannot be taken back to waiting.
+      const sold = new Set(
+        (
+          await tx.sale.groupBy({
+            by: ["pdvId"],
+            where: { pdvId: { in: pdvs.map((p) => p.id) } },
+          })
+        ).map((x) => x.pdvId),
+      );
       const places = await placeNames(tx, [
         ...declarations.map((d) => d.locationId),
         ...orders.map((o) => o.destId),
@@ -137,6 +169,128 @@ export class ApprovalsService {
       ]);
       const regionName = new Map(regions.map((r) => [r.id, r.name]));
       const adminName = new Map(admins.map((a) => [a.id, a.name]));
+      const now = Date.now();
+      /**
+       * What the admin may still do with a decision: only when it is the entity's current decision,
+       * made less than 6 hours ago, and nothing has happened since that makes it final. Payouts never.
+       */
+      const change = (
+        decision: { type: ApprovalType; outcome: string },
+        r: { entityId: string; createdAt: Date },
+      ): { options: string[]; until: Date } | null => {
+        const id = r.entityId;
+        const fresh = (at: Date | null | undefined) =>
+          !!at &&
+          withinDecisionWindow(at, now) &&
+          Math.abs(at.getTime() - r.createdAt.getTime()) < 10_000;
+        const approved = decision.outcome === "APPROVED";
+        const rejected = decision.outcome === "REJECTED";
+        let options: string[] = [];
+        let at: Date | null = null;
+        switch (decision.type) {
+          case "GROUP": {
+            const g = groups.find((x) => x.id === id);
+            if (
+              g &&
+              fresh(g.decidedAt) &&
+              g.status === (approved ? "ACTIVE" : "REJECTED") &&
+              (approved || rejected)
+            ) {
+              options = ["reopen"];
+              at = g.decidedAt;
+            }
+            break;
+          }
+          case "PDV": {
+            const p = pdvs.find((x) => x.id === id);
+            if (
+              p &&
+              fresh(p.decidedAt) &&
+              (approved || rejected) &&
+              p.status === (approved ? "ACTIVE" : "REJECTED") &&
+              !(approved && sold.has(p.id))
+            ) {
+              options = ["reopen"];
+              at = p.decidedAt;
+            }
+            break;
+          }
+          case "MEMBER": {
+            const u = users.find((x) => x.id === id);
+            if (
+              u &&
+              u.role === "VENDEUR" &&
+              fresh(u.decidedAt) &&
+              ((approved && u.status === "ACTIVE" && !u.passwordHash) ||
+                (rejected && u.status === "REJECTED"))
+            ) {
+              options = ["reopen"];
+              at = u.decidedAt;
+            }
+            break;
+          }
+          case "STOCK": {
+            const d = declarations.find((x) => x.id === id);
+            if (d && fresh(d.decidedAt)) {
+              if (approved && d.status === "APPROVED")
+                options = ["amend", "reopen"];
+              else if (rejected && d.status === "REJECTED")
+                options = ["reopen"];
+              at = d.decidedAt;
+            }
+            break;
+          }
+          case "RECEIPT": {
+            const o = orders.find((x) => x.id === id);
+            if (
+              o &&
+              approved &&
+              o.status === "COMPLETED" &&
+              fresh(o.decidedAt)
+            ) {
+              options = ["amend"];
+              at = o.decidedAt;
+            }
+            break;
+          }
+          case "RESTOCK_REQUEST": {
+            const o = orders.find((x) => x.id === id);
+            if (
+              o &&
+              approved &&
+              fresh(o.assignedAt) &&
+              (o.status === "ASSIGNED" ||
+                (o.status === "SHIPPED" &&
+                  o.source === "BIOBALANCE" &&
+                  !o.receivedAt))
+            ) {
+              options = ["reopen"];
+              at = o.assignedAt;
+            }
+            break;
+          }
+          case "RECOUNT": {
+            const c = recounts.find((x) => x.id === id);
+            if (
+              c &&
+              fresh(c.decidedAt) &&
+              ((approved &&
+                c.status === "APPROVED" &&
+                c.declarationId === null) ||
+                (rejected && c.status === "REJECTED"))
+            ) {
+              options = ["reopen"];
+              at = c.decidedAt;
+            }
+            break;
+          }
+          default:
+            break; // payouts: a payment made is final
+        }
+        return options.length && at
+          ? { options, until: new Date(at.getTime() + DECISION_WINDOW_MS) }
+          : null;
+      };
       return {
         items: page.map((r) => {
           const decision = DECISIONS[r.action]!;
@@ -155,6 +309,8 @@ export class ApprovalsService {
                 : typeof details.reason === "string"
                   ? details.reason
                   : null,
+            /** What can still be done with it, and until when (null: final). */
+            change: change(decision, r),
           };
         }),
         nextBefore:

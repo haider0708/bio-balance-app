@@ -2,7 +2,12 @@ import { Injectable } from "@nestjs/common";
 import type { Status } from "@prisma/client";
 import type { Actor } from "../../core/actor";
 import { audit } from "../../core/audit";
-import { nextStatus, type StatusAction } from "../../core/approval";
+import {
+  decisionLocked,
+  nextStatus,
+  type StatusAction,
+  withinDecisionWindow,
+} from "../../core/approval";
 import { Database, type Tx } from "../../core/database";
 import { notFound, requireRule } from "../../core/errors";
 import { notify, notifyAdmins, responsableIds } from "../../core/notifier";
@@ -139,6 +144,64 @@ export class StructureService {
     return this.db.run(actor, async (tx) => {
       const group = await this.decide(tx, actor, "Group", id, action, note);
       return group;
+    });
+  }
+
+  /**
+   * The admin puts a group or a store back to waiting (an approval or a rejection made in the last 6
+   * hours), to decide again. A store that already sold something stays as it is.
+   */
+  reopen(actor: Actor, entity: "Group" | "Pdv", id: string) {
+    requireRule(actor.role === "ADMIN", "FORBIDDEN", "Not allowed.", 403);
+    return this.db.run(actor, async (tx) => {
+      await this.db.lock(tx, entity, id);
+      const row =
+        entity === "Group"
+          ? await tx.group.findUnique({ where: { id } })
+          : await tx.pdv.findUnique({ where: { id } });
+      if (!row) throw notFound(entity === "Group" ? "Group" : "Point of sale");
+      requireRule(
+        row.status === "ACTIVE" || row.status === "REJECTED",
+        "INVALID_STATE",
+        "Only an approval or a rejection can be taken back.",
+        409,
+      );
+      if (!withinDecisionWindow(row.decidedAt)) throw decisionLocked();
+      if (entity === "Pdv" && row.status === "ACTIVE")
+        requireRule(
+          (await tx.sale.count({ where: { pdvId: id } })) === 0,
+          "HAS_ACTIVITY",
+          "This store already sold something: suspend it instead.",
+          409,
+        );
+      const data = {
+        status: "PENDING" as const,
+        decidedById: null,
+        decidedAt: null,
+        decisionNote: null,
+      };
+      if (entity === "Group") await tx.group.update({ where: { id }, data });
+      else await tx.pdv.update({ where: { id }, data });
+      await audit(
+        tx,
+        actor,
+        `${entity.toLowerCase()}.reopened`,
+        entity,
+        id,
+        { was: row.status },
+        row.regionId,
+      );
+      await notify(
+        tx,
+        [row.createdById, ...(await responsableIds(tx, row.regionId))],
+        {
+          key: "decision.reopened",
+          params: { name: row.name },
+          entityType: entity,
+          entityId: id,
+        },
+      );
+      return { ok: true };
     });
   }
 

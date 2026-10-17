@@ -226,5 +226,25 @@
   "supplier.removed": {
     "en": "You can no longer choose the grossiste for a restock: the admin decides.",
     "fr": "Vous ne pouvez plus choisir le grossiste d’un réassort : l’admin décide."
+  },
+  "decision.reopened": {
+    "en": "The admin took back a decision on {name}: it is waiting for a new decision.",
+    "fr": "L’admin a repris une décision sur {name} : elle attend une nouvelle décision."
+  },
+  "stock.reopened": {
+    "en": "The count of {place} is back with the admin for a new decision.",
+    "fr": "Le comptage de {place} est revenu chez l’admin pour une nouvelle décision."
+  },
+  "stock.amended": {
+    "en": "The admin corrected the approved count of {place}.",
+    "fr": "L’admin a corrigé le comptage approuvé de {place}."
+  },
+  "restock.amended": {
+    "en": "The quantities received of restock {number} were corrected by the admin.",
+    "fr": "Les quantités reçues du réassort {number} ont été corrigées par l’admin."
+  },
+  "restock.reopened": {
+    "en": "Restock {number} was taken back by the admin and will be routed again.",
+    "fr": "Le réassort {number} a été repris par l’admin et sera acheminé à nouveau."
   }
 }

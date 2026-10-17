@@ -204,6 +204,18 @@ class ServerText {
       'You cannot choose the grossiste for an order: the admin decides.',
       'Vous ne pouvez pas choisir le grossiste d’une commande : l’admin décide.',
     ),
+    'DECISION_LOCKED': (
+      'A decision can only be changed for 6 hours after it was made.',
+      'Une décision ne peut être modifiée que pendant 6 heures après avoir été prise.',
+    ),
+    'HAS_ACTIVITY': (
+      'This store already sold something: suspend it instead.',
+      'Ce magasin a déjà vendu : suspendez-le plutôt.',
+    ),
+    'DECLARATION_EXISTS': (
+      'This place was counted again since: that count stands.',
+      'Ce lieu a été recompté depuis : ce comptage fait foi.',
+    ),
     'ALREADY_COUNTED': (
       'The stock of this place was already declared.',
       'Le stock de ce lieu a déjà été déclaré.',
@@ -552,6 +564,26 @@ class ServerText {
     'supplier.removed': (
       'You can no longer choose the grossiste for a restock: the admin decides.',
       'Vous ne pouvez plus choisir le grossiste d’un réassort : l’admin décide.',
+    ),
+    'decision.reopened': (
+      'The admin took back a decision on {name}: it is waiting for a new decision.',
+      'L’admin a repris une décision sur {name} : elle attend une nouvelle décision.',
+    ),
+    'stock.reopened': (
+      'The count of {place} is back with the admin for a new decision.',
+      'Le comptage de {place} est revenu chez l’admin pour une nouvelle décision.',
+    ),
+    'stock.amended': (
+      'The admin corrected the approved count of {place}.',
+      'L’admin a corrigé le comptage approuvé de {place}.',
+    ),
+    'restock.amended': (
+      'The quantities received of restock {number} were corrected by the admin.',
+      'Les quantités reçues du réassort {number} ont été corrigées par l’admin.',
+    ),
+    'restock.reopened': (
+      'Restock {number} was taken back by the admin and will be routed again.',
+      'Le réassort {number} a été repris par l’admin et sera acheminé à nouveau.',
     ),
     'restock.to_prepare': (
       'Restock {number} was given to {depot}: ship it.',

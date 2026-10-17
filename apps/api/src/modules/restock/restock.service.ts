@@ -5,6 +5,7 @@ import type { Actor } from "../../core/actor";
 import { audit } from "../../core/audit";
 import { Database, type Tx } from "../../core/database";
 import { DomainError, notFound, requireRule } from "../../core/errors";
+import { decisionLocked, withinDecisionWindow } from "../../core/approval";
 import { notify, notifyAdmins, responsableIds } from "../../core/notifier";
 import { adjustStock, currentQuantity, findLocation } from "../stock/ledger";
 import { SettingsService } from "../../core/settings";
@@ -244,7 +245,7 @@ export class RestockService {
             regionName: regionName.get(d.regionId) ?? "",
             /** Products of the order it holds fewer of than requested. */
             missing: lines.filter((l) => l.held < l.requested).length,
-            lines,
+            lines: lines.sort((a, b) => a.productId.localeCompare(b.productId)),
           };
         })
         .sort(
@@ -299,10 +300,12 @@ export class RestockService {
       const regionName = new Map(regions.map((r) => [r.id, r.name]));
       return depots
         .map((d) => {
-          const covered = lines.map((l) => ({
-            productId: l.productId,
-            enough: (held.get(`${d.id}:${l.productId}`) ?? 0) >= l.quantity,
-          }));
+          const covered = lines
+            .map((l) => ({
+              productId: l.productId,
+              enough: (held.get(`${d.id}:${l.productId}`) ?? 0) >= l.quantity,
+            }))
+            .sort((a, b) => a.productId.localeCompare(b.productId));
           return {
             id: d.id,
             name: d.name,
@@ -767,6 +770,172 @@ export class RestockService {
       actor.id,
     );
     return this.one(tx, updated);
+  }
+
+  /**
+   * The admin corrects the quantities received of a delivery they approved less than 6 hours ago.
+   * Only the difference reaches the destination's stock, which never goes below what already left.
+   */
+  amend(actor: Actor, id: string, input: { lines: QtyLine[]; note?: string }) {
+    requireRule(
+      actor.role === "ADMIN",
+      "FORBIDDEN",
+      "Only the admin can amend.",
+      403,
+    );
+    return this.db.run(actor, async (tx) => {
+      const order = await this.load(tx, id, "COMPLETED");
+      if (!withinDecisionWindow(order.decidedAt)) throw decisionLocked();
+      const overrides = new Map(
+        input.lines.map((l) => [l.productId, l.quantity]),
+      );
+      requireRule(
+        overrides.size === input.lines.length,
+        "DUPLICATE_PRODUCT",
+        "A product appears twice.",
+      );
+      for (const productId of overrides.keys())
+        requireRule(
+          order.lines.some((l) => l.productId === productId),
+          "PRODUCT_NOT_FOUND",
+          "That product is not in the order.",
+          422,
+        );
+      const dest = await findLocation(tx, order.destId);
+      const changes = order.lines
+        .map((l) => ({
+          line: l,
+          before: l.approved ?? 0,
+          target: overrides.get(l.productId) ?? l.approved ?? 0,
+        }))
+        .filter((c) => c.target !== c.before);
+      const tooLow: { productId: string; name: string; minimum: number }[] = [];
+      for (const c of changes.filter((x) => x.target < x.before)) {
+        await tx.$queryRaw`SELECT 1 FROM "Stock" WHERE "locationId"=${dest.id}::uuid AND "productId"=${c.line.productId}::uuid FOR UPDATE`;
+        const have = await currentQuantity(tx, dest.id, c.line.productId);
+        if (have + (c.target - c.before) < 0)
+          tooLow.push({
+            productId: c.line.productId,
+            name:
+              (
+                await tx.product.findUnique({
+                  where: { id: c.line.productId },
+                  select: { name: true },
+                })
+              )?.name ?? "",
+            minimum: c.before - have,
+          });
+      }
+      if (tooLow.length)
+        throw new DomainError(
+          "BELOW_SOLD",
+          "Some of these units already left this place (sold or shipped): a quantity cannot go below what was used.",
+          409,
+          { products: tooLow },
+        );
+      for (const c of changes) {
+        await adjustStock(tx, dest, c.line.productId, c.target - c.before, {
+          reason: "RECEIPT",
+          refType: "RestockOrder",
+          refId: id,
+          actorId: actor.id,
+        });
+        await tx.restockLine.update({
+          where: { id: c.line.id },
+          data: { approved: c.target },
+        });
+      }
+      await audit(
+        tx,
+        actor,
+        "restock.amended",
+        "RestockOrder",
+        id,
+        {
+          changed: changes.length,
+          note: input.note ?? null,
+          before: Object.fromEntries(
+            changes.map((c) => [c.line.productId, c.before]),
+          ),
+          after: Object.fromEntries(
+            changes.map((c) => [c.line.productId, c.target]),
+          ),
+        },
+        order.regionId,
+      );
+      await this.tellEveryone(
+        tx,
+        order,
+        "restock.amended",
+        { number: order.number },
+        actor.id,
+      );
+      return this.one(tx, await this.load(tx, id));
+    });
+  }
+
+  /**
+   * The admin takes back the routing of an order (given to a grossiste that has not shipped, or sent
+   * from BioBalance and not yet received) within 6 hours, to route it again.
+   */
+  reopen(actor: Actor, id: string) {
+    requireRule(actor.role === "ADMIN", "FORBIDDEN", "Not allowed.", 403);
+    return this.db.run(actor, async (tx) => {
+      const order = await this.load(tx, id);
+      const direct =
+        order.status === "SHIPPED" &&
+        order.source === "BIOBALANCE" &&
+        !order.receivedAt;
+      requireRule(
+        order.status === "ASSIGNED" || direct,
+        "INVALID_STATE",
+        "Only an order that no grossiste has shipped yet can be taken back.",
+        409,
+      );
+      if (!withinDecisionWindow(order.assignedAt)) throw decisionLocked();
+      if (direct)
+        await tx.restockLine.updateMany({
+          where: { orderId: id },
+          data: { shipped: null },
+        });
+      const updated = await tx.restockOrder.update({
+        where: { id },
+        data: {
+          status: "REQUESTED",
+          source: null,
+          supplierDepotId: null,
+          supplierRegionId: null,
+          assignedAt: null,
+          shippedAt: null,
+        },
+        include: { lines: true },
+      });
+      await audit(
+        tx,
+        actor,
+        "restock.reopened",
+        "RestockOrder",
+        id,
+        { was: order.status },
+        order.regionId,
+      );
+      await notify(
+        tx,
+        [
+          order.requestedById,
+          ...(order.supplierRegionId
+            ? await responsableIds(tx, order.supplierRegionId)
+            : []),
+        ],
+        {
+          key: "restock.reopened",
+          params: { number: order.number },
+          entityType: "RestockOrder",
+          entityId: id,
+        },
+      );
+      return this.one(tx, updated);
+    });
   }
 
   reject(actor: Actor, id: string, note: string) {

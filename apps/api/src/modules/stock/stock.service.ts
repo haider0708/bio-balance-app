@@ -4,6 +4,7 @@ import type { Actor } from "../../core/actor";
 import { audit } from "../../core/audit";
 import { Database, type Tx } from "../../core/database";
 import { DomainError, notFound, requireRule } from "../../core/errors";
+import { decisionLocked, withinDecisionWindow } from "../../core/approval";
 import { notify, notifyAdmins, responsableIds } from "../../core/notifier";
 import { randomUUID } from "node:crypto";
 import { ownedProofs } from "../media/proofs";
@@ -334,77 +335,14 @@ export class StockService {
     );
     return this.db.run(actor, async (tx) => {
       const declaration = await this.lockDeclaration(tx, id);
-      const overrides = new Map(
-        (input.lines ?? []).map((l) => [l.productId, l.quantity]),
-      );
-      requireRule(
-        overrides.size === (input.lines ?? []).length,
-        "DUPLICATE_PRODUCT",
-        "A product appears twice.",
-      );
-      const known = new Set(declaration.lines.map((l) => l.productId));
-      const added = [...overrides.keys()].filter((p) => !known.has(p));
-      // The admin may add products the responsable left out.
-      requireRule(
-        (await tx.product.count({
-          where: { id: { in: added }, active: true },
-        })) === added.length,
-        "PRODUCT_NOT_FOUND",
-        "Unknown or inactive product.",
-        404,
-      );
       const location = await findLocation(tx, declaration.locationId);
-      const changes = [
-        ...declaration.lines.map((l) => ({
-          productId: l.productId,
-          applied: l.appliedQuantity,
-          target: overrides.get(l.productId) ?? l.quantity,
-        })),
-        ...added.map((productId) => ({
-          productId,
-          applied: null,
-          target: overrides.get(productId)!,
-        })),
-      ];
-      await this.assertRoomToReduce(tx, location, changes);
-      const ref: MovementRef = {
-        reason: "DECLARATION_CORRECTION",
-        refType: "StockDeclaration",
-        refId: id,
-        actorId: actor.id,
-      };
-      let amended = 0;
-      for (const line of declaration.lines) {
-        const approved = overrides.get(line.productId) ?? line.quantity;
-        if (approved !== line.quantity) amended++;
-        await this.applyLine(
-          tx,
-          location,
-          line.productId,
-          line.appliedQuantity,
-          approved,
-          ref,
-        );
-        await tx.stockDeclarationLine.update({
-          where: { id: line.id },
-          data: { approvedQuantity: approved, appliedQuantity: approved },
-        });
-      }
-      for (const productId of added) {
-        amended++;
-        const quantity = overrides.get(productId)!;
-        await this.applyLine(tx, location, productId, null, quantity, ref);
-        await tx.stockDeclarationLine.create({
-          data: {
-            declarationId: id,
-            productId,
-            quantity: 0,
-            approvedQuantity: quantity,
-            appliedQuantity: quantity,
-            addedByAdmin: true,
-          },
-        });
-      }
+      const amended = await this.applyDecision(
+        tx,
+        actor,
+        declaration,
+        location,
+        input.lines ?? [],
+      );
       const updated = await tx.stockDeclaration.update({
         where: { id },
         data: {
@@ -498,6 +436,283 @@ export class StockService {
         0,
       );
       return (await this.present(tx, [updated]))[0]!;
+    });
+  }
+
+  /**
+   * Puts the admin's quantities for a count into the stock: only the difference from what the
+   * count already put in, products added by the admin included. Returns how many lines changed.
+   */
+  private async applyDecision(
+    tx: Tx,
+    actor: Actor,
+    declaration: Prisma.StockDeclarationGetPayload<{
+      include: { lines: true };
+    }>,
+    location: Location,
+    lines: DeclarationLineInput[],
+  ) {
+    const overrides = new Map(lines.map((l) => [l.productId, l.quantity]));
+    requireRule(
+      overrides.size === lines.length,
+      "DUPLICATE_PRODUCT",
+      "A product appears twice.",
+    );
+    const known = new Set(declaration.lines.map((l) => l.productId));
+    const added = [...overrides.keys()].filter((p) => !known.has(p));
+    // The admin may add products the responsable left out.
+    requireRule(
+      (await tx.product.count({
+        where: { id: { in: added }, active: true },
+      })) === added.length,
+      "PRODUCT_NOT_FOUND",
+      "Unknown or inactive product.",
+      404,
+    );
+    const changes = [
+      ...declaration.lines.map((l) => ({
+        productId: l.productId,
+        applied: l.appliedQuantity,
+        target: overrides.get(l.productId) ?? l.approvedQuantity ?? l.quantity,
+      })),
+      ...added.map((productId) => ({
+        productId,
+        applied: null,
+        target: overrides.get(productId)!,
+      })),
+    ];
+    await this.assertRoomToReduce(tx, location, changes);
+    const ref: MovementRef = {
+      reason: "DECLARATION_CORRECTION",
+      refType: "StockDeclaration",
+      refId: declaration.id,
+      actorId: actor.id,
+    };
+    let amended = 0;
+    for (const line of declaration.lines) {
+      const approved =
+        overrides.get(line.productId) ?? line.approvedQuantity ?? line.quantity;
+      if (approved !== (line.approvedQuantity ?? line.quantity)) amended++;
+      await this.applyLine(
+        tx,
+        location,
+        line.productId,
+        line.appliedQuantity,
+        approved,
+        ref,
+      );
+      await tx.stockDeclarationLine.update({
+        where: { id: line.id },
+        data: { approvedQuantity: approved, appliedQuantity: approved },
+      });
+    }
+    for (const productId of added) {
+      amended++;
+      const quantity = overrides.get(productId)!;
+      await this.applyLine(tx, location, productId, null, quantity, ref);
+      await tx.stockDeclarationLine.create({
+        data: {
+          declarationId: declaration.id,
+          productId,
+          quantity: 0,
+          approvedQuantity: quantity,
+          appliedQuantity: quantity,
+          addedByAdmin: true,
+        },
+      });
+    }
+    return amended;
+  }
+
+  /**
+   * The admin corrects the quantities of a count they approved less than 6 hours ago (adding
+   * products if needed). Only the difference reaches the stock; the sales since are kept.
+   */
+  amend(
+    actor: Actor,
+    id: string,
+    input: { lines: DeclarationLineInput[]; note?: string },
+  ) {
+    requireRule(
+      actor.role === "ADMIN",
+      "FORBIDDEN",
+      "Only the admin can amend.",
+      403,
+    );
+    return this.db.run(actor, async (tx) => {
+      const declaration = await this.lockAny(tx, id);
+      requireRule(
+        declaration.status === "APPROVED",
+        "INVALID_STATE",
+        "Only an approved count can be amended.",
+        409,
+      );
+      if (!withinDecisionWindow(declaration.decidedAt)) throw decisionLocked();
+      const location = await findLocation(tx, declaration.locationId);
+      const before = declaration.lines.map((l) => ({
+        productId: l.productId,
+        quantity: l.approvedQuantity ?? l.quantity,
+      }));
+      const amended = await this.applyDecision(
+        tx,
+        actor,
+        declaration,
+        location,
+        input.lines,
+      );
+      const updated = await tx.stockDeclaration.findUniqueOrThrow({
+        where: { id },
+        include: { lines: true },
+      });
+      await audit(
+        tx,
+        actor,
+        "stock.amended",
+        "StockDeclaration",
+        id,
+        { before, after: input.lines, note: input.note ?? null },
+        declaration.regionId,
+      );
+      await this.tell(
+        tx,
+        declaration,
+        "stock.amended",
+        location.name,
+        input.note,
+        amended,
+      );
+      return (await this.present(tx, [updated]))[0]!;
+    });
+  }
+
+  /**
+   * The admin puts a count back to waiting (approved or rejected less than 6 hours ago) to decide
+   * again. A rejected count gets its stock back, as a waiting count has it.
+   */
+  reopen(actor: Actor, id: string) {
+    requireRule(actor.role === "ADMIN", "FORBIDDEN", "Not allowed.", 403);
+    return this.db.run(actor, async (tx) => {
+      const declaration = await this.lockAny(tx, id);
+      requireRule(
+        declaration.status === "APPROVED" || declaration.status === "REJECTED",
+        "INVALID_STATE",
+        "Only a decided count can be taken back.",
+        409,
+      );
+      if (!withinDecisionWindow(declaration.decidedAt)) throw decisionLocked();
+      const location = await findLocation(tx, declaration.locationId);
+      if (declaration.status === "REJECTED") {
+        // Another count of this place may have been made since: two would count twice.
+        requireRule(
+          !(await tx.stockDeclaration.findFirst({
+            where: {
+              locationId: declaration.locationId,
+              id: { not: id },
+              status: { not: "REJECTED" },
+              createdAt: { gt: declaration.createdAt },
+            },
+          })),
+          "DECLARATION_EXISTS",
+          "This place was counted again since: that count stands.",
+          409,
+        );
+        const ref: MovementRef = {
+          reason: "DECLARATION_CORRECTION",
+          refType: "StockDeclaration",
+          refId: id,
+          actorId: actor.id,
+        };
+        for (const line of declaration.lines) {
+          await this.applyLine(
+            tx,
+            location,
+            line.productId,
+            line.appliedQuantity ?? 0,
+            line.quantity,
+            ref,
+          );
+          await tx.stockDeclarationLine.update({
+            where: { id: line.id },
+            data: { appliedQuantity: line.quantity },
+          });
+        }
+      }
+      const updated = await tx.stockDeclaration.update({
+        where: { id },
+        data: {
+          status: "PENDING",
+          decidedById: null,
+          decidedAt: null,
+          decisionNote: null,
+        },
+        include: { lines: true },
+      });
+      await tx.stockDeclarationLine.updateMany({
+        where: { declarationId: id, addedByAdmin: false },
+        data: { approvedQuantity: null },
+      });
+      await audit(
+        tx,
+        actor,
+        "stock.reopened",
+        "StockDeclaration",
+        id,
+        { was: declaration.status },
+        declaration.regionId,
+      );
+      await this.tell(
+        tx,
+        declaration,
+        "decision.reopened",
+        location.name,
+        undefined,
+        0,
+      );
+      return (await this.present(tx, [updated]))[0]!;
+    });
+  }
+
+  /** The admin takes back a recount decision made in the last 6 hours (not yet used). */
+  reopenRecount(actor: Actor, id: string) {
+    requireRule(actor.role === "ADMIN", "FORBIDDEN", "Not allowed.", 403);
+    return this.db.run(actor, async (tx) => {
+      await this.db.lock(tx, "StockRecount", id);
+      const row = await tx.stockRecount.findUnique({ where: { id } });
+      if (!row) throw notFound("Recount request");
+      requireRule(
+        (row.status === "APPROVED" && row.declarationId === null) ||
+          row.status === "REJECTED",
+        "INVALID_STATE",
+        "Only a decision not yet used can be taken back.",
+        409,
+      );
+      if (!withinDecisionWindow(row.decidedAt)) throw decisionLocked();
+      const location = await findLocation(tx, row.locationId);
+      const updated = await tx.stockRecount.update({
+        where: { id },
+        data: {
+          status: "PENDING",
+          decidedById: null,
+          decidedAt: null,
+          decisionNote: null,
+        },
+      });
+      await audit(
+        tx,
+        actor,
+        "stock.recount_reopened",
+        "StockRecount",
+        id,
+        { was: row.status },
+        row.regionId,
+      );
+      await notify(tx, [row.requestedById], {
+        key: "decision.reopened",
+        params: { name: location.name },
+        entityType: "StockRecount",
+        entityId: id,
+      });
+      return (await this.presentRecounts(tx, [updated]))[0]!;
     });
   }
 

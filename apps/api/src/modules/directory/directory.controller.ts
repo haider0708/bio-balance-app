@@ -401,6 +401,22 @@ export class DirectoryController {
       parse(z.object({ allowed: z.boolean() }), b).allowed,
     );
   }
+  /** Takes back an approval or a rejection made in the last 6 hours: it waits for a new decision. */
+  @Roles("ADMIN")
+  @Post("groups/:id/reopen")
+  reopenGroup(@Req() r: AuthRequest, @Param("id") i: string) {
+    return this.structure.reopen(r.actor, "Group", parse(id, i));
+  }
+  @Roles("ADMIN")
+  @Post("pdvs/:id/reopen")
+  reopenPdv(@Req() r: AuthRequest, @Param("id") i: string) {
+    return this.structure.reopen(r.actor, "Pdv", parse(id, i));
+  }
+  @Roles("ADMIN")
+  @Post("users/:id/reopen")
+  reopenMember(@Req() r: AuthRequest, @Param("id") i: string) {
+    return this.users.reopenMember(r.actor, parse(id, i));
+  }
   @Roles("ADMIN")
   @Post("users/:id/move")
   moveResponsable(

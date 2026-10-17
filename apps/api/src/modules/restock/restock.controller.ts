@@ -46,6 +46,7 @@ const Approve = z.object({
   note: Note.optional(),
 });
 const Reason = z.object({ note: Note.min(2) });
+const Amend = z.object({ lines: Lines(qty), note: Note.optional() });
 const Status = z.enum([
   "REQUESTED",
   "ASSIGNED",
@@ -143,6 +144,18 @@ export class RestockController {
       parse(id, i),
       parse(Approve, b ?? {}),
     );
+  }
+  /** The admin corrects the quantities received of an approved delivery, within 6 hours. */
+  @Roles("ADMIN")
+  @Post(":id/amend")
+  amend(@Req() r: AuthRequest, @Param("id") i: string, @Body() b: unknown) {
+    return this.restocks.amend(r.actor, parse(id, i), parse(Amend, b));
+  }
+  /** The admin takes back the routing of an order nobody shipped, within 6 hours. */
+  @Roles("ADMIN")
+  @Post(":id/reopen")
+  reopen(@Req() r: AuthRequest, @Param("id") i: string) {
+    return this.restocks.reopen(r.actor, parse(id, i));
   }
   @Roles("ADMIN")
   @Post(":id/reject-receipt")

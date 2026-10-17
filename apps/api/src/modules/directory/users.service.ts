@@ -3,7 +3,12 @@ import { Injectable } from "@nestjs/common";
 import type { Role, Status } from "@prisma/client";
 import type { Actor } from "../../core/actor";
 import { audit } from "../../core/audit";
-import { nextStatus, type StatusAction } from "../../core/approval";
+import {
+  decisionLocked,
+  nextStatus,
+  type StatusAction,
+  withinDecisionWindow,
+} from "../../core/approval";
 import { Database } from "../../core/database";
 import { DomainError, notFound, requireRule } from "../../core/errors";
 import { notify, notifyAdmins } from "../../core/notifier";
@@ -403,6 +408,56 @@ export class UsersService {
         entityId: id,
       });
       return present(updated);
+    });
+  }
+
+  /**
+   * The admin puts a team member back to waiting (an approval or a rejection made in the last 6
+   * hours). Someone who already set their password cannot be taken back: suspend them instead.
+   */
+  async reopenMember(actor: Actor, id: string) {
+    requireRule(actor.role === "ADMIN", "FORBIDDEN", "Not allowed.", 403);
+    return this.db.run(actor, async (tx) => {
+      await this.db.lock(tx, "User", id);
+      const user = await tx.user.findUnique({ where: { id } });
+      if (!user) throw notFound("User");
+      refuseDeleted(user);
+      requireRule(
+        user.role === "VENDEUR" &&
+          (user.status === "REJECTED" ||
+            (user.status === "ACTIVE" && !user.passwordHash)),
+        "INVALID_STATE",
+        "Only an approval (before the person signed up) or a rejection can be taken back.",
+        409,
+      );
+      if (!withinDecisionWindow(user.decidedAt)) throw decisionLocked();
+      await tx.accessToken.deleteMany({ where: { userId: id } });
+      await tx.user.update({
+        where: { id },
+        data: {
+          status: "PENDING",
+          decidedById: null,
+          decidedAt: null,
+          decisionNote: null,
+        },
+      });
+      await audit(
+        tx,
+        actor,
+        "user.reopened",
+        "User",
+        id,
+        { was: user.status },
+        user.regionId,
+      );
+      if (user.createdById)
+        await notify(tx, [user.createdById], {
+          key: "decision.reopened",
+          params: { name: user.name },
+          entityType: "User",
+          entityId: id,
+        });
+      return { ok: true };
     });
   }
 

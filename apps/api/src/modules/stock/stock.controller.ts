@@ -31,6 +31,10 @@ const Approve = z.object({
   note: z.string().trim().max(500).optional(),
 });
 const Reject = z.object({ note: z.string().trim().min(2).max(500) });
+const Amend = z.object({
+  lines: Lines,
+  note: z.string().trim().max(500).optional(),
+});
 const Edit = z.object({
   lines: z.array(z.object({ productId: id, quantity: qty })).max(500),
   photoIds: z.array(id).max(5).optional(),
@@ -124,6 +128,27 @@ export class StockController {
   @Post("declarations/:id/approve")
   approve(@Req() r: AuthRequest, @Param("id") i: string, @Body() b: unknown) {
     return this.stock.approve(r.actor, parse(id, i), parse(Approve, b ?? {}));
+  }
+
+  /** The admin corrects an approved count, within 6 hours of approving it. */
+  @Roles("ADMIN")
+  @Post("declarations/:id/amend")
+  amend(@Req() r: AuthRequest, @Param("id") i: string, @Body() b: unknown) {
+    const v = parse(Amend, b);
+    return this.stock.amend(r.actor, parse(id, i), v);
+  }
+
+  /** The admin puts a decided count back to waiting, within 6 hours. */
+  @Roles("ADMIN")
+  @Post("declarations/:id/reopen")
+  reopen(@Req() r: AuthRequest, @Param("id") i: string) {
+    return this.stock.reopen(r.actor, parse(id, i));
+  }
+
+  @Roles("ADMIN")
+  @Post("recounts/:id/reopen")
+  reopenRecount(@Req() r: AuthRequest, @Param("id") i: string) {
+    return this.stock.reopenRecount(r.actor, parse(id, i));
   }
 
   @Roles("ADMIN")

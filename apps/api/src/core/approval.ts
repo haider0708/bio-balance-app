@@ -23,3 +23,19 @@ export function nextStatus(current: Status, action: StatusAction): Status {
     );
   return rule.to;
 }
+
+/** After deciding, the admin may still change a decision for this long (payouts never). */
+export const DECISION_WINDOW_MS = 6 * 3_600_000;
+
+/** Whether a decision made at `at` can still be changed. */
+export function withinDecisionWindow(at: Date | null, now = Date.now()) {
+  return !!at && now - at.getTime() <= DECISION_WINDOW_MS;
+}
+
+/** Says why a decision can no longer be changed. */
+export const decisionLocked = () =>
+  new DomainError(
+    "DECISION_LOCKED",
+    "A decision can only be changed for 6 hours after it was made.",
+    409,
+  );
