@@ -25,6 +25,7 @@ const publicUser = {
   regionId: true,
   pdvId: true,
   passwordHash: true,
+  canChooseSupplier: true,
   createdAt: true,
   decisionNote: true,
   createdById: true,
@@ -360,6 +361,47 @@ export class UsersService {
           entityType: "User",
           entityId: id,
         });
+      return present(updated);
+    });
+  }
+
+  /**
+   * The admin lets a responsable suggest the grossiste of their stores' restock orders (when the
+   * global switch is on), or takes it back.
+   */
+  async setSupplierChoice(actor: Actor, id: string, allowed: boolean) {
+    requireRule(actor.role === "ADMIN", "FORBIDDEN", "Not allowed.", 403);
+    return this.db.run(actor, async (tx) => {
+      await this.db.lock(tx, "User", id);
+      const user = await tx.user.findUnique({ where: { id } });
+      if (!user) throw notFound("User");
+      refuseDeleted(user);
+      requireRule(
+        user.role === "RESPONSABLE",
+        "NOT_A_RESPONSABLE",
+        "Only a responsable can be given this.",
+        422,
+      );
+      if (user.canChooseSupplier === allowed) return present(user);
+      const updated = await tx.user.update({
+        where: { id },
+        data: { canChooseSupplier: allowed },
+      });
+      await audit(
+        tx,
+        actor,
+        allowed ? "user.supplier_choice_on" : "user.supplier_choice_off",
+        "User",
+        id,
+        { name: user.name },
+        user.regionId,
+      );
+      await notify(tx, [id], {
+        key: allowed ? "supplier.allowed" : "supplier.removed",
+        params: {},
+        entityType: "User",
+        entityId: id,
+      });
       return present(updated);
     });
   }

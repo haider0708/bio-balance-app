@@ -10,6 +10,7 @@ import { deletedEmail } from "./deleted";
 import { hashCode, issueCode, normalizeCode, tokenHash } from "./codes";
 import { decryptSecret, matchTotp } from "./mfa";
 import { PasswordHasher } from "./password-hasher";
+import { SettingsService } from "../../core/settings";
 import { type PushPlatform, pushConfigured } from "../../push/transports";
 
 const SESSION_HOURS = { ADMIN: 12, default: 24 * 30 };
@@ -23,6 +24,8 @@ export interface Me {
   locale: "fr" | "en";
   region: { id: string; code: string; name: string } | null;
   pdv: { id: string; name: string } | null;
+  /** A responsable who may suggest the grossiste of a restock (allowed by the admin, switch on). */
+  canChooseSupplier: boolean;
 }
 
 @Injectable()
@@ -30,6 +33,7 @@ export class AuthService {
   constructor(
     private readonly db: Database,
     private readonly passwords: PasswordHasher = new PasswordHasher(),
+    private readonly settings: SettingsService = new SettingsService(db),
   ) {}
 
   /** Fixed-window attempt counter shared by all API instances. */
@@ -209,6 +213,10 @@ export class AuthService {
   async me(userId: string): Promise<Me> {
     return this.db.run("SYSTEM", async (tx) => {
       const user = await tx.user.findUniqueOrThrow({ where: { id: userId } });
+      const supplierChoice =
+        user.role === "RESPONSABLE" &&
+        user.canChooseSupplier &&
+        (await this.settings.get()).supplierChoice;
       const [region, pdv] = await Promise.all([
         user.regionId
           ? tx.region.findUnique({ where: { id: user.regionId } })
@@ -233,6 +241,7 @@ export class AuthService {
           name: region.name,
         },
         pdv: pdv && { id: pdv.id, name: pdv.name },
+        canChooseSupplier: supplierChoice,
       };
     });
   }

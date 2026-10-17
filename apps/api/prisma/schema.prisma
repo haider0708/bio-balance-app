@@ -97,36 +97,38 @@ enum LessonKind {
 /// A region of the network. Regions are stable; the admin names them, and moves stores, groups,
 /// grossistes and responsables between them.
 model Region {
-  id   String @id @default(uuid()) @db.Uuid
+  id      String  @id @default(uuid()) @db.Uuid
   /// Internal, generated from the name when the region is created; never shown.
-  code String @unique
-  name String
+  code    String  @unique
+  name    String
   /// The test region of the store reviewers' accounts (at most one): hidden from the admin unless
   /// asked for, and nothing done in it reaches the real network.
   sandbox Boolean @default(false)
 }
 
 model User {
-  id           String    @id @default(uuid()) @db.Uuid
-  email        String    @unique
-  name         String
-  phone        String?
+  id                String    @id @default(uuid()) @db.Uuid
+  email             String    @unique
+  name              String
+  phone             String?
   /// Null until the person accepts the invitation and chooses a password.
-  passwordHash String?
-  role         Role
-  status       Status    @default(PENDING)
+  passwordHash      String?
+  role              Role
+  status            Status    @default(PENDING)
   /// Responsables and vendeurs belong to exactly one region.
-  regionId     String?   @db.Uuid
+  regionId          String?   @db.Uuid
   /// A vendeur works in one point of sale.
-  pdvId        String?   @db.Uuid
-  locale       String    @default("fr")
-  mfaSecret    String?
-  lastTotpStep BigInt    @default(-1)
-  createdById  String?   @db.Uuid
-  createdAt    DateTime  @default(now())
-  decidedById  String?   @db.Uuid
-  decidedAt    DateTime?
-  decisionNote String?
+  pdvId             String?   @db.Uuid
+  locale            String    @default("fr")
+  mfaSecret         String?
+  lastTotpStep      BigInt    @default(-1)
+  /// A responsable the admin lets suggest the grossiste of a restock (when the global switch is on).
+  canChooseSupplier Boolean   @default(false)
+  createdById       String?   @db.Uuid
+  createdAt         DateTime  @default(now())
+  decidedById       String?   @db.Uuid
+  decidedAt         DateTime?
+  decisionNote      String?
 
   @@index([role, status])
   @@index([regionId, role, status])
@@ -356,6 +358,8 @@ model RestockOrder {
   supplierDepotId  String?       @db.Uuid
   /// The region the goods leave from (the grossiste's): its responsable ships the order.
   supplierRegionId String?       @db.Uuid
+  /// The grossiste the responsable suggested; the admin decides.
+  suggestedDepotId String?       @db.Uuid
   requestedById    String        @db.Uuid
   note             String?
   createdAt        DateTime      @default(now())

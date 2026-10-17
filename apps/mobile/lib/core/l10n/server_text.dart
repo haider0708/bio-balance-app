@@ -200,6 +200,10 @@ class ServerText {
       'A newer count of this place exists: correct that one.',
       'Un comptage plus récent de ce lieu existe : corrigez celui-là.',
     ),
+    'SUPPLIER_CHOICE_OFF': (
+      'You cannot choose the grossiste for an order: the admin decides.',
+      'Vous ne pouvez pas choisir le grossiste d’une commande : l’admin décide.',
+    ),
     'ALREADY_COUNTED': (
       'The stock of this place was already declared.',
       'Le stock de ce lieu a déjà été déclaré.',
@@ -536,6 +540,18 @@ class ServerText {
     'restock.requested': (
       '{by} requested a restock {number} for {place}.',
       '{by} a demandé le réassort {number} pour {place}.',
+    ),
+    'restock.requested_from': (
+      '{by} requested a restock {number} for {place}, from {depot}.',
+      '{by} a demandé le réassort {number} pour {place}, depuis {depot}.',
+    ),
+    'supplier.allowed': (
+      'You can now suggest the grossiste when you order a restock.',
+      'Vous pouvez maintenant proposer le grossiste quand vous commandez un réassort.',
+    ),
+    'supplier.removed': (
+      'You can no longer choose the grossiste for a restock: the admin decides.',
+      'Vous ne pouvez plus choisir le grossiste d’un réassort : l’admin décide.',
     ),
     'restock.to_prepare': (
       'Restock {number} was given to {depot}: ship it.',

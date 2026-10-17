@@ -6,6 +6,7 @@ import {
   Param,
   Patch,
   Post,
+  Put,
   Query,
   Req,
 } from "@nestjs/common";
@@ -385,6 +386,20 @@ export class DirectoryController {
   @Delete("regions/:id")
   deleteRegion(@Req() r: AuthRequest, @Param("id") i: string) {
     return this.regionsService.remove(r.actor, parse(id, i));
+  }
+  /** Lets a responsable suggest the grossiste of a restock (the global switch must be on too). */
+  @Roles("ADMIN")
+  @Put("users/:id/supplier-choice")
+  supplierChoice(
+    @Req() r: AuthRequest,
+    @Param("id") i: string,
+    @Body() b: unknown,
+  ) {
+    return this.users.setSupplierChoice(
+      r.actor,
+      parse(id, i),
+      parse(z.object({ allowed: z.boolean() }), b).allowed,
+    );
   }
   @Roles("ADMIN")
   @Post("users/:id/move")

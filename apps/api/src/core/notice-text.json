@@ -214,5 +214,17 @@
   "stock.corrected": {
     "en": "{by} corrected the approved stock count of {place}. Reason: {reason}",
     "fr": "{by} a corrigé le comptage approuvé du stock de {place}. Motif : {reason}"
+  },
+  "restock.requested_from": {
+    "en": "{by} requested a restock {number} for {place}, from {depot}.",
+    "fr": "{by} a demandé le réassort {number} pour {place}, depuis {depot}."
+  },
+  "supplier.allowed": {
+    "en": "You can now suggest the grossiste when you order a restock.",
+    "fr": "Vous pouvez maintenant proposer le grossiste quand vous commandez un réassort."
+  },
+  "supplier.removed": {
+    "en": "You can no longer choose the grossiste for a restock: the admin decides.",
+    "fr": "Vous ne pouvez plus choisir le grossiste d’un réassort : l’admin décide."
   }
 }

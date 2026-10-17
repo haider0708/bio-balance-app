@@ -27,6 +27,7 @@ const Create = z.object({
   note: Note.optional(),
   lines: Lines(positive),
   photoIds: z.array(id).max(5).optional(),
+  supplierId: id.optional(),
 });
 const Assign = z.object({ depotId: id, lines: Lines(positive).optional() });
 const Direct = z.object({ lines: Lines(positive).optional() });
@@ -62,6 +63,15 @@ export class RestockController {
   @Post()
   create(@Req() r: AuthRequest, @Body() b: unknown) {
     return this.restocks.create(r.actor, parse(Create, b));
+  }
+  /** A responsable allowed to choose: the grossistes and whether each covers the lines. */
+  @Roles("RESPONSABLE")
+  @Post("suppliers")
+  suppliersFor(@Req() r: AuthRequest, @Body() b: unknown) {
+    return this.restocks.suppliersFor(
+      r.actor,
+      parse(z.object({ lines: Lines(positive) }), b).lines,
+    );
   }
   @Get()
   list(@Req() r: AuthRequest, @Query() q: Record<string, string>) {

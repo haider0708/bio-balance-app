@@ -7,6 +7,7 @@ import { Database, type Tx } from "../../core/database";
 import { DomainError, notFound, requireRule } from "../../core/errors";
 import { notify, notifyAdmins, responsableIds } from "../../core/notifier";
 import { adjustStock, currentQuantity, findLocation } from "../stock/ledger";
+import { SettingsService } from "../../core/settings";
 
 export interface QtyLine {
   productId: string;
@@ -23,7 +24,10 @@ type Order = Prisma.RestockOrderGetPayload<{ include: { lines: true } }>;
  */
 @Injectable()
 export class RestockService {
-  constructor(private readonly db: Database) {}
+  constructor(
+    private readonly db: Database,
+    private readonly settings: SettingsService = new SettingsService(db),
+  ) {}
 
   // ───────────────────────── Request ─────────────────────────
 
@@ -38,6 +42,8 @@ export class RestockService {
       note?: string;
       lines: QtyLine[];
       photoIds?: string[];
+      /** A responsable the admin allowed suggests the grossiste for a store's order. */
+      supplierId?: string;
     },
   ) {
     requireRule(
@@ -65,6 +71,39 @@ export class RestockService {
         409,
       );
       await this.checkLines(tx, input.lines);
+      let suggested: { id: string; name: string } | null = null;
+      if (input.supplierId) {
+        requireRule(
+          !byAdmin && dest.kind === "PDV",
+          "SUPPLIER_CHOICE_OFF",
+          "Only a responsable allowed to choose the grossiste suggests one, for a store's order.",
+          403,
+        );
+        const [global, me] = await Promise.all([
+          this.settings.get(),
+          tx.user.findUnique({
+            where: { id: actor.id },
+            select: { canChooseSupplier: true },
+          }),
+        ]);
+        requireRule(
+          global.supplierChoice && me?.canChooseSupplier,
+          "SUPPLIER_CHOICE_OFF",
+          "You cannot choose the grossiste for an order.",
+          403,
+        );
+        // A grossiste of any region (the responsable cannot see other regions' rows themselves).
+        const depot = await this.db.run("SYSTEM", (t) =>
+          t.depot.findUnique({ where: { id: input.supplierId! } }),
+        );
+        requireRule(
+          depot?.status === "ACTIVE",
+          "DEPOT_NOT_FOUND",
+          "Choose an active grossiste.",
+          404,
+        );
+        suggested = { id: depot.id, name: depot.name };
+      }
       const [sequence] = await tx.$queryRaw<
         { n: bigint }[]
       >`SELECT nextval('restock_number_seq') AS n`;
@@ -87,6 +126,7 @@ export class RestockService {
           destId: dest.id,
           requestedById: actor.id,
           note: input.note?.trim() || null,
+          suggestedDepotId: suggested?.id ?? null,
           lines: {
             create: input.lines.map((l) => ({
               productId: l.productId,
@@ -139,8 +179,13 @@ export class RestockService {
         );
       } else
         await notifyAdmins(tx, order.regionId, {
-          key: "restock.requested",
-          params: { number, place: dest.name, by: actor.name },
+          key: suggested ? "restock.requested_from" : "restock.requested",
+          params: {
+            number,
+            place: dest.name,
+            by: actor.name,
+            depot: suggested?.name ?? "",
+          },
           entityType: "RestockOrder",
           entityId: order.id,
         });
@@ -209,6 +254,65 @@ export class RestockService {
               Number(a.regionId === order.regionId) ||
             a.name.localeCompare(b.name),
         );
+    });
+  }
+
+  /**
+   * For a responsable allowed to choose a grossiste: every active grossiste (any region) with
+   * whether it can cover the lines. Never the quantities another region holds.
+   */
+  async suppliersFor(actor: Actor, lines: QtyLine[]) {
+    requireRule(actor.role === "RESPONSABLE", "FORBIDDEN", "Not allowed.", 403);
+    return this.db.run(actor, async (tx) => {
+      const [global, me] = await Promise.all([
+        this.settings.get(),
+        tx.user.findUnique({
+          where: { id: actor.id },
+          select: { canChooseSupplier: true },
+        }),
+      ]);
+      requireRule(
+        global.supplierChoice && me?.canChooseSupplier,
+        "SUPPLIER_CHOICE_OFF",
+        "You cannot choose the grossiste for an order.",
+        403,
+      );
+      await this.checkLines(tx, lines);
+      // Read as trusted server code: a responsable's own view stops at their region, but the
+      // answer below is only "covers it or not", never another region's quantities.
+      const [depots, regions, stock] = await this.db.run("SYSTEM", (t) =>
+        Promise.all([
+          t.depot.findMany({ where: { status: "ACTIVE" } }),
+          t.region.findMany({ select: { id: true, name: true } }),
+          t.stock.findMany({
+            where: {
+              locationKind: "DEPOT",
+              productId: { in: lines.map((l) => l.productId) },
+            },
+            select: { locationId: true, productId: true, quantity: true },
+          }),
+        ]),
+      );
+      const held = new Map(
+        stock.map((x) => [`${x.locationId}:${x.productId}`, x.quantity]),
+      );
+      const regionName = new Map(regions.map((r) => [r.id, r.name]));
+      return depots
+        .map((d) => {
+          const covered = lines.map((l) => ({
+            productId: l.productId,
+            enough: (held.get(`${d.id}:${l.productId}`) ?? 0) >= l.quantity,
+          }));
+          return {
+            id: d.id,
+            name: d.name,
+            city: d.city,
+            regionName: regionName.get(d.regionId) ?? "",
+            missing: covered.filter((c) => !c.enough).length,
+            lines: covered,
+          };
+        })
+        .sort((a, b) => a.missing - b.missing || a.name.localeCompare(b.name));
     });
   }
 
@@ -917,7 +1021,9 @@ export class RestockService {
     const placeIds = [
       ...new Set(
         orders.flatMap((o) =>
-          [o.destId, o.supplierDepotId].filter((x): x is string => !!x),
+          [o.destId, o.supplierDepotId, o.suggestedDepotId].filter(
+            (x): x is string => !!x,
+          ),
         ),
       ),
     ];
@@ -950,6 +1056,18 @@ export class RestockService {
     ]);
     const product = new Map(products.map((p) => [p.id, p]));
     const place = new Map([...pdvs, ...depots].map((p) => [p.id, p.name]));
+    // A grossiste of another region is not in the responsable's own view: its name is all they get.
+    const unseen = orders
+      .map((o) => o.suggestedDepotId)
+      .filter((x): x is string => !!x && !place.has(x));
+    if (unseen.length)
+      for (const d of await this.db.run("SYSTEM", (t) =>
+        t.depot.findMany({
+          where: { id: { in: unseen } },
+          select: { id: true, name: true },
+        }),
+      ))
+        place.set(d.id, d.name);
     const user = new Map(users.map((u) => [u.id, u.name]));
     const who = (id: string | null) =>
       id ? { id, name: user.get(id) ?? "" } : null;
@@ -989,6 +1107,10 @@ export class RestockService {
       receiptNote: o.receiptNote,
       decisionNote: o.decisionNote,
       cancelReason: o.cancelReason,
+      /** The grossiste the responsable suggested (the admin decides). */
+      suggestedSupplier: o.suggestedDepotId
+        ? { id: o.suggestedDepotId, name: place.get(o.suggestedDepotId) ?? "" }
+        : null,
       lines: o.lines
         .map((l) => ({
           productId: l.productId,
