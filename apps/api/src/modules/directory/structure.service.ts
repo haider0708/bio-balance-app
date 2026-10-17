@@ -390,7 +390,8 @@ export class StructureService {
         _count: { _all: true },
       }),
       tx.stockDeclaration.findMany({
-        where: { locationId: { in: ids }, kind: "INITIAL" },
+        // Any count counts: the opening stock, or a later one when the opening stock was corrected.
+        where: { locationId: { in: ids } },
         select: { locationId: true, status: true },
         orderBy: { createdAt: "asc" },
       }),

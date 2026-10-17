@@ -3,6 +3,7 @@ import {
   client,
   createAccount,
   fakeJpeg,
+  owner,
   resetDatabase,
   startApi,
   type Api,
@@ -55,6 +56,19 @@ describe("media", () => {
 });
 
 describe("initial stock", () => {
+  it("still shows its stock when the only approved count is a later one (the opening count was removed)", async () => {
+    const pdv = await approvedPdv(w);
+    await stockPlace(w, pdv.id, w.nord, [20, 0, 0]);
+    expect((await w.n.get("/v1/pdvs")).body[0].initialStock).toBe("APPROVED");
+    const db = await owner();
+    try {
+      await db.query(`UPDATE "StockDeclaration" SET kind = 'COUNT'`);
+    } finally {
+      await db.end();
+    }
+    expect((await w.n.get("/v1/pdvs")).body[0].initialStock).toBe("APPROVED");
+  });
+
   it("is inactive until the admin approves it, and approval can correct quantities", async () => {
     const pdv = await approvedPdv(w);
     const declared = await w.n.post("/v1/stock/declarations", {
