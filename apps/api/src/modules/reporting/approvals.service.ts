@@ -283,6 +283,9 @@ export class ApprovalsService {
               kind: r.kind,
               lines: r.lines.length,
               units: r.lines.reduce((s, l) => s + l.quantity, 0),
+              // The responsable is correcting it: it cannot be decided until they finish.
+              editing:
+                !!r.editingUntil && r.editingUntil.getTime() > Date.now(),
             },
           });
       }

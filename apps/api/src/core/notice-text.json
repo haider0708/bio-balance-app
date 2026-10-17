@@ -206,5 +206,13 @@
   "reward.new": {
     "en": "New reward from {day}: {amount} per unit of {target}.",
     "fr": "Nouvelle récompense à partir du {day} : {amount} par unité de {target}."
+  },
+  "stock.edited": {
+    "en": "{by} corrected the stock count of {place}: waiting for approval.",
+    "fr": "{by} a corrigé le comptage du stock de {place} : en attente d’approbation."
+  },
+  "stock.corrected": {
+    "en": "{by} corrected the approved stock count of {place}. Reason: {reason}",
+    "fr": "{by} a corrigé le comptage approuvé du stock de {place}. Motif : {reason}"
   }
 }

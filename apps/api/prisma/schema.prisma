@@ -312,6 +312,11 @@ model StockDeclaration {
   decidedById  String?                @db.Uuid
   decidedAt    DateTime?
   decisionNote String?
+  /// The responsable correcting a waiting count: the admin cannot decide it until they finish (or the hold ends).
+  editingById  String?                @db.Uuid
+  editingUntil DateTime?
+  /// When the responsable last corrected the count after its approval.
+  correctedAt  DateTime?
   lines        StockDeclarationLine[]
 
   @@index([status, createdAt])
@@ -326,6 +331,11 @@ model StockDeclarationLine {
   quantity         Int
   /// What the admin approved; null until decided.
   approvedQuantity Int?
+  /// How much this line has put into the place's stock so far (null: nothing yet, a count
+  /// declared before counts applied at once). Changes apply the difference to this number.
+  appliedQuantity  Int?
+  /// A product the admin added when approving (it was not in the responsable's count).
+  addedByAdmin     Boolean          @default(false)
   declaration      StockDeclaration @relation(fields: [declarationId], references: [id], onDelete: Cascade)
 
   @@unique([declarationId, productId])

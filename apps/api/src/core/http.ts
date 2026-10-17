@@ -136,6 +136,8 @@ export function sendError(
           : status < 500
             ? "The request is invalid or the resource is unavailable."
             : "The service is temporarily unavailable.",
+    // What the caller needs to fix it (which products, how low): only what a business rule chose to say.
+    details: error instanceof DomainError ? error.details : undefined,
     fields:
       error instanceof ZodError
         ? error.issues.map((i) => ({

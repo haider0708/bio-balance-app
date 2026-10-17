@@ -1,4 +1,14 @@
-import { Body, Controller, Get, Param, Post, Query, Req } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Post,
+  Put,
+  Query,
+  Req,
+} from "@nestjs/common";
 import { z } from "zod";
 import { type AuthRequest, Roles, parse } from "../../core/http";
 import { StockService } from "./stock.service";
@@ -21,6 +31,13 @@ const Approve = z.object({
   note: z.string().trim().max(500).optional(),
 });
 const Reject = z.object({ note: z.string().trim().min(2).max(500) });
+const Edit = z.object({
+  lines: z.array(z.object({ productId: id, quantity: qty })).max(500),
+  photoIds: z.array(id).max(5).optional(),
+  note: z.string().trim().max(500).optional(),
+  /** Required once the count is approved. */
+  reason: z.string().trim().min(2).max(300).optional(),
+});
 const Recount = z.object({
   locationId: id,
   reason: z.string().trim().min(3).max(500),
@@ -81,6 +98,26 @@ export class StockController {
   @Get("declarations/:id")
   get(@Req() r: AuthRequest, @Param("id") i: string) {
     return this.stock.get(r.actor, parse(id, i));
+  }
+
+  /** The responsable saves a corrected count (see StockService.edit). */
+  @Roles("RESPONSABLE")
+  @Put("declarations/:id")
+  edit(@Req() r: AuthRequest, @Param("id") i: string, @Body() b: unknown) {
+    return this.stock.edit(r.actor, parse(id, i), parse(Edit, b));
+  }
+
+  /** The responsable opens a waiting count to correct it: it goes on hold for the admin. */
+  @Roles("RESPONSABLE")
+  @Post("declarations/:id/edit")
+  startEdit(@Req() r: AuthRequest, @Param("id") i: string) {
+    return this.stock.startEdit(r.actor, parse(id, i));
+  }
+
+  @Roles("RESPONSABLE")
+  @Delete("declarations/:id/edit")
+  cancelEdit(@Req() r: AuthRequest, @Param("id") i: string) {
+    return this.stock.cancelEdit(r.actor, parse(id, i));
   }
 
   @Roles("ADMIN")

@@ -180,6 +180,26 @@ class ServerText {
       'Not enough stock for this sale.',
       'Stock insuffisant pour cette vente.',
     ),
+    'BELOW_SOLD': (
+      'Some of these units already left this place (sold or shipped): a quantity cannot go below what was used.',
+      'Une partie de ces unités a déjà quitté ce lieu (vendue ou expédiée) : une quantité ne peut pas descendre sous ce qui a été utilisé.',
+    ),
+    'EDITING': (
+      'This count is being corrected: wait for the responsable to finish.',
+      'Ce comptage est en cours de correction : attendez que le responsable ait terminé.',
+    ),
+    'REASON_REQUIRED': (
+      'Say what was wrong: an approved count needs a reason to be corrected.',
+      'Dites ce qui n’allait pas : un comptage approuvé se corrige avec un motif.',
+    ),
+    'STOCK_CORRECTION_CLOSED': (
+      'A count can be corrected for 3 days after its approval. Ask the admin.',
+      'Un comptage peut être corrigé pendant 3 jours après son approbation. Demandez à l’admin.',
+    ),
+    'NOT_LATEST': (
+      'A newer count of this place exists: correct that one.',
+      'Un comptage plus récent de ce lieu existe : corrigez celui-là.',
+    ),
     'ALREADY_COUNTED': (
       'The stock of this place was already declared.',
       'Le stock de ce lieu a déjà été déclaré.',
@@ -496,6 +516,14 @@ class ServerText {
     'stock.submitted': (
       '{by} declared stock for {place}: waiting for approval.',
       '{by} a déclaré le stock de {place} : en attente d’approbation.',
+    ),
+    'stock.edited': (
+      '{by} corrected the stock count of {place}: waiting for approval.',
+      '{by} a corrigé le comptage du stock de {place} : en attente d’approbation.',
+    ),
+    'stock.corrected': (
+      '{by} corrected the approved stock count of {place}. Reason: {reason}',
+      '{by} a corrigé le comptage approuvé du stock de {place}. Motif : {reason}',
     ),
     'stock.approved': (
       'The stock of {place} was approved.',

@@ -3,15 +3,17 @@ import type { Approval, Prisma } from "@prisma/client";
 import type { Actor } from "../../core/actor";
 import { audit } from "../../core/audit";
 import { Database, type Tx } from "../../core/database";
-import { notFound, requireRule } from "../../core/errors";
+import { DomainError, notFound, requireRule } from "../../core/errors";
 import { notify, notifyAdmins, responsableIds } from "../../core/notifier";
 import { randomUUID } from "node:crypto";
 import { ownedProofs } from "../media/proofs";
 import {
+  adjustStock,
   currentQuantity,
   findLocation,
   setStock,
   type Location,
+  type MovementRef,
 } from "./ledger";
 
 export interface DeclarationLineInput {
@@ -20,6 +22,10 @@ export interface DeclarationLineInput {
 }
 
 const LOW_STOCK = 5;
+/** A waiting count stays on hold this long while its responsable corrects it (renewed while they work). */
+const EDIT_HOLD_MS = 30 * 60_000;
+/** After its approval, the responsable may still correct a count for this long. */
+const CORRECTION_WINDOW_MS = 3 * 86_400_000;
 
 @Injectable()
 export class StockService {
@@ -206,6 +212,7 @@ export class StockService {
             create: input.lines.map((l) => ({
               productId: l.productId,
               quantity: l.quantity,
+              appliedQuantity: l.quantity,
               ...(byAdmin && { approvedQuantity: l.quantity }),
             })),
           },
@@ -226,14 +233,15 @@ export class StockService {
           where: { id: permit.id },
           data: { declarationId: declaration.id },
         });
+      // The count reaches the stock at once, so the sellers can sell; the admin's approval verifies it.
+      for (const line of declaration.lines)
+        await setStock(tx, location, line.productId, line.quantity, {
+          reason: "DECLARATION",
+          refType: "StockDeclaration",
+          refId: declaration.id,
+          actorId: actor.id,
+        });
       if (byAdmin) {
-        for (const line of declaration.lines)
-          await setStock(tx, location, line.productId, line.quantity, {
-            reason: "DECLARATION",
-            refType: "StockDeclaration",
-            refId: declaration.id,
-            actorId: actor.id,
-          });
         await audit(
           tx,
           actor,
@@ -308,7 +316,11 @@ export class StockService {
     });
   }
 
-  /** The admin approves the quantities as declared, or corrects some of them first. */
+  /**
+   * The admin verifies a count: as declared, or with quantities changed and products added. The
+   * count is already in the stock, so only the difference is applied (the sales made since are
+   * never overwritten).
+   */
   approve(
     actor: Actor,
     id: string,
@@ -325,27 +337,72 @@ export class StockService {
       const overrides = new Map(
         (input.lines ?? []).map((l) => [l.productId, l.quantity]),
       );
-      for (const productId of overrides.keys())
-        requireRule(
-          declaration.lines.some((l) => l.productId === productId),
-          "PRODUCT_NOT_FOUND",
-          "That product is not in the declaration.",
-          422,
-        );
+      requireRule(
+        overrides.size === (input.lines ?? []).length,
+        "DUPLICATE_PRODUCT",
+        "A product appears twice.",
+      );
+      const known = new Set(declaration.lines.map((l) => l.productId));
+      const added = [...overrides.keys()].filter((p) => !known.has(p));
+      // The admin may add products the responsable left out.
+      requireRule(
+        (await tx.product.count({
+          where: { id: { in: added }, active: true },
+        })) === added.length,
+        "PRODUCT_NOT_FOUND",
+        "Unknown or inactive product.",
+        404,
+      );
       const location = await findLocation(tx, declaration.locationId);
+      const changes = [
+        ...declaration.lines.map((l) => ({
+          productId: l.productId,
+          applied: l.appliedQuantity,
+          target: overrides.get(l.productId) ?? l.quantity,
+        })),
+        ...added.map((productId) => ({
+          productId,
+          applied: null,
+          target: overrides.get(productId)!,
+        })),
+      ];
+      await this.assertRoomToReduce(tx, location, changes);
+      const ref: MovementRef = {
+        reason: "DECLARATION_CORRECTION",
+        refType: "StockDeclaration",
+        refId: id,
+        actorId: actor.id,
+      };
       let amended = 0;
       for (const line of declaration.lines) {
         const approved = overrides.get(line.productId) ?? line.quantity;
         if (approved !== line.quantity) amended++;
+        await this.applyLine(
+          tx,
+          location,
+          line.productId,
+          line.appliedQuantity,
+          approved,
+          ref,
+        );
         await tx.stockDeclarationLine.update({
           where: { id: line.id },
-          data: { approvedQuantity: approved },
+          data: { approvedQuantity: approved, appliedQuantity: approved },
         });
-        await setStock(tx, location, line.productId, approved, {
-          reason: "DECLARATION",
-          refType: "StockDeclaration",
-          refId: id,
-          actorId: actor.id,
+      }
+      for (const productId of added) {
+        amended++;
+        const quantity = overrides.get(productId)!;
+        await this.applyLine(tx, location, productId, null, quantity, ref);
+        await tx.stockDeclarationLine.create({
+          data: {
+            declarationId: id,
+            productId,
+            quantity: 0,
+            approvedQuantity: quantity,
+            appliedQuantity: quantity,
+            addedByAdmin: true,
+          },
         });
       }
       const updated = await tx.stockDeclaration.update({
@@ -379,6 +436,7 @@ export class StockService {
     });
   }
 
+  /** The admin rejects a count: the stock it put in is taken back (what already left stays sold). */
   reject(actor: Actor, id: string, note: string) {
     requireRule(
       actor.role === "ADMIN",
@@ -389,6 +447,29 @@ export class StockService {
     return this.db.run(actor, async (tx) => {
       const declaration = await this.lockDeclaration(tx, id);
       const location = await findLocation(tx, declaration.locationId);
+      let removed = 0;
+      for (const line of declaration.lines) {
+        const applied = line.appliedQuantity ?? 0;
+        if (applied <= 0) continue;
+        // Never more than is there: units sold meanwhile are not taken back twice.
+        await tx.$queryRaw`SELECT 1 FROM "Stock" WHERE "locationId"=${location.id}::uuid AND "productId"=${line.productId}::uuid FOR UPDATE`;
+        const take = Math.min(
+          applied,
+          await currentQuantity(tx, location.id, line.productId),
+        );
+        if (take > 0)
+          await adjustStock(tx, location, line.productId, -take, {
+            reason: "DECLARATION_REMOVED",
+            refType: "StockDeclaration",
+            refId: id,
+            actorId: actor.id,
+          });
+        removed += take;
+        await tx.stockDeclarationLine.update({
+          where: { id: line.id },
+          data: { appliedQuantity: 0 },
+        });
+      }
       const updated = await tx.stockDeclaration.update({
         where: { id },
         data: {
@@ -405,7 +486,7 @@ export class StockService {
         "stock.rejected",
         "StockDeclaration",
         id,
-        { note },
+        { note, removed },
         declaration.regionId,
       );
       await this.tell(
@@ -418,6 +499,350 @@ export class StockService {
       );
       return (await this.present(tx, [updated]))[0]!;
     });
+  }
+
+  // ───────────────────────── Correcting a count ─────────────────────────
+
+  /**
+   * The responsable opens a waiting count to correct it: it goes on hold, so the admin cannot
+   * decide it meanwhile. Calling it again renews the hold (30 minutes), and it ends when they
+   * save, cancel, or stop.
+   */
+  startEdit(actor: Actor, id: string) {
+    requireRule(actor.role === "RESPONSABLE", "FORBIDDEN", "Not allowed.", 403);
+    return this.db.run(actor, async (tx) => {
+      const declaration = await this.lockAny(tx, id);
+      await this.authorize(tx, actor, declaration.locationId);
+      requireRule(
+        declaration.status === "PENDING",
+        "INVALID_STATE",
+        "Only a count waiting for the admin can be put on hold.",
+        409,
+      );
+      this.assertNotHeldByOther(declaration, actor.id);
+      const updated = await tx.stockDeclaration.update({
+        where: { id },
+        data: {
+          editingById: actor.id,
+          editingUntil: new Date(Date.now() + EDIT_HOLD_MS),
+        },
+        include: { lines: true },
+      });
+      return (await this.present(tx, [updated]))[0]!;
+    });
+  }
+
+  /** The responsable gives up correcting: the count goes back to the admin as it was. */
+  cancelEdit(actor: Actor, id: string) {
+    requireRule(actor.role === "RESPONSABLE", "FORBIDDEN", "Not allowed.", 403);
+    return this.db.run(actor, async (tx) => {
+      const declaration = await this.lockAny(tx, id);
+      await this.authorize(tx, actor, declaration.locationId);
+      const updated =
+        declaration.editingById === actor.id
+          ? await tx.stockDeclaration.update({
+              where: { id },
+              data: { editingById: null, editingUntil: null },
+              include: { lines: true },
+            })
+          : declaration;
+      return (await this.present(tx, [updated]))[0]!;
+    });
+  }
+
+  /**
+   * The responsable saves a corrected count, with the new quantities in full. A waiting count goes
+   * back to the admin (after the hold); an approved one (up to three days after its approval,
+   * with a reason) is corrected at once, without a new approval, and the admin is told. Either
+   * way only the difference reaches the stock, and a quantity cannot go below what already left.
+   */
+  edit(
+    actor: Actor,
+    id: string,
+    input: {
+      lines: DeclarationLineInput[];
+      photoIds?: string[];
+      note?: string;
+      reason?: string;
+    },
+  ) {
+    requireRule(actor.role === "RESPONSABLE", "FORBIDDEN", "Not allowed.", 403);
+    return this.db.run(actor, async (tx) => {
+      const declaration = await this.lockAny(tx, id);
+      const location = await this.authorize(tx, actor, declaration.locationId);
+      const author = await tx.user.findUnique({
+        where: { id: declaration.createdById },
+        select: { role: true },
+      });
+      requireRule(
+        author?.role === "RESPONSABLE",
+        "FORBIDDEN",
+        "A count made by the admin is corrected by the admin.",
+        403,
+      );
+      const approved = declaration.status === "APPROVED";
+      if (approved) {
+        requireRule(
+          input.reason?.trim(),
+          "REASON_REQUIRED",
+          "Say what was wrong: an approved count needs a reason to be corrected.",
+        );
+        requireRule(
+          declaration.decidedAt &&
+            Date.now() - declaration.decidedAt.getTime() <=
+              CORRECTION_WINDOW_MS,
+          "STOCK_CORRECTION_CLOSED",
+          "A count can be corrected for 3 days after its approval. Ask the admin.",
+          403,
+        );
+        const later = await tx.stockDeclaration.findFirst({
+          where: {
+            locationId: declaration.locationId,
+            createdAt: { gt: declaration.createdAt },
+          },
+        });
+        requireRule(
+          !later,
+          "NOT_LATEST",
+          "A newer count of this place exists: correct that one.",
+          409,
+        );
+      } else {
+        requireRule(
+          declaration.status === "PENDING",
+          "INVALID_STATE",
+          "This count was rejected: declare it again.",
+          409,
+        );
+        this.assertNotHeldByOther(declaration, actor.id);
+      }
+      const ids = input.lines.map((l) => l.productId);
+      requireRule(
+        new Set(ids).size === ids.length,
+        "DUPLICATE_PRODUCT",
+        "A product appears twice.",
+      );
+      requireRule(
+        (await tx.product.count({
+          where: { id: { in: ids }, active: true },
+        })) === ids.length,
+        "PRODUCT_NOT_FOUND",
+        "Unknown or inactive product.",
+        404,
+      );
+      // The photos kept stay valid; new ones must be the responsable's own.
+      const kept = new Set([
+        ...declaration.photoIds,
+        ...(declaration.photoId ? [declaration.photoId] : []),
+      ]);
+      const wanted = input.photoIds ?? [...kept];
+      const fresh = wanted.filter((p) => !kept.has(p));
+      const photoIds =
+        input.lines.length > 0
+          ? [
+              ...(await ownedProofs(
+                tx,
+                actor,
+                fresh,
+                "Add a photo of the stock.",
+                {
+                  regionId: location.stockRegionId,
+                  min: 0,
+                },
+              )),
+              ...wanted.filter((p) => kept.has(p)),
+            ]
+          : [];
+      requireRule(
+        input.lines.length === 0 || photoIds.length >= 1,
+        "PHOTO_REQUIRED",
+        "Add a photo of the stock.",
+        422,
+      );
+      requireRule(
+        photoIds.length <= 5,
+        "TOO_MANY_PHOTOS",
+        "Add between 1 and 5 different photos or documents.",
+        422,
+      );
+
+      const current = new Map(declaration.lines.map((l) => [l.productId, l]));
+      const next = new Map(input.lines.map((l) => [l.productId, l.quantity]));
+      const changes = [
+        ...declaration.lines.map((l) => ({
+          productId: l.productId,
+          applied: l.appliedQuantity,
+          target: next.get(l.productId) ?? 0,
+        })),
+        ...input.lines
+          .filter((l) => !current.has(l.productId))
+          .map((l) => ({
+            productId: l.productId,
+            applied: null,
+            target: l.quantity,
+          })),
+      ];
+      await this.assertRoomToReduce(tx, location, changes);
+      const ref: MovementRef = {
+        reason: "DECLARATION_CORRECTION",
+        refType: "StockDeclaration",
+        refId: id,
+        actorId: actor.id,
+      };
+      const before = declaration.lines.map((l) => ({
+        productId: l.productId,
+        quantity: l.quantity,
+      }));
+      for (const line of declaration.lines) {
+        const target = next.get(line.productId);
+        if (target === undefined) {
+          // Left out of the corrected count: its units come out of the stock again.
+          await this.applyLine(
+            tx,
+            location,
+            line.productId,
+            line.appliedQuantity,
+            0,
+            ref,
+          );
+          await tx.stockDeclarationLine.delete({ where: { id: line.id } });
+          continue;
+        }
+        await this.applyLine(
+          tx,
+          location,
+          line.productId,
+          line.appliedQuantity,
+          target,
+          ref,
+        );
+        await tx.stockDeclarationLine.update({
+          where: { id: line.id },
+          data: {
+            quantity: target,
+            appliedQuantity: target,
+            ...(approved && { approvedQuantity: target }),
+          },
+        });
+      }
+      for (const l of input.lines.filter((x) => !current.has(x.productId))) {
+        await this.applyLine(tx, location, l.productId, null, l.quantity, ref);
+        await tx.stockDeclarationLine.create({
+          data: {
+            declarationId: id,
+            productId: l.productId,
+            quantity: l.quantity,
+            appliedQuantity: l.quantity,
+            ...(approved && { approvedQuantity: l.quantity }),
+          },
+        });
+      }
+      const updated = await tx.stockDeclaration.update({
+        where: { id },
+        data: {
+          photoId: photoIds[0] ?? null,
+          photoIds,
+          ...(input.note !== undefined && { note: input.note.trim() || null }),
+          editingById: null,
+          editingUntil: null,
+          ...(approved && { correctedAt: new Date() }),
+        },
+        include: { lines: true },
+      });
+      await audit(
+        tx,
+        actor,
+        approved ? "stock.corrected" : "stock.edited",
+        "StockDeclaration",
+        id,
+        {
+          location: location.name,
+          reason: input.reason?.trim() ?? null,
+          before,
+          after: input.lines,
+        },
+        location.stockRegionId,
+      );
+      await notifyAdmins(tx, location.stockRegionId, {
+        key: approved ? "stock.corrected" : "stock.edited",
+        params: {
+          place: location.name,
+          by: actor.name,
+          reason: input.reason?.trim() ?? "",
+        },
+        entityType: "StockDeclaration",
+        entityId: id,
+      });
+      return (await this.present(tx, [updated]))[0]!;
+    });
+  }
+
+  /**
+   * Puts a line's quantity into the stock: the first time as the counted quantity, afterwards only
+   * the difference from what it already put in.
+   */
+  private applyLine(
+    tx: Tx,
+    location: Location,
+    productId: string,
+    applied: number | null,
+    target: number,
+    ref: MovementRef,
+  ) {
+    if (applied === null) return setStock(tx, location, productId, target, ref);
+    if (target === applied) return Promise.resolve();
+    return adjustStock(tx, location, productId, target - applied, ref);
+  }
+
+  /**
+   * A line cannot be lowered below what already left the place (sold or shipped): the stock never
+   * goes negative. Says which products, and how low each may go.
+   */
+  private async assertRoomToReduce(
+    tx: Tx,
+    location: Location,
+    changes: { productId: string; applied: number | null; target: number }[],
+  ) {
+    const tooLow: { productId: string; name: string; minimum: number }[] = [];
+    for (const c of changes) {
+      if (c.applied === null || c.target >= c.applied) continue;
+      await tx.$queryRaw`SELECT 1 FROM "Stock" WHERE "locationId"=${location.id}::uuid AND "productId"=${c.productId}::uuid FOR UPDATE`;
+      const have = await currentQuantity(tx, location.id, c.productId);
+      if (have + (c.target - c.applied) < 0) {
+        const product = await tx.product.findUnique({
+          where: { id: c.productId },
+          select: { name: true },
+        });
+        tooLow.push({
+          productId: c.productId,
+          name: product?.name ?? "",
+          minimum: c.applied - have,
+        });
+      }
+    }
+    if (tooLow.length)
+      throw new DomainError(
+        "BELOW_SOLD",
+        "Some of these units already left this place (sold or shipped): a quantity cannot go below what was used.",
+        409,
+        { products: tooLow },
+      );
+  }
+
+  private assertNotHeldByOther(
+    declaration: { editingById: string | null; editingUntil: Date | null },
+    actorId: string,
+  ) {
+    const held =
+      declaration.editingById &&
+      declaration.editingUntil &&
+      declaration.editingUntil.getTime() > Date.now();
+    requireRule(
+      !held || declaration.editingById === actorId,
+      "EDITING",
+      "Someone else is correcting this count.",
+      409,
+    );
   }
 
   /**
@@ -694,18 +1119,36 @@ export class StockService {
     }));
   }
 
-  /** Locks a declaration for the admin's decision and checks nobody decided it yet. */
-  private async lockDeclaration(tx: Tx, id: string) {
+  /** Locks a declaration, whatever its state. */
+  private async lockAny(tx: Tx, id: string) {
     await this.db.lock(tx, "StockDeclaration", id);
     const declaration = await tx.stockDeclaration.findUnique({
       where: { id },
       include: { lines: true },
     });
     if (!declaration) throw notFound("Stock declaration");
+    return declaration;
+  }
+
+  /**
+   * Locks a declaration for the admin's decision and checks nobody decided it yet and that its
+   * responsable is not correcting it (a count on hold cannot be decided).
+   */
+  private async lockDeclaration(tx: Tx, id: string) {
+    const declaration = await this.lockAny(tx, id);
     requireRule(
       declaration.status === "PENDING",
       "INVALID_STATE",
       "This declaration was already decided.",
+      409,
+    );
+    requireRule(
+      !(
+        declaration.editingUntil &&
+        declaration.editingUntil.getTime() > Date.now()
+      ),
+      "EDITING",
+      "The responsable is correcting this count: wait for them to finish.",
       409,
     );
     return declaration;
@@ -743,7 +1186,9 @@ export class StockService {
     const userIds = [
       ...new Set(
         rows.flatMap((r) =>
-          [r.createdById, r.decidedById].filter((x): x is string => !!x),
+          [r.createdById, r.decidedById, r.editingById].filter(
+            (x): x is string => !!x,
+          ),
         ),
       ),
     ];
@@ -762,12 +1207,14 @@ export class StockService {
       }),
       tx.user.findMany({
         where: { id: { in: userIds } },
-        select: { id: true, name: true },
+        select: { id: true, name: true, role: true },
       }),
     ]);
     const product = new Map(products.map((p) => [p.id, p]));
     const place = new Map([...pdvs, ...depots].map((p) => [p.id, p.name]));
     const user = new Map(users.map((u) => [u.id, u.name]));
+    const role = new Map(users.map((u) => [u.id, u.role]));
+    const now = Date.now();
     return rows.map((r) => ({
       id: r.id,
       kind: r.kind,
@@ -788,6 +1235,23 @@ export class StockService {
         : null,
       decidedAt: r.decidedAt,
       decisionNote: r.decisionNote,
+      /** The responsable is correcting it: the admin cannot decide it until they finish. */
+      editing:
+        r.editingById && r.editingUntil && r.editingUntil.getTime() > now
+          ? {
+              by: { id: r.editingById, name: user.get(r.editingById) ?? "" },
+              until: r.editingUntil,
+            }
+          : null,
+      /** Until when its responsable may still correct it without a new approval (null: no more). */
+      correctableUntil:
+        r.status === "APPROVED" &&
+        r.decidedAt &&
+        role.get(r.createdById) === "RESPONSABLE" &&
+        r.decidedAt.getTime() + CORRECTION_WINDOW_MS > now
+          ? new Date(r.decidedAt.getTime() + CORRECTION_WINDOW_MS)
+          : null,
+      correctedAt: r.correctedAt,
       lines: r.lines
         .map((l) => ({
           productId: l.productId,
@@ -795,6 +1259,7 @@ export class StockService {
           family: product.get(l.productId)?.family ?? "",
           quantity: l.quantity,
           approvedQuantity: l.approvedQuantity,
+          addedByAdmin: l.addedByAdmin,
         }))
         .sort((a, b) => a.name.localeCompare(b.name)),
     }));

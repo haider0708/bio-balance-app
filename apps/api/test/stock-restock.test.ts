@@ -69,7 +69,7 @@ describe("initial stock", () => {
     expect((await w.n.get("/v1/pdvs")).body[0].initialStock).toBe("APPROVED");
   });
 
-  it("is inactive until the admin approves it, and approval can correct quantities", async () => {
+  it("reaches the stock at once; the admin's approval verifies it and can correct quantities", async () => {
     const pdv = await approvedPdv(w);
     const declared = await w.n.post("/v1/stock/declarations", {
       locationId: pdv.id,
@@ -81,7 +81,11 @@ describe("initial stock", () => {
     });
     expect(declared.status).toBe(201);
     expect(declared.body).toMatchObject({ kind: "INITIAL", status: "PENDING" });
-    expect(await levels(w, pdv.id)).toEqual({});
+    // Sellers can sell it already: the count is in the stock while it waits.
+    expect(await levels(w, pdv.id)).toEqual({
+      "Serum Vitamin C": 20,
+      "Shampoo Argan": 8,
+    });
     expect((await w.n.get("/v1/pdvs")).body[0].initialStock).toBe("PENDING");
 
     const again = await w.n.post("/v1/stock/declarations", {
@@ -187,7 +191,7 @@ describe("initial stock", () => {
       lines: [{ productId: w.products[0]!.id, quantity: 50 }],
     });
     expect(declared.body).toMatchObject({ status: "PENDING", kind: "INITIAL" });
-    expect(await levels(w, w.depotId)).toEqual({});
+    expect(await levels(w, w.depotId)).toEqual({ "Serum Vitamin C": 50 });
     await w.a.post(`/v1/stock/declarations/${declared.body.id}/approve`, {});
     expect(await levels(w, w.depotId)).toEqual({ "Serum Vitamin C": 50 });
     // Another region's responsable does not even see it.
@@ -735,7 +739,7 @@ describe("counting again needs the admin's permission", () => {
     expect(recount.status).toBe(201);
     expect(recount.body.kind).toBe("COUNT");
     expect(recount.body.status).toBe("PENDING");
-    expect((await levels(w, pdv.id))["Serum Vitamin C"]).toBe(10);
+    expect((await levels(w, pdv.id))["Serum Vitamin C"]).toBe(4);
     await w.a.post(`/v1/stock/declarations/${recount.body.id}/approve`, {});
     expect((await levels(w, pdv.id))["Serum Vitamin C"]).toBe(4);
     // The permission was used up.

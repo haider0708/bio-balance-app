@@ -43,6 +43,10 @@ const LEAVING = new Set(["SALE", "SALE_CORRECTION", "SHIPMENT"]);
 export interface MovementRef {
   reason:
     | "DECLARATION"
+    /** A change to a count after it was applied (an edit, a correction, the admin's amendment). */
+    | "DECLARATION_CORRECTION"
+    /** A rejected count taking its stock back. */
+    | "DECLARATION_REMOVED"
     | "RECEIPT"
     | "SHIPMENT"
     | "SALE"
