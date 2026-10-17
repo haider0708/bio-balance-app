@@ -253,6 +253,7 @@ class SessionNotifier extends AsyncNotifier<Session?> {
             'name': me.region!.name,
           },
     'pdv': me.pdv == null ? null : {'id': me.pdv!.id, 'name': me.pdv!.name},
+    'canChooseSupplier': me.canChooseSupplier,
   };
 }
 

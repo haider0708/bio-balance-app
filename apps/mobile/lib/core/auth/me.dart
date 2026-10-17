@@ -44,6 +44,7 @@ class Me {
     this.phone,
     this.region,
     this.pdv,
+    this.canChooseSupplier = false,
   });
 
   factory Me.fromJson(Json j) => Me(
@@ -57,6 +58,7 @@ class Me {
         ? null
         : Region.fromJson(j.obj('region')),
     pdv: j.objOrNull('pdv') == null ? null : Place.fromJson(j.obj('pdv')),
+    canChooseSupplier: j['canChooseSupplier'] == true,
   );
 
   final String id;
@@ -67,6 +69,9 @@ class Me {
   final String locale;
   final Region? region;
   final Place? pdv;
+
+  /// A responsable the admin lets suggest the grossiste of a restock (the switch is on too).
+  final bool canChooseSupplier;
 
   /// The first letters of the name, for avatars.
   String get initials {

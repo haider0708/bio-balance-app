@@ -3148,4 +3148,42 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get onHold => 'en attente : en cours de correction';
+
+  @override
+  String get supplierSuggest => 'Grossiste (facultatif)';
+
+  @override
+  String get supplierSuggestHint =>
+      'Proposez d’où la marchandise doit venir. L’admin décide toujours.';
+
+  @override
+  String get supplierNone => 'Pas de préférence';
+
+  @override
+  String get addProductsFirst => 'Ajoutez d’abord les produits.';
+
+  @override
+  String get suggestedSupplier => 'Grossiste proposé';
+
+  @override
+  String assignToSuggested(String name) {
+    return 'Confier à $name';
+  }
+
+  @override
+  String get suggestedTag => 'Proposé';
+
+  @override
+  String get supplierChoiceTitle => 'Choix du grossiste';
+
+  @override
+  String get supplierChoiceHint =>
+      'Laissez certains responsables proposer le grossiste quand ils commandent un réassort pour un magasin. La commande vient toujours chez vous : vous l’approuvez comme proposé, la confiez à un autre grossiste, l’envoyez vous-même ou la refusez.';
+
+  @override
+  String get supplierChoiceSwitch =>
+      'Les responsables peuvent proposer le grossiste';
+
+  @override
+  String get supplierChoiceNone => 'Aucun responsable pour l’instant.';
 }

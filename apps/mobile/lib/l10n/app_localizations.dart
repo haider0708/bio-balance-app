@@ -5317,6 +5317,72 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'on hold: being corrected'**
   String get onHold;
+
+  /// No description provided for @supplierSuggest.
+  ///
+  /// In en, this message translates to:
+  /// **'Grossiste (optional)'**
+  String get supplierSuggest;
+
+  /// No description provided for @supplierSuggestHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Suggest where the goods should come from. The admin still decides.'**
+  String get supplierSuggestHint;
+
+  /// No description provided for @supplierNone.
+  ///
+  /// In en, this message translates to:
+  /// **'No preference'**
+  String get supplierNone;
+
+  /// No description provided for @addProductsFirst.
+  ///
+  /// In en, this message translates to:
+  /// **'Add the products first.'**
+  String get addProductsFirst;
+
+  /// No description provided for @suggestedSupplier.
+  ///
+  /// In en, this message translates to:
+  /// **'Suggested grossiste'**
+  String get suggestedSupplier;
+
+  /// No description provided for @assignToSuggested.
+  ///
+  /// In en, this message translates to:
+  /// **'Assign to {name}'**
+  String assignToSuggested(String name);
+
+  /// No description provided for @suggestedTag.
+  ///
+  /// In en, this message translates to:
+  /// **'Suggested'**
+  String get suggestedTag;
+
+  /// No description provided for @supplierChoiceTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Grossiste choice'**
+  String get supplierChoiceTitle;
+
+  /// No description provided for @supplierChoiceHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Let chosen responsables suggest the grossiste when they order a restock for a store. The order still comes to you: you approve it as suggested, give it to another grossiste, send it yourself, or refuse it.'**
+  String get supplierChoiceHint;
+
+  /// No description provided for @supplierChoiceSwitch.
+  ///
+  /// In en, this message translates to:
+  /// **'Responsables may suggest the grossiste'**
+  String get supplierChoiceSwitch;
+
+  /// No description provided for @supplierChoiceNone.
+  ///
+  /// In en, this message translates to:
+  /// **'No responsable yet.'**
+  String get supplierChoiceNone;
 }
 
 class _AppLocalizationsDelegate

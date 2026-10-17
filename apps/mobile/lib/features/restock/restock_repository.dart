@@ -39,14 +39,28 @@ class RestockRepository {
     String? note,
     required List<Map<String, Object>> lines,
     List<String> photoIds = const [],
+    String? supplierId,
   }) async => RestockOrder.fromJson(
     await _ref.read(apiClientProvider).post('/v1/restocks', {
       'destId': destId,
+      'supplierId': ?supplierId,
       if (note != null && note.isNotEmpty) 'note': note,
       'lines': lines,
       if (photoIds.isNotEmpty) 'photoIds': photoIds,
     }) as Json,
   );
+
+  /// The grossistes a responsable allowed to choose may suggest, and whether each covers the lines.
+  Future<List<SupplierCoverage>> coverage(
+    List<Map<String, Object>> lines,
+  ) async => [
+    for (final j in jsonList(
+      await _ref.read(apiClientProvider).post('/v1/restocks/suppliers', {
+        'lines': lines,
+      }),
+    ))
+      SupplierCoverage.fromJson(j),
+  ];
 
   Future<void> assign(
     String id, {

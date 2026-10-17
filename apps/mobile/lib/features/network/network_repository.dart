@@ -116,6 +116,11 @@ class NetworkRepository {
       .post('/v1/pdvs/$id/$action', {'note': ?note});
 
   // People
+  /// The admin lets a responsable suggest the grossiste of a restock, or takes it back.
+  Future<void> setSupplierChoice(String userId, {required bool allowed}) => _ref
+      .read(apiClientProvider)
+      .put('/v1/users/$userId/supplier-choice', {'allowed': allowed});
+
   Future<List<Person>> people({
     String? role,
     String? status,

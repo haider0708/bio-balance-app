@@ -151,6 +151,7 @@ class Person {
     this.regionId,
     this.pdvId,
     this.decisionNote,
+    this.canChooseSupplier = false,
   });
 
   factory Person.fromJson(Json j) => Person(
@@ -164,6 +165,7 @@ class Person {
     pdvId: j.strOrNull('pdvId'),
     activated: j.flag('activated'),
     decisionNote: j.strOrNull('decisionNote'),
+    canChooseSupplier: j['canChooseSupplier'] == true,
   );
 
   final String id;
@@ -176,6 +178,9 @@ class Person {
   final String? pdvId;
   final bool activated;
   final String? decisionNote;
+
+  /// A responsable the admin lets suggest the grossiste of a restock.
+  final bool canChooseSupplier;
 
   String get initials {
     final parts = name

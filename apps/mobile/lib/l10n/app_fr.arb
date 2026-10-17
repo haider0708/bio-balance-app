@@ -1720,5 +1720,16 @@
   "stockCorrectable": "Vous pouvez encore corriger ce comptage jusqu’au {date}.",
   "belowSoldLine": "{product} : au moins {minimum}",
   "addedByAdmin": "Ajouté par l’admin",
-  "onHold": "en attente : en cours de correction"
+  "onHold": "en attente : en cours de correction",
+  "supplierSuggest": "Grossiste (facultatif)",
+  "supplierSuggestHint": "Proposez d’où la marchandise doit venir. L’admin décide toujours.",
+  "supplierNone": "Pas de préférence",
+  "addProductsFirst": "Ajoutez d’abord les produits.",
+  "suggestedSupplier": "Grossiste proposé",
+  "assignToSuggested": "Confier à {name}",
+  "suggestedTag": "Proposé",
+  "supplierChoiceTitle": "Choix du grossiste",
+  "supplierChoiceHint": "Laissez certains responsables proposer le grossiste quand ils commandent un réassort pour un magasin. La commande vient toujours chez vous : vous l’approuvez comme proposé, la confiez à un autre grossiste, l’envoyez vous-même ou la refusez.",
+  "supplierChoiceSwitch": "Les responsables peuvent proposer le grossiste",
+  "supplierChoiceNone": "Aucun responsable pour l’instant."
 }

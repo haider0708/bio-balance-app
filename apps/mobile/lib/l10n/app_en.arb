@@ -1728,5 +1728,17 @@
   "@correctApprovedHint": {"placeholders": {"date": {"type": "String"}}},
   "@stockCorrectable": {"placeholders": {"date": {"type": "String"}}},
   "@belowSoldLine": {"placeholders": {"product": {"type": "String"}, "minimum": {"type": "int"}}},
-  "onHold": "on hold: being corrected"
+  "onHold": "on hold: being corrected",
+  "supplierSuggest": "Grossiste (optional)",
+  "supplierSuggestHint": "Suggest where the goods should come from. The admin still decides.",
+  "supplierNone": "No preference",
+  "addProductsFirst": "Add the products first.",
+  "suggestedSupplier": "Suggested grossiste",
+  "assignToSuggested": "Assign to {name}",
+  "suggestedTag": "Suggested",
+  "supplierChoiceTitle": "Grossiste choice",
+  "supplierChoiceHint": "Let chosen responsables suggest the grossiste when they order a restock for a store. The order still comes to you: you approve it as suggested, give it to another grossiste, send it yourself, or refuse it.",
+  "supplierChoiceSwitch": "Responsables may suggest the grossiste",
+  "supplierChoiceNone": "No responsable yet.",
+  "@assignToSuggested": {"placeholders": {"name": {"type": "String"}}}
 }

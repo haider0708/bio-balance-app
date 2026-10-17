@@ -229,6 +229,9 @@ class _RequestRestockScreenState extends ConsumerState<RequestRestockScreen> {
   final _note = TextEditingController();
   late String? _destId = widget.destId;
 
+  /// The grossiste suggested (a responsable the admin allowed); the admin decides.
+  SupplierCoverage? _supplier;
+
   /// The request is kept for a week until it is sent; one opened from a place has its own.
   late final _draft = DraftKeeper(
     ref,
@@ -285,6 +288,30 @@ class _RequestRestockScreenState extends ConsumerState<RequestRestockScreen> {
     super.dispose();
   }
 
+  /// Lists the grossistes with whether each covers what is asked, and keeps the one chosen.
+  Future<void> _chooseSupplier() async {
+    final t = AppLocalizations.of(context);
+    final lines = _quantities.lines(skipZero: true);
+    if (lines.isEmpty) {
+      showMessage(context, t.addProductsFirst);
+      return;
+    }
+    try {
+      final list = await ref.read(restockRepositoryProvider).coverage(lines);
+      if (!mounted) return;
+      final picked = await showModalBottomSheet<SupplierCoverage?>(
+        context: context,
+        isScrollControlled: true,
+        builder: (context) => _SupplierSheet(list: list, current: _supplier),
+      );
+      // Dismissed: no change. "No preference" comes back as an empty choice.
+      if (picked == null) return;
+      setState(() => _supplier = picked.id.isEmpty ? null : picked);
+    } catch (error) {
+      if (mounted) showError(context, error);
+    }
+  }
+
   Future<void> _send() async {
     final t = AppLocalizations.of(context);
     final ok = await perform(
@@ -295,6 +322,7 @@ class _RequestRestockScreenState extends ConsumerState<RequestRestockScreen> {
             destId: _destId!,
             note: _note.text.trim(),
             lines: _quantities.lines(skipZero: true),
+            supplierId: _supplier?.id,
           ),
       success: t.restockSent,
     );
@@ -353,6 +381,7 @@ class _RequestRestockScreenState extends ConsumerState<RequestRestockScreen> {
                     initialValue: places.any((p) => p.$1 == _destId)
                         ? _destId
                         : null,
+                    isExpanded: true,
                     decoration: InputDecoration(labelText: t.deliverTo),
                     items: [
                       for (final (id, name, icon) in places)
@@ -384,6 +413,42 @@ class _RequestRestockScreenState extends ConsumerState<RequestRestockScreen> {
             const Gap(8),
             QuantityEditor(controller: _quantities),
             const Gap(16),
+            // A responsable the admin allowed may suggest where a store's goods come from.
+            if (ref.watch(meProvider).canChooseSupplier &&
+                (pdvs.value ?? const <Pdv>[]).any((p) => p.id == _destId)) ...[
+              AppCard(
+                onTap: _chooseSupplier,
+                child: Row(
+                  spacing: 12,
+                  children: [
+                    const Icon(LucideIcons.warehouse),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            t.supplierSuggest,
+                            style: context.text.titleSmall,
+                          ),
+                          Text(
+                            _supplier?.name ?? t.supplierSuggestHint,
+                            style: context.text.bodySmall?.copyWith(
+                              color: context.status.muted,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Icon(
+                      LucideIcons.chevronRight,
+                      size: 18,
+                      color: context.status.muted,
+                    ),
+                  ],
+                ),
+              ),
+              const Gap(16),
+            ],
             TextField(
               controller: _note,
               maxLength: 300,
@@ -602,6 +667,9 @@ class _RestockDetailScreenState extends ConsumerState<RestockDetailScreen> {
                             ? 'BioBalance'
                             : (o.supplier ?? t.grossisteLabel),
                       ),
+                    if (o.suggestedSupplier != null &&
+                        o.status == RestockStatus.requested)
+                      InfoRow(t.suggestedSupplier, o.suggestedSupplier!.name),
                     if (o.receiver != null)
                       InfoRow(t.receivedBy, o.receiver!.name),
                     if (o.receiptNote != null)
@@ -641,11 +709,34 @@ class _RestockDetailScreenState extends ConsumerState<RestockDetailScreen> {
 
     if (me.role == Role.admin) {
       if (o.status == RestockStatus.requested) {
+        final suggested = o.toDepot ? null : o.suggestedSupplier;
+        // The responsable suggested a grossiste: one tap approves it as suggested.
+        if (suggested != null) {
+          w
+            ..add(
+              AsyncButton(
+                label: t.assignToSuggested(suggested.name),
+                icon: LucideIcons.check,
+                onPressed: () => _act(
+                  () => repo.assign(
+                    o.id,
+                    depotId: suggested.id,
+                    lines: _adjusted,
+                  ),
+                  t.restockRouted,
+                ),
+              ),
+            )
+            ..add(gap);
+        }
         w
           ..add(
             AsyncButton(
               label: o.toDepot ? t.sendFromBiobalance : t.assignToGrossiste,
               icon: o.toDepot ? LucideIcons.send : LucideIcons.truck,
+              style: suggested != null
+                  ? AsyncButtonStyle.outlined
+                  : AsyncButtonStyle.filled,
               onPressed: () async {
                 if (o.toDepot)
                   return _act(
@@ -906,6 +997,12 @@ class _RestockDetailScreenState extends ConsumerState<RestockDetailScreen> {
     };
     final names = {for (final l in order.lines) l.productId: l.name};
     suppliers.sort((a, b) {
+      // The one the responsable suggested comes first.
+      final suggestedId = order.suggestedSupplier?.id;
+      if (suggestedId != null &&
+          (a.id == suggestedId) != (b.id == suggestedId)) {
+        return a.id == suggestedId ? -1 : 1;
+      }
       final byMissing = a.missing(wanted).compareTo(b.missing(wanted));
       if (byMissing != 0) return byMissing;
       final byRegion = (a.regionId == order.regionId ? 0 : 1).compareTo(
@@ -917,8 +1014,92 @@ class _RestockDetailScreenState extends ConsumerState<RestockDetailScreen> {
     return showModalBottomSheet<SupplierOption>(
       context: context,
       isScrollControlled: true,
-      builder: (context) =>
-          _DepotSheet(suppliers: suppliers, wanted: wanted, names: names),
+      builder: (context) => _DepotSheet(
+        suppliers: suppliers,
+        wanted: wanted,
+        names: names,
+        suggestedId: order.suggestedSupplier?.id,
+      ),
+    );
+  }
+}
+
+/// The grossistes a responsable may suggest, with whether each covers the order.
+class _SupplierSheet extends StatelessWidget {
+  const _SupplierSheet({required this.list, required this.current});
+
+  final List<SupplierCoverage> list;
+  final SupplierCoverage? current;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    return SafeArea(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.sizeOf(context).height * 0.85,
+        ),
+        child: ListView(
+          shrinkWrap: true,
+          padding: const EdgeInsets.only(bottom: 8),
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+              child: Text(t.chooseGrossiste, style: context.text.titleLarge),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+              child: Text(
+                t.supplierSuggestHint,
+                style: context.text.bodyMedium?.copyWith(
+                  color: context.status.muted,
+                ),
+              ),
+            ),
+            ListTile(
+              leading: const Icon(LucideIcons.circleSlash),
+              title: Text(t.supplierNone),
+              trailing: current == null ? const Icon(LucideIcons.check) : null,
+              onTap: () => Navigator.pop(
+                context,
+                const SupplierCoverage(
+                  id: '',
+                  name: '',
+                  city: '',
+                  regionName: '',
+                  missing: 0,
+                ),
+              ),
+            ),
+            for (final d in list)
+              ListTile(
+                leading: const Icon(LucideIcons.warehouse),
+                title: Text(d.name),
+                subtitle: Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: Wrap(
+                    spacing: 8,
+                    runSpacing: 4,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      Text('${d.city} · ${d.regionName}'),
+                      StatusChip(
+                        d.missing == 0
+                            ? t.supplierHasAll
+                            : t.supplierMissing(d.missing),
+                        tone: d.missing == 0 ? Tone.success : Tone.warning,
+                      ),
+                    ],
+                  ),
+                ),
+                trailing: current?.id == d.id
+                    ? const Icon(LucideIcons.check)
+                    : null,
+                onTap: () => Navigator.pop(context, d),
+              ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -991,7 +1172,11 @@ class _DepotSheet extends StatelessWidget {
     required this.suppliers,
     required this.wanted,
     required this.names,
+    this.suggestedId,
   });
+
+  /// The grossiste the responsable suggested, if any.
+  final String? suggestedId;
 
   final List<SupplierOption> suppliers;
 
@@ -1054,9 +1239,21 @@ class _DepotSheet extends StatelessWidget {
         children: [
           Text('${d.city} · ${d.regionName}'),
           const Gap(6),
-          StatusChip(
-            missing == 0 ? t.supplierHasAll : t.supplierMissing(missing),
-            tone: missing == 0 ? Tone.success : Tone.warning,
+          Wrap(
+            spacing: 8,
+            runSpacing: 4,
+            children: [
+              if (d.id == suggestedId)
+                StatusChip(
+                  t.suggestedTag,
+                  tone: Tone.info,
+                  icon: LucideIcons.star,
+                ),
+              StatusChip(
+                missing == 0 ? t.supplierHasAll : t.supplierMissing(missing),
+                tone: missing == 0 ? Tone.success : Tone.warning,
+              ),
+            ],
           ),
           if (missing > 0) ...[
             const Gap(4),

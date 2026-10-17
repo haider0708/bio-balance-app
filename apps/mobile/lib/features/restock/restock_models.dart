@@ -73,6 +73,7 @@ class RestockOrder {
     this.supplier,
     this.supplierId,
     this.supplierRegionId,
+    this.suggestedSupplier,
     this.requestedBy,
     this.receiver,
     this.note,
@@ -98,6 +99,9 @@ class RestockOrder {
     supplier: j.objOrNull('supplier')?.str('name'),
     supplierId: j.objOrNull('supplier')?.str('id'),
     supplierRegionId: j.objOrNull('supplier')?.strOrNull('regionId'),
+    suggestedSupplier: j.objOrNull('suggestedSupplier') == null
+        ? null
+        : Actor.from(j.objOrNull('suggestedSupplier')),
     requestedBy: Actor.from(j.objOrNull('requestedBy')),
     receiver: Actor.from(j.objOrNull('receiver')),
     note: j.strOrNull('note'),
@@ -129,6 +133,9 @@ class RestockOrder {
 
   /// The region the goods leave from: its responsable ships them.
   final String? supplierRegionId;
+
+  /// The grossiste the responsable suggested (the admin decides).
+  final Actor? suggestedSupplier;
   final Actor? requestedBy;
   final Actor? receiver;
   final String? note;
@@ -194,4 +201,31 @@ class SupplierOption {
   /// The products it holds fewer of than `wanted` asks for.
   int missing(Map<String, int> wanted) =>
       wanted.entries.where((e) => (held[e.key] ?? 0) < e.value).length;
+}
+
+/// A grossiste a responsable may suggest, and whether it covers the order (never its quantities).
+class SupplierCoverage {
+  const SupplierCoverage({
+    required this.id,
+    required this.name,
+    required this.city,
+    required this.regionName,
+    required this.missing,
+  });
+
+  factory SupplierCoverage.fromJson(Json j) => SupplierCoverage(
+    id: j.str('id'),
+    name: j.str('name'),
+    city: j.str('city'),
+    regionName: j.str('regionName'),
+    missing: j.integer('missing'),
+  );
+
+  final String id;
+  final String name;
+  final String city;
+  final String regionName;
+
+  /// How many of the order's products it does not hold enough of.
+  final int missing;
 }
