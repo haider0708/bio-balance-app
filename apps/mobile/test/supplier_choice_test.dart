@@ -78,7 +78,7 @@ void main() {
           'city': 'Tunis',
           'regionName': 'Nord',
           'missing': 0,
-          'lines': [],
+          'lines': <Object>[],
         },
         {
           'id': 'd2',
@@ -86,7 +86,7 @@ void main() {
           'city': 'Sfax',
           'regionName': 'Sud',
           'missing': 1,
-          'lines': [],
+          'lines': <Object>[],
         },
       ])
       ..on('POST /v1/restocks', order(suggested: {'id': 'd2', 'name': 'x'}));

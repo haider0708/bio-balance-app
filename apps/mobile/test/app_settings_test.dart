@@ -42,7 +42,11 @@ void main() {
     expect(find.text('Minimum version'), findsOneWidget);
     expect(find.text('This app is build 42.'), findsOneWidget);
     // The android field shows what is saved; the admin sets the iPhone one.
+    await tester.ensureVisible(find.byType(TextField).first);
+    await tester.pump();
     await tester.enterText(find.byType(TextField).first, '45');
+    await tester.ensureVisible(find.text('Save'));
+    await tester.pump();
     await tester.tap(find.text('Save'));
     await settle(tester);
     final put = server.calls.lastWhere((c) => c.method == 'PUT');
@@ -68,7 +72,11 @@ void main() {
     );
     container.read(routerProvider).go('/app-settings');
     await settle(tester);
+    await tester.ensureVisible(find.text('Use this build'));
+    await tester.pump();
     await tester.tap(find.text('Use this build'));
+    await tester.pump();
+    await tester.ensureVisible(find.text('Save'));
     await tester.pump();
     await tester.tap(find.text('Save'));
     await settle(tester);
