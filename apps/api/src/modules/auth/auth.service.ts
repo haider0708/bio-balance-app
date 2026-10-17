@@ -13,7 +13,8 @@ import { PasswordHasher } from "./password-hasher";
 import { SettingsService } from "../../core/settings";
 import { type PushPlatform, pushConfigured } from "../../push/transports";
 
-const SESSION_HOURS = { ADMIN: 12, default: 24 * 30 };
+/** How long a session lasts without use. Every use pushes it forward again (see `authenticate`). */
+const SESSION_HOURS = { ADMIN: 24 * 7, default: 24 * 90 };
 
 export interface Me {
   id: string;
@@ -184,8 +185,10 @@ export class AuthService {
           status: string;
           sessionId: string;
           sandbox: boolean | null;
+          expiresAt: Date;
         }[]
-      >`SELECT u.id,u.name,u.email,u.role,u.locale,u."regionId",u."pdvId",u.status,s.id AS "sessionId",r.sandbox
+      >`SELECT u.id,u.name,u.email,u.role,u.locale,u."regionId",u."pdvId",u.status,s.id AS "sessionId",r.sandbox,
+        s."expiresAt" AS "expiresAt"
       FROM "Session" s JOIN "User" u ON u.id=s."userId" LEFT JOIN "Region" r ON r.id=u."regionId"
       WHERE s."tokenHash"=${tokenHash(token)} AND s."revokedAt" IS NULL
         AND s."expiresAt">(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')`,
@@ -197,6 +200,20 @@ export class AuthService {
       "Your account is not active.",
       403,
     );
+    // Slide the expiry forward when the session is used, at most once an hour (one cheap write, not one per call).
+    const lifetime =
+      (row.role === "ADMIN" ? SESSION_HOURS.ADMIN : SESSION_HOURS.default) *
+      3600_000;
+    if (row.expiresAt.getTime() - Date.now() < lifetime - 3600_000) {
+      await this.db
+        .run("SYSTEM", (tx) =>
+          tx.session.update({
+            where: { id: row.sessionId },
+            data: { expiresAt: new Date(Date.now() + lifetime) },
+          }),
+        )
+        .catch(() => undefined);
+    }
     return {
       id: row.id,
       name: row.name,

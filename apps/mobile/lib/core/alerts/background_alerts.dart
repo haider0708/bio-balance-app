@@ -81,6 +81,9 @@ class BackgroundAlerts {
     if (!_phone) return;
     final ios = defaultTargetPlatform == TargetPlatform.iOS;
     try {
+      // Push already brings every alert: no periodic wake-up (it would only cost battery).
+      final prefs = await SharedPreferences.getInstance();
+      if (prefs.getBool(_pushedKey) ?? false) return;
       await Workmanager().initialize(alertsDispatcher);
       await Workmanager().registerPeriodicTask(
         _taskName,
@@ -134,9 +137,17 @@ class BackgroundAlerts {
       if (token == null) {
         // Alerts refused, or no Google services here: the background check does the work.
         await prefs.setBool(_pushedKey, false);
+        await start();
         return;
       }
-      await prefs.setBool(_pushedKey, await _register(api, token, android));
+      final pushed = await _register(api, token, android);
+      await prefs.setBool(_pushedKey, pushed);
+      if (pushed) {
+        // The server pushes each alert: stop the fifteen-minute wake-up.
+        await Workmanager().cancelByUniqueName(_taskName);
+      } else {
+        await start();
+      }
       if (android && !_listening) {
         _listening = true;
         // Firebase may replace the token later: the server must always have the current one.

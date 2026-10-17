@@ -5,7 +5,7 @@ import { AdminInput, addAdministrator } from "./modules/auth/admins";
 
 /**
  * Adds an administrator, or gives an existing one a fresh authenticator, and prints a one-time
- * link that shows the QR code once (valid one hour). The details arrive on standard input as
+ * link that shows the QR code once (valid 24 hours). The details arrive on standard input as
  * JSON, so a password never appears in a command line:
  *   echo '{"email":"…","name":"…","password":"…"}' | node dist/add-admin.js
  *   echo '{"email":"…","again":true}' | node dist/add-admin.js      (new authenticator and link)

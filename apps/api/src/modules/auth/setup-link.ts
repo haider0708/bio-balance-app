@@ -30,7 +30,7 @@ export async function issueSetupLink(
   db: Database,
   userId: string,
   uri: string,
-  minutes = 60,
+  minutes = 24 * 60,
 ) {
   const token = randomBytes(32).toString("base64url");
   await db.run("SYSTEM", async (tx) => {

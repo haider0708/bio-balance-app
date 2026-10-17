@@ -52,12 +52,13 @@ final notificationsRepositoryProvider = Provider<NotificationsRepository>(
   NotificationsRepository.new,
 );
 
-/// How often the unread badge refreshes while the app is open; null turns polling off (tests).
+/// How often the unread badge double-checks while the app is open; null turns polling off (tests).
+/// A push alert updates it at once, so this is only a safety net.
 final unreadPollIntervalProvider = Provider<Duration?>(
-  (_) => const Duration(seconds: 60),
+  (_) => const Duration(minutes: 3),
 );
 
-/// The unread badge: checked now, every minute while the app is in front, and on coming back
+/// The unread badge: checked now, every few minutes while the app is in front, and on coming back
 /// to it. Nothing is asked while signed out or in the background.
 class UnreadCount extends Notifier<int> {
   @override
