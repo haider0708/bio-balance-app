@@ -154,6 +154,34 @@ class StockScreen extends ConsumerWidget {
                       ),
                     ),
                   ),
+                if (me.role == Role.responsable &&
+                    (recent.firstOrNull?.correctableUntil != null))
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: AppCard(
+                      color: context.status.infoSoft,
+                      borderColor: Colors.transparent,
+                      onTap: () => context.push(
+                        '/stock/declarations/${recent.first.id}',
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(LucideIcons.pencil, color: context.status.info),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              t.stockCorrectable(
+                                Dates.dateTime(
+                                  recent.first.correctableUntil!,
+                                  t.localeName,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                 if (isDepot && !suspended && counted && pending == null)
                   _DepotActions(
                     locationId: locationId,
@@ -676,6 +704,28 @@ class DeclarationScreen extends ConsumerWidget {
                 ],
               ),
             ),
+            if (d.editingBy != null) ...[
+              const Gap(12),
+              AppCard(
+                color: context.status.warningSoft,
+                borderColor: Colors.transparent,
+                child: Row(
+                  children: [
+                    Icon(LucideIcons.pencil, color: context.status.warning),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        t.declarationOnHold(d.editingBy!),
+                        style: context.text.bodyMedium?.copyWith(
+                          color: context.status.warning,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
             const Gap(12),
             PhotoStrip(ids: d.photoIds.isNotEmpty ? d.photoIds : [?d.photoId]),
             SectionHeader(t.countedProducts),
@@ -688,7 +738,19 @@ class DeclarationScreen extends ConsumerWidget {
                     spacing: 8,
                     children: [
                       Expanded(
-                        child: Text(l.name, style: context.text.titleSmall),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(l.name, style: context.text.titleSmall),
+                            if (l.addedByAdmin)
+                              Text(
+                                t.addedByAdmin,
+                                style: context.text.bodySmall?.copyWith(
+                                  color: context.status.info,
+                                ),
+                              ),
+                          ],
+                        ),
                       ),
                       if (l.approvedQuantity != null &&
                           l.approvedQuantity != l.quantity) ...[
@@ -710,9 +772,32 @@ class DeclarationScreen extends ConsumerWidget {
                 ),
               ),
             if (me.role == Role.admin &&
-                d.status == DeclarationStatus.pending) ...[
+                d.status == DeclarationStatus.pending &&
+                d.editingBy == null) ...[
               const Gap(16),
               _DecisionBar(declaration: d),
+            ],
+            // The responsable corrects their own count: a waiting one (it goes on hold for the
+            // admin), or an approved one for three days.
+            if (me.role == Role.responsable &&
+                ((d.status == DeclarationStatus.pending &&
+                        d.editingBy == null) ||
+                    d.correctableUntil != null)) ...[
+              const Gap(16),
+              AsyncButton(
+                label: t.correctCount,
+                icon: LucideIcons.pencil,
+                style: AsyncButtonStyle.outlined,
+                onPressed: () async {
+                  final saved = await context.push<bool>(
+                    '/stock/declarations/${d.id}/edit',
+                    extra: d,
+                  );
+                  if (saved ?? false) {
+                    ref.invalidate(declarationProvider(declarationId));
+                  }
+                },
+              ),
             ],
           ],
         ),
@@ -759,6 +844,7 @@ class _DecisionBar extends ConsumerWidget {
               context,
               title: t.amendAndApprove,
               hint: t.amendStockHint,
+              allowAdd: true,
               items: [
                 for (final l in declaration.lines)
                   QuantityItem(

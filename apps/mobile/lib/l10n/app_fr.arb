@@ -47,7 +47,7 @@
   "allRegions": "Toutes les régions",
   "amendAndApprove": "Corriger et approuver",
   "amendReceiptHint": "Vérifiez le bon et saisissez ce qui est réellement arrivé. Chaque quantité part de ce qui a été envoyé.",
-  "amendStockHint": "Modifiez une quantité si la photo montre autre chose.",
+  "amendStockHint": "Comparez avec la photo. Changez une quantité, ou ajoutez un produit qui n’a pas été compté.",
   "amountPerUnit": "Montant par unité vendue",
   "amountPerUnitHint": "Exemple : 0,500",
   "amountTnd": "Montant",
@@ -1710,5 +1710,15 @@
   "minimumIosLabel": "iPhone : plus ancien numéro autorisé",
   "minimumAndroidLabel": "Android : plus ancien numéro autorisé",
   "thisBuild": "Cette application porte le numéro {build}.",
-  "useThisBuild": "Utiliser ce numéro"
+  "useThisBuild": "Utiliser ce numéro",
+  "declarationOnHold": "{name} corrige ce comptage. Vous pourrez le décider quand cette personne aura terminé.",
+  "correctCount": "Corriger ce comptage",
+  "correctCountHint": "Pendant que vous le corrigez, l’admin ne peut pas le valider. Le stock suit vos changements aussitôt.",
+  "correctApprovedHint": "Ce comptage est approuvé. Vous pouvez encore le corriger jusqu’au {date} : la correction s’applique aussitôt, l’admin est prévenu et vous dites ce qui n’allait pas.",
+  "correctionReason": "Qu’est-ce qui n’allait pas ?",
+  "correctionSaved": "Correction enregistrée",
+  "stockCorrectable": "Vous pouvez encore corriger ce comptage jusqu’au {date}.",
+  "belowSoldLine": "{product} : au moins {minimum}",
+  "addedByAdmin": "Ajouté par l’admin",
+  "onHold": "en attente : en cours de correction"
 }

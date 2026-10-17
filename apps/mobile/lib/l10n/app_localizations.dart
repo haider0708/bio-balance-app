@@ -257,7 +257,7 @@ abstract class AppLocalizations {
   /// No description provided for @amendStockHint.
   ///
   /// In en, this message translates to:
-  /// **'Change a quantity if the photo shows something different.'**
+  /// **'Compare with the photo. Change a quantity, or add a product that was not counted.'**
   String get amendStockHint;
 
   /// No description provided for @amountPerUnit.
@@ -5257,6 +5257,66 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Use this build'**
   String get useThisBuild;
+
+  /// No description provided for @declarationOnHold.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} is correcting this count. You can decide it when they finish.'**
+  String declarationOnHold(String name);
+
+  /// No description provided for @correctCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Correct this count'**
+  String get correctCount;
+
+  /// No description provided for @correctCountHint.
+  ///
+  /// In en, this message translates to:
+  /// **'While you correct it, the admin cannot decide it. The stock follows your changes at once.'**
+  String get correctCountHint;
+
+  /// No description provided for @correctApprovedHint.
+  ///
+  /// In en, this message translates to:
+  /// **'This count is approved. You can still correct it until {date}: it applies at once, the admin is told, and you say what was wrong.'**
+  String correctApprovedHint(String date);
+
+  /// No description provided for @correctionReason.
+  ///
+  /// In en, this message translates to:
+  /// **'What was wrong?'**
+  String get correctionReason;
+
+  /// No description provided for @correctionSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Correction saved'**
+  String get correctionSaved;
+
+  /// No description provided for @stockCorrectable.
+  ///
+  /// In en, this message translates to:
+  /// **'You can still correct this count until {date}.'**
+  String stockCorrectable(String date);
+
+  /// No description provided for @belowSoldLine.
+  ///
+  /// In en, this message translates to:
+  /// **'{product}: at least {minimum}'**
+  String belowSoldLine(String product, int minimum);
+
+  /// No description provided for @addedByAdmin.
+  ///
+  /// In en, this message translates to:
+  /// **'Added by the admin'**
+  String get addedByAdmin;
+
+  /// No description provided for @onHold.
+  ///
+  /// In en, this message translates to:
+  /// **'on hold: being corrected'**
+  String get onHold;
 }
 
 class _AppLocalizationsDelegate

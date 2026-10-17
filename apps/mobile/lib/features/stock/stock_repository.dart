@@ -60,6 +60,27 @@ class StockRepository {
     {'lines': ?lines, if (note != null && note.isNotEmpty) 'note': note},
   );
 
+  /// Puts a waiting count on hold while its responsable corrects it (renew while working).
+  Future<void> startEdit(String id) =>
+      _ref.read(apiClientProvider).post('/v1/stock/declarations/$id/edit');
+
+  Future<void> cancelEdit(String id) =>
+      _ref.read(apiClientProvider).delete('/v1/stock/declarations/$id/edit');
+
+  /// Saves a corrected count in full. An approved count needs the reason.
+  Future<void> edit(
+    String id, {
+    required List<Map<String, Object>> lines,
+    required List<String> photoIds,
+    String? note,
+    String? reason,
+  }) => _ref.read(apiClientProvider).put('/v1/stock/declarations/$id', {
+    'lines': lines,
+    'photoIds': photoIds,
+    'note': ?note,
+    if (reason != null && reason.isNotEmpty) 'reason': reason,
+  });
+
   Future<void> reject(String id, String note) => _ref
       .read(apiClientProvider)
       .post('/v1/stock/declarations/$id/reject', {'note': note});

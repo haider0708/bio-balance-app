@@ -106,7 +106,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get amendStockHint =>
-      'Modifiez une quantité si la photo montre autre chose.';
+      'Comparez avec la photo. Changez une quantité, ou ajoutez un produit qui n’a pas été compté.';
 
   @override
   String get amountPerUnit => 'Montant par unité vendue';
@@ -3109,4 +3109,43 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get useThisBuild => 'Utiliser ce numéro';
+
+  @override
+  String declarationOnHold(String name) {
+    return '$name corrige ce comptage. Vous pourrez le décider quand cette personne aura terminé.';
+  }
+
+  @override
+  String get correctCount => 'Corriger ce comptage';
+
+  @override
+  String get correctCountHint =>
+      'Pendant que vous le corrigez, l’admin ne peut pas le valider. Le stock suit vos changements aussitôt.';
+
+  @override
+  String correctApprovedHint(String date) {
+    return 'Ce comptage est approuvé. Vous pouvez encore le corriger jusqu’au $date : la correction s’applique aussitôt, l’admin est prévenu et vous dites ce qui n’allait pas.';
+  }
+
+  @override
+  String get correctionReason => 'Qu’est-ce qui n’allait pas ?';
+
+  @override
+  String get correctionSaved => 'Correction enregistrée';
+
+  @override
+  String stockCorrectable(String date) {
+    return 'Vous pouvez encore corriger ce comptage jusqu’au $date.';
+  }
+
+  @override
+  String belowSoldLine(String product, int minimum) {
+    return '$product : au moins $minimum';
+  }
+
+  @override
+  String get addedByAdmin => 'Ajouté par l’admin';
+
+  @override
+  String get onHold => 'en attente : en cours de correction';
 }

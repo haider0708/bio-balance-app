@@ -42,7 +42,21 @@ String errorMessage(BuildContext context, Object error) {
   final t = AppLocalizations.of(context);
   if (error is ApiException) {
     if (error.isOffline) return t.errorOffline;
-    return ServerText.error(t, error);
+    final text = ServerText.error(t, error);
+    // A quantity below what already left the place: say which products, and how low each may go.
+    final details = error.details;
+    if (error.code == 'BELOW_SOLD' && details is Map) {
+      final lines = [
+        for (final p in (details['products'] as List? ?? const []))
+          if (p is Map)
+            t.belowSoldLine(
+              '${p['name']}',
+              (p['minimum'] as num?)?.toInt() ?? 0,
+            ),
+      ];
+      if (lines.isNotEmpty) return '$text\n${lines.join('\n')}';
+    }
+    return text;
   }
   return t.errorGeneric;
 }

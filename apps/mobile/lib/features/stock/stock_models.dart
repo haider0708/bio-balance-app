@@ -75,6 +75,7 @@ class DeclarationLine {
     required this.family,
     required this.quantity,
     this.approvedQuantity,
+    this.addedByAdmin = false,
   });
 
   factory DeclarationLine.fromJson(Json j) => DeclarationLine(
@@ -83,6 +84,7 @@ class DeclarationLine {
     family: j.str('family'),
     quantity: j.integer('quantity'),
     approvedQuantity: j.integerOrNull('approvedQuantity'),
+    addedByAdmin: j['addedByAdmin'] == true,
   );
 
   final String productId;
@@ -90,6 +92,9 @@ class DeclarationLine {
   final String family;
   final int quantity;
   final int? approvedQuantity;
+
+  /// A product the admin added when approving (it was not in the count).
+  final bool addedByAdmin;
 }
 
 enum DeclarationStatus {
@@ -119,6 +124,8 @@ class StockDeclaration {
     this.decidedBy,
     this.decidedAt,
     this.decisionNote,
+    this.editingBy,
+    this.correctableUntil,
   });
 
   factory StockDeclaration.fromJson(Json j) => StockDeclaration(
@@ -139,6 +146,8 @@ class StockDeclaration {
     decidedBy: j.objOrNull('decidedBy')?.str('name'),
     decidedAt: j.dateOrNull('decidedAt'),
     decisionNote: j.strOrNull('decisionNote'),
+    editingBy: j.objOrNull('editing')?.obj('by').str('name'),
+    correctableUntil: j.dateOrNull('correctableUntil'),
     lines: j.list('lines').map(DeclarationLine.fromJson).toList(),
   );
 
@@ -156,6 +165,12 @@ class StockDeclaration {
   final String? decidedBy;
   final DateTime? decidedAt;
   final String? decisionNote;
+
+  /// The responsable correcting a waiting count: the admin cannot decide it meanwhile.
+  final String? editingBy;
+
+  /// Until when the responsable may still correct an approved count (null: no more).
+  final DateTime? correctableUntil;
   final List<DeclarationLine> lines;
 
   int get units => lines.fold(0, (s, l) => s + l.quantity);

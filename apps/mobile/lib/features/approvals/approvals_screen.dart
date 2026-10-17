@@ -203,7 +203,10 @@ class _ApprovalTile extends ConsumerWidget {
       switch (item.type) {
         ApprovalType.pdv => item.meta.str('city'),
         ApprovalType.member => item.meta.str('pdv'),
-        ApprovalType.stock => t.units(item.meta.integer('units')),
+        ApprovalType.stock =>
+          item.meta['editing'] == true
+              ? '${t.units(item.meta.integer('units'))} · ${t.onHold}'
+              : t.units(item.meta.integer('units')),
         ApprovalType.receipt || ApprovalType.restockRequest =>
           '${item.meta.str('number')} · ${t.units(item.meta.integer('units'))}',
         ApprovalType.payout => Money.format(

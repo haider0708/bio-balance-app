@@ -106,7 +106,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get amendStockHint =>
-      'Change a quantity if the photo shows something different.';
+      'Compare with the photo. Change a quantity, or add a product that was not counted.';
 
   @override
   String get amountPerUnit => 'Amount per unit sold';
@@ -3093,4 +3093,43 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get useThisBuild => 'Use this build';
+
+  @override
+  String declarationOnHold(String name) {
+    return '$name is correcting this count. You can decide it when they finish.';
+  }
+
+  @override
+  String get correctCount => 'Correct this count';
+
+  @override
+  String get correctCountHint =>
+      'While you correct it, the admin cannot decide it. The stock follows your changes at once.';
+
+  @override
+  String correctApprovedHint(String date) {
+    return 'This count is approved. You can still correct it until $date: it applies at once, the admin is told, and you say what was wrong.';
+  }
+
+  @override
+  String get correctionReason => 'What was wrong?';
+
+  @override
+  String get correctionSaved => 'Correction saved';
+
+  @override
+  String stockCorrectable(String date) {
+    return 'You can still correct this count until $date.';
+  }
+
+  @override
+  String belowSoldLine(String product, int minimum) {
+    return '$product: at least $minimum';
+  }
+
+  @override
+  String get addedByAdmin => 'Added by the admin';
+
+  @override
+  String get onHold => 'on hold: being corrected';
 }

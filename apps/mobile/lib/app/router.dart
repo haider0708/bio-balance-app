@@ -48,6 +48,8 @@ import '../features/settings/app_errors_screen.dart';
 import '../features/settings/app_settings_screen.dart';
 import '../features/settings/settings_screen.dart';
 import '../features/splash/splash_screen.dart';
+import '../features/stock/edit_declaration_screen.dart';
+import '../features/stock/stock_models.dart';
 import '../features/stock/stock_screens.dart';
 import '../features/training/training_admin_screens.dart';
 import '../features/training/training_models.dart';
@@ -562,6 +564,11 @@ List<RouteBase> _shared() => [
     path: '/stock/declarations/:id',
     builder: (_, state) =>
         DeclarationScreen(declarationId: state.pathParameters['id']!),
+  ),
+  GoRoute(
+    path: '/stock/declarations/:id/edit',
+    builder: (_, state) =>
+        EditDeclarationScreen(declaration: state.extra! as StockDeclaration),
   ),
   GoRoute(
     path: '/stock/:id',
