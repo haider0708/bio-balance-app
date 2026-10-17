@@ -77,3 +77,15 @@ Rules that apply to all of them:
 ## Emails
 
 Only codes and security: the invitation code (account approved), the password reset code, and "your password was changed". Never to an account of the test region.
+
+## Added 2026-10-17
+
+| Key | When | Who | Push | Opens |
+|---|---|---|---|---|
+| `stock.edited` | a responsable edits a waiting count | the admin | yes | the count |
+| `stock.corrected` | a responsable corrects an approved count | the admin | yes | the count |
+| `stock.reopened` / `stock.amended` | the admin reopens or corrects a count | its responsable | yes | the count |
+| `restock.requested_from` | a responsable names a grossiste | the admin | yes | the order |
+| `restock.amended` / `restock.reopened` | the admin changes a restock decision | who asked | yes | the order |
+| `decision.reopened` | a store, group or member put back to waiting | who proposed it | yes | the item |
+| `supplier.allowed` / `supplier.removed` | the admin changes a responsable's permission | that responsable | yes | the restock screen |

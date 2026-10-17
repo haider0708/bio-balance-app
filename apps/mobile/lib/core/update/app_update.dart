@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -138,6 +140,111 @@ class UpdateRequiredScreen extends StatelessWidget {
                       ),
                     ),
                   ],
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Shows the closed screen while the server is closed; "Check again" (and coming back to the app)
+/// asks the server whether it has opened.
+class ClosedGate extends ConsumerStatefulWidget {
+  const ClosedGate({required this.child, super.key});
+
+  final Widget child;
+
+  @override
+  ConsumerState<ClosedGate> createState() => _ClosedGateState();
+}
+
+class _ClosedGateState extends ConsumerState<ClosedGate>
+    with WidgetsBindingObserver {
+  bool _checking = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed &&
+        ref.read(closedProvider) != null) {
+      unawaited(_check());
+    }
+  }
+
+  Future<void> _check() async {
+    if (_checking) return;
+    setState(() => _checking = true);
+    try {
+      final config = await ref.read(apiClientProvider).get('/v1/app-config');
+      if (config is Json && config['closed'] == null) {
+        ref.read(closedProvider.notifier).set(null);
+      } else if (config is Json && config['closed'] is Map) {
+        ref.read(closedProvider.notifier).set(Closed.from(config['closed']));
+      }
+    } on Object {
+      // Offline: stay on the closed screen.
+    } finally {
+      if (mounted) setState(() => _checking = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final closed = ref.watch(closedProvider);
+    if (closed == null) return widget.child;
+    final t = AppLocalizations.of(context);
+    return Scaffold(
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(32),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 420),
+              child: Column(
+                children: [
+                  const SizedBox(
+                    width: 96,
+                    height: 96 * LeafMark.aspect,
+                    child: CustomPaint(painter: LeafMarkPainter()),
+                  ),
+                  const SizedBox(height: 28),
+                  Text(
+                    t.closedTitle,
+                    textAlign: TextAlign.center,
+                    style: context.text.headlineSmall,
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    closed.time == null
+                        ? t.closedBody
+                        : '${t.closedBody}\n${t.closedOpensAt(closed.time!)}',
+                    textAlign: TextAlign.center,
+                    style: context.text.bodyLarge?.copyWith(
+                      color: context.status.muted,
+                    ),
+                  ),
+                  const SizedBox(height: 28),
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton(
+                      onPressed: _checking ? null : _check,
+                      child: Text(t.closedRetry),
+                    ),
+                  ),
                 ],
               ),
             ),

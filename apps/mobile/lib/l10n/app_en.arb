@@ -1750,5 +1750,18 @@
   "putBackDone": "Put back to waiting",
   "amendedDone": "Quantities corrected",
   "@changeUntil": {"placeholders": {"time": {"type": "String"}}},
-  "change": "Change"
+  "change": "Change",
+  "closedTitle": "BioBalance is closed for now",
+  "closedBody": "The app is closed outside the working hours.",
+  "closedOpensAt": "It opens again at {time}.",
+  "closedRetry": "Check again",
+  "@closedOpensAt": {"placeholders": {"time": {"type": "String"}}},
+  "workingHoursTitle": "Working hours",
+  "workingHoursHint": "Outside these hours the app is closed for the team (they can still sign in). The administrator is never shut out. Times follow Tunis time, not the phone’s clock.",
+  "workingHoursSwitch": "Close the app outside the hours",
+  "closedDay": "Closed",
+  "hoursSave": "Save the hours",
+  "hoursSaved": "Hours saved",
+  "hoursOpenNow": "Open now",
+  "hoursClosedNow": "Closed now"
 }

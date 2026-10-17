@@ -81,6 +81,8 @@ final apiClientProvider = Provider<ApiClient>((ref) {
     tokenReader: () => ref.read(tokenProvider),
     localeReader: () => ref.read(localeProvider) ?? 'fr',
     onUnauthorized: () => ref.read(sessionProvider.notifier).expire(),
+    onClosed: (details) =>
+        ref.read(closedProvider.notifier).set(Closed.from(details)),
     headers: ref.watch(apiHeadersProvider),
   );
 });
@@ -302,3 +304,25 @@ class ThemeModeNotifier extends Notifier<ThemeMode> {
 final themeModeProvider = NotifierProvider<ThemeModeNotifier, ThemeMode>(
   ThemeModeNotifier.new,
 );
+
+/// Set while the server is closed (outside the working hours): the app shows the closed screen.
+final closedProvider = NotifierProvider<ClosedNotifier, Closed?>(
+  ClosedNotifier.new,
+);
+
+class ClosedNotifier extends Notifier<Closed?> {
+  @override
+  Closed? build() => null;
+
+  void set(Closed? value) => state = value;
+}
+
+class Closed {
+  const Closed(this.time);
+
+  /// When it opens again, as "HH:MM" in Tunis time (null when unknown).
+  final String? time;
+
+  static Closed from(Object? details) =>
+      Closed(details is Map ? details['time'] as String? : null);
+}

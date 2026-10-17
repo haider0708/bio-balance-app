@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:intl/intl.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
@@ -31,7 +32,11 @@ class AppSettingsScreen extends ConsumerWidget {
           onRetry: () => ref.invalidate(appSettingsProvider),
           builder: (s) => ListView(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 40),
-            children: [_SupplierChoice(s), _MinimumVersion(s)],
+            children: [
+              _SupplierChoice(s),
+              _MinimumVersion(s),
+              _WorkingHours(s),
+            ],
           ),
         ),
       ),
@@ -227,3 +232,146 @@ final _responsablesProvider = FutureProvider.autoDispose<List<Person>>(
       .watch(networkRepositoryProvider)
       .people(role: 'RESPONSABLE', status: 'ACTIVE'),
 );
+
+/// The opening hours, per weekday (Sunday first, like the server), in Tunis time.
+class _WorkingHours extends ConsumerStatefulWidget {
+  const _WorkingHours(this.settings);
+
+  final AppSettings settings;
+
+  @override
+  ConsumerState<_WorkingHours> createState() => _WorkingHoursState();
+}
+
+class _WorkingHoursState extends ConsumerState<_WorkingHours> {
+  late bool _enabled = widget.settings.hoursEnabled;
+  late final List<DayHours?> _days = List.of(widget.settings.days);
+
+  Future<void> _pick(int day, {required bool open}) async {
+    final current = _days[day]!;
+    final text = open ? current.open : current.close;
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay(
+        hour: int.parse(text.substring(0, 2)),
+        minute: int.parse(text.substring(3, 5)),
+      ),
+      builder: (context, child) => MediaQuery(
+        data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: true),
+        child: child!,
+      ),
+    );
+    if (picked == null) return;
+    final value =
+        '${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}';
+    setState(() {
+      _days[day] = open
+          ? DayHours(value, current.close)
+          : DayHours(current.open, value);
+    });
+  }
+
+  bool get _valid =>
+      _days.every((d) => d == null || d.open.compareTo(d.close) < 0);
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    final locale = t.localeName;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SectionHeader(t.workingHoursTitle),
+        AppCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                t.workingHoursHint,
+                style: context.text.bodyMedium?.copyWith(
+                  color: context.status.muted,
+                ),
+              ),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: Text(t.workingHoursSwitch),
+                subtitle: Text(
+                  widget.settings.open ? t.hoursOpenNow : t.hoursClosedNow,
+                ),
+                value: _enabled,
+                onChanged: (on) => setState(() => _enabled = on),
+              ),
+              if (_enabled)
+                for (var day = 0; day < 7; day++)
+                  Row(
+                    children: [
+                      SizedBox(
+                        width: 48,
+                        child: Text(
+                          // 7 January 2024 was a Sunday.
+                          toBeginningOfSentenceCase(
+                            DateFormat.E(locale)
+                                .format(DateTime(2024, 1, 7 + day)),
+                          ),
+                          style: context.text.titleSmall,
+                        ),
+                      ),
+                      Expanded(
+                        child: _days[day] == null
+                            ? Text(
+                                t.closedDay,
+                                style: context.text.bodyMedium?.copyWith(
+                                  color: context.status.muted,
+                                ),
+                              )
+                            : Row(
+                                children: [
+                                  TextButton(
+                                    onPressed: () => _pick(day, open: true),
+                                    child: Text(_days[day]!.open),
+                                  ),
+                                  const Text('–'),
+                                  TextButton(
+                                    onPressed: () => _pick(day, open: false),
+                                    child: Text(_days[day]!.close),
+                                  ),
+                                ],
+                              ),
+                      ),
+                      Switch(
+                        value: _days[day] != null,
+                        onChanged: (on) => setState(() {
+                          _days[day] = on
+                              ? const DayHours('08:00', '21:00')
+                              : null;
+                        }),
+                      ),
+                    ],
+                  ),
+              const SizedBox(height: 8),
+              FilledButton(
+                onPressed: _valid
+                    ? () async {
+                        final ok = await perform(
+                          context,
+                          () => ref.read(appSettingsRepositoryProvider).save({
+                            'hours': {
+                              'enabled': _enabled,
+                              'days': [for (final d in _days) d?.toJson()],
+                            },
+                          }),
+                          success: t.hoursSaved,
+                        );
+                        if (ok) ref.invalidate(appSettingsProvider);
+                      }
+                    : null,
+                child: Text(t.hoursSave),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+      ],
+    );
+  }
+}

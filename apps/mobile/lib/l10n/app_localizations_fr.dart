@@ -3217,4 +3217,44 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get change => 'Modifier';
+
+  @override
+  String get closedTitle => 'BioBalance est fermé pour le moment';
+
+  @override
+  String get closedBody =>
+      'L’application est fermée en dehors des heures de travail.';
+
+  @override
+  String closedOpensAt(String time) {
+    return 'Réouverture à $time.';
+  }
+
+  @override
+  String get closedRetry => 'Vérifier à nouveau';
+
+  @override
+  String get workingHoursTitle => 'Heures de travail';
+
+  @override
+  String get workingHoursHint =>
+      'En dehors de ces heures, l’application est fermée pour les équipes (elles peuvent encore se connecter). L’administrateur n’est jamais bloqué. Les heures suivent l’heure de Tunis, pas celle du téléphone.';
+
+  @override
+  String get workingHoursSwitch => 'Fermer l’application hors des heures';
+
+  @override
+  String get closedDay => 'Fermé';
+
+  @override
+  String get hoursSave => 'Enregistrer les heures';
+
+  @override
+  String get hoursSaved => 'Heures enregistrées';
+
+  @override
+  String get hoursOpenNow => 'Ouvert maintenant';
+
+  @override
+  String get hoursClosedNow => 'Fermé maintenant';
 }

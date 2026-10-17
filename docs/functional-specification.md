@@ -153,3 +153,10 @@ The administrator can work from a browser at https://admin.galylio.com/ with the
 - **Instant alerts on Android**: a new notification (a sale in a responsable's region, an approval, a delivery, an announcement) reaches the phone within a second or two, in the person's language, even with the app closed and without any battery cost (Android shows it itself). Tapping it opens the notifications. While the app is open the bell updates at once and the alert shows as a banner.
 - Phones without Google services, or whose person refused notifications, keep the 15-minute background check. Nobody receives an alert twice: once push is registered the background check stays quiet.
 
+
+## Stock, supplier choice, history and hours (2026-10-17)
+
+- **Counts**: a declared count is in stock at once, so sellers can sell while the admin has not decided. A waiting count can be edited by its responsable (it is on hold for the admin meanwhile); an approved one can be corrected for 3 days, with a reason, and the admin is told. A rejected count removes its stock. When approving, the admin may correct quantities and add products. Stock never goes below what was sold.
+- **Supplier choice**: a global switch (admin) plus a permission per responsable. A permitted responsable names the grossiste of a store's restock; the order still goes to the admin, who approves it in one tap or assigns another.
+- **History**: an approved or rejected decision can be put back to waiting or have its quantities corrected for 6 hours; after that it is locked. Payouts are never reopened.
+- **Working hours**: set by the admin per weekday in Tunis time; outside them only the admin works; others can sign in and see the closed screen with the opening time.

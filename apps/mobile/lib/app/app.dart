@@ -81,7 +81,9 @@ class _BioBalanceAppState extends ConsumerState<BioBalanceApp> {
         ],
         routerConfig: router,
         builder: (context, child) {
-          final page = UpdateGate(child: child ?? const SizedBox());
+          final page = UpdateGate(
+            child: ClosedGate(child: child ?? const SizedBox()),
+          );
           // On the web the administrator can select and copy any text (an email, a code, a total).
           return kIsWeb ? SelectionArea(child: page) : page;
         },

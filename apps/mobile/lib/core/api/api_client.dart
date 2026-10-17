@@ -12,6 +12,7 @@ class ApiClient {
     required this.tokenReader,
     required this.localeReader,
     required this.onUnauthorized,
+    this.onClosed,
     this.headers = const {},
     Dio? dio,
   }) : _dio = dio ?? _build();
@@ -19,6 +20,9 @@ class ApiClient {
   final TokenReader tokenReader;
   final String Function() localeReader;
   final void Function() onUnauthorized;
+
+  /// Called when the server is closed for now (outside the working hours), with its details.
+  final void Function(Object? details)? onClosed;
 
   /// Sent with every request (the admin's "Show the test region" choice).
   final Map<String, String> headers;
@@ -143,6 +147,8 @@ class ApiClient {
         : const <String, dynamic>{};
     final code = (body['code'] as String?) ?? 'HTTP_$status';
     if (status == 401 && code == 'SESSION_EXPIRED') onUnauthorized();
+    if (status == 423 && code == 'SERVER_CLOSED')
+      onClosed?.call(body['details']);
     final fields = <String, String>{
       for (final f
           in (body['fields'] as List<dynamic>? ?? const [])

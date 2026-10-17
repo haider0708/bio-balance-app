@@ -16,6 +16,16 @@ import { ZodError, type ZodType } from "zod";
 import type { Actor } from "./actor";
 import { DomainError, forbidden } from "./errors";
 import { AuthService } from "../modules/auth/auth.service";
+import { isOpenAt, nextOpening } from "./hours";
+import { SettingsService } from "./settings";
+
+/** Still answered when BioBalance is closed: signing out, who I am, the phone's push token, its password. */
+const OPEN_ALWAYS = new Set([
+  "POST /v1/auth/logout",
+  "GET /v1/me",
+  "POST /v1/me/push-device",
+  "POST /v1/me/password",
+]);
 
 export type AuthRequest = Request & {
   actor: Actor;
@@ -37,6 +47,7 @@ export class AuthGuard implements CanActivate {
   constructor(
     private readonly auth: AuthService,
     private readonly reflector: Reflector,
+    private readonly settings: SettingsService,
   ) {}
 
   async canActivate(context: ExecutionContext) {
@@ -52,6 +63,7 @@ export class AuthGuard implements CanActivate {
       request.headers["x-biobalance-sandbox"] === "show"
     )
       request.actor.showSandbox = true;
+    await this.requireOpen(request);
     const roles = this.reflector.getAllAndOverride<Role[] | undefined>(
       "roles",
       targets,
@@ -59,6 +71,34 @@ export class AuthGuard implements CanActivate {
     if (roles?.length && !roles.includes(request.actor.role))
       throw forbidden("Your role cannot do this.");
     return true;
+  }
+
+  /**
+   * Outside the working hours (set by the admin, in Tunis time, never the phone's clock) only the admin and
+   * the test region work; everyone else may sign in and sign out, nothing more. A sale made while open and
+   * sent later (a phone that was offline) still goes through.
+   */
+  private async requireOpen(request: AuthRequest) {
+    const actor = request.actor;
+    if (actor.role === "ADMIN" || actor.sandbox) return;
+    const { hours } = await this.settings.get();
+    if (!hours.enabled) return;
+    const path = request.path.replace(/\/+$/, "");
+    if (OPEN_ALWAYS.has(`${request.method} ${path}`)) return;
+    if (request.method === "POST" && path === "/v1/sales") {
+      const at = new Date(
+        (request.body as { occurredAt?: string } | undefined)?.occurredAt ?? "",
+      );
+      if (!Number.isNaN(at.getTime()) && isOpenAt(hours, at)) return;
+    }
+    if (isOpenAt(hours, new Date())) return;
+    const next = nextOpening(hours, new Date());
+    throw new DomainError(
+      "SERVER_CLOSED",
+      "BioBalance is closed for now.",
+      423,
+      { opensAt: next?.at.toISOString() ?? null, time: next?.time ?? null },
+    );
   }
 }
 

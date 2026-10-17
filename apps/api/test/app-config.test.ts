@@ -32,6 +32,7 @@ describe("what the phones check when they start", () => {
           "https://play.google.com/store/apps/details?id=tn.biobalance.app",
         ios: null,
       },
+      closed: null,
     });
   });
 

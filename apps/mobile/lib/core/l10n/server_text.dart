@@ -142,6 +142,10 @@ class ServerText {
       'Your session ended. Please sign in again.',
       'Votre session a expiré. Reconnectez-vous.',
     ),
+    'SERVER_CLOSED': (
+      'BioBalance is closed for now.',
+      'BioBalance est fermé pour le moment.',
+    ),
     'NOT_APPROVED': (
       'This account is not approved yet.',
       'Ce compte n’est pas encore approuvé.',

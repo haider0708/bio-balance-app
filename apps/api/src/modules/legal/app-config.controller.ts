@@ -1,5 +1,6 @@
 import { Controller, Get, Header, Query } from "@nestjs/common";
 import { Public } from "../../core/http";
+import { isOpenAt, nextOpening } from "../../core/hours";
 import { SettingsService } from "../../core/settings";
 
 /**
@@ -17,11 +18,21 @@ export class AppConfigController {
   @Get("app-config")
   @Header("Cache-Control", "no-store")
   async config(@Query("platform") platform?: string) {
-    const { minimumBuild, stores } = await this.settings.get();
+    const { minimumBuild, stores, hours } = await this.settings.get();
     const own =
       platform === "ios" || platform === "android"
         ? minimumBuild[platform]
         : Math.min(minimumBuild.ios, minimumBuild.android);
-    return { minimumBuild: own, minimumBuilds: minimumBuild, stores };
+    // Whether BioBalance is closed right now (a closed app asks again to know when it may go on).
+    const now = new Date();
+    const next = isOpenAt(hours, now) ? null : nextOpening(hours, now);
+    return {
+      minimumBuild: own,
+      minimumBuilds: minimumBuild,
+      stores,
+      closed: isOpenAt(hours, now)
+        ? null
+        : { opensAt: next?.at.toISOString() ?? null, time: next?.time ?? null },
+    };
   }
 }

@@ -1740,5 +1740,17 @@
   "correctQuantitiesHint": "Changer ce qui a été approuvé, sans décider à nouveau.",
   "putBackDone": "Remise en attente",
   "amendedDone": "Quantités corrigées",
-  "change": "Modifier"
+  "change": "Modifier",
+  "closedTitle": "BioBalance est fermé pour le moment",
+  "closedBody": "L’application est fermée en dehors des heures de travail.",
+  "closedOpensAt": "Réouverture à {time}.",
+  "closedRetry": "Vérifier à nouveau",
+  "workingHoursTitle": "Heures de travail",
+  "workingHoursHint": "En dehors de ces heures, l’application est fermée pour les équipes (elles peuvent encore se connecter). L’administrateur n’est jamais bloqué. Les heures suivent l’heure de Tunis, pas celle du téléphone.",
+  "workingHoursSwitch": "Fermer l’application hors des heures",
+  "closedDay": "Fermé",
+  "hoursSave": "Enregistrer les heures",
+  "hoursSaved": "Heures enregistrées",
+  "hoursOpenNow": "Ouvert maintenant",
+  "hoursClosedNow": "Fermé maintenant"
 }

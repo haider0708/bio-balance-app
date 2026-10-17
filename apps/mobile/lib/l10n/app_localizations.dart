@@ -5437,6 +5437,78 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Change'**
   String get change;
+
+  /// No description provided for @closedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'BioBalance is closed for now'**
+  String get closedTitle;
+
+  /// No description provided for @closedBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The app is closed outside the working hours.'**
+  String get closedBody;
+
+  /// No description provided for @closedOpensAt.
+  ///
+  /// In en, this message translates to:
+  /// **'It opens again at {time}.'**
+  String closedOpensAt(String time);
+
+  /// No description provided for @closedRetry.
+  ///
+  /// In en, this message translates to:
+  /// **'Check again'**
+  String get closedRetry;
+
+  /// No description provided for @workingHoursTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Working hours'**
+  String get workingHoursTitle;
+
+  /// No description provided for @workingHoursHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Outside these hours the app is closed for the team (they can still sign in). The administrator is never shut out. Times follow Tunis time, not the phone’s clock.'**
+  String get workingHoursHint;
+
+  /// No description provided for @workingHoursSwitch.
+  ///
+  /// In en, this message translates to:
+  /// **'Close the app outside the hours'**
+  String get workingHoursSwitch;
+
+  /// No description provided for @closedDay.
+  ///
+  /// In en, this message translates to:
+  /// **'Closed'**
+  String get closedDay;
+
+  /// No description provided for @hoursSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Save the hours'**
+  String get hoursSave;
+
+  /// No description provided for @hoursSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Hours saved'**
+  String get hoursSaved;
+
+  /// No description provided for @hoursOpenNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Open now'**
+  String get hoursOpenNow;
+
+  /// No description provided for @hoursClosedNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Closed now'**
+  String get hoursClosedNow;
 }
 
 class _AppLocalizationsDelegate

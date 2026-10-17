@@ -3200,4 +3200,43 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get change => 'Change';
+
+  @override
+  String get closedTitle => 'BioBalance is closed for now';
+
+  @override
+  String get closedBody => 'The app is closed outside the working hours.';
+
+  @override
+  String closedOpensAt(String time) {
+    return 'It opens again at $time.';
+  }
+
+  @override
+  String get closedRetry => 'Check again';
+
+  @override
+  String get workingHoursTitle => 'Working hours';
+
+  @override
+  String get workingHoursHint =>
+      'Outside these hours the app is closed for the team (they can still sign in). The administrator is never shut out. Times follow Tunis time, not the phone’s clock.';
+
+  @override
+  String get workingHoursSwitch => 'Close the app outside the hours';
+
+  @override
+  String get closedDay => 'Closed';
+
+  @override
+  String get hoursSave => 'Save the hours';
+
+  @override
+  String get hoursSaved => 'Hours saved';
+
+  @override
+  String get hoursOpenNow => 'Open now';
+
+  @override
+  String get hoursClosedNow => 'Closed now';
 }

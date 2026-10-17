@@ -91,6 +91,8 @@ class FakeServer implements HttpClientAdapter {
           tokenReader: () => ref.read(tokenProvider),
           localeReader: () => ref.read(localeProvider) ?? 'fr',
           onUnauthorized: () => ref.read(sessionProvider.notifier).expire(),
+          onClosed: (details) =>
+              ref.read(closedProvider.notifier).set(Closed.from(details)),
           headers: ref.watch(apiHeadersProvider),
         ),
       ),
