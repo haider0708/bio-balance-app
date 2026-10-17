@@ -38,6 +38,15 @@ void main() {
     expect(find.text('Sign in'), findsNothing);
   });
 
+  testWidgets('the phone says which platform it is, to get its own minimum', (
+    tester,
+  ) async {
+    final server = serverWithMinimum(41);
+    await start(tester, server);
+    final call = server.calls.firstWhere((c) => c.path == '/v1/app-config');
+    expect(call.queryParameters['platform'], isIn(['ios', 'android']));
+  });
+
   testWidgets('a supported build opens normally', (tester) async {
     await start(tester, serverWithMinimum(41));
     expect(find.text('Update required'), findsNothing);

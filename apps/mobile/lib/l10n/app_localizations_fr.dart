@@ -3082,4 +3082,31 @@ class AppLocalizationsFr extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get appSettingsEntry => 'Réglages de l’application';
+
+  @override
+  String get appSettingsTitle => 'Réglages de l’application';
+
+  @override
+  String get minimumVersionTitle => 'Version minimale';
+
+  @override
+  String get minimumVersionHint =>
+      'Les applications plus anciennes que ce numéro doivent se mettre à jour avant de servir. Ne l’augmentez qu’une fois la nouvelle version publiée dans le magasin concerné. 0 laisse entrer toutes les versions.';
+
+  @override
+  String get minimumIosLabel => 'iPhone : plus ancien numéro autorisé';
+
+  @override
+  String get minimumAndroidLabel => 'Android : plus ancien numéro autorisé';
+
+  @override
+  String thisBuild(int build) {
+    return 'Cette application porte le numéro $build.';
+  }
+
+  @override
+  String get useThisBuild => 'Utiliser ce numéro';
 }

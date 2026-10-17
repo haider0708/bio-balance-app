@@ -141,6 +141,11 @@ class SettingsScreen extends ConsumerWidget {
             ),
             const Gap(8),
             _Item(
+              icon: LucideIcons.slidersHorizontal,
+              label: t.appSettingsEntry,
+              onTap: () => context.push('/app-settings'),
+            ),
+            _Item(
               icon: LucideIcons.bug,
               label: t.appErrorsEntry,
               onTap: () => context.push('/app-errors'),

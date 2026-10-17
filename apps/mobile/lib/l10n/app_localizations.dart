@@ -5209,6 +5209,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{count, plural, =1{Short of {count} product} other{Short of {count} products}}'**
   String supplierMissing(int count);
+
+  /// No description provided for @appSettingsEntry.
+  ///
+  /// In en, this message translates to:
+  /// **'Application settings'**
+  String get appSettingsEntry;
+
+  /// No description provided for @appSettingsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Application settings'**
+  String get appSettingsTitle;
+
+  /// No description provided for @minimumVersionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Minimum version'**
+  String get minimumVersionTitle;
+
+  /// No description provided for @minimumVersionHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Apps older than this build must update before they can be used. Raise it only once the new version is published in that store. 0 lets every version in.'**
+  String get minimumVersionHint;
+
+  /// No description provided for @minimumIosLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'iPhone: oldest build allowed'**
+  String get minimumIosLabel;
+
+  /// No description provided for @minimumAndroidLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Android: oldest build allowed'**
+  String get minimumAndroidLabel;
+
+  /// No description provided for @thisBuild.
+  ///
+  /// In en, this message translates to:
+  /// **'This app is build {build}.'**
+  String thisBuild(int build);
+
+  /// No description provided for @useThisBuild.
+  ///
+  /// In en, this message translates to:
+  /// **'Use this build'**
+  String get useThisBuild;
 }
 
 class _AppLocalizationsDelegate

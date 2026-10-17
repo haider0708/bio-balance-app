@@ -1702,5 +1702,13 @@
   "receiverNote": "Note du destinataire",
   "whatWasSent": "Ce qui a été envoyé",
   "supplierHasAll": "A tout en stock",
-  "supplierMissing": "{count, plural, =1{Manque {count} produit} other{Manque {count} produits}}"
+  "supplierMissing": "{count, plural, =1{Manque {count} produit} other{Manque {count} produits}}",
+  "appSettingsEntry": "Réglages de l’application",
+  "appSettingsTitle": "Réglages de l’application",
+  "minimumVersionTitle": "Version minimale",
+  "minimumVersionHint": "Les applications plus anciennes que ce numéro doivent se mettre à jour avant de servir. Ne l’augmentez qu’une fois la nouvelle version publiée dans le magasin concerné. 0 laisse entrer toutes les versions.",
+  "minimumIosLabel": "iPhone : plus ancien numéro autorisé",
+  "minimumAndroidLabel": "Android : plus ancien numéro autorisé",
+  "thisBuild": "Cette application porte le numéro {build}.",
+  "useThisBuild": "Utiliser ce numéro"
 }

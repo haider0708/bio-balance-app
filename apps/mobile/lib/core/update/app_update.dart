@@ -23,7 +23,12 @@ final updateRequiredProvider = FutureProvider<UpdateRequired?>((ref) async {
   if (kIsWeb) return null;
   try {
     final build = await ref.watch(appBuildProvider.future);
-    final config = await ref.read(apiClientProvider).get('/v1/app-config');
+    final platform = defaultTargetPlatform == TargetPlatform.iOS
+        ? 'ios'
+        : 'android';
+    final config = await ref
+        .read(apiClientProvider)
+        .get('/v1/app-config', query: {'platform': platform});
     if (config is! Json) return null;
     if (build == 0 || build >= config.integer('minimumBuild')) return null;
     final stores = config.objOrNull('stores') ?? const <String, dynamic>{};

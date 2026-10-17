@@ -1705,5 +1705,14 @@
   "supplierHasAll": "Has everything",
   "supplierMissing": "{count, plural, =1{Short of {count} product} other{Short of {count} products}}",
   "@sentQuantity": {"placeholders": {"count": {"type": "int"}}},
-  "@supplierMissing": {"placeholders": {"count": {"type": "int"}}}
+  "@supplierMissing": {"placeholders": {"count": {"type": "int"}}},
+  "appSettingsEntry": "Application settings",
+  "appSettingsTitle": "Application settings",
+  "minimumVersionTitle": "Minimum version",
+  "minimumVersionHint": "Apps older than this build must update before they can be used. Raise it only once the new version is published in that store. 0 lets every version in.",
+  "minimumIosLabel": "iPhone: oldest build allowed",
+  "minimumAndroidLabel": "Android: oldest build allowed",
+  "thisBuild": "This app is build {build}.",
+  "useThisBuild": "Use this build",
+  "@thisBuild": {"placeholders": {"build": {"type": "int"}}}
 }

@@ -3066,4 +3066,31 @@ class AppLocalizationsEn extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get appSettingsEntry => 'Application settings';
+
+  @override
+  String get appSettingsTitle => 'Application settings';
+
+  @override
+  String get minimumVersionTitle => 'Minimum version';
+
+  @override
+  String get minimumVersionHint =>
+      'Apps older than this build must update before they can be used. Raise it only once the new version is published in that store. 0 lets every version in.';
+
+  @override
+  String get minimumIosLabel => 'iPhone: oldest build allowed';
+
+  @override
+  String get minimumAndroidLabel => 'Android: oldest build allowed';
+
+  @override
+  String thisBuild(int build) {
+    return 'This app is build $build.';
+  }
+
+  @override
+  String get useThisBuild => 'Use this build';
 }

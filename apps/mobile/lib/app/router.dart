@@ -45,6 +45,7 @@ import '../features/sales/sales_models.dart';
 import '../features/sales/sales_repository.dart';
 import '../features/sales/scanner_screen.dart';
 import '../features/settings/app_errors_screen.dart';
+import '../features/settings/app_settings_screen.dart';
 import '../features/settings/settings_screen.dart';
 import '../features/splash/splash_screen.dart';
 import '../features/stock/stock_screens.dart';
@@ -497,6 +498,7 @@ List<RouteBase> _shared() => [
   ),
   GoRoute(path: '/settings', builder: (_, _) => const SettingsScreen()),
   GoRoute(path: '/app-errors', builder: (_, _) => const AppErrorsScreen()),
+  GoRoute(path: '/app-settings', builder: (_, _) => const AppSettingsScreen()),
   _withExtra<(List<String>, int)>('/photos', '/home', (_, extra) {
     final (ids, index) = extra;
     return PhotoGalleryScreen(ids: ids, initial: index);
