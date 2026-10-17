@@ -5,18 +5,21 @@ import { AuthService } from "../modules/auth/auth.service";
 import { PasswordHasher } from "../modules/auth/password-hasher";
 import { Database } from "./database";
 import { AuthGuard, ErrorFilter } from "./http";
+import { SettingsController } from "./settings.controller";
+import { SettingsService } from "./settings";
 
 /** Database, sign-in and the global guard: available everywhere without importing. */
 @Global()
 @Module({
-  controllers: [AuthController],
+  controllers: [AuthController, SettingsController],
   providers: [
     Database,
+    SettingsService,
     { provide: PasswordHasher, useFactory: () => new PasswordHasher() },
     AuthService,
     { provide: APP_GUARD, useClass: AuthGuard },
     { provide: APP_FILTER, useClass: ErrorFilter },
   ],
-  exports: [Database, AuthService],
+  exports: [Database, AuthService, SettingsService],
 })
 export class CoreModule {}

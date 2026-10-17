@@ -661,3 +661,25 @@ model StockRecount {
   @@index([status, createdAt])
   @@index([locationId, status])
 }
+
+/// A setting the admin changes from the app (JSON value per key): minimum version, hours, grossiste choice.
+model AppSetting {
+  key         String   @id
+  value       Json
+  updatedAt   DateTime @default(now()) @updatedAt
+  updatedById String?  @db.Uuid
+}
+
+/// A one-time page that shows a new administrator's authenticator QR code once, then forgets it.
+model SetupLink {
+  id        String    @id @default(uuid()) @db.Uuid
+  tokenHash String    @unique
+  userId    String    @db.Uuid
+  /// The authenticator link, encrypted; null once shown or expired.
+  secret    String?
+  createdAt DateTime  @default(now())
+  expiresAt DateTime
+  usedAt    DateTime?
+
+  @@index([userId])
+}

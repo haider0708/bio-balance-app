@@ -14,6 +14,7 @@ import { SalesModule } from "./modules/sales/sales.module";
 import { TrainingModule } from "./modules/training/training.module";
 import { StockModule } from "./modules/stock/stock.module";
 import { CodePageController } from "./modules/auth/code-page.controller";
+import { SetupLinkController } from "./modules/auth/setup-link.controller";
 import { AppConfigController } from "./modules/legal/app-config.controller";
 import { LegalController } from "./modules/legal/legal.controller";
 
@@ -44,6 +45,7 @@ class HealthController {
   controllers: [
     HealthController,
     CodePageController,
+    SetupLinkController,
     LegalController,
     AppConfigController,
   ],

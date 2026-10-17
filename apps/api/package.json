@@ -26,6 +26,7 @@
     "nodemailer": "^10.0.10",
     "otpauth": "^9.5.2",
     "pg": "^8.16.0",
+    "qrcode-generator": "^1.4.4",
     "reflect-metadata": "0.2.2",
     "rxjs": "7.8.2",
     "zod": "^4.0.0"

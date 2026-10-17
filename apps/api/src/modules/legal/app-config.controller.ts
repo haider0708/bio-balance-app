@@ -1,26 +1,27 @@
-import { Controller, Get, Header } from "@nestjs/common";
+import { Controller, Get, Header, Query } from "@nestjs/common";
 import { Public } from "../../core/http";
-
-const PLAY_STORE =
-  "https://play.google.com/store/apps/details?id=tn.biobalance.app";
+import { SettingsService } from "../../core/settings";
 
 /**
  * What the phones check when they start: the oldest build still allowed (older ones show an
- * "Update required" screen with a link to their store). Set on the server: MIN_APP_BUILD (the
- * number after "+" in the app's version), IOS_STORE_URL once the App Store page exists.
+ * "Update required" screen with a link to their store). The admin sets it in the app (Settings);
+ * until then MIN_APP_BUILD and IOS_STORE_URL on the server apply. A phone says which platform it
+ * is (`?platform=ios|android`) and gets its own minimum; an older app that does not gets the
+ * lower of the two (so it is only forced when both stores have the new version).
  */
 @Controller("v1")
 export class AppConfigController {
+  constructor(private readonly settings: SettingsService) {}
+
   @Public()
   @Get("app-config")
   @Header("Cache-Control", "no-store")
-  config() {
-    return {
-      minimumBuild: Math.max(0, Number(process.env.MIN_APP_BUILD) || 0),
-      stores: {
-        android: process.env.PLAY_STORE_URL || PLAY_STORE,
-        ios: process.env.IOS_STORE_URL || null,
-      },
-    };
+  async config(@Query("platform") platform?: string) {
+    const { minimumBuild, stores } = await this.settings.get();
+    const own =
+      platform === "ios" || platform === "android"
+        ? minimumBuild[platform]
+        : Math.min(minimumBuild.ios, minimumBuild.android);
+    return { minimumBuild: own, minimumBuilds: minimumBuild, stores };
   }
 }

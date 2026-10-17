@@ -26,6 +26,8 @@ export async function cleanup(db: Database, now = new Date()) {
     () =>
       db.$executeRaw`DELETE FROM "Job" WHERE id IN (SELECT id FROM "Job" WHERE status = 'completed' AND "createdAt" < ${new Date(now.getTime() - 14 * DAY)} LIMIT 1000)`,
   );
+  // One-time authenticator links (a new administrator's): gone a week after they expire.
+  await db.$executeRaw`DELETE FROM "SetupLink" WHERE "expiresAt" < ${new Date(now.getTime() - 7 * DAY)}`;
   // App error reports are kept a month.
   await purge(
     () =>
