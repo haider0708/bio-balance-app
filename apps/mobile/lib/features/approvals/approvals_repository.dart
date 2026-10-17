@@ -93,6 +93,7 @@ class HistoryItem {
     this.decidedBy,
     this.region,
     this.note,
+    this.change,
   });
 
   factory HistoryItem.fromJson(Json j) => HistoryItem(
@@ -104,11 +105,15 @@ class HistoryItem {
     decidedBy: j.strOrNull('decidedBy'),
     region: j.strOrNull('region'),
     note: j.strOrNull('note'),
+    change: j['change'] is Map ? HistoryChange.fromJson(j.obj('change')) : null,
   );
 
   final ApprovalType type;
   final String id;
   final String name;
+
+  /// What the admin can still do with this decision (null once it is locked).
+  final HistoryChange? change;
 
   /// APPROVED, REJECTED or DEACTIVATED.
   final String outcome;
@@ -116,6 +121,21 @@ class HistoryItem {
   final String? decidedBy;
   final String? region;
   final String? note;
+}
+
+/// The ways a decision can still be changed ('amend', 'reopen') and until when.
+class HistoryChange {
+  const HistoryChange(this.options, this.until);
+
+  factory HistoryChange.fromJson(Json j) => HistoryChange([
+    for (final o in j['options'] as List) o.toString(),
+  ], j.date('until'));
+
+  final List<String> options;
+  final DateTime until;
+
+  bool get canAmend => options.contains('amend');
+  bool get canReopen => options.contains('reopen');
 }
 
 class HistoryPage {
@@ -138,4 +158,19 @@ Future<HistoryPage> fetchApprovalHistory(
     data.list('items').map(HistoryItem.fromJson).toList(),
     data.strOrNull('nextBefore'),
   );
+}
+
+/// Puts a decision back to waiting (within the change window).
+Future<void> reopenDecision(ApiClient client, HistoryItem item) {
+  final path = switch (item.type) {
+    ApprovalType.group => '/v1/groups/${item.id}/reopen',
+    ApprovalType.pdv => '/v1/pdvs/${item.id}/reopen',
+    ApprovalType.member => '/v1/users/${item.id}/reopen',
+    ApprovalType.stock => '/v1/stock/declarations/${item.id}/reopen',
+    ApprovalType.recount => '/v1/stock/recounts/${item.id}/reopen',
+    ApprovalType.receipt ||
+    ApprovalType.restockRequest => '/v1/restocks/${item.id}/reopen',
+    ApprovalType.payout => throw StateError('payouts cannot be reopened'),
+  };
+  return client.post(path);
 }

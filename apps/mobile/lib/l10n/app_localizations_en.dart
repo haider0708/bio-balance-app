@@ -3169,4 +3169,35 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get supplierChoiceNone => 'No responsable yet.';
+
+  @override
+  String changeUntil(String time) {
+    return 'Can be changed until $time';
+  }
+
+  @override
+  String get changeDecisionTitle => 'Change this decision';
+
+  @override
+  String get putBackToWaiting => 'Put back to waiting';
+
+  @override
+  String get putBackHint =>
+      'It returns to the waiting list and its effects are undone.';
+
+  @override
+  String get correctQuantities => 'Correct the quantities';
+
+  @override
+  String get correctQuantitiesHint =>
+      'Change what was approved, without deciding again.';
+
+  @override
+  String get putBackDone => 'Put back to waiting';
+
+  @override
+  String get amendedDone => 'Quantities corrected';
+
+  @override
+  String get change => 'Change';
 }

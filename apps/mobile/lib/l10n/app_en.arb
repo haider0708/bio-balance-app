@@ -1740,5 +1740,15 @@
   "supplierChoiceHint": "Let chosen responsables suggest the grossiste when they order a restock for a store. The order still comes to you: you approve it as suggested, give it to another grossiste, send it yourself, or refuse it.",
   "supplierChoiceSwitch": "Responsables may suggest the grossiste",
   "supplierChoiceNone": "No responsable yet.",
-  "@assignToSuggested": {"placeholders": {"name": {"type": "String"}}}
+  "@assignToSuggested": {"placeholders": {"name": {"type": "String"}}},
+  "changeUntil": "Can be changed until {time}",
+  "changeDecisionTitle": "Change this decision",
+  "putBackToWaiting": "Put back to waiting",
+  "putBackHint": "It returns to the waiting list and its effects are undone.",
+  "correctQuantities": "Correct the quantities",
+  "correctQuantitiesHint": "Change what was approved, without deciding again.",
+  "putBackDone": "Put back to waiting",
+  "amendedDone": "Quantities corrected",
+  "@changeUntil": {"placeholders": {"time": {"type": "String"}}},
+  "change": "Change"
 }

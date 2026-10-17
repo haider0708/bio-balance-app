@@ -15,6 +15,9 @@ import '../../core/widgets/paged_list.dart';
 import '../../core/widgets/states.dart';
 import '../../l10n/app_localizations.dart';
 import '../network/network_repository.dart';
+import '../../core/widgets/amend_sheet.dart';
+import '../../core/widgets/quantity_editor.dart';
+import '../restock/restock_repository.dart';
 import '../stock/stock_repository.dart';
 import '../wallet/wallet_repository.dart';
 import 'approvals_repository.dart';
@@ -383,6 +386,140 @@ class _HistoryState extends ConsumerState<_History> {
     super.dispose();
   }
 
+  void _reload() => setState(() {
+    _paged.dispose();
+    _paged = _make();
+  });
+
+  Future<void> _change(BuildContext context, HistoryItem item) async {
+    final t = AppLocalizations.of(context);
+    final change = item.change!;
+    final choice = await showModalBottomSheet<String>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(t.changeDecisionTitle, style: context.text.titleMedium),
+              const Gap(4),
+              Text(
+                item.name,
+                style: context.text.bodyMedium?.copyWith(
+                  color: context.status.muted,
+                ),
+              ),
+              const Gap(16),
+              if (change.canAmend) ...[
+                FilledButton.icon(
+                  onPressed: () => Navigator.pop(context, 'amend'),
+                  icon: const Icon(LucideIcons.pencil),
+                  label: Text(t.correctQuantities),
+                ),
+                const Gap(4),
+                Text(
+                  t.correctQuantitiesHint,
+                  style: context.text.bodySmall?.copyWith(
+                    color: context.status.muted,
+                  ),
+                ),
+                const Gap(12),
+              ],
+              if (change.canReopen) ...[
+                OutlinedButton.icon(
+                  onPressed: () => Navigator.pop(context, 'reopen'),
+                  icon: const Icon(LucideIcons.rotateCcw),
+                  label: Text(t.putBackToWaiting),
+                ),
+                const Gap(4),
+                Text(
+                  t.putBackHint,
+                  style: context.text.bodySmall?.copyWith(
+                    color: context.status.muted,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+    if (choice == null || !context.mounted) return;
+    final client = ref.read(apiClientProvider);
+    if (choice == 'reopen') {
+      if (await perform(
+        context,
+        () => reopenDecision(client, item),
+        success: t.putBackDone,
+      )) {
+        _reload();
+      }
+      return;
+    }
+    await _amend(context, item);
+  }
+
+  Future<void> _amend(BuildContext context, HistoryItem item) async {
+    final t = AppLocalizations.of(context);
+    final client = ref.read(apiClientProvider);
+    final List<QuantityItem> items;
+    final String path;
+    final bool allowAdd;
+    try {
+      if (item.type == ApprovalType.stock) {
+        final d = await ref.read(stockRepositoryProvider).declaration(item.id);
+        items = [
+          for (final l in d.lines)
+            QuantityItem(
+              productId: l.productId,
+              name: l.name,
+              family: l.family,
+              quantity: l.approvedQuantity ?? l.quantity,
+              hint: t.declaredQuantity(l.quantity),
+            ),
+        ];
+        path = '/v1/stock/declarations/${item.id}/amend';
+        allowAdd = true;
+      } else {
+        final o = await ref.read(restockRepositoryProvider).get(item.id);
+        items = [
+          for (final l in o.lines)
+            QuantityItem(
+              productId: l.productId,
+              name: l.name,
+              family: l.family,
+              quantity: l.approved ?? l.received ?? l.requested,
+              hint: t.requestedQuantity(l.requested),
+            ),
+        ];
+        path = '/v1/restocks/${item.id}/amend';
+        allowAdd = false;
+      }
+    } catch (error) {
+      if (context.mounted) showError(context, error);
+      return;
+    }
+    if (!context.mounted) return;
+    final lines = await amendQuantities(
+      context,
+      title: t.correctQuantities,
+      hint: t.correctQuantitiesHint,
+      allowAdd: allowAdd,
+      items: items,
+    );
+    if (lines == null || !context.mounted) return;
+    if (await perform(
+      context,
+      () => client.post(path, {'lines': lines}),
+      success: t.amendedDone,
+    )) {
+      _reload();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
@@ -477,6 +614,36 @@ class _HistoryState extends ConsumerState<_History> {
                       if (item.note != null && item.note!.isNotEmpty) ...[
                         const SizedBox(height: 6),
                         Text('“${item.note}”', style: context.text.bodyMedium),
+                      ],
+                      if (item.change != null) ...[
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            Icon(
+                              LucideIcons.clock,
+                              size: 14,
+                              color: context.status.muted,
+                            ),
+                            const SizedBox(width: 6),
+                            Expanded(
+                              child: Text(
+                                t.changeUntil(
+                                  Dates.dateTime(
+                                    item.change!.until,
+                                    t.localeName,
+                                  ),
+                                ),
+                                style: context.text.bodySmall?.copyWith(
+                                  color: context.status.muted,
+                                ),
+                              ),
+                            ),
+                            TextButton(
+                              onPressed: () => _change(context, item),
+                              child: Text(t.change),
+                            ),
+                          ],
+                        ),
                       ],
                     ],
                   ),

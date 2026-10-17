@@ -5383,6 +5383,60 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No responsable yet.'**
   String get supplierChoiceNone;
+
+  /// No description provided for @changeUntil.
+  ///
+  /// In en, this message translates to:
+  /// **'Can be changed until {time}'**
+  String changeUntil(String time);
+
+  /// No description provided for @changeDecisionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Change this decision'**
+  String get changeDecisionTitle;
+
+  /// No description provided for @putBackToWaiting.
+  ///
+  /// In en, this message translates to:
+  /// **'Put back to waiting'**
+  String get putBackToWaiting;
+
+  /// No description provided for @putBackHint.
+  ///
+  /// In en, this message translates to:
+  /// **'It returns to the waiting list and its effects are undone.'**
+  String get putBackHint;
+
+  /// No description provided for @correctQuantities.
+  ///
+  /// In en, this message translates to:
+  /// **'Correct the quantities'**
+  String get correctQuantities;
+
+  /// No description provided for @correctQuantitiesHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Change what was approved, without deciding again.'**
+  String get correctQuantitiesHint;
+
+  /// No description provided for @putBackDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Put back to waiting'**
+  String get putBackDone;
+
+  /// No description provided for @amendedDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Quantities corrected'**
+  String get amendedDone;
+
+  /// No description provided for @change.
+  ///
+  /// In en, this message translates to:
+  /// **'Change'**
+  String get change;
 }
 
 class _AppLocalizationsDelegate

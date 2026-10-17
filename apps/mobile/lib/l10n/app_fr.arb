@@ -1731,5 +1731,14 @@
   "supplierChoiceTitle": "Choix du grossiste",
   "supplierChoiceHint": "Laissez certains responsables proposer le grossiste quand ils commandent un réassort pour un magasin. La commande vient toujours chez vous : vous l’approuvez comme proposé, la confiez à un autre grossiste, l’envoyez vous-même ou la refusez.",
   "supplierChoiceSwitch": "Les responsables peuvent proposer le grossiste",
-  "supplierChoiceNone": "Aucun responsable pour l’instant."
+  "supplierChoiceNone": "Aucun responsable pour l’instant.",
+  "changeUntil": "Modifiable jusqu’à {time}",
+  "changeDecisionTitle": "Modifier cette décision",
+  "putBackToWaiting": "Remettre en attente",
+  "putBackHint": "Elle retourne dans la liste d’attente et ses effets sont annulés.",
+  "correctQuantities": "Corriger les quantités",
+  "correctQuantitiesHint": "Changer ce qui a été approuvé, sans décider à nouveau.",
+  "putBackDone": "Remise en attente",
+  "amendedDone": "Quantités corrigées",
+  "change": "Modifier"
 }
