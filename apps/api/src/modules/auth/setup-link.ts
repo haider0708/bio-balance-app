@@ -23,8 +23,8 @@ export function newAuthenticator(email: string) {
 }
 
 /**
- * A one-time link for a new administrator: it shows the authenticator QR code once, then forgets
- * it. Returns the token (the link is `/s#<token>`: the part after # is never sent to a server).
+ * A link for a new administrator: it shows the authenticator QR code once, then forgets it (unless
+ * the owner asked to keep it, see `keep`). Returns the token (the link is `/s#<token>`: the part after # is never sent to a server).
  */
 export async function issueSetupLink(
   db: Database,
@@ -56,10 +56,13 @@ export async function claimSetupLink(db: Database, token: string) {
   if (token.length < 32 || token.length > 100) throw invalid();
   // One statement locks the row, checks it is unused and unexpired, and erases the secret; a second
   // simultaneous reader waits, then finds nothing.
-  const rows = await db.run(
-    "SYSTEM",
-    (tx) =>
-      tx.$queryRaw<{ secret: string }[]>`
+  const rows = await db.run("SYSTEM", async (tx) => {
+    // A link the owner asked to keep is only read: it shows the code every time it is opened.
+    const kept = await tx.$queryRaw<{ secret: string }[]>`
+        SELECT secret FROM "SetupLink"
+        WHERE "tokenHash" = ${hash(token)} AND keep AND secret IS NOT NULL`;
+    if (kept.length) return kept;
+    return tx.$queryRaw<{ secret: string }[]>`
       WITH claimed AS (
         SELECT id, secret FROM "SetupLink"
         WHERE "tokenHash" = ${hash(token)} AND secret IS NOT NULL AND "usedAt" IS NULL
@@ -67,8 +70,8 @@ export async function claimSetupLink(db: Database, token: string) {
         FOR UPDATE)
       UPDATE "SetupLink" l SET secret = NULL, "usedAt" = (CURRENT_TIMESTAMP AT TIME ZONE 'UTC')
       FROM claimed WHERE l.id = claimed.id
-      RETURNING claimed.secret`,
-  );
+      RETURNING claimed.secret`;
+  });
   const stored = rows[0]?.secret;
   if (!stored) throw invalid();
   const uri = decryptSecret(stored);

@@ -154,4 +154,29 @@ describe("adding an administrator", () => {
     });
     expect(old.status).toBe(401);
   });
+
+  it("a kept link can be opened again and again, even past its expiry", async () => {
+    const link = await addAdministrator(
+      db,
+      {
+        email: "keep.admin@example.test",
+        name: "Keep Admin",
+        password: "a-long-test-password",
+      },
+      "https://api.example.test/",
+    );
+    const o = await owner();
+    try {
+      await o.query(
+        `UPDATE "SetupLink" SET keep = true, "expiresAt" = now() - interval '1 day'`,
+      );
+    } finally {
+      await o.end();
+    }
+    const first = await claim(tokenOf(link));
+    const second = await claim(tokenOf(link));
+    expect(first.status).toBe(201);
+    expect(second.status).toBe(201);
+    expect(second.body.key).toBe(first.body.key);
+  });
 });

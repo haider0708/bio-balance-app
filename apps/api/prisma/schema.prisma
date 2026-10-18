@@ -694,6 +694,8 @@ model SetupLink {
   createdAt DateTime  @default(now())
   expiresAt DateTime
   usedAt    DateTime?
+  /// A link the owner asked to keep: it can be opened again and again, and never expires.
+  keep      Boolean   @default(false)
 
   @@index([userId])
 }
