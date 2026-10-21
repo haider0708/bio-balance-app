@@ -397,4 +397,22 @@ describe("a count made before counts applied at once", () => {
     expect(approved.body.status).toBe("APPROVED");
     expect(await levels(w, pdv.id)).toMatchObject({ [VITC]: 18, [NIAC]: 10 });
   });
+
+  it("shows the lines of a count in the order they were entered", async () => {
+    const pdv = await approvedPdv(w);
+    // Not alphabetical: Shampoo, Serum Vitamin C, Serum Niacinamide.
+    const order = [2, 0, 1];
+    const made = await w.n.post("/v1/stock/declarations", {
+      locationId: pdv.id,
+      photoId: await photo(w, w.nord),
+      lines: order.map((i) => line(i, 3 + i)),
+    });
+    expect(made.status).toBe(201);
+    const read = await w.n.get(`/v1/stock/declarations/${made.body.id}`);
+    expect(read.body.lines.map((l: { name: string }) => l.name)).toEqual([
+      "Shampoo Argan",
+      "Serum Vitamin C",
+      "Serum Niacinamide",
+    ]);
+  });
 });

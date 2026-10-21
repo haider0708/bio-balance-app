@@ -210,9 +210,10 @@ export class StockService {
           note: input.note?.trim() || null,
           createdById: actor.id,
           lines: {
-            create: input.lines.map((l) => ({
+            create: input.lines.map((l, position) => ({
               productId: l.productId,
               quantity: l.quantity,
+              position,
               appliedQuantity: l.quantity,
               ...(byAdmin && { approvedQuantity: l.quantity }),
             })),
@@ -1475,8 +1476,15 @@ export class StockService {
           quantity: l.quantity,
           approvedQuantity: l.approvedQuantity,
           addedByAdmin: l.addedByAdmin,
+          position: l.position,
         }))
-        .sort((a, b) => a.name.localeCompare(b.name)),
+        // In the order the list was entered; lines without a place (older counts, additions) follow by name.
+        .sort(
+          (a, b) =>
+            (a.position ?? Infinity) - (b.position ?? Infinity) ||
+            a.name.localeCompare(b.name),
+        )
+        .map(({ position: _position, ...line }) => line),
     }));
   }
 }

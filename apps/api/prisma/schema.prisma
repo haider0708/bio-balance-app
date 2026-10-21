@@ -338,6 +338,8 @@ model StockDeclarationLine {
   appliedQuantity  Int?
   /// A product the admin added when approving (it was not in the responsable's count).
   addedByAdmin     Boolean          @default(false)
+  /// The place of the line in the list as it was entered (null: sorted by name after the others).
+  position         Int?
   declaration      StockDeclaration @relation(fields: [declarationId], references: [id], onDelete: Cascade)
 
   @@unique([declarationId, productId])
