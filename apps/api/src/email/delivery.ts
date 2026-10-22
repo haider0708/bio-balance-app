@@ -7,7 +7,7 @@ export interface EmailTransport {
   send(to: string, content: EmailContent, jobId: string): Promise<void>;
 }
 
-const Payload = z.discriminatedUnion("template", [
+export const Payload = z.discriminatedUnion("template", [
   z.object({
     template: z.literal("invite"),
     userId: z.uuid(),

@@ -100,6 +100,7 @@ describe("invitation and password reset", () => {
       (r: any) => r.code === "NORD",
     );
     const created = await a.post("/v1/users", {
+      phone: "22 000 000",
       role: "RESPONSABLE",
       regionId: nord.id,
       name: "Nora Nord",
@@ -201,6 +202,7 @@ describe("taking back an invitation", () => {
     const nord = regions.find((r: any) => r.code === "NORD");
     const sud = regions.find((r: any) => r.code === "SUD");
     const created = await a.post("/v1/users", {
+      phone: "22 000 000",
       role: "RESPONSABLE",
       regionId: nord.id,
       name: "Mounir",
@@ -226,6 +228,7 @@ describe("taking back an invitation", () => {
     expect(dead.status).toBe(422);
     // The address is free again, for another region.
     const again = await a.post("/v1/users", {
+      phone: "22 000 000",
       role: "RESPONSABLE",
       regionId: sud.id,
       name: "Mounir",

@@ -188,6 +188,14 @@ class ServerText {
       'You cannot do this: some of these units were already sold (or shipped), so they cannot be removed.',
       'Impossible : une partie de ces unités a déjà été vendue (ou expédiée), elle ne peut pas être retirée.',
     ),
+    'PHONE_REQUIRED': (
+      'Enter the phone number: the codes are sent by WhatsApp too.',
+      'Saisissez le numéro de téléphone : les codes sont aussi envoyés par WhatsApp.',
+    ),
+    'PHONE_INVALID': (
+      'Enter a Tunisian mobile number: 8 digits, with or without +216 or 00216.',
+      'Saisissez un mobile tunisien : 8 chiffres, avec ou sans +216 ou 00216.',
+    ),
     'STALE_COUNT': (
       'This count was changed by someone else meanwhile. Go back and open it again.',
       'Ce comptage a été modifié entre-temps par quelqu’un d’autre. Revenez en arrière et rouvrez-le.',

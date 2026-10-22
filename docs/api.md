@@ -215,3 +215,8 @@ Round three: `GET /v1/approvals/history`, `POST /v1/stock/adjust`, `POST /v1/sto
 - **Orders:** `POST /v1/restocks` as the admin takes any active store or grossiste, with `deliver: "now"` (default: delivery recorded, proof photos required, stock added) or `"later"` (stores only: sent, the responsable confirms the receipt, the admin approves). The admin can also receive any delivery (`POST /v1/restocks/:id/receipt`), which completes it.
 - **Pasted lists:** `POST /v1/products/match {text}` (any signed-in user) reads a pasted list (barcode, name, quantity in several layouts) and returns each line as `MATCHED`, `UNSURE` (with `candidates`) or `MISSING`.
 - **Counts keep the order they were entered in** (lines carry a place; older counts stay alphabetical).
+
+## WhatsApp codes and phone numbers (2026-10)
+
+- `phone` is **required** when creating an account (`POST /v1/users`, `POST /v1/pdvs/:id/members`) and is checked when it changes (`PATCH /v1/users/:id`): a Tunisian mobile, 8 digits, written with or without `+216` / `00216` / spaces; stored as `+216XXXXXXXX`. Errors: `PHONE_REQUIRED`, `PHONE_INVALID` (422).
+- `GET/PUT /v1/settings` carry `whatsapp: {enabled}`; the GET adds `status`: `CONNECTED`, `DISCONNECTED` or `NOT_CONFIGURED`.

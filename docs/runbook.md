@@ -191,3 +191,14 @@ It matches by barcode, never touches stock, sales, rates or whether a product is
 ## Orders and counts entered for a responsable (2026-10)
 
 The admin now orders for any store from the app (Restocks → New order): "Delivered" records it with the delivery note photo and adds the stock at once; "Send it" leaves the receipt to the responsable. Pasting a delivery note or a list matches it to the catalogue by barcode, then by name. Before this existed, such orders were entered with a script run in the API container under the responsable's name; that is no longer needed.
+
+## WhatsApp codes (2026-10)
+
+Everything BioBalance sends by email as a code or a security notice (an account invitation, a resent invitation, a password reset, "your password was changed") is also sent by WhatsApp, from one **dedicated number**. The email always goes too, so a WhatsApp problem never locks anyone out.
+
+- **How it works:** the code function queues an email job and a `whatsapp` job with the same payload. The worker sends the WhatsApp one through **WAHA** (a self-hosted container that holds the number's session; the NOWEB engine), one message at a time, 3 to 8 seconds apart, at most 200 a day, only to a number that has WhatsApp, and never for a code already used or expired. Nothing leaves the test region. The finished job keeps no code.
+- **The number is required** for new accounts and read as `21 345 678`, `+216 21 345 678`, `00216 21345678` or `216-21-345-678`; it is stored as `+21621345678`. Older accounts with an unreadable number are skipped by WhatsApp (the email still goes).
+- **Switch:** Settings → Application → "WhatsApp codes" (admin). It shows whether the session is connected. Off, or WAHA missing, means email only.
+- **Install (once, on the VPS):** put `WAHA_IMAGE` (a pinned `devlikeapro/waha` tag or digest), `WAHA_API_KEY`, `WAHA_DASHBOARD_PASSWORD` and `WAHA_URL=http://waha:3000` in `/etc/biobalance/backend.env`, then `biobalance-compose --profile whatsapp up -d waha` and restart the API and worker. The dashboard listens on the server's 127.0.0.1:3010 only: `ssh -L 3010:127.0.0.1:3010 go2code`, open http://localhost:3010, start the session `default` and scan the QR code with the dedicated phone (WhatsApp → Linked devices). The session is kept in the `whatsapp` volume.
+- **If the number is blocked or disconnected:** the settings show "disconnected"; email keeps working; scan the QR code again, or switch the channel off. Use a dedicated SIM only, never a personal number, and keep the volume low (invitations, resets).
+- **Unofficial API:** WhatsApp's terms do not allow it, so the number can be restricted. The sender is one small class (`apps/api/src/whatsapp/transport.ts`): moving to the official WhatsApp Business API later means replacing it.

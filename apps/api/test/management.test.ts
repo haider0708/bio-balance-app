@@ -72,6 +72,7 @@ describe("approvals inbox", () => {
       })
     ).body;
     await w.n.post(`/v1/pdvs/${pdv.id}/members`, {
+      phone: "22 000 000",
       name: "Karim",
       email: "karim@example.test",
     });

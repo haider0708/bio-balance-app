@@ -117,6 +117,7 @@ export async function serveFixture(out: string) {
 
   const member = (
     await n.post(`/v1/pdvs/${pdv.id}/members`, {
+      phone: "22 000 000",
       name: "Karim Vendeur",
       email: "karim@example.test",
     })

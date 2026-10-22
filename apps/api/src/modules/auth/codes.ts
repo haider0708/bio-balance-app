@@ -26,7 +26,7 @@ const lifetimeMs: Record<CodePurpose, number> = {
 };
 
 /**
- * Issue a fresh code for a person and queue the email that carries it.
+ * Issue a fresh code for a person and queue the email and the WhatsApp message that carry it.
  * Earlier unused codes for the same purpose stop working.
  */
 export async function issueCode(tx: Tx, userId: string, purpose: CodePurpose) {
@@ -44,12 +44,18 @@ export async function issueCode(tx: Tx, userId: string, purpose: CodePurpose) {
       expiresAt: new Date(Date.now() + lifetimeMs[purpose]),
     },
   });
+  const payload = {
+    template: purpose,
+    userId,
+    accessTokenId: token.id,
+    code,
+  };
   await tx.job.create({
-    data: {
-      kind: "email",
-      key: `${purpose}:${token.id}`,
-      payload: { template: purpose, userId, accessTokenId: token.id, code },
-    },
+    data: { kind: "email", key: `${purpose}:${token.id}`, payload },
+  });
+  // The same code also goes by WhatsApp; the worker decides (channel on, number valid) when it runs.
+  await tx.job.create({
+    data: { kind: "whatsapp", key: `wa:${purpose}:${token.id}`, payload },
   });
   code = "";
   return { id: token.id, expiresAt: token.expiresAt };

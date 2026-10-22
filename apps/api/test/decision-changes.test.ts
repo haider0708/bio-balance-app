@@ -122,6 +122,7 @@ describe("groups, stores and members", () => {
     const pdv = await approvedPdv(w);
     const added = (
       await w.n.post(`/v1/pdvs/${pdv.id}/members`, {
+        phone: "22 000 000",
         name: "Amira",
         email: "amira@example.test",
       })

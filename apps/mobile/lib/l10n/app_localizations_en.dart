@@ -3334,4 +3334,53 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get photoOfDeliveryPaper => 'Photo of the delivery note';
+
+  @override
+  String get phoneWhatsapp => 'WhatsApp number';
+
+  @override
+  String get phoneHint => '8 digits, with or without +216';
+
+  @override
+  String get phoneRequired => 'Enter the WhatsApp number';
+
+  @override
+  String get phoneInvalid => 'Enter a Tunisian mobile number: 8 digits';
+
+  @override
+  String get confirmInviteTitle => 'Check before sending';
+
+  @override
+  String get confirmInviteNoteNow =>
+      'The code is sent now, by email and by WhatsApp.';
+
+  @override
+  String get confirmInviteNoteApproval =>
+      'Once the admin approves, the code is sent by email and by WhatsApp.';
+
+  @override
+  String get confirmSend => 'Confirm and send';
+
+  @override
+  String get confirmEdit => 'Edit';
+
+  @override
+  String get whatsappSettingsTitle => 'WhatsApp codes';
+
+  @override
+  String get whatsappSettingsHint =>
+      'Account codes and password resets are also sent by WhatsApp, from the dedicated number. The email always goes too.';
+
+  @override
+  String get whatsappSwitch => 'Send codes by WhatsApp';
+
+  @override
+  String get whatsappConnected => 'WhatsApp is connected';
+
+  @override
+  String get whatsappDisconnected =>
+      'WhatsApp is disconnected: the QR code must be scanned again';
+
+  @override
+  String get whatsappNotSetUp => 'WhatsApp is not set up on the server yet';
 }

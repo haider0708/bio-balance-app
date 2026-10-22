@@ -36,6 +36,7 @@ class AppSettingsScreen extends ConsumerWidget {
               _SupplierChoice(s),
               _MinimumVersion(s),
               _WorkingHours(s),
+              _WhatsAppCodes(s),
             ],
           ),
         ),
@@ -366,6 +367,82 @@ class _WorkingHoursState extends ConsumerState<_WorkingHours> {
                       }
                     : null,
                 child: Text(t.hoursSave),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+      ],
+    );
+  }
+}
+
+/// Codes (invitations, password resets) also go by WhatsApp, from the dedicated number, when this is on.
+class _WhatsAppCodes extends ConsumerWidget {
+  const _WhatsAppCodes(this.settings);
+
+  final AppSettings settings;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final t = AppLocalizations.of(context);
+    final status = settings.whatsappStatus;
+    final configured = status != 'NOT_CONFIGURED';
+    final connected = status == 'CONNECTED';
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SectionHeader(t.whatsappSettingsTitle),
+        AppCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                t.whatsappSettingsHint,
+                style: context.text.bodyMedium?.copyWith(
+                  color: context.status.muted,
+                ),
+              ),
+              const Gap(8),
+              Row(
+                children: [
+                  Icon(
+                    connected
+                        ? LucideIcons.circleCheck
+                        : LucideIcons.circleAlert,
+                    size: 18,
+                    color: connected
+                        ? context.status.success
+                        : context.status.warning,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      !configured
+                          ? t.whatsappNotSetUp
+                          : connected
+                          ? t.whatsappConnected
+                          : t.whatsappDisconnected,
+                      style: context.text.bodySmall,
+                    ),
+                  ),
+                ],
+              ),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: Text(t.whatsappSwitch),
+                value: settings.whatsappEnabled,
+                onChanged: configured
+                    ? (on) async {
+                        final ok = await perform(
+                          context,
+                          () => ref.read(appSettingsRepositoryProvider).save({
+                            'whatsapp': {'enabled': on},
+                          }),
+                        );
+                        if (ok) ref.invalidate(appSettingsProvider);
+                      }
+                    : null,
               ),
             ],
           ),

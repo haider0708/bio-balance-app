@@ -90,7 +90,9 @@ export class JobRunner {
       where: this.owned(job),
       data: {
         status: terminal ? "failed" : "pending",
-        ...(terminal && job.kind === "email" ? { payload: {} } : {}),
+        ...(terminal && (job.kind === "email" || job.kind === "whatsapp")
+          ? { payload: {} }
+          : {}),
         availableAt: new Date(Date.now() + delay),
         lastError: message,
         leaseToken: null,

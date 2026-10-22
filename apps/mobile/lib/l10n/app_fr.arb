@@ -1779,5 +1779,20 @@
   "deliverLaterHint": "La marchandise est en route. Le responsable confirme la réception avec le bon de livraison, puis vous approuvez.",
   "orderSentToStore": "Commande envoyée : le responsable confirmera la réception",
   "sendToStore": "Envoyer la commande",
-  "photoOfDeliveryPaper": "Photo du bon de livraison"
+  "photoOfDeliveryPaper": "Photo du bon de livraison",
+  "phoneWhatsapp": "Numéro WhatsApp",
+  "phoneHint": "8 chiffres, avec ou sans +216",
+  "phoneRequired": "Saisissez le numéro WhatsApp",
+  "phoneInvalid": "Saisissez un mobile tunisien : 8 chiffres",
+  "confirmInviteTitle": "Vérifiez avant d’envoyer",
+  "confirmInviteNoteNow": "Le code est envoyé maintenant, par email et par WhatsApp.",
+  "confirmInviteNoteApproval": "Quand l’admin approuvera, le code sera envoyé par email et par WhatsApp.",
+  "confirmSend": "Confirmer et envoyer",
+  "confirmEdit": "Modifier",
+  "whatsappSettingsTitle": "Codes par WhatsApp",
+  "whatsappSettingsHint": "Les codes de compte et de réinitialisation sont aussi envoyés par WhatsApp, depuis le numéro dédié. L’email part toujours aussi.",
+  "whatsappSwitch": "Envoyer les codes par WhatsApp",
+  "whatsappConnected": "WhatsApp est connecté",
+  "whatsappDisconnected": "WhatsApp est déconnecté : le code QR doit être scanné à nouveau",
+  "whatsappNotSetUp": "WhatsApp n’est pas encore configuré sur le serveur"
 }

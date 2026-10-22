@@ -25,6 +25,8 @@ class AppSettings {
     required this.supplierChoice,
     required this.open,
     required this.nextOpening,
+    this.whatsappEnabled = false,
+    this.whatsappStatus = 'NOT_CONFIGURED',
   });
 
   factory AppSettings.fromJson(Json j) {
@@ -39,6 +41,9 @@ class AppSettings {
           d == null ? null : DayHours.fromJson(d as Json),
       ],
       supplierChoice: j['supplierChoice'] == true,
+      whatsappEnabled: j.objOrNull('whatsapp')?['enabled'] == true,
+      whatsappStatus:
+          j.objOrNull('whatsapp')?.strOrNull('status') ?? 'NOT_CONFIGURED',
       open: j['open'] != false,
       nextOpening: j['nextOpening'] == null
           ? null
@@ -53,6 +58,11 @@ class AppSettings {
   /// Sunday first, like the server.
   final List<DayHours?> days;
   final bool supplierChoice;
+
+  /// Codes are also sent by WhatsApp (the admin's switch), and the state of its session on the server:
+  /// CONNECTED, DISCONNECTED or NOT_CONFIGURED.
+  final bool whatsappEnabled;
+  final String whatsappStatus;
 
   /// Whether BioBalance is open right now, by the server's clock.
   final bool open;

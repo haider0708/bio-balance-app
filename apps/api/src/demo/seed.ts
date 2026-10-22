@@ -286,8 +286,8 @@ async function build(
     const created = (await s.users.createByAdmin(
       admin,
       role === "RESPONSABLE"
-        ? { role, regionId: placeId, name, email }
-        : { role, pdvId: placeId, name, email },
+        ? { role, regionId: placeId, name, email, phone: "20 000 000" }
+        : { role, pdvId: placeId, name, email, phone: "20 000 000" },
     )) as { id: string };
     // They sign in with the password given here: no invitation is sent or kept.
     await s.db.run("SYSTEM", (tx) =>
@@ -583,7 +583,7 @@ async function tidy(
       [regionId, seedStart],
     );
     await owner.query(
-      `DELETE FROM "Job" WHERE "createdAt" >= $1 AND kind = 'email'`,
+      `DELETE FROM "Job" WHERE "createdAt" >= $1 AND kind IN ('email', 'whatsapp')`,
       [seedStart],
     );
     await owner.query(

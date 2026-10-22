@@ -3353,4 +3353,54 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get photoOfDeliveryPaper => 'Photo du bon de livraison';
+
+  @override
+  String get phoneWhatsapp => 'Numéro WhatsApp';
+
+  @override
+  String get phoneHint => '8 chiffres, avec ou sans +216';
+
+  @override
+  String get phoneRequired => 'Saisissez le numéro WhatsApp';
+
+  @override
+  String get phoneInvalid => 'Saisissez un mobile tunisien : 8 chiffres';
+
+  @override
+  String get confirmInviteTitle => 'Vérifiez avant d’envoyer';
+
+  @override
+  String get confirmInviteNoteNow =>
+      'Le code est envoyé maintenant, par email et par WhatsApp.';
+
+  @override
+  String get confirmInviteNoteApproval =>
+      'Quand l’admin approuvera, le code sera envoyé par email et par WhatsApp.';
+
+  @override
+  String get confirmSend => 'Confirmer et envoyer';
+
+  @override
+  String get confirmEdit => 'Modifier';
+
+  @override
+  String get whatsappSettingsTitle => 'Codes par WhatsApp';
+
+  @override
+  String get whatsappSettingsHint =>
+      'Les codes de compte et de réinitialisation sont aussi envoyés par WhatsApp, depuis le numéro dédié. L’email part toujours aussi.';
+
+  @override
+  String get whatsappSwitch => 'Envoyer les codes par WhatsApp';
+
+  @override
+  String get whatsappConnected => 'WhatsApp est connecté';
+
+  @override
+  String get whatsappDisconnected =>
+      'WhatsApp est déconnecté : le code QR doit être scanné à nouveau';
+
+  @override
+  String get whatsappNotSetUp =>
+      'WhatsApp n’est pas encore configuré sur le serveur';
 }

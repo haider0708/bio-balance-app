@@ -5671,6 +5671,96 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Photo of the delivery note'**
   String get photoOfDeliveryPaper;
+
+  /// No description provided for @phoneWhatsapp.
+  ///
+  /// In en, this message translates to:
+  /// **'WhatsApp number'**
+  String get phoneWhatsapp;
+
+  /// No description provided for @phoneHint.
+  ///
+  /// In en, this message translates to:
+  /// **'8 digits, with or without +216'**
+  String get phoneHint;
+
+  /// No description provided for @phoneRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the WhatsApp number'**
+  String get phoneRequired;
+
+  /// No description provided for @phoneInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a Tunisian mobile number: 8 digits'**
+  String get phoneInvalid;
+
+  /// No description provided for @confirmInviteTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Check before sending'**
+  String get confirmInviteTitle;
+
+  /// No description provided for @confirmInviteNoteNow.
+  ///
+  /// In en, this message translates to:
+  /// **'The code is sent now, by email and by WhatsApp.'**
+  String get confirmInviteNoteNow;
+
+  /// No description provided for @confirmInviteNoteApproval.
+  ///
+  /// In en, this message translates to:
+  /// **'Once the admin approves, the code is sent by email and by WhatsApp.'**
+  String get confirmInviteNoteApproval;
+
+  /// No description provided for @confirmSend.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm and send'**
+  String get confirmSend;
+
+  /// No description provided for @confirmEdit.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit'**
+  String get confirmEdit;
+
+  /// No description provided for @whatsappSettingsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'WhatsApp codes'**
+  String get whatsappSettingsTitle;
+
+  /// No description provided for @whatsappSettingsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Account codes and password resets are also sent by WhatsApp, from the dedicated number. The email always goes too.'**
+  String get whatsappSettingsHint;
+
+  /// No description provided for @whatsappSwitch.
+  ///
+  /// In en, this message translates to:
+  /// **'Send codes by WhatsApp'**
+  String get whatsappSwitch;
+
+  /// No description provided for @whatsappConnected.
+  ///
+  /// In en, this message translates to:
+  /// **'WhatsApp is connected'**
+  String get whatsappConnected;
+
+  /// No description provided for @whatsappDisconnected.
+  ///
+  /// In en, this message translates to:
+  /// **'WhatsApp is disconnected: the QR code must be scanned again'**
+  String get whatsappDisconnected;
+
+  /// No description provided for @whatsappNotSetUp.
+  ///
+  /// In en, this message translates to:
+  /// **'WhatsApp is not set up on the server yet'**
+  String get whatsappNotSetUp;
 }
 
 class _AppLocalizationsDelegate

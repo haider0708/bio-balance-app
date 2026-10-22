@@ -545,15 +545,23 @@ export class AuthService {
 
   private async queuePasswordChanged(tx: Tx, userId: string) {
     const changedAt = new Date();
+    const payload = {
+      template: "password-changed",
+      userId,
+      changedAt: changedAt.toISOString(),
+    };
     await tx.job.create({
       data: {
         kind: "email",
         key: `password-changed:${userId}:${changedAt.getTime()}`,
-        payload: {
-          template: "password-changed",
-          userId,
-          changedAt: changedAt.toISOString(),
-        },
+        payload,
+      },
+    });
+    await tx.job.create({
+      data: {
+        kind: "whatsapp",
+        key: `wa:password-changed:${userId}:${changedAt.getTime()}`,
+        payload,
       },
     });
   }

@@ -17,6 +17,10 @@ x-api-environment: &api-env
   # The oldest app build still allowed (older phones are asked to update), and the App Store page.
   MIN_APP_BUILD: ${MIN_APP_BUILD:-0}
   IOS_STORE_URL: ${IOS_STORE_URL:-}
+  # WhatsApp (docs/runbook.md, "WhatsApp codes"): the WAHA container below, on the private network.
+  # Unset = the admin settings show it as not set up and only the email goes.
+  WAHA_URL: ${WAHA_URL:-}
+  WAHA_API_KEY: ${WAHA_API_KEY:-}
 x-app: &app
   image: ${API_IMAGE:?Set an immutable API image tag or digest}
   restart: unless-stopped
@@ -83,6 +87,8 @@ services:
       APNS_KEY_P8: ${APNS_KEY_P8:-}
       APNS_TOPIC: ${APNS_TOPIC:-tn.biobalance.app}
       FCM_SERVICE_ACCOUNT: ${FCM_SERVICE_ACCOUNT:-}
+      WAHA_URL: ${WAHA_URL:-}
+      WAHA_API_KEY: ${WAHA_API_KEY:-}
     healthcheck:
       test: [CMD, node, -e, "const fs=require('fs');process.exit(Date.now()-Number(fs.readFileSync('/tmp/biobalance-worker-heartbeat','utf8'))<60000?0:1)"]
       interval: 30s
@@ -92,6 +98,29 @@ services:
     stop_grace_period: 60s
     mem_limit: 384m
     cpus: 0.5
+  # The WhatsApp session of the dedicated number, used only to send account codes next to the email.
+  # Optional: it starts with `compose --profile whatsapp up -d waha`. Nothing is exposed: the API and the
+  # worker reach it on the private network; its dashboard (to scan the QR code) listens on 127.0.0.1 only,
+  # reached through `ssh -L 3010:127.0.0.1:3010`.
+  waha:
+    image: ${WAHA_IMAGE:?Set the WAHA image (a pinned tag or digest)}
+    profiles: [whatsapp]
+    restart: unless-stopped
+    networks: [private]
+    ports: ['127.0.0.1:3010:3000']
+    environment:
+      WAHA_API_KEY: ${WAHA_API_KEY:?Set the WAHA API key}
+      WAHA_DASHBOARD_ENABLED: 'true'
+      WAHA_DASHBOARD_USERNAME: ${WAHA_DASHBOARD_USERNAME:-admin}
+      WAHA_DASHBOARD_PASSWORD: ${WAHA_DASHBOARD_PASSWORD:?Set the WAHA dashboard password}
+      WHATSAPP_SWAGGER_ENABLED: 'false'
+      WHATSAPP_DEFAULT_ENGINE: NOWEB
+      WHATSAPP_START_SESSION: default
+      WAHA_LOCAL_STORE_BASE_DIR: /app/.sessions
+    volumes: [whatsapp:/app/.sessions]
+    mem_limit: 768m
+    cpus: 0.5
+    logging: {driver: json-file, options: {max-size: 10m, max-file: '3'}}
   postgres:
     image: postgres:17.7-alpine
     restart: unless-stopped
@@ -172,3 +201,4 @@ networks:
 volumes:
   database:
   media:
+  whatsapp:

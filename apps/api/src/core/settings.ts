@@ -15,6 +15,8 @@ export interface Settings {
   hours: Hours;
   /** Responsables with the permission may suggest the grossiste of a restock. */
   supplierChoice: boolean;
+  /** Codes (account invitations, password resets) are also sent by WhatsApp when this is on. */
+  whatsapp: { enabled: boolean };
 }
 
 const ANDROID_STORE =
@@ -45,6 +47,7 @@ export const SettingsPatch = z.object({
     .object({ enabled: z.boolean(), days: z.array(day).length(7) })
     .optional(),
   supplierChoice: z.boolean().optional(),
+  whatsapp: z.object({ enabled: z.boolean() }).optional(),
 });
 export type SettingsPatch = z.infer<typeof SettingsPatch>;
 
@@ -79,6 +82,10 @@ export class SettingsService {
       },
       hours: (stored.get("hours") as Hours | undefined) ?? DEFAULT_HOURS,
       supplierChoice: (stored.get("supplierChoice") as boolean) ?? false,
+      whatsapp: (stored.get("whatsapp") as
+        { enabled: boolean } | undefined) ?? {
+        enabled: false,
+      },
     };
     this.cache = { at: Date.now(), value };
     return value;

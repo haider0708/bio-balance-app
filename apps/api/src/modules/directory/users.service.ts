@@ -13,6 +13,7 @@ import { Database } from "../../core/database";
 import { DomainError, notFound, requireRule } from "../../core/errors";
 import { notify, notifyAdmins } from "../../core/notifier";
 import { issueCode } from "../auth/codes";
+import { canonicalPhone } from "../../core/phone";
 
 export interface NewMember {
   name: string;
@@ -90,11 +91,12 @@ export class UsersService {
         regionId = pdv.regionId;
         pdvId = pdv.id;
       }
+      const phone = canonicalPhone(input.phone);
       const user = await tx.user.create({
         data: {
           email: input.email,
           name: input.name,
-          phone: input.phone ?? null,
+          phone,
           role: input.role,
           status: "ACTIVE",
           regionId,
@@ -130,11 +132,12 @@ export class UsersService {
       const pdv = await tx.pdv.findUnique({ where: { id: pdvId } });
       if (!pdv) throw notFound("Point of sale");
       await this.assertEmailFree(tx, input.email);
+      const phone = canonicalPhone(input.phone);
       const user = await tx.user.create({
         data: {
           email: input.email,
           name: input.name,
-          phone: input.phone ?? null,
+          phone,
           role: "VENDEUR",
           status: "PENDING",
           regionId: pdv.regionId,
@@ -260,7 +263,9 @@ export class UsersService {
         where: { id },
         data: {
           ...(input.name !== undefined && { name: input.name }),
-          ...(input.phone !== undefined && { phone: input.phone }),
+          ...(input.phone !== undefined && {
+            phone: canonicalPhone(input.phone),
+          }),
           ...(input.pdvId !== undefined && { pdvId: input.pdvId }),
         },
       });

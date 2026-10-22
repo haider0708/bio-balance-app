@@ -7,6 +7,7 @@ import { Database } from "./database";
 import { AuthGuard, ErrorFilter } from "./http";
 import { SettingsController } from "./settings.controller";
 import { SettingsService } from "./settings";
+import { WhatsAppStatus } from "../whatsapp/status";
 
 /** Database, sign-in and the global guard: available everywhere without importing. */
 @Global()
@@ -15,6 +16,7 @@ import { SettingsService } from "./settings";
   providers: [
     Database,
     SettingsService,
+    WhatsAppStatus,
     { provide: PasswordHasher, useFactory: () => new PasswordHasher() },
     AuthService,
     { provide: APP_GUARD, useClass: AuthGuard },

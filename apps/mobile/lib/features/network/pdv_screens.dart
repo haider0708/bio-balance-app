@@ -16,7 +16,9 @@ import '../shared/status_chips.dart';
 import 'network_models.dart';
 import 'network_repository.dart';
 import 'region_moves.dart';
+import 'invite_widgets.dart';
 import 'people_widgets.dart';
+import '../../core/util/phone.dart';
 
 /// One point of sale: its state, its stock, its team, and what the viewer can do about it.
 class PdvDetailScreen extends ConsumerWidget {
@@ -525,6 +527,23 @@ class _AddMemberScreenState extends ConsumerState<AddMemberScreen> {
   Future<void> _save() async {
     if (!_form.currentState!.validate()) return;
     final t = AppLocalizations.of(context);
+    final phone = normalizeTunisianPhone(_phone.text)!;
+    final store = (await ref.read(pdvsProvider(null).future))
+        .where((p) => p.id == widget.pdvId)
+        .map((p) => p.name)
+        .firstOrNull;
+    if (!mounted) return;
+    if (!await confirmInvite(
+      context,
+      name: _name.text.trim(),
+      email: _email.text.trim().toLowerCase(),
+      phone: phone,
+      place: store ?? '',
+      afterApproval: true,
+    )) {
+      return;
+    }
+    if (!mounted) return;
     final ok = await perform(
       context,
       () => ref
@@ -533,7 +552,7 @@ class _AddMemberScreenState extends ConsumerState<AddMemberScreen> {
             widget.pdvId,
             name: _name.text.trim(),
             email: _email.text.trim().toLowerCase(),
-            phone: _phone.text.trim(),
+            phone: phone,
           ),
       success: t.memberAdded,
     );
@@ -578,13 +597,9 @@ class _AddMemberScreenState extends ConsumerState<AddMemberScreen> {
                   (v == null || !v.contains('@')) ? t.emailInvalid : null,
             ),
             const Gap(12),
-            TextFormField(
+            PhoneField(
               controller: _phone,
-              keyboardType: TextInputType.phone,
               textInputAction: TextInputAction.done,
-              decoration: InputDecoration(
-                labelText: '${t.phone} (${t.optional})',
-              ),
             ),
             const Gap(24),
             AsyncButton(
@@ -631,11 +646,32 @@ class _CreateAccountScreenState extends ConsumerState<CreateAccountScreen> {
   Future<void> _save() async {
     if (!_form.currentState!.validate()) return;
     final t = AppLocalizations.of(context);
+    final phone = normalizeTunisianPhone(_phone.text)!;
+    final place = _role == Role.responsable
+        ? (ref.read(regionsProvider).value ?? const [])
+              .where((r) => r.id == _regionId)
+              .map((r) => r.name)
+              .firstOrNull
+        : (ref.read(pdvsProvider(null)).value ?? const <Pdv>[])
+              .where((p) => p.id == _pdvId)
+              .map((p) => p.name)
+              .firstOrNull;
+    if (!await confirmInvite(
+      context,
+      name: _name.text.trim(),
+      email: _email.text.trim().toLowerCase(),
+      phone: phone,
+      place: place ?? '',
+      afterApproval: false,
+    )) {
+      return;
+    }
+    if (!mounted) return;
     final body = {
       'role': _role.wire,
       'name': _name.text.trim(),
       'email': _email.text.trim().toLowerCase(),
-      if (_phone.text.trim().isNotEmpty) 'phone': _phone.text.trim(),
+      'phone': phone,
       if (_role == Role.responsable) 'regionId': _regionId,
       if (_role == Role.vendeur) 'pdvId': _pdvId,
     };
@@ -709,14 +745,7 @@ class _CreateAccountScreenState extends ConsumerState<CreateAccountScreen> {
                   (v == null || !v.contains('@')) ? t.emailInvalid : null,
             ),
             const Gap(12),
-            TextFormField(
-              controller: _phone,
-              keyboardType: TextInputType.phone,
-              textInputAction: TextInputAction.next,
-              decoration: InputDecoration(
-                labelText: '${t.phone} (${t.optional})',
-              ),
-            ),
+            PhoneField(controller: _phone),
             const Gap(12),
             if (_role == Role.responsable)
               DropdownButtonFormField<String>(

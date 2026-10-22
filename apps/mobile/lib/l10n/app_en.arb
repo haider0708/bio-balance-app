@@ -1794,5 +1794,20 @@
   "deliverLaterHint": "The goods are on their way. The responsable confirms the receipt with the delivery note, then you approve.",
   "orderSentToStore": "Order sent: the responsable will confirm the receipt",
   "sendToStore": "Send the order",
-  "photoOfDeliveryPaper": "Photo of the delivery note"
+  "photoOfDeliveryPaper": "Photo of the delivery note",
+  "phoneWhatsapp": "WhatsApp number",
+  "phoneHint": "8 digits, with or without +216",
+  "phoneRequired": "Enter the WhatsApp number",
+  "phoneInvalid": "Enter a Tunisian mobile number: 8 digits",
+  "confirmInviteTitle": "Check before sending",
+  "confirmInviteNoteNow": "The code is sent now, by email and by WhatsApp.",
+  "confirmInviteNoteApproval": "Once the admin approves, the code is sent by email and by WhatsApp.",
+  "confirmSend": "Confirm and send",
+  "confirmEdit": "Edit",
+  "whatsappSettingsTitle": "WhatsApp codes",
+  "whatsappSettingsHint": "Account codes and password resets are also sent by WhatsApp, from the dedicated number. The email always goes too.",
+  "whatsappSwitch": "Send codes by WhatsApp",
+  "whatsappConnected": "WhatsApp is connected",
+  "whatsappDisconnected": "WhatsApp is disconnected: the QR code must be scanned again",
+  "whatsappNotSetUp": "WhatsApp is not set up on the server yet"
 }

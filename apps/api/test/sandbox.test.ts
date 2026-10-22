@@ -144,6 +144,7 @@ describe("nothing done in the test region reaches the admin", () => {
       city: "Sfax",
     });
     await w.s.post(`/v1/pdvs/${sudPdv.id}/members`, {
+      phone: "22 000 000",
       name: "Nouveau",
       email: "nouveau@example.test",
     });

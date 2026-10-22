@@ -49,6 +49,7 @@ const runAll = async (mail: FakeMail) => {
 describe("emails", () => {
   it("send the activation code in the person's language and then forget it", async () => {
     await w.a.post("/v1/users", {
+      phone: "22 000 000",
       role: "RESPONSABLE",
       regionId: await regionId("CENTRE"),
       name: "Mounir",
@@ -67,6 +68,7 @@ describe("emails", () => {
 
   it("use English when the person chose it", async () => {
     await w.a.post("/v1/users", {
+      phone: "22 000 000",
       role: "RESPONSABLE",
       regionId: await regionId("CENTRE"),
       name: "Mounir",
@@ -85,6 +87,7 @@ describe("emails", () => {
 
   it("are not sent for a code that was already used", async () => {
     await w.a.post("/v1/users", {
+      phone: "22 000 000",
       role: "RESPONSABLE",
       regionId: await regionId("CENTRE"),
       name: "Mounir",
@@ -111,6 +114,7 @@ describe("emails", () => {
 
   it("do not reach people who are no longer active", async () => {
     await w.a.post("/v1/users", {
+      phone: "22 000 000",
       role: "RESPONSABLE",
       regionId: await regionId("CENTRE"),
       name: "Mounir",

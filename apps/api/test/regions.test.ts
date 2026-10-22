@@ -87,6 +87,7 @@ describe("responsables", () => {
   it("can be created for a region, and moved: into an empty region, or swapped with the one there", async () => {
     const centre = await regionId("CENTRE");
     const created = await w.a.post("/v1/users", {
+      phone: "22 000 000",
       role: "RESPONSABLE",
       regionId: centre,
       name: "Cyrine Centre",
@@ -97,6 +98,7 @@ describe("responsables", () => {
     expect(
       (
         await w.a.post("/v1/users", {
+          phone: "22 000 000",
           role: "RESPONSABLE",
           regionId: centre,
           name: "Second",
@@ -152,6 +154,7 @@ describe("responsables", () => {
     const centre = await regionId("CENTRE");
     const created = (
       await w.a.post("/v1/users", {
+        phone: "22 000 000",
         role: "RESPONSABLE",
         regionId: centre,
         name: "Cyrine Centre",

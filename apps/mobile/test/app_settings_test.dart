@@ -3,7 +3,7 @@ import 'dart:convert';
 
 import 'package:biobalance/app/router.dart';
 import 'package:biobalance/core/update/app_update.dart';
-import 'package:flutter/material.dart' show TextField;
+import 'package:flutter/material.dart' show Scrollable, TextField;
 import 'package:flutter_test/flutter_test.dart';
 
 import 'support/fake_server.dart';
@@ -45,7 +45,10 @@ void main() {
     await tester.ensureVisible(find.byType(TextField).first);
     await tester.pump();
     await tester.enterText(find.byType(TextField).first, '45');
+    await tester.pump();
+    // Aligned to the middle of the screen, not under the app bar.
     await tester.ensureVisible(find.text('Save'));
+    await tester.drag(find.byType(Scrollable).first, const Offset(0, 200));
     await tester.pump();
     await tester.tap(find.text('Save'));
     await settle(tester);

@@ -145,6 +145,7 @@ describe("groups and points of sale", () => {
     expect(bad.body.code).toBe("GROUP_NOT_FOUND");
     // And the admin can add a team member to it right away.
     const member = await w.a.post("/v1/users", {
+      phone: "22 000 000",
       role: "VENDEUR",
       pdvId: pdv.body.id,
       name: "Amira",
@@ -199,6 +200,7 @@ describe("team members", () => {
     expect(approved.body.status).toBe("ACTIVE");
 
     const dup = await w.n.post(`/v1/pdvs/${pdv.id}/members`, {
+      phone: "22 000 000",
       name: "Karim 2",
       email: "karim@example.test",
     });
@@ -209,6 +211,7 @@ describe("team members", () => {
     const pdv = await approvedPdv(w);
     const member = (
       await w.n.post(`/v1/pdvs/${pdv.id}/members`, {
+        phone: "22 000 000",
         name: "Leila",
         email: "leila@example.test",
       })
@@ -226,6 +229,7 @@ describe("team members", () => {
       (r: any) => r.code === "NORD",
     );
     const second = await w.a.post("/v1/users", {
+      phone: "22 000 000",
       role: "RESPONSABLE",
       regionId: nord.id,
       name: "Second",
@@ -340,6 +344,7 @@ describe("regions are separate", () => {
     await w.n.post("/v1/groups", { name: "Groupe N" });
     await w.s.post("/v1/groups", { name: "Groupe S" });
     await w.n.post(`/v1/pdvs/${north.id}/members`, {
+      phone: "22 000 000",
       name: "Nadia",
       email: "nadia@example.test",
     });
@@ -363,6 +368,7 @@ describe("regions are separate", () => {
     expect(
       (
         await w.s.post(`/v1/pdvs/${north.id}/members`, {
+          phone: "22 000 000",
           name: "Spy",
           email: "spy@example.test",
         })

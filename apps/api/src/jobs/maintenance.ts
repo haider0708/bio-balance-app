@@ -41,7 +41,7 @@ export async function cleanup(db: Database, now = new Date()) {
   // A restored demonstration account's job carried its password hash: not kept once done.
   await db.$executeRaw`UPDATE "Job" SET payload = '{}'::jsonb WHERE kind = 'demo-restore' AND status = 'completed' AND payload <> '{}'::jsonb`;
   // Failed email jobs may still carry a code from older attempts.
-  await db.$executeRaw`UPDATE "Job" SET payload = '{}'::jsonb WHERE kind = 'email' AND status = 'failed' AND payload <> '{}'::jsonb`;
+  await db.$executeRaw`UPDATE "Job" SET payload = '{}'::jsonb WHERE kind IN ('email', 'whatsapp') AND status = 'failed' AND payload <> '{}'::jsonb`;
 }
 
 export async function scheduleCleanup(db: Database, now = new Date()) {

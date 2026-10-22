@@ -18,10 +18,18 @@ import { MessagingService } from "./modules/messaging/messaging.service";
 import { PushDelivery } from "./push/push-delivery";
 import { NotificationSignal } from "./push/signal";
 import { transportsFromEnv } from "./push/transports";
+import { SettingsService } from "./core/settings";
+import { WhatsAppDelivery } from "./whatsapp/delivery";
+import { whatsappFromEnv } from "./whatsapp/transport";
 
 const db = new Database();
 const smtp = new SmtpEmailTransport();
 const emails = new EmailDelivery(db, smtp);
+const whatsapp = new WhatsAppDelivery(
+  db,
+  whatsappFromEnv(),
+  new SettingsService(db),
+);
 const messages = new MessagingService(db);
 const transports = transportsFromEnv();
 const pushes = new PushDelivery(db, transports);
@@ -36,6 +44,14 @@ const execute: JobExecutor = async (job, stillOwned) => {
       if (outcome === "suppressed")
         console.log(
           JSON.stringify({ event: "email.suppressed", jobId: job.id }),
+        );
+      return;
+    }
+    case "whatsapp": {
+      const outcome = await whatsapp.deliver(job);
+      if (outcome === "suppressed")
+        console.log(
+          JSON.stringify({ event: "whatsapp.suppressed", jobId: job.id }),
         );
       return;
     }
@@ -69,6 +85,7 @@ async function main() {
     db,
     [
       "email",
+      "whatsapp",
       "message-send",
       "cleanup",
       "sandbox-approve",
