@@ -78,9 +78,12 @@ class FakeServer implements HttpClientAdapter {
   void close({bool force = false}) {}
 
   /// Provider overrides that make the app talk to this server instead of the network.
-  List<Override> overrides({String? token}) {
+  List<Override> overrides({String? token, String? cachedMe}) {
     SharedPreferences.setMockInitialValues({});
-    FlutterSecureStorage.setMockInitialValues({'session.token': ?token});
+    FlutterSecureStorage.setMockInitialValues({
+      'session.token': ?token,
+      'session.me': ?cachedMe,
+    });
     final dio = Dio(BaseOptions(baseUrl: AppConfig.apiBaseUrl))
       ..httpClientAdapter = this;
     return [
@@ -88,6 +91,7 @@ class FakeServer implements HttpClientAdapter {
       apiClientProvider.overrideWith(
         (ref) => ApiClient(
           dio: dio,
+          retryDelay: Duration.zero,
           tokenReader: () => ref.read(tokenProvider),
           localeReader: () => ref.read(localeProvider) ?? 'fr',
           onUnauthorized: () => ref.read(sessionProvider.notifier).expire(),

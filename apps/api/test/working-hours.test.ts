@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { resetDatabase, startApi, type Api } from "./helpers";
-import { buildWorld, type World } from "./world";
+import { SettingsService } from "../src/core/settings";
+import { client, resetDatabase, startApi, type Api } from "./helpers";
+import { approvedPdv, buildWorld, teamMember, type World } from "./world";
 
 let api: Api;
 let w: World;
@@ -11,6 +12,8 @@ afterAll(() => api.close());
 beforeEach(async () => {
   await resetDatabase();
   w = await buildWorld(api);
+  // Settings are kept for ten seconds per instance: forget what a previous test saved.
+  api.app.get(SettingsService).forget();
 });
 
 const closedAllWeek = {
@@ -64,5 +67,26 @@ describe("working hours", () => {
       expect(r.body.details.time).toBe("08:00");
       expect(typeof r.body.details.opensAt).toBe("string");
     }
+  });
+
+  it("refuses a sale made outside the hours for good, and one made inside the hours goes through", async () => {
+    const pdv = await approvedPdv(w);
+    const seller = client(api, (await teamMember(w, pdv.id)).token);
+    const sale = (occurredAt: string) =>
+      seller.post("/v1/sales", {
+        id: crypto.randomUUID(),
+        occurredAt,
+        lines: [{ productId: w.products[0]!.id, quantity: 1 }],
+      });
+    await w.a.put("/v1/settings", { hours: closedAllWeek });
+    const late = await sale(new Date().toISOString());
+    expect(late.status).toBe(422);
+    expect(late.body.code).toBe("SALE_OUTSIDE_HOURS");
+    await w.a.put("/v1/settings", { hours: openAllWeek });
+    // Inside the hours the rule is not what stops it (the store has no stock here, another rule may).
+    const earlier = new Date(Date.now() - 3600_000).toISOString();
+    expect((await sale(earlier)).body.code).not.toMatch(
+      /SALE_OUTSIDE_HOURS|SERVER_CLOSED/,
+    );
   });
 });

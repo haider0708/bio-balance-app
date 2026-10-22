@@ -142,6 +142,10 @@ class ServerText {
       'Your session ended. Please sign in again.',
       'Votre session a expiré. Reconnectez-vous.',
     ),
+    'SALE_OUTSIDE_HOURS': (
+      'This sale was made outside the working hours, so it cannot be recorded. Remove it from the list.',
+      'Cette vente a été faite en dehors des heures de travail : elle ne peut pas être enregistrée. Retirez-la de la liste.',
+    ),
     'SERVER_CLOSED': (
       'BioBalance is closed for now.',
       'BioBalance est fermé pour le moment.',

@@ -89,7 +89,16 @@ export class AuthGuard implements CanActivate {
       const at = new Date(
         (request.body as { occurredAt?: string } | undefined)?.occurredAt ?? "",
       );
-      if (!Number.isNaN(at.getTime()) && isOpenAt(hours, at)) return;
+      if (!Number.isNaN(at.getTime())) {
+        if (isOpenAt(hours, at)) return;
+        // A sale sent later by a phone that was offline, made outside the hours: refused for good (the
+        // phone shows it as refused, it does not wait for the next opening).
+        throw new DomainError(
+          "SALE_OUTSIDE_HOURS",
+          "This sale was made outside the working hours.",
+          422,
+        );
+      }
     }
     if (isOpenAt(hours, new Date())) return;
     const next = nextOpening(hours, new Date());

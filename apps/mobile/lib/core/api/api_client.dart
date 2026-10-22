@@ -13,6 +13,7 @@ class ApiClient {
     required this.localeReader,
     required this.onUnauthorized,
     this.onClosed,
+    this.retryDelay = const Duration(milliseconds: 700),
     this.headers = const {},
     Dio? dio,
   }) : _dio = dio ?? _build();
@@ -26,6 +27,10 @@ class ApiClient {
 
   /// Sent with every request (the admin's "Show the test region" choice).
   final Map<String, String> headers;
+
+  /// A read that fails for lack of a connection is tried once more after this pause: a flaky network
+  /// often answers the second time, and a read does no harm twice.
+  final Duration retryDelay;
   final Dio _dio;
 
   static Dio _build() => Dio(
@@ -50,7 +55,7 @@ class ApiClient {
     );
   }
 
-  Future<dynamic> get(String path, {Map<String, Object?>? query}) => _send(
+  Future<dynamic> get(String path, {Map<String, Object?>? query}) => _read(
     () => _dio.get<dynamic>(
       path,
       queryParameters: _clean(query),
@@ -106,7 +111,7 @@ class ApiClient {
 
   /// Raw bytes, e.g. a proof photo.
   Future<List<int>> bytes(String path, {Map<String, Object?>? query}) async {
-    final response = await _send(
+    final response = await _read(
       () => _dio.get<List<int>>(
         path,
         queryParameters: _clean(query),
@@ -119,6 +124,16 @@ class ApiClient {
   Map<String, Object?>? _clean(Map<String, Object?>? query) => query == null
       ? null
       : (Map.of(query)..removeWhere((_, v) => v == null || v == ''));
+
+  Future<dynamic> _read(Future<Response<dynamic>> Function() request) async {
+    try {
+      return await _send(request);
+    } on ApiException catch (error) {
+      if (error.code != 'OFFLINE' && error.code != 'TIMEOUT') rethrow;
+      await Future<void>.delayed(retryDelay);
+      return _send(request);
+    }
+  }
 
   Future<dynamic> _send(Future<Response<dynamic>> Function() request) async {
     try {

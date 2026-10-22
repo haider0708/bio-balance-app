@@ -209,3 +209,7 @@ Everything BioBalance sends by email as a code or a security notice (an account 
 - **Server files:** only BioBalance's own containers, images (the current and the previous API image, for a rollback), volumes (`database`, `media`, `whatsapp`) and folders are touched. Unused settings were removed from `/etc/biobalance/backend.env` and `.env.example` (the old media and activation-link variables), and the old plaintext copies of that file were deleted; the two newest copies are kept.
 - **Not BioBalance's:** `certbot.service` failing on the host belongs to other sites on the shared server (their certificates), not to BioBalance, whose certificate is renewed by `biobalance-tls.timer`.
 - **WhatsApp is not a monitored service:** it is optional and the email always goes; the admin settings show whether its session is connected.
+
+## Reading an error from the web console
+
+The console's code is minified, so an error's stack shows `main.dart.js:LINE:COLUMN`. Every web build knows its commit (it is part of the version shown with the error, for example `3.3.2 (42) 1a2b3c4d`) and its source map is kept, private, in `/opt/biobalance-web-maps/<commit>/` (the last ten builds). To read a frame: `scripts/decode-web-error.sh <commit> <line> <column>`. Errors of a network request (offline, timeout, a refused action) are not reported: they are shown to the person by the screen that asked.

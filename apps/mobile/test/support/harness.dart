@@ -23,6 +23,7 @@ Future<ProviderContainer> launch(
   String? language,
   double pixelRatio = 2,
   bool wait = true,
+  String? cachedMe,
   List<Override> overrides = const [],
 }) async {
   tester.view.physicalSize = size * pixelRatio;
@@ -32,6 +33,7 @@ Future<ProviderContainer> launch(
     overrides: [
       ...server.overrides(
         token: signedIn ? 'a-valid-token-of-sufficient-length-123456' : null,
+        cachedMe: cachedMe,
       ),
       ...overrides,
     ],

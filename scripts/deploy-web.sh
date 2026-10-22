@@ -12,7 +12,10 @@ guard_start web "$host"
 cd apps/mobile
 
 echo "== Building the web page"
-flutter build web --release --base-href / --dart-define=API_BASE_URL=https://admin.galylio.com --no-web-resources-cdn --csp --no-source-maps --no-wasm-dry-run | tail -3
+sha=$(git rev-parse --short=8 HEAD)
+# The build knows its commit (it is added to the errors it reports) and gets a source map, kept on the server
+# out of the public folder: a minified error from the console is read with the map of the build that made it.
+flutter build web --release --base-href / --dart-define=API_BASE_URL=https://admin.galylio.com --dart-define=BUILD_SHA="$sha" --no-web-resources-cdn --csp --source-maps --no-wasm-dry-run | tail -3
 # The icon package also ships six weight variants (~2.9 MB) the app never uses: browsers would download them all at start.
 python3 - <<'PY'
 import json, pathlib
@@ -25,7 +28,9 @@ for f in (web / "assets/packages/lucide_icons_flutter/assets/build_font").glob("
     f.unlink()
 PY
 cp -r build/web "/tmp/biobalance-web.$$"
-trap 'rm -rf "/tmp/biobalance-web.$$"; guard_release' EXIT
+mkdir -p "/tmp/biobalance-web-maps.$$"
+mv "/tmp/biobalance-web.$$"/*.map "/tmp/biobalance-web-maps.$$/" 2>/dev/null || true
+trap 'rm -rf "/tmp/biobalance-web.$$" "/tmp/biobalance-web-maps.$$"; guard_release' EXIT
 
 echo "== Uploading to $host"
 ssh "$host" 'sudo mkdir -p /opt/biobalance-web'
@@ -33,6 +38,10 @@ ssh "$host" 'sudo mkdir -p /opt/biobalance-web'
 rsync -a --delete --rsync-path='sudo rsync' --exclude '/index.html' --exclude '/flutter_bootstrap.js' --exclude '/flutter_service_worker.js' --exclude '/version.json' "/tmp/biobalance-web.$$/" "$host:/opt/biobalance-web/"
 rsync -a --rsync-path='sudo rsync' "/tmp/biobalance-web.$$/index.html" "/tmp/biobalance-web.$$/flutter_bootstrap.js" "/tmp/biobalance-web.$$/flutter_service_worker.js" "/tmp/biobalance-web.$$/version.json" "$host:/opt/biobalance-web/"
 ssh "$host" 'sudo chown -R root:root /opt/biobalance-web && sudo chmod -R a+rX /opt/biobalance-web'
+# The maps stay private, one folder per commit; only the last ten are kept.
+ssh "$host" "sudo mkdir -p /opt/biobalance-web-maps/$sha && sudo chmod 700 /opt/biobalance-web-maps"
+rsync -a --rsync-path='sudo rsync' "/tmp/biobalance-web-maps.$$/" "$host:/opt/biobalance-web-maps/$sha/"
+ssh "$host" 'cd /opt/biobalance-web-maps && sudo ls -1t | tail -n +11 | sudo xargs -r rm -rf'
 
 echo "== Checking"
 code=$(curl -s -o /dev/null -m 15 -w '%{http_code}' "$url")

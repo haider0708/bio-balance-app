@@ -26,28 +26,38 @@ class PagedController<T> extends ChangeNotifier {
   bool _done = false;
   bool _disposed = false;
 
+  /// Raised by every refresh: an answer that arrives for an older one is dropped, never mixed in.
+  int _generation = 0;
+
   bool get hasMore => !_done;
   bool get initialLoading => loading && items.isEmpty;
 
   Future<void> load() async {
-    if (loading || _done) return;
+    if (loading || _done || _disposed) return;
+    final generation = _generation;
     loading = true;
     error = null;
     notifyListeners();
     try {
       final page = await _fetch(_cursor);
+      if (generation != _generation) return;
       items.addAll(page.items);
       _cursor = page.nextCursor;
       _done = page.nextCursor == null;
     } catch (e) {
+      if (generation != _generation) return;
       error = e;
     } finally {
-      loading = false;
-      if (!_disposed) notifyListeners();
+      if (generation == _generation) {
+        loading = false;
+        if (!_disposed) notifyListeners();
+      }
     }
   }
 
   Future<void> refresh() async {
+    // A page still on its way belongs to the list being replaced: it is ignored when it lands.
+    _generation++;
     items.clear();
     _cursor = null;
     _done = false;
@@ -100,7 +110,9 @@ class _PagedListState<T> extends State<PagedList<T>> {
           onRefresh: c.refresh,
           child: NotificationListener<ScrollNotification>(
             onNotification: (n) {
-              if (n.metrics.pixels > n.metrics.maxScrollExtent - 300) {
+              // After a failure the footer offers "retry": scrolling must not fire the request again.
+              if (c.error == null &&
+                  n.metrics.pixels > n.metrics.maxScrollExtent - 300) {
                 unawaited(c.load());
               }
               return false;

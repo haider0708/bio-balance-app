@@ -136,6 +136,13 @@ class SessionNotifier extends AsyncNotifier<Session?> {
     if (token == null) return null;
     ref.read(tokenProvider.notifier).set(token);
     final cached = await storage.read(key: _meKey);
+    // Known from last time: start from it at once and let the server confirm in the background, so a
+    // slow or missing connection never keeps a person on the opening screen.
+    final known = _decode(cached);
+    if (known != null && !(kIsWeb && known.role == Role.vendeur)) {
+      unawaited(_confirm(token));
+      return Session(token: token, me: known);
+    }
     try {
       final me = Me.fromJson(
         await ref.read(apiClientProvider).get('/v1/me') as Json,
@@ -152,14 +159,40 @@ class SessionNotifier extends AsyncNotifier<Session?> {
         await _clear();
         return null;
       }
-      // Offline or the server is down: carry on with what we knew.
-      if (cached != null) {
-        return Session(
-          token: token,
-          me: Me.fromJson(jsonDecode(cached) as Json),
-        );
-      }
       rethrow;
+    }
+  }
+
+  Me? _decode(String? cached) {
+    if (cached == null) return null;
+    try {
+      return Me.fromJson(jsonDecode(cached) as Json);
+    } on Object {
+      // Kept by an older version in another shape: ask the server instead.
+      return null;
+    }
+  }
+
+  /// Asks the server who this is, after the app started from what it knew: the account may have changed
+  /// (a role, a permission), or the session may be over.
+  Future<void> _confirm(String token) async {
+    try {
+      final me = Me.fromJson(
+        await ref.read(apiClientProvider).get('/v1/me') as Json,
+      );
+      if (state.value?.token != token) return;
+      if (kIsWeb && me.role == Role.vendeur) {
+        await _clear();
+        state = const AsyncData(null);
+        return;
+      }
+      await ref
+          .read(secureStorageProvider)
+          .write(key: _meKey, value: jsonEncode(_meJson(me)));
+      state = AsyncData(Session(token: token, me: me));
+    } on ApiException catch (error) {
+      // Offline or the server is down: carry on with what is known.
+      if (error.isUnauthorized) expire();
     }
   }
 
@@ -213,11 +246,13 @@ class SessionNotifier extends AsyncNotifier<Session?> {
   }
 
   Future<void> logout() async {
-    try {
-      await ref.read(apiClientProvider).post('/v1/auth/logout');
-    } on ApiException {
-      // Signing out always works locally, even without a connection.
-    }
+    // The server is told (it ends the session and forgets the phone's alert token), but signing out never
+    // waits more than a moment for it: it always works locally, even on a bad connection.
+    final told = ref
+        .read(apiClientProvider)
+        .post('/v1/auth/logout')
+        .then<void>((_) {}, onError: (Object _) {});
+    await Future.any([told, Future<void>.delayed(const Duration(seconds: 2))]);
     await _clear();
     state = const AsyncData(null);
   }
