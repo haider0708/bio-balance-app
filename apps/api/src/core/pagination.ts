@@ -8,7 +8,7 @@ export const PageQuery = z.object({
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /** Keyset pagination over (createdAt, id): stable while rows are added. */
-export function encodeCursor(createdAt: Date, id: string): string {
+function encodeCursor(createdAt: Date, id: string): string {
   return Buffer.from(`${createdAt.toISOString()}|${id}`).toString("base64url");
 }
 

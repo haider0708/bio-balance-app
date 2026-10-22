@@ -1813,7 +1813,6 @@
   "editPersonHint": "Change what is wrong. Only the admin can change the email and the WhatsApp number.",
   "editPersonInviteNote": "They have not activated the account yet: if the email or the number changes, the invitation is sent again to the new ones and the old code stops working.",
   "salesOfPerson": "Sales",
-  "last30Days": "Last 30 days",
   "tapSaleHint": "Tap a sale to see it or correct it.",
   "allSalesOfPerson": "All sales",
   "fullAnalysis": "Full analysis",

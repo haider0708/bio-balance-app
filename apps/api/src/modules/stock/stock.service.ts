@@ -1373,7 +1373,9 @@ export class StockService {
       this.presentRecounts(
         tx,
         await tx.stockRecount.findMany({
+          // Permissions to count again only: a correction request shows on its count and in the inbox.
           where: {
+            kind: "RECOUNT",
             ...(filter.status && { status: filter.status }),
             ...(filter.locationId && { locationId: filter.locationId }),
           },

@@ -42,9 +42,9 @@ export class WahaTransport implements WhatsAppTransport {
     this.sleep = options.sleep ?? wait;
   }
 
-  private async call(path: string, init: RequestInit = {}) {
+  private async call(path: string, init: RequestInit = {}, timeoutMs = 15_000) {
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 15_000);
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
     try {
       return await this.fetcher(`${this.url}${path}`, {
         ...init,
@@ -102,7 +102,8 @@ export class WahaTransport implements WhatsAppTransport {
 
   async status() {
     try {
-      const res = await this.call(`/api/sessions/${this.session}`);
+      // Asked for the admin's settings page: never keep it waiting for a stuck container.
+      const res = await this.call(`/api/sessions/${this.session}`, {}, 3000);
       if (!res.ok) return "DISCONNECTED" as const;
       const body = (await res.json()) as { status?: string };
       return body.status === "WORKING"

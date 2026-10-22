@@ -1798,7 +1798,6 @@
   "editPersonHint": "Corrigez ce qui est faux. Seul l’admin peut changer l’email et le numéro WhatsApp.",
   "editPersonInviteNote": "Le compte n’est pas encore activé : si l’email ou le numéro change, l’invitation est renvoyée aux nouveaux et l’ancien code ne marche plus.",
   "salesOfPerson": "Ventes",
-  "last30Days": "30 derniers jours",
   "tapSaleHint": "Touchez une vente pour la voir ou la corriger.",
   "allSalesOfPerson": "Toutes les ventes",
   "fullAnalysis": "Analyse complète",

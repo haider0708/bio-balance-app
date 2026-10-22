@@ -5,7 +5,7 @@ import { DomainError } from "./errors";
  * "216-21-345-678", "(+216) 21.345.678". Every form becomes the one canonical "+21621345678", which is
  * what WhatsApp needs and what is stored. Only Tunisia for now: eight digits after the country code.
  */
-export const TUNISIA_CODE = "216";
+const TUNISIA_CODE = "216";
 
 /** Digits only, with the country code and the "+" / "00" international prefix taken off. */
 function nationalDigits(input: string): string | null {

@@ -118,7 +118,7 @@ const IGNORED = new Set([
   "g",
 ]);
 
-export function tokens(text: string): string[] {
+function tokens(text: string): string[] {
   const clean = text
     .toLowerCase()
     .normalize("NFD")
@@ -144,7 +144,7 @@ const same = (a: string, b: string) =>
   (a.length >= 4 && b.length >= 4 && (a.startsWith(b) || b.startsWith(a)));
 
 /** How much of what was written is found in the product (a size counts for less than a word). */
-export function score(query: string[], product: string[]): number {
+function score(query: string[], product: string[]): number {
   if (!query.length) return 0;
   let wanted = 0;
   let found = 0;

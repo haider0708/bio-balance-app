@@ -5,7 +5,7 @@ import type { Tx } from "../../core/database";
 // hashed at rest, short-lived, and only valid together with its email address.
 const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
-export const newCode = () =>
+const newCode = () =>
   Array.from({ length: 8 }, () => alphabet[randomInt(alphabet.length)]).join(
     "",
   );

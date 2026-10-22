@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
@@ -186,7 +187,25 @@ class StatTile extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
-              // A number that opens its detail says so.
+            ],
+          ),
+          const SizedBox(height: 12),
+          // A number that opens its detail says so, with a chevron beside the number.
+          Row(
+            children: [
+              Expanded(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: AlignmentDirectional.centerStart,
+                  child: CountUpText(
+                    value,
+                    style: context.text.headlineSmall?.copyWith(
+                      color: tone == Tone.neutral ? null : colors.strong,
+                      fontFeatures: const [FontFeature.tabularFigures()],
+                    ),
+                  ),
+                ),
+              ),
               if (onTap != null)
                 Icon(
                   LucideIcons.chevronRight,
@@ -194,18 +213,6 @@ class StatTile extends StatelessWidget {
                   color: context.status.muted,
                 ),
             ],
-          ),
-          const SizedBox(height: 12),
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            alignment: AlignmentDirectional.centerStart,
-            child: CountUpText(
-              value,
-              style: context.text.headlineSmall?.copyWith(
-                color: tone == Tone.neutral ? null : colors.strong,
-                fontFeatures: const [FontFeature.tabularFigures()],
-              ),
-            ),
           ),
           if (hint != null) ...[
             const SizedBox(height: 2),
@@ -360,13 +367,22 @@ class InfoRow extends StatelessWidget {
           ),
           Expanded(
             flex: 6,
-            child: Text(
-              value,
-              style: context.text.bodyMedium?.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
-              textAlign: TextAlign.end,
-            ),
+            child: kIsWeb
+                // On the web a value (an email, a phone, a number) can be selected and copied.
+                ? SelectableText(
+                    value,
+                    style: context.text.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                    textAlign: TextAlign.end,
+                  )
+                : Text(
+                    value,
+                    style: context.text.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                    textAlign: TextAlign.end,
+                  ),
           ),
         ],
       ),

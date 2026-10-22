@@ -5780,12 +5780,6 @@ abstract class AppLocalizations {
   /// **'Sales'**
   String get salesOfPerson;
 
-  /// No description provided for @last30Days.
-  ///
-  /// In en, this message translates to:
-  /// **'Last 30 days'**
-  String get last30Days;
-
   /// No description provided for @tapSaleHint.
   ///
   /// In en, this message translates to:

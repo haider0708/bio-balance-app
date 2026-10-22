@@ -3416,9 +3416,6 @@ class AppLocalizationsFr extends AppLocalizations {
   String get salesOfPerson => 'Ventes';
 
   @override
-  String get last30Days => '30 derniers jours';
-
-  @override
   String get tapSaleHint => 'Touchez une vente pour la voir ou la corriger.';
 
   @override

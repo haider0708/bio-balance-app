@@ -3396,9 +3396,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get salesOfPerson => 'Sales';
 
   @override
-  String get last30Days => 'Last 30 days';
-
-  @override
   String get tapSaleHint => 'Tap a sale to see it or correct it.';
 
   @override

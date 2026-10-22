@@ -80,13 +80,11 @@ class _BioBalanceAppState extends ConsumerState<BioBalanceApp> {
           GlobalCupertinoLocalizations.delegate,
         ],
         routerConfig: router,
-        builder: (context, child) {
-          final page = UpdateGate(
-            child: ClosedGate(child: child ?? const SizedBox()),
-          );
-          // On the web the administrator can select and copy any text (an email, a code, a total).
-          return kIsWeb ? SelectionArea(child: page) : page;
-        },
+        // No page-wide SelectionArea: on the web it raised "RenderBox was not laid out" and null-check
+        // errors on pointer events (dozens a week in the console's reports). What people copy (an
+        // email, a number) is a SelectableText where it is shown.
+        builder: (context, child) =>
+            UpdateGate(child: ClosedGate(child: child ?? const SizedBox())),
       ),
     );
   }

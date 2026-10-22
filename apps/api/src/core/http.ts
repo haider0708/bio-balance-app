@@ -114,7 +114,7 @@ export class ErrorFilter implements ExceptionFilter {
 }
 
 /** One redacted error shape for every failure, with a correlation id for support. */
-export function sendError(
+function sendError(
   error: unknown,
   request: Pick<AuthRequest, "correlationId">,
   response: Response,

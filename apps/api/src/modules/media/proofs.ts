@@ -2,7 +2,7 @@ import type { Actor } from "../../core/actor";
 import type { Tx } from "../../core/database";
 import { requireRule } from "../../core/errors";
 
-export const MAX_PROOF_PHOTOS = 5;
+const MAX_PROOF_PHOTOS = 5;
 
 /**
  * The proofs a person attaches to a count, a delivery or a place: distinct proof

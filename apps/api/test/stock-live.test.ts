@@ -285,6 +285,10 @@ describe("correcting an approved count", () => {
     expect(
       (await w.n.get(`/v1/stock/declarations/${d.id}`)).body.correction,
     ).toMatchObject({ status: "PENDING" });
+    // A correction request is not a permission to count again: it never shows in that list.
+    expect(
+      (await w.n.get(`/v1/stock/recounts?locationId=${pdv.id}`)).body,
+    ).toEqual([]);
     // Still waiting: nothing changes.
     expect((await edit()).body.code).toBe("CORRECTION_NOT_APPROVED");
 

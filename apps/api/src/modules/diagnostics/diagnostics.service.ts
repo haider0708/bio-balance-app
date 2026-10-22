@@ -13,6 +13,17 @@ export interface ClientErrorInput {
   stack: string;
 }
 
+/**
+ * What makes two reports the same error: object ids ("Gl#12cba", "minified:Gl") and the line and column
+ * of a minified build change every time, so one bug would otherwise fill the list with a row per report.
+ */
+export function normalizeError(text: string) {
+  return text
+    .replace(/#[0-9a-f]{3,}/gi, "#id")
+    .replace(/minified:[\w$<>]+/g, "minified:x")
+    .replace(/:\d+:\d+/g, ":N:N");
+}
+
 /** Above this many kinds of error in a day, new kinds are ignored (a flood is not more useful). */
 const DAILY_KINDS = 500;
 
@@ -29,10 +40,14 @@ export class DiagnosticsService {
    */
   async report(input: ClientErrorInput, ip: string) {
     await this.auth.throttle(`errors:${tokenHash(ip)}`, 30);
-    const where = input.stack.split("\n").slice(0, 3).join("\n");
     const fingerprint = createHash("sha256")
       .update(
-        [input.platform, input.appVersion, input.message, where].join("\0"),
+        [
+          input.platform,
+          input.appVersion,
+          normalizeError(input.message),
+          normalizeError(input.stack.split("\n").slice(0, 3).join("\n")),
+        ].join("\0"),
       )
       .digest("hex");
     await this.db.run("SYSTEM", async (tx) => {
