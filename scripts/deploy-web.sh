@@ -41,7 +41,7 @@ ssh "$host" 'sudo chown -R root:root /opt/biobalance-web && sudo chmod -R a+rX /
 # The maps stay private, one folder per commit; only the last ten are kept.
 ssh "$host" "sudo mkdir -p /opt/biobalance-web-maps/$sha && sudo chmod 700 /opt/biobalance-web-maps"
 rsync -a --rsync-path='sudo rsync' "/tmp/biobalance-web-maps.$$/" "$host:/opt/biobalance-web-maps/$sha/"
-ssh "$host" 'cd /opt/biobalance-web-maps && sudo ls -1t | tail -n +11 | sudo xargs -r rm -rf'
+ssh "$host" "sudo bash -c 'cd /opt/biobalance-web-maps && ls -1t | tail -n +11 | xargs -r rm -rf'"
 
 echo "== Checking"
 code=$(curl -s -o /dev/null -m 15 -w '%{http_code}' "$url")
