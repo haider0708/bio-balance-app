@@ -1794,5 +1794,7 @@
   "whatsappSwitch": "Envoyer les codes par WhatsApp",
   "whatsappConnected": "WhatsApp est connecté",
   "whatsappDisconnected": "WhatsApp est déconnecté : le code QR doit être scanné à nouveau",
-  "whatsappNotSetUp": "WhatsApp n’est pas encore configuré sur le serveur"
+  "whatsappNotSetUp": "WhatsApp n’est pas encore configuré sur le serveur",
+  "editPersonHint": "Corrigez ce qui est faux. Seul l’admin peut changer l’email et le numéro WhatsApp.",
+  "editPersonInviteNote": "Le compte n’est pas encore activé : si l’email ou le numéro change, l’invitation est renvoyée aux nouveaux et l’ancien code ne marche plus."
 }

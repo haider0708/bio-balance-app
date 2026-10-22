@@ -228,12 +228,25 @@ export class UsersService {
   async update(
     actor: Actor,
     id: string,
-    input: { name?: string; phone?: string | null; pdvId?: string },
+    input: {
+      name?: string;
+      email?: string;
+      phone?: string | null;
+      pdvId?: string;
+    },
   ) {
     requireRule(
       ["ADMIN", "RESPONSABLE"].includes(actor.role),
       "FORBIDDEN",
       "Not allowed.",
+      403,
+    );
+    // The email and the phone are where the codes go: only the admin changes them.
+    requireRule(
+      actor.role === "ADMIN" ||
+        (input.email === undefined && input.phone === undefined),
+      "FORBIDDEN",
+      "Only the admin changes an email or a phone number.",
       403,
     );
     return this.db.run(actor, async (tx) => {
@@ -244,6 +257,19 @@ export class UsersService {
           (user.role === "VENDEUR" && user.regionId === actor.regionId));
       if (!user || !visible) throw notFound("User");
       refuseDeleted(user);
+      // Administrators are managed with the server command, never from here.
+      requireRule(
+        user.role !== "ADMIN",
+        "FORBIDDEN",
+        "An administrator is not edited from here.",
+        403,
+      );
+      const email = input.email?.trim().toLowerCase();
+      const emailChanged = email !== undefined && email !== user.email;
+      if (emailChanged) await this.assertEmailFree(tx, email);
+      const phone =
+        input.phone !== undefined ? canonicalPhone(input.phone) : undefined;
+      const phoneChanged = phone !== undefined && phone !== user.phone;
       if (input.pdvId) {
         requireRule(
           user.role === "VENDEUR",
@@ -263,19 +289,30 @@ export class UsersService {
         where: { id },
         data: {
           ...(input.name !== undefined && { name: input.name }),
-          ...(input.phone !== undefined && {
-            phone: canonicalPhone(input.phone),
-          }),
+          ...(emailChanged && { email }),
+          ...(phone !== undefined && { phone }),
           ...(input.pdvId !== undefined && { pdvId: input.pdvId }),
         },
       });
+      // An invitation not used yet goes again, to the new email and number (the old code dies).
+      if (
+        (emailChanged || phoneChanged) &&
+        user.passwordHash === null &&
+        user.status === "ACTIVE"
+      )
+        await issueCode(tx, id, "invite");
       await audit(
         tx,
         actor,
         "user.updated",
         "User",
         id,
-        { ...input },
+        {
+          ...(input.name !== undefined && { name: input.name }),
+          ...(input.pdvId !== undefined && { pdvId: input.pdvId }),
+          ...(emailChanged && { email: { from: user.email, to: email } }),
+          ...(phoneChanged && { phone: { from: user.phone, to: phone } }),
+        },
         user.regionId,
       );
       return present(updated);

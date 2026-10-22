@@ -3403,4 +3403,12 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get whatsappNotSetUp =>
       'WhatsApp n’est pas encore configuré sur le serveur';
+
+  @override
+  String get editPersonHint =>
+      'Corrigez ce qui est faux. Seul l’admin peut changer l’email et le numéro WhatsApp.';
+
+  @override
+  String get editPersonInviteNote =>
+      'Le compte n’est pas encore activé : si l’email ou le numéro change, l’invitation est renvoyée aux nouveaux et l’ancien code ne marche plus.';
 }

@@ -20,6 +20,8 @@ import 'network_models.dart';
 import 'network_repository.dart';
 import 'region_moves.dart';
 import '../../core/layout/layout.dart';
+import '../../core/util/phone.dart';
+import 'invite_widgets.dart';
 
 /// Ask for one short piece of text.
 Future<String?> askText(
@@ -328,14 +330,16 @@ class PersonPanel extends ConsumerWidget {
         ),
         const Gap(12),
         InfoRow(t.email, person.email),
-        if (person.phone != null) InfoRow(t.phone, person.phone!),
+        if (person.phone != null) InfoRow(t.phone, formatPhone(person.phone!)),
         if (me.role == Role.admin && person.role != Role.admin)
           Align(
             alignment: AlignmentDirectional.centerEnd,
             child: TextButton.icon(
               onPressed: () async {
                 final changed = await _editPerson(context, person);
-                if (changed == null || !context.mounted) return;
+                if (changed == null || changed.isEmpty || !context.mounted) {
+                  return;
+                }
                 await act(() => repo.updatePerson(person.id, changed), t.saved);
               },
               icon: const Icon(LucideIcons.pencil, size: 16),
@@ -456,44 +460,134 @@ class PersonPanel extends ConsumerWidget {
   }
 }
 
-/// Name and phone of a person, as the admin corrects them.
-Future<Map<String, Object?>?> _editPerson(BuildContext context, Person person) {
-  final t = AppLocalizations.of(context);
-  final name = TextEditingController(text: person.name);
-  final phone = TextEditingController(text: person.phone ?? '');
-  return showDialog<Map<String, Object?>>(
-    context: context,
-    builder: (context) => AlertDialog(
-      title: Text(t.editPerson),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          TextField(
-            controller: name,
-            textCapitalization: TextCapitalization.words,
-            decoration: InputDecoration(labelText: t.fullName),
-          ),
-          const Gap(10),
-          TextField(
-            controller: phone,
-            keyboardType: TextInputType.phone,
-            decoration: InputDecoration(labelText: t.phone),
-          ),
-        ],
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: Text(t.cancel),
-        ),
-        FilledButton(
-          onPressed: () => Navigator.pop(context, {
-            if (name.text.trim().length >= 2) 'name': name.text.trim(),
-            'phone': phone.text.trim().isEmpty ? null : phone.text.trim(),
-          }),
-          child: Text(t.save),
-        ),
-      ],
-    ),
+/// Everything about a person, as the admin corrects it: name, email, WhatsApp number and (for a team
+/// member) the store. Only what changed is returned. A changed email or number sends an unused
+/// invitation again to the new contacts.
+Future<Map<String, Object?>?> _editPerson(
+  BuildContext context,
+  Person person,
+) => showModalBottomSheet<Map<String, Object?>>(
+  context: context,
+  isScrollControlled: true,
+  useSafeArea: true,
+  showDragHandle: true,
+  builder: (context) => _EditPersonSheet(person: person),
+);
+
+class _EditPersonSheet extends ConsumerStatefulWidget {
+  const _EditPersonSheet({required this.person});
+
+  final Person person;
+
+  @override
+  ConsumerState<_EditPersonSheet> createState() => _EditPersonSheetState();
+}
+
+class _EditPersonSheetState extends ConsumerState<_EditPersonSheet> {
+  final _form = GlobalKey<FormState>();
+  late final _name = TextEditingController(text: widget.person.name);
+  late final _email = TextEditingController(text: widget.person.email);
+  late final _phone = TextEditingController(
+    text: widget.person.phone == null ? '' : formatPhone(widget.person.phone!),
   );
+  late String? _pdvId = widget.person.pdvId;
+
+  @override
+  void dispose() {
+    for (final c in [_name, _email, _phone]) {
+      c.dispose();
+    }
+    super.dispose();
+  }
+
+  void _save() {
+    if (!_form.currentState!.validate()) return;
+    final p = widget.person;
+    final email = _email.text.trim().toLowerCase();
+    final phone = normalizeTunisianPhone(_phone.text)!;
+    Navigator.pop(context, {
+      if (_name.text.trim() != p.name) 'name': _name.text.trim(),
+      if (email != p.email) 'email': email,
+      if (phone != p.phone) 'phone': phone,
+      if (_pdvId != null && _pdvId != p.pdvId) 'pdvId': _pdvId,
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    final p = widget.person;
+    final stores = (ref.watch(pdvsProvider(null)).value ?? const <Pdv>[])
+        .where((s) => s.regionId == p.regionId && s.status == ItemStatus.active)
+        .toList();
+    return Padding(
+      padding: EdgeInsets.only(bottom: sheetBottomInset(context)),
+      child: Form(
+        key: _form,
+        child: ListView(
+          shrinkWrap: true,
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+          children: [
+            Text(t.editPerson, style: context.text.titleMedium),
+            const Gap(4),
+            Text(
+              t.editPersonHint,
+              style: context.text.bodySmall?.copyWith(
+                color: context.status.muted,
+              ),
+            ),
+            const Gap(16),
+            TextFormField(
+              controller: _name,
+              textCapitalization: TextCapitalization.words,
+              textInputAction: TextInputAction.next,
+              decoration: InputDecoration(labelText: t.fullName),
+              validator: (v) =>
+                  (v == null || v.trim().length < 2) ? t.fieldRequired : null,
+            ),
+            const Gap(12),
+            TextFormField(
+              controller: _email,
+              keyboardType: TextInputType.emailAddress,
+              textInputAction: TextInputAction.next,
+              decoration: InputDecoration(labelText: t.email),
+              validator: (v) =>
+                  (v == null || !v.contains('@')) ? t.emailInvalid : null,
+            ),
+            const Gap(12),
+            PhoneField(controller: _phone),
+            if (p.role == Role.vendeur && stores.isNotEmpty) ...[
+              const Gap(12),
+              DropdownButtonFormField<String>(
+                initialValue: stores.any((s) => s.id == _pdvId) ? _pdvId : null,
+                isExpanded: true,
+                decoration: InputDecoration(labelText: t.pointOfSale),
+                items: [
+                  for (final s in stores)
+                    DropdownMenuItem(value: s.id, child: Text(s.name)),
+                ],
+                onChanged: (v) => setState(() => _pdvId = v),
+              ),
+            ],
+            if (!p.activated && p.status == ItemStatus.active) ...[
+              const Gap(8),
+              Text(
+                t.editPersonInviteNote,
+                style: context.text.bodySmall?.copyWith(
+                  color: context.status.muted,
+                ),
+              ),
+            ],
+            const Gap(16),
+            FilledButton(onPressed: _save, child: Text(t.save)),
+            const Gap(8),
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(t.cancel),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }

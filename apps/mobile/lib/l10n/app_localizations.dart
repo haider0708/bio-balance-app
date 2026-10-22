@@ -5761,6 +5761,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'WhatsApp is not set up on the server yet'**
   String get whatsappNotSetUp;
+
+  /// No description provided for @editPersonHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Change what is wrong. Only the admin can change the email and the WhatsApp number.'**
+  String get editPersonHint;
+
+  /// No description provided for @editPersonInviteNote.
+  ///
+  /// In en, this message translates to:
+  /// **'They have not activated the account yet: if the email or the number changes, the invitation is sent again to the new ones and the old code stops working.'**
+  String get editPersonInviteNote;
 }
 
 class _AppLocalizationsDelegate

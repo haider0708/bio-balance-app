@@ -220,3 +220,7 @@ Round three: `GET /v1/approvals/history`, `POST /v1/stock/adjust`, `POST /v1/sto
 
 - `phone` is **required** when creating an account (`POST /v1/users`, `POST /v1/pdvs/:id/members`) and is checked when it changes (`PATCH /v1/users/:id`): a Tunisian mobile, 8 digits, written with or without `+216` / `00216` / spaces; stored as `+216XXXXXXXX`. Errors: `PHONE_REQUIRED`, `PHONE_INVALID` (422).
 - `GET/PUT /v1/settings` carry `whatsapp: {enabled}`; the GET adds `status`: `CONNECTED`, `DISCONNECTED` or `NOT_CONFIGURED`.
+
+## Editing a person in full (2026-10)
+
+`PATCH /v1/users/:id` takes `name`, `email`, `phone` and `pdvId` (a team member's store, in the same region). The **email and the phone are admin only** (they are where the codes go): a responsable can change a team member's name and store, nothing else (403). An administrator account is never edited here. When the email or the phone of someone who has not activated yet changes, the invitation is sent again to the new contacts and the old code stops working. The audit entry keeps the old and new email and phone.

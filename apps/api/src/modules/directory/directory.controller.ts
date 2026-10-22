@@ -52,6 +52,7 @@ const AdminUser = z.discriminatedUnion("role", [
 ]);
 const UserPatch = z.object({
   name: text(100).optional(),
+  email: email.optional(),
   phone,
   pdvId: id.optional(),
 });
