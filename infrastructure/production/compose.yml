@@ -99,20 +99,21 @@ services:
     mem_limit: 384m
     cpus: 0.5
   # The WhatsApp session of the dedicated number, used only to send account codes next to the email.
-  # Optional: it starts with `compose --profile whatsapp up -d waha`. Nothing is exposed: the API and the
+  # Optional: it starts with `compose --profile whatsapp up -d waha` (set WAHA_IMAGE to a pinned tag or digest,
+  # WAHA_API_KEY and WAHA_DASHBOARD_PASSWORD first). Nothing is exposed: the API and the
   # worker reach it on the private network; its dashboard (to scan the QR code) listens on 127.0.0.1 only,
   # reached through `ssh -L 3010:127.0.0.1:3010`.
   waha:
-    image: ${WAHA_IMAGE:?Set the WAHA image (a pinned tag or digest)}
+    image: ${WAHA_IMAGE:-devlikeapro/waha:latest}
     profiles: [whatsapp]
     restart: unless-stopped
     networks: [private]
     ports: ['127.0.0.1:3010:3000']
     environment:
-      WAHA_API_KEY: ${WAHA_API_KEY:?Set the WAHA API key}
+      WAHA_API_KEY: ${WAHA_API_KEY:-}
       WAHA_DASHBOARD_ENABLED: 'true'
       WAHA_DASHBOARD_USERNAME: ${WAHA_DASHBOARD_USERNAME:-admin}
-      WAHA_DASHBOARD_PASSWORD: ${WAHA_DASHBOARD_PASSWORD:?Set the WAHA dashboard password}
+      WAHA_DASHBOARD_PASSWORD: ${WAHA_DASHBOARD_PASSWORD:-}
       WHATSAPP_SWAGGER_ENABLED: 'false'
       WHATSAPP_DEFAULT_ENGINE: NOWEB
       WHATSAPP_START_SESSION: default
