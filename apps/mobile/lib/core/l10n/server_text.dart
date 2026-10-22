@@ -541,6 +541,22 @@ class ServerText {
       '{by} corrected the stock count of {place}: waiting for approval.',
       '{by} a corrigé le comptage du stock de {place} : en attente d’approbation.',
     ),
+    'correction.requested': (
+      '{by} asks to correct the approved count of {place}. Reason: {reason}',
+      '{by} demande à corriger le comptage approuvé de {place}. Motif : {reason}',
+    ),
+    'correction.approved': (
+      'The correction of the count of {place} was approved: you can make it now.',
+      'La correction du comptage de {place} est approuvée : vous pouvez la faire maintenant.',
+    ),
+    'correction.rejected': (
+      'The correction of the count of {place} was refused.',
+      'La correction du comptage de {place} a été refusée.',
+    ),
+    'stock.admin_edited': (
+      'The admin changed the stock count of {place}.',
+      'L’admin a modifié le comptage du stock de {place}.',
+    ),
     'stock.corrected': (
       '{by} corrected the approved stock count of {place}. Reason: {reason}',
       '{by} a corrigé le comptage approuvé du stock de {place}. Motif : {reason}',

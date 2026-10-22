@@ -258,9 +258,6 @@ describe("correcting a waiting count", () => {
       (await w.s.put(`/v1/stock/declarations/${d.id}`, { lines: [line(0, 1)] }))
         .status,
     ).toBe(404);
-    expect(
-      (await w.a.put(`/v1/stock/declarations/${d.id}`, { lines: [] })).status,
-    ).toBe(403);
   });
 });
 
@@ -271,40 +268,79 @@ describe("correcting an approved count", () => {
     await w.a.post(`/v1/stock/declarations/${d.id}/approve`, {});
     return { pdv, d };
   }
+  const ask = (id: string, reason = "Typed 20 instead of 22") =>
+    w.n.post(`/v1/stock/declarations/${id}/correction-request`, { reason });
 
-  it("needs a reason, applies at once without a new approval, and tells the admin", async () => {
+  it("needs the admin's approval first, then is made once, with the stock following", async () => {
     const { pdv, d } = await approvedCount();
     await sell(await seller(pdv.id), 0, 5);
-    const noReason = await w.n.put(`/v1/stock/declarations/${d.id}`, {
-      lines: [line(0, 22), line(1, 10)],
-    });
-    expect(noReason.body.code).toBe("REASON_REQUIRED");
+    const edit = (lines = [line(0, 22), line(1, 10)]) =>
+      w.n.put(`/v1/stock/declarations/${d.id}`, { lines });
+    // Without a request the responsable cannot correct.
+    expect((await edit()).body.code).toBe("CORRECTION_NOT_APPROVED");
 
-    const fixed = await w.n.put(`/v1/stock/declarations/${d.id}`, {
-      lines: [line(0, 22), line(1, 10)],
-      reason: "Typed 20 instead of 22",
+    const asked = await ask(d.id);
+    expect(asked.status).toBe(201);
+    expect((await ask(d.id)).body.code).toBe("CORRECTION_PENDING");
+    expect(
+      (await w.n.get(`/v1/stock/declarations/${d.id}`)).body.correction,
+    ).toMatchObject({ status: "PENDING" });
+    // Still waiting: nothing changes.
+    expect((await edit()).body.code).toBe("CORRECTION_NOT_APPROVED");
+
+    // The request reaches the admin's inbox, then the admin approves it.
+    const inbox = (await w.a.get("/v1/approvals")).body.items as any[];
+    expect(inbox.find((i) => i.id === asked.body.id)).toMatchObject({
+      type: "RECOUNT",
+      meta: { kind: "CORRECTION" },
     });
+    expect(
+      (await w.a.post(`/v1/stock/recounts/${asked.body.id}/approve`, {}))
+        .status,
+    ).toBe(201);
+    expect(
+      (await w.n.get(`/v1/stock/declarations/${d.id}`)).body.correction,
+    ).toMatchObject({ status: "APPROVED" });
+
+    const fixed = await edit();
     expect(fixed.status).toBe(200);
-    expect(fixed.body.status).toBe("APPROVED"); // no new approval
+    expect(fixed.body.status).toBe("APPROVED"); // no new approval of the count itself
     expect(fixed.body.lines.find((l: any) => l.name === VITC)).toMatchObject({
       quantity: 22,
       approvedQuantity: 22,
     });
     expect((await levels(w, pdv.id))[VITC]).toBe(17); // 22 - 5 sold, not "22"
+    expect(
+      (await w.n.get(`/v1/stock/declarations/${d.id}`)).body.correction,
+    ).toMatchObject({ status: "USED" });
+    // The permission was for one correction.
+    expect((await edit([line(0, 23)])).body.code).toBe(
+      "CORRECTION_NOT_APPROVED",
+    );
     const told = (await w.a.get("/v1/notifications")).body.items.find(
       (n: any) => n.key === "stock.corrected",
     );
-    expect(told.params).toMatchObject({ reason: "Typed 20 instead of 22" });
-    const audit = (await w.a.get("/v1/audit?limit=30")).body.items as any[];
-    expect(audit.map((e) => e.action)).toContain("stock.corrected");
+    expect(told).toBeTruthy();
+    const audit = (await w.a.get("/v1/audit?limit=40")).body.items as any[];
+    expect(audit.map((e) => e.action)).toEqual(
+      expect.arrayContaining(["stock.correction_requested", "stock.corrected"]),
+    );
   });
 
-  it("is open for 3 days after the approval, and only on the latest count", async () => {
-    const { pdv, d } = await approvedCount();
-    const body = await w.n.get(`/v1/stock/declarations/${d.id}`);
-    expect(new Date(body.body.correctableUntil).getTime()).toBeGreaterThan(
-      Date.now() + 2.9 * 86_400_000,
-    );
+  it("a refused request can be asked again, and the request is open for 3 days on the latest count", async () => {
+    const { d } = await approvedCount();
+    const first = await ask(d.id);
+    expect(
+      (await w.a.post(`/v1/stock/recounts/${first.body.id}/reject`, {})).status,
+    ).toBe(400); // a refusal needs its reason
+    await w.a.post(`/v1/stock/recounts/${first.body.id}/reject`, {
+      note: "Count again tomorrow",
+    });
+    expect(
+      (await w.n.get(`/v1/stock/declarations/${d.id}`)).body.correction,
+    ).toMatchObject({ status: "REJECTED", note: "Count again tomorrow" });
+    expect((await ask(d.id, "I checked again")).status).toBe(201);
+
     const ownerDb = await owner();
     try {
       await ownerDb.query(
@@ -314,19 +350,15 @@ describe("correcting an approved count", () => {
     } finally {
       await ownerDb.end();
     }
-    const late = await w.n.put(`/v1/stock/declarations/${d.id}`, {
-      lines: [line(0, 21)],
-      reason: "Too late",
-    });
+    const late = await ask(d.id);
     expect(late.status).toBe(403);
     expect(late.body.code).toBe("STOCK_CORRECTION_CLOSED");
     expect(
       (await w.n.get(`/v1/stock/declarations/${d.id}`)).body.correctableUntil,
     ).toBeNull();
-    expect((await levels(w, pdv.id))[VITC]).toBe(20);
   });
 
-  it("is refused for a count the admin made, and below what was sold", async () => {
+  it("is never asked for a count the admin made; the admin edits it directly, never below what was sold", async () => {
     const pdv = await approvedPdv(w);
     const own = await w.a.post("/v1/stock/declarations", {
       locationId: pdv.id,
@@ -334,20 +366,104 @@ describe("correcting an approved count", () => {
       lines: [line(0, 10)],
     });
     expect(own.body.status).toBe("APPROVED");
-    const refused = await w.n.put(`/v1/stock/declarations/${own.body.id}`, {
-      lines: [line(0, 99)],
-      reason: "Not mine",
-    });
-    expect(refused.status).toBe(403);
+    expect((await ask(own.body.id)).status).toBe(403);
+    expect(
+      (
+        await w.n.put(`/v1/stock/declarations/${own.body.id}`, {
+          lines: [line(0, 99)],
+          reason: "Not mine",
+        })
+      ).status,
+    ).toBe(403);
 
     const { pdv: store, d } = await approvedCount([20, 0, 0]);
     await sell(await seller(store.id), 0, 18);
-    const low = await w.n.put(`/v1/stock/declarations/${d.id}`, {
+    // The admin needs no request and no time limit, only a reason, and cannot go below what was sold.
+    const ownerDb = await owner();
+    try {
+      await ownerDb.query(
+        `UPDATE "StockDeclaration" SET "decidedAt" = now() - interval '30 days' WHERE id = $1`,
+        [d.id],
+      );
+    } finally {
+      await ownerDb.end();
+    }
+    const noReason = await w.a.put(`/v1/stock/declarations/${d.id}`, {
+      lines: [line(0, 25), line(1, 3)],
+    });
+    expect(noReason.body.code).toBe("REASON_REQUIRED");
+    const low = await w.a.put(`/v1/stock/declarations/${d.id}`, {
       lines: [line(0, 5)],
       reason: "Recounted",
     });
     expect(low.body.code).toBe("BELOW_SOLD");
+    expect(low.body.details.products[0]).toMatchObject({
+      name: VITC,
+      minimum: 18,
+    });
     expect((await levels(w, store.id))[VITC]).toBe(2);
+    const ok = await w.a.put(`/v1/stock/declarations/${d.id}`, {
+      lines: [line(0, 25), line(1, 3)],
+      reason: "Two products were missing",
+    });
+    expect(ok.status).toBe(200);
+    expect((await levels(w, store.id))[VITC]).toBe(7); // 25 - 18 sold
+    expect((await levels(w, store.id))[NIAC]).toBe(3);
+  });
+});
+
+describe("the admin and the responsable on a waiting count", () => {
+  it("the admin edits it directly (add, remove, change), the responsable's old form is refused, and she is told", async () => {
+    const pdv = await approvedPdv(w);
+    const d = await declare(pdv.id, [20, 10, 0]);
+    expect(d.revision).toBe(0);
+    await w.n.post(`/v1/stock/declarations/${d.id}/edit`, {});
+    // The admin takes over the count she was correcting.
+    const byAdmin = await w.a.put(`/v1/stock/declarations/${d.id}`, {
+      lines: [line(0, 15), line(2, 4)], // NIAC removed, ARGAN added
+      revision: 0,
+    });
+    expect(byAdmin.status).toBe(200);
+    expect(byAdmin.body.status).toBe("PENDING"); // still waiting for a decision
+    expect(byAdmin.body.revision).toBe(1);
+    expect(byAdmin.body.editing).toBeNull();
+    const stock = await levels(w, pdv.id);
+    expect(stock[VITC]).toBe(15);
+    expect(stock[ARGAN]).toBe(4);
+    expect(stock[NIAC] ?? 0).toBe(0);
+    // Her form was opened on revision 0: saving it now would overwrite the admin's change.
+    const stale = await w.n.put(`/v1/stock/declarations/${d.id}`, {
+      lines: [line(0, 20), line(1, 10)],
+      revision: 0,
+    });
+    expect(stale.status).toBe(409);
+    expect(stale.body.code).toBe("STALE_COUNT");
+    expect(
+      (await w.n.get("/v1/notifications")).body.items.some(
+        (n: any) => n.key === "stock.admin_edited",
+      ),
+    ).toBe(true);
+    // With the current revision her save works.
+    expect(
+      (
+        await w.n.put(`/v1/stock/declarations/${d.id}`, {
+          lines: [line(0, 16), line(2, 4)],
+          revision: 1,
+        })
+      ).status,
+    ).toBe(200);
+  });
+
+  it("a rejected count cannot be edited, by anyone", async () => {
+    const pdv = await approvedPdv(w);
+    const d = await declare(pdv.id, [20, 0, 0]);
+    await w.a.post(`/v1/stock/declarations/${d.id}/reject`, {
+      note: "Wrong photo",
+    });
+    expect(
+      (await w.a.put(`/v1/stock/declarations/${d.id}`, { lines: [line(0, 1)] }))
+        .status,
+    ).toBe(409);
   });
 });
 

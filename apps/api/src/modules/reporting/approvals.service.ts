@@ -500,7 +500,7 @@ export class ApprovalsService {
             regionId: r.regionId,
             region: at(r.regionId),
             createdAt: r.createdAt,
-            meta: { reason: r.reason },
+            meta: { reason: r.reason, kind: r.kind },
           });
       }
       if (want("PAYOUT")) {

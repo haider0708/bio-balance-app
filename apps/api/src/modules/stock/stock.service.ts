@@ -27,6 +27,8 @@ const LOW_STOCK = 5;
 const EDIT_HOLD_MS = 30 * 60_000;
 /** After its approval, the responsable may still correct a count for this long. */
 const CORRECTION_WINDOW_MS = 3 * 86_400_000;
+/** Once the admin approves a correction request, the responsable has this long to make it. */
+const CORRECTION_GRANT_MS = 48 * 3_600_000;
 
 @Injectable()
 export class StockService {
@@ -157,6 +159,7 @@ export class StockService {
         ? await tx.stockRecount.findFirst({
             where: {
               locationId: location.id,
+              kind: "RECOUNT",
               status: "APPROVED",
               declarationId: null,
             },
@@ -780,37 +783,63 @@ export class StockService {
       photoIds?: string[];
       note?: string;
       reason?: string;
+      revision?: number;
     },
   ) {
-    requireRule(actor.role === "RESPONSABLE", "FORBIDDEN", "Not allowed.", 403);
+    requireRule(
+      actor.role === "RESPONSABLE" || actor.role === "ADMIN",
+      "FORBIDDEN",
+      "Not allowed.",
+      403,
+    );
+    const byAdmin = actor.role === "ADMIN";
     return this.db.run(actor, async (tx) => {
       const declaration = await this.lockAny(tx, id);
       const location = await this.authorize(tx, actor, declaration.locationId);
+      // Two people editing at once: the form that was opened first is refused, nobody overwrites anyone.
+      requireRule(
+        input.revision === undefined || input.revision === declaration.revision,
+        "STALE_COUNT",
+        "This count was changed by someone else meanwhile. Reload it and try again.",
+        409,
+      );
       const author = await tx.user.findUnique({
         where: { id: declaration.createdById },
         select: { role: true },
       });
       requireRule(
-        author?.role === "RESPONSABLE",
+        byAdmin || author?.role === "RESPONSABLE",
         "FORBIDDEN",
         "A count made by the admin is corrected by the admin.",
         403,
       );
       const approved = declaration.status === "APPROVED";
+      let grant: { id: string } | null = null;
       if (approved) {
         requireRule(
-          input.reason?.trim(),
+          !byAdmin || input.reason?.trim(),
           "REASON_REQUIRED",
-          "Say what was wrong: an approved count needs a reason to be corrected.",
+          "Say what was wrong: correcting an approved count needs a reason.",
         );
-        requireRule(
-          declaration.decidedAt &&
-            Date.now() - declaration.decidedAt.getTime() <=
-              CORRECTION_WINDOW_MS,
-          "STOCK_CORRECTION_CLOSED",
-          "A count can be corrected for 3 days after its approval. Ask the admin.",
-          403,
-        );
+        if (!byAdmin) {
+          // The responsable corrects an approved count only after the admin approved her request.
+          grant = await tx.stockRecount.findFirst({
+            where: {
+              kind: "CORRECTION",
+              correctsId: id,
+              status: "APPROVED",
+              declarationId: null,
+              decidedAt: { gt: new Date(Date.now() - CORRECTION_GRANT_MS) },
+            },
+            select: { id: true },
+          });
+          requireRule(
+            grant,
+            "CORRECTION_NOT_APPROVED",
+            "Ask the admin to approve a correction first.",
+            403,
+          );
+        }
         const later = await tx.stockDeclaration.findFirst({
           where: {
             locationId: declaration.locationId,
@@ -830,7 +859,8 @@ export class StockService {
           "This count was rejected: declare it again.",
           409,
         );
-        this.assertNotHeldByOther(declaration, actor.id);
+        // The admin may take over a count its responsable is correcting; she is told when she saves.
+        if (!byAdmin) this.assertNotHeldByOther(declaration, actor.id);
       }
       const ids = input.lines.map((l) => l.productId);
       requireRule(
@@ -961,14 +991,26 @@ export class StockService {
           ...(input.note !== undefined && { note: input.note.trim() || null }),
           editingById: null,
           editingUntil: null,
+          revision: { increment: 1 },
           ...(approved && { correctedAt: new Date() }),
         },
         include: { lines: true },
       });
+      // The correction the admin approved is used up by this save.
+      if (grant)
+        await tx.stockRecount.update({
+          where: { id: grant.id },
+          data: { declarationId: id },
+        });
+      const action = byAdmin
+        ? "stock.admin_edited"
+        : approved
+          ? "stock.corrected"
+          : "stock.edited";
       await audit(
         tx,
         actor,
-        approved ? "stock.corrected" : "stock.edited",
+        action,
         "StockDeclaration",
         id,
         {
@@ -979,16 +1021,34 @@ export class StockService {
         },
         location.stockRegionId,
       );
-      await notifyAdmins(tx, location.stockRegionId, {
-        key: approved ? "stock.corrected" : "stock.edited",
-        params: {
-          place: location.name,
-          by: actor.name,
-          reason: input.reason?.trim() ?? "",
-        },
-        entityType: "StockDeclaration",
-        entityId: id,
-      });
+      if (byAdmin) {
+        // Her count was changed by the admin (and if she was correcting it, she is told why her form is old).
+        await notify(
+          tx,
+          [
+            declaration.createdById,
+            ...(location.stockRegionId
+              ? await responsableIds(tx, location.stockRegionId)
+              : []),
+          ],
+          {
+            key: "stock.admin_edited",
+            params: { place: location.name, note: input.reason?.trim() ?? "" },
+            entityType: "StockDeclaration",
+            entityId: id,
+          },
+        );
+      } else
+        await notifyAdmins(tx, location.stockRegionId, {
+          key: approved ? "stock.corrected" : "stock.edited",
+          params: {
+            place: location.name,
+            by: actor.name,
+            reason: input.reason?.trim() ?? "",
+          },
+          entityType: "StockDeclaration",
+          entityId: id,
+        });
       return (await this.present(tx, [updated]))[0]!;
     });
   }
@@ -1167,6 +1227,7 @@ export class StockService {
         !(await tx.stockRecount.findFirst({
           where: {
             locationId: location.id,
+            kind: "RECOUNT",
             OR: [
               { status: "PENDING" },
               { status: "APPROVED", declarationId: null },
@@ -1198,6 +1259,99 @@ export class StockService {
       await notifyAdmins(tx, location.stockRegionId, {
         key: "recount.requested",
         params: { place: location.name, by: actor.name },
+        entityType: "StockRecount",
+        entityId: row.id,
+      });
+      return (await this.presentRecounts(tx, [row]))[0]!;
+    });
+  }
+
+  /**
+   * The responsable asks the admin to let her correct an approved count (up to three days after its
+   * approval, for the latest count of the place that she made). Once the admin approves, she has
+   * 48 hours to make the correction, once; the admin can always edit a count directly.
+   */
+  requestCorrection(actor: Actor, id: string, reason: string) {
+    requireRule(actor.role === "RESPONSABLE", "FORBIDDEN", "Not allowed.", 403);
+    return this.db.run(actor, async (tx) => {
+      const declaration = await this.lockAny(tx, id);
+      const location = await this.authorize(tx, actor, declaration.locationId);
+      const author = await tx.user.findUnique({
+        where: { id: declaration.createdById },
+        select: { role: true },
+      });
+      requireRule(
+        author?.role === "RESPONSABLE",
+        "FORBIDDEN",
+        "A count made by the admin is corrected by the admin.",
+        403,
+      );
+      requireRule(
+        declaration.status === "APPROVED",
+        "INVALID_STATE",
+        "Only an approved count needs a correction request.",
+        409,
+      );
+      requireRule(
+        declaration.decidedAt &&
+          Date.now() - declaration.decidedAt.getTime() <= CORRECTION_WINDOW_MS,
+        "STOCK_CORRECTION_CLOSED",
+        "A count can be corrected for 3 days after its approval. Ask the admin.",
+        403,
+      );
+      requireRule(
+        !(await tx.stockDeclaration.findFirst({
+          where: {
+            locationId: declaration.locationId,
+            createdAt: { gt: declaration.createdAt },
+          },
+        })),
+        "NOT_LATEST",
+        "A newer count of this place exists: correct that one.",
+        409,
+      );
+      requireRule(
+        !(await tx.stockRecount.findFirst({
+          where: {
+            kind: "CORRECTION",
+            correctsId: id,
+            OR: [
+              { status: "PENDING" },
+              {
+                status: "APPROVED",
+                declarationId: null,
+                decidedAt: { gt: new Date(Date.now() - CORRECTION_GRANT_MS) },
+              },
+            ],
+          },
+        })),
+        "CORRECTION_PENDING",
+        "A correction was already asked for this count.",
+        409,
+      );
+      const row = await tx.stockRecount.create({
+        data: {
+          kind: "CORRECTION",
+          correctsId: id,
+          locationId: location.id,
+          locationKind: location.kind,
+          regionId: location.stockRegionId,
+          requestedById: actor.id,
+          reason: reason.trim(),
+        },
+      });
+      await audit(
+        tx,
+        actor,
+        "stock.correction_requested",
+        "StockRecount",
+        row.id,
+        { place: location.name },
+        location.stockRegionId,
+      );
+      await notifyAdmins(tx, location.stockRegionId, {
+        key: "correction.requested",
+        params: { place: location.name, by: actor.name, reason: reason.trim() },
         entityType: "StockRecount",
         entityId: row.id,
       });
@@ -1273,7 +1427,7 @@ export class StockService {
         `stock.recount_${action}d`,
         "StockRecount",
         id,
-        { note: note ?? null },
+        { note: note ?? null, kind: row.kind },
         row.regionId,
       );
       await notify(
@@ -1283,7 +1437,14 @@ export class StockService {
           ...(row.regionId ? await responsableIds(tx, row.regionId) : []),
         ],
         {
-          key: action === "approve" ? "recount.approved" : "recount.rejected",
+          key:
+            row.kind === "CORRECTION"
+              ? action === "approve"
+                ? "correction.approved"
+                : "correction.rejected"
+              : action === "approve"
+                ? "recount.approved"
+                : "recount.rejected",
           params: { place: location.name, note: note ?? null },
           entityType: "StockRecount",
           entityId: id,
@@ -1323,6 +1484,8 @@ export class StockService {
         name: place.get(r.locationId) ?? "",
       },
       regionId: r.regionId,
+      kind: r.kind,
+      correctsId: r.correctsId,
       reason: r.reason,
       requestedBy: {
         id: r.requestedById,
@@ -1431,6 +1594,35 @@ export class StockService {
     const user = new Map(users.map((u) => [u.id, u.name]));
     const role = new Map(users.map((u) => [u.id, u.role]));
     const now = Date.now();
+    const corrections = new Map<
+      string,
+      { id: string; status: string; note: string | null; until: Date | null }
+    >();
+    for (const c of await tx.stockRecount.findMany({
+      where: { kind: "CORRECTION", correctsId: { in: rows.map((r) => r.id) } },
+      orderBy: { createdAt: "asc" },
+    })) {
+      const open =
+        c.status === "APPROVED" &&
+        c.declarationId === null &&
+        c.decidedAt !== null;
+      const until = open
+        ? new Date(c.decidedAt!.getTime() + CORRECTION_GRANT_MS)
+        : null;
+      corrections.set(c.correctsId!, {
+        id: c.id,
+        status:
+          c.status === "APPROVED"
+            ? c.declarationId !== null
+              ? "USED"
+              : until!.getTime() > now
+                ? "APPROVED"
+                : "EXPIRED"
+            : c.status,
+        note: c.decisionNote,
+        until,
+      });
+    }
     return rows.map((r) => ({
       id: r.id,
       kind: r.kind,
@@ -1468,6 +1660,9 @@ export class StockService {
           ? new Date(r.decidedAt.getTime() + CORRECTION_WINDOW_MS)
           : null,
       correctedAt: r.correctedAt,
+      revision: r.revision,
+      /** The responsable's correction request: PENDING, APPROVED (until), REJECTED, USED or EXPIRED. */
+      correction: corrections.get(r.id) ?? null,
       lines: r.lines
         .map((l) => ({
           productId: l.productId,

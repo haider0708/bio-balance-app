@@ -1,0 +1,359 @@
+[
+  {
+    "id": "p0",
+    "reference": "BB-EAN-8697711600838",
+    "barcode": "8697711600838",
+    "name": "SUPER SERUM COLLAGÈNE + VIT-C 30ML",
+    "family": "Sérums"
+  },
+  {
+    "id": "p1",
+    "reference": "BB-EAN-8697711601514",
+    "barcode": "8697711601514",
+    "name": "HELLO CLEAN BAUME DÉMAQUILLANT VIT-C ÉCLAT 100ML",
+    "family": "Nettoyants visage"
+  },
+  {
+    "id": "p2",
+    "reference": "BB-EAN-8697711601521",
+    "barcode": "8697711601521",
+    "name": "HELLO CLEAN BAUME DÉMAQUILLANT SQUALANE NOURRISSANT 100ML",
+    "family": "Nettoyants visage"
+  },
+  {
+    "id": "p3",
+    "reference": "BB-EAN-8697711601538",
+    "barcode": "8697711601538",
+    "name": "HELLO CLEAN BAUME DÉMAQUILLANT ACIDE HYALURONIQUE 3D 100ML",
+    "family": "Nettoyants visage"
+  },
+  {
+    "id": "p4",
+    "reference": "BB-EAN-8697711601545",
+    "barcode": "8697711601545",
+    "name": "HELLO CLEAN BAUME DÉMAQUILLANT ACIDE OLÉANOLIQUE PORES 100ML",
+    "family": "Nettoyants visage"
+  },
+  {
+    "id": "p5",
+    "reference": "BB-EAN-8697711602115",
+    "barcode": "8697711602115",
+    "name": "SUPER SERUM NIGHT RECOVERY 30ML",
+    "family": "Sérums"
+  },
+  {
+    "id": "p6",
+    "reference": "BB-EAN-8697711602139",
+    "barcode": "8697711602139",
+    "name": "SUPER SERUM NIGHT RECOVERY CONTOUR DES YEUX 20ML",
+    "family": "Sérums"
+  },
+  {
+    "id": "p7",
+    "reference": "BB-EAN-8697711622410",
+    "barcode": "8697711622410",
+    "name": "DRY & WHITE DÉO ROLL-ON ÉCLAIRCISSANT 50ML (2E CODE-BARRES)",
+    "family": "Soins personnels"
+  },
+  {
+    "id": "p8",
+    "reference": "BB-EAN-8697711722011",
+    "barcode": "8697711722011",
+    "name": "SÉRUM CILS EYE LASH 6ML",
+    "family": "Soins du regard"
+  },
+  {
+    "id": "p9",
+    "reference": "BB-WEB-23",
+    "barcode": "8697711701016",
+    "name": "DERMASOOTHE GEL NETTOYANT APAISANT 250ML",
+    "family": "Nettoyants visage"
+  },
+  {
+    "id": "p10",
+    "reference": "BB-WEB-27",
+    "barcode": "8697711621819",
+    "name": "HELLO CLEAN EAU MICELLAIRE ACIDE HYALURONIQUE 500ML",
+    "family": "Nettoyants visage"
+  },
+  {
+    "id": "p11",
+    "reference": "BB-WEB-28",
+    "barcode": "8697711701009",
+    "name": "DERMASEBUM GEL NETTOYANT PURIFIANT 250ML",
+    "family": "Nettoyants visage"
+  },
+  {
+    "id": "p12",
+    "reference": "BB-WEB-29",
+    "barcode": "8697711602023",
+    "name": "SUPER GLOW GEL-CRÈME HYDRATANT VIT-C 50ML",
+    "family": "Crèmes visage"
+  },
+  {
+    "id": "p13",
+    "reference": "BB-WEB-30",
+    "barcode": "8697711602047",
+    "name": "SUPER LIFT CRÈME RÉTINOL + L-CARNOSINE 50ML",
+    "family": "Crèmes visage"
+  },
+  {
+    "id": "p14",
+    "reference": "BB-WEB-31",
+    "barcode": "8697711602016",
+    "name": "SUPER PURE CRÈME HYDRATANTE NIACINAMIDE 5% 50ML",
+    "family": "Crèmes visage"
+  },
+  {
+    "id": "p15",
+    "reference": "BB-WEB-32",
+    "barcode": "8697711602061",
+    "name": "SUPER EYE CONTOUR DES YEUX AH VIT-C COLLAGÈNE 20ML",
+    "family": "Crèmes visage"
+  },
+  {
+    "id": "p16",
+    "reference": "BB-WEB-33",
+    "barcode": "8697711602030",
+    "name": "SUPER PLUMP CRÈME HYDRATANTE ACIDE HYALURONIQUE 3D 50ML",
+    "family": "Crèmes visage"
+  },
+  {
+    "id": "p17",
+    "reference": "BB-WEB-34",
+    "barcode": "8697711621833",
+    "name": "HELLO CLEAN EAU MICELLAIRE BIPHASÉE CÉRAMIDES 500ML",
+    "family": "Nettoyants visage"
+  },
+  {
+    "id": "p18",
+    "reference": "BB-WEB-35",
+    "barcode": "8697711621826",
+    "name": "HELLO CLEAN EAU MICELLAIRE NIACINAMIDE 500ML",
+    "family": "Nettoyants visage"
+  },
+  {
+    "id": "p19",
+    "reference": "BB-WEB-36",
+    "barcode": "8697711600814",
+    "name": "SUPER SERUM DISCOLORATION FREE 30ML",
+    "family": "Sérums"
+  },
+  {
+    "id": "p20",
+    "reference": "BB-WEB-37",
+    "barcode": "8697711600760",
+    "name": "SUPER SERUM PURE VITAMINE C 30ML",
+    "family": "Sérums"
+  },
+  {
+    "id": "p21",
+    "reference": "BB-WEB-38",
+    "barcode": "8697711600777",
+    "name": "SUPER SERUM HYALURONIC 3D 30ML",
+    "family": "Sérums"
+  },
+  {
+    "id": "p22",
+    "reference": "BB-WEB-39",
+    "barcode": "8697711600876",
+    "name": "SUPER SERUM NIACINAMIDE + ACIDE GLYCOLIQUE 30ML",
+    "family": "Sérums"
+  },
+  {
+    "id": "p23",
+    "reference": "BB-WEB-40",
+    "barcode": "8697711600845",
+    "name": "SUPER SERUM BETA SOLUTION ACIDE SALICYLIQUE 2% 30ML",
+    "family": "Sérums"
+  },
+  {
+    "id": "p24",
+    "reference": "BB-WEB-41",
+    "barcode": "8697711600890",
+    "name": "SUPER SERUM CAFÉINE 5% 30ML",
+    "family": "Sérums"
+  },
+  {
+    "id": "p25",
+    "reference": "BB-WEB-42",
+    "barcode": "8697711602122",
+    "name": "SUPER SERUM DEEP PEELING ALGUE ROUGE 30ML",
+    "family": "Sérums"
+  },
+  {
+    "id": "p26",
+    "reference": "BB-WEB-43",
+    "barcode": "8697711602313",
+    "name": "SUPER TONER GLOW SKIN C 250ML",
+    "family": "Nettoyants visage"
+  },
+  {
+    "id": "p27",
+    "reference": "BB-WEB-44",
+    "barcode": "8697711602337",
+    "name": "SUPER TONER PORE TIGHT 250ML",
+    "family": "Nettoyants visage"
+  },
+  {
+    "id": "p28",
+    "reference": "BB-WEB-46",
+    "barcode": "8697711601118",
+    "name": "MAGIC TOUCH 3EN1 + VIT-C 30ML",
+    "family": "Maquillage"
+  },
+  {
+    "id": "p29",
+    "reference": "BB-WEB-47",
+    "barcode": "8697711700163",
+    "name": "ORGANIC SHAMPOING GRENADE 330ML",
+    "family": "Soins capillaires"
+  },
+  {
+    "id": "p30",
+    "reference": "BB-WEB-48",
+    "barcode": "8697711700156",
+    "name": "ORGANIC SHAMPOING LAVANDE 330ML",
+    "family": "Soins capillaires"
+  },
+  {
+    "id": "p31",
+    "reference": "BB-WEB-49",
+    "barcode": "8697711700170",
+    "name": "ORGANIC SHAMPOING CITRUS 330ML",
+    "family": "Soins capillaires"
+  },
+  {
+    "id": "p32",
+    "reference": "BB-WEB-50",
+    "barcode": "8697711700187",
+    "name": "ORGANIC SHAMPOING ALOE VERA 330ML",
+    "family": "Soins capillaires"
+  },
+  {
+    "id": "p33",
+    "reference": "BB-WEB-51",
+    "barcode": "8697711700224",
+    "name": "ORGANIC APRÈS-SHAMPOING HUILE D'ARGAN 330ML",
+    "family": "Soins capillaires"
+  },
+  {
+    "id": "p34",
+    "reference": "BB-WEB-52",
+    "barcode": "8697711011122",
+    "name": "LIPOJEN REPULPEUR LÈVRES N°03 HOT CHOCOLATE 5ML",
+    "family": "Maquillage"
+  },
+  {
+    "id": "p35",
+    "reference": "BB-WEB-53",
+    "barcode": "8697711721014",
+    "name": "ACNEVIT SÉRUM ANTI-ACNÉ 30ML",
+    "family": "Sérums"
+  },
+  {
+    "id": "p36",
+    "reference": "BB-WEB-54",
+    "barcode": "8697711011139",
+    "name": "LIPOJEN REPULPEUR LÈVRES N°04 ROSE VENUS 5ML",
+    "family": "Maquillage"
+  },
+  {
+    "id": "p37",
+    "reference": "BB-WEB-55",
+    "barcode": "8697711011146",
+    "name": "LIPOJEN REPULPEUR LÈVRES N°05 ROSY PETAL 5ML",
+    "family": "Maquillage"
+  },
+  {
+    "id": "p38",
+    "reference": "BB-WEB-56",
+    "barcode": "8697711011160",
+    "name": "LIPOJEN REPULPEUR LÈVRES N°07 HIGH SOCIETY 5ML",
+    "family": "Maquillage"
+  },
+  {
+    "id": "p39",
+    "reference": "BB-WEB-57",
+    "barcode": "8697711011191",
+    "name": "LIPOJEN REPULPEUR LÈVRES N°10 HOT RED 5ML",
+    "family": "Maquillage"
+  },
+  {
+    "id": "p40",
+    "reference": "BB-WEB-58",
+    "barcode": "8697711011221",
+    "name": "LIPOJEN REPULPEUR LÈVRES N°31 FLAMINGO LOVE 5ML",
+    "family": "Maquillage"
+  },
+  {
+    "id": "p41",
+    "reference": "BB-WEB-59",
+    "barcode": "8697711011238",
+    "name": "LIPOJEN REPULPEUR LÈVRES N°32 CORAL DREAM 5ML",
+    "family": "Maquillage"
+  },
+  {
+    "id": "p42",
+    "reference": "BB-WEB-60",
+    "barcode": "8697711011252",
+    "name": "LIPOJEN REPULPEUR LÈVRES N°34 FUCHSIA VIBES 5ML",
+    "family": "Maquillage"
+  },
+  {
+    "id": "p43",
+    "reference": "BB-WEB-61",
+    "barcode": "8697711011269",
+    "name": "LIPOJEN REPULPEUR LÈVRES N°35 CANDY CRUSH 5ML",
+    "family": "Maquillage"
+  },
+  {
+    "id": "p44",
+    "reference": "BB-WEB-62",
+    "barcode": "8697711011283",
+    "name": "LIPOJEN REPULPEUR LÈVRES N°37 CINNAMON ROLL 5ML",
+    "family": "Maquillage"
+  },
+  {
+    "id": "p45",
+    "reference": "BB-WEB-63",
+    "barcode": "8697711721021",
+    "name": "ACNEVIT GEL NETTOYANT ANTI-ACNÉ 200ML",
+    "family": "Nettoyants visage"
+  },
+  {
+    "id": "p46",
+    "reference": "BB-WEB-64",
+    "barcode": "8697711600852",
+    "name": "SUPER SERUM RÉTINOL 30ML",
+    "family": "Sérums"
+  },
+  {
+    "id": "p47",
+    "reference": "BB-WEB-65",
+    "barcode": "8697711602054",
+    "name": "SUPER HYDRATOR CRÈME CÉRAMIDES + VIT F 50ML",
+    "family": "Crèmes visage"
+  },
+  {
+    "id": "p48",
+    "reference": "BB-WEB-66",
+    "barcode": "8697711622427",
+    "name": "DRY & SMOOTH DÉO ROLL-ON ANTI-REPOUSSE 50ML",
+    "family": "Soins personnels"
+  },
+  {
+    "id": "p49",
+    "reference": "BB-WEB-67",
+    "barcode": "8697711740411",
+    "name": "DRY & WHITE DÉO ROLL-ON ÉCLAIRCISSANT 50ML",
+    "family": "Soins personnels"
+  },
+  {
+    "id": "p50",
+    "reference": "BB-WEB-68",
+    "barcode": "8697711622434",
+    "name": "DRY & SPORT DÉO ROLL-ON HOMME 50ML",
+    "family": "Soins personnels"
+  }
+]

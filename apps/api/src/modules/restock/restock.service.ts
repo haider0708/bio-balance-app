@@ -34,7 +34,9 @@ export class RestockService {
 
   /**
    * A responsable asks BioBalance for goods (a store of their region, or a grossiste of it).
-   * The admin restocking a grossiste records the delivery on the spot, with photos of the goods.
+   * The admin orders for any store or grossiste: either records the delivery on the spot, with photos
+   * of the goods (`deliver: "now"`, the stock moves at once), or sends the goods and leaves the receipt
+   * to the store's responsable (`deliver: "later"`, stores only), who then confirms it for the admin to approve.
    */
   async create(
     actor: Actor,
@@ -45,6 +47,8 @@ export class RestockService {
       photoIds?: string[];
       /** A responsable the admin allowed suggests the grossiste for a store's order. */
       supplierId?: string;
+      /** Admin only: "now" (default) records the delivery received; "later" leaves the receipt to the responsable. */
+      deliver?: "now" | "later";
     },
   ) {
     requireRule(
@@ -58,12 +62,16 @@ export class RestockService {
       const dest = await findLocation(tx, input.destId);
       const byAdmin = actor.role === "ADMIN";
       requireRule(
-        byAdmin ? dest.kind === "DEPOT" : dest.stockRegionId === actor.regionId,
+        byAdmin || dest.stockRegionId === actor.regionId,
         "FORBIDDEN",
-        byAdmin
-          ? "The admin restocks a grossiste; stores order through their responsable."
-          : "You cannot request stock for this place.",
+        "You cannot request stock for this place.",
         403,
+      );
+      const later = byAdmin && input.deliver === "later";
+      requireRule(
+        !later || dest.kind === "PDV",
+        "DELIVER_LATER_STORE_ONLY",
+        "A grossiste's delivery is recorded when it arrives.",
       );
       requireRule(
         dest.status === "ACTIVE",
@@ -109,15 +117,16 @@ export class RestockService {
         { n: bigint }[]
       >`SELECT nextval('restock_number_seq') AS n`;
       const number = `RS-${new Date().getUTCFullYear()}-${String(sequence!.n).padStart(6, "0")}`;
-      const photoIds = byAdmin
-        ? await ownedProofs(
-            tx,
-            actor,
-            input.photoIds ?? [],
-            "Add a photo of the goods.",
-            { regionId: dest.stockRegionId },
-          )
-        : [];
+      const photoIds =
+        byAdmin && !later
+          ? await ownedProofs(
+              tx,
+              actor,
+              input.photoIds ?? [],
+              "Add a photo of the goods.",
+              { regionId: dest.stockRegionId },
+            )
+          : [];
       const now = new Date();
       const order = await tx.restockOrder.create({
         data: {
@@ -132,38 +141,63 @@ export class RestockService {
             create: input.lines.map((l) => ({
               productId: l.productId,
               requested: l.quantity,
-              ...(byAdmin && {
-                shipped: l.quantity,
-                received: l.quantity,
-                approved: l.quantity,
-              }),
+              ...(later && { shipped: l.quantity }),
+              ...(byAdmin &&
+                !later && {
+                  shipped: l.quantity,
+                  received: l.quantity,
+                  approved: l.quantity,
+                }),
             })),
           },
-          ...(byAdmin && {
-            status: "COMPLETED" as const,
+          ...(later && {
+            status: "SHIPPED" as const,
             source: "BIOBALANCE" as const,
             assignedAt: now,
             shippedAt: now,
-            receivedAt: now,
-            decidedAt: now,
-            receiverId: actor.id,
-            decidedById: actor.id,
-            receiptPhotoId: photoIds[0],
-            receiptPhotoIds: photoIds,
           }),
+          ...(byAdmin &&
+            !later && {
+              status: "COMPLETED" as const,
+              source: "BIOBALANCE" as const,
+              assignedAt: now,
+              shippedAt: now,
+              receivedAt: now,
+              decidedAt: now,
+              receiverId: actor.id,
+              decidedById: actor.id,
+              receiptPhotoId: photoIds[0],
+              receiptPhotoIds: photoIds,
+            }),
         },
         include: { lines: true },
       });
       await audit(
         tx,
         actor,
-        byAdmin ? "restock.recorded" : "restock.requested",
+        byAdmin
+          ? later
+            ? "restock.sent_direct"
+            : "restock.recorded"
+          : "restock.requested",
         "RestockOrder",
         order.id,
         { number, place: dest.name },
         dest.stockRegionId,
       );
-      if (byAdmin) {
+      if (later) {
+        // On its way: the store's responsable confirms the receipt, then the admin approves it.
+        await notify(
+          tx,
+          order.regionId ? await responsableIds(tx, order.regionId) : [],
+          {
+            key: "restock.shipped",
+            params: { number, from: "BioBalance" },
+            entityType: "RestockOrder",
+            entityId: order.id,
+          },
+        );
+      } else if (byAdmin) {
         for (const l of input.lines)
           await adjustStock(tx, dest, l.productId, l.quantity, {
             reason: "RECEIPT",
@@ -609,7 +643,7 @@ export class RestockService {
       const allowed =
         isReceiver ||
         (actor.role === "RESPONSABLE" && order.regionId === actor.regionId) ||
-        (actor.role === "ADMIN" && order.destKind === "DEPOT");
+        actor.role === "ADMIN";
       requireRule(
         allowed,
         "FORBIDDEN",

@@ -246,5 +246,21 @@
   "restock.reopened": {
     "en": "Restock {number} was taken back by the admin and will be routed again.",
     "fr": "Le réassort {number} a été repris par l’admin et sera acheminé à nouveau."
+  },
+  "correction.requested": {
+    "en": "{by} asks to correct the approved count of {place}. Reason: {reason}",
+    "fr": "{by} demande à corriger le comptage approuvé de {place}. Motif : {reason}"
+  },
+  "correction.approved": {
+    "en": "The correction of the count of {place} was approved: you can make it now.",
+    "fr": "La correction du comptage de {place} est approuvée : vous pouvez la faire maintenant."
+  },
+  "correction.rejected": {
+    "en": "The correction of the count of {place} was refused.",
+    "fr": "La correction du comptage de {place} a été refusée."
+  },
+  "stock.admin_edited": {
+    "en": "The admin changed the stock count of {place}.",
+    "fr": "L’admin a modifié le comptage du stock de {place}."
   }
 }

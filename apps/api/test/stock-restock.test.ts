@@ -578,11 +578,78 @@ describe("direct restock from BioBalance", () => {
       (n: any) => n.key,
     );
     expect(told).toContain("restock.completed");
-    // Stores order through their responsable, not from the admin.
+  });
+
+  it("the admin orders for a store herself: delivered now (stock at once) or left to the responsable", async () => {
     const pdv = await approvedPdv(w);
+    const lines = [{ productId: w.products[0]!.id, quantity: 7 }];
+    // Delivered now: the admin puts the proof, the stock moves, the order is complete.
     expect(
-      (await w.a.post("/v1/restocks", { destId: pdv.id, lines })).status,
-    ).toBe(403);
+      (await w.a.post("/v1/restocks", { destId: pdv.id, lines })).body.code,
+    ).toBe("PHOTO_REQUIRED");
+    const now = await w.a.post("/v1/restocks", {
+      destId: pdv.id,
+      deliver: "now",
+      photoIds: [await photo(w, w.admin)],
+      lines,
+    });
+    expect(now.body).toMatchObject({
+      status: "COMPLETED",
+      lines: [{ requested: 7, approved: 7 }],
+    });
+    expect((await levels(w, pdv.id))["Serum Vitamin C"]).toBe(7);
+
+    // Left to the responsable: it is on its way, nothing moves until she confirms and the admin approves.
+    const later = await w.a.post("/v1/restocks", {
+      destId: pdv.id,
+      deliver: "later",
+      lines: [{ productId: w.products[0]!.id, quantity: 3 }],
+    });
+    expect(later.body).toMatchObject({
+      status: "SHIPPED",
+      source: "BIOBALANCE",
+    });
+    expect((await levels(w, pdv.id))["Serum Vitamin C"]).toBe(7);
+    expect(
+      (await w.n.get("/v1/notifications")).body.items.some(
+        (n: any) => n.key === "restock.shipped",
+      ),
+    ).toBe(true);
+    const received = await w.n.post(`/v1/restocks/${later.body.id}/receipt`, {
+      photoIds: [await photo(w, w.nord)],
+    });
+    expect(received.body.status).toBe("RECEIVED");
+    expect(
+      (await w.a.post(`/v1/restocks/${later.body.id}/approve`, {})).body.status,
+    ).toBe("COMPLETED");
+    expect((await levels(w, pdv.id))["Serum Vitamin C"]).toBe(10);
+
+    // A grossiste's delivery is only recorded when it arrives.
+    expect(
+      (
+        await w.a.post("/v1/restocks", {
+          destId: w.depotId,
+          deliver: "later",
+          lines,
+        })
+      ).body.code,
+    ).toBe("DELIVER_LATER_STORE_ONLY");
+  });
+
+  it("the admin can also receive a store's delivery herself, which completes it", async () => {
+    const pdv = await approvedPdv(w);
+    const order = (
+      await w.n.post("/v1/restocks", {
+        destId: pdv.id,
+        lines: [{ productId: w.products[0]!.id, quantity: 4 }],
+      })
+    ).body;
+    await w.a.post(`/v1/restocks/${order.id}/send-direct`, {});
+    const done = await w.a.post(`/v1/restocks/${order.id}/receipt`, {
+      photoIds: [await photo(w, w.admin)],
+    });
+    expect(done.body.status).toBe("COMPLETED");
+    expect((await levels(w, pdv.id))["Serum Vitamin C"]).toBe(4);
   });
 
   it("can be cancelled by its requester only while waiting", async () => {

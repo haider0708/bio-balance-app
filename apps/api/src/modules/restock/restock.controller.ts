@@ -28,6 +28,7 @@ const Create = z.object({
   lines: Lines(positive),
   photoIds: z.array(id).max(5).optional(),
   supplierId: id.optional(),
+  deliver: z.enum(["now", "later"]).optional(),
 });
 const Assign = z.object({ depotId: id, lines: Lines(positive).optional() });
 const Direct = z.object({ lines: Lines(positive).optional() });

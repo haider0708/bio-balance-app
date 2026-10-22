@@ -4,6 +4,7 @@ import type { Actor } from "../../core/actor";
 import { audit } from "../../core/audit";
 import { Database } from "../../core/database";
 import { notFound, requireRule } from "../../core/errors";
+import { matchLines, parseList } from "./match";
 
 export interface ProductInput {
   reference: string;
@@ -23,6 +24,25 @@ export interface ProductInput {
 @Injectable()
 export class CatalogService {
   constructor(private readonly db: Database) {}
+
+  /**
+   * A pasted list (barcode, name, quantity, in several layouts) matched to the active catalogue:
+   * what matched for sure, what is unsure (with the closest products) and what is missing.
+   */
+  async match(text: string) {
+    const catalogue = await this.db.product.findMany({
+      where: { active: true },
+      select: {
+        id: true,
+        reference: true,
+        barcode: true,
+        name: true,
+        family: true,
+        imageId: true,
+      },
+    });
+    return { lines: matchLines(parseList(text), catalogue) };
+  }
 
   /** Products everyone can pick from. Inactive ones are hidden from non-admins. */
   async list(

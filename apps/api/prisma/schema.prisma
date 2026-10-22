@@ -317,6 +317,8 @@ model StockDeclaration {
   /// The responsable correcting a waiting count: the admin cannot decide it until they finish (or the hold ends).
   editingById  String?                @db.Uuid
   editingUntil DateTime?
+  /// Counts the saves of a count: a form opened before another save is refused (nobody overwrites anyone).
+  revision     Int                    @default(0)
   /// When the responsable last corrected the count after its approval.
   correctedAt  DateTime?
   lines        StockDeclarationLine[]
@@ -673,6 +675,9 @@ model StockRecount {
   decisionNote  String?
   declarationId String?      @db.Uuid
   createdAt     DateTime     @default(now())
+  /// RECOUNT: permission to count a place again. CORRECTION: permission to correct the count `correctsId`.
+  kind          String       @default("RECOUNT")
+  correctsId    String?      @db.Uuid
 
   @@index([status, createdAt])
   @@index([locationId, status])

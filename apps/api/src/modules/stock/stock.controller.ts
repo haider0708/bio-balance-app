@@ -39,8 +39,13 @@ const Edit = z.object({
   lines: z.array(z.object({ productId: id, quantity: qty })).max(500),
   photoIds: z.array(id).max(5).optional(),
   note: z.string().trim().max(500).optional(),
-  /** Required once the count is approved. */
+  /** Required from the admin once the count is approved. */
   reason: z.string().trim().min(2).max(300).optional(),
+  /** The revision the form was opened on: a count saved meanwhile by someone else is refused. */
+  revision: z.number().int().min(0).optional(),
+});
+const CorrectionRequest = z.object({
+  reason: z.string().trim().min(3).max(500),
 });
 const Recount = z.object({
   locationId: id,
@@ -104,11 +109,26 @@ export class StockController {
     return this.stock.get(r.actor, parse(id, i));
   }
 
-  /** The responsable saves a corrected count (see StockService.edit). */
-  @Roles("RESPONSABLE")
+  /** The responsable (or the admin, at any time) saves a corrected count (see StockService.edit). */
+  @Roles("RESPONSABLE", "ADMIN")
   @Put("declarations/:id")
   edit(@Req() r: AuthRequest, @Param("id") i: string, @Body() b: unknown) {
     return this.stock.edit(r.actor, parse(id, i), parse(Edit, b));
+  }
+
+  /** The responsable asks the admin to let her correct an approved count. */
+  @Roles("RESPONSABLE")
+  @Post("declarations/:id/correction-request")
+  requestCorrection(
+    @Req() r: AuthRequest,
+    @Param("id") i: string,
+    @Body() b: unknown,
+  ) {
+    return this.stock.requestCorrection(
+      r.actor,
+      parse(id, i),
+      parse(CorrectionRequest, b).reason,
+    );
   }
 
   /** The responsable opens a waiting count to correct it: it goes on hold for the admin. */

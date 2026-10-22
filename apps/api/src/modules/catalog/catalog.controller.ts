@@ -29,9 +29,17 @@ const Product = z.object({
   active: z.boolean().optional(),
 });
 
+const MatchList = z.object({ text: z.string().max(20000) });
+
 @Controller("v1")
 export class CatalogController {
   constructor(private readonly catalog: CatalogService) {}
+
+  /** Matches a pasted list to the catalogue (for orders and counts). */
+  @Post("products/match")
+  match(@Body() b: unknown) {
+    return this.catalog.match(parse(MatchList, b).text);
+  }
 
   @Get("products")
   list(@Req() r: AuthRequest, @Query() q: Record<string, string>) {

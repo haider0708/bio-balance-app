@@ -127,4 +127,17 @@ describe("catalog", () => {
     const vendeur = client(api, (await createAccount({ role: "ADMIN" })).token);
     expect((await vendeur.get("/v1/products")).status).toBe(200);
   });
+
+  it("matches a pasted list for any signed-in user", async () => {
+    const res = await w.n.post("/v1/products/match", {
+      text: "6000000000001\tSerum Vitamin C\t4\n9 banana split",
+    });
+    expect(res.status).toBe(201);
+    expect(res.body.lines[0]).toMatchObject({
+      status: "MATCHED",
+      quantity: 4,
+      product: { reference: "P1" },
+    });
+    expect(res.body.lines[1]).toMatchObject({ status: "MISSING", quantity: 9 });
+  });
 });
