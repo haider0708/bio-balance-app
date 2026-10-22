@@ -11,6 +11,7 @@ import { hashCode, issueCode, normalizeCode, tokenHash } from "./codes";
 import { decryptSecret, matchTotp } from "./mfa";
 import { PasswordHasher } from "./password-hasher";
 import { SettingsService } from "../../core/settings";
+import { canonicalPhone } from "../../core/phone";
 import { type PushPlatform, pushConfigured } from "../../push/transports";
 
 /** How long a session lasts without use. Every use pushes it forward again (see `authenticate`). */
@@ -267,11 +268,19 @@ export class AuthService {
     actor: Actor,
     input: { name?: string; phone?: string | null; locale?: "fr" | "en" },
   ) {
+    // The number is where the codes go by WhatsApp: read in every Tunisian format and stored canonical.
+    // Only an administrator (who may have none) can leave it empty.
+    const phone =
+      input.phone === undefined
+        ? undefined
+        : !input.phone?.trim() && actor.role === "ADMIN"
+          ? null
+          : canonicalPhone(input.phone);
     await this.db.user.update({
       where: { id: actor.id },
       data: {
         ...(input.name !== undefined && { name: input.name }),
-        ...(input.phone !== undefined && { phone: input.phone }),
+        ...(phone !== undefined && { phone }),
         ...(input.locale !== undefined && { locale: input.locale }),
       },
     });

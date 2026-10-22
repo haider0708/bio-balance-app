@@ -174,3 +174,10 @@ The admin can do everything a responsable can, for any store (except recording s
 | Pasting a list | Matches a delivery note or a list to the catalogue | Same |
 
 Two people editing a count at once cannot overwrite each other: the second save is refused and asks to reload.
+
+## A team member's page, tappable numbers, opening screen (2026-10)
+
+- **A salesman's page** (admin and responsable) shows what he sold: Today / 7 days / 30 days, his units, sales and rewards (each opens its detail), his latest sales (each opens the sale, where the admin corrects it), "All sales" and "Full analysis".
+- **Tappable numbers** on the dashboards show a small chevron: every one opens the sales behind it.
+- **Opening screen:** calmer bubbles that never cross the name, a soft glow behind the mark, and a quiet progress line when the app is still waiting after the animation.
+- **More menu:** compact rows, so every entry fits on one screen.

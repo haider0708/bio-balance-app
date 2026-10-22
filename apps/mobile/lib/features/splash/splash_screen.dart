@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart' show kIsWeb;
@@ -36,8 +37,12 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
 
   /// Only made when the phone allows motion.
   AnimationController? _bubbles;
-  late final List<_Bubble> _field = _Bubble.field(28);
+  late final List<_Bubble> _field = _Bubble.field(20);
   bool _started = false;
+
+  /// True when the opening is over and the app is still not ready (a slow connection).
+  bool _waiting = false;
+  Timer? _waitTimer;
 
   @override
   void initState() {
@@ -50,6 +55,9 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     _intro.addStatusListener((status) {
       if (status == AnimationStatus.completed) {
         ref.read(splashDoneProvider.notifier).finish();
+        _waitTimer = Timer(const Duration(milliseconds: 700), () {
+          if (mounted) setState(() => _waiting = true);
+        });
       }
     });
   }
@@ -72,6 +80,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
 
   @override
   void dispose() {
+    _waitTimer?.cancel();
     _intro.dispose();
     _bubbles?.dispose();
     super.dispose();
@@ -88,6 +97,26 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
       body: Stack(
         fit: StackFit.expand,
         children: [
+          // A soft glow of the brand colour behind the mark: depth without noise. It fades in with the
+          // opening, so the first frame still matches the plain launch screen.
+          FadeTransition(
+            opacity: CurvedAnimation(parent: _intro, curve: Curves.easeOut),
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: RadialGradient(
+                  center: const Alignment(0, -0.05),
+                  radius: 0.85,
+                  colors: [
+                    Color.alphaBlend(
+                      water.withValues(alpha: dark ? 0.10 : 0.055),
+                      background,
+                    ),
+                    background,
+                  ],
+                ),
+              ),
+            ),
+          ),
           if (!still && _bubbles != null)
             RepaintBoundary(
               child: CustomPaint(
@@ -114,6 +143,25 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                         child: LeafMarkView(
                           width: _markWidth,
                           shine: _interval(t, 0.38, 0.8),
+                        ),
+                      ),
+                    ),
+                  ),
+                  // Still waiting for the session once the opening is over: a quiet progress line.
+                  Align(
+                    alignment: const Alignment(0, 0.35),
+                    child: AnimatedOpacity(
+                      opacity: _waiting ? 1 : 0,
+                      duration: const Duration(milliseconds: 400),
+                      child: SizedBox(
+                        width: 96,
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(2),
+                          child: LinearProgressIndicator(
+                            minHeight: 3,
+                            color: water,
+                            backgroundColor: water.withValues(alpha: 0.12),
+                          ),
                         ),
                       ),
                     ),
@@ -279,7 +327,7 @@ class _Bubble {
       for (var i = 0; i < count; i++)
         _Bubble(
           random.nextDouble(),
-          3 + math.pow(random.nextDouble(), 2.2) * 19,
+          3 + math.pow(random.nextDouble(), 2.4) * 15,
           0.05 + random.nextDouble() * 0.09,
           random.nextDouble(),
           6 + random.nextDouble() * 14,
@@ -321,7 +369,12 @@ class _BubblesPainter extends CustomPainter {
           (travel > 0.75 ? (1 - travel) / 0.25 : 1.0);
       if (fade <= 0) continue;
       final center = Offset(x, y);
+      // Bubbles pass quietly behind the mark and the name, never over them.
+      final dx = (x - size.width / 2).abs();
+      final dy = (y - size.height / 2).abs();
+      final near = (dx < 150 && dy < 150) ? 0.25 : 1.0;
       final r = b.radius;
+      final fade2 = fade * near;
       canvas.drawCircle(
         center,
         r,
@@ -329,9 +382,9 @@ class _BubblesPainter extends CustomPainter {
           ..shader = RadialGradient(
             center: const Alignment(-0.3, -0.35),
             colors: [
-              color.withValues(alpha: 0.02 * fade),
-              color.withValues(alpha: 0.10 * fade),
-              color.withValues(alpha: 0.22 * fade),
+              color.withValues(alpha: 0.02 * fade2),
+              color.withValues(alpha: 0.10 * fade2),
+              color.withValues(alpha: 0.22 * fade2),
             ],
             stops: const [0.0, 0.75, 1.0],
           ).createShader(Rect.fromCircle(center: center, radius: r)),
@@ -342,12 +395,12 @@ class _BubblesPainter extends CustomPainter {
         Paint()
           ..style = PaintingStyle.stroke
           ..strokeWidth = r > 10 ? 1.2 : 0.8
-          ..color = color.withValues(alpha: 0.28 * fade),
+          ..color = color.withValues(alpha: 0.28 * fade2),
       );
       canvas.drawCircle(
         center + Offset(-r * 0.38, -r * 0.38),
         r * 0.22,
-        Paint()..color = Colors.white.withValues(alpha: 0.75 * fade),
+        Paint()..color = Colors.white.withValues(alpha: 0.75 * fade2),
       );
     }
   }

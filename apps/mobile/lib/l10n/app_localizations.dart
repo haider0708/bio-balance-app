@@ -1727,7 +1727,7 @@ abstract class AppLocalizations {
   /// No description provided for @noSalesInPeriod.
   ///
   /// In en, this message translates to:
-  /// **'No sales in this period'**
+  /// **'No sales in this period.'**
   String get noSalesInPeriod;
 
   /// No description provided for @noSalesYetHint.
@@ -5773,6 +5773,60 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'They have not activated the account yet: if the email or the number changes, the invitation is sent again to the new ones and the old code stops working.'**
   String get editPersonInviteNote;
+
+  /// No description provided for @salesOfPerson.
+  ///
+  /// In en, this message translates to:
+  /// **'Sales'**
+  String get salesOfPerson;
+
+  /// No description provided for @last30Days.
+  ///
+  /// In en, this message translates to:
+  /// **'Last 30 days'**
+  String get last30Days;
+
+  /// No description provided for @tapSaleHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap a sale to see it or correct it.'**
+  String get tapSaleHint;
+
+  /// No description provided for @allSalesOfPerson.
+  ///
+  /// In en, this message translates to:
+  /// **'All sales'**
+  String get allSalesOfPerson;
+
+  /// No description provided for @fullAnalysis.
+  ///
+  /// In en, this message translates to:
+  /// **'Full analysis'**
+  String get fullAnalysis;
+
+  /// No description provided for @days7Short.
+  ///
+  /// In en, this message translates to:
+  /// **'7 days'**
+  String get days7Short;
+
+  /// No description provided for @days30Short.
+  ///
+  /// In en, this message translates to:
+  /// **'30 days'**
+  String get days30Short;
+
+  /// No description provided for @unitsShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Units'**
+  String get unitsShort;
+
+  /// No description provided for @rewardsShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Rewards'**
+  String get rewardsShort;
 }
 
 class _AppLocalizationsDelegate

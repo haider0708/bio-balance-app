@@ -17,6 +17,7 @@ import '../approvals/approvals_repository.dart';
 import '../settings/settings_screen.dart';
 import '../shared/status_chips.dart';
 import 'network_models.dart';
+import 'person_sales.dart';
 import 'network_repository.dart';
 import 'region_moves.dart';
 import '../../core/layout/layout.dart';
@@ -272,6 +273,14 @@ class PersonDetailScreen extends ConsumerWidget {
             onChanged: () => ref.invalidate(peopleProvider),
             onDone: () => context.pop(),
           ),
+          // What a team member sold, and the way to correct a sale (the admin and the responsable).
+          if (person.role == Role.vendeur &&
+              person.status == ItemStatus.active &&
+              (ref.watch(meProvider).role == Role.admin ||
+                  ref.watch(meProvider).role == Role.responsable)) ...[
+            const Gap(20),
+            PersonSales(person: person),
+          ],
         ],
       ),
     );

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../theme/app_theme.dart';
 
@@ -185,6 +186,13 @@ class StatTile extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
+              // A number that opens its detail says so.
+              if (onTap != null)
+                Icon(
+                  LucideIcons.chevronRight,
+                  size: 16,
+                  color: context.status.muted,
+                ),
             ],
           ),
           const SizedBox(height: 12),

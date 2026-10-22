@@ -224,3 +224,5 @@ Round three: `GET /v1/approvals/history`, `POST /v1/stock/adjust`, `POST /v1/sto
 ## Editing a person in full (2026-10)
 
 `PATCH /v1/users/:id` takes `name`, `email`, `phone` and `pdvId` (a team member's store, in the same region). The **email and the phone are admin only** (they are where the codes go): a responsable can change a team member's name and store, nothing else (403). An administrator account is never edited here. When the email or the phone of someone who has not activated yet changes, the invitation is sent again to the new contacts and the old code stops working. The audit entry keeps the old and new email and phone.
+
+`PATCH /v1/me` (a person's own profile) also reads the phone in every Tunisian format and stores `+216XXXXXXXX`; it cannot be emptied except by an administrator (`PHONE_REQUIRED`, `PHONE_INVALID`).

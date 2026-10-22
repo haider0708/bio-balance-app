@@ -452,7 +452,7 @@
   "noRewardsYet": "Aucune récompense fixée",
   "noRewardsYetHint": "Choisissez une famille ou un produit et un montant par unité vendue.",
   "noRulesHere": "Rien ici",
-  "noSalesInPeriod": "Aucune vente sur cette période",
+  "noSalesInPeriod": "Aucune vente sur cette période.",
   "noSalesYetHint": "Vos ventes et ce qu’elles ont rapporté apparaîtront ici.",
   "noStockYet": "Pas encore de stock",
   "noStockYetHint": "Comptez ce que vous avez, prenez une photo et envoyez-la à BioBalance.",
@@ -1796,5 +1796,14 @@
   "whatsappDisconnected": "WhatsApp est déconnecté : le code QR doit être scanné à nouveau",
   "whatsappNotSetUp": "WhatsApp n’est pas encore configuré sur le serveur",
   "editPersonHint": "Corrigez ce qui est faux. Seul l’admin peut changer l’email et le numéro WhatsApp.",
-  "editPersonInviteNote": "Le compte n’est pas encore activé : si l’email ou le numéro change, l’invitation est renvoyée aux nouveaux et l’ancien code ne marche plus."
+  "editPersonInviteNote": "Le compte n’est pas encore activé : si l’email ou le numéro change, l’invitation est renvoyée aux nouveaux et l’ancien code ne marche plus.",
+  "salesOfPerson": "Ventes",
+  "last30Days": "30 derniers jours",
+  "tapSaleHint": "Touchez une vente pour la voir ou la corriger.",
+  "allSalesOfPerson": "Toutes les ventes",
+  "fullAnalysis": "Analyse complète",
+  "days7Short": "7 jours",
+  "days30Short": "30 jours",
+  "unitsShort": "Unités",
+  "rewardsShort": "Gains"
 }

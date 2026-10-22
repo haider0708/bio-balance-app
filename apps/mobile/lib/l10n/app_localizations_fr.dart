@@ -968,7 +968,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get noRulesHere => 'Rien ici';
 
   @override
-  String get noSalesInPeriod => 'Aucune vente sur cette période';
+  String get noSalesInPeriod => 'Aucune vente sur cette période.';
 
   @override
   String get noSalesYetHint =>
@@ -3411,4 +3411,31 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get editPersonInviteNote =>
       'Le compte n’est pas encore activé : si l’email ou le numéro change, l’invitation est renvoyée aux nouveaux et l’ancien code ne marche plus.';
+
+  @override
+  String get salesOfPerson => 'Ventes';
+
+  @override
+  String get last30Days => '30 derniers jours';
+
+  @override
+  String get tapSaleHint => 'Touchez une vente pour la voir ou la corriger.';
+
+  @override
+  String get allSalesOfPerson => 'Toutes les ventes';
+
+  @override
+  String get fullAnalysis => 'Analyse complète';
+
+  @override
+  String get days7Short => '7 jours';
+
+  @override
+  String get days30Short => '30 jours';
+
+  @override
+  String get unitsShort => 'Unités';
+
+  @override
+  String get rewardsShort => 'Gains';
 }

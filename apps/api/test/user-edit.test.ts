@@ -113,4 +113,18 @@ describe("editing a person in full", () => {
       to: "changed@example.test",
     });
   });
+
+  it("a person's own phone is checked and stored the same way, and cannot be emptied (except by an admin)", async () => {
+    expect(
+      (await w.n.patch("/v1/me", { phone: "00216 22 333 444" })).body.phone,
+    ).toBe("+21622333444");
+    expect((await w.n.patch("/v1/me", { phone: "nope" })).body.code).toBe(
+      "PHONE_INVALID",
+    );
+    expect((await w.n.patch("/v1/me", { phone: "" })).body.code).toBe(
+      "PHONE_REQUIRED",
+    );
+    // An administrator may have no number.
+    expect((await w.a.patch("/v1/me", { phone: "" })).status).toBe(200);
+  });
 });

@@ -310,23 +310,28 @@ class MoreScreen extends ConsumerWidget {
             physics: const NeverScrollableScrollPhysics(),
             mainAxisSpacing: 12,
             crossAxisSpacing: 12,
-            childAspectRatio: 1.45,
+            childAspectRatio: 2.3,
             children: [
               for (final e in entries)
                 AppCard(
                   onTap: () => context.push(e.route),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 10,
+                  ),
+                  child: Row(
                     children: [
-                      IconBadge(e.icon, tone: e.tone, size: 42),
-                      Text(
-                        e.label,
-                        style: context.text.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w700,
+                      IconBadge(e.icon, tone: e.tone),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          e.label,
+                          style: context.text.titleSmall?.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
                       ),
                     ],
                   ),
