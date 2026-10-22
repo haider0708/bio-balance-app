@@ -5303,7 +5303,7 @@ abstract class AppLocalizations {
   /// No description provided for @belowSoldLine.
   ///
   /// In en, this message translates to:
-  /// **'{product}: at least {minimum}'**
+  /// **'{product}: you cannot go below {minimum}, the rest was sold'**
   String belowSoldLine(String product, int minimum);
 
   /// No description provided for @addedByAdmin.
@@ -5509,6 +5509,168 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Closed now'**
   String get hoursClosedNow;
+
+  /// No description provided for @editCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit this count'**
+  String get editCount;
+
+  /// No description provided for @adminEditHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Add, remove or change products. The stock follows the difference; units already sold stay sold.'**
+  String get adminEditHint;
+
+  /// No description provided for @correctNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Correct now'**
+  String get correctNow;
+
+  /// No description provided for @correctionOpenUntil.
+  ///
+  /// In en, this message translates to:
+  /// **'You can make it until {time}.'**
+  String correctionOpenUntil(String time);
+
+  /// No description provided for @correctionWaiting.
+  ///
+  /// In en, this message translates to:
+  /// **'Your correction request is waiting for the admin. You can correct once it is approved.'**
+  String get correctionWaiting;
+
+  /// No description provided for @correctionRefused.
+  ///
+  /// In en, this message translates to:
+  /// **'The admin refused: {note}'**
+  String correctionRefused(String note);
+
+  /// No description provided for @requestCorrection.
+  ///
+  /// In en, this message translates to:
+  /// **'Request a correction'**
+  String get requestCorrection;
+
+  /// No description provided for @correctionReasonHint.
+  ///
+  /// In en, this message translates to:
+  /// **'What was wrong in the count?'**
+  String get correctionReasonHint;
+
+  /// No description provided for @correctionRequested.
+  ///
+  /// In en, this message translates to:
+  /// **'Request sent to the admin'**
+  String get correctionRequested;
+
+  /// No description provided for @typeCorrection.
+  ///
+  /// In en, this message translates to:
+  /// **'Correction request'**
+  String get typeCorrection;
+
+  /// No description provided for @pasteList.
+  ///
+  /// In en, this message translates to:
+  /// **'Paste a list'**
+  String get pasteList;
+
+  /// No description provided for @pasteListTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Paste a list'**
+  String get pasteListTitle;
+
+  /// No description provided for @pasteListHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Paste a delivery note or a list: barcode, name and quantity per line (for example \"26 serum discoloration\" or \"8697711600852 … 8\").'**
+  String get pasteListHint;
+
+  /// No description provided for @pasteFromClipboard.
+  ///
+  /// In en, this message translates to:
+  /// **'Paste from the clipboard'**
+  String get pasteFromClipboard;
+
+  /// No description provided for @pasteCheck.
+  ///
+  /// In en, this message translates to:
+  /// **'Check the list'**
+  String get pasteCheck;
+
+  /// No description provided for @pasteSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'{matched} found, {unsure} to check, {missing} not found'**
+  String pasteSummary(int matched, int unsure, int missing);
+
+  /// No description provided for @pasteChoose.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose the right product, or leave it out.'**
+  String get pasteChoose;
+
+  /// No description provided for @pasteNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'Not found in the catalogue: add it by hand.'**
+  String get pasteNotFound;
+
+  /// No description provided for @pasteAdd.
+  ///
+  /// In en, this message translates to:
+  /// **'Add {count} products'**
+  String pasteAdd(int count);
+
+  /// No description provided for @newOrder.
+  ///
+  /// In en, this message translates to:
+  /// **'New order'**
+  String get newOrder;
+
+  /// No description provided for @deliverNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Delivered'**
+  String get deliverNow;
+
+  /// No description provided for @deliverLater.
+  ///
+  /// In en, this message translates to:
+  /// **'Send it'**
+  String get deliverLater;
+
+  /// No description provided for @deliverNowHint.
+  ///
+  /// In en, this message translates to:
+  /// **'The goods are already there: add the delivery note photo. The stock is added now.'**
+  String get deliverNowHint;
+
+  /// No description provided for @deliverLaterHint.
+  ///
+  /// In en, this message translates to:
+  /// **'The goods are on their way. The responsable confirms the receipt with the delivery note, then you approve.'**
+  String get deliverLaterHint;
+
+  /// No description provided for @orderSentToStore.
+  ///
+  /// In en, this message translates to:
+  /// **'Order sent: the responsable will confirm the receipt'**
+  String get orderSentToStore;
+
+  /// No description provided for @sendToStore.
+  ///
+  /// In en, this message translates to:
+  /// **'Send the order'**
+  String get sendToStore;
+
+  /// No description provided for @photoOfDeliveryPaper.
+  ///
+  /// In en, this message translates to:
+  /// **'Photo of the delivery note'**
+  String get photoOfDeliveryPaper;
 }
 
 class _AppLocalizationsDelegate

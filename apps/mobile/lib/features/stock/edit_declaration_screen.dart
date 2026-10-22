@@ -5,6 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
+import '../../core/auth/me.dart';
+import '../../core/auth/session.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/util/dates.dart';
 import '../../core/widgets/components.dart';
@@ -16,9 +18,10 @@ import '../approvals/approvals_repository.dart';
 import 'stock_models.dart';
 import 'stock_repository.dart';
 
-/// The responsable corrects a count: a waiting one (it is on hold for the admin meanwhile, and the
-/// hold is renewed while this screen is open) or an approved one (up to three days, with a reason,
-/// applied at once). The stock follows the difference; the sales made since are never touched.
+/// Correcting a count. The responsable: a waiting one (it is on hold for the admin meanwhile, and the
+/// hold is renewed while this screen is open) or an approved one once the admin approved her request.
+/// The admin: any waiting or approved count, directly, with a reason once it is approved. The stock
+/// follows the difference; the sales made since are never touched.
 class EditDeclarationScreen extends ConsumerStatefulWidget {
   const EditDeclarationScreen({required this.declaration, super.key});
 
@@ -54,10 +57,12 @@ class _EditDeclarationScreenState extends ConsumerState<EditDeclarationScreen> {
 
   bool get _approved => widget.declaration.status == DeclarationStatus.approved;
 
+  bool get _admin => ref.read(meProvider).role == Role.admin;
+
   @override
   void initState() {
     super.initState();
-    if (!_approved) unawaited(_hold());
+    if (!_approved && !_admin) unawaited(_hold());
   }
 
   /// Puts the waiting count on hold (and renews the hold while the screen is open).
@@ -103,11 +108,17 @@ class _EditDeclarationScreenState extends ConsumerState<EditDeclarationScreen> {
             lines: _quantities.lines(),
             photoIds: _photoIds,
             note: _note.text.trim(),
-            reason: _approved ? _reason.text.trim() : null,
+            reason: _approved && _admin ? _reason.text.trim() : null,
+            revision: widget.declaration.revision,
           ),
-      success: _approved ? t.correctionSaved : t.declarationSent,
+      success: _approved || _admin ? t.correctionSaved : t.declarationSent,
     );
-    if (!ok || !mounted) return;
+    if (!ok) {
+      // A count changed by someone else meanwhile: what is shown must be reloaded.
+      ref.invalidate(declarationProvider(widget.declaration.id));
+      return;
+    }
+    if (!mounted) return;
     _saved = true;
     ref
       ..invalidate(declarationProvider(widget.declaration.id))
@@ -127,10 +138,14 @@ class _EditDeclarationScreenState extends ConsumerState<EditDeclarationScreen> {
         padding: const EdgeInsets.all(16),
         children: [
           Text(
-            _approved
+            _admin
+                ? t.adminEditHint
+                : _approved
                 ? t.correctApprovedHint(
                     Dates.dateTime(
-                      d.correctableUntil ?? DateTime.now(),
+                      d.correction?.until ??
+                          d.correctableUntil ??
+                          DateTime.now(),
                       t.localeName,
                     ),
                   )
@@ -149,9 +164,13 @@ class _EditDeclarationScreenState extends ConsumerState<EditDeclarationScreen> {
             }),
           ),
           SectionHeader(t.countedProducts),
-          QuantityEditor(controller: _quantities, addLabel: t.addProduct),
+          QuantityEditor(
+            controller: _quantities,
+            addLabel: t.addProduct,
+            allowPaste: true,
+          ),
           const Gap(16),
-          if (_approved) ...[
+          if (_approved && _admin) ...[
             TextField(
               controller: _reason,
               maxLength: 300,
@@ -173,13 +192,13 @@ class _EditDeclarationScreenState extends ConsumerState<EditDeclarationScreen> {
           ListenableBuilder(
             listenable: _quantities,
             builder: (context, _) => AsyncButton(
-              label: _approved ? t.saveCorrection : t.sendToAdmin,
-              icon: _approved ? LucideIcons.check : LucideIcons.send,
+              label: _approved || _admin ? t.saveCorrection : t.sendToAdmin,
+              icon: _approved || _admin ? LucideIcons.check : LucideIcons.send,
               onPressed:
                   _photosBusy ||
                       (_photoIds.isEmpty && !_quantities.isEmpty) ||
-                      (_approved && _reason.text.trim().length < 2) ||
-                      (!_approved && !_held)
+                      (_approved && _admin && _reason.text.trim().length < 2) ||
+                      (!_approved && !_admin && !_held)
                   ? null
                   : _save,
             ),

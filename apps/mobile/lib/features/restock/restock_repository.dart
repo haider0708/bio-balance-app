@@ -40,10 +40,12 @@ class RestockRepository {
     required List<Map<String, Object>> lines,
     List<String> photoIds = const [],
     String? supplierId,
+    String? deliver,
   }) async => RestockOrder.fromJson(
     await _ref.read(apiClientProvider).post('/v1/restocks', {
       'destId': destId,
       'supplierId': ?supplierId,
+      'deliver': ?deliver,
       if (note != null && note.isNotEmpty) 'note': note,
       'lines': lines,
       if (photoIds.isNotEmpty) 'photoIds': photoIds,

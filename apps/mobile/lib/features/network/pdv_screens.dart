@@ -151,14 +151,16 @@ class PdvDetailScreen extends ConsumerWidget {
                   ],
                 ),
               ),
-              if (me.role == Role.responsable &&
+              if (me.role != Role.vendeur &&
                   p.hasApprovedStock &&
                   p.status == ItemStatus.active) ...[
                 const Gap(8),
                 OutlinedButton.icon(
                   onPressed: () => context.push('/restocks/new', extra: p.id),
                   icon: const Icon(LucideIcons.truck),
-                  label: Text(t.requestRestock),
+                  label: Text(
+                    me.role == Role.admin ? t.newOrder : t.requestRestock,
+                  ),
                 ),
               ],
               if (me.role != Role.vendeur) ...[

@@ -89,3 +89,12 @@ Only codes and security: the invitation code (account approved), the password re
 | `restock.amended` / `restock.reopened` | the admin changes a restock decision | who asked | yes | the order |
 | `decision.reopened` | a store, group or member put back to waiting | who proposed it | yes | the item |
 | `supplier.allowed` / `supplier.removed` | the admin changes a responsable's permission | that responsable | yes | the restock screen |
+
+## Added in the second round (2026-10)
+
+| Key | When | Who | Push | Opens |
+|---|---|---|---|---|
+| `correction.requested` | a responsable asks to correct an approved count | the admin | yes | the request |
+| `correction.approved` / `correction.rejected` | the admin decides it | the responsable | yes | the request |
+| `stock.admin_edited` | the admin edits a count | its responsable(s) | yes | the count |
+| `restock.shipped` | the admin sends an order for a store | the store's responsable | yes | the order |

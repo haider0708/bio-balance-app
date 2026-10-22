@@ -185,16 +185,32 @@ class ServerText {
       'Stock insuffisant pour cette vente.',
     ),
     'BELOW_SOLD': (
-      'Some of these units already left this place (sold or shipped): a quantity cannot go below what was used.',
-      'Une partie de ces unités a déjà quitté ce lieu (vendue ou expédiée) : une quantité ne peut pas descendre sous ce qui a été utilisé.',
+      'You cannot do this: some of these units were already sold (or shipped), so they cannot be removed.',
+      'Impossible : une partie de ces unités a déjà été vendue (ou expédiée), elle ne peut pas être retirée.',
+    ),
+    'STALE_COUNT': (
+      'This count was changed by someone else meanwhile. Go back and open it again.',
+      'Ce comptage a été modifié entre-temps par quelqu’un d’autre. Revenez en arrière et rouvrez-le.',
+    ),
+    'CORRECTION_NOT_APPROVED': (
+      'Ask the admin to approve a correction first.',
+      'Demandez d’abord l’accord de l’admin pour corriger.',
+    ),
+    'CORRECTION_PENDING': (
+      'A correction was already asked for this count.',
+      'Une correction a déjà été demandée pour ce comptage.',
+    ),
+    'DELIVER_LATER_STORE_ONLY': (
+      'A grossiste’s delivery is recorded when it arrives.',
+      'La livraison d’un grossiste s’enregistre à son arrivée.',
     ),
     'EDITING': (
       'This count is being corrected: wait for the responsable to finish.',
       'Ce comptage est en cours de correction : attendez que le responsable ait terminé.',
     ),
     'REASON_REQUIRED': (
-      'Say what was wrong: an approved count needs a reason to be corrected.',
-      'Dites ce qui n’allait pas : un comptage approuvé se corrige avec un motif.',
+      'Say what was wrong: correcting an approved count needs a reason.',
+      'Dites ce qui n’allait pas : corriger un comptage approuvé demande un motif.',
     ),
     'STOCK_CORRECTION_CLOSED': (
       'A count can be corrected for 3 days after its approval. Ask the admin.',

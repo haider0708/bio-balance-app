@@ -126,6 +126,8 @@ class StockDeclaration {
     this.decisionNote,
     this.editingBy,
     this.correctableUntil,
+    this.revision = 0,
+    this.correction,
   });
 
   factory StockDeclaration.fromJson(Json j) => StockDeclaration(
@@ -148,6 +150,10 @@ class StockDeclaration {
     decisionNote: j.strOrNull('decisionNote'),
     editingBy: j.objOrNull('editing')?.obj('by').str('name'),
     correctableUntil: j.dateOrNull('correctableUntil'),
+    revision: j.integerOrNull('revision') ?? 0,
+    correction: j.objOrNull('correction') == null
+        ? null
+        : CorrectionRequestState.fromJson(j.obj('correction')),
     lines: j.list('lines').map(DeclarationLine.fromJson).toList(),
   );
 
@@ -171,9 +177,41 @@ class StockDeclaration {
 
   /// Until when the responsable may still correct an approved count (null: no more).
   final DateTime? correctableUntil;
+
+  /// Saves so far: sent back when editing, so a count changed meanwhile by someone else is refused.
+  final int revision;
+
+  /// The responsable's request to correct this approved count (null: never asked).
+  final CorrectionRequestState? correction;
   final List<DeclarationLine> lines;
 
   int get units => lines.fold(0, (s, l) => s + l.quantity);
+}
+
+/// Where a correction request of an approved count stands: PENDING, APPROVED (until), REJECTED, USED, EXPIRED.
+class CorrectionRequestState {
+  const CorrectionRequestState({
+    required this.id,
+    required this.status,
+    this.note,
+    this.until,
+  });
+
+  factory CorrectionRequestState.fromJson(Json j) => CorrectionRequestState(
+    id: j.str('id'),
+    status: j.str('status'),
+    note: j.strOrNull('note'),
+    until: j.dateOrNull('until'),
+  );
+
+  final String id;
+  final String status;
+  final String? note;
+  final DateTime? until;
+
+  bool get pending => status == 'PENDING';
+  bool get approved => status == 'APPROVED';
+  bool get rejected => status == 'REJECTED';
 }
 
 /// Permission to count a place again.

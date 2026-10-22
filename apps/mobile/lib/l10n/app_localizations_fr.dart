@@ -3140,7 +3140,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String belowSoldLine(String product, int minimum) {
-    return '$product : au moins $minimum';
+    return '$product : impossible de descendre sous $minimum, le reste a été vendu';
   }
 
   @override
@@ -3257,4 +3257,100 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get hoursClosedNow => 'Fermé maintenant';
+
+  @override
+  String get editCount => 'Modifier ce comptage';
+
+  @override
+  String get adminEditHint =>
+      'Ajoutez, retirez ou changez des produits. Le stock suit la différence ; les unités déjà vendues restent vendues.';
+
+  @override
+  String get correctNow => 'Corriger maintenant';
+
+  @override
+  String correctionOpenUntil(String time) {
+    return 'Vous pouvez la faire jusqu’au $time.';
+  }
+
+  @override
+  String get correctionWaiting =>
+      'Votre demande de correction attend l’admin. Vous pourrez corriger une fois qu’elle est approuvée.';
+
+  @override
+  String correctionRefused(String note) {
+    return 'L’admin a refusé : $note';
+  }
+
+  @override
+  String get requestCorrection => 'Demander une correction';
+
+  @override
+  String get correctionReasonHint => 'Qu’y avait-il de faux dans le comptage ?';
+
+  @override
+  String get correctionRequested => 'Demande envoyée à l’admin';
+
+  @override
+  String get typeCorrection => 'Demande de correction';
+
+  @override
+  String get pasteList => 'Coller une liste';
+
+  @override
+  String get pasteListTitle => 'Coller une liste';
+
+  @override
+  String get pasteListHint =>
+      'Collez un bon de livraison ou une liste : code-barres, nom et quantité par ligne (par exemple « 26 serum discoloration » ou « 8697711600852 … 8 »).';
+
+  @override
+  String get pasteFromClipboard => 'Coller depuis le presse-papiers';
+
+  @override
+  String get pasteCheck => 'Vérifier la liste';
+
+  @override
+  String pasteSummary(int matched, int unsure, int missing) {
+    return '$matched trouvés, $unsure à vérifier, $missing introuvables';
+  }
+
+  @override
+  String get pasteChoose => 'Choisissez le bon produit, ou laissez-le de côté.';
+
+  @override
+  String get pasteNotFound =>
+      'Introuvable dans le catalogue : ajoutez-le à la main.';
+
+  @override
+  String pasteAdd(int count) {
+    return 'Ajouter $count produits';
+  }
+
+  @override
+  String get newOrder => 'Nouvelle commande';
+
+  @override
+  String get deliverNow => 'Livrée';
+
+  @override
+  String get deliverLater => 'À envoyer';
+
+  @override
+  String get deliverNowHint =>
+      'La marchandise est déjà là : ajoutez la photo du bon de livraison. Le stock est ajouté maintenant.';
+
+  @override
+  String get deliverLaterHint =>
+      'La marchandise est en route. Le responsable confirme la réception avec le bon de livraison, puis vous approuvez.';
+
+  @override
+  String get orderSentToStore =>
+      'Commande envoyée : le responsable confirmera la réception';
+
+  @override
+  String get sendToStore => 'Envoyer la commande';
+
+  @override
+  String get photoOfDeliveryPaper => 'Photo du bon de livraison';
 }

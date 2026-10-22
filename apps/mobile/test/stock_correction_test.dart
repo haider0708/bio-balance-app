@@ -1,5 +1,5 @@
-// The responsable corrects a count (waiting: on hold for the admin; approved: with a reason, at
-// once), and the admin sees a count on hold.
+// A waiting count is corrected by its responsable (on hold for the admin); an approved one only after
+// the admin approved her request; the admin edits a count directly; the admin sees a count on hold.
 import 'dart:async';
 import 'dart:convert';
 
@@ -15,6 +15,8 @@ Map<String, Object?> declaration({
   String status = 'PENDING',
   Map<String, Object?>? editing,
   String? correctableUntil,
+  Map<String, Object?>? correction,
+  int revision = 3,
 }) => {
   'id': 'd1',
   'kind': 'INITIAL',
@@ -30,6 +32,8 @@ Map<String, Object?> declaration({
   'decisionNote': null,
   'editing': editing,
   'correctableUntil': correctableUntil,
+  'correction': correction,
+  'revision': revision,
   'lines': [
     {
       'productId': 'a',
@@ -125,33 +129,108 @@ void main() {
     await finish(tester);
   });
 
-  testWidgets('an approved count needs a reason to be corrected', (
+  testWidgets(
+    'an approved count is corrected only after the admin approved the request',
+    (tester) async {
+      final until = DateTime.now()
+          .add(const Duration(days: 2))
+          .toIso8601String();
+      final s = server(
+        'RESPONSABLE',
+        declaration(status: 'APPROVED', correctableUntil: until),
+      )..on('POST /v1/stock/declarations/d1/correction-request', {'id': 'c1'});
+      final container = await launch(tester, s, language: 'en');
+      unawaited(container.read(routerProvider).push('/stock/declarations/d1'));
+      await settle(tester);
+      expect(find.text('Added by the admin'), findsOneWidget);
+      // She cannot correct yet: she asks, with a reason.
+      expect(find.text('Correct this count'), findsNothing);
+      await tester.tap(find.text('Request a correction'));
+      await settle(tester);
+      await tester.enterText(find.byType(TextField).first, 'Typed 20, was 21');
+      await tester.pump();
+      await tester.tap(find.text('Send to BioBalance'));
+      await settle(tester);
+      expect((sent(s, 'POST') as Map)['reason'], 'Typed 20, was 21');
+      await finish(tester);
+    },
+  );
+
+  testWidgets(
+    'while the request waits she is told, and once approved she corrects',
+    (tester) async {
+      final until = DateTime.now()
+          .add(const Duration(days: 2))
+          .toIso8601String();
+      final waiting = server(
+        'RESPONSABLE',
+        declaration(
+          status: 'APPROVED',
+          correctableUntil: until,
+          correction: {'id': 'c1', 'status': 'PENDING'},
+        ),
+      );
+      final container = await launch(tester, waiting, language: 'en');
+      unawaited(container.read(routerProvider).push('/stock/declarations/d1'));
+      await settle(tester);
+      expect(find.textContaining('waiting for the admin'), findsOneWidget);
+      expect(find.text('Request a correction'), findsNothing);
+      expect(find.text('Correct now'), findsNothing);
+      await finish(tester);
+
+      final open = DateTime.now()
+          .add(const Duration(hours: 30))
+          .toIso8601String();
+      final s = server(
+        'RESPONSABLE',
+        declaration(
+          status: 'APPROVED',
+          correctableUntil: until,
+          correction: {'id': 'c1', 'status': 'APPROVED', 'until': open},
+        ),
+      );
+      final again = await launch(tester, s, language: 'en');
+      unawaited(again.read(routerProvider).push('/stock/declarations/d1'));
+      await settle(tester);
+      await tester.tap(find.text('Correct now'));
+      await settle(tester);
+      // An approved count is not put on hold, and she needs no reason: the admin already agreed.
+      expect(s.count('POST /v1/stock/declarations/d1/edit'), 0);
+      await tapStepper(tester, 'Serum C', LucideIcons.plus);
+      await tester.tap(find.text('Save the correction'));
+      await settle(tester);
+      final body = sent(s, 'PUT') as Map;
+      expect(body.containsKey('reason'), isFalse);
+      expect(body['revision'], 3);
+      await finish(tester);
+    },
+  );
+
+  testWidgets('the admin edits an approved count directly, with a reason', (
     tester,
   ) async {
-    final until = DateTime.now().add(const Duration(days: 2)).toIso8601String();
-    final s = server(
-      'RESPONSABLE',
-      declaration(status: 'APPROVED', correctableUntil: until),
-    );
+    final s = server('ADMIN', declaration(status: 'APPROVED'));
     final container = await launch(tester, s, language: 'en');
     unawaited(container.read(routerProvider).push('/stock/declarations/d1'));
     await settle(tester);
-    expect(find.text('Added by the admin'), findsOneWidget);
-    await tester.tap(find.text('Correct this count'));
+    await tester.tap(find.text('Edit this count'));
     await settle(tester);
-    // An approved count is not put on hold: the admin is not waiting on it.
-    expect(s.count('POST /v1/stock/declarations/d1/edit'), 0);
+    expect(
+      s.count('POST /v1/stock/declarations/d1/edit'),
+      0,
+    ); // no hold for the admin
     await tapStepper(tester, 'Serum C', LucideIcons.plus);
     final save = find.text('Save the correction');
-    // Without a reason nothing is sent.
     await tester.tap(save);
     await settle(tester, frames: 3);
-    expect(s.count('PUT /v1/stock/declarations/d1'), 0);
-    await tester.enterText(find.byType(TextField).first, 'Typed 20, was 21');
+    expect(s.count('PUT /v1/stock/declarations/d1'), 0); // a reason is needed
+    await tester.enterText(find.byType(TextField).first, 'Counted again');
     await tester.pump();
     await tester.tap(save);
     await settle(tester);
-    expect((sent(s, 'PUT') as Map)['reason'], 'Typed 20, was 21');
+    final body = sent(s, 'PUT') as Map;
+    expect(body['reason'], 'Counted again');
+    expect(body['revision'], 3);
     await finish(tester);
   });
 
@@ -210,7 +289,10 @@ void main() {
     await tapStepper(tester, 'Serum C', LucideIcons.minus);
     await tester.tap(find.text('Send to BioBalance'));
     await settle(tester);
-    expect(find.textContaining('Serum C: at least 15'), findsOneWidget);
+    expect(
+      find.textContaining('Serum C: you cannot go below 15'),
+      findsOneWidget,
+    );
     await finish(tester);
   });
 }

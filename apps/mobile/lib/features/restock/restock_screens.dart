@@ -56,7 +56,7 @@ class _RestocksScreenState extends ConsumerState<RestocksScreen> {
     final orders = ref.watch(restocksProvider(_query));
     return Scaffold(
       appBar: AppBar(title: Text(t.restocksTitle)),
-      floatingActionButton: me.role == Role.responsable
+      floatingActionButton: me.role != Role.vendeur
           ? FloatingActionButton.extended(
               heroTag: null,
               onPressed: () async {
@@ -64,7 +64,9 @@ class _RestocksScreenState extends ConsumerState<RestocksScreen> {
                 ref.invalidate(restocksProvider);
               },
               icon: const Icon(LucideIcons.plus),
-              label: Text(t.requestRestock),
+              label: Text(
+                me.role == Role.admin ? t.newOrder : t.requestRestock,
+              ),
             )
           : null,
       body: Column(
@@ -232,6 +234,12 @@ class _RequestRestockScreenState extends ConsumerState<RequestRestockScreen> {
   /// The grossiste suggested (a responsable the admin allowed); the admin decides.
   SupplierCoverage? _supplier;
 
+  /// The admin's choice for a store: record the delivery now (with proof, the stock moves at once) or
+  /// send it and leave the receipt to the store's responsable.
+  String _deliver = 'now';
+  List<String> _photoIds = const [];
+  bool _photosBusy = false;
+
   /// The request is kept for a week until it is sent; one opened from a place has its own.
   late final _draft = DraftKeeper(
     ref,
@@ -312,6 +320,15 @@ class _RequestRestockScreenState extends ConsumerState<RequestRestockScreen> {
     }
   }
 
+  bool get _admin => ref.read(meProvider).role == Role.admin;
+
+  /// A grossiste's delivery is always recorded when it arrives; a store's can be left to its responsable.
+  bool get _isDepot => (ref.read(depotsProvider).value ?? const <Depot>[]).any(
+    (d) => d.id == _destId,
+  );
+
+  bool get _recordNow => _isDepot || _deliver == 'now';
+
   Future<void> _send() async {
     final t = AppLocalizations.of(context);
     final ok = await perform(
@@ -323,8 +340,14 @@ class _RequestRestockScreenState extends ConsumerState<RequestRestockScreen> {
             note: _note.text.trim(),
             lines: _quantities.lines(skipZero: true),
             supplierId: _supplier?.id,
+            photoIds: _admin && _recordNow ? _photoIds : const [],
+            deliver: _admin ? (_recordNow ? 'now' : 'later') : null,
           ),
-      success: t.restockSent,
+      success: !_admin
+          ? t.restockSent
+          : _recordNow
+          ? t.deliveryRecorded
+          : t.orderSentToStore,
     );
     if (ok && mounted) {
       _draft.discard();
@@ -349,7 +372,13 @@ class _RequestRestockScreenState extends ConsumerState<RequestRestockScreen> {
     return DraftLeaveNote(
       pending: () => _pending && !_draft.done,
       child: Scaffold(
-        appBar: AppBar(title: Text(t.requestRestock)),
+        appBar: AppBar(
+          title: Text(
+            ref.watch(meProvider).role == Role.admin
+                ? t.newOrder
+                : t.requestRestock,
+          ),
+        ),
         body: ListView(
           padding: const EdgeInsets.all(16),
           children: [
@@ -411,8 +440,41 @@ class _RequestRestockScreenState extends ConsumerState<RequestRestockScreen> {
             ),
             Text(t.productsNeeded, style: context.text.titleMedium),
             const Gap(8),
-            QuantityEditor(controller: _quantities),
+            QuantityEditor(controller: _quantities, allowPaste: true),
             const Gap(16),
+            if (ref.watch(meProvider).role == Role.admin &&
+                _destId != null) ...[
+              if (!_isDepot) ...[
+                SegmentedButton<String>(
+                  showSelectedIcon: false,
+                  segments: [
+                    ButtonSegment(value: 'now', label: Text(t.deliverNow)),
+                    ButtonSegment(value: 'later', label: Text(t.deliverLater)),
+                  ],
+                  selected: {_deliver},
+                  onSelectionChanged: (s) => setState(() => _deliver = s.first),
+                ),
+                const Gap(8),
+                Text(
+                  _deliver == 'now' ? t.deliverNowHint : t.deliverLaterHint,
+                  style: context.text.bodySmall?.copyWith(
+                    color: context.status.muted,
+                  ),
+                ),
+                const Gap(12),
+              ],
+              if (_recordNow) ...[
+                PhotoSet(
+                  label: t.photoOfDeliveryPaper,
+                  initialIds: _photoIds,
+                  onChanged: (ids, busy) => setState(() {
+                    _photoIds = ids;
+                    _photosBusy = busy;
+                  }),
+                ),
+                const Gap(16),
+              ],
+            ],
             // A responsable the admin allowed may suggest where a store's goods come from.
             if (ref.watch(meProvider).canChooseSupplier &&
                 (pdvs.value ?? const <Pdv>[]).any((p) => p.id == _destId)) ...[
@@ -462,9 +524,18 @@ class _RequestRestockScreenState extends ConsumerState<RequestRestockScreen> {
             ListenableBuilder(
               listenable: _quantities,
               builder: (context, _) => AsyncButton(
-                label: t.sendRequest,
+                label: !_admin
+                    ? t.sendRequest
+                    : _recordNow
+                    ? t.recordDeliverySave
+                    : t.sendToStore,
                 icon: LucideIcons.send,
-                onPressed: _quantities.total == 0 || _destId == null
+                onPressed:
+                    _quantities.total == 0 ||
+                        _destId == null ||
+                        (_admin &&
+                            _recordNow &&
+                            (_photosBusy || _photoIds.isEmpty))
                     ? null
                     : _send,
               ),
@@ -552,7 +623,11 @@ class _RecordDeliveryScreenState extends ConsumerState<RecordDeliveryScreen> {
             }),
           ),
           SectionHeader(t.quantitiesReceived),
-          QuantityEditor(controller: _quantities, addLabel: t.addProduct),
+          QuantityEditor(
+            controller: _quantities,
+            addLabel: t.addProduct,
+            allowPaste: true,
+          ),
           const Gap(16),
           TextField(
             controller: _note,

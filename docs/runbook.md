@@ -187,3 +187,7 @@ It matches by barcode, never touches stock, sales, rates or whether a product is
 - **Working hours**: when switched on, non-admin accounts get the closed screen outside the hours (the test region and the admin are never shut out). The server and its jobs keep running. To open at once, the admin switches the hours off.
 - **A second admin**: from the VPS, `sudo biobalance-compose run --rm -T bootstrap-admin node dist/add-admin.js` reading one JSON line on stdin: `{"email","name","password"}` creates the account (password of at least 12 characters, never as an argument), `{"email","again":true}` reissues the authenticator and ends the sessions. It prints a `https://api.galylio.com/s#...` link: valid 24 hours, shows the QR once. Ask the new admin to change the password at first sign-in.
 - **Changing a decision**: the admin can reopen or correct a decision for 6 hours from Approvals → History (never a payout).
+
+## Orders and counts entered for a responsable (2026-10)
+
+The admin now orders for any store from the app (Restocks → New order): "Delivered" records it with the delivery note photo and adds the stock at once; "Send it" leaves the receipt to the responsable. Pasting a delivery note or a list matches it to the catalogue by barcode, then by name. Before this existed, such orders were entered with a script run in the API container under the responsable's name; that is no longer needed.

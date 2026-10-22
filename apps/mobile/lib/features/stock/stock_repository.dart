@@ -74,12 +74,21 @@ class StockRepository {
     required List<String> photoIds,
     String? note,
     String? reason,
+    int? revision,
   }) => _ref.read(apiClientProvider).put('/v1/stock/declarations/$id', {
     'lines': lines,
     'photoIds': photoIds,
     'note': ?note,
     if (reason != null && reason.isNotEmpty) 'reason': reason,
+    'revision': ?revision,
   });
+
+  /// The responsable asks the admin to let her correct an approved count.
+  Future<void> requestCorrection(String id, String reason) =>
+      _ref.read(apiClientProvider).post(
+        '/v1/stock/declarations/$id/correction-request',
+        {'reason': reason},
+      );
 
   Future<void> reject(String id, String note) => _ref
       .read(apiClientProvider)

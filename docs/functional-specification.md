@@ -160,3 +160,17 @@ The administrator can work from a browser at https://admin.galylio.com/ with the
 - **Supplier choice**: a global switch (admin) plus a permission per responsable. A permitted responsable names the grossiste of a store's restock; the order still goes to the admin, who approves it in one tap or assigns another.
 - **History**: an approved or rejected decision can be put back to waiting or have its quantities corrected for 6 hours; after that it is locked. Payouts are never reopened.
 - **Working hours**: set by the admin per weekday in Tunis time; outside them only the admin works; others can sign in and see the closed screen with the opening time.
+
+## Who does what with counts and orders (2026-10, second round)
+
+The admin can do everything a responsable can, for any store (except recording sales, which stay with the team member).
+
+| | Responsable (her region) | Admin |
+|---|---|---|
+| Opening count | Declares it; it is on hold for the admin while she edits it | Declares it (approved at once); edits any waiting or approved count: add, remove, change |
+| Correcting an approved count | Asks first (within 3 days, with a reason); after the admin approves she has 48 hours to correct, once | Edits directly, with a reason, at any time |
+| Sold units | Cannot remove units that were sold: a message names the product and the minimum | Same rule (the stock adjustment exists for the rest) |
+| Order | Orders for her stores, or names the grossiste when allowed; the admin approves | Orders for any store: delivered now (proof, stock at once) or sent (the responsable confirms, the admin approves) |
+| Pasting a list | Matches a delivery note or a list to the catalogue | Same |
+
+Two people editing a count at once cannot overwrite each other: the second save is refused and asks to reload.

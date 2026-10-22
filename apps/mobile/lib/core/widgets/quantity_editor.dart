@@ -10,6 +10,7 @@ import '../../l10n/app_localizations.dart';
 import '../theme/app_theme.dart';
 import 'async_body.dart';
 import 'components.dart';
+import 'paste_list_sheet.dart';
 import 'states.dart';
 
 class QuantityItem {
@@ -149,6 +150,7 @@ class QuantityEditor extends StatelessWidget {
     this.allowAdd = true,
     this.allowRemove = true,
     this.addLabel,
+    this.allowPaste = false,
     super.key,
   });
 
@@ -156,6 +158,9 @@ class QuantityEditor extends StatelessWidget {
   final bool allowAdd;
   final bool allowRemove;
   final String? addLabel;
+
+  /// Offers "Paste a list": a pasted delivery note or list is matched to the catalogue.
+  final bool allowPaste;
 
   @override
   Widget build(BuildContext context) {
@@ -184,6 +189,14 @@ class QuantityEditor extends StatelessWidget {
               icon: const Icon(LucideIcons.plus, size: 20),
               label: Text(addLabel ?? t.addProduct),
             ),
+          if (allowAdd && allowPaste) ...[
+            const Gap(8),
+            OutlinedButton.icon(
+              onPressed: () => pasteIntoList(context, controller),
+              icon: const Icon(LucideIcons.clipboardList, size: 20),
+              label: Text(t.pasteList),
+            ),
+          ],
         ],
       ),
     );

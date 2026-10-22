@@ -609,7 +609,11 @@ class _DeclareStockScreenState extends ConsumerState<DeclareStockScreen> {
                   },
                 ),
                 SectionHeader(t.countedProducts),
-                QuantityEditor(controller: _quantities, addLabel: t.addProduct),
+                QuantityEditor(
+                  controller: _quantities,
+                  addLabel: t.addProduct,
+                  allowPaste: true,
+                ),
                 const Gap(16),
                 TextField(
                   controller: _note,
@@ -777,33 +781,134 @@ class DeclarationScreen extends ConsumerWidget {
               const Gap(16),
               _DecisionBar(declaration: d),
             ],
-            // The responsable corrects their own count: a waiting one (it goes on hold for the
-            // admin), or an approved one for three days.
-            if (me.role == Role.responsable &&
-                ((d.status == DeclarationStatus.pending &&
-                        d.editingBy == null) ||
-                    d.correctableUntil != null)) ...[
-              const Gap(16),
-              AsyncButton(
-                label: t.correctCount,
-                icon: LucideIcons.pencil,
-                style: AsyncButtonStyle.outlined,
-                onPressed: () async {
-                  final saved = await context.push<bool>(
-                    '/stock/declarations/${d.id}/edit',
-                    extra: d,
-                  );
-                  if (saved ?? false) {
-                    ref.invalidate(declarationProvider(declarationId));
-                  }
-                },
-              ),
-            ],
+            ..._correctionActions(context, ref, d, me.role),
           ],
         ),
       ),
     );
   }
+}
+
+/// Who may change a count, and how. The admin edits a waiting or approved count directly. The
+/// responsable edits a waiting one (it goes on hold for the admin); for an approved one she asks the
+/// admin first and corrects once the request is approved.
+List<Widget> _correctionActions(
+  BuildContext context,
+  WidgetRef ref,
+  StockDeclaration d,
+  Role role,
+) {
+  final t = AppLocalizations.of(context);
+  Future<void> edit() async {
+    final saved = await context.push<bool>(
+      '/stock/declarations/${d.id}/edit',
+      extra: d,
+    );
+    if (saved ?? false) ref.invalidate(declarationProvider(d.id));
+  }
+
+  if (role == Role.admin) {
+    if (d.status == DeclarationStatus.rejected) return const [];
+    return [
+      const Gap(16),
+      AsyncButton(
+        label: t.editCount,
+        icon: LucideIcons.pencil,
+        style: AsyncButtonStyle.outlined,
+        onPressed: edit,
+      ),
+    ];
+  }
+  if (role != Role.responsable) return const [];
+  if (d.status == DeclarationStatus.pending && d.editingBy == null) {
+    return [
+      const Gap(16),
+      AsyncButton(
+        label: t.correctCount,
+        icon: LucideIcons.pencil,
+        style: AsyncButtonStyle.outlined,
+        onPressed: edit,
+      ),
+    ];
+  }
+  if (d.status != DeclarationStatus.approved) return const [];
+  final c = d.correction;
+  if (c != null && c.approved) {
+    return [
+      const Gap(16),
+      AsyncButton(
+        label: t.correctNow,
+        icon: LucideIcons.pencil,
+        onPressed: edit,
+      ),
+      if (c.until != null) ...[
+        const Gap(6),
+        Text(
+          t.correctionOpenUntil(Dates.dateTime(c.until!, t.localeName)),
+          textAlign: TextAlign.center,
+          style: context.text.bodySmall?.copyWith(color: context.status.muted),
+        ),
+      ],
+    ];
+  }
+  if (c != null && c.pending) {
+    return [
+      const Gap(16),
+      AppCard(
+        color: context.status.infoSoft,
+        borderColor: Colors.transparent,
+        child: Row(
+          children: [
+            Icon(LucideIcons.clock, color: context.status.info),
+            const SizedBox(width: 12),
+            Expanded(child: Text(t.correctionWaiting)),
+          ],
+        ),
+      ),
+    ];
+  }
+  if (d.correctableUntil == null) return const [];
+  return [
+    const Gap(16),
+    if (c != null && c.rejected)
+      Padding(
+        padding: const EdgeInsets.only(bottom: 8),
+        child: Text(
+          t.correctionRefused(c.note ?? ''),
+          style: context.text.bodyMedium?.copyWith(
+            color: context.status.danger,
+          ),
+        ),
+      ),
+    AsyncButton(
+      label: t.requestCorrection,
+      icon: LucideIcons.pencil,
+      style: AsyncButtonStyle.outlined,
+      onPressed: () async {
+        final reason = await askNote(
+          context,
+          title: t.requestCorrection,
+          confirmLabel: t.sendToAdmin,
+          hint: t.correctionReasonHint,
+        );
+        if (reason == null || !context.mounted) return;
+        if (await perform(
+          context,
+          () =>
+              ref.read(stockRepositoryProvider).requestCorrection(d.id, reason),
+          success: t.correctionRequested,
+        )) {
+          ref.invalidate(declarationProvider(d.id));
+        }
+      },
+    ),
+    const Gap(6),
+    Text(
+      t.stockCorrectable(Dates.dateTime(d.correctableUntil!, t.localeName)),
+      textAlign: TextAlign.center,
+      style: context.text.bodySmall?.copyWith(color: context.status.muted),
+    ),
+  ];
 }
 
 class _DecisionBar extends ConsumerWidget {
@@ -964,7 +1069,11 @@ class _AdjustStockScreenState extends ConsumerState<AdjustStockScreen> {
                 ),
               ),
               const Gap(16),
-              QuantityEditor(controller: _quantities, addLabel: t.addProduct),
+              QuantityEditor(
+                controller: _quantities,
+                addLabel: t.addProduct,
+                allowPaste: true,
+              ),
               const Gap(16),
               TextField(
                 controller: _reason,

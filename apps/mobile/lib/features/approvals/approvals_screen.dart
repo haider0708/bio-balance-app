@@ -191,6 +191,12 @@ IconData _typeIcon(ApprovalType type) => switch (type) {
   ApprovalType.recount => LucideIcons.rotateCcw,
 };
 
+/// A recount and a correction request share a kind; the correction says what it is.
+String _itemLabel(AppLocalizations t, ApprovalItem item) =>
+    item.type == ApprovalType.recount && item.meta['kind'] == 'CORRECTION'
+    ? t.typeCorrection
+    : _typeLabel(t, item.type);
+
 class _ApprovalTile extends ConsumerWidget {
   const _ApprovalTile({required this.item, required this.onDone});
 
@@ -237,7 +243,7 @@ class _ApprovalTile extends ConsumerWidget {
                   overflow: TextOverflow.ellipsis,
                 ),
                 Text(
-                  _typeLabel(t, item.type),
+                  _itemLabel(t, item),
                   style: context.text.bodySmall?.copyWith(
                     color: context.colors.primary,
                     fontWeight: FontWeight.w700,
@@ -287,7 +293,12 @@ class _ApprovalTile extends ConsumerWidget {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Text(t.approveRecountTitle, style: context.text.titleMedium),
+                  Text(
+                    item.meta['kind'] == 'CORRECTION'
+                        ? t.typeCorrection
+                        : t.approveRecountTitle,
+                    style: context.text.titleMedium,
+                  ),
                   const Gap(6),
                   Text(
                     '${item.name} · ${item.by ?? ''}',

@@ -3124,7 +3124,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String belowSoldLine(String product, int minimum) {
-    return '$product: at least $minimum';
+    return '$product: you cannot go below $minimum, the rest was sold';
   }
 
   @override
@@ -3239,4 +3239,99 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get hoursClosedNow => 'Closed now';
+
+  @override
+  String get editCount => 'Edit this count';
+
+  @override
+  String get adminEditHint =>
+      'Add, remove or change products. The stock follows the difference; units already sold stay sold.';
+
+  @override
+  String get correctNow => 'Correct now';
+
+  @override
+  String correctionOpenUntil(String time) {
+    return 'You can make it until $time.';
+  }
+
+  @override
+  String get correctionWaiting =>
+      'Your correction request is waiting for the admin. You can correct once it is approved.';
+
+  @override
+  String correctionRefused(String note) {
+    return 'The admin refused: $note';
+  }
+
+  @override
+  String get requestCorrection => 'Request a correction';
+
+  @override
+  String get correctionReasonHint => 'What was wrong in the count?';
+
+  @override
+  String get correctionRequested => 'Request sent to the admin';
+
+  @override
+  String get typeCorrection => 'Correction request';
+
+  @override
+  String get pasteList => 'Paste a list';
+
+  @override
+  String get pasteListTitle => 'Paste a list';
+
+  @override
+  String get pasteListHint =>
+      'Paste a delivery note or a list: barcode, name and quantity per line (for example \"26 serum discoloration\" or \"8697711600852 … 8\").';
+
+  @override
+  String get pasteFromClipboard => 'Paste from the clipboard';
+
+  @override
+  String get pasteCheck => 'Check the list';
+
+  @override
+  String pasteSummary(int matched, int unsure, int missing) {
+    return '$matched found, $unsure to check, $missing not found';
+  }
+
+  @override
+  String get pasteChoose => 'Choose the right product, or leave it out.';
+
+  @override
+  String get pasteNotFound => 'Not found in the catalogue: add it by hand.';
+
+  @override
+  String pasteAdd(int count) {
+    return 'Add $count products';
+  }
+
+  @override
+  String get newOrder => 'New order';
+
+  @override
+  String get deliverNow => 'Delivered';
+
+  @override
+  String get deliverLater => 'Send it';
+
+  @override
+  String get deliverNowHint =>
+      'The goods are already there: add the delivery note photo. The stock is added now.';
+
+  @override
+  String get deliverLaterHint =>
+      'The goods are on their way. The responsable confirms the receipt with the delivery note, then you approve.';
+
+  @override
+  String get orderSentToStore =>
+      'Order sent: the responsable will confirm the receipt';
+
+  @override
+  String get sendToStore => 'Send the order';
+
+  @override
+  String get photoOfDeliveryPaper => 'Photo of the delivery note';
 }
