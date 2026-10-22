@@ -5,10 +5,12 @@
 set -euo pipefail
 [[ $# -eq 3 ]] || { echo "Usage: $0 <commit> <line> <column>" >&2; exit 2; }
 host=${DEPLOY_HOST:-go2code}
-map=$(mktemp)
-trap 'rm -f "$map"' EXIT
+work=$(mktemp -d)
+map="$work/main.dart.js.map"
+trap 'rm -rf "$work"' EXIT
 ssh "$host" "sudo cat /opt/biobalance-web-maps/$1/main.dart.js.map" > "$map"
-npx --yes -p source-map@0.7.4 node -e '
+npm install --silent --no-audit --no-fund --prefix "$work" source-map@0.7.4 >/dev/null
+NODE_PATH="$work/node_modules" node -e '
 const { SourceMapConsumer } = require("source-map");
 const raw = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8"));
 SourceMapConsumer.with(raw, null, (c) => {
