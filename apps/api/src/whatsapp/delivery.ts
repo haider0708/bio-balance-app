@@ -62,17 +62,23 @@ export class WhatsAppDelivery {
         token.tokenHash !== hashCode(p.code)
       )
         return "suppressed";
+      const base = process.env.API_PUBLIC_URL?.replace(/\/$/, "");
+      const link = base
+        ? `${base}/c#${p.template === "reset" ? "r" : "i"}.${p.code}`
+        : undefined;
       text =
         p.template === "invite"
           ? renderWhatsApp(locale, {
               kind: "invite",
               code: p.code,
               name: user.name,
+              link,
             })
           : renderWhatsApp(locale, {
               kind: "reset",
               code: p.code,
               name: user.name,
+              link,
               minutes: Math.max(
                 1,
                 Math.round((token.expiresAt.getTime() - Date.now()) / 60_000),

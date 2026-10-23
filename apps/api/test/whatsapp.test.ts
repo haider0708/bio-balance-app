@@ -117,10 +117,15 @@ describe("codes by WhatsApp", () => {
     await invite();
     const { sent, transport } = fake();
     const job = (await jobs("whatsapp"))[0]!;
+    process.env.API_PUBLIC_URL = "https://api.example.test/";
     expect(await delivery(transport).deliver(job)).toBe("sent");
+    delete process.env.API_PUBLIC_URL;
     expect(sent).toHaveLength(1);
     expect(sent[0]!.phone).toBe("+21621345678");
-    expect(sent[0]!.text).toContain(job.payload.code);
+    const code = job.payload.code as string;
+    // Shown with a dash, easier to read and to copy, and with the link to the page that copies it.
+    expect(sent[0]!.text).toContain(`${code.slice(0, 4)}-${code.slice(4)}`);
+    expect(sent[0]!.text).toContain(`https://api.example.test/c#i.${code}`);
     expect(sent[0]!.text).toContain("Bonjour Hanen Smiri");
   });
 
