@@ -18,6 +18,10 @@ const Activate = z.object({
   password,
 });
 const Forgot = z.object({ email });
+const CodeStatus = z.object({
+  code: z.string().min(8).max(12),
+  kind: z.enum(["i", "r"]),
+});
 const Reset = z.object({ email, code: z.string().min(8).max(12), password });
 const Profile = z.object({
   name: z.string().trim().min(2).max(100).optional(),
@@ -76,6 +80,18 @@ export class AuthController {
       v.code,
       v.name,
       v.password,
+      req.ip ?? "unknown",
+    );
+  }
+
+  /** Is the code of this link still usable? (The link page asks before it shows the code.) */
+  @Public()
+  @Post("code-status")
+  codeStatus(@Body() raw: unknown, @Req() req: AuthRequest) {
+    const v = parse(CodeStatus, raw);
+    return this.auth.codeIsOpen(
+      v.code,
+      v.kind === "r" ? "reset" : "invite",
       req.ip ?? "unknown",
     );
   }

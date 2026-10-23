@@ -163,6 +163,31 @@ export class AuthService {
     return { push: pushConfigured(device.platform) };
   }
 
+  /**
+   * Whether a code from an invitation or a reset link can still be used: not used, replaced, cancelled
+   * or expired, and its person still active. The link page asks, so a link that no longer works says so
+   * instead of showing a code that will be refused. It only answers yes or no, and is limited per address.
+   */
+  async codeIsOpen(code: string, purpose: "invite" | "reset", ip: string) {
+    await this.throttle(`code-status:${tokenHash(ip)}`, 40);
+    const token = await this.db.accessToken.findFirst({
+      where: {
+        purpose,
+        tokenHash: hashCode(normalizeCode(code)),
+        usedAt: null,
+        expiresAt: { gt: new Date() },
+      },
+      select: { userId: true },
+    });
+    const user = token
+      ? await this.db.user.findUnique({
+          where: { id: token.userId },
+          select: { status: true },
+        })
+      : null;
+    return { open: user?.status === "ACTIVE" };
+  }
+
   /** Resolve a bearer token to the person making the request. */
   async authenticate(token: string): Promise<Actor> {
     requireRule(

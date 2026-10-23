@@ -23,14 +23,25 @@ const box=document.getElementById("code");
 if(code.length!==8){box.textContent=words.none;box.className="none";}
 else{
  const shown=code.slice(0,4)+"-"+code.slice(4);
- box.textContent=shown;
- const copy=document.getElementById("copy");copy.hidden=false;copy.textContent=words.copy;
- copy.onclick=async()=>{try{await navigator.clipboard.writeText(shown);}catch(e){const r=document.createRange();r.selectNodeContents(box);const s=getSelection();s.removeAllRanges();s.addRange(r);document.execCommand("copy");}copy.textContent=words.copied;};
- const open=document.getElementById("open");open.hidden=false;open.textContent=words.open;
- const path="app/code?k="+kind+"&c="+code;
- const apple=/iPhone|iPad|iPod/.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
- open.href=apple?"biobalance://"+path:"intent://"+path+"#Intent;scheme=biobalance;package=tn.biobalance.app;end";
- document.getElementById("hint").textContent=words.hint;
+ box.textContent=words.check;
+ const copy=document.getElementById("copy");
+ const open=document.getElementById("open");
+ const show=()=>{
+  box.textContent=shown;
+  copy.hidden=false;copy.textContent=words.copy;
+  copy.onclick=async()=>{try{await navigator.clipboard.writeText(shown);}catch(e){const r=document.createRange();r.selectNodeContents(box);const s=getSelection();s.removeAllRanges();s.addRange(r);document.execCommand("copy");}copy.textContent=words.copied;};
+  open.hidden=false;open.textContent=words.open;
+  const path="app/code?k="+kind+"&c="+code;
+  const apple=/iPhone|iPad|iPod/.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
+  open.href=apple?"biobalance://"+path:"intent://"+path+"#Intent;scheme=biobalance;package=tn.biobalance.app;end";
+  document.getElementById("hint").textContent=words.hint;
+ };
+ // A link that no longer works says so instead of showing a code that would be refused. If the
+ // check cannot be made (no connection), the code is shown anyway.
+ fetch("/v1/code-status",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({code,kind})})
+  .then(r=>r.ok?r.json():{open:true})
+  .catch(()=>({open:true}))
+  .then(s=>{if(s.open)show();else{box.textContent=words.gone;box.className="none";}});
 }`;
 
 const hash = createHash("sha256").update(script).digest("base64");
@@ -61,7 +72,7 @@ export class CodePageController {
   show(@Res({ passthrough: true }) res: Response) {
     res.setHeader(
       "Content-Security-Policy",
-      `default-src 'none'; style-src 'unsafe-inline'; script-src 'sha256-${hash}'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'`,
+      `default-src 'none'; style-src 'unsafe-inline'; script-src 'sha256-${hash}'; connect-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'`,
     );
     return page;
   }
