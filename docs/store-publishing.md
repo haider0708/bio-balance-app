@@ -29,11 +29,13 @@ Most rejections (Apple's own figures) come from crashes, broken links and **miss
 
 ## Listing
 
+**Google rejected 3.4.0 (43) on 2 November 2026 for "Misleading claims"**: the description and one screenshot showed administrator features that the reviewers could not find, because they only get the responsable and team-member accounts (an admin needs the authenticator code). **Describe and show only what the review accounts can reach: team member and responsable.** Do not mention administrators in the descriptions, and use only screenshots 01 to 03 (team member). The admin screenshots (04 to 06) stay out of both stores.
+
 | | Français | English |
 |---|---|---|
 | Name | BioBalance | BioBalance |
 | iOS subtitle (30) | Ventes, stock et récompenses | Sales, stock and rewards |
-| Play short description (80) | Le réseau BioBalance : ventes, stock, récompenses et analyses, en temps réel. | The BioBalance network: sales, stock, rewards and analytics, in real time. |
+| Play short description (80) | Le réseau BioBalance : ventes, stock et récompenses de votre équipe, en temps réel. | The BioBalance network: your team's sales, stock and rewards, in real time. |
 | iOS keywords (100) | biobalance,parapharmacie,ventes,stock,inventaire,récompenses,réseau,points de vente,commission | biobalance,parapharmacy,sales,stock,inventory,rewards,network,retail,commission,dashboard |
 | Category | Business / Entreprise | Business |
 | Price | Free | Free |
@@ -44,11 +46,10 @@ Most rejections (Apple's own figures) come from crashes, broken links and **miss
 
 **Description (FR)**
 
-> BioBalance est l’application des partenaires du réseau BioBalance : points de vente, responsables de région et administrateurs.
+> BioBalance est l’application des équipes du réseau BioBalance : vendeurs des points de vente et responsables de région.
 >
 > • Vendeurs : enregistrez une vente en quelques secondes (recherche ou code-barres), même sans connexion, et voyez tout de suite ce qu’elle vous rapporte. Suivez votre portefeuille et demandez vos paiements.
 > • Responsables : suivez les ventes et le stock de votre région, comptez le stock avec photo, commandez les réassorts et recevez les livraisons.
-> • Administrateurs : validez ce qui attend, fixez les récompenses, gérez les régions, les points de vente et les grossistes, et analysez tout : chaque chiffre s’ouvre sur ce qui le compose, par région, point de vente, vendeur et produit.
 >
 > Annonces et formations, notifications, français et anglais, mode sombre, téléphone et tablette.
 >
@@ -56,11 +57,10 @@ Most rejections (Apple's own figures) come from crashes, broken links and **miss
 
 **Description (EN)**
 
-> BioBalance is the app of the BioBalance partner network: points of sale, regional managers and administrators.
+> BioBalance is the app of the BioBalance network teams: sellers in the points of sale and regional managers.
 >
 > • Team members: record a sale in seconds (search or barcode), even offline, and see at once what it earns you. Follow your wallet and ask for payouts.
 > • Regional managers: follow sales and stock in your region, count stock with a photo, order restocks and receive deliveries.
-> • Administrators: approve what waits, set rewards, manage regions, points of sale and wholesalers, and analyse everything: every number opens on what makes it, by region, point of sale, seller and product.
 >
 > Announcements and training, notifications, French and English, dark mode, phone and tablet.
 >
