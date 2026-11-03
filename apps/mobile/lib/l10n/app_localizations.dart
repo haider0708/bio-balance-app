@@ -2894,6 +2894,12 @@ abstract class AppLocalizations {
   /// **'Take out'**
   String get returnActionRemove;
 
+  /// No description provided for @returnActionSet.
+  ///
+  /// In en, this message translates to:
+  /// **'Set quantities'**
+  String get returnActionSet;
+
   /// No description provided for @returnAdded.
   ///
   /// In en, this message translates to:
@@ -2977,6 +2983,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Return sent to the admin'**
   String get returnSent;
+
+  /// No description provided for @returnSetHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Set the real quantities of this para. Every change is kept in the history with your note.'**
+  String get returnSetHint;
 
   /// No description provided for @returnSubmit.
   ///

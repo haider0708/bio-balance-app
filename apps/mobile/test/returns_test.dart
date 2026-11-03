@@ -5,7 +5,8 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:biobalance/app/router.dart';
-import 'package:flutter/material.dart' show TextField;
+import 'package:flutter/material.dart' show SizedBox, TextField;
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'support/fake_server.dart';
@@ -207,6 +208,41 @@ void main() {
     expect(body['pdvId'], 'p2');
     expect(body.containsKey('toPdvId'), isFalse);
   });
+
+  testWidgets(
+    'the admin sets the quantities he wants, with a note, on any para',
+    (tester) async {
+      final s = server('ADMIN')
+        ..on('GET /v1/stock/locations/p1', stockJson(['a', 'b'], quantity: 7))
+        ..on('POST /v1/stock/adjust', <String, Object?>{}, status: 201);
+      await open(tester, s, '/returns/new');
+      await tester.tap(find.text('Set quantities'));
+      await tester.pump();
+      await pickPara(tester, 'Choose a para', 'Para Lac');
+      // The para's own quantities are there to change.
+      expect(find.text('Product a'), findsOneWidget);
+      // Nothing is sent without a note.
+      await tester.tap(find.text('Save'), warnIfMissed: false);
+      await settle(tester);
+      expect(s.calls.where((c) => c.method == 'POST'), isEmpty);
+      await tester.tap(find.byIcon(LucideIcons.minus).first);
+      await tester.pump();
+      await tester.enterText(find.byType(TextField).last, 'Counted again');
+      await tester.pump();
+      await tester.tap(find.text('Save'));
+      await settle(tester);
+      final body = sent(s, '/v1/stock/adjust');
+      expect(body['locationId'], 'p1');
+      expect(body['reason'], 'Counted again');
+      expect(body['lines'], [
+        {'productId': 'a', 'quantity': 6},
+        {'productId': 'b', 'quantity': 7},
+      ]);
+      // Product photos stay cached for five minutes after their screen closes: let that time pass.
+      await tester.pumpWidget(const SizedBox());
+      await tester.pump(const Duration(minutes: 6));
+    },
+  );
 
   testWidgets(
     'the admin approves in one tap, or moves it to another para instead',

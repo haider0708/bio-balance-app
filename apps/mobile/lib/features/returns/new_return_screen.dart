@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -12,11 +14,16 @@ import '../../core/widgets/quantity_editor.dart';
 import '../../l10n/app_localizations.dart';
 import '../network/network_models.dart';
 import '../network/network_repository.dart';
+import '../stock/stock_repository.dart';
 import '../transfers/transfer_models.dart';
 import 'return_models.dart';
 import 'returns_repository.dart';
 
-/// Ask for a return (a responsable), or do it now (the admin: take out, move to another para, or only add).
+/// What the admin does to a para's stock from here.
+enum _Mode { remove, move, add, set }
+
+/// Ask for a return (a responsable), or do it now (the admin: take out, move to another para, only add,
+/// or set the quantities he wants, with a note).
 class NewReturnScreen extends ConsumerStatefulWidget {
   const NewReturnScreen({super.key});
 
@@ -25,7 +32,7 @@ class NewReturnScreen extends ConsumerStatefulWidget {
 }
 
 class _NewReturnScreenState extends ConsumerState<NewReturnScreen> {
-  ReturnAction _action = ReturnAction.remove;
+  _Mode _mode = _Mode.remove;
   TransferPara? _para;
   TransferPara? _to;
   final _items = QuantityController();
@@ -42,15 +49,67 @@ class _NewReturnScreenState extends ConsumerState<NewReturnScreen> {
 
   bool get _valid =>
       _para != null &&
-      _items.total > 0 &&
-      (_action != ReturnAction.move || _to != null);
+      (_mode == _Mode.set
+          ? _note.text.trim().length >= 3
+          : _items.total > 0 && (_mode != _Mode.move || _to != null));
+
+  /// Setting quantities starts from what the para holds now.
+  Future<void> _seed(TransferPara para) async {
+    final levels = await ref.read(stockLevelsProvider(para.id).future);
+    if (!mounted) return;
+    _items.reset([
+      for (final i in levels.items)
+        QuantityItem(
+          productId: i.productId,
+          name: i.name,
+          family: i.family,
+          imageId: i.imageId,
+          quantity: i.quantity < 0 ? 0 : i.quantity,
+        ),
+    ]);
+  }
+
+  void _chooseMode(_Mode mode) {
+    setState(() {
+      _mode = mode;
+      if (mode != _Mode.move) _to = null;
+    });
+    if (mode == _Mode.set && _para != null) {
+      unawaited(_seed(_para!));
+    } else {
+      _items.reset(const []);
+    }
+  }
 
   Future<void> _submit() async {
     final t = AppLocalizations.of(context);
+    if (_mode == _Mode.set) {
+      final para = _para!;
+      final ok = await perform(
+        context,
+        () => ref
+            .read(stockRepositoryProvider)
+            .adjust(
+              locationId: para.id,
+              reason: _note.text.trim(),
+              lines: _items.lines(),
+            ),
+        success: t.stockAdjusted,
+      );
+      if (ok) {
+        ref.invalidate(stockLevelsProvider(para.id));
+        if (mounted) context.pop();
+      }
+      return;
+    }
     final body = <String, Object?>{
       'pdvId': _para!.id,
-      'action': _action.wire,
-      if (_action == ReturnAction.move) 'toPdvId': _to!.id,
+      'action': switch (_mode) {
+        _Mode.move => ReturnAction.move.wire,
+        _Mode.add => ReturnAction.add.wire,
+        _ => ReturnAction.remove.wire,
+      },
+      if (_mode == _Mode.move) 'toPdvId': _to!.id,
       'lines': _items.lines(skipZero: true),
       if (_note.text.trim().isNotEmpty) 'note': _note.text.trim(),
     };
@@ -97,30 +156,27 @@ class _NewReturnScreenState extends ConsumerState<NewReturnScreen> {
         padding: const EdgeInsets.all(16),
         children: [
           if (admin) ...[
-            SegmentedButton<ReturnAction>(
-              segments: [
-                ButtonSegment(
-                  value: ReturnAction.remove,
-                  label: Text(t.returnActionRemove),
-                  icon: const Icon(LucideIcons.arrowUpFromLine),
-                ),
-                ButtonSegment(
-                  value: ReturnAction.move,
-                  label: Text(t.returnActionMove),
-                  icon: const Icon(LucideIcons.arrowLeftRight),
-                ),
-                ButtonSegment(
-                  value: ReturnAction.add,
-                  label: Text(t.returnActionAdd),
-                  icon: const Icon(LucideIcons.arrowDownToLine),
-                ),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final (mode, label, icon) in [
+                  (
+                    _Mode.remove,
+                    t.returnActionRemove,
+                    LucideIcons.arrowUpFromLine,
+                  ),
+                  (_Mode.move, t.returnActionMove, LucideIcons.arrowLeftRight),
+                  (_Mode.add, t.returnActionAdd, LucideIcons.arrowDownToLine),
+                  (_Mode.set, t.returnActionSet, LucideIcons.slidersHorizontal),
+                ])
+                  ChoiceChip(
+                    avatar: Icon(icon, size: 16),
+                    label: Text(label),
+                    selected: _mode == mode,
+                    onSelected: (_) => _chooseMode(mode),
+                  ),
               ],
-              showSelectedIcon: false,
-              selected: {_action},
-              onSelectionChanged: (s) => setState(() {
-                _action = s.first;
-                if (_action != ReturnAction.move) _to = null;
-              }),
             ),
             const Gap(16),
           ],
@@ -134,10 +190,11 @@ class _NewReturnScreenState extends ConsumerState<NewReturnScreen> {
                   _para = picked;
                   if (_to?.id == picked.id) _to = null;
                 });
+                if (_mode == _Mode.set) await _seed(picked);
               }
             },
           ),
-          if (_action == ReturnAction.move) ...[
+          if (_mode == _Mode.move) ...[
             const Gap(8),
             _ParaRow(
               label: t.returnMoveTo,
@@ -150,8 +207,17 @@ class _NewReturnScreenState extends ConsumerState<NewReturnScreen> {
           ],
           const Gap(20),
           Text(t.transferProducts, style: context.text.labelLarge),
+          if (_mode == _Mode.set) ...[
+            const Gap(4),
+            Text(
+              t.returnSetHint,
+              style: context.text.bodySmall?.copyWith(
+                color: context.status.muted,
+              ),
+            ),
+          ],
           const Gap(8),
-          QuantityEditor(controller: _items),
+          QuantityEditor(controller: _items, allowPaste: _mode == _Mode.set),
           const Gap(20),
           TextField(
             controller: _note,
@@ -159,13 +225,22 @@ class _NewReturnScreenState extends ConsumerState<NewReturnScreen> {
             minLines: 1,
             maxLines: 3,
             textCapitalization: TextCapitalization.sentences,
-            decoration: InputDecoration(labelText: '${t.note} (${t.optional})'),
+            onChanged: (_) => setState(() {}),
+            decoration: InputDecoration(
+              labelText: _mode == _Mode.set
+                  ? t.adjustReason
+                  : '${t.note} (${t.optional})',
+            ),
           ),
           const Gap(8),
           ListenableBuilder(
             listenable: _items,
             builder: (context, _) => AsyncButton(
-              label: admin ? t.returnSubmitNow : t.returnSubmit,
+              label: _mode == _Mode.set
+                  ? t.save
+                  : admin
+                  ? t.returnSubmitNow
+                  : t.returnSubmit,
               onPressed: _valid ? _submit : null,
             ),
           ),

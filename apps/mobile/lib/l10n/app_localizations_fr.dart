@@ -1645,6 +1645,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get returnActionRemove => 'Retirer';
 
   @override
+  String get returnActionSet => 'Fixer les quantités';
+
+  @override
   String get returnAdded => 'Ajouté au para';
 
   @override
@@ -1688,6 +1691,10 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get returnSent => 'Retour envoyé à l’administrateur';
+
+  @override
+  String get returnSetHint =>
+      'Fixez les quantités réelles de ce para. Chaque changement est gardé dans l’historique avec votre note.';
 
   @override
   String get returnSubmit => 'Envoyer à l’administrateur';
