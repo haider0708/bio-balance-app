@@ -73,6 +73,19 @@ export class SalesService {
     occurredAt: Date,
   ) {
     return this.db.run(actor, async (tx) => {
+      // One sale of a seller at a time, and the account is read again under the lock: a responsable
+      // who just stopped them selling (setDuties) must not see a reward land afterwards.
+      await this.db.lock(tx, "User", actor.id);
+      const seller = await tx.user.findUnique({
+        where: { id: actor.id },
+        select: { role: true },
+      });
+      requireRule(
+        seller?.role === "VENDEUR",
+        "FORBIDDEN",
+        "You no longer record sales.",
+        403,
+      );
       const existing = await tx.sale.findUnique({
         where: { id: input.id },
         include: { lines: true },

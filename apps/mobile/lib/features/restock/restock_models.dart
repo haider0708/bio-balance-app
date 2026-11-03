@@ -193,13 +193,7 @@ class RestockOrder {
 
 /// What the order manager proposed for a requested order, waiting for the admin.
 class Proposal {
-  const Proposal({
-    required this.source,
-    this.supplier,
-    this.by,
-    this.at,
-    this.note,
-  });
+  const Proposal({required this.source, this.supplier, this.by, this.note});
 
   static Proposal? from(Json? j) => j == null
       ? null
@@ -207,7 +201,6 @@ class Proposal {
           source: j.str('source'),
           supplier: j.objOrNull('supplier')?.str('name'),
           by: Actor.from(j.objOrNull('by')),
-          at: j.dateOrNull('at'),
           note: j.strOrNull('note'),
         );
 
@@ -215,7 +208,6 @@ class Proposal {
   final String source;
   final String? supplier;
   final Actor? by;
-  final DateTime? at;
   final String? note;
 }
 

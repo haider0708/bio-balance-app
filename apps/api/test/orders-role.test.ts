@@ -480,6 +480,20 @@ describe("preparing an order for the admin to approve", () => {
     });
   });
 
+  it("files its papers under the order's region: the responsable of the place can open them", async () => {
+    const order = await request(lac.id, [6, 4]);
+    const paper = await photo(w, manager);
+    expect(
+      (
+        await m.post(`/v1/restocks/${order.id}/documents`, {
+          photoIds: [paper],
+        })
+      ).status,
+    ).toBe(201);
+    expect((await w.n.get(`/v1/media/${paper}/info`)).status).toBe(200);
+    expect((await w.s.get(`/v1/media/${paper}/info`)).status).toBe(404);
+  });
+
   it("can propose a direct shipment from BioBalance, and the admin can refuse a proposal with a reason", async () => {
     const order = await request(lac.id);
     const direct = await m.post(`/v1/restocks/${order.id}/propose`, {

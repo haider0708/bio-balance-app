@@ -593,7 +593,9 @@ export class RestockService {
         "Propose at least one unit.",
       );
       const papers = input.photoIds?.length
-        ? await ownedProofs(tx, actor, input.photoIds, "Add a document.")
+        ? await ownedProofs(tx, actor, input.photoIds, "Add a document.", {
+            regionId: order.regionId,
+          })
         : [];
       for (const line of order.lines)
         await tx.restockLine.update({

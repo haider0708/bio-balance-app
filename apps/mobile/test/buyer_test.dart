@@ -231,49 +231,41 @@ void main() {
     });
   });
 
-  testWidgets(
-    'the admin changes what a seller does',
-    (tester) async {
-      final s = server(meJson(role: 'ADMIN'))
-        ..on('GET /v1/pdvs', <Object?>[])
-        ..on('GET /v1/approvals', {
-          'counts': <String, Object?>{},
-          'items': <Object?>[],
-        })
-        ..on('POST /v1/users/u3/duties', {
-          'id': 'u3',
-          'name': 'Hanen Smiri',
-          'email': 'h@x.tn',
-          'role': 'VENDEUR',
-          'status': 'ACTIVE',
-          'canOrder': true,
-        });
-      final container = await launch(tester, s, language: 'en');
-      final person = Person.fromJson({
+  testWidgets('the admin changes what a seller does', (tester) async {
+    final s = server(meJson(role: 'ADMIN'))
+      ..on('GET /v1/pdvs', <Object?>[])
+      ..on('GET /v1/approvals', {
+        'counts': <String, Object?>{},
+        'items': <Object?>[],
+      })
+      ..on('POST /v1/users/u3/duties', {
         'id': 'u3',
         'name': 'Hanen Smiri',
-        'email': 'hanen@x.tn',
-        'phone': '+21621345678',
+        'email': 'h@x.tn',
         'role': 'VENDEUR',
         'status': 'ACTIVE',
-        'regionId': 'r1',
-        'pdvId': 'p1',
-        'activated': true,
+        'canOrder': true,
       });
-      unawaited(
-        container.read(routerProvider).push('/people/u3', extra: person),
-      );
-      await settle(tester);
-      await tester.tap(find.text('Change what they do'));
-      await settle(tester);
-      await tester.tap(find.text('Seller and buyer').last);
-      await tester.pump();
-      await tester.tap(find.widgetWithText(FilledButton, 'Save'));
-      await settle(tester);
-      expect(body(s, 'POST /v1/users/u3/duties'), {
-        'sells': true,
-        'buys': true,
-      });
-    },
-  );
+    final container = await launch(tester, s, language: 'en');
+    final person = Person.fromJson({
+      'id': 'u3',
+      'name': 'Hanen Smiri',
+      'email': 'hanen@x.tn',
+      'phone': '+21621345678',
+      'role': 'VENDEUR',
+      'status': 'ACTIVE',
+      'regionId': 'r1',
+      'pdvId': 'p1',
+      'activated': true,
+    });
+    unawaited(container.read(routerProvider).push('/people/u3', extra: person));
+    await settle(tester);
+    await tester.tap(find.text('Change what they do'));
+    await settle(tester);
+    await tester.tap(find.text('Seller and buyer').last);
+    await tester.pump();
+    await tester.tap(find.widgetWithText(FilledButton, 'Save'));
+    await settle(tester);
+    expect(body(s, 'POST /v1/users/u3/duties'), {'sells': true, 'buys': true});
+  });
 }

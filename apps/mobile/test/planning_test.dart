@@ -340,8 +340,8 @@ void main() {
       // The connection is back: the same arrival goes, with the moment of the tap.
       s.offline = false;
       final flushed = container.read(visitOutboxProvider.notifier).flush();
-    await settle(tester);
-    await flushed;
+      await settle(tester);
+      await flushed;
       expect(container.read(visitOutboxProvider), isEmpty);
       expect(
         sent(s, 'POST', '/v1/visits/v1/check-in')['occurredAt'],

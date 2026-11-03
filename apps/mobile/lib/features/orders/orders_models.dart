@@ -47,7 +47,6 @@ class ParaRow {
     required this.out,
     required this.sold7Days,
     required this.openOrders,
-    this.phone,
     this.address,
   });
 
@@ -58,7 +57,6 @@ class ParaRow {
       name: j.str('name'),
       city: j.str('city'),
       address: j.strOrNull('address'),
-      phone: j.strOrNull('phone'),
       region: j.obj('region').str('name'),
       group: j.objOrNull('group')?.str('name'),
       products: stock.integer('products'),
@@ -74,7 +72,6 @@ class ParaRow {
   final String name;
   final String city;
   final String? address;
-  final String? phone;
   final String region;
   final String? group;
   final int products;

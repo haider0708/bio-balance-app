@@ -224,7 +224,7 @@ export class DashboardService {
       tx.$queryRaw<{ groups: number; pdvs: number; members: number }[]>`
         SELECT (SELECT COUNT(*) FROM "Group" WHERE "regionId"=${regionId}::uuid AND status='ACTIVE')::int AS groups,
                (SELECT COUNT(*) FROM "Pdv" WHERE "regionId"=${regionId}::uuid AND status='ACTIVE')::int AS pdvs,
-               (SELECT COUNT(*) FROM "User" WHERE "regionId"=${regionId}::uuid AND role='VENDEUR' AND status='ACTIVE')::int AS members`,
+               (SELECT COUNT(*) FROM "User" WHERE "regionId"=${regionId}::uuid AND role IN ('VENDEUR','ACHETEUR') AND status='ACTIVE')::int AS members`,
       tx.depot.count({ where: { regionId, status: "ACTIVE" } }),
     ]);
     return region
@@ -256,7 +256,7 @@ export class DashboardService {
       }[]
     >`SELECT r.id, r.code, r.name,
         (SELECT COUNT(*) FROM "Pdv" p WHERE p."regionId"=r.id AND p.status='ACTIVE')::int AS pdvs,
-        (SELECT COUNT(*) FROM "User" u WHERE u."regionId"=r.id AND u.role='VENDEUR' AND u.status='ACTIVE')::int AS members,
+        (SELECT COUNT(*) FROM "User" u WHERE u."regionId"=r.id AND u.role IN ('VENDEUR','ACHETEUR') AND u.status='ACTIVE')::int AS members,
         COALESCE((SELECT COUNT(*) FROM "Sale" s WHERE s."regionId"=r.id AND s.status='ACTIVE' AND s.day >= ${dayToDate(addDays(today, -6))}::date),0)::int AS sales,
         COALESCE((SELECT SUM(s.units) FROM "Sale" s WHERE s."regionId"=r.id AND s.status='ACTIVE' AND s.day >= ${dayToDate(addDays(today, -6))}::date),0)::int AS units,
         COALESCE((SELECT SUM(s."rewardMillimes") FROM "Sale" s WHERE s."regionId"=r.id AND s.status='ACTIVE' AND s.day >= ${dayToDate(addDays(today, -6))}::date),0)::bigint AS "rewardMillimes",

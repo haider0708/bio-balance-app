@@ -7,7 +7,7 @@ const MAX_PROOF_PHOTOS = 5;
 /**
  * The proofs a person attaches to a count, a delivery or a place: distinct proof
  * photos or documents (PDF) they uploaded themselves, one to five unless `min` says otherwise.
- * Returned in the order they chose. An admin's photos are filed under `regionId`
+ * Returned in the order they chose. An admin's or the order manager's photos are filed under `regionId`
  * so the responsable of that region can see them too.
  */
 export async function ownedProofs(
@@ -29,7 +29,11 @@ export async function ownedProofs(
     select: { id: true },
   });
   requireRule(found.length === ids.length, "PHOTO_REQUIRED", missing, 422);
-  if (options.regionId && actor.role === "ADMIN" && ids.length)
+  if (
+    options.regionId &&
+    (actor.role === "ADMIN" || actor.role === "ORDERS") &&
+    ids.length
+  )
     await tx.mediaAsset.updateMany({
       where: { id: { in: ids } },
       data: { regionId: options.regionId },

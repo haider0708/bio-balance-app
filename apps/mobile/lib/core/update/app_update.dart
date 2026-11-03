@@ -78,6 +78,13 @@ class _UpdateGateState extends ConsumerState<UpdateGate>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       ref.invalidate(updateRequiredProvider);
+      // What the person does may have changed while the app was away (a role, a duty): ask again.
+      unawaited(
+        ref
+            .read(sessionProvider.notifier)
+            .refresh()
+            .then<void>((_) {}, onError: (Object _) {}),
+      );
     }
   }
 

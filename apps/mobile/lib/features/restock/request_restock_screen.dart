@@ -173,17 +173,14 @@ class _RequestRestockScreenState extends ConsumerState<RequestRestockScreen> {
     final t = AppLocalizations.of(context);
     final buyer = _buyer;
     // A buyer's own para is all it can order for: neither the stores nor the grossistes are read.
-    final pdvs = buyer
-        ? const AsyncValue<List<Pdv>>.data(<Pdv>[])
-        : ref.watch(pdvsProvider(null));
-    final depots = buyer
-        ? const AsyncValue<List<Depot>>.data(<Depot>[])
-        : ref.watch(depotsProvider);
+    // A buyer orders for its own para: neither the stores nor the grossistes are read for it.
+    final pdvs = buyer ? null : ref.watch(pdvsProvider(null));
+    final depots = buyer ? null : ref.watch(depotsProvider);
     // Active points of sale and grossistes of the region, the place's own name first.
     final places = <(String, String, IconData)>[
-      for (final p in pdvs.value ?? const <Pdv>[])
+      for (final p in pdvs?.value ?? const <Pdv>[])
         if (p.status == ItemStatus.active) (p.id, p.name, LucideIcons.store),
-      for (final d in depots.value ?? const <Depot>[])
+      for (final d in depots?.value ?? const <Depot>[])
         if (d.active) (d.id, d.name, LucideIcons.warehouse),
     ];
     return DraftLeaveNote(
@@ -231,7 +228,7 @@ class _RequestRestockScreenState extends ConsumerState<RequestRestockScreen> {
               )
             else
               AsyncBody(
-                value: pdvs,
+                value: pdvs!,
                 onRetry: () {
                   ref
                     ..invalidate(pdvsProvider(null))
@@ -328,7 +325,7 @@ class _RequestRestockScreenState extends ConsumerState<RequestRestockScreen> {
             ],
             // A responsable the admin allowed may suggest where a store's goods come from.
             if (ref.watch(meProvider).canChooseSupplier &&
-                (pdvs.value ?? const <Pdv>[]).any((p) => p.id == _destId)) ...[
+                (pdvs?.value ?? const <Pdv>[]).any((p) => p.id == _destId)) ...[
               AppCard(
                 onTap: _chooseSupplier,
                 child: Row(
