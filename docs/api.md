@@ -235,3 +235,21 @@ Round three: `GET /v1/approvals/history`, `POST /v1/stock/adjust`, `POST /v1/sto
 - `POST /v1/reward-rules` refuses a rate above **100 TND per unit** (`422 REWARD_TOO_HIGH`). Above **10 TND** it answers `409 REWARD_CONFIRMATION_REQUIRED` (`details: {amountMillimes, thresholdMillimes}`) unless the body carries `confirmHigh: true`. Existing rules are not touched, and cancelling a rule always works.
 - A sale that earns more than **50 TND** tells every admin at once (`sale.reward.high`, not sent for the test region).
 - `POST /v1/sales/:id/reprice {reason}` (admin only) recomputes an active sale's reward from the rates of its own day, keeps the sale, its units and the stock, writes the wallet difference as a `CORRECTION` entry and a revision (old and new `unitRewardMillimes`), and tells the seller (`sale.repriced`). `409 NOTHING_TO_REPRICE` when the rates already match.
+
+## Planning (2026-11)
+
+| Method | Path | Who |
+|---|---|---|
+| GET | `/v1/visits?from&to[&responsableId&regionId&status]` | responsable (own), admin (read) |
+| POST | `/v1/visits` `{targetKind: PDV\|DEPOT, targetId, kind, start, durationMinutes, note?, allowOverlap?}` | responsable |
+| GET / PATCH | `/v1/visits/:id` | responsable (own), admin reads |
+| POST | `/v1/visits/:id/cancel` | responsable |
+| POST | `/v1/visits/:id/check-in` / `check-out` `{occurredAt?, latitude?, longitude?, accuracyMeters?, mocked?, reason?}` | responsable |
+| POST | `/v1/visits/unplanned` `{id, targetKind, targetId, kind, ...same}` | responsable |
+| PUT | `/v1/planning/positions/:pdv\|depot/:id` `{latitude, longitude, accuracyMeters?, locked?}` | responsable (once, ≤ 50 m), admin |
+| GET / PUT | `/v1/planning/preferences` `{leadMinutes: 0\|15\|30\|60\|120, eveningSummary}` | responsable |
+| GET / POST | `/v1/planning/calendar-link` / `calendar-link/rotate` | responsable |
+| GET | `/v1/planning/overview?from&to[&regionId]` | admin |
+| GET | `/cal/<43-character token>.ics` (public, secret link, `Cache-Control: private, no-store`) | calendar apps |
+
+Visits: `status` PLANNED, ON_SITE, DONE, MISSED, CANCELLED; `revision` grows with every change (the calendar replaces its copy). Each event: `kind` CHECK_IN or CHECK_OUT, `verdict` VERIFIED, OUT_OF_RANGE, NO_FIX, NO_POSITION or SANDBOX, `distanceM`, `flags` (MOCK_LOCATION, LATE_SYNC, LOW_ACCURACY). Errors: `VISIT_OVERLAP` (409, resend with `allowOverlap`), `POSITION_REASON_REQUIRED` (422: arrival away or without a position needs `reason`), `TOO_EARLY` (more than one hour before), `WRONG_DAY`, `POSITION_FIXED` (403), `LOW_ACCURACY`, `OUTSIDE_TUNISIA`, `PLACE_NOT_FOUND`, `TOO_MANY_VISITS`, `INVALID_LEAD`. A check-in or check-out sent twice returns the first; the phone picks the id of an unplanned visit.

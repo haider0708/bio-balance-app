@@ -153,6 +153,13 @@
   },
   "byProduct": "By product",
   "byRegion": "region",
+  "calendarAdd": "Add to my calendar",
+  "calendarBody": "Add your visits to Apple Calendar or Google Calendar: they appear there and update by themselves. Calendar apps refresh every few hours: the BioBalance alerts are the reliable ones.",
+  "calendarCopied": "Link copied",
+  "calendarCopy": "Copy the link",
+  "calendarRenew": "Make a new link",
+  "calendarRenewAsk": "The old link will stop working in your calendar app. Continue?",
+  "calendarTitle": "Your calendar app",
   "call": "Call",
   "cameraUnavailable": "The camera is not available. Check the permission in your phone settings.",
   "cancel": "Cancel",
@@ -300,6 +307,7 @@
   "errorGeneric": "Something went wrong. Please try again.",
   "errorOffline": "No connection. Check your internet and try again.",
   "errorServer": "The service is temporarily unavailable. Try again shortly.",
+  "eveningSummary": "Evening summary of tomorrow's visits",
   "everyone": "Everyone",
   "exportCsv": "Export to a spreadsheet",
   "family": "Family",
@@ -308,6 +316,9 @@
   "fileAttached": "File attached",
   "filterDone": "Completed",
   "filterOpen": "In progress",
+  "flagImprecise": "Imprecise position",
+  "flagLate": "Sent long after the tap",
+  "flagMock": "Position from a location-faking app",
   "forgotCodeSubtitle": "Enter the code from the email and your new password.",
   "forgotPassword": "Forgot your password?",
   "forgotSubtitle": "We will email you a code, valid for 30 minutes.",
@@ -336,6 +347,26 @@
     }
   },
   "history": "History",
+  "homeNextVisit": "Next visit at {time} · {place}",
+  "@homeNextVisit": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      },
+      "place": {
+        "type": "String"
+      }
+    }
+  },
+  "homeOnSite": "You are at {place}",
+  "@homeOnSite": {
+    "placeholders": {
+      "place": {
+        "type": "String"
+      }
+    }
+  },
+  "homeVisitHint": "Open your planning",
   "howToUse": "How to use",
   "inRegions": "In these regions",
   "inactive": "Inactive",
@@ -367,6 +398,15 @@
       }
     }
   },
+  "locationContinueWithout": "Check in without a position",
+  "locationDeniedBody": "BioBalance reads your position only when you tap “I'm here” or “I'm leaving”, to confirm you are at the place. Allow it in your phone's settings, or check in without a position and say why.",
+  "locationDeniedTitle": "Position not allowed",
+  "locationOffBody": "Turn location on in your phone, or check in without a position and say why.",
+  "locationOffTitle": "Location is off",
+  "locationOpenSettings": "Open settings",
+  "locationPrivacy": "Your position is read only when you tap “I'm here” or “I'm leaving”, and kept 12 months. Nobody follows you in between.",
+  "locationUnavailableBody": "Go outdoors or near a window and try again, or check in without a position and say why.",
+  "locationUnavailableTitle": "No position found",
   "lowStock": "Products almost out",
   "manageTraining": "Manage courses",
   "markAllRead": "Mark all read",
@@ -468,6 +508,22 @@
   "openVideo": "Watch the video",
   "optional": "optional",
   "orVideoLink": "Or a video link",
+  "outboxRefused": "A check was refused: {reason}",
+  "@outboxRefused": {
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
+  "outboxWaiting": "{count, plural, =1{1 check waiting to be sent} other{{count} checks waiting to be sent}}",
+  "@outboxWaiting": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "overlapBody": "These days are already covered:\n{details}\n\nReplace it with the new value?",
   "@overlapBody": {
     "placeholders": {
@@ -477,6 +533,23 @@
     }
   },
   "overlapTitle": "Another value already applies",
+  "overviewAtPlace": "At the place",
+  "overviewAverage": "Average time on site: {count} min",
+  "@overviewAverage": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "overviewAway": "Away",
+  "overviewDone": "Done",
+  "overviewEmpty": "No visit in this period",
+  "overviewMissed": "Missed",
+  "overviewNoPosition": "No position",
+  "overviewPlanned": "Planned",
+  "overviewRange30": "30 days",
+  "overviewRange7": "7 days",
   "packageSize": "Size",
   "paidOn": "Paid on {date}",
   "@paidOn": {
@@ -555,9 +628,67 @@
   "pinAnnouncement": "Pin to the top",
   "pinAnnouncementHint": "It stays at the top of their notifications.",
   "pinned": "Pinned",
+  "planningAtStore": "I'm at a place now",
+  "planningDoneCount": "{count} done",
+  "@planningDoneCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "planningNoVisits": "No visit this day",
+  "planningNoVisitsHint": "Plan your visits here: counts, deliveries, training.",
+  "planningOverviewTitle": "Visits of the responsables",
+  "planningPickDay": "Choose a day",
+  "planningPlanVisit": "Plan a visit",
+  "planningSettingsTitle": "Planning settings",
+  "planningTitle": "Planning",
+  "planningVisitCount": "{count, plural, =0{No visits} =1{1 visit} other{{count} visits}}",
+  "@planningVisitCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "pointOfSale": "Point of sale",
+  "positionSaved": "Position saved",
+  "positionSetBody": "{place} has no position yet. Use where you are now (precision {meters} m)? Only the admin can change it afterwards.",
+  "@positionSetBody": {
+    "placeholders": {
+      "place": {
+        "type": "String"
+      },
+      "meters": {
+        "type": "int"
+      }
+    }
+  },
+  "positionSetTitle": "Save this place's position?",
+  "positionSetYes": "Use this position",
+  "positionTooPoor": "The position is not precise enough ({meters} m). Go outdoors and try again.",
+  "@positionTooPoor": {
+    "placeholders": {
+      "meters": {
+        "type": "int"
+      }
+    }
+  },
   "precautions": "Precautions",
   "prepareAndShip": "Prepare and ship",
+  "presenceNoFix": "No position",
+  "presenceNoPosition": "Place has no position yet",
+  "presenceOutOfRange": "Away from the place ({distance})",
+  "@presenceOutOfRange": {
+    "placeholders": {
+      "distance": {
+        "type": "String"
+      }
+    }
+  },
+  "presenceSandbox": "Test position",
+  "presenceVerified": "At the place",
   "productActive": "Available",
   "productActiveHint": "Hidden from sales and orders when off.",
   "productName": "Product name",
@@ -629,6 +760,16 @@
   "rejectReasonHint": "Explain what to fix so it can be sent again.",
   "rejectReasonTitle": "Why is it rejected?",
   "rejected": "Rejected",
+  "reminderBefore": "Reminder before a visit",
+  "reminderMinutes": "{count} min before",
+  "@reminderMinutes": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "reminderNone": "None",
   "remove": "Remove",
   "replaceValue": "Replace",
   "reportsTitle": "Reports",
@@ -908,12 +1049,82 @@
       }
     }
   },
+  "unplannedTitle": "Where are you?",
   "unpublish": "Unpublish",
   "upcoming": "Upcoming",
   "uploadPdf": "Upload a PDF",
   "uploadVideo": "Upload a video (MP4)",
   "videoUnavailable": "This video cannot be played.",
   "viewSales": "View sales",
+  "visitArrived": "Arrival recorded",
+  "visitArrivedAt": "Arrived at {time}",
+  "@visitArrivedAt": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "visitAvailableFrom": "Available from {time}",
+  "@visitAvailableFrom": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "visitAvailableOnDay": "Available on the day of the visit",
+  "visitCancel": "Cancel this visit",
+  "visitCancelAsk": "Cancel this visit?",
+  "visitCancelled": "Visit cancelled",
+  "visitCheckIn": "I'm here",
+  "visitCheckOut": "I'm leaving",
+  "visitChoosePlace": "Choose a store or a grossiste",
+  "visitDate": "Date",
+  "visitDetailTitle": "Visit",
+  "visitDuration": "Duration",
+  "visitFormEdit": "Change the visit",
+  "visitGettingPosition": "Getting your position…",
+  "visitKeepBoth": "Keep both",
+  "visitKindCount": "Stock count",
+  "visitKindDelivery": "Delivery",
+  "visitKindFollowUp": "Follow-up",
+  "visitKindOther": "Other",
+  "visitKindTraining": "Training",
+  "visitLeft": "Departure recorded",
+  "visitLeftAt": "Left at {time}",
+  "@visitLeftAt": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "visitNoteHint": "What to do there (optional)",
+  "visitOpenInMaps": "Open in Maps",
+  "visitOverlapBody": "Another visit covers some of this time. Keep both?",
+  "visitOverlapTitle": "Another visit at this time",
+  "visitPlace": "Place",
+  "visitReasonHint": "For example: the store moved, no signal…",
+  "visitReasonSend": "Send",
+  "visitReasonTitle": "Why does the position not match?",
+  "visitSaved": "Visit saved",
+  "visitSavedOffline": "No connection: saved on the phone, it will be sent",
+  "visitStatusCancelled": "Cancelled",
+  "visitStatusDone": "Done",
+  "visitStatusMissed": "Missed",
+  "visitStatusOnSite": "On site",
+  "visitStatusPlanned": "Planned",
+  "visitType": "Type",
+  "visitUnplanned": "Not planned",
+  "visitWithWho": "By {name}",
+  "@visitWithWho": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "waitingAdmin": "{count, plural, =1{1 item is waiting for BioBalance to approve} other{{count} items are waiting for BioBalance to approve}}",
   "@waitingAdmin": {
     "placeholders": {

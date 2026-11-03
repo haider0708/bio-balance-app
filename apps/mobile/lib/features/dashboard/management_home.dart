@@ -9,6 +9,7 @@ import '../../core/api/json.dart';
 import '../../core/auth/me.dart';
 import '../../core/auth/session.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/util/dates.dart';
 import '../../core/util/money.dart';
 import '../../core/widgets/async_body.dart';
 import '../../core/widgets/components.dart';
@@ -16,6 +17,8 @@ import '../../l10n/app_localizations.dart';
 import '../analytics/explorer_screen.dart' show storesBoardLocation;
 import '../analytics/lens.dart';
 import '../notifications/notifications_repository.dart';
+import '../planning/planning_models.dart';
+import '../planning/planning_repository.dart';
 import 'dashboard_repository.dart';
 import 'dashboard_widgets.dart';
 import 'home_scaffold.dart';
@@ -46,6 +49,43 @@ class ManagementHome extends ConsumerWidget {
         onRetry: () => ref.invalidate(dashboardProvider(null)),
         builder: (d) => _Body(data: d, admin: admin),
       ),
+    );
+  }
+}
+
+/// A responsable's day at a glance: where they are, or the next visit planned today. Nothing when there is none.
+class _TodayVisit extends ConsumerWidget {
+  const _TodayVisit({required this.day});
+
+  final String day;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final t = AppLocalizations.of(context);
+    final visits = ref.watch(
+      visitsProvider((from: day, to: day, responsableId: null, regionId: null)),
+    );
+    final list = visits.value ?? const <Visit>[];
+    final onSite = list
+        .where((v) => v.status == VisitStatus.onSite)
+        .firstOrNull;
+    final next = list
+        .where((v) => v.status == VisitStatus.planned)
+        .where((v) => v.plannedEnd.isAfter(DateTime.now()))
+        .firstOrNull;
+    final shown = onSite ?? next;
+    if (shown == null) return const SizedBox.shrink();
+    return _Hero(
+      icon: LucideIcons.calendarDays,
+      title: onSite != null
+          ? t.homeOnSite(onSite.target.name)
+          : t.homeNextVisit(
+              Dates.time(shown.plannedStart, t.localeName),
+              shown.target.name,
+            ),
+      subtitle: t.homeVisitHint,
+      highlight: onSite != null,
+      onTap: () => context.push('/planning/visits/${shown.id}'),
     );
   }
 }
@@ -90,6 +130,7 @@ class _Body extends ConsumerWidget {
             highlight: false,
             onTap: () => context.go('/pdvs'),
           ),
+        if (!admin) ...[const Gap(12), _TodayVisit(day: day)],
         if (!admin && restocks.integer('SHIPPED') > 0) ...[
           const Gap(12),
           _Hero(

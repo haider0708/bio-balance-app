@@ -1,6 +1,6 @@
 # Project status (the living file: both machines update it)
 
-Last updated: 2026-11-03, by the Mac session.
+Last updated: 2026-11-03 (night), by the Mac session.
 
 ## Versions and what runs
 
@@ -35,6 +35,8 @@ The network was emptied for its real start (`docs/runbook.md`, "The test region"
 - Plugin `open_filex` has no Swift Package support yet, so the iPhone build still needs CocoaPods.
 
 ## Log
+
+- 2026-11-03, night (Mac): **Planning for the responsables** (`docs/functional-specification.md`, "Planning for the responsables"). **Server: deployed** (`1f4ecd43`, migration `202611030001_planning`, nothing visible until the app ships): visits, the places' positions, check-in/out evidence (append-only, 12 months), the secret calendar link (`/cal/<token>.ics`), reminders (60 min by default), the evening alert (20:00), the day's closing (23:30), the admin's read-only overview, tests (server 336, app 156). **App: written and tested, NOT released**: calendar, plan form, detail with "I'm here" / "I'm leaving" (position read once at the tap, offline queue), settings (reminder, calendar link), the admin overview, a home card; it needs **build 44** (new location permission). Before that build is submitted: **Google Play Data safety** (add Precise/Approximate location, optional, not shared) and **App Privacy** (Precise Location, linked, not tracking), exact answers in `docs/store-publishing.md`; the privacy page already says it (deployed with the next server release); tell the responsables what is recorded. Not done on purpose: a per-visit `.ics` (the calendar link does it), recurring visits, a photo at check-in, maps inside the app.
 
 - 2026-11-03 (Mac): **Reward safety, false alarms, listing fix.** (1) On 30 October a reward of 3000 TND per unit (3,000,000 millimes, a typo for 3) was live for about 5.5 hours for the family "Soins capillaires": 4 sales were credited 3000 TND; the 3 real ones were voided by the admin (the sellers lost the sale and the 3 TND), the demo seller's 3012 TND sale is still in the hidden test region. No payout was approved meanwhile. Fixed in the server and app code: a rate above 100 TND is refused, above 10 TND it needs a confirmation (the form warns), one sale over 50 TND alerts the admins, and the admin can re-price a sale without voiding it (`docs/api.md`, last section). (2) The "service down / back" emails were false alarms: the server's monitor reported `MONITOR_STALE` for about a second every minute while its check ran; fixed, and the external monitor now confirms twice before alerting (`docs/runbook.md`). (3) iOS bug found in app errors: the notifications screen used `ref` after it closed (fixed). (4) **Google Play rejected 3.4.0 (43) on 2 November** (Misleading claims): the description and one screenshot showed admin features the reviewers cannot reach; the descriptions and screenshots now describe only the team member and the responsable (`docs/store-publishing.md`); resubmit the listing in the Play Console. (5) **Apple rejected 3.4.0 (43) on 28 October** (3.2 again); the unlisted-distribution request of 23 October has had no answer; do not resubmit until it does. TestFlight (build 43) serves the team meanwhile. The old demo test no longer fails between midnight and 10:00 Tunis time. Not built: build 44 waits for the stores.
 

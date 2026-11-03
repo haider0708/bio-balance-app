@@ -70,6 +70,12 @@ List<ConsoleNavEntry> _responsableEntries(AppLocalizations t) => [
     label: t.tabRestocks,
     path: '/restocks',
   ),
+  ConsoleNavEntry.item(
+    icon: LucideIcons.calendarDays,
+    label: t.planningTitle,
+    path: '/planning',
+    matchPrefixes: ['/planning'],
+  ),
   ConsoleNavEntry.section(t.navSectionInsights),
   ConsoleNavEntry.item(
     icon: LucideIcons.chartNoAxesColumn,
@@ -143,6 +149,12 @@ List<ConsoleNavEntry> _adminEntries(AppLocalizations t) => [
     label: t.tabReports,
     path: '/reports',
     matchPrefixes: ['/stock-attention', '/explore'],
+  ),
+  ConsoleNavEntry.item(
+    icon: LucideIcons.mapPinCheck,
+    label: t.planningOverviewTitle,
+    path: '/planning/overview',
+    matchPrefixes: ['/planning'],
   ),
   ConsoleNavEntry.section(t.navSectionCommerce),
   ConsoleNavEntry.item(

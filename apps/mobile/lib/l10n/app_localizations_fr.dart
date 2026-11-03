@@ -277,6 +277,29 @@ class AppLocalizationsFr extends AppLocalizations {
   String get byRegion => 'région';
 
   @override
+  String get calendarAdd => 'Ajouter à mon agenda';
+
+  @override
+  String get calendarBody =>
+      'Ajoutez vos visites à Calendrier Apple ou Google Agenda : elles s’y affichent et se mettent à jour toutes seules. Les agendas se rafraîchissent toutes les quelques heures : les alertes BioBalance sont celles sur lesquelles compter.';
+
+  @override
+  String get calendarCopied => 'Lien copié';
+
+  @override
+  String get calendarCopy => 'Copier le lien';
+
+  @override
+  String get calendarRenew => 'Créer un nouveau lien';
+
+  @override
+  String get calendarRenewAsk =>
+      'L’ancien lien ne marchera plus dans votre agenda. Continuer ?';
+
+  @override
+  String get calendarTitle => 'Votre agenda';
+
+  @override
   String get call => 'Appeler';
 
   @override
@@ -620,6 +643,9 @@ class AppLocalizationsFr extends AppLocalizations {
       'Le service est momentanément indisponible. Réessayez bientôt.';
 
   @override
+  String get eveningSummary => 'Résumé du soir des visites du lendemain';
+
+  @override
   String get everyone => 'Tout le monde';
 
   @override
@@ -642,6 +668,15 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get filterOpen => 'En cours';
+
+  @override
+  String get flagImprecise => 'Position imprécise';
+
+  @override
+  String get flagLate => 'Envoyé longtemps après';
+
+  @override
+  String get flagMock => 'Position issue d’une appli de fausse localisation';
 
   @override
   String get forgotCodeSubtitle =>
@@ -690,6 +725,19 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get history => 'Historique';
+
+  @override
+  String homeNextVisit(String time, String place) {
+    return 'Prochaine visite à $time · $place';
+  }
+
+  @override
+  String homeOnSite(String place) {
+    return 'Vous êtes à $place';
+  }
+
+  @override
+  String get homeVisitHint => 'Ouvrir votre planning';
 
   @override
   String get howToUse => 'Conseils d’utilisation';
@@ -756,6 +804,37 @@ class AppLocalizationsFr extends AppLocalizations {
   String lessonsDone(int done, int total) {
     return '$done leçons sur $total';
   }
+
+  @override
+  String get locationContinueWithout => 'Valider sans position';
+
+  @override
+  String get locationDeniedBody =>
+      'BioBalance ne lit votre position que lorsque vous touchez « Je suis là » ou « Je pars », pour confirmer que vous êtes sur place. Autorisez-la dans les réglages du téléphone, ou validez sans position en disant pourquoi.';
+
+  @override
+  String get locationDeniedTitle => 'Position non autorisée';
+
+  @override
+  String get locationOffBody =>
+      'Activez la localisation du téléphone, ou validez sans position en disant pourquoi.';
+
+  @override
+  String get locationOffTitle => 'La localisation est désactivée';
+
+  @override
+  String get locationOpenSettings => 'Ouvrir les réglages';
+
+  @override
+  String get locationPrivacy =>
+      'Votre position n’est lue que lorsque vous touchez « Je suis là » ou « Je pars », et conservée 12 mois. Personne ne vous suit entre-temps.';
+
+  @override
+  String get locationUnavailableBody =>
+      'Sortez ou approchez-vous d’une fenêtre et réessayez, ou validez sans position en disant pourquoi.';
+
+  @override
+  String get locationUnavailableTitle => 'Aucune position trouvée';
 
   @override
   String get lowStock => 'Produits presque épuisés';
@@ -1018,12 +1097,60 @@ class AppLocalizationsFr extends AppLocalizations {
   String get orVideoLink => 'Ou un lien vidéo';
 
   @override
+  String outboxRefused(String reason) {
+    return 'Une validation a été refusée : $reason';
+  }
+
+  @override
+  String outboxWaiting(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count validations en attente d’envoi',
+      one: '$count validation en attente d’envoi',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String overlapBody(String details) {
     return 'Ces jours sont déjà couverts :\n$details\n\nLa remplacer par la nouvelle valeur ?';
   }
 
   @override
   String get overlapTitle => 'Une autre valeur s’applique déjà';
+
+  @override
+  String get overviewAtPlace => 'Sur place';
+
+  @override
+  String overviewAverage(int count) {
+    return 'Temps moyen sur place : $count min';
+  }
+
+  @override
+  String get overviewAway => 'Loin';
+
+  @override
+  String get overviewDone => 'Faites';
+
+  @override
+  String get overviewEmpty => 'Aucune visite sur cette période';
+
+  @override
+  String get overviewMissed => 'Manquées';
+
+  @override
+  String get overviewNoPosition => 'Sans position';
+
+  @override
+  String get overviewPlanned => 'Prévues';
+
+  @override
+  String get overviewRange30 => '30 jours';
+
+  @override
+  String get overviewRange7 => '7 jours';
 
   @override
   String get packageSize => 'Contenance';
@@ -1184,13 +1311,91 @@ class AppLocalizationsFr extends AppLocalizations {
   String get pinned => 'Épinglées';
 
   @override
+  String get planningAtStore => 'Je suis sur un lieu';
+
+  @override
+  String planningDoneCount(int count) {
+    return '$count faites';
+  }
+
+  @override
+  String get planningNoVisits => 'Aucune visite ce jour';
+
+  @override
+  String get planningNoVisitsHint =>
+      'Planifiez ici vos visites : comptages, livraisons, formations.';
+
+  @override
+  String get planningOverviewTitle => 'Visites des responsables';
+
+  @override
+  String get planningPickDay => 'Choisir un jour';
+
+  @override
+  String get planningPlanVisit => 'Planifier une visite';
+
+  @override
+  String get planningSettingsTitle => 'Réglages du planning';
+
+  @override
+  String get planningTitle => 'Planning';
+
+  @override
+  String planningVisitCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count visites',
+      one: '1 visite',
+      zero: 'Aucune visite',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get pointOfSale => 'Point de vente';
+
+  @override
+  String get positionSaved => 'Position enregistrée';
+
+  @override
+  String positionSetBody(String place, int meters) {
+    return '$place n’a pas encore de position. Utiliser l’endroit où vous êtes (précision $meters m) ? Seul l’administrateur pourra la changer ensuite.';
+  }
+
+  @override
+  String get positionSetTitle => 'Enregistrer la position de ce lieu ?';
+
+  @override
+  String get positionSetYes => 'Utiliser cette position';
+
+  @override
+  String positionTooPoor(int meters) {
+    return 'La position n’est pas assez précise ($meters m). Sortez et réessayez.';
+  }
 
   @override
   String get precautions => 'Précautions';
 
   @override
   String get prepareAndShip => 'Préparer et expédier';
+
+  @override
+  String get presenceNoFix => 'Sans position';
+
+  @override
+  String get presenceNoPosition => 'Lieu sans position';
+
+  @override
+  String presenceOutOfRange(String distance) {
+    return 'Loin du lieu ($distance)';
+  }
+
+  @override
+  String get presenceSandbox => 'Position de test';
+
+  @override
+  String get presenceVerified => 'Sur place';
 
   @override
   String get productActive => 'Disponible';
@@ -1323,6 +1528,17 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get rejected => 'Refusé';
+
+  @override
+  String get reminderBefore => 'Rappel avant une visite';
+
+  @override
+  String reminderMinutes(int count) {
+    return '$count min avant';
+  }
+
+  @override
+  String get reminderNone => 'Aucun';
 
   @override
   String get remove => 'Retirer';
@@ -1872,6 +2088,9 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String get unplannedTitle => 'Où êtes-vous ?';
+
+  @override
   String get unpublish => 'Dépublier';
 
   @override
@@ -1888,6 +2107,141 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get viewSales => 'Voir les ventes';
+
+  @override
+  String get visitArrived => 'Arrivée enregistrée';
+
+  @override
+  String visitArrivedAt(String time) {
+    return 'Arrivé à $time';
+  }
+
+  @override
+  String visitAvailableFrom(String time) {
+    return 'Disponible à partir de $time';
+  }
+
+  @override
+  String get visitAvailableOnDay => 'Disponible le jour de la visite';
+
+  @override
+  String get visitCancel => 'Annuler cette visite';
+
+  @override
+  String get visitCancelAsk => 'Annuler cette visite ?';
+
+  @override
+  String get visitCancelled => 'Visite annulée';
+
+  @override
+  String get visitCheckIn => 'Je suis là';
+
+  @override
+  String get visitCheckOut => 'Je pars';
+
+  @override
+  String get visitChoosePlace => 'Choisir un magasin ou un grossiste';
+
+  @override
+  String get visitDate => 'Date';
+
+  @override
+  String get visitDetailTitle => 'Visite';
+
+  @override
+  String get visitDuration => 'Durée';
+
+  @override
+  String get visitFormEdit => 'Modifier la visite';
+
+  @override
+  String get visitGettingPosition => 'Recherche de votre position…';
+
+  @override
+  String get visitKeepBoth => 'Garder les deux';
+
+  @override
+  String get visitKindCount => 'Comptage de stock';
+
+  @override
+  String get visitKindDelivery => 'Livraison';
+
+  @override
+  String get visitKindFollowUp => 'Suivi';
+
+  @override
+  String get visitKindOther => 'Autre';
+
+  @override
+  String get visitKindTraining => 'Formation';
+
+  @override
+  String get visitLeft => 'Départ enregistré';
+
+  @override
+  String visitLeftAt(String time) {
+    return 'Parti à $time';
+  }
+
+  @override
+  String get visitNoteHint => 'Ce qu’il y a à faire (facultatif)';
+
+  @override
+  String get visitOpenInMaps => 'Ouvrir dans Plans';
+
+  @override
+  String get visitOverlapBody =>
+      'Une autre visite couvre une partie de ce créneau. Garder les deux ?';
+
+  @override
+  String get visitOverlapTitle => 'Une autre visite à cette heure';
+
+  @override
+  String get visitPlace => 'Lieu';
+
+  @override
+  String get visitReasonHint =>
+      'Par exemple : le magasin a déménagé, pas de signal…';
+
+  @override
+  String get visitReasonSend => 'Envoyer';
+
+  @override
+  String get visitReasonTitle =>
+      'Pourquoi la position ne correspond-elle pas ?';
+
+  @override
+  String get visitSaved => 'Visite enregistrée';
+
+  @override
+  String get visitSavedOffline =>
+      'Pas de connexion : enregistré sur le téléphone, il sera envoyé';
+
+  @override
+  String get visitStatusCancelled => 'Annulée';
+
+  @override
+  String get visitStatusDone => 'Terminée';
+
+  @override
+  String get visitStatusMissed => 'Manquée';
+
+  @override
+  String get visitStatusOnSite => 'Sur place';
+
+  @override
+  String get visitStatusPlanned => 'Prévue';
+
+  @override
+  String get visitType => 'Type';
+
+  @override
+  String get visitUnplanned => 'Non planifiée';
+
+  @override
+  String visitWithWho(String name) {
+    return 'Par $name';
+  }
 
   @override
   String waitingAdmin(int count) {

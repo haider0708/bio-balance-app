@@ -470,6 +470,48 @@ abstract class AppLocalizations {
   /// **'region'**
   String get byRegion;
 
+  /// No description provided for @calendarAdd.
+  ///
+  /// In en, this message translates to:
+  /// **'Add to my calendar'**
+  String get calendarAdd;
+
+  /// No description provided for @calendarBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Add your visits to Apple Calendar or Google Calendar: they appear there and update by themselves. Calendar apps refresh every few hours: the BioBalance alerts are the reliable ones.'**
+  String get calendarBody;
+
+  /// No description provided for @calendarCopied.
+  ///
+  /// In en, this message translates to:
+  /// **'Link copied'**
+  String get calendarCopied;
+
+  /// No description provided for @calendarCopy.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy the link'**
+  String get calendarCopy;
+
+  /// No description provided for @calendarRenew.
+  ///
+  /// In en, this message translates to:
+  /// **'Make a new link'**
+  String get calendarRenew;
+
+  /// No description provided for @calendarRenewAsk.
+  ///
+  /// In en, this message translates to:
+  /// **'The old link will stop working in your calendar app. Continue?'**
+  String get calendarRenewAsk;
+
+  /// No description provided for @calendarTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Your calendar app'**
+  String get calendarTitle;
+
   /// No description provided for @call.
   ///
   /// In en, this message translates to:
@@ -1082,6 +1124,12 @@ abstract class AppLocalizations {
   /// **'The service is temporarily unavailable. Try again shortly.'**
   String get errorServer;
 
+  /// No description provided for @eveningSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Evening summary of tomorrow\'s visits'**
+  String get eveningSummary;
+
   /// No description provided for @everyone.
   ///
   /// In en, this message translates to:
@@ -1129,6 +1177,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'In progress'**
   String get filterOpen;
+
+  /// No description provided for @flagImprecise.
+  ///
+  /// In en, this message translates to:
+  /// **'Imprecise position'**
+  String get flagImprecise;
+
+  /// No description provided for @flagLate.
+  ///
+  /// In en, this message translates to:
+  /// **'Sent long after the tap'**
+  String get flagLate;
+
+  /// No description provided for @flagMock.
+  ///
+  /// In en, this message translates to:
+  /// **'Position from a location-faking app'**
+  String get flagMock;
 
   /// No description provided for @forgotCodeSubtitle.
   ///
@@ -1213,6 +1279,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'History'**
   String get history;
+
+  /// No description provided for @homeNextVisit.
+  ///
+  /// In en, this message translates to:
+  /// **'Next visit at {time} · {place}'**
+  String homeNextVisit(String time, String place);
+
+  /// No description provided for @homeOnSite.
+  ///
+  /// In en, this message translates to:
+  /// **'You are at {place}'**
+  String homeOnSite(String place);
+
+  /// No description provided for @homeVisitHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Open your planning'**
+  String get homeVisitHint;
 
   /// No description provided for @howToUse.
   ///
@@ -1339,6 +1423,60 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{done} of {total} lessons'**
   String lessonsDone(int done, int total);
+
+  /// No description provided for @locationContinueWithout.
+  ///
+  /// In en, this message translates to:
+  /// **'Check in without a position'**
+  String get locationContinueWithout;
+
+  /// No description provided for @locationDeniedBody.
+  ///
+  /// In en, this message translates to:
+  /// **'BioBalance reads your position only when you tap “I\'m here” or “I\'m leaving”, to confirm you are at the place. Allow it in your phone\'s settings, or check in without a position and say why.'**
+  String get locationDeniedBody;
+
+  /// No description provided for @locationDeniedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Position not allowed'**
+  String get locationDeniedTitle;
+
+  /// No description provided for @locationOffBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn location on in your phone, or check in without a position and say why.'**
+  String get locationOffBody;
+
+  /// No description provided for @locationOffTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Location is off'**
+  String get locationOffTitle;
+
+  /// No description provided for @locationOpenSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Open settings'**
+  String get locationOpenSettings;
+
+  /// No description provided for @locationPrivacy.
+  ///
+  /// In en, this message translates to:
+  /// **'Your position is read only when you tap “I\'m here” or “I\'m leaving”, and kept 12 months. Nobody follows you in between.'**
+  String get locationPrivacy;
+
+  /// No description provided for @locationUnavailableBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Go outdoors or near a window and try again, or check in without a position and say why.'**
+  String get locationUnavailableBody;
+
+  /// No description provided for @locationUnavailableTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'No position found'**
+  String get locationUnavailableTitle;
 
   /// No description provided for @lowStock.
   ///
@@ -1820,6 +1958,18 @@ abstract class AppLocalizations {
   /// **'Or a video link'**
   String get orVideoLink;
 
+  /// No description provided for @outboxRefused.
+  ///
+  /// In en, this message translates to:
+  /// **'A check was refused: {reason}'**
+  String outboxRefused(String reason);
+
+  /// No description provided for @outboxWaiting.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 check waiting to be sent} other{{count} checks waiting to be sent}}'**
+  String outboxWaiting(int count);
+
   /// No description provided for @overlapBody.
   ///
   /// In en, this message translates to:
@@ -1831,6 +1981,66 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Another value already applies'**
   String get overlapTitle;
+
+  /// No description provided for @overviewAtPlace.
+  ///
+  /// In en, this message translates to:
+  /// **'At the place'**
+  String get overviewAtPlace;
+
+  /// No description provided for @overviewAverage.
+  ///
+  /// In en, this message translates to:
+  /// **'Average time on site: {count} min'**
+  String overviewAverage(int count);
+
+  /// No description provided for @overviewAway.
+  ///
+  /// In en, this message translates to:
+  /// **'Away'**
+  String get overviewAway;
+
+  /// No description provided for @overviewDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get overviewDone;
+
+  /// No description provided for @overviewEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No visit in this period'**
+  String get overviewEmpty;
+
+  /// No description provided for @overviewMissed.
+  ///
+  /// In en, this message translates to:
+  /// **'Missed'**
+  String get overviewMissed;
+
+  /// No description provided for @overviewNoPosition.
+  ///
+  /// In en, this message translates to:
+  /// **'No position'**
+  String get overviewNoPosition;
+
+  /// No description provided for @overviewPlanned.
+  ///
+  /// In en, this message translates to:
+  /// **'Planned'**
+  String get overviewPlanned;
+
+  /// No description provided for @overviewRange30.
+  ///
+  /// In en, this message translates to:
+  /// **'30 days'**
+  String get overviewRange30;
+
+  /// No description provided for @overviewRange7.
+  ///
+  /// In en, this message translates to:
+  /// **'7 days'**
+  String get overviewRange7;
 
   /// No description provided for @packageSize.
   ///
@@ -2090,11 +2300,101 @@ abstract class AppLocalizations {
   /// **'Pinned'**
   String get pinned;
 
+  /// No description provided for @planningAtStore.
+  ///
+  /// In en, this message translates to:
+  /// **'I\'m at a place now'**
+  String get planningAtStore;
+
+  /// No description provided for @planningDoneCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} done'**
+  String planningDoneCount(int count);
+
+  /// No description provided for @planningNoVisits.
+  ///
+  /// In en, this message translates to:
+  /// **'No visit this day'**
+  String get planningNoVisits;
+
+  /// No description provided for @planningNoVisitsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Plan your visits here: counts, deliveries, training.'**
+  String get planningNoVisitsHint;
+
+  /// No description provided for @planningOverviewTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Visits of the responsables'**
+  String get planningOverviewTitle;
+
+  /// No description provided for @planningPickDay.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a day'**
+  String get planningPickDay;
+
+  /// No description provided for @planningPlanVisit.
+  ///
+  /// In en, this message translates to:
+  /// **'Plan a visit'**
+  String get planningPlanVisit;
+
+  /// No description provided for @planningSettingsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Planning settings'**
+  String get planningSettingsTitle;
+
+  /// No description provided for @planningTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Planning'**
+  String get planningTitle;
+
+  /// No description provided for @planningVisitCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{No visits} =1{1 visit} other{{count} visits}}'**
+  String planningVisitCount(int count);
+
   /// No description provided for @pointOfSale.
   ///
   /// In en, this message translates to:
   /// **'Point of sale'**
   String get pointOfSale;
+
+  /// No description provided for @positionSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Position saved'**
+  String get positionSaved;
+
+  /// No description provided for @positionSetBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{place} has no position yet. Use where you are now (precision {meters} m)? Only the admin can change it afterwards.'**
+  String positionSetBody(String place, int meters);
+
+  /// No description provided for @positionSetTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Save this place\'s position?'**
+  String get positionSetTitle;
+
+  /// No description provided for @positionSetYes.
+  ///
+  /// In en, this message translates to:
+  /// **'Use this position'**
+  String get positionSetYes;
+
+  /// No description provided for @positionTooPoor.
+  ///
+  /// In en, this message translates to:
+  /// **'The position is not precise enough ({meters} m). Go outdoors and try again.'**
+  String positionTooPoor(int meters);
 
   /// No description provided for @precautions.
   ///
@@ -2107,6 +2407,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Prepare and ship'**
   String get prepareAndShip;
+
+  /// No description provided for @presenceNoFix.
+  ///
+  /// In en, this message translates to:
+  /// **'No position'**
+  String get presenceNoFix;
+
+  /// No description provided for @presenceNoPosition.
+  ///
+  /// In en, this message translates to:
+  /// **'Place has no position yet'**
+  String get presenceNoPosition;
+
+  /// No description provided for @presenceOutOfRange.
+  ///
+  /// In en, this message translates to:
+  /// **'Away from the place ({distance})'**
+  String presenceOutOfRange(String distance);
+
+  /// No description provided for @presenceSandbox.
+  ///
+  /// In en, this message translates to:
+  /// **'Test position'**
+  String get presenceSandbox;
+
+  /// No description provided for @presenceVerified.
+  ///
+  /// In en, this message translates to:
+  /// **'At the place'**
+  String get presenceVerified;
 
   /// No description provided for @productActive.
   ///
@@ -2347,6 +2677,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Rejected'**
   String get rejected;
+
+  /// No description provided for @reminderBefore.
+  ///
+  /// In en, this message translates to:
+  /// **'Reminder before a visit'**
+  String get reminderBefore;
+
+  /// No description provided for @reminderMinutes.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} min before'**
+  String reminderMinutes(int count);
+
+  /// No description provided for @reminderNone.
+  ///
+  /// In en, this message translates to:
+  /// **'None'**
+  String get reminderNone;
 
   /// No description provided for @remove.
   ///
@@ -3272,6 +3620,12 @@ abstract class AppLocalizations {
   /// **'{count, plural, =1{1 unit} other{{count} units}}'**
   String units(int count);
 
+  /// No description provided for @unplannedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Where are you?'**
+  String get unplannedTitle;
+
   /// No description provided for @unpublish.
   ///
   /// In en, this message translates to:
@@ -3307,6 +3661,252 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'View sales'**
   String get viewSales;
+
+  /// No description provided for @visitArrived.
+  ///
+  /// In en, this message translates to:
+  /// **'Arrival recorded'**
+  String get visitArrived;
+
+  /// No description provided for @visitArrivedAt.
+  ///
+  /// In en, this message translates to:
+  /// **'Arrived at {time}'**
+  String visitArrivedAt(String time);
+
+  /// No description provided for @visitAvailableFrom.
+  ///
+  /// In en, this message translates to:
+  /// **'Available from {time}'**
+  String visitAvailableFrom(String time);
+
+  /// No description provided for @visitAvailableOnDay.
+  ///
+  /// In en, this message translates to:
+  /// **'Available on the day of the visit'**
+  String get visitAvailableOnDay;
+
+  /// No description provided for @visitCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel this visit'**
+  String get visitCancel;
+
+  /// No description provided for @visitCancelAsk.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel this visit?'**
+  String get visitCancelAsk;
+
+  /// No description provided for @visitCancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'Visit cancelled'**
+  String get visitCancelled;
+
+  /// No description provided for @visitCheckIn.
+  ///
+  /// In en, this message translates to:
+  /// **'I\'m here'**
+  String get visitCheckIn;
+
+  /// No description provided for @visitCheckOut.
+  ///
+  /// In en, this message translates to:
+  /// **'I\'m leaving'**
+  String get visitCheckOut;
+
+  /// No description provided for @visitChoosePlace.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a store or a grossiste'**
+  String get visitChoosePlace;
+
+  /// No description provided for @visitDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Date'**
+  String get visitDate;
+
+  /// No description provided for @visitDetailTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Visit'**
+  String get visitDetailTitle;
+
+  /// No description provided for @visitDuration.
+  ///
+  /// In en, this message translates to:
+  /// **'Duration'**
+  String get visitDuration;
+
+  /// No description provided for @visitFormEdit.
+  ///
+  /// In en, this message translates to:
+  /// **'Change the visit'**
+  String get visitFormEdit;
+
+  /// No description provided for @visitGettingPosition.
+  ///
+  /// In en, this message translates to:
+  /// **'Getting your position…'**
+  String get visitGettingPosition;
+
+  /// No description provided for @visitKeepBoth.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep both'**
+  String get visitKeepBoth;
+
+  /// No description provided for @visitKindCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Stock count'**
+  String get visitKindCount;
+
+  /// No description provided for @visitKindDelivery.
+  ///
+  /// In en, this message translates to:
+  /// **'Delivery'**
+  String get visitKindDelivery;
+
+  /// No description provided for @visitKindFollowUp.
+  ///
+  /// In en, this message translates to:
+  /// **'Follow-up'**
+  String get visitKindFollowUp;
+
+  /// No description provided for @visitKindOther.
+  ///
+  /// In en, this message translates to:
+  /// **'Other'**
+  String get visitKindOther;
+
+  /// No description provided for @visitKindTraining.
+  ///
+  /// In en, this message translates to:
+  /// **'Training'**
+  String get visitKindTraining;
+
+  /// No description provided for @visitLeft.
+  ///
+  /// In en, this message translates to:
+  /// **'Departure recorded'**
+  String get visitLeft;
+
+  /// No description provided for @visitLeftAt.
+  ///
+  /// In en, this message translates to:
+  /// **'Left at {time}'**
+  String visitLeftAt(String time);
+
+  /// No description provided for @visitNoteHint.
+  ///
+  /// In en, this message translates to:
+  /// **'What to do there (optional)'**
+  String get visitNoteHint;
+
+  /// No description provided for @visitOpenInMaps.
+  ///
+  /// In en, this message translates to:
+  /// **'Open in Maps'**
+  String get visitOpenInMaps;
+
+  /// No description provided for @visitOverlapBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Another visit covers some of this time. Keep both?'**
+  String get visitOverlapBody;
+
+  /// No description provided for @visitOverlapTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Another visit at this time'**
+  String get visitOverlapTitle;
+
+  /// No description provided for @visitPlace.
+  ///
+  /// In en, this message translates to:
+  /// **'Place'**
+  String get visitPlace;
+
+  /// No description provided for @visitReasonHint.
+  ///
+  /// In en, this message translates to:
+  /// **'For example: the store moved, no signal…'**
+  String get visitReasonHint;
+
+  /// No description provided for @visitReasonSend.
+  ///
+  /// In en, this message translates to:
+  /// **'Send'**
+  String get visitReasonSend;
+
+  /// No description provided for @visitReasonTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Why does the position not match?'**
+  String get visitReasonTitle;
+
+  /// No description provided for @visitSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Visit saved'**
+  String get visitSaved;
+
+  /// No description provided for @visitSavedOffline.
+  ///
+  /// In en, this message translates to:
+  /// **'No connection: saved on the phone, it will be sent'**
+  String get visitSavedOffline;
+
+  /// No description provided for @visitStatusCancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancelled'**
+  String get visitStatusCancelled;
+
+  /// No description provided for @visitStatusDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get visitStatusDone;
+
+  /// No description provided for @visitStatusMissed.
+  ///
+  /// In en, this message translates to:
+  /// **'Missed'**
+  String get visitStatusMissed;
+
+  /// No description provided for @visitStatusOnSite.
+  ///
+  /// In en, this message translates to:
+  /// **'On site'**
+  String get visitStatusOnSite;
+
+  /// No description provided for @visitStatusPlanned.
+  ///
+  /// In en, this message translates to:
+  /// **'Planned'**
+  String get visitStatusPlanned;
+
+  /// No description provided for @visitType.
+  ///
+  /// In en, this message translates to:
+  /// **'Type'**
+  String get visitType;
+
+  /// No description provided for @visitUnplanned.
+  ///
+  /// In en, this message translates to:
+  /// **'Not planned'**
+  String get visitUnplanned;
+
+  /// No description provided for @visitWithWho.
+  ///
+  /// In en, this message translates to:
+  /// **'By {name}'**
+  String visitWithWho(String name);
 
   /// No description provided for @waitingAdmin.
   ///

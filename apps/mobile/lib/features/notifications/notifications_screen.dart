@@ -21,6 +21,8 @@ import 'notifications_repository.dart';
 String? routeForEntity(Role role, String? type, String? id) {
   // The evening summaries open the home screen, where the day's numbers are.
   if (type == 'Region' || type == 'Network') return '/home';
+  // The evening alert about tomorrow's visits opens the calendar.
+  if (type == 'Planning') return '/planning';
   if (type == null || id == null) return null;
   return switch ((type, role)) {
     ('RestockOrder', _) => '/restocks/$id',
@@ -32,6 +34,8 @@ String? routeForEntity(Role role, String? type, String? id) {
     ('Group', Role.admin) => '/approvals',
     ('User', Role.admin) => '/approvals',
     ('Sale', Role.vendeur) || ('Sale', Role.responsable) => '/sales/$id',
+    ('Visit', Role.responsable) ||
+    ('Visit', Role.admin) => '/planning/visits/$id',
     ('Course', Role.admin) => '/training/manage/$id',
     ('Course', _) => '/training/$id',
     ('RewardRule', Role.vendeur) => '/wallet',

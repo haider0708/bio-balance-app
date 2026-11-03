@@ -3,6 +3,9 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- The position is read once, when a responsable taps "I'm here" or "I'm leaving" (foreground only, never followed). -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-feature android:name="android.hardware.camera" android:required="false" />
     <!-- Photos are chosen with the system photo picker and files are opened from the app's own
          folder, so no broad media or storage access is needed (Google Play refuses it otherwise).
@@ -20,6 +23,8 @@
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
+        <!-- The location plugin declares a foreground service for tracking; BioBalance never tracks, and Google Play asks for a declaration for it. -->
+        <service android:name="com.baseflow.geolocator.GeolocatorLocationService" tools:node="remove" />
         <activity
             android:name="tn.biobalance.app.MainActivity"
             android:exported="true"

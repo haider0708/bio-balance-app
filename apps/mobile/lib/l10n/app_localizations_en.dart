@@ -277,6 +277,29 @@ class AppLocalizationsEn extends AppLocalizations {
   String get byRegion => 'region';
 
   @override
+  String get calendarAdd => 'Add to my calendar';
+
+  @override
+  String get calendarBody =>
+      'Add your visits to Apple Calendar or Google Calendar: they appear there and update by themselves. Calendar apps refresh every few hours: the BioBalance alerts are the reliable ones.';
+
+  @override
+  String get calendarCopied => 'Link copied';
+
+  @override
+  String get calendarCopy => 'Copy the link';
+
+  @override
+  String get calendarRenew => 'Make a new link';
+
+  @override
+  String get calendarRenewAsk =>
+      'The old link will stop working in your calendar app. Continue?';
+
+  @override
+  String get calendarTitle => 'Your calendar app';
+
+  @override
   String get call => 'Call';
 
   @override
@@ -619,6 +642,9 @@ class AppLocalizationsEn extends AppLocalizations {
       'The service is temporarily unavailable. Try again shortly.';
 
   @override
+  String get eveningSummary => 'Evening summary of tomorrow\'s visits';
+
+  @override
   String get everyone => 'Everyone';
 
   @override
@@ -641,6 +667,15 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get filterOpen => 'In progress';
+
+  @override
+  String get flagImprecise => 'Imprecise position';
+
+  @override
+  String get flagLate => 'Sent long after the tap';
+
+  @override
+  String get flagMock => 'Position from a location-faking app';
 
   @override
   String get forgotCodeSubtitle =>
@@ -689,6 +724,19 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get history => 'History';
+
+  @override
+  String homeNextVisit(String time, String place) {
+    return 'Next visit at $time · $place';
+  }
+
+  @override
+  String homeOnSite(String place) {
+    return 'You are at $place';
+  }
+
+  @override
+  String get homeVisitHint => 'Open your planning';
 
   @override
   String get howToUse => 'How to use';
@@ -755,6 +803,37 @@ class AppLocalizationsEn extends AppLocalizations {
   String lessonsDone(int done, int total) {
     return '$done of $total lessons';
   }
+
+  @override
+  String get locationContinueWithout => 'Check in without a position';
+
+  @override
+  String get locationDeniedBody =>
+      'BioBalance reads your position only when you tap “I\'m here” or “I\'m leaving”, to confirm you are at the place. Allow it in your phone\'s settings, or check in without a position and say why.';
+
+  @override
+  String get locationDeniedTitle => 'Position not allowed';
+
+  @override
+  String get locationOffBody =>
+      'Turn location on in your phone, or check in without a position and say why.';
+
+  @override
+  String get locationOffTitle => 'Location is off';
+
+  @override
+  String get locationOpenSettings => 'Open settings';
+
+  @override
+  String get locationPrivacy =>
+      'Your position is read only when you tap “I\'m here” or “I\'m leaving”, and kept 12 months. Nobody follows you in between.';
+
+  @override
+  String get locationUnavailableBody =>
+      'Go outdoors or near a window and try again, or check in without a position and say why.';
+
+  @override
+  String get locationUnavailableTitle => 'No position found';
 
   @override
   String get lowStock => 'Products almost out';
@@ -1016,12 +1095,60 @@ class AppLocalizationsEn extends AppLocalizations {
   String get orVideoLink => 'Or a video link';
 
   @override
+  String outboxRefused(String reason) {
+    return 'A check was refused: $reason';
+  }
+
+  @override
+  String outboxWaiting(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count checks waiting to be sent',
+      one: '1 check waiting to be sent',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String overlapBody(String details) {
     return 'These days are already covered:\n$details\n\nReplace it with the new value?';
   }
 
   @override
   String get overlapTitle => 'Another value already applies';
+
+  @override
+  String get overviewAtPlace => 'At the place';
+
+  @override
+  String overviewAverage(int count) {
+    return 'Average time on site: $count min';
+  }
+
+  @override
+  String get overviewAway => 'Away';
+
+  @override
+  String get overviewDone => 'Done';
+
+  @override
+  String get overviewEmpty => 'No visit in this period';
+
+  @override
+  String get overviewMissed => 'Missed';
+
+  @override
+  String get overviewNoPosition => 'No position';
+
+  @override
+  String get overviewPlanned => 'Planned';
+
+  @override
+  String get overviewRange30 => '30 days';
+
+  @override
+  String get overviewRange7 => '7 days';
 
   @override
   String get packageSize => 'Size';
@@ -1180,13 +1307,91 @@ class AppLocalizationsEn extends AppLocalizations {
   String get pinned => 'Pinned';
 
   @override
+  String get planningAtStore => 'I\'m at a place now';
+
+  @override
+  String planningDoneCount(int count) {
+    return '$count done';
+  }
+
+  @override
+  String get planningNoVisits => 'No visit this day';
+
+  @override
+  String get planningNoVisitsHint =>
+      'Plan your visits here: counts, deliveries, training.';
+
+  @override
+  String get planningOverviewTitle => 'Visits of the responsables';
+
+  @override
+  String get planningPickDay => 'Choose a day';
+
+  @override
+  String get planningPlanVisit => 'Plan a visit';
+
+  @override
+  String get planningSettingsTitle => 'Planning settings';
+
+  @override
+  String get planningTitle => 'Planning';
+
+  @override
+  String planningVisitCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count visits',
+      one: '1 visit',
+      zero: 'No visits',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get pointOfSale => 'Point of sale';
+
+  @override
+  String get positionSaved => 'Position saved';
+
+  @override
+  String positionSetBody(String place, int meters) {
+    return '$place has no position yet. Use where you are now (precision $meters m)? Only the admin can change it afterwards.';
+  }
+
+  @override
+  String get positionSetTitle => 'Save this place\'s position?';
+
+  @override
+  String get positionSetYes => 'Use this position';
+
+  @override
+  String positionTooPoor(int meters) {
+    return 'The position is not precise enough ($meters m). Go outdoors and try again.';
+  }
 
   @override
   String get precautions => 'Precautions';
 
   @override
   String get prepareAndShip => 'Prepare and ship';
+
+  @override
+  String get presenceNoFix => 'No position';
+
+  @override
+  String get presenceNoPosition => 'Place has no position yet';
+
+  @override
+  String presenceOutOfRange(String distance) {
+    return 'Away from the place ($distance)';
+  }
+
+  @override
+  String get presenceSandbox => 'Test position';
+
+  @override
+  String get presenceVerified => 'At the place';
 
   @override
   String get productActive => 'Available';
@@ -1317,6 +1522,17 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get rejected => 'Rejected';
+
+  @override
+  String get reminderBefore => 'Reminder before a visit';
+
+  @override
+  String reminderMinutes(int count) {
+    return '$count min before';
+  }
+
+  @override
+  String get reminderNone => 'None';
 
   @override
   String get remove => 'Remove';
@@ -1866,6 +2082,9 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get unplannedTitle => 'Where are you?';
+
+  @override
   String get unpublish => 'Unpublish';
 
   @override
@@ -1882,6 +2101,139 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get viewSales => 'View sales';
+
+  @override
+  String get visitArrived => 'Arrival recorded';
+
+  @override
+  String visitArrivedAt(String time) {
+    return 'Arrived at $time';
+  }
+
+  @override
+  String visitAvailableFrom(String time) {
+    return 'Available from $time';
+  }
+
+  @override
+  String get visitAvailableOnDay => 'Available on the day of the visit';
+
+  @override
+  String get visitCancel => 'Cancel this visit';
+
+  @override
+  String get visitCancelAsk => 'Cancel this visit?';
+
+  @override
+  String get visitCancelled => 'Visit cancelled';
+
+  @override
+  String get visitCheckIn => 'I\'m here';
+
+  @override
+  String get visitCheckOut => 'I\'m leaving';
+
+  @override
+  String get visitChoosePlace => 'Choose a store or a grossiste';
+
+  @override
+  String get visitDate => 'Date';
+
+  @override
+  String get visitDetailTitle => 'Visit';
+
+  @override
+  String get visitDuration => 'Duration';
+
+  @override
+  String get visitFormEdit => 'Change the visit';
+
+  @override
+  String get visitGettingPosition => 'Getting your position…';
+
+  @override
+  String get visitKeepBoth => 'Keep both';
+
+  @override
+  String get visitKindCount => 'Stock count';
+
+  @override
+  String get visitKindDelivery => 'Delivery';
+
+  @override
+  String get visitKindFollowUp => 'Follow-up';
+
+  @override
+  String get visitKindOther => 'Other';
+
+  @override
+  String get visitKindTraining => 'Training';
+
+  @override
+  String get visitLeft => 'Departure recorded';
+
+  @override
+  String visitLeftAt(String time) {
+    return 'Left at $time';
+  }
+
+  @override
+  String get visitNoteHint => 'What to do there (optional)';
+
+  @override
+  String get visitOpenInMaps => 'Open in Maps';
+
+  @override
+  String get visitOverlapBody =>
+      'Another visit covers some of this time. Keep both?';
+
+  @override
+  String get visitOverlapTitle => 'Another visit at this time';
+
+  @override
+  String get visitPlace => 'Place';
+
+  @override
+  String get visitReasonHint => 'For example: the store moved, no signal…';
+
+  @override
+  String get visitReasonSend => 'Send';
+
+  @override
+  String get visitReasonTitle => 'Why does the position not match?';
+
+  @override
+  String get visitSaved => 'Visit saved';
+
+  @override
+  String get visitSavedOffline =>
+      'No connection: saved on the phone, it will be sent';
+
+  @override
+  String get visitStatusCancelled => 'Cancelled';
+
+  @override
+  String get visitStatusDone => 'Done';
+
+  @override
+  String get visitStatusMissed => 'Missed';
+
+  @override
+  String get visitStatusOnSite => 'On site';
+
+  @override
+  String get visitStatusPlanned => 'Planned';
+
+  @override
+  String get visitType => 'Type';
+
+  @override
+  String get visitUnplanned => 'Not planned';
+
+  @override
+  String visitWithWho(String name) {
+    return 'By $name';
+  }
 
   @override
   String waitingAdmin(int count) {

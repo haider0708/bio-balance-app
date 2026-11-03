@@ -75,7 +75,8 @@ Data **linked to the user**, used **only for App Functionality**, **not used for
 | Contact Info → Name, Email Address, Phone Number | the account |
 | Identifiers → User ID, Device ID | the account; the phone's push-alert token |
 | User Content → Photos or Videos | proof photos of stock and delivery papers |
-| User Content → Other User Content | sales, stock counts, restocks |
+| User Content → Other User Content | sales, stock counts, restocks, planned visits |
+| Location → Precise Location | a responsable's position at the moment of "I'm here" and "I'm leaving" on a visit (foreground only, never followed; optional: a check-in can be sent without it) |
 
 And **not linked** to the user (sent without signing in), App Functionality, not for tracking:
 
@@ -83,12 +84,13 @@ And **not linked** to the user (sent without signing in), App Functionality, not
 |---|---|
 | Diagnostics → Crash Data | the app's own error reports (platform, version, the error), kept 30 days |
 
-Not collected: location, contacts, health, financial info, browsing, search history, performance data, advertising data. **Tracking: No.** Age rating: 4+ (no objectionable content). The same answers are in the app's privacy manifest.
+Not collected: contacts, health, financial info, browsing, search history, performance data, advertising data. **Tracking: No.** Age rating: 4+ (no objectionable content). The same answers are in the app's privacy manifest.
 
 ## Google Play “Data safety”
 
 - Data collected: **Personal info** (name, email address, phone number, user IDs), **Photos**, **Files and docs** (PDF proofs), **App activity → Other user-generated content** (sales, counts), **Device or other IDs** (the push-alert token), **App info and performance → Crash logs** (the app's own error reports, without identity, kept 30 days). All **required for app functionality**, **not shared** with third parties, **encrypted in transit**, and **deletable by the user** (in the app and at `/account-deletion`).
-- No data sold, no ads (**Contains ads: No**), no location.
+- **Location → Approximate location and Precise location**: collected, **optional**, **not shared**, purpose **App functionality** (a responsable confirms a visit by sending their position once, at "I'm here" and "I'm leaving"; never in the background, never followed). The manifest asks for `ACCESS_FINE_LOCATION` and `ACCESS_COARSE_LOCATION` only (no background location, no foreground service for location: the plugin's service is removed from the manifest).
+- No data sold, no ads (**Contains ads: No**).
 - **App access**: all functionality needs an account → give the reviewer accounts (decision 5).
 - **Content rating**: questionnaire → no violence, no user-to-user chat, no gambling → *Everyone*.
 - **Target audience**: 18 and over (business app). **News app**: no. **Government app**: no. **Financial features**: none (rewards are commissions paid by the company, not a financial service).

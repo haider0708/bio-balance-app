@@ -98,3 +98,11 @@ Only codes and security: the invitation code (account approved), the password re
 | `correction.approved` / `correction.rejected` | the admin decides it | the responsable | yes | the request |
 | `stock.admin_edited` | the admin edits a count | its responsable(s) | yes | the count |
 | `restock.shipped` | the admin sends an order for a store | the store's responsable | yes | the order |
+
+## Planning (2026-11)
+
+| Key | When | Who | Push | Opens |
+|---|---|---|---|---|
+| `visit.reminder` | the chosen minutes before a planned visit | its responsable | yes | the visit |
+| `visit.tomorrow` | 20:00 the evening before, if there are visits (can be turned off) | the responsable | yes | the calendar |
+| `visit.missed` | 23:30: a planned visit nobody started | its responsable | yes | the visit |

@@ -181,3 +181,16 @@ Two people editing a count at once cannot overwrite each other: the second save 
 - **Tappable numbers** on the dashboards show a small chevron: every one opens the sales behind it.
 - **Opening screen:** calmer bubbles that never cross the name, a soft glow behind the mark, and a quiet progress line when the app is still waiting after the animation.
 - **More menu:** compact rows, so every entry fits on one screen.
+
+## Planning for the responsables (2026-11)
+
+A responsable keeps a calendar of **visits** to the stores and grossistes of their own region: what for (stock count, delivery, training, follow-up, other), when, for how long, a note. The admin only **reads** them (the "Planning" overview and each visit); nobody else sees them.
+
+- **Calendar:** a week strip and the day's visits (Planning, in More; a card on the home screen shows where they are or the next visit). Planning in the past is refused; two visits at the same time ask for a confirmation; at most twenty a day. A planned visit can be moved, changed or cancelled.
+- **Alerts:** the phone is told 60 minutes before a visit (none, 15, 30, 60 or 120 minutes: their choice), the evening before at 20:00 about tomorrow's visits (can be turned off), and when a planned visit was not started by the end of the day (it becomes *missed*, 23:30). A visit planned after its reminder time is not reminded: the person has just seen it.
+- **Calendar app:** Planning → settings gives a secret, read-only link. Added to Apple or Google Calendar, the visits appear there and update by themselves, with the same alert; calendar apps refresh every few hours, so the alerts of BioBalance are the reliable ones. "Make a new link" cancels the old one.
+- **Proof of presence:** on a visit, **I'm here** and **I'm leaving** read the phone's position **once, at the tap** (the app open; never in the background, never a trail). The server compares it with the place's position: within **150 m**, widened by the reading's own doubt (at most 100 m more), the visit is *at the place*; otherwise *away* (the distance is kept); a reading worse than 200 m or none is *no position*. Arriving away or without a position is allowed **with a written reason**; leaving never asks one. A check made without a connection waits on the phone and is sent later with the moment of the tap (marked *sent late* after 15 minutes). The app marks a position given by a location-faking app. It is **evidence, not proof**: it says where the phone was.
+- **Where a place is:** the first time, the responsable can save the position of the place they are at (a reading better than 50 m); after that only the admin changes it (and can lock it). The test region (the store reviewers' accounts) accepts any position.
+- **An unplanned visit** ("I'm at a place now") records the visit and the arrival at once.
+- **The admin's overview:** per responsable and period, visits planned, done, missed, and how many check-ins were at the place, away or without a position, with the average time on site; each visit shows its check-in and check-out, the reason, the flags and an "Open in Maps" link.
+- **Privacy:** positions and visits are kept **12 months** then erased; the privacy page says so. A deleted account's calendar link and settings go and its planned visits are cancelled; its past check-ins stay without a name until the 12 months end.

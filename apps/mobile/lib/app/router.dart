@@ -46,6 +46,13 @@ import '../features/sales/sales_repository.dart';
 import '../features/sales/scanner_screen.dart';
 import '../features/settings/app_errors_screen.dart';
 import '../features/settings/app_settings_screen.dart';
+import '../features/planning/planning_models.dart';
+import '../features/planning/planning_overview_screen.dart';
+import '../features/planning/planning_repository.dart';
+import '../features/planning/planning_screen.dart';
+import '../features/planning/planning_settings_screen.dart';
+import '../features/planning/visit_detail_screen.dart';
+import '../features/planning/visit_form_screen.dart';
 import '../features/settings/settings_screen.dart';
 import '../features/splash/splash_screen.dart';
 import '../features/stock/edit_declaration_screen.dart';
@@ -211,11 +218,17 @@ List<RouteBase> _roleRoutes(Role role) => switch (role) {
                   builder: (_, _) => ExplorerScreen.root(),
                 ),
                 ..._analytics(),
+                ..._planning(Role.responsable),
                 ..._shared(),
               ],
             ),
           ]
-        : [..._responsable(), ..._analytics(), ..._shared()],
+        : [
+            ..._responsable(),
+            ..._analytics(),
+            ..._planning(Role.responsable),
+            ..._shared(),
+          ],
   // On the phone the admin and the responsable have bottom tabs; in a browser, a sidebar around every page.
   Role.admin =>
     kIsWeb
@@ -241,11 +254,18 @@ List<RouteBase> _roleRoutes(Role role) => switch (role) {
                 ),
                 ..._admin(),
                 ..._analytics(),
+                ..._planning(Role.admin),
                 ..._shared(),
               ],
             ),
           ]
-        : [..._adminTabs(), ..._admin(), ..._analytics(), ..._shared()],
+        : [
+            ..._adminTabs(),
+            ..._admin(),
+            ..._analytics(),
+            ..._planning(Role.admin),
+            ..._shared(),
+          ],
 };
 
 /// A page built from an object handed over by the previous screen. Opened without it
@@ -294,6 +314,45 @@ List<RouteBase> _vendeur() => [
     '/home',
     (_, outcome) => CelebrationScreen(outcome: outcome),
   ),
+];
+
+/// The responsable's calendar and visits; the admin only reads them (an overview and each visit).
+List<RouteBase> _planning(Role role) => [
+  GoRoute(
+    path: '/planning/visits/:id',
+    builder: (_, state) =>
+        VisitDetailScreen(visitId: state.pathParameters['id']!),
+  ),
+  if (role == Role.responsable) ...[
+    GoRoute(path: '/planning', builder: (_, _) => const PlanningScreen()),
+    GoRoute(
+      path: '/planning/new',
+      builder: (_, state) => VisitFormScreen(day: state.extra as DateTime?),
+    ),
+    GoRoute(
+      path: '/planning/settings',
+      builder: (_, _) => const PlanningSettingsScreen(),
+    ),
+    _withExtra<Visit>(
+      '/planning/:id/edit',
+      '/planning',
+      (_, visit) => VisitFormScreen(visit: visit),
+    ),
+  ] else ...[
+    GoRoute(
+      path: '/planning/overview',
+      builder: (_, _) => const PlanningOverviewScreen(),
+    ),
+    _withExtra<(String, OverviewQuery)>(
+      '/planning/overview/:id',
+      '/planning/overview',
+      (state, extra) => ResponsableVisitsScreen(
+        responsableId: state.pathParameters['id']!,
+        name: extra.$1,
+        query: extra.$2,
+      ),
+    ),
+  ],
 ];
 
 /// The analytics behind every number, for the admin and the responsables. The question
@@ -623,6 +682,11 @@ Widget _more(Role role) => Builder(
         MoreEntry(LucideIcons.map, t.regions, '/regions'),
         MoreEntry(LucideIcons.warehouse, t.grossistesTitle, '/depots'),
         MoreEntry(
+          LucideIcons.mapPinCheck,
+          t.planningOverviewTitle,
+          '/planning/overview',
+        ),
+        MoreEntry(
           LucideIcons.wallet,
           t.payoutsTitle,
           '/payouts',
@@ -660,6 +724,7 @@ Widget _more(Role role) => Builder(
         ),
       ],
       Role.responsable => [
+        MoreEntry(LucideIcons.calendarDays, t.planningTitle, '/planning'),
         MoreEntry(LucideIcons.warehouse, t.grossistesTitle, '/depots'),
         MoreEntry(LucideIcons.package, t.catalogTitle, '/catalog'),
         MoreEntry(LucideIcons.graduationCap, t.trainingTitle, '/training'),
