@@ -1,4 +1,5 @@
 import type { Database } from "../core/database";
+import { purgeOldVisits } from "./visits";
 
 const DAY = 86_400_000;
 
@@ -40,6 +41,8 @@ export async function cleanup(db: Database, now = new Date()) {
   );
   // A restored demonstration account's job carried its password hash: not kept once done.
   await db.$executeRaw`UPDATE "Job" SET payload = '{}'::jsonb WHERE kind = 'demo-restore' AND status = 'completed' AND payload <> '{}'::jsonb`;
+  // Planned visits and their check-ins: 12 months.
+  await purgeOldVisits(db);
   // Failed email jobs may still carry a code from older attempts.
   await db.$executeRaw`UPDATE "Job" SET payload = '{}'::jsonb WHERE kind IN ('email', 'whatsapp') AND status = 'failed' AND payload <> '{}'::jsonb`;
 }

@@ -33,6 +33,37 @@ enum LocationKind {
   DEPOT
 }
 
+/// What a responsable goes to do at a place.
+enum VisitKind {
+  COUNT
+  DELIVERY
+  TRAINING
+  FOLLOW_UP
+  OTHER
+}
+
+enum VisitStatus {
+  PLANNED
+  ON_SITE
+  DONE
+  MISSED
+  CANCELLED
+}
+
+enum VisitEventKind {
+  CHECK_IN
+  CHECK_OUT
+}
+
+/// What the position given at a check-in says about being at the place.
+enum PresenceVerdict {
+  VERIFIED
+  OUT_OF_RANGE
+  NO_FIX
+  NO_POSITION
+  SANDBOX
+}
+
 enum DeclarationKind {
   INITIAL
   COUNT
@@ -203,19 +234,27 @@ model Group {
 
 /// A point of sale (PDV): one parapharmacy.
 model Pdv {
-  id           String    @id @default(uuid()) @db.Uuid
-  regionId     String    @db.Uuid
-  groupId      String?   @db.Uuid
-  name         String
-  address      String
-  city         String
-  phone        String?
-  status       Status    @default(PENDING)
-  createdById  String    @db.Uuid
-  createdAt    DateTime  @default(now())
-  decidedById  String?   @db.Uuid
-  decidedAt    DateTime?
-  decisionNote String?
+  id                String    @id @default(uuid()) @db.Uuid
+  regionId          String    @db.Uuid
+  groupId           String?   @db.Uuid
+  name              String
+  address           String
+  city              String
+  phone             String?
+  status            Status    @default(PENDING)
+  createdById       String    @db.Uuid
+  createdAt         DateTime  @default(now())
+  decidedById       String?   @db.Uuid
+  decidedAt         DateTime?
+  decisionNote      String?
+  /// Where the place is (set once on site by the responsable, corrected by the admin): the visits are checked against it.
+  latitude          Float?
+  longitude         Float?
+  positionAccuracyM Float?
+  positionSetById   String?   @db.Uuid
+  positionSetAt     DateTime?
+  /// The admin locked it: the responsable cannot move it.
+  positionLocked    Boolean   @default(false)
 
   @@index([regionId, status])
   @@index([groupId])
@@ -225,16 +264,24 @@ model Pdv {
 /// A grossiste: a warehouse of a region that holds stock. It has no account; the
 /// admin and the region's responsable manage it and its stock.
 model Depot {
-  id        String   @id @default(uuid()) @db.Uuid
-  regionId  String   @db.Uuid
-  name      String
-  address   String
-  city      String
-  phone     String?
+  id                String    @id @default(uuid()) @db.Uuid
+  regionId          String    @db.Uuid
+  name              String
+  address           String
+  city              String
+  phone             String?
   /// One to five photos of the warehouse (media ids), shown on its page.
-  photoIds  String[] @default([]) @db.Uuid
-  status    Status   @default(ACTIVE)
-  createdAt DateTime @default(now())
+  photoIds          String[]  @default([]) @db.Uuid
+  status            Status    @default(ACTIVE)
+  createdAt         DateTime  @default(now())
+  /// Where the place is (set once on site by the responsable, corrected by the admin): the visits are checked against it.
+  latitude          Float?
+  longitude         Float?
+  positionAccuracyM Float?
+  positionSetById   String?   @db.Uuid
+  positionSetAt     DateTime?
+  /// The admin locked it: the responsable cannot move it.
+  positionLocked    Boolean   @default(false)
 
   @@index([regionId])
 }
@@ -705,4 +752,78 @@ model SetupLink {
   keep      Boolean   @default(false)
 
   @@index([userId])
+}
+
+// ───────────────────────────── Planning (responsables) ─────────────────────────────
+
+/// A visit a responsable plans to a store or a grossiste of their region, and what happened on site.
+model Visit {
+  id             String       @id @default(uuid()) @db.Uuid
+  regionId       String       @db.Uuid
+  responsableId  String       @db.Uuid
+  targetKind     LocationKind
+  targetId       String       @db.Uuid
+  kind           VisitKind
+  plannedStart   DateTime
+  plannedEnd     DateTime
+  /// Tunis calendar day of the planned start.
+  day            DateTime     @db.Date
+  note           String?
+  status         VisitStatus  @default(PLANNED)
+  /// Made on the spot, with no plan before it.
+  unplanned      Boolean      @default(false)
+  /// Grows with every change, so a calendar app replaces its copy of the visit.
+  revision       Int          @default(0)
+  reminderSentAt DateTime?
+  checkedInAt    DateTime?
+  checkedOutAt   DateTime?
+  cancelledAt    DateTime?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @default(now()) @updatedAt
+  events         VisitEvent[]
+
+  @@index([responsableId, day])
+  @@index([regionId, day])
+  @@index([status, plannedStart])
+}
+
+/// Append-only evidence of presence: one check-in and one check-out per visit, with the position
+/// given at that moment (never a trail). Kept 12 months.
+model VisitEvent {
+  id            String          @id @default(uuid()) @db.Uuid
+  visitId       String          @db.Uuid
+  regionId      String          @db.Uuid
+  responsableId String          @db.Uuid
+  kind          VisitEventKind
+  /// The phone's clock when the person tapped.
+  occurredAt    DateTime
+  receivedAt    DateTime        @default(now())
+  latitude      Float?
+  longitude     Float?
+  accuracyM     Float?
+  distanceM     Int?
+  verdict       PresenceVerdict
+  /// MOCK_LOCATION, LATE_SYNC, LOW_ACCURACY: things to look at, not proof of anything.
+  flags         String[]        @default([])
+  reason        String?
+  visit         Visit           @relation(fields: [visitId], references: [id], onDelete: Cascade)
+
+  @@unique([visitId, kind])
+  @@index([responsableId, occurredAt])
+  @@index([receivedAt])
+}
+
+/// The secret link a responsable adds to their calendar app (read-only, their own visits).
+model CalendarFeed {
+  userId    String   @id @db.Uuid
+  token     String   @unique
+  createdAt DateTime @default(now())
+}
+
+model PlanningPreference {
+  userId         String  @id @db.Uuid
+  /// Minutes before a visit for the reminder (0 = none).
+  leadMinutes    Int     @default(60)
+  /// The evening alert about tomorrow's visits.
+  eveningSummary Boolean @default(true)
 }

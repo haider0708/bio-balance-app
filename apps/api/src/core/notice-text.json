@@ -270,5 +270,17 @@
   "sale.repriced": {
     "en": "{by} corrected the reward of one of your sales.",
     "fr": "{by} a corrigé la récompense de l’une de vos ventes."
+  },
+  "visit.reminder": {
+    "en": "Visit at {time}: {place}.",
+    "fr": "Visite à {time} : {place}."
+  },
+  "visit.tomorrow": {
+    "en": "Tomorrow: {count:visit|visits}, the first at {time} at {place}.",
+    "fr": "Demain : {count:visite|visites}, la première à {time} à {place}."
+  },
+  "visit.missed": {
+    "en": "You did not start your visit to {place} on {day}.",
+    "fr": "Vous n’avez pas commencé votre visite à {place} le {day}."
   }
 }

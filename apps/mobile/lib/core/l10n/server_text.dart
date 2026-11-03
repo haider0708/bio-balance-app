@@ -346,6 +346,50 @@ class ServerText {
       'This reward is above 10 TND per unit. Confirm it is not a typo.',
       'Cette récompense dépasse 10 TND par unité. Confirmez que ce n’est pas une faute de frappe.',
     ),
+    'POSITION_REASON_REQUIRED': (
+      'The position does not match this place: say why.',
+      'La position ne correspond pas à ce lieu : dites pourquoi.',
+    ),
+    'VISIT_OVERLAP': (
+      'Another visit covers some of this time.',
+      'Une autre visite couvre une partie de ce créneau.',
+    ),
+    'TOO_MANY_VISITS': (
+      'That day already has twenty visits.',
+      'Ce jour compte déjà vingt visites.',
+    ),
+    'INVALID_LEAD': (
+      'Choose none, 15, 30, 60 or 120 minutes.',
+      'Choisissez aucun, 15, 30, 60 ou 120 minutes.',
+    ),
+    'PLACE_NOT_FOUND': (
+      'Choose a store or a grossiste of your region.',
+      'Choisissez un point de vente ou un grossiste de votre région.',
+    ),
+    'PLACE_INACTIVE': (
+      'This place is not active.',
+      'Ce lieu n’est pas actif.',
+    ),
+    'TOO_EARLY': (
+      'You can start a visit one hour before it begins.',
+      'Vous pouvez commencer une visite une heure avant son début.',
+    ),
+    'WRONG_DAY': (
+      'This visit was planned for another day.',
+      'Cette visite était prévue un autre jour.',
+    ),
+    'POSITION_FIXED': (
+      'This place already has a position. Ask the admin to change it.',
+      'Ce lieu a déjà une position. Demandez à l’administrateur de la changer.',
+    ),
+    'LOW_ACCURACY': (
+      'The position is not precise enough. Wait for a better signal, outdoors if you can.',
+      'La position n’est pas assez précise. Attendez un meilleur signal, dehors si possible.',
+    ),
+    'OUTSIDE_TUNISIA': (
+      'This position is outside Tunisia.',
+      'Cette position est hors de Tunisie.',
+    ),
     'NOTHING_TO_REPRICE': (
       'The rates of that day already match this sale.',
       'Les tarifs de ce jour correspondent déjà à cette vente.',
@@ -684,6 +728,18 @@ class ServerText {
     'sale.voided': (
       '{by} cancelled one of your sales.',
       '{by} a annulé l’une de vos ventes.',
+    ),
+    'visit.reminder': (
+      'Visit at {time}: {place}.',
+      'Visite à {time} : {place}.',
+    ),
+    'visit.tomorrow': (
+      'Tomorrow: {count:visit|visits}, the first at {time} at {place}.',
+      'Demain : {count:visite|visites}, la première à {time} à {place}.',
+    ),
+    'visit.missed': (
+      'You did not start your visit to {place} on {day}.',
+      'Vous n’avez pas commencé votre visite à {place} le {day}.',
     ),
     'sale.repriced': (
       '{by} corrected the reward of one of your sales.',

@@ -5,6 +5,7 @@ import { Public } from "./core/http";
 import { CatalogModule } from "./modules/catalog/catalog.module";
 import { DirectoryModule } from "./modules/directory/directory.module";
 import { MediaModule } from "./modules/media/media.module";
+import { PlanningModule } from "./modules/planning/planning.module";
 import { DiagnosticsModule } from "./modules/diagnostics/diagnostics.module";
 import { MessagingModule } from "./modules/messaging/messaging.module";
 import { ReportingModule } from "./modules/reporting/reporting.module";
@@ -14,6 +15,7 @@ import { SalesModule } from "./modules/sales/sales.module";
 import { TrainingModule } from "./modules/training/training.module";
 import { StockModule } from "./modules/stock/stock.module";
 import { CodePageController } from "./modules/auth/code-page.controller";
+import { CalendarController } from "./modules/planning/calendar.controller";
 import { SetupLinkController } from "./modules/auth/setup-link.controller";
 import { AppConfigController } from "./modules/legal/app-config.controller";
 import { LegalController } from "./modules/legal/legal.controller";
@@ -41,11 +43,13 @@ class HealthController {
     DiagnosticsModule,
     TrainingModule,
     ReportingModule,
+    PlanningModule,
   ],
   controllers: [
     HealthController,
     CodePageController,
     SetupLinkController,
+    CalendarController,
     LegalController,
     AppConfigController,
   ],
