@@ -18,6 +18,7 @@ import '../features/approvals/approvals_screen.dart';
 import '../features/auth/activate_screen.dart';
 import '../features/dashboard/region_screen.dart';
 import '../features/auth/forgot_screen.dart';
+import '../features/auth/set_password_screen.dart';
 import '../features/auth/admin_login_screen.dart';
 import '../features/auth/login_screen.dart';
 import '../features/catalog/catalog_screens.dart';
@@ -128,6 +129,10 @@ final routerProvider = Provider<GoRouter>((ref) {
             : '/activate?code=$code';
       }
       if (!signedIn) return _publicPaths.contains(path) ? null : '/login';
+      // Signed in with the generated password: nothing but choosing their own is open to them.
+      final mustChange = session.value?.me.mustChangePassword ?? false;
+      if (mustChange) return path == '/set-password' ? null : '/set-password';
+      if (path == '/set-password') return '/home';
       if ((path == '/splash' || _publicPaths.contains(path)) &&
           _landing != null &&
           role != null) {
@@ -167,6 +172,10 @@ final routerProvider = Provider<GoRouter>((ref) {
             ForgotScreen(code: state.uri.queryParameters['code']),
       ),
       GoRoute(path: '/code', builder: (_, _) => const SizedBox.shrink()),
+      GoRoute(
+        path: '/set-password',
+        builder: (_, _) => const SetPasswordScreen(),
+      ),
       if (role != null) ..._roleRoutes(role, buys: buys),
     ],
     errorBuilder: (_, _) => const _NotFound(),

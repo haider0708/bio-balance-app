@@ -34,13 +34,10 @@ class AuthRepository {
     'password': password,
   });
 
-  Future<void> changePassword({
-    required String current,
-    required String next,
-  }) => _ref.read(apiClientProvider).post('/v1/me/password', {
-    'current': current,
-    'next': next,
-  });
+  /// [current] is not asked while the person is still on the generated password.
+  Future<void> changePassword({String? current, required String next}) => _ref
+      .read(apiClientProvider)
+      .post('/v1/me/password', {'current': ?current, 'next': next});
 
   /// Deletes the signed-in person's own account, for good.
   Future<void> deleteAccount(String password) => _ref

@@ -27,6 +27,13 @@ const OPEN_ALWAYS = new Set([
   "POST /v1/me/password",
 ]);
 
+/** All that works while the person still has to choose their own password. */
+const PASSWORD_FIRST = new Set([
+  "POST /v1/auth/logout",
+  "GET /v1/me",
+  "POST /v1/me/password",
+]);
+
 export type AuthRequest = Request & {
   actor: Actor;
   bearer: string;
@@ -63,6 +70,17 @@ export class AuthGuard implements CanActivate {
       request.headers["x-biobalance-sandbox"] === "show"
     )
       request.actor.showSandbox = true;
+    if (
+      request.actor.mustChangePassword &&
+      !PASSWORD_FIRST.has(
+        `${request.method} ${request.path.replace(/\/+$/, "")}`,
+      )
+    )
+      throw new DomainError(
+        "PASSWORD_CHANGE_REQUIRED",
+        "Choose your own password first.",
+        403,
+      );
     await this.requireOpen(request);
     const roles = this.reflector.getAllAndOverride<Role[] | undefined>(
       "roles",

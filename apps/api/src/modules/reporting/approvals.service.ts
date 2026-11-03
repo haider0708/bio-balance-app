@@ -96,6 +96,7 @@ export class ApprovalsService {
             status: true,
             role: true,
             passwordHash: true,
+            mustChangePassword: true,
             decidedAt: true,
           },
         }),
@@ -253,7 +254,9 @@ export class ApprovalsService {
               u &&
               isTeamRole(u.role) &&
               fresh(u.decidedAt) &&
-              ((approved && u.status === "ACTIVE" && !u.passwordHash) ||
+              ((approved &&
+                u.status === "ACTIVE" &&
+                (!u.passwordHash || u.mustChangePassword)) ||
                 (rejected && u.status === "REJECTED"))
             ) {
               options = ["reopen"];

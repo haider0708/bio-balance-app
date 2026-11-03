@@ -9,7 +9,15 @@ export type WhatsAppTemplate =
       minutes: number;
       link?: string;
     }
-  | { kind: "password-changed"; name: string; changedAt: Date };
+  | { kind: "password-changed"; name: string; changedAt: Date }
+  | {
+      kind: "credentials";
+      name: string;
+      email: string;
+      password: string;
+      expiresAt: Date;
+      stores: { ios: string | null; android: string | null };
+    };
 
 const at = (locale: Locale, date: Date) =>
   new Intl.DateTimeFormat(locale === "fr" ? "fr-TN" : "en-GB", {
@@ -30,6 +38,17 @@ const tap = (locale: Locale, link?: string) =>
       : `\n\nCopy the code in one tap:\n${link}`
     : "";
 
+const storeLines = (
+  locale: Locale,
+  stores: { ios: string | null; android: string | null },
+) =>
+  [
+    stores.ios && `${locale === "fr" ? "iPhone" : "iPhone"} : ${stores.ios}`,
+    stores.android && `Android : ${stores.android}`,
+  ]
+    .filter(Boolean)
+    .join("\n");
+
 /** The WhatsApp text of each message that is also sent by email: short, with the code on its own line. */
 export function renderWhatsApp(locale: Locale, t: WhatsAppTemplate): string {
   if (locale === "fr") {
@@ -38,6 +57,8 @@ export function renderWhatsApp(locale: Locale, t: WhatsAppTemplate): string {
         return `Bonjour ${t.name}, votre compte BioBalance est prêt.\n\nCode d’activation :\n*${shown(t.code)}*${tap(locale, t.link)}\n\nDans l’application BioBalance, touchez « Activer mon compte », saisissez votre email et ce code, puis choisissez votre mot de passe. Le code est valable 72 heures.\n\nNe le partagez avec personne.`;
       case "reset":
         return `Bonjour ${t.name}, voici votre code pour réinitialiser votre mot de passe BioBalance :\n\n*${shown(t.code)}*${tap(locale, t.link)}\n\nIl est valable ${t.minutes} minutes. Si vous ne l’avez pas demandé, ignorez ce message.\n\nNe le partagez avec personne.`;
+      case "credentials":
+        return `Bonjour ${t.name}, votre compte BioBalance est prêt.\n\nInstallez l’application :\n${storeLines(locale, t.stores)}\n\nEmail :\n${t.email}\n\nMot de passe provisoire :\n*${t.password}*\n\nValable jusqu’au ${at(locale, t.expiresAt)}. À la première connexion, l’application vous demande de choisir votre propre mot de passe.\n\nNe le partagez avec personne.`;
       case "password-changed":
         return `Bonjour ${t.name}, votre mot de passe BioBalance a été modifié le ${at(locale, t.changedAt)}.\n\nSi ce n’est pas vous, prévenez votre responsable tout de suite.`;
     }
@@ -47,6 +68,8 @@ export function renderWhatsApp(locale: Locale, t: WhatsAppTemplate): string {
       return `Hello ${t.name}, your BioBalance account is ready.\n\nActivation code:\n*${shown(t.code)}*${tap(locale, t.link)}\n\nIn the BioBalance app, tap “Activate my account”, enter your email and this code, then choose your password. The code is valid for 72 hours.\n\nDo not share it with anyone.`;
     case "reset":
       return `Hello ${t.name}, here is your code to reset your BioBalance password:\n\n*${shown(t.code)}*${tap(locale, t.link)}\n\nIt is valid for ${t.minutes} minutes. If you did not ask for it, ignore this message.\n\nDo not share it with anyone.`;
+    case "credentials":
+      return `Hello ${t.name}, your BioBalance account is ready.\n\nInstall the app:\n${storeLines(locale, t.stores)}\n\nEmail:\n${t.email}\n\nTemporary password:\n*${t.password}*\n\nValid until ${at(locale, t.expiresAt)}. When you first sign in, the app asks you to choose your own password.\n\nDo not share it with anyone.`;
     case "password-changed":
       return `Hello ${t.name}, your BioBalance password was changed on ${at(locale, t.changedAt)}.\n\nIf this was not you, tell your manager right away.`;
   }

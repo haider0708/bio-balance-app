@@ -51,7 +51,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get addMemberHint =>
-      'Ils peuvent se connecter dès que BioBalance les approuve. Ils reçoivent un e-mail avec un code.';
+      'Elles peuvent se connecter dès que BioBalance les approuve. Leur email et un mot de passe provisoire leur sont alors envoyés par email et WhatsApp.';
 
   @override
   String get addProduct => 'Ajouter un produit';
@@ -3974,7 +3974,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get confirmInviteNoteApproval =>
-      'Quand l’admin approuvera, le code sera envoyé par email et par WhatsApp.';
+      'Dès que l’admin approuve, le compte est créé et les identifiants (email et mot de passe provisoire) sont envoyés par email et WhatsApp.';
 
   @override
   String get confirmSend => 'Confirmer et envoyer';
@@ -4311,4 +4311,54 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get hoursInvalid =>
       'L’heure de fermeture doit être après l’ouverture.';
+
+  @override
+  String get confirmInviteNoteNowPassword =>
+      'Le compte est créé maintenant : l’email et un mot de passe provisoire sont envoyés par email et WhatsApp.';
+
+  @override
+  String get newAccountHintTeam =>
+      'La personne reçoit son email et un mot de passe provisoire par email et WhatsApp, et choisit le sien à la première connexion.';
+
+  @override
+  String get sendNewPassword => 'Envoyer un nouveau mot de passe';
+
+  @override
+  String get newPasswordSent =>
+      'Un nouveau mot de passe a été envoyé par email et WhatsApp. L’ancien ne fonctionne plus.';
+
+  @override
+  String get cancelInvitationBodyPassword =>
+      'Le mot de passe provisoire ne fonctionne plus et l’adresse email redevient libre.';
+
+  @override
+  String get editPersonPasswordNote =>
+      'Elle ne s’est pas encore connectée : si l’email ou le numéro change, un nouveau mot de passe provisoire est envoyé aux nouveaux et l’ancien ne fonctionne plus.';
+
+  @override
+  String tempPasswordUntil(String date) {
+    return 'Mot de passe provisoire valable jusqu’au $date';
+  }
+
+  @override
+  String get tempPasswordExpired =>
+      'Le mot de passe provisoire a expiré : envoyez-en un nouveau';
+
+  @override
+  String get waitingFirstSignIn => 'Ne s’est pas encore connecté(e)';
+
+  @override
+  String setPasswordTitle(String name) {
+    return 'Bienvenue, $name';
+  }
+
+  @override
+  String get setPasswordHint =>
+      'Vous vous êtes connecté(e) avec le mot de passe provisoire reçu. Choisissez votre propre mot de passe pour continuer.';
+
+  @override
+  String get setPasswordSave => 'Enregistrer et continuer';
+
+  @override
+  String get passwordSet => 'Mot de passe enregistré';
 }

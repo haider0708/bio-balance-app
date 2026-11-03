@@ -1,3 +1,4 @@
+import { clearTemporary } from "./credentials";
 import { Injectable } from "@nestjs/common";
 import { randomBytes } from "node:crypto";
 import type { Actor } from "../../core/actor";
@@ -17,6 +18,21 @@ import { type PushPlatform, pushConfigured } from "../../push/transports";
 /** How long a session lasts without use. Every use pushes it forward again (see `authenticate`). */
 const SESSION_HOURS = { ADMIN: 24 * 7, default: 24 * 90 };
 
+/** A generated password stops working after a week. */
+function requireTemporaryPasswordValid(user: {
+  mustChangePassword: boolean;
+  passwordExpiresAt: Date | null;
+}) {
+  requireRule(
+    !user.mustChangePassword ||
+      !user.passwordExpiresAt ||
+      user.passwordExpiresAt > new Date(),
+    "TEMP_PASSWORD_EXPIRED",
+    "This temporary password has expired. Ask your manager to send you a new one.",
+    401,
+  );
+}
+
 export interface Me {
   id: string;
   name: string;
@@ -30,6 +46,8 @@ export interface Me {
   canChooseSupplier: boolean;
   /** Places the orders of its para: a buyer always, a vendeur when the responsable allowed it. */
   canOrder: boolean;
+  /** Signed in with the generated password: the app asks for a new one before anything else. */
+  mustChangePassword: boolean;
 }
 
 @Injectable()
@@ -77,6 +95,8 @@ export class AuthService {
       "Incorrect email or password.",
       401,
     );
+    // Said only to someone who knows the password: an unknown account never learns anything.
+    requireTemporaryPasswordValid(user);
     const token = randomBytes(32).toString("base64url");
     const hours =
       user.role === "ADMIN" ? SESSION_HOURS.ADMIN : SESSION_HOURS.default;
@@ -211,12 +231,14 @@ export class AuthService {
           regionId: string | null;
           pdvId: string | null;
           canOrder: boolean;
+          mustChangePassword: boolean;
+          passwordExpiresAt: Date | null;
           status: string;
           sessionId: string;
           sandbox: boolean | null;
           expiresAt: Date;
         }[]
-      >`SELECT u.id,u.name,u.email,u.role,u.locale,u."regionId",u."pdvId",u."canOrder",u.status,s.id AS "sessionId",r.sandbox,
+      >`SELECT u.id,u.name,u.email,u.role,u.locale,u."regionId",u."pdvId",u."canOrder",u."mustChangePassword",u."passwordExpiresAt",u.status,s.id AS "sessionId",r.sandbox,
         s."expiresAt" AS "expiresAt"
       FROM "Session" s JOIN "User" u ON u.id=s."userId" LEFT JOIN "Region" r ON r.id=u."regionId"
       WHERE s."tokenHash"=${tokenHash(token)} AND s."revokedAt" IS NULL
@@ -229,6 +251,7 @@ export class AuthService {
       "Your account is not active.",
       403,
     );
+    requireTemporaryPasswordValid(row);
     // Slide the expiry forward when the session is used, at most once an hour (one cheap write, not one per call).
     const lifetime =
       (row.role === "ADMIN" ? SESSION_HOURS.ADMIN : SESSION_HOURS.default) *
@@ -251,6 +274,7 @@ export class AuthService {
       regionId: row.regionId,
       pdvId: row.pdvId,
       canOrder: row.canOrder,
+      mustChangePassword: row.mustChangePassword,
       locale: row.locale === "en" ? "en" : "fr",
       sessionId: row.sessionId,
       sandbox: row.sandbox === true,
@@ -290,6 +314,7 @@ export class AuthService {
         pdv: pdv && { id: pdv.id, name: pdv.name },
         canChooseSupplier: supplierChoice,
         canOrder: user.role === "ACHETEUR" || user.canOrder,
+        mustChangePassword: user.mustChangePassword,
       };
     });
   }
@@ -334,7 +359,11 @@ export class AuthService {
     return { ok: true };
   }
 
-  async changePassword(actor: Actor, current: string, next: string) {
+  async changePassword(
+    actor: Actor,
+    current: string | undefined,
+    next: string,
+  ) {
     // The store reviewers share these accounts: one reviewer must not lock out the next.
     requireRule(
       !actor.sandbox,
@@ -346,16 +375,22 @@ export class AuthService {
     const user = await this.db.user.findUniqueOrThrow({
       where: { id: actor.id },
     });
-    requireRule(
-      user.passwordHash &&
-        (await this.passwords.verify(user.passwordHash, current)),
-      "INVALID_CREDENTIALS",
-      "Your current password is incorrect.",
-      401,
-    );
+    // On the generated password the session itself proves it (it was opened with it): nothing to retype.
+    if (!user.mustChangePassword)
+      requireRule(
+        current &&
+          user.passwordHash &&
+          (await this.passwords.verify(user.passwordHash, current)),
+        "INVALID_CREDENTIALS",
+        "Your current password is incorrect.",
+        401,
+      );
     const passwordHash = await this.passwords.hash(next);
     await this.db.run("SYSTEM", async (tx) => {
-      await tx.user.update({ where: { id: actor.id }, data: { passwordHash } });
+      await tx.user.update({
+        where: { id: actor.id },
+        data: { passwordHash, ...clearTemporary },
+      });
       await tx.session.updateMany({
         where: {
           userId: actor.id,
@@ -508,7 +543,7 @@ export class AuthService {
       );
       await tx.user.update({
         where: { id: user.id },
-        data: { passwordHash, ...(name ? { name } : {}) },
+        data: { passwordHash, ...clearTemporary, ...(name ? { name } : {}) },
       });
       await audit(
         tx,
@@ -547,7 +582,10 @@ export class AuthService {
     const passwordHash = await this.passwords.hash(password);
     await this.db.run("SYSTEM", async (tx) => {
       const user = await this.useCode(tx, email, code, "reset");
-      await tx.user.update({ where: { id: user.id }, data: { passwordHash } });
+      await tx.user.update({
+        where: { id: user.id },
+        data: { passwordHash, ...clearTemporary },
+      });
       await tx.session.updateMany({
         where: { userId: user.id },
         data: { revokedAt: new Date() },

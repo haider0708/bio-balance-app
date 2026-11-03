@@ -174,30 +174,34 @@ model Region {
 }
 
 model User {
-  id                String    @id @default(uuid()) @db.Uuid
-  email             String    @unique
-  name              String
-  phone             String?
+  id                 String    @id @default(uuid()) @db.Uuid
+  email              String    @unique
+  name               String
+  phone              String?
   /// Null until the person accepts the invitation and chooses a password.
-  passwordHash      String?
-  role              Role
-  status            Status    @default(PENDING)
+  passwordHash       String?
+  role               Role
+  status             Status    @default(PENDING)
   /// Responsables and vendeurs belong to exactly one region.
-  regionId          String?   @db.Uuid
+  regionId           String?   @db.Uuid
   /// A vendeur works in one point of sale.
-  pdvId             String?   @db.Uuid
-  locale            String    @default("fr")
-  mfaSecret         String?
-  lastTotpStep      BigInt    @default(-1)
+  pdvId              String?   @db.Uuid
+  locale             String    @default("fr")
+  mfaSecret          String?
+  lastTotpStep       BigInt    @default(-1)
   /// A responsable the admin lets suggest the grossiste of a restock (when the global switch is on).
-  canChooseSupplier Boolean   @default(false)
+  canChooseSupplier  Boolean   @default(false)
   /// A vendeur who also places the orders of the para (an ACHETEUR always does).
-  canOrder          Boolean   @default(false)
-  createdById       String?   @db.Uuid
-  createdAt         DateTime  @default(now())
-  decidedById       String?   @db.Uuid
-  decidedAt         DateTime?
-  decisionNote      String?
+  canOrder           Boolean   @default(false)
+  /// The password was generated and sent to the person: they must choose their own before anything else.
+  mustChangePassword Boolean   @default(false)
+  /// When that temporary password stops working.
+  passwordExpiresAt  DateTime?
+  createdById        String?   @db.Uuid
+  createdAt          DateTime  @default(now())
+  decidedById        String?   @db.Uuid
+  decidedAt          DateTime?
+  decisionNote       String?
 
   @@index([role, status])
   @@index([regionId, role, status])

@@ -153,6 +153,8 @@ class Person {
     this.decisionNote,
     this.canChooseSupplier = false,
     this.canOrder = false,
+    this.mustChangePassword = false,
+    this.passwordExpiresAt,
   });
 
   factory Person.fromJson(Json j) => Person(
@@ -168,6 +170,8 @@ class Person {
     decisionNote: j.strOrNull('decisionNote'),
     canChooseSupplier: j['canChooseSupplier'] == true,
     canOrder: j['canOrder'] == true,
+    mustChangePassword: j['mustChangePassword'] == true,
+    passwordExpiresAt: j.dateOrNull('passwordExpiresAt'),
   );
 
   final String id;
@@ -186,6 +190,17 @@ class Person {
 
   /// A team member who also places the orders of the para (a buyer always does).
   final bool canOrder;
+
+  /// Still on the password that was sent: they have not chosen their own yet.
+  final bool mustChangePassword;
+
+  /// When that password stops working.
+  final DateTime? passwordExpiresAt;
+
+  bool get temporaryPasswordExpired =>
+      mustChangePassword &&
+      passwordExpiresAt != null &&
+      passwordExpiresAt!.isBefore(DateTime.now());
 
   /// A team member sells (a buyer-only account does not).
   bool get sells => role == Role.vendeur;

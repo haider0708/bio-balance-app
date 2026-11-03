@@ -38,11 +38,10 @@ function fake(options: { has?: boolean | null } = {}) {
 const turn = (enabled: boolean) =>
   w.a.put("/v1/settings", { whatsapp: { enabled } });
 
+/** An order manager: invited with a code (a team member gets a generated password). */
 async function invite(phone: string | null = "00216 21 345 678") {
-  const pdv = await approvedPdv(w);
   const res = await w.a.post("/v1/users", {
-    role: "VENDEUR",
-    pdvId: pdv.id,
+    role: "ORDERS",
     name: "Hanen Smiri",
     email: "hanen@example.test",
     ...(phone !== null && { phone }),

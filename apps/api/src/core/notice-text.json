@@ -80,8 +80,8 @@
     "fr": "{by} a ajouté {name} à {pdv} : en attente d’approbation."
   },
   "member.approved": {
-    "en": "{name} was approved and received an invitation.",
-    "fr": "{name} a été approuvé(e) et reçoit une invitation."
+    "en": "{name} was approved: the sign-in details were sent by email and WhatsApp.",
+    "fr": "{name} a été approuvé(e) : les identifiants sont envoyés par email et WhatsApp."
   },
   "member.rejected": {
     "en": "{name} was not approved.",

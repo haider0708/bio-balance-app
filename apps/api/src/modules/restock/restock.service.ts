@@ -994,7 +994,8 @@ export class RestockService {
           isTeamRole(member?.role ?? "ADMIN") &&
             member?.status === "ACTIVE" &&
             member.pdvId === order.destId &&
-            !!member.passwordHash,
+            !!member.passwordHash &&
+            !member.mustChangePassword,
           "RECEIVER_INVALID",
           "Choose an active member of this point of sale.",
           422,

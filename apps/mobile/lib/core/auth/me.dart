@@ -51,6 +51,7 @@ class Me {
     this.pdv,
     this.canChooseSupplier = false,
     this.canOrder = false,
+    this.mustChangePassword = false,
   });
 
   factory Me.fromJson(Json j) => Me(
@@ -66,6 +67,7 @@ class Me {
     pdv: j.objOrNull('pdv') == null ? null : Place.fromJson(j.obj('pdv')),
     canChooseSupplier: j['canChooseSupplier'] == true,
     canOrder: j['canOrder'] == true,
+    mustChangePassword: j['mustChangePassword'] == true,
   );
 
   final String id;
@@ -82,6 +84,9 @@ class Me {
 
   /// Places and receives the orders of its para: a buyer always, a team member the responsable allowed.
   final bool canOrder;
+
+  /// Signed in with the generated password: the app asks for their own before anything else.
+  final bool mustChangePassword;
 
   /// A buyer, whether or not the account also sells.
   bool get isBuyer =>

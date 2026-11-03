@@ -11,9 +11,10 @@ import {
 } from "../../core/approval";
 import { Database } from "../../core/database";
 import { DomainError, notFound, requireRule } from "../../core/errors";
-import { notify, notifyAdmins } from "../../core/notifier";
+import { isSandbox, notify, notifyAdmins } from "../../core/notifier";
 import { issueCode } from "../auth/codes";
 import { canonicalPhone } from "../../core/phone";
+import { issueCredentials } from "../auth/credentials";
 import { isTeamRole, TEAM_ROLES } from "../../core/roles";
 import { walletSummary } from "../rewards/wallet.queries";
 
@@ -35,14 +36,47 @@ const publicUser = {
   passwordHash: true,
   canChooseSupplier: true,
   canOrder: true,
+  mustChangePassword: true,
+  passwordExpiresAt: true,
   createdAt: true,
   decisionNote: true,
   createdById: true,
 } as const;
 
-function present<T extends { passwordHash: string | null }>(user: T) {
+/** Chose their own password: not waiting on an invitation or on the generated password. */
+const hasOwnPassword = (user: {
+  passwordHash: string | null;
+  mustChangePassword: boolean;
+}) => user.passwordHash !== null && !user.mustChangePassword;
+
+function present<
+  T extends { passwordHash: string | null; mustChangePassword: boolean },
+>(user: T) {
   const { passwordHash, ...rest } = user;
-  return { ...rest, activated: passwordHash !== null };
+  return {
+    ...rest,
+    activated: hasOwnPassword({
+      passwordHash,
+      mustChangePassword: user.mustChangePassword,
+    }),
+  };
+}
+
+/**
+ * A team member gets a generated password; anyone else is invited with a code. The test region's
+ * accounts keep the passwords the store reviewers know: they are only given a code (never sent).
+ */
+async function welcome(
+  tx: Parameters<typeof issueCode>[0],
+  actor: Actor | null,
+  user: { id: string; role: Role; regionId: string | null },
+) {
+  if (
+    isTeamRole(user.role) &&
+    !(user.regionId && (await isSandbox(tx, user.regionId)))
+  )
+    return issueCredentials(tx, actor, user.id);
+  return issueCode(tx, user.id, "invite");
 }
 
 /** What a team member does: sells, buys (places and receives the para's orders), or both. */
@@ -133,7 +167,7 @@ export class UsersService {
           decidedAt: new Date(),
         },
       });
-      await issueCode(tx, user.id, "invite");
+      await welcome(tx, actor, user);
       await audit(
         tx,
         actor,
@@ -398,13 +432,14 @@ export class UsersService {
           ...(input.pdvId !== undefined && { pdvId: input.pdvId }),
         },
       });
-      // An invitation not used yet goes again, to the new email and number (the old code dies).
+      // Not signed in with their own password yet: the invitation (a code, or a generated password) goes
+      // again, to the new email and number, and what was sent to the old ones dies.
       if (
         (emailChanged || phoneChanged) &&
-        user.passwordHash === null &&
+        !hasOwnPassword(user) &&
         user.status === "ACTIVE"
       )
-        await issueCode(tx, id, "invite");
+        await welcome(tx, actor, updated);
       await audit(
         tx,
         actor,
@@ -483,7 +518,7 @@ export class UsersService {
         },
       });
       if (status === "ACTIVE" && action === "approve")
-        await issueCode(tx, id, "invite");
+        await welcome(tx, actor, user);
       if (status === "SUSPENDED")
         await tx.session.updateMany({
           where: { userId: id, revokedAt: null },
@@ -571,16 +606,24 @@ export class UsersService {
       requireRule(
         isTeamRole(user.role) &&
           (user.status === "REJECTED" ||
-            (user.status === "ACTIVE" && !user.passwordHash)),
+            (user.status === "ACTIVE" && !hasOwnPassword(user))),
         "INVALID_STATE",
         "Only an approval (before the person signed up) or a rejection can be taken back.",
         409,
       );
       if (!withinDecisionWindow(user.decidedAt)) throw decisionLocked();
       await tx.accessToken.deleteMany({ where: { userId: id } });
+      await tx.session.updateMany({
+        where: { userId: id, revokedAt: null },
+        data: { revokedAt: new Date() },
+      });
       await tx.user.update({
         where: { id },
         data: {
+          // Taken back: whatever was sent stops working.
+          passwordHash: null,
+          mustChangePassword: false,
+          passwordExpiresAt: null,
           status: "PENDING",
           decidedById: null,
           decidedAt: null,
@@ -607,7 +650,10 @@ export class UsersService {
     });
   }
 
-  /** Send a new activation code to someone who was approved but has not set a password. */
+  /**
+   * Someone approved who has not chosen their own password yet: a team member gets a new generated
+   * password (the old one stops working), anyone else a new activation code.
+   */
   async resendInvite(actor: Actor, id: string) {
     requireRule(
       ["ADMIN", "RESPONSABLE"].includes(actor.role),
@@ -624,12 +670,12 @@ export class UsersService {
       if (!user || !visible) throw notFound("User");
       refuseDeleted(user);
       requireRule(
-        user.status === "ACTIVE" && !user.passwordHash,
+        user.status === "ACTIVE" && !hasOwnPassword(user),
         "INVALID_STATE",
         "This person already has an account or is not approved.",
         409,
       );
-      await issueCode(tx, id, "invite");
+      await welcome(tx, actor, user);
       return { ok: true };
     });
   }
@@ -656,7 +702,7 @@ export class UsersService {
       if (!user || !visible) throw notFound("User");
       refuseDeleted(user);
       requireRule(
-        !user.passwordHash && user.role !== "ADMIN",
+        !hasOwnPassword(user) && user.role !== "ADMIN",
         "ALREADY_ACTIVATED",
         "This person already has an account. Deactivate it instead.",
         409,

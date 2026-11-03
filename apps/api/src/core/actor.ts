@@ -12,6 +12,8 @@ export interface Actor {
   pdvId: string | null;
   /** A vendeur who also places the orders of the para (switched on by the responsable). */
   canOrder?: boolean;
+  /** Still on the generated password: nothing else works until they choose their own. */
+  mustChangePassword?: boolean;
   locale: "fr" | "en";
   sessionId?: string;
   /**

@@ -99,6 +99,10 @@ The worker drops a transfer nobody decided after 3 days (`transfer-expire`, hour
 
 The worker drops a return nobody decided after 3 days (`return-expire`, hourly). A return whose approval fails with `RETURN_STOCK` is not stuck: the admin approves a smaller quantity or refuses it. Stock history lines of a return carry `reason` RETURN_OUT or RETURN_IN and `refType = StockReturn`; the audit log has `return.requested`, `return.changed`, `return.approved`, `return.rejected`, `return.cancelled`, `return.expired`.
 
+## Team accounts: passwords by email and WhatsApp
+
+A seller or buyer added by a responsable is created when the admin approves; the admin's own creations are active at once. The generated password goes by email and WhatsApp together (the worker's `email` and `whatsapp` jobs, template `credentials`). If a person says nothing arrived: check the email address and the number on their page, then **Send a new password**. If WhatsApp is off or the number has no WhatsApp the email still goes. A password older than 7 days is refused with a clear message: send a new one. Never ask a person to read their password to you; nobody (not even the admin) can see it. The audit log has `user.credentials_issued` with the expiry date only. A stuck message holds the password encrypted until it is sent or dropped.
+
 ## Order manager
 
 Create the account in People (role *Orders*): it is active at once, no region, no para; the invitation mail carries the code like any other account. An unused one is suspended like the others. Audit entries: `orders.asked`, `restock.proposed`, `restock.proposal_approved`, `restock.proposal_refused`, `restock.documents_added`, `restock.delivered`. A proposal the admin never answers simply stays on the order (nothing moves); the admin can route the order his own way at any time.

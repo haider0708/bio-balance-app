@@ -38,7 +38,7 @@ Photos are the proof that the goods are really there, for both roles.
 
 Everything a responsable creates **works immediately but stays inactive until the admin approves it**, item by item: a group, a point of sale, each team member, the opening stock of a place, a delivery receipt. A rejection carries a reason and the creator can fix and resubmit. The admin has one **approvals inbox** for all of it.
 
-- A point of sale sells once it is approved; its team members sign in once they are approved (they then receive an email with an activation code).
+- A point of sale sells once it is approved; its team members sign in once they are approved: the account is created then, with a **generated password sent by email and WhatsApp together** (see "Team accounts and their first password").
 - Stock is never official until the admin approves its declaration.
 
 ## Stock
@@ -208,6 +208,17 @@ Paras of the **same group** (a group is a set of paras of one region) can exchan
 - **Not included:** prices, delivery tracking, partial approvals, stock reserved while waiting, exchanges between different groups.
 
 ## Returns (2026-11)
+
+## Team accounts and their first password (2026-11)
+
+For team members (sellers, buyers, or both) there is no activation code any more.
+
+- **Who makes them:** the responsable of the region adds a member to a para (name, email, WhatsApp number, what they do); the admin approves. The admin can also create one directly (active at once). Responsables, the order manager and the admin are still invited with a code.
+- **The password:** when the account is made (at the admin's approval, or at once for the admin's own creation) the system generates a temporary password (ten characters, no look-alike letters, always a capital, a small letter and a digit). It is sent **by email and by WhatsApp together**, with the sign-in email, the app's download links and the date it stops working. It is shown to nobody else: not to the admin, not to the responsable.
+- **First sign-in:** the person signs in with the email and that password, and the app asks them to **choose their own** before anything else (the server refuses every other request until they have). The temporary password then stops working.
+- **A week:** the temporary password expires after 7 days; signing in with it then says so. The manager's person page shows "Temporary password valid until …" or "expired".
+- **Send a new password** (the old one stops working at once, signed-in sessions end) replaces "send the invitation again". Changing the email or the number of someone who has not signed in yet does the same, to the new contacts. An unused invitation can be cancelled (the account is removed and the email is free again); an approval taken back kills the password that was sent.
+- **Forgot the password:** the usual code, for everyone.
 
 ## The order manager (2026-11)
 

@@ -536,7 +536,7 @@ class _AddMemberScreenState extends ConsumerState<AddMemberScreen> {
       email: _email.text.trim().toLowerCase(),
       phone: phone,
       place: store ?? '',
-      afterApproval: true,
+      when: InviteWhen.afterApproval,
     )) {
       return;
     }
@@ -669,7 +669,9 @@ class _CreateAccountScreenState extends ConsumerState<CreateAccountScreen> {
       email: _email.text.trim().toLowerCase(),
       phone: phone,
       place: place ?? '',
-      afterApproval: false,
+      when: _role == Role.vendeur
+          ? InviteWhen.nowWithPassword
+          : InviteWhen.nowWithCode,
     )) {
       return;
     }
@@ -739,7 +741,7 @@ class _CreateAccountScreenState extends ConsumerState<CreateAccountScreen> {
             ),
             const Gap(8),
             Text(
-              t.newAccountHint,
+              _role == Role.vendeur ? t.newAccountHintTeam : t.newAccountHint,
               style: context.text.bodySmall?.copyWith(
                 color: context.status.muted,
               ),

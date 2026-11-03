@@ -51,7 +51,8 @@ const PushDevice = z.discriminatedUnion("platform", [
   }),
 ]);
 const ChangePassword = z.object({
-  current: z.string().min(1).max(128),
+  // Not needed while still on the generated password (see changePassword).
+  current: z.string().min(1).max(128).optional(),
   next: password,
 });
 

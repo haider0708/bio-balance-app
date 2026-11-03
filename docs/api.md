@@ -81,7 +81,7 @@ Every route is under `https://api.galylio.com`, JSON in and out, `Authorization:
 | POST | `/v1/users/:id/approve` | admin |
 | POST | `/v1/users/:id/reactivate` | admin |
 | POST | `/v1/users/:id/reject` | admin |
-| POST | `/v1/users/:id/resend-invite` | admin, responsable |
+| POST | `/v1/users/:id/resend-invite` | admin, responsable: a team member gets a **new generated password** (old one dead, sessions ended), anyone else a new code |
 | POST | `/v1/users/:id/suspend` | admin, responsable |
 
 ## media
@@ -270,6 +270,10 @@ Visits: `status` PLANNED, ON_SITE, DONE, MISSED, CANCELLED; `revision` grows wit
 `status` PENDING, APPROVED, REJECTED, CANCELLED, EXPIRED. A transfer carries `number` (TR-YYYY-nnnnnn), `from`, `to`, `group`, `createdBy`, `photoId`, `lines[{productId, name, quantity, requestedQuantity}]`, `changes[]` (detail only), and what the caller may do: `canEdit`, `canCancel`, `canDecide`. A team member's `direction` follows their para (they send if it is `fromPdvId`). One photo is required except from the admin, whose transfer is created APPROVED. Errors: `NOT_SAME_GROUP`, `SAME_PLACE`, `PLACE_INACTIVE`, `GROUP_INACTIVE`, `TRANSFER_STOCK` (409, `details.products[{name, available, wanted}]`), `PHOTO_REQUIRED`, `INVALID_STATE`, `NO_LINES`, `DUPLICATE_PRODUCT`. Approvals: `/v1/approvals` lists `type: TRANSFER` (name "From → To", `meta {number, units, changed}`) and its history uses `transfer.approved` and `transfer.rejected`.
 
 ## Returns (2026-11)
+
+## Team accounts and their first password (2026-11)
+
+`POST /v1/users/:id/approve` (a team member) and `POST /v1/users` with `role` VENDEUR or ACHETEUR create the password and queue one `email` and one `whatsapp` job with `template: "credentials"` (`sealed`: the encrypted password, wiped when sent). `GET /v1/me` and the sign-in answer carry `mustChangePassword`; the people lists carry `mustChangePassword` and `passwordExpiresAt`, and `activated` means "chose their own password". While `mustChangePassword` is true only `GET /v1/me`, `POST /v1/me/password` and `POST /v1/auth/logout` answer; everything else is `403 PASSWORD_CHANGE_REQUIRED`. `POST /v1/me/password {next}` needs no `current` in that state (otherwise `current` is required). A temporary password past its 7 days is `401 TEMP_PASSWORD_EXPIRED` (sign-in, and a session opened before). Cancelling an invitation or reopening an approval also kills it.
 
 ## The order manager (2026-11)
 

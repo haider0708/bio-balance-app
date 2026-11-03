@@ -2,6 +2,7 @@ import type { Database } from "../core/database";
 import { normalizeTunisianPhone } from "../core/phone";
 import { SettingsService } from "../core/settings";
 import { hashCode } from "../modules/auth/codes";
+import { openCredentials, wipeCredentials } from "../modules/auth/credentials";
 import { Payload } from "../email/delivery";
 import { renderWhatsApp } from "./templates";
 import type { WhatsAppTransport } from "./transport";
@@ -28,23 +29,38 @@ export class WhatsAppDelivery {
     const parsed = Payload.safeParse(job.payload);
     if (!parsed.success) throw new Error("WHATSAPP_PAYLOAD_INVALID");
     const p = parsed.data;
+    const wipe = async (outcome: Outcome) => {
+      if (p.template === "credentials") await wipeCredentials(this.db, job.id);
+      return outcome;
+    };
     if (!this.transport || !(await this.settings.get()).whatsapp.enabled)
-      return "suppressed";
+      return wipe("suppressed");
     const user = await this.db.user.findUnique({ where: { id: p.userId } });
-    if (!user || user.status !== "ACTIVE") return "suppressed";
+    if (!user || user.status !== "ACTIVE") return wipe("suppressed");
     // Nothing leaves the test region (the store reviewers' accounts and what they invite).
     if (user.regionId) {
       const region = await this.db.region.findUnique({
         where: { id: user.regionId },
         select: { sandbox: true },
       });
-      if (region?.sandbox) return "suppressed";
+      if (region?.sandbox) return wipe("suppressed");
     }
     const phone = user.phone ? normalizeTunisianPhone(user.phone) : null;
-    if (!phone) return "suppressed";
+    if (!phone) return wipe("suppressed");
     const locale = user.locale === "en" ? "en" : "fr";
     let text: string;
-    if (p.template === "password-changed")
+    if (p.template === "credentials") {
+      const password = await openCredentials(user, p.sealed);
+      if (!password) return wipe("suppressed");
+      text = renderWhatsApp(locale, {
+        kind: "credentials",
+        name: user.name,
+        email: user.email,
+        password,
+        expiresAt: user.passwordExpiresAt!,
+        stores: (await this.settings.get()).stores,
+      });
+    } else if (p.template === "password-changed")
       text = renderWhatsApp(locale, {
         kind: p.template,
         name: user.name,
@@ -87,7 +103,7 @@ export class WhatsAppDelivery {
     }
     // A number without WhatsApp is skipped, not tried: that is what gets a sending number banned.
     if ((await this.transport.hasWhatsApp(phone)) === false)
-      return "suppressed";
+      return wipe("suppressed");
     const today = await this.db.job.count({
       where: {
         kind: "whatsapp",
@@ -96,6 +112,6 @@ export class WhatsAppDelivery {
     });
     if (today > this.cap) throw new Error("WHATSAPP_DAILY_CAP");
     await this.transport.send(phone, text);
-    return "sent";
+    return wipe("sent");
   }
 }

@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { client, owner, resetDatabase, startApi, type Api } from "./helpers";
-import { approvedPdv, buildWorld, type World } from "./world";
+import { buildWorld, type World } from "./world";
 
 let api: Api;
 let w: World;
@@ -34,11 +34,10 @@ async function latestCode(email: string) {
   }
 }
 
+/** An order manager: invited with a code (a team member gets a generated password). */
 async function invite(email: string) {
-  const pdv = await approvedPdv(w);
   const created = await w.a.post("/v1/users", {
-    role: "VENDEUR",
-    pdvId: pdv.id,
+    role: "ORDERS",
     name: "Hanen",
     email,
     phone: "21 345 678",

@@ -105,6 +105,14 @@ class ServerText {
       'A team member sells, buys, or both.',
       'Un membre de l’équipe vend, achète, ou les deux.',
     ),
+    'TEMP_PASSWORD_EXPIRED': (
+      'This temporary password has expired. Ask your manager to send you a new one.',
+      'Ce mot de passe provisoire a expiré. Demandez un nouveau mot de passe à votre responsable.',
+    ),
+    'PASSWORD_CHANGE_REQUIRED': (
+      'Choose your own password first.',
+      'Choisissez d’abord votre propre mot de passe.',
+    ),
     'REGION_REQUIRED': ('Choose a region.', 'Choisissez une région.'),
     'REGION_NOT_FOUND': (
       'This region no longer exists.',
@@ -592,8 +600,8 @@ class ServerText {
       '{by} a ajouté {name} à {pdv} : en attente d’approbation.',
     ),
     'member.approved': (
-      '{name} was approved and received an invitation.',
-      '{name} a été approuvé(e) et reçoit une invitation.',
+      '{name} was approved: the sign-in details were sent by email and WhatsApp.',
+      '{name} a été approuvé(e) : les identifiants sont envoyés par email et WhatsApp.',
     ),
     'member.rejected': (
       '{name} was not approved.',

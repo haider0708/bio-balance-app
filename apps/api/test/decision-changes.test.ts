@@ -139,9 +139,10 @@ describe("groups, stores and members", () => {
     await w.a.post(`/v1/users/${added.id}/approve`, {});
     const db = await owner();
     try {
-      await db.query(`UPDATE "User" SET "passwordHash" = 'x' WHERE id = $1`, [
-        added.id,
-      ]);
+      await db.query(
+        `UPDATE "User" SET "passwordHash" = 'x', "mustChangePassword" = false WHERE id = $1`,
+        [added.id],
+      );
     } finally {
       await db.end();
     }

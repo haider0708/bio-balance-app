@@ -292,6 +292,7 @@ class SessionNotifier extends AsyncNotifier<Session?> {
     'pdv': me.pdv == null ? null : {'id': me.pdv!.id, 'name': me.pdv!.name},
     'canChooseSupplier': me.canChooseSupplier,
     'canOrder': me.canOrder,
+    'mustChangePassword': me.mustChangePassword,
   };
 }
 

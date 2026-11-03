@@ -6,6 +6,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../core/auth/me.dart';
 import '../../core/auth/session.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/util/dates.dart';
 import '../analytics/analytics_widgets.dart' show AnalyticsButton;
 import '../analytics/lens.dart' show Facet;
 import '../../core/widgets/async_body.dart';
@@ -340,6 +341,18 @@ class PersonPanel extends ConsumerWidget {
         const Gap(12),
         InfoRow(t.email, person.email),
         if (person.phone != null) InfoRow(t.phone, formatPhone(person.phone!)),
+        // A generated password was sent and not used yet: until when, or that it has run out.
+        if (person.status == ItemStatus.active &&
+            person.mustChangePassword &&
+            person.passwordExpiresAt != null)
+          InfoRow(
+            t.waitingFirstSignIn,
+            person.temporaryPasswordExpired
+                ? t.tempPasswordExpired
+                : t.tempPasswordUntil(
+                    Dates.dateTime(person.passwordExpiresAt!, t.localeName),
+                  ),
+          ),
         if (me.role == Role.admin && person.role != Role.admin)
           Align(
             alignment: AlignmentDirectional.centerEnd,
@@ -431,11 +444,13 @@ class PersonPanel extends ConsumerWidget {
             !person.activated &&
             person.role != Role.admin)
           AsyncButton(
-            label: t.resendInvitation,
-            icon: LucideIcons.mail,
+            label: person.role.isTeam ? t.sendNewPassword : t.resendInvitation,
+            icon: person.role.isTeam ? LucideIcons.keyRound : LucideIcons.mail,
             style: AsyncButtonStyle.outlined,
-            onPressed: () =>
-                act(() => repo.resendInvite(person.id), t.invitationResent),
+            onPressed: () => act(
+              () => repo.resendInvite(person.id),
+              person.role.isTeam ? t.newPasswordSent : t.invitationResent,
+            ),
           ),
         if (person.status == ItemStatus.active &&
             !person.activated &&
@@ -448,7 +463,9 @@ class PersonPanel extends ConsumerWidget {
               if (await confirm(
                     context,
                     title: t.cancelInvitationTitle(person.name),
-                    message: t.cancelInvitationBody,
+                    message: person.role.isTeam
+                        ? t.cancelInvitationBodyPassword
+                        : t.cancelInvitationBody,
                     confirmLabel: t.cancelInvitation,
                     destructive: true,
                   ) &&
@@ -610,7 +627,9 @@ class _EditPersonSheetState extends ConsumerState<_EditPersonSheet> {
             if (!p.activated && p.status == ItemStatus.active) ...[
               const Gap(8),
               Text(
-                t.editPersonInviteNote,
+                p.role.isTeam
+                    ? t.editPersonPasswordNote
+                    : t.editPersonInviteNote,
                 style: context.text.bodySmall?.copyWith(
                   color: context.status.muted,
                 ),

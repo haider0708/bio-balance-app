@@ -51,7 +51,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get addMemberHint =>
-      'They can sign in once BioBalance approves them. They receive an email with a code.';
+      'They can sign in once BioBalance approves them. Their email and a temporary password are then sent by email and WhatsApp.';
 
   @override
   String get addProduct => 'Add a product';
@@ -3953,7 +3953,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get confirmInviteNoteApproval =>
-      'Once the admin approves, the code is sent by email and by WhatsApp.';
+      'Once the admin approves, the account is created and the sign-in details (email and a temporary password) are sent by email and WhatsApp.';
 
   @override
   String get confirmSend => 'Confirm and send';
@@ -4287,4 +4287,54 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get hoursInvalid => 'Closing time must be after opening time.';
+
+  @override
+  String get confirmInviteNoteNowPassword =>
+      'The account is created now: the email and a temporary password are sent by email and WhatsApp.';
+
+  @override
+  String get newAccountHintTeam =>
+      'The person receives their email and a temporary password by email and WhatsApp, and chooses their own at the first sign-in.';
+
+  @override
+  String get sendNewPassword => 'Send a new password';
+
+  @override
+  String get newPasswordSent =>
+      'A new password was sent by email and WhatsApp. The old one no longer works.';
+
+  @override
+  String get cancelInvitationBodyPassword =>
+      'The temporary password stops working and the email address becomes free again.';
+
+  @override
+  String get editPersonPasswordNote =>
+      'They have not signed in yet: if the email or the number changes, a new temporary password is sent to the new ones and the old one stops working.';
+
+  @override
+  String tempPasswordUntil(String date) {
+    return 'Temporary password valid until $date';
+  }
+
+  @override
+  String get tempPasswordExpired =>
+      'The temporary password has expired: send a new one';
+
+  @override
+  String get waitingFirstSignIn => 'Has not signed in yet';
+
+  @override
+  String setPasswordTitle(String name) {
+    return 'Welcome, $name';
+  }
+
+  @override
+  String get setPasswordHint =>
+      'You signed in with the temporary password you were sent. Choose your own password to continue.';
+
+  @override
+  String get setPasswordSave => 'Save and continue';
+
+  @override
+  String get passwordSet => 'Password saved';
 }

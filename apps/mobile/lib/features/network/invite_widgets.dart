@@ -40,6 +40,10 @@ class PhoneField extends StatelessWidget {
   }
 }
 
+/// When the account is made and what the person receives: after the admin's approval, or now; a
+/// generated password (a team member) or an activation code (everyone else).
+enum InviteWhen { afterApproval, nowWithPassword, nowWithCode }
+
 /// "Check before sending": the person's name, email and number, and where the code will go. Returns
 /// whether to go on; a typo in an email or a number is found here, not after the invitation is lost.
 Future<bool> confirmInvite(
@@ -48,7 +52,7 @@ Future<bool> confirmInvite(
   required String email,
   required String phone,
   required String place,
-  required bool afterApproval,
+  required InviteWhen when,
 }) async {
   final t = AppLocalizations.of(context);
   final yes = await showModalBottomSheet<bool>(
@@ -70,9 +74,11 @@ Future<bool> confirmInvite(
             if (place.isNotEmpty) _Line(LucideIcons.store, place),
             const Gap(8),
             Text(
-              afterApproval
-                  ? t.confirmInviteNoteApproval
-                  : t.confirmInviteNoteNow,
+              switch (when) {
+                InviteWhen.afterApproval => t.confirmInviteNoteApproval,
+                InviteWhen.nowWithPassword => t.confirmInviteNoteNowPassword,
+                InviteWhen.nowWithCode => t.confirmInviteNoteNow,
+              },
               style: context.text.bodySmall?.copyWith(
                 color: context.status.muted,
               ),

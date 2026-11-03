@@ -179,7 +179,7 @@ abstract class AppLocalizations {
   /// No description provided for @addMemberHint.
   ///
   /// In en, this message translates to:
-  /// **'They can sign in once BioBalance approves them. They receive an email with a code.'**
+  /// **'They can sign in once BioBalance approves them. Their email and a temporary password are then sent by email and WhatsApp.'**
   String get addMemberHint;
 
   /// No description provided for @addProduct.
@@ -6761,7 +6761,7 @@ abstract class AppLocalizations {
   /// No description provided for @confirmInviteNoteApproval.
   ///
   /// In en, this message translates to:
-  /// **'Once the admin approves, the code is sent by email and by WhatsApp.'**
+  /// **'Once the admin approves, the account is created and the sign-in details (email and a temporary password) are sent by email and WhatsApp.'**
   String get confirmInviteNoteApproval;
 
   /// No description provided for @confirmSend.
@@ -7381,6 +7381,84 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Closing time must be after opening time.'**
   String get hoursInvalid;
+
+  /// No description provided for @confirmInviteNoteNowPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'The account is created now: the email and a temporary password are sent by email and WhatsApp.'**
+  String get confirmInviteNoteNowPassword;
+
+  /// No description provided for @newAccountHintTeam.
+  ///
+  /// In en, this message translates to:
+  /// **'The person receives their email and a temporary password by email and WhatsApp, and chooses their own at the first sign-in.'**
+  String get newAccountHintTeam;
+
+  /// No description provided for @sendNewPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Send a new password'**
+  String get sendNewPassword;
+
+  /// No description provided for @newPasswordSent.
+  ///
+  /// In en, this message translates to:
+  /// **'A new password was sent by email and WhatsApp. The old one no longer works.'**
+  String get newPasswordSent;
+
+  /// No description provided for @cancelInvitationBodyPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'The temporary password stops working and the email address becomes free again.'**
+  String get cancelInvitationBodyPassword;
+
+  /// No description provided for @editPersonPasswordNote.
+  ///
+  /// In en, this message translates to:
+  /// **'They have not signed in yet: if the email or the number changes, a new temporary password is sent to the new ones and the old one stops working.'**
+  String get editPersonPasswordNote;
+
+  /// No description provided for @tempPasswordUntil.
+  ///
+  /// In en, this message translates to:
+  /// **'Temporary password valid until {date}'**
+  String tempPasswordUntil(String date);
+
+  /// No description provided for @tempPasswordExpired.
+  ///
+  /// In en, this message translates to:
+  /// **'The temporary password has expired: send a new one'**
+  String get tempPasswordExpired;
+
+  /// No description provided for @waitingFirstSignIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Has not signed in yet'**
+  String get waitingFirstSignIn;
+
+  /// No description provided for @setPasswordTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Welcome, {name}'**
+  String setPasswordTitle(String name);
+
+  /// No description provided for @setPasswordHint.
+  ///
+  /// In en, this message translates to:
+  /// **'You signed in with the temporary password you were sent. Choose your own password to continue.'**
+  String get setPasswordHint;
+
+  /// No description provided for @setPasswordSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Save and continue'**
+  String get setPasswordSave;
+
+  /// No description provided for @passwordSet.
+  ///
+  /// In en, this message translates to:
+  /// **'Password saved'**
+  String get passwordSet;
 }
 
 class _AppLocalizationsDelegate

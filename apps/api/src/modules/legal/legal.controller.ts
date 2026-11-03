@@ -77,7 +77,7 @@ function privacy(lang: Lang, email: string): Page {
             "Qui y a accès",
             [
               "Chaque personne voit ce que son rôle permet : un membre d’équipe ses propres ventes et son portefeuille, un responsable sa région, l’administrateur tout le réseau. La séparation est appliquée par la base de données elle-même.",
-              "Nos prestataires techniques, uniquement pour faire fonctionner le service : l’hébergement du serveur, la protection réseau (Cloudflare), l’envoi des emails (codes d’invitation et de réinitialisation) et l’acheminement des alertes vers les téléphones (Apple pour l’iPhone, Google Firebase pour Android).",
+              "Nos prestataires techniques, uniquement pour faire fonctionner le service : l’hébergement du serveur, la protection réseau (Cloudflare), l’envoi des emails et des messages WhatsApp (identifiants de connexion provisoires, codes d’invitation et de réinitialisation) et l’acheminement des alertes vers les téléphones (Apple pour l’iPhone, Google Firebase pour Android).",
             ],
           ],
           [
@@ -134,7 +134,7 @@ function privacy(lang: Lang, email: string): Page {
             "Who can see it",
             [
               "Each person sees what their role allows: a team member their own sales and wallet, a regional manager their region, the administrator the whole network. The separation is enforced by the database itself.",
-              "Our technical providers, only to run the service: server hosting, network protection (Cloudflare), email delivery (invitation and reset codes) and the delivery of alerts to phones (Apple for iPhone, Google Firebase for Android).",
+              "Our technical providers, only to run the service: server hosting, network protection (Cloudflare), email and WhatsApp delivery (temporary sign-in details, invitation and reset codes) and the delivery of alerts to phones (Apple for iPhone, Google Firebase for Android).",
             ],
           ],
           [

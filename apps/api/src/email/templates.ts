@@ -20,7 +20,15 @@ export type EmailTemplate =
       name: string;
       link?: string;
     }
-  | { kind: "password-changed"; changedAt: Date; name: string };
+  | { kind: "password-changed"; changedAt: Date; name: string }
+  | {
+      kind: "credentials";
+      name: string;
+      email: string;
+      password: string;
+      expiresAt: Date;
+      stores: { ios: string | null; android: string | null };
+    };
 
 const escape = (value: string) =>
   value.replace(
@@ -117,6 +125,40 @@ const words = {
   },
 } as const;
 
+/** What the account message says, in each language. The password is the only secret in it. */
+const credentials = {
+  fr: {
+    subject: "Votre compte BioBalance est prêt",
+    heading: "Votre compte BioBalance est prêt",
+    intro: (name: string) =>
+      `Bonjour ${name}, votre compte BioBalance a été créé.`,
+    steps:
+      "Installez l’application BioBalance, puis connectez-vous avec l’adresse email et le mot de passe provisoire ci-dessous. L’application vous demandera aussitôt de choisir votre propre mot de passe.",
+    emailLabel: "Adresse email",
+    passwordLabel: "Mot de passe provisoire",
+    ios: "Application iPhone",
+    android: "Application Android",
+    valid: (date: string) =>
+      `Ce mot de passe provisoire fonctionne jusqu’au ${date} (heure de Tunis).`,
+    note: "Ne le partagez avec personne. Si vous ne vous attendiez pas à ce message, ignorez-le et prévenez votre responsable.",
+  },
+  en: {
+    subject: "Your BioBalance account is ready",
+    heading: "Your BioBalance account is ready",
+    intro: (name: string) =>
+      `Hello ${name}, your BioBalance account has been created.`,
+    steps:
+      "Install the BioBalance app, then sign in with the email address and the temporary password below. The app will ask you right away to choose your own password.",
+    emailLabel: "Email address",
+    passwordLabel: "Temporary password",
+    ios: "iPhone app",
+    android: "Android app",
+    valid: (date: string) =>
+      `This temporary password works until ${date} (Tunis time).`,
+    note: "Do not share it with anyone. If you were not expecting this message, ignore it and tell your manager.",
+  },
+} as const;
+
 const shown = (code: string) => `${code.slice(0, 4)}-${code.slice(4)}`;
 
 /** Plain, self-contained email: no remote images, tracking, fonts or scripts. */
@@ -124,6 +166,7 @@ export function renderEmail(
   locale: Locale,
   input: EmailTemplate,
 ): EmailContent {
+  if (input.kind === "credentials") return renderCredentials(locale, input);
   const t = words[locale];
   let subject: string, heading: string, intro: string, note: string;
   let steps: string | undefined,
@@ -174,4 +217,43 @@ ${detail ? `<p style="margin:0 0 20px;font-size:14px;line-height:1.5;color:#5d66
 <p style="margin:24px 0 0;font-size:14px;line-height:1.6;color:#5d665f">${escape(note)}</p>
 </td></tr></table></td></tr></table></body></html>`;
   return { subject, text, html };
+}
+
+function renderCredentials(
+  locale: Locale,
+  input: Extract<EmailTemplate, { kind: "credentials" }>,
+): EmailContent {
+  const c = credentials[locale];
+  const links: (readonly [string, string])[] = [];
+  if (input.stores.ios) links.push([c.ios, input.stores.ios]);
+  if (input.stores.android) links.push([c.android, input.stores.android]);
+  const valid = c.valid(when(locale, input.expiresAt));
+  const text = [
+    "BioBalance",
+    c.heading,
+    c.intro(input.name),
+    c.steps,
+    ...links.map(([label, url]) => `${label} : ${url}`),
+    `${c.emailLabel} : ${input.email}`,
+    `${c.passwordLabel} : ${input.password}`,
+    valid,
+    c.note,
+  ].join("\n\n");
+  const box = (label: string, value: string, mono: boolean) =>
+    `<p style="margin:0 0 6px;font-size:14px;color:#5d665f">${escape(label)}</p><p style="margin:0 0 16px;padding:14px;border:1px solid #dfe6e1;border-radius:6px;${mono ? "font-family:Consolas,monospace;font-size:24px;letter-spacing:2px;font-weight:700;" : "font-size:16px;"}-webkit-user-select:all;user-select:all;word-break:break-all">${escape(value)}</p>`;
+  const html = `<!doctype html>
+<html lang="${locale}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${escape(c.subject)}</title></head>
+<body style="margin:0;padding:0;background:#ffffff;color:#1f2a24;font-family:Arial,Helvetica,sans-serif">
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0"><tr><td align="center" style="padding:32px 20px">
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width:480px;text-align:left">
+<tr><td style="padding:0 0 24px;color:#146c43;font-size:15px;font-weight:600">BioBalance</td></tr>
+<tr><td><h1 style="margin:0 0 16px;font-size:22px;line-height:1.35">${escape(c.heading)}</h1>
+<p style="margin:0 0 16px;font-size:16px;line-height:1.6">${escape(c.intro(input.name))}</p>
+<p style="margin:0 0 20px;font-size:16px;line-height:1.6">${escape(c.steps)}</p>
+${links.map(([label, url]) => `<p style="margin:0 0 10px"><a href="${escape(url)}" style="display:inline-block;padding:12px 18px;background:#146c43;color:#ffffff;text-decoration:none;border-radius:6px;font-size:15px;font-weight:700">${escape(label)}</a></p>`).join("")}
+${box(c.emailLabel, input.email, false)}${box(c.passwordLabel, input.password, true)}
+<p style="margin:0 0 20px;font-size:14px;line-height:1.5;color:#5d665f">${escape(valid)}</p>
+<p style="margin:24px 0 0;font-size:14px;line-height:1.6;color:#5d665f">${escape(c.note)}</p>
+</td></tr></table></td></tr></table></body></html>`;
+  return { subject: c.subject, text, html };
 }

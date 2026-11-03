@@ -207,7 +207,7 @@ describe("the demonstration region", () => {
       expect(
         (
           await db.query(
-            `SELECT 1 FROM "Job" WHERE kind = 'email' AND payload->>'template' = 'invite'`,
+            `SELECT 1 FROM "Job" WHERE kind = 'email' AND payload->>'template' IN ('invite', 'credentials')`,
           )
         ).rowCount,
       ).toBe(0);
