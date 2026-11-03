@@ -464,12 +464,6 @@ abstract class AppLocalizations {
   /// **'By product'**
   String get byProduct;
 
-  /// No description provided for @byRegion.
-  ///
-  /// In en, this message translates to:
-  /// **'region'**
-  String get byRegion;
-
   /// No description provided for @calendarAdd.
   ///
   /// In en, this message translates to:
@@ -3770,12 +3764,6 @@ abstract class AppLocalizations {
   /// **'Decided'**
   String get transferDecidedTab;
 
-  /// No description provided for @transferDirection.
-  ///
-  /// In en, this message translates to:
-  /// **'My para'**
-  String get transferDirection;
-
   /// No description provided for @transferEdit.
   ///
   /// In en, this message translates to:
@@ -5041,12 +5029,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'before: {count}'**
   String vsPrevious(int count);
-
-  /// No description provided for @unitsPerSale.
-  ///
-  /// In en, this message translates to:
-  /// **'{value} units per sale'**
-  String unitsPerSale(String value);
 
   /// No description provided for @insTopFamily.
   ///

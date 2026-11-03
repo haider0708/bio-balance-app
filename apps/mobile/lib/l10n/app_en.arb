@@ -152,7 +152,6 @@
     }
   },
   "byProduct": "By product",
-  "byRegion": "region",
   "calendarAdd": "Add to my calendar",
   "calendarBody": "Add your visits to Apple Calendar or Google Calendar: they appear there and update by themselves. Calendar apps refresh every few hours: the BioBalance alerts are the reliable ones.",
   "calendarCopied": "Link copied",
@@ -1080,7 +1079,6 @@
   "transferChanges": "Changes",
   "transferChoosePara": "Choose a para",
   "transferDecidedTab": "Decided",
-  "transferDirection": "My para",
   "transferEdit": "Change the quantities",
   "transferEdited": "Quantities updated",
   "transferExchange": "Exchange with a para",
@@ -1464,14 +1462,6 @@
     "placeholders": {
       "count": {
         "type": "int"
-      }
-    }
-  },
-  "unitsPerSale": "{value} units per sale",
-  "@unitsPerSale": {
-    "placeholders": {
-      "value": {
-        "type": "String"
       }
     }
   },

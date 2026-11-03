@@ -64,6 +64,7 @@ export class ReportingController {
     );
   }
 
+  @Roles("ADMIN", "RESPONSABLE", "VENDEUR")
   @Get("dashboard")
   dash(@Req() r: AuthRequest, @Query("regionId") region?: string) {
     return this.dashboard.forActor(r.actor, {

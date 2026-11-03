@@ -274,9 +274,6 @@ class AppLocalizationsFr extends AppLocalizations {
   String get byProduct => 'Par produit';
 
   @override
-  String get byRegion => 'région';
-
-  @override
   String get calendarAdd => 'Ajouter à mon agenda';
 
   @override
@@ -2157,9 +2154,6 @@ class AppLocalizationsFr extends AppLocalizations {
   String get transferDecidedTab => 'Traités';
 
   @override
-  String get transferDirection => 'Mon para';
-
-  @override
   String get transferEdit => 'Modifier les quantités';
 
   @override
@@ -2894,11 +2888,6 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String vsPrevious(int count) {
     return 'avant : $count';
-  }
-
-  @override
-  String unitsPerSale(String value) {
-    return '$value unités par vente';
   }
 
   @override

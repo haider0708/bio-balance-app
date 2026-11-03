@@ -244,6 +244,25 @@ describe("what a buyer sees", () => {
   });
 });
 
+describe("the routes open to everyone signed in", () => {
+  it("answer a buyer and an order manager without failing, and give no dashboard", async () => {
+    const manager = await createAccount({ role: "ORDERS", name: "Omar" });
+    for (const who of [b, client(api, manager.token)]) {
+      for (const route of [
+        "/v1/me",
+        "/v1/products",
+        "/v1/products/families",
+        "/v1/notifications",
+        "/v1/notifications/unread-count",
+        "/v1/courses",
+        "/v1/regions",
+      ])
+        expect((await who.get(route)).status, route).toBeLessThan(500);
+      expect((await who.get("/v1/dashboard")).status).toBe(403);
+    }
+  });
+});
+
 describe("placing an order", () => {
   it("for its own para: the responsable, the order manager and the admin are told", async () => {
     const manager = await createAccount({ role: "ORDERS", name: "Omar" });

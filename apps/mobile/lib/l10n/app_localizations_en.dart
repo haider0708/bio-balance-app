@@ -274,9 +274,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get byProduct => 'By product';
 
   @override
-  String get byRegion => 'region';
-
-  @override
   String get calendarAdd => 'Add to my calendar';
 
   @override
@@ -2151,9 +2148,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get transferDecidedTab => 'Decided';
 
   @override
-  String get transferDirection => 'My para';
-
-  @override
   String get transferEdit => 'Change the quantities';
 
   @override
@@ -2882,11 +2876,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String vsPrevious(int count) {
     return 'before: $count';
-  }
-
-  @override
-  String unitsPerSale(String value) {
-    return '$value units per sale';
   }
 
   @override

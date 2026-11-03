@@ -152,7 +152,6 @@
     }
   },
   "byProduct": "Par produit",
-  "byRegion": "région",
   "calendarAdd": "Ajouter à mon agenda",
   "calendarBody": "Ajoutez vos visites à Calendrier Apple ou Google Agenda : elles s’y affichent et se mettent à jour toutes seules. Les agendas se rafraîchissent toutes les quelques heures : les alertes BioBalance sont celles sur lesquelles compter.",
   "calendarCopied": "Lien copié",
@@ -956,7 +955,6 @@
   "transferChanges": "Modifications",
   "transferChoosePara": "Choisir un para",
   "transferDecidedTab": "Traités",
-  "transferDirection": "Mon para",
   "transferEdit": "Modifier les quantités",
   "transferEdited": "Quantités modifiées",
   "transferExchange": "Échanger avec un para",
@@ -1284,14 +1282,6 @@
     "placeholders": {
       "count": {
         "type": "int"
-      }
-    }
-  },
-  "unitsPerSale": "{value} unités par vente",
-  "@unitsPerSale": {
-    "placeholders": {
-      "value": {
-        "type": "String"
       }
     }
   },
