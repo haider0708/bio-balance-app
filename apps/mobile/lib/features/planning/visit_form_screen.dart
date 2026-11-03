@@ -163,6 +163,8 @@ class _VisitFormScreenState extends ConsumerState<VisitFormScreen> {
             children: [
               for (final k in VisitKind.values)
                 ChoiceChip(
+                  // The icon already says what it is; the colour says it is chosen.
+                  showCheckmark: false,
                   avatar: Icon(k.icon, size: 16),
                   label: Text(k.label(t)),
                   selected: _kind == k,

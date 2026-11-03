@@ -411,7 +411,8 @@ class AsyncButton extends StatefulWidget {
   State<AsyncButton> createState() => _AsyncButtonState();
 }
 
-enum AsyncButtonStyle { filled, outlined, danger, text }
+/// [danger] is a filled red button; [dangerText] a quiet red one for a destructive step beside the main action.
+enum AsyncButtonStyle { filled, outlined, danger, dangerText, text }
 
 class _AsyncButtonState extends State<AsyncButton> {
   bool _busy = false;
@@ -458,6 +459,11 @@ class _AsyncButtonState extends State<AsyncButton> {
         child: child,
       ),
       AsyncButtonStyle.text => TextButton(onPressed: onPressed, child: child),
+      AsyncButtonStyle.dangerText => TextButton(
+        onPressed: onPressed,
+        style: TextButton.styleFrom(foregroundColor: context.status.danger),
+        child: child,
+      ),
       AsyncButtonStyle.danger => FilledButton(
         onPressed: onPressed,
         style: FilledButton.styleFrom(

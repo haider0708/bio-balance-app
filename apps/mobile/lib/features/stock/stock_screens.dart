@@ -976,7 +976,7 @@ class _DecisionBar extends ConsumerWidget {
         AsyncButton(
           label: t.reject,
           icon: LucideIcons.x,
-          style: AsyncButtonStyle.text,
+          style: AsyncButtonStyle.dangerText,
           onPressed: () async {
             final note = await askNote(
               context,

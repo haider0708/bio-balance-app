@@ -68,6 +68,8 @@ class _LedgerScreenState extends ConsumerState<LedgerScreen> {
                 onSelected: (_) => _toggle(false),
               ),
               ChoiceChip(
+                // The icon already says what it is; the colour says it is chosen.
+                showCheckmark: false,
                 avatar: const Icon(LucideIcons.ban, size: 16),
                 label: Text(t.ledgerVoidedOnly),
                 selected: _voidedOnly,

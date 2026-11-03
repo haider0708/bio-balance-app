@@ -411,7 +411,7 @@ class PersonPanel extends ConsumerWidget {
           const Gap(8),
           AsyncButton(
             label: t.reject,
-            style: AsyncButtonStyle.text,
+            style: AsyncButtonStyle.dangerText,
             onPressed: () async {
               final note = await askNote(
                 context,
@@ -443,7 +443,7 @@ class PersonPanel extends ConsumerWidget {
           AsyncButton(
             label: t.cancelInvitation,
             icon: LucideIcons.mailX,
-            style: AsyncButtonStyle.text,
+            style: AsyncButtonStyle.dangerText,
             onPressed: () async {
               if (await confirm(
                     context,
@@ -467,7 +467,7 @@ class PersonPanel extends ConsumerWidget {
           AsyncButton(
             label: t.deactivate,
             icon: LucideIcons.userX,
-            style: AsyncButtonStyle.text,
+            style: AsyncButtonStyle.dangerText,
             onPressed: () async {
               if (await confirm(
                     context,

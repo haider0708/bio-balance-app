@@ -99,6 +99,8 @@ class _PeriodChipsState extends State<PeriodChips> {
             ),
           ChoiceChip(
             key: custom ? _selected : null,
+            // The icon already says what it is; the colour says it is chosen.
+            showCheckmark: false,
             avatar: const Icon(LucideIcons.calendarRange, size: 16),
             label: Text(
               custom

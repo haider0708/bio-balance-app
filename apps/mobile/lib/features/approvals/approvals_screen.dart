@@ -54,6 +54,7 @@ class _ApprovalsScreenState extends ConsumerState<ApprovalsScreen> {
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
             child: SegmentedButton<bool>(
+              expandedInsets: EdgeInsets.zero,
               showSelectedIcon: false,
               segments: [
                 ButtonSegment(

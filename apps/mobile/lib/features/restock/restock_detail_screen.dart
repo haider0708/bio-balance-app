@@ -573,7 +573,7 @@ class _RestockDetailScreenState extends ConsumerState<RestockDetailScreen> {
         AsyncButton(
           label: t.cancelRestock,
           icon: LucideIcons.ban,
-          style: AsyncButtonStyle.text,
+          style: AsyncButtonStyle.dangerText,
           onPressed: () async {
             final note = await askNote(
               context,

@@ -591,6 +591,7 @@ class _Hero extends StatelessWidget {
                     ],
                   ),
                 ),
+                const SizedBox(width: 12),
                 Icon(LucideIcons.arrowRight, color: fg),
               ],
             ),

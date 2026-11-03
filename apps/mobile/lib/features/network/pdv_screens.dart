@@ -256,7 +256,7 @@ class PdvDetailScreen extends ConsumerWidget {
         const Gap(8),
         AsyncButton(
           label: t.reject,
-          style: AsyncButtonStyle.text,
+          style: AsyncButtonStyle.dangerText,
           onPressed: () async {
             final note = await askNote(
               context,

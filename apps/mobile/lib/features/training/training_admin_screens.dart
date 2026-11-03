@@ -356,7 +356,7 @@ class _CourseEditorScreenState extends ConsumerState<CourseEditorScreen> {
               AsyncButton(
                 label: t.deleteCourse,
                 icon: LucideIcons.trash2,
-                style: AsyncButtonStyle.text,
+                style: AsyncButtonStyle.dangerText,
                 onPressed: () async {
                   if (!await confirm(
                         context,

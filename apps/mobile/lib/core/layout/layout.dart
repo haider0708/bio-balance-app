@@ -17,8 +17,9 @@ const formMaxWidth = 680.0;
 /// Pages that are a form (create, edit, count, ship, receive...), not a list or a dashboard.
 bool isFormPath(String path) =>
     path == '/settings' ||
-    RegExp(r'/(new|edit|declare|adjust|ship|receive|restock|correct)$')
-        .hasMatch(path);
+    RegExp(
+      r'/(new|edit|declare|adjust|ship|receive|restock|correct|papers|delivered)$',
+    ).hasMatch(path);
 
 /// The space a bottom sheet keeps under its content: the keyboard when it is open, otherwise the
 /// phone's home bar (a sheet's own safe area only covers its top), so the last button is never

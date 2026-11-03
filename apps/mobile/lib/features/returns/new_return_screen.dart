@@ -171,6 +171,8 @@ class _NewReturnScreenState extends ConsumerState<NewReturnScreen> {
                   (_Mode.set, t.returnActionSet, LucideIcons.slidersHorizontal),
                 ])
                   ChoiceChip(
+                    // The icon already says what it is; the colour says it is chosen.
+                    showCheckmark: false,
                     avatar: Icon(icon, size: 16),
                     label: Text(label),
                     selected: _mode == mode,

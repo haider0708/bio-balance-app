@@ -376,7 +376,14 @@ void main() {
   });
 
   testWidgets('a visit not yet open says when it opens', (tester) async {
-    final later = DateTime.now().add(const Duration(hours: 3));
+    // A visit more than an hour away, still today: the screen only counts down within the day.
+    final now = DateTime.now();
+    var later = now.add(const Duration(hours: 3));
+    if (later.day != now.day) later = now.add(const Duration(minutes: 61));
+    if (later.day != now.day) {
+      markTestSkipped('Too close to midnight to plan a visit later today.');
+      return;
+    }
     final s = server(visit: visitJson(start: later));
     await open(tester, s, '/planning/visits/v1');
     expect(find.textContaining('Available from'), findsOneWidget);
