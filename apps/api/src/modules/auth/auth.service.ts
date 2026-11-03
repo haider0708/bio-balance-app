@@ -439,6 +439,18 @@ export class AuthService {
       await tx.accessToken.deleteMany({ where: { userId: user.id } });
       await tx.notification.deleteMany({ where: { userId: user.id } });
       await tx.lessonProgress.deleteMany({ where: { userId: user.id } });
+      // A responsable's calendar link and settings go; their planned visits are cancelled (the
+      // check-ins already made stay, without a name, and are erased after twelve months).
+      await tx.calendarFeed.deleteMany({ where: { userId: user.id } });
+      await tx.planningPreference.deleteMany({ where: { userId: user.id } });
+      await tx.visit.updateMany({
+        where: { responsableId: user.id, status: "PLANNED" },
+        data: {
+          status: "CANCELLED",
+          cancelledAt: new Date(),
+          revision: { increment: 1 },
+        },
+      });
       await tx.user.update({
         where: { id: user.id },
         data: {

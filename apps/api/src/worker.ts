@@ -76,7 +76,9 @@ const execute: JobExecutor = async (job, stillOwned) => {
     case "visit-evening":
       return sendEveningPlans(db, String(job.payload.day));
     case "visit-close":
-      return closeVisitDay(db, String(job.payload.day));
+      return closeVisitDay(db, String(job.payload.day), true);
+    case "visit-settle":
+      return closeVisitDay(db, String(job.payload.day), false);
     case "demo-restore":
       return restoreDemoAccount(db, job.payload as unknown as RestorePayload);
     default:
@@ -104,6 +106,7 @@ async function main() {
       "day-summary",
       "visit-evening",
       "visit-close",
+      "visit-settle",
     ],
     execute,
   );

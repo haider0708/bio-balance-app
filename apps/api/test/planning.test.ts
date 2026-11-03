@@ -10,6 +10,7 @@ import {
   type Api,
 } from "./helpers";
 import { approvedPdv, buildWorld, type World } from "./world";
+import argon2 from "argon2";
 import { Database } from "../src/core/database";
 import { addDays, tunisDay } from "../src/core/dates";
 import {
@@ -578,6 +579,37 @@ describe("reminders and the day's end", () => {
     );
   });
 
+  it("at the day's end, closes only visits whose time is over: a visit planned for later is not missed yet", async () => {
+    const late = (
+      await w.n.post(
+        "/v1/visits",
+        plan({
+          start: new Date(Date.now() + 30 * MIN).toISOString(),
+          allowOverlap: true,
+        }),
+      )
+    ).body;
+    const over = (
+      await w.n.post(
+        "/v1/visits",
+        plan({
+          start: new Date(Date.now() - 3 * 60 * MIN).toISOString(),
+          allowOverlap: true,
+        }),
+      )
+    ).body;
+    // The Tunis day of those two can differ near midnight: close both days.
+    await closeVisitDay(db, tunisDay(new Date(over.plannedStart)), true);
+    await closeVisitDay(db, tunisDay(new Date(late.plannedStart)), true);
+    expect((await w.n.get(`/v1/visits/${over.id}`)).body.status).toBe("MISSED");
+    expect((await w.n.get(`/v1/visits/${late.id}`)).body.status).toBe(
+      "PLANNED",
+    );
+    // The next day everything of the day before is settled.
+    await closeVisitDay(db, tunisDay(new Date(late.plannedStart)), false);
+    expect((await w.n.get(`/v1/visits/${late.id}`)).body.status).toBe("MISSED");
+  });
+
   it("closes the day: a planned visit nobody started is missed, one still on site is done", async () => {
     await w.n.put(`/v1/planning/positions/pdv/${pdv.id}`, {
       ...tunis,
@@ -595,7 +627,7 @@ describe("reminders and the day's end", () => {
       ...tunis,
       accuracyMeters: 10,
     });
-    await closeVisitDay(db, today());
+    await closeVisitDay(db, today(), false);
     expect((await w.n.get(`/v1/visits/${missed.id}`)).body).toMatchObject({
       status: "MISSED",
       revision: 1,
@@ -641,7 +673,7 @@ describe("what the admin sees", () => {
       "/v1/visits",
       plan({ start: nowStart(), allowOverlap: true }),
     );
-    await closeVisitDay(db, today());
+    await closeVisitDay(db, today(), false);
     const overview = (
       await w.a.get(`/v1/planning/overview?from=${today()}&to=${today()}`)
     ).body;
@@ -660,5 +692,58 @@ describe("what the admin sees", () => {
       (await w.n.get(`/v1/planning/overview?from=${today()}&to=${today()}`))
         .status,
     ).toBe(403);
+  });
+});
+
+describe("deleting a responsable's account", () => {
+  it("ends their calendar link and settings and cancels their planned visits, and keeps the check-ins without a name", async () => {
+    const ownerDb = await owner();
+    await ownerDb.query(`UPDATE "User" SET "passwordHash" = $2 WHERE id = $1`, [
+      w.nord.id,
+      await argon2.hash("nora-password-1", { type: argon2.argon2id }),
+    ]);
+    await ownerDb.end();
+    await w.n.put(`/v1/planning/positions/pdv/${pdv.id}`, {
+      ...tunis,
+      accuracyMeters: 10,
+    });
+    const planned = (await w.n.post("/v1/visits", plan())).body;
+    const started = (
+      await w.n.post(
+        "/v1/visits",
+        plan({ start: nowStart(), allowOverlap: true }),
+      )
+    ).body;
+    await w.n.post(`/v1/visits/${started.id}/check-in`, {
+      ...tunis,
+      accuracyMeters: 10,
+    });
+    await w.n.put("/v1/planning/preferences", { leadMinutes: 15 });
+    const link = (await w.n.get("/v1/planning/calendar-link")).body;
+
+    expect(
+      (await w.n.post("/v1/me/delete", { password: "nora-password-1" })).status,
+    ).toBe(201);
+
+    expect(
+      (await fetch(`${api.url}${new URL(link.url).pathname}`)).status,
+    ).toBe(404);
+    const db = await owner();
+    try {
+      const rows = await db.query(
+        `SELECT id, status FROM "Visit" ORDER BY "plannedStart"`,
+      );
+      expect(rows.rows.find((r) => r.id === planned.id).status).toBe(
+        "CANCELLED",
+      );
+      expect(rows.rows.find((r) => r.id === started.id).status).toBe("ON_SITE");
+      expect((await db.query(`SELECT 1 FROM "CalendarFeed"`)).rowCount).toBe(0);
+      expect(
+        (await db.query(`SELECT 1 FROM "PlanningPreference"`)).rowCount,
+      ).toBe(0);
+      expect((await db.query(`SELECT 1 FROM "VisitEvent"`)).rowCount).toBe(1);
+    } finally {
+      await db.end();
+    }
   });
 });

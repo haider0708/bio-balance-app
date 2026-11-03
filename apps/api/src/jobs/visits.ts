@@ -116,20 +116,28 @@ export async function sendEveningPlans(db: Database, tomorrow: string) {
 }
 
 /**
- * The day's end: a planned visit nobody started is missed (the responsable is told), and one still
- * on site is closed. Visits of earlier days still open are settled the same way.
+ * Closes visits: a planned one nobody started is missed (the responsable is told), one still on
+ * site is done. At the day's end (`endedOnly`) only visits whose planned time is over are closed,
+ * so a visit planned late in the evening is not missed before it begins; the next day everything
+ * of the days before is settled.
  */
-export async function closeVisitDay(db: Database, day: string) {
+export async function closeVisitDay(
+  db: Database,
+  day: string,
+  endedOnly = true,
+) {
   await db.run("SYSTEM", async (tx) => {
     const missed = await tx.$queryRaw<
       (PlaceRef & { id: string; responsableId: string; day: Date })[]
     >`
       UPDATE "Visit" SET status = 'MISSED', revision = revision + 1, "updatedAt" = now()
-      WHERE status = 'PLANNED' AND day <= ${day}::date
+      WHERE status = 'PLANNED'
+        AND (day < ${day}::date OR (day = ${day}::date AND (NOT ${endedOnly} OR "plannedEnd" <= now())))
       RETURNING id, "responsableId", day, "targetKind", "targetId"`;
     await tx.$executeRaw`
       UPDATE "Visit" SET status = 'DONE', revision = revision + 1, "updatedAt" = now()
-      WHERE status = 'ON_SITE' AND day <= ${day}::date`;
+      WHERE status = 'ON_SITE'
+        AND (day < ${day}::date OR (day = ${day}::date AND (NOT ${endedOnly} OR "plannedEnd" <= now())))`;
     if (!missed.length) return;
     const name = await placeNames(tx, missed);
     for (const v of missed)
@@ -142,15 +150,19 @@ export async function closeVisitDay(db: Database, day: string) {
   });
 }
 
-/** Queues the evening alert from 20:00 and the day's closing from 23:30 (and yesterday's, in case the worker was down). */
+/**
+ * Queues the evening alert from 20:00, the day's closing from 23:30, and the settling of yesterday
+ * (visits that ended late, or if the worker was down).
+ */
 export async function scheduleVisitJobs(db: Database, now = new Date()) {
   const today = tunisDay(now);
   const minutes = tunisMinutes(now);
+  const yesterday = addDays(today, -1);
   const jobs: { kind: string; key: string; payload: object }[] = [
     {
-      kind: "visit-close",
-      key: `visit-close:${addDays(today, -1)}`,
-      payload: { day: addDays(today, -1) },
+      kind: "visit-settle",
+      key: `visit-settle:${yesterday}`,
+      payload: { day: yesterday },
     },
   ];
   if (minutes >= EVENING_AT_MINUTES)

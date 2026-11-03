@@ -61,6 +61,7 @@ function privacy(lang: Lang, email: string): Page {
               "<b>Compte</b> : nom, adresse email, téléphone (facultatif), rôle, région et point de vente, langue choisie, mot de passe (enregistré uniquement sous forme chiffrée irréversible) et, pour les administrateurs, le secret de la validation en deux étapes (chiffré).",
               "<b>Activité professionnelle</b> : ventes enregistrées (produits, quantités, date et heure), stocks, comptages et réapprovisionnements, récompenses, portefeuille et demandes de paiement, annonces lues et progression des formations.",
               "<b>Photos</b> : photos de stock et de bons de livraison que vous choisissez de prendre comme preuve. L’appareil photo sert aussi à lire les codes-barres des produits ; les images de lecture ne sont pas enregistrées.",
+              "<b>Planning et position</b> (responsables de région) : les visites que vous planifiez (lieu, date, heure, note) et, quand vous touchez « Je suis là » ou « Je pars », votre position à cet instant, pour confirmer votre présence sur place. La position n’est lue qu’à ces deux moments, quand l’application est ouverte : elle n’est jamais suivie en continu ni en arrière-plan. Vous pouvez valider sans position en disant pourquoi. Seul l’administrateur voit ces positions. Le lien d’agenda secret que vous pouvez ajouter à votre application d’agenda montre vos visites (lieu, heure, note) ; vous pouvez le renouveler à tout moment.",
               "<b>Alertes</b> : un identifiant de notification propre à l’application sur votre téléphone, pour que les alertes vous parviennent ; il est supprimé à la déconnexion et à la suppression du compte.",
               "<b>Données techniques</b> : journaux de sécurité (adresse IP, date, résultat d’une connexion) pour protéger les comptes contre les tentatives répétées, et rapports d’erreur de l’application (plateforme, version, description de l’erreur), envoyés sans aucune donnée qui vous identifie et gardés 30 jours.",
               "Nous n’utilisons ni publicité, ni pistage, ni outil d’analyse tiers, et nous ne vendons aucune donnée.",
@@ -82,7 +83,7 @@ function privacy(lang: Lang, email: string): Page {
           [
             "Combien de temps",
             [
-              "Les données du compte sont gardées tant que le compte existe. Quand un compte est supprimé, ce qui identifie la personne est effacé immédiatement. Les enregistrements commerciaux (ventes, mouvements de stock, récompenses payées) sont conservés sans nom pour la comptabilité, le temps exigé par la loi.",
+              "Les données du compte sont gardées tant que le compte existe. Quand un compte est supprimé, ce qui identifie la personne est effacé immédiatement. Les enregistrements commerciaux (ventes, mouvements de stock, récompenses payées) sont conservés sans nom pour la comptabilité, le temps exigé par la loi. Les visites et les positions de présence sont gardées 12 mois, puis effacées.",
             ],
           ],
           [
@@ -117,6 +118,7 @@ function privacy(lang: Lang, email: string): Page {
               "<b>Account</b>: name, email address, phone (optional), role, region and point of sale, chosen language, password (stored only as an irreversible hash) and, for administrators, the two-step verification secret (encrypted).",
               "<b>Business activity</b>: recorded sales (products, quantities, date and time), stock, counts and restocks, rewards, wallet and payout requests, announcements read and training progress.",
               "<b>Photos</b>: pictures of stock and delivery papers you choose to take as proof. The camera also reads product barcodes; scanning images are not stored.",
+              "<b>Planning and position</b> (regional managers): the visits you plan (place, date, time, note) and, when you tap “I’m here” or “I’m leaving”, your position at that moment, to confirm you are at the place. The position is read only at those two moments, while the app is open: it is never followed continuously or in the background. You can check in without a position and say why. Only the administrator sees these positions. The secret calendar link you may add to your calendar app shows your visits (place, time, note); you can renew it at any time.",
               "<b>Alerts</b>: a notification identifier of the app on your phone, so alerts reach you; it is removed when you sign out or delete your account.",
               "<b>Technical data</b>: security logs (IP address, time, result of a sign-in) to protect accounts against repeated attempts, and app error reports (platform, version, description of the error), sent without anything that identifies you and kept 30 days.",
               "We use no advertising, no tracking and no third-party analytics, and we sell no data.",
@@ -138,7 +140,7 @@ function privacy(lang: Lang, email: string): Page {
           [
             "How long",
             [
-              "Account data is kept while the account exists. When an account is deleted, what identifies the person is erased at once. Business records (sales, stock movements, rewards paid) are kept without a name for the accounts, as long as the law requires.",
+              "Account data is kept while the account exists. When an account is deleted, what identifies the person is erased at once. Business records (sales, stock movements, rewards paid) are kept without a name for the accounts, as long as the law requires. Visits and the positions taken at check-in are kept 12 months, then erased.",
             ],
           ],
           [
