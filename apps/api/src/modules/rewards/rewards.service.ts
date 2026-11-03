@@ -4,7 +4,11 @@ import type { Actor } from "../../core/actor";
 import { audit } from "../../core/audit";
 import { Database, type Tx } from "../../core/database";
 import { DomainError, notFound, requireRule } from "../../core/errors";
-import { MAX_MILLIMES } from "../../core/money";
+import {
+  MAX_MILLIMES,
+  REWARD_CEILING_MILLIMES,
+  REWARD_CONFIRM_MILLIMES,
+} from "../../core/money";
 import { notify } from "../../core/notifier";
 import { addDays, dateToDay, dayToDate, tunisDay } from "../../core/dates";
 import { rewardSources } from "./rules";
@@ -19,6 +23,8 @@ export interface RuleInput {
   note?: string;
   /** End or cancel the rules already covering these days, instead of refusing. */
   replaceOverlap?: boolean;
+  /** The admin saw the warning about a rate above 10 TND per unit and still means it. */
+  confirmHigh?: boolean;
 }
 
 /** What each product or family pays per unit sold, set by the admin for a period. */
@@ -38,6 +44,24 @@ export class RewardsService {
       "AMOUNT_TOO_LARGE",
       "This amount is too large.",
     );
+    requireRule(
+      BigInt(input.amountMillimes) <= REWARD_CEILING_MILLIMES,
+      "REWARD_TOO_HIGH",
+      "A reward above 100 TND per unit is refused. Check the amount: it is in TND, not millimes.",
+    );
+    if (
+      BigInt(input.amountMillimes) > REWARD_CONFIRM_MILLIMES &&
+      !input.confirmHigh
+    )
+      throw new DomainError(
+        "REWARD_CONFIRMATION_REQUIRED",
+        "This reward is above 10 TND per unit. Confirm it is not a typo.",
+        409,
+        {
+          amountMillimes: input.amountMillimes,
+          thresholdMillimes: Number(REWARD_CONFIRM_MILLIMES),
+        },
+      );
     requireRule(
       !input.endsOn || input.endsOn >= input.startsOn,
       "INVALID_PERIOD",

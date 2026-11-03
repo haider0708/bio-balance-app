@@ -87,6 +87,14 @@ The apps report the errors they meet (release builds; platform, version and the 
 
 `biobalance-monitor.timer` checks every few minutes: services healthy, memory and load, jobs failing or stuck, backup freshness, the public HTTPS endpoint and the certificate (more than 7 days left). The GitHub workflow `operations-monitor.yml` checks from outside and emails incidents.
 
+## A wrong reward rate
+
+If a rate was wrong for a while (3 TND typed as 3000 on 30 October 2026): cancel the rule and set the right one in Rewards, then open each sale it touched (a sale's detail, admin) and use **Re-price this sale** with a short reason. Sales made under the wrong rate show in the admin inbox as "sale.reward.high" when one earned over 50 TND. Check afterwards that no payout was approved meanwhile. Never void a sale to fix a price: it gives the stock back.
+
+## Monitoring emails: "service down" then "back"
+
+`MONITOR_STALE` is raised when the server's own check has not finished for 5 minutes. Until 3 November 2026 it was also raised wrongly for about a second every minute (systemd shows no exit time while the check runs), which sent a false "down" mail and then "back" a few runs later. Fixed: a run in progress is judged by when it started, and the external monitor asks twice (20 seconds apart) before it calls anything an incident. The external check runs from GitHub's scheduler, which often runs every 4 to 10 hours instead of every 10 minutes: a real outage can be reported late. Tests: `python3 -m unittest discover -s scripts/tests`.
+
 ## Troubleshooting
 
 | Symptom | Look at |

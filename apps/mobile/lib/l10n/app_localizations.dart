@@ -2366,6 +2366,36 @@ abstract class AppLocalizations {
   /// **'Reports'**
   String get reportsTitle;
 
+  /// No description provided for @repriceBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The sale, its units and the stock stay. Only the reward is recomputed from the rates of the sale\'s day, and the seller\'s wallet follows.'**
+  String get repriceBody;
+
+  /// No description provided for @repriceDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Reward corrected'**
+  String get repriceDone;
+
+  /// No description provided for @repriceReasonHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Why? (kept in the history)'**
+  String get repriceReasonHint;
+
+  /// No description provided for @repriceSale.
+  ///
+  /// In en, this message translates to:
+  /// **'Re-price this sale'**
+  String get repriceSale;
+
+  /// No description provided for @repriceTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Re-price with the rates of that day?'**
+  String get repriceTitle;
+
   /// No description provided for @requestPayout.
   ///
   /// In en, this message translates to:
@@ -2516,11 +2546,41 @@ abstract class AppLocalizations {
   /// **'Reward'**
   String get reward;
 
+  /// No description provided for @rewardConfirmBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{amount} per unit of {target}, from {day}. Every unit sold will earn this to the sellers.'**
+  String rewardConfirmBody(String amount, String target, String day);
+
+  /// No description provided for @rewardConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Is this reward correct?'**
+  String get rewardConfirmTitle;
+
+  /// No description provided for @rewardConfirmYes.
+  ///
+  /// In en, this message translates to:
+  /// **'Yes, save it'**
+  String get rewardConfirmYes;
+
+  /// No description provided for @rewardHighWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'That is {amount} per unit. Check the amount: it is in TND, not millimes.'**
+  String rewardHighWarning(String amount);
+
   /// No description provided for @rewardSaved.
   ///
   /// In en, this message translates to:
   /// **'Reward saved'**
   String get rewardSaved;
+
+  /// No description provided for @rewardTooHighHint.
+  ///
+  /// In en, this message translates to:
+  /// **'The most a reward can be is 100 TND per unit.'**
+  String get rewardTooHighHint;
 
   /// No description provided for @rewardsMonth.
   ///

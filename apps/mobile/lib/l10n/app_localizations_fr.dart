@@ -1334,6 +1334,22 @@ class AppLocalizationsFr extends AppLocalizations {
   String get reportsTitle => 'Rapports';
 
   @override
+  String get repriceBody =>
+      'La vente, ses unités et le stock ne changent pas. Seule la récompense est recalculée avec les tarifs du jour de la vente, et le portefeuille du vendeur suit.';
+
+  @override
+  String get repriceDone => 'Récompense corrigée';
+
+  @override
+  String get repriceReasonHint => 'Pourquoi ? (gardé dans l’historique)';
+
+  @override
+  String get repriceSale => 'Recalculer la récompense';
+
+  @override
+  String get repriceTitle => 'Recalculer avec les tarifs du jour de la vente ?';
+
+  @override
   String get requestPayout => 'Demander un paiement';
 
   @override
@@ -1421,7 +1437,27 @@ class AppLocalizationsFr extends AppLocalizations {
   String get reward => 'Gain';
 
   @override
+  String rewardConfirmBody(String amount, String target, String day) {
+    return '$amount par unité de $target, à partir du $day. Chaque unité vendue rapportera ce montant aux vendeurs.';
+  }
+
+  @override
+  String get rewardConfirmTitle => 'Cette récompense est-elle correcte ?';
+
+  @override
+  String get rewardConfirmYes => 'Oui, l’enregistrer';
+
+  @override
+  String rewardHighWarning(String amount) {
+    return 'Cela fait $amount par unité. Vérifiez le montant : il est en TND, pas en millimes.';
+  }
+
+  @override
   String get rewardSaved => 'Récompense enregistrée';
+
+  @override
+  String get rewardTooHighHint =>
+      'Une récompense ne peut pas dépasser 100 TND par unité.';
 
   @override
   String get rewardsMonth => 'Gains, 30 jours';

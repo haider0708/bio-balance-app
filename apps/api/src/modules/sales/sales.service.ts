@@ -5,7 +5,8 @@ import { audit } from "../../core/audit";
 import { dateToDay, dayToDate, tunisDay } from "../../core/dates";
 import { Database, json, type Tx } from "../../core/database";
 import { DomainError, notFound, requireRule } from "../../core/errors";
-import { notify, responsableIds } from "../../core/notifier";
+import { SALE_REWARD_ALERT_MILLIMES } from "../../core/money";
+import { notify, notifyAdmins, responsableIds } from "../../core/notifier";
 import { decodeCursor, page } from "../../core/pagination";
 import { adjustStock, type Location } from "../stock/ledger";
 import { unitRewards } from "../rewards/rules";
@@ -150,6 +151,18 @@ export class SalesService {
         entityType: "Sale",
         entityId: input.id,
       });
+      // A reward this large is almost always a wrong rate: the admins hear of it at once.
+      if (total > SALE_REWARD_ALERT_MILLIMES)
+        await notifyAdmins(tx, pdv.regionId, {
+          key: "sale.reward.high",
+          params: {
+            seller: actor.name,
+            place: pdv.name,
+            amountMillimes: total,
+          },
+          entityType: "Sale",
+          entityId: input.id,
+        });
       await audit(
         tx,
         actor,
@@ -294,6 +307,126 @@ export class SalesService {
       if (sale.sellerId !== actor.id)
         await notify(tx, [sale.sellerId], {
           key: next.length ? "sale.corrected" : "sale.voided",
+          params: { by: actor.name, reason: input.reason },
+          entityType: "Sale",
+          entityId: id,
+        });
+      return this.receipt(tx, actor, id, false);
+    });
+  }
+
+  /**
+   * Re-price a sale at the rates of its own day, after a wrong rate was set. The sale, its units
+   * and the stock stay; the seller's wallet follows by a correction, and the old and new rates
+   * are kept in the sale's history.
+   */
+  reprice(actor: Actor, id: string, input: { reason: string }) {
+    requireRule(
+      actor.role === "ADMIN",
+      "FORBIDDEN",
+      "Only the admin re-prices a sale.",
+      403,
+    );
+    return this.db.run(actor, async (tx) => {
+      const visible = await tx.sale.findUnique({
+        where: { id },
+        select: { id: true },
+      });
+      if (!visible) throw notFound("Sale");
+      await this.db.lock(tx, "Sale", id);
+      const sale = await tx.sale.findUniqueOrThrow({
+        where: { id },
+        include: { lines: true },
+      });
+      requireRule(
+        sale.status === "ACTIVE",
+        "INVALID_STATE",
+        "This sale was cancelled.",
+        409,
+      );
+      await this.db.lock(tx, "User", sale.sellerId);
+
+      const products = await this.products(tx, sale.lines, true);
+      const fresh = await unitRewards(tx, products, sale.day);
+      const next = sale.lines.map((l) => ({
+        ...l,
+        unit: fresh.get(l.productId) ?? 0n,
+      }));
+      requireRule(
+        next.some((l) => l.unit !== l.unitRewardMillimes),
+        "NOTHING_TO_REPRICE",
+        "The rates of that day already match this sale.",
+        409,
+      );
+      const total = next.reduce(
+        (sum, l) => sum + l.unit * BigInt(l.quantity),
+        0n,
+      );
+      const rates = (
+        rows: {
+          productId: string;
+          quantity: number;
+          unitRewardMillimes: bigint;
+        }[],
+      ) =>
+        rows.map((l) => ({
+          productId: l.productId,
+          quantity: l.quantity,
+          unitRewardMillimes: Number(l.unitRewardMillimes),
+        }));
+      for (const l of next)
+        await tx.saleLine.update({
+          where: { id: l.id },
+          data: { unitRewardMillimes: l.unit },
+        });
+      const version = sale.version + 1;
+      await tx.sale.update({
+        where: { id },
+        data: { rewardMillimes: total, version },
+      });
+      await tx.saleRevision.createMany({
+        data: [
+          {
+            saleId: id,
+            version,
+            editorId: actor.id,
+            reason: input.reason,
+            before: json(rates(sale.lines)),
+            after: json(
+              rates(next.map((l) => ({ ...l, unitRewardMillimes: l.unit }))),
+            ),
+          },
+        ],
+      });
+      const difference = total - sale.rewardMillimes;
+      if (difference !== 0n)
+        await tx.walletEntry.createMany({
+          data: [
+            {
+              userId: sale.sellerId,
+              kind: "CORRECTION",
+              amountMillimes: difference,
+              saleId: id,
+              note: input.reason,
+            },
+          ],
+        });
+      await audit(
+        tx,
+        actor,
+        "sale.repriced",
+        "Sale",
+        id,
+        {
+          reason: input.reason,
+          fromMillimes: sale.rewardMillimes,
+          toMillimes: total,
+        },
+        sale.regionId,
+      );
+      if (sale.sellerId !== actor.id)
+        await notify(tx, [sale.sellerId], {
+          key: "sale.repriced",
           params: { by: actor.name, reason: input.reason },
           entityType: "Sale",
           entityId: id,

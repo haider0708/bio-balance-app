@@ -338,6 +338,18 @@ class ServerText {
       'This amount is too large.',
       'Ce montant est trop élevé.',
     ),
+    'REWARD_TOO_HIGH': (
+      'A reward above 100 TND per unit is refused. Check the amount: it is in TND, not millimes.',
+      'Une récompense de plus de 100 TND par unité est refusée. Vérifiez le montant : il est en TND, pas en millimes.',
+    ),
+    'REWARD_CONFIRMATION_REQUIRED': (
+      'This reward is above 10 TND per unit. Confirm it is not a typo.',
+      'Cette récompense dépasse 10 TND par unité. Confirmez que ce n’est pas une faute de frappe.',
+    ),
+    'NOTHING_TO_REPRICE': (
+      'The rates of that day already match this sale.',
+      'Les tarifs de ce jour correspondent déjà à cette vente.',
+    ),
     'INSUFFICIENT_BALANCE': (
       'The amount is higher than the available balance.',
       'Le montant dépasse le solde disponible.',
@@ -672,6 +684,14 @@ class ServerText {
     'sale.voided': (
       '{by} cancelled one of your sales.',
       '{by} a annulé l’une de vos ventes.',
+    ),
+    'sale.repriced': (
+      '{by} corrected the reward of one of your sales.',
+      '{by} a corrigé la récompense de l’une de vos ventes.',
+    ),
+    'sale.reward.high': (
+      '{seller} earned {amount} on one sale at {place}. Check the reward rates.',
+      '{seller} a gagné {amount} sur une seule vente à {place}. Vérifiez les tarifs de récompense.',
     ),
     'payout.requested': (
       '{name} asked for a payout of {amount}.',

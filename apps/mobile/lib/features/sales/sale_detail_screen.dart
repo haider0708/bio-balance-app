@@ -136,6 +136,12 @@ class SaleDetailScreen extends ConsumerWidget {
                   icon: const Icon(LucideIcons.pencil),
                   label: Text(t.correctSale),
                 ),
+              if (me.role == Role.admin && !sale.voided)
+                TextButton.icon(
+                  onPressed: () => _reprice(context, ref, sale),
+                  icon: const Icon(LucideIcons.refreshCw),
+                  label: Text(t.repriceSale),
+                ),
               if (me.role == Role.vendeur &&
                   !sale.voided &&
                   !sale.sellerCanCorrect)
@@ -152,6 +158,33 @@ class SaleDetailScreen extends ConsumerWidget {
       ),
     );
   }
+}
+
+/// Admin: after a wrong rate was fixed, recompute this sale's reward without cancelling it.
+Future<void> _reprice(BuildContext context, WidgetRef ref, Sale sale) async {
+  final t = AppLocalizations.of(context);
+  if (!await confirm(
+    context,
+    title: t.repriceTitle,
+    message: t.repriceBody,
+    confirmLabel: t.repriceSale,
+  )) {
+    return;
+  }
+  if (!context.mounted) return;
+  final reason = await askNote(
+    context,
+    title: t.repriceSale,
+    confirmLabel: t.repriceSale,
+    hint: t.repriceReasonHint,
+  );
+  if (reason == null || !context.mounted) return;
+  final ok = await perform(
+    context,
+    () => ref.read(salesRepositoryProvider).reprice(sale.id, reason: reason),
+    success: t.repriceDone,
+  );
+  if (ok) ref.invalidate(saleProvider(sale.id));
 }
 
 /// Change the quantities of a sale, or cancel it entirely. A reason is always kept.

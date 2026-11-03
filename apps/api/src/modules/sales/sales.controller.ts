@@ -20,6 +20,7 @@ const Correct = z.object({
   reason: z.string().trim().min(2).max(300),
   lines: Lines,
 });
+const Reprice = z.object({ reason: z.string().trim().min(2).max(300) });
 
 @Controller("v1/sales")
 export class SalesController {
@@ -76,5 +77,10 @@ export class SalesController {
   @Post(":id/correct")
   correct(@Req() r: AuthRequest, @Param("id") i: string, @Body() b: unknown) {
     return this.sales.correct(r.actor, parse(id, i), parse(Correct, b));
+  }
+  @Roles("ADMIN")
+  @Post(":id/reprice")
+  reprice(@Req() r: AuthRequest, @Param("id") i: string, @Body() b: unknown) {
+    return this.sales.reprice(r.actor, parse(id, i), parse(Reprice, b));
   }
 }

@@ -677,3 +677,119 @@ describe("the same sale sent many times at once", () => {
     expect((await m.get("/v1/wallet")).body.balanceMillimes).toBe(1000);
   });
 });
+
+describe("a wrong reward rate", () => {
+  const sellOne = async (m: ReturnType<typeof client>, productId: string) =>
+    (
+      await m.post("/v1/sales", {
+        id: randomUUID(),
+        lines: [{ productId, quantity: 1 }],
+      })
+    ).body;
+
+  it("is stopped before it is saved: confirm above 10 TND, refuse above 100 TND", async () => {
+    // 10 TND per unit is the last rate that needs no confirmation.
+    expect((await w.a.post("/v1/reward-rules", family(10_000))).status).toBe(
+      201,
+    );
+    const typo = await w.a.post(
+      "/v1/reward-rules",
+      family(3_000_000, { replaceOverlap: true }),
+    );
+    expect(typo.status).toBe(422);
+    expect(typo.body.code).toBe("REWARD_TOO_HIGH");
+    const high = await w.a.post(
+      "/v1/reward-rules",
+      family(10_001, { replaceOverlap: true }),
+    );
+    expect(high.status).toBe(409);
+    expect(high.body.code).toBe("REWARD_CONFIRMATION_REQUIRED");
+    const confirmed = await w.a.post(
+      "/v1/reward-rules",
+      family(100_000, { replaceOverlap: true, confirmHigh: true }),
+    );
+    expect(confirmed.status).toBe(201);
+    // The ceiling holds even when confirmed.
+    const over = await w.a.post(
+      "/v1/reward-rules",
+      family(100_001, { replaceOverlap: true, confirmHigh: true }),
+    );
+    expect(over.body.code).toBe("REWARD_TOO_HIGH");
+    // Nothing was saved by a refusal: only the 10 TND and the 100 TND rules exist.
+    const rules = (await w.a.get("/v1/reward-rules?includeCancelled=true"))
+      .body;
+    expect(rules.items?.length ?? rules.length).toBe(2);
+  });
+
+  it("tells the admins at once when one sale earns more than 50 TND", async () => {
+    await w.a.post("/v1/reward-rules", family(60_000, { confirmHigh: true }));
+    const { m } = await shop();
+    const sale = await sellOne(m, w.products[1]!.id);
+    expect(sale.rewardMillimes).toBe(60_000);
+    const inbox = (await w.a.get("/v1/notifications")).body.items;
+    const alert = inbox.find((n: any) => n.key === "sale.reward.high");
+    expect(alert.params).toMatchObject({ amountMillimes: 60_000 });
+  });
+
+  it("does not bother the admins for a normal sale", async () => {
+    await w.a.post("/v1/reward-rules", family(500));
+    const { m } = await shop();
+    await sellOne(m, w.products[1]!.id);
+    const inbox = (await w.a.get("/v1/notifications")).body.items;
+    expect(inbox.some((n: any) => n.key === "sale.reward.high")).toBe(false);
+  });
+
+  it("is repaired by re-pricing the sale, without losing it", async () => {
+    const wrong = (
+      await w.a.post("/v1/reward-rules", family(60_000, { confirmHigh: true }))
+    ).body;
+    const { pdv, m } = await shop();
+    const sale = await sellOne(m, w.products[1]!.id);
+    expect(sale.rewardMillimes).toBe(60_000);
+    // The admin cancels the wrong rate and sets the right one.
+    expect((await w.a.delete(`/v1/reward-rules/${wrong.id}`)).status).toBe(200);
+    await w.a.post("/v1/reward-rules", family(500));
+
+    // Only the admin can re-price.
+    expect(
+      (await m.post(`/v1/sales/${sale.id}/reprice`, { reason: "Mon tarif" }))
+        .status,
+    ).toBe(403);
+    expect(
+      (await w.n.post(`/v1/sales/${sale.id}/reprice`, { reason: "Tarif" }))
+        .status,
+    ).toBe(403);
+
+    const fixed = await w.a.post(`/v1/sales/${sale.id}/reprice`, {
+      reason: "Tarif erroné",
+    });
+    expect(fixed.status).toBe(201);
+    expect(fixed.body).toMatchObject({
+      status: "ACTIVE",
+      units: 1,
+      rewardMillimes: 500,
+      version: 2,
+    });
+    // The product is still sold: the stock did not come back.
+    expect(await levels(w, pdv.id)).toMatchObject({ "Serum Niacinamide": 19 });
+    // The wallet follows by a correction of the difference, and the history keeps the reason.
+    expect((await m.get("/v1/wallet")).body.balanceMillimes).toBe(500);
+    const entries = (await m.get("/v1/wallet/entries")).body.items;
+    expect(
+      entries
+        .map((e: any) => e.amountMillimes)
+        .sort((a: number, b: number) => a - b),
+    ).toEqual([-59_500, 60_000]);
+    const detail = (await w.a.get(`/v1/sales/${sale.id}`)).body;
+    expect(detail.revisions).toHaveLength(1);
+    expect(detail.revisions[0].reason).toBe("Tarif erroné");
+    // The seller is told, and re-pricing twice changes nothing.
+    const inbox = (await m.get("/v1/notifications")).body.items;
+    expect(inbox.some((n: any) => n.key === "sale.repriced")).toBe(true);
+    const again = await w.a.post(`/v1/sales/${sale.id}/reprice`, {
+      reason: "Encore",
+    });
+    expect(again.status).toBe(409);
+    expect(again.body.code).toBe("NOTHING_TO_REPRICE");
+  });
+});

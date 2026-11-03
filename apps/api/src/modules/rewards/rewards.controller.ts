@@ -26,6 +26,7 @@ const Rule = z.object({
   endsOn: day.nullable().optional(),
   note: z.string().trim().max(300).optional(),
   replaceOverlap: z.boolean().optional(),
+  confirmHigh: z.boolean().optional(),
 });
 const Payout = z.object({
   amountMillimes: z.number().int().min(1).max(1_000_000_000),

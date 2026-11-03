@@ -262,5 +262,13 @@
   "stock.admin_edited": {
     "en": "The admin changed the stock count of {place}.",
     "fr": "L’admin a modifié le comptage du stock de {place}."
+  },
+  "sale.reward.high": {
+    "en": "{seller} earned {amount} on one sale at {place}. Check the reward rates.",
+    "fr": "{seller} a gagné {amount} sur une seule vente à {place}. Vérifiez les tarifs de récompense."
+  },
+  "sale.repriced": {
+    "en": "{by} corrected the reward of one of your sales.",
+    "fr": "{by} a corrigé la récompense de l’une de vos ventes."
   }
 }

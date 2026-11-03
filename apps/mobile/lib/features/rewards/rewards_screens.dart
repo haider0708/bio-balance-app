@@ -479,14 +479,41 @@ class _RewardFormScreenState extends ConsumerState<RewardFormScreen> {
     super.dispose();
   }
 
+  int? get _millimes => Money.parse(_amount.text);
+
+  // The server decides too (10 TND asks for a confirmation, 100 TND is the ceiling).
+  bool get _tooHigh => (_millimes ?? 0) > 100000;
+  bool get _needsConfirmation => (_millimes ?? 0) > 10000;
+
   bool get _valid =>
       (_byProduct ? _productId != null : _family != null) &&
-      Money.parse(_amount.text) != null &&
+      _millimes != null &&
+      !_tooHigh &&
       (_end == null || !_end!.isBefore(_start));
 
-  Future<void> _save({bool replace = false}) async {
+  /// A rate that is probably a typo (3000 TND instead of 3) must be confirmed before it is saved.
+  Future<bool> _confirmHigh() {
+    final t = AppLocalizations.of(context);
+    return confirm(
+      context,
+      title: t.rewardConfirmTitle,
+      message: t.rewardConfirmBody(
+        Money.format(_millimes!, t.localeName),
+        (_byProduct ? _productName : _family) ?? '',
+        Dates.day(_start),
+      ),
+      confirmLabel: t.rewardConfirmYes,
+      destructive: true,
+    );
+  }
+
+  Future<void> _save({bool replace = false, bool confirmed = false}) async {
     final t = AppLocalizations.of(context);
     final repo = ref.read(rewardsRepositoryProvider);
+    if (_needsConfirmation && !confirmed) {
+      if (!await _confirmHigh() || !mounted) return;
+      confirmed = true;
+    }
     final body = <String, Object?>{
       'scope': _byProduct ? 'PRODUCT' : 'FAMILY',
       if (_byProduct) 'productId': _productId else 'family': _family,
@@ -495,6 +522,7 @@ class _RewardFormScreenState extends ConsumerState<RewardFormScreen> {
       'endsOn': _end == null ? null : Dates.day(_end!),
       if (_note.text.trim().isNotEmpty) 'note': _note.text.trim(),
       if (replace) 'replaceOverlap': true,
+      if (confirmed) 'confirmHigh': true,
     };
     try {
       await repo.create(body);
@@ -521,7 +549,13 @@ class _RewardFormScreenState extends ConsumerState<RewardFormScreen> {
           ),
           confirmLabel: t.replaceValue,
         );
-        if (replace && mounted) await _save(replace: true);
+        if (replace && mounted)
+          await _save(replace: true, confirmed: confirmed);
+        return;
+      }
+      if (error.code == 'REWARD_CONFIRMATION_REQUIRED' && !confirmed) {
+        if (await _confirmHigh() && mounted)
+          await _save(replace: replace, confirmed: true);
         return;
       }
       showError(context, error);
@@ -610,7 +644,16 @@ class _RewardFormScreenState extends ConsumerState<RewardFormScreen> {
             decoration: InputDecoration(
               labelText: t.amountPerUnit,
               suffixText: 'TND',
-              helperText: t.amountPerUnitHint,
+              helperText: _tooHigh
+                  ? null
+                  : _needsConfirmation
+                  ? t.rewardHighWarning(Money.format(_millimes!, t.localeName))
+                  : t.amountPerUnitHint,
+              helperMaxLines: 3,
+              helperStyle: _needsConfirmation
+                  ? TextStyle(color: context.status.danger)
+                  : null,
+              errorText: _tooHigh ? t.rewardTooHighHint : null,
             ),
             onChanged: (_) => setState(() {}),
           ),

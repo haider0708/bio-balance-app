@@ -88,11 +88,12 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
   Future<void> _open(AppNotification n) async {
     final me = ref.read(meProvider);
     if (n.unread) {
-      await ref
-          .read(notificationsRepositoryProvider)
-          .markRead(n.id)
-          .catchError((Object _) {});
-      unawaited(ref.read(unreadCountProvider.notifier).refresh());
+      // The screen can close while this waits: take what is needed from `ref` before the first await.
+      final repository = ref.read(notificationsRepositoryProvider);
+      final unread = ref.read(unreadCountProvider.notifier);
+      await repository.markRead(n.id).catchError((Object _) {});
+      unawaited(unread.refresh());
+      if (!mounted) return;
       await _paged.refresh();
     }
     if (!mounted) return;
@@ -117,12 +118,13 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
         actions: [
           TextButton(
             onPressed: () async {
+              final unread = ref.read(unreadCountProvider.notifier);
               final ok = await perform(
                 context,
                 () => ref.read(notificationsRepositoryProvider).markAllRead(),
               );
-              if (ok) {
-                unawaited(ref.read(unreadCountProvider.notifier).refresh());
+              if (ok && mounted) {
+                unawaited(unread.refresh());
                 await _paged.refresh();
               }
             },

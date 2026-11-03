@@ -62,7 +62,7 @@ The admin can also restock a grossiste herself: she enters what BioBalance deliv
 ## Sales and rewards
 
 - A sale is products and quantities, no prices. The phone picks the sale's identifier, so a retry never counts twice; with no connection the sale is kept on the phone and sent later.
-- **Rewards** are set by the admin only: TND per unit sold, for a **product** or a whole **family** (serums, hair care…), for a **period**. Values can change week to week; two values for the same target never cover the same day. A product's own value beats its family's. The reward is fixed when the sale is recorded.
+- **Rewards** are set by the admin only: TND per unit sold, for a **product** or a whole **family** (serums, hair care…), for a **period**. Values can change week to week; two values for the same target never cover the same day. A product's own value beats its family's. The reward is fixed when the sale is recorded. **Safety:** a rate above 10 TND per unit must be confirmed by the admin (the form shows what it means), above 100 TND it is refused, and one sale earning more than 50 TND alerts the admins at once. When a wrong rate was used, the admin **re-prices** the sale from its detail screen: the sale, its units and the stock stay, the seller's wallet follows by a correction, and the seller is told.
 - After each sale the team member sees a congratulation screen with the TND earned and today's total. They keep a history and can **correct or cancel** a sale (48 hours for them; responsable and admin at any time). Corrections adjust stock and the wallet, and are kept in the sale's history.
 
 ## Wallet and payouts

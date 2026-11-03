@@ -632,6 +632,11 @@
   "remove": "Remove",
   "replaceValue": "Replace",
   "reportsTitle": "Reports",
+  "repriceBody": "The sale, its units and the stock stay. Only the reward is recomputed from the rates of the sale's day, and the seller's wallet follows.",
+  "repriceDone": "Reward corrected",
+  "repriceReasonHint": "Why? (kept in the history)",
+  "repriceSale": "Re-price this sale",
+  "repriceTitle": "Re-price with the rates of that day?",
   "requestPayout": "Request a payout",
   "requestRestock": "Request a restock",
   "requestedBy": "Requested by",
@@ -681,7 +686,32 @@
   },
   "reviewTitle": "Review the sale",
   "reward": "Reward",
+  "rewardConfirmBody": "{amount} per unit of {target}, from {day}. Every unit sold will earn this to the sellers.",
+  "@rewardConfirmBody": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      },
+      "target": {
+        "type": "String"
+      },
+      "day": {
+        "type": "String"
+      }
+    }
+  },
+  "rewardConfirmTitle": "Is this reward correct?",
+  "rewardConfirmYes": "Yes, save it",
+  "rewardHighWarning": "That is {amount} per unit. Check the amount: it is in TND, not millimes.",
+  "@rewardHighWarning": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
   "rewardSaved": "Reward saved",
+  "rewardTooHighHint": "The most a reward can be is 100 TND per unit.",
   "rewardsMonth": "30-day rewards",
   "rewardsTitle": "Rewards",
   "roleAdmin": "Administrator",

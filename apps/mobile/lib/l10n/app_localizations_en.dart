@@ -1328,6 +1328,22 @@ class AppLocalizationsEn extends AppLocalizations {
   String get reportsTitle => 'Reports';
 
   @override
+  String get repriceBody =>
+      'The sale, its units and the stock stay. Only the reward is recomputed from the rates of the sale\'s day, and the seller\'s wallet follows.';
+
+  @override
+  String get repriceDone => 'Reward corrected';
+
+  @override
+  String get repriceReasonHint => 'Why? (kept in the history)';
+
+  @override
+  String get repriceSale => 'Re-price this sale';
+
+  @override
+  String get repriceTitle => 'Re-price with the rates of that day?';
+
+  @override
   String get requestPayout => 'Request a payout';
 
   @override
@@ -1415,7 +1431,27 @@ class AppLocalizationsEn extends AppLocalizations {
   String get reward => 'Reward';
 
   @override
+  String rewardConfirmBody(String amount, String target, String day) {
+    return '$amount per unit of $target, from $day. Every unit sold will earn this to the sellers.';
+  }
+
+  @override
+  String get rewardConfirmTitle => 'Is this reward correct?';
+
+  @override
+  String get rewardConfirmYes => 'Yes, save it';
+
+  @override
+  String rewardHighWarning(String amount) {
+    return 'That is $amount per unit. Check the amount: it is in TND, not millimes.';
+  }
+
+  @override
   String get rewardSaved => 'Reward saved';
+
+  @override
+  String get rewardTooHighHint =>
+      'The most a reward can be is 100 TND per unit.';
 
   @override
   String get rewardsMonth => '30-day rewards';

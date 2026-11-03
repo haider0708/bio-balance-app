@@ -139,6 +139,14 @@ class SalesRepository {
       'lines': lines,
     }) as Json,
   );
+
+  /// Admin only: recompute the reward of a sale from the rates of its own day.
+  Future<Sale> reprice(String id, {required String reason}) async =>
+      Sale.fromJson(
+        await _ref.read(apiClientProvider).post('/v1/sales/$id/reprice', {
+          'reason': reason,
+        }) as Json,
+      );
 }
 
 final salesRepositoryProvider = Provider<SalesRepository>(SalesRepository.new);

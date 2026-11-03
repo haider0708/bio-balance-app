@@ -1,6 +1,6 @@
 # Project status (the living file: both machines update it)
 
-Last updated: 2026-10-17, by the Mac session.
+Last updated: 2026-11-03, by the Mac session.
 
 ## Versions and what runs
 
@@ -35,6 +35,8 @@ The network was emptied for its real start (`docs/runbook.md`, "The test region"
 - Plugin `open_filex` has no Swift Package support yet, so the iPhone build still needs CocoaPods.
 
 ## Log
+
+- 2026-11-03 (Mac): **Reward safety, false alarms, listing fix.** (1) On 30 October a reward of 3000 TND per unit (3,000,000 millimes, a typo for 3) was live for about 5.5 hours for the family "Soins capillaires": 4 sales were credited 3000 TND; the 3 real ones were voided by the admin (the sellers lost the sale and the 3 TND), the demo seller's 3012 TND sale is still in the hidden test region. No payout was approved meanwhile. Fixed in the server and app code: a rate above 100 TND is refused, above 10 TND it needs a confirmation (the form warns), one sale over 50 TND alerts the admins, and the admin can re-price a sale without voiding it (`docs/api.md`, last section). (2) The "service down / back" emails were false alarms: the server's monitor reported `MONITOR_STALE` for about a second every minute while its check ran; fixed, and the external monitor now confirms twice before alerting (`docs/runbook.md`). (3) iOS bug found in app errors: the notifications screen used `ref` after it closed (fixed). (4) **Google Play rejected 3.4.0 (43) on 2 November** (Misleading claims): the description and one screenshot showed admin features the reviewers cannot reach; the descriptions and screenshots now describe only the team member and the responsable (`docs/store-publishing.md`); resubmit the listing in the Play Console. (5) **Apple rejected 3.4.0 (43) on 28 October** (3.2 again); the unlisted-distribution request of 23 October has had no answer; do not resubmit until it does. TestFlight (build 43) serves the team meanwhile. The old demo test no longer fails between midnight and 10:00 Tunis time. Not built: build 44 waits for the stores.
 
 - 2026-10-22 (Mac, evening): **Final review and cleanup.** Reviewed the code with the compiler (strictest settings), knip, a Dart reference scan and a translation-key scan: no dead code of substance (a few exports made private, one unused translation removed). Found and fixed a real bug: a correction request showed as "recount allowed" on the stock screen. Fixed the web console's recurring render errors (page-wide selection removed) and grouped app errors by kind. Split the 1,600-line restock screens file into one file per screen. Cleaned the server's env settings and old env copies. Server healthy: no 5xx beyond deploy seconds, no slow queries, no failed jobs, nightly backups, certificate valid to January 2027. Open: scan the WhatsApp QR, the 3.4.0 build, the Apple unlisted request, delete `mac-handoff-private.md` and `.local-credentials-v2/` from the Mac.
 
