@@ -4,7 +4,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:biobalance/app/router.dart';
-import 'package:flutter/material.dart' show SizedBox, SwitchListTile;
+import 'package:flutter/material.dart' show SizedBox;
 import 'package:flutter_test/flutter_test.dart';
 
 import 'support/fake_server.dart';
