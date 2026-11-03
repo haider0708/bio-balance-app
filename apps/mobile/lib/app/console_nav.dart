@@ -49,7 +49,64 @@ class ConsoleNavEntry {
 /// Ordered sidebar contents of the web console, for the signed-in role: the admin sees the whole
 /// network, a responsable their own region.
 List<ConsoleNavEntry> consoleNavEntries(AppLocalizations t, Role role) =>
-    role == Role.admin ? _adminEntries(t) : _responsableEntries(t);
+    switch (role) {
+      Role.admin => _adminEntries(t),
+      Role.orders => _ordersEntries(t),
+      _ => _responsableEntries(t),
+    };
+
+List<ConsoleNavEntry> _ordersEntries(AppLocalizations t) => [
+  ConsoleNavEntry.section(t.navSectionOverview),
+  ConsoleNavEntry.item(
+    icon: LucideIcons.house,
+    label: t.tabHome,
+    path: '/home',
+  ),
+  ConsoleNavEntry.section(t.navSectionOperations),
+  ConsoleNavEntry.item(
+    icon: LucideIcons.store,
+    label: t.parasTitle,
+    path: '/paras',
+  ),
+  ConsoleNavEntry.item(
+    icon: LucideIcons.truck,
+    label: t.tabRestocks,
+    path: '/restocks',
+  ),
+  ConsoleNavEntry.item(
+    icon: LucideIcons.arrowLeftRight,
+    label: t.transfersTitle,
+    path: '/transfers',
+  ),
+  ConsoleNavEntry.item(
+    icon: LucideIcons.undo2,
+    label: t.returnsTitle,
+    path: '/returns',
+  ),
+  ConsoleNavEntry.section(t.navSectionCommerce),
+  ConsoleNavEntry.item(
+    icon: LucideIcons.package,
+    label: t.catalogTitle,
+    path: '/catalog',
+  ),
+  ConsoleNavEntry.section(t.navSectionPlaces),
+  ConsoleNavEntry.item(
+    icon: LucideIcons.warehouse,
+    label: t.grossistesTitle,
+    path: '/depots',
+  ),
+  ConsoleNavEntry.section(t.navSectionAccount),
+  ConsoleNavEntry.item(
+    icon: LucideIcons.bell,
+    label: t.notificationsTitle,
+    path: '/notifications',
+  ),
+  ConsoleNavEntry.item(
+    icon: LucideIcons.settings,
+    label: t.settingsTitle,
+    path: '/settings',
+  ),
+];
 
 List<ConsoleNavEntry> _responsableEntries(AppLocalizations t) => [
   ConsoleNavEntry.section(t.navSectionOverview),

@@ -27,6 +27,7 @@ class RestockLine {
     this.shipped,
     this.received,
     this.approved,
+    this.proposed,
   });
 
   factory RestockLine.fromJson(Json j) => RestockLine(
@@ -37,6 +38,7 @@ class RestockLine {
     shipped: j.integerOrNull('shipped'),
     received: j.integerOrNull('received'),
     approved: j.integerOrNull('approved'),
+    proposed: j.integerOrNull('proposed'),
   );
 
   final String productId;
@@ -46,6 +48,9 @@ class RestockLine {
   final int? shipped;
   final int? received;
   final int? approved;
+
+  /// The quantity the order manager proposed, while the admin has not decided.
+  final int? proposed;
 }
 
 class Actor {
@@ -85,6 +90,10 @@ class RestockOrder {
     this.shippedAt,
     this.receivedAt,
     this.decidedAt,
+    this.proposal,
+    this.documentIds = const [],
+    this.deliveredAt,
+    this.deliveredBy,
   });
 
   factory RestockOrder.fromJson(Json j) => RestockOrder(
@@ -116,6 +125,11 @@ class RestockOrder {
     decisionNote: j.strOrNull('decisionNote'),
     cancelReason: j.strOrNull('cancelReason'),
     lines: j.list('lines').map(RestockLine.fromJson).toList(),
+    proposal: Proposal.from(j.objOrNull('proposal')),
+    documentIds: ((j['documentIds'] as List<dynamic>?) ?? const [])
+        .cast<String>(),
+    deliveredAt: j.dateOrNull('deliveredAt'),
+    deliveredBy: Actor.from(j.objOrNull('deliveredBy')),
   );
 
   final String id;
@@ -152,6 +166,16 @@ class RestockOrder {
   final String? cancelReason;
   final List<RestockLine> lines;
 
+  /// The order manager's proposal, waiting for the admin (a requested order only).
+  final Proposal? proposal;
+
+  /// The papers the order manager and the admin attached (invoice, delivery note).
+  final List<String> documentIds;
+
+  /// When the order manager said it reached the place; the place still confirms, the admin approves.
+  final DateTime? deliveredAt;
+  final Actor? deliveredBy;
+
   int get requestedUnits => lines.fold(0, (s, l) => s + l.requested);
   int get approvedUnits => lines.fold(0, (s, l) => s + (l.approved ?? 0));
 
@@ -165,6 +189,34 @@ class RestockOrder {
       (status == RestockStatus.assigned ||
           status == RestockStatus.shipped ||
           status == RestockStatus.requested);
+}
+
+/// What the order manager proposed for a requested order, waiting for the admin.
+class Proposal {
+  const Proposal({
+    required this.source,
+    this.supplier,
+    this.by,
+    this.at,
+    this.note,
+  });
+
+  static Proposal? from(Json? j) => j == null
+      ? null
+      : Proposal(
+          source: j.str('source'),
+          supplier: j.objOrNull('supplier')?.str('name'),
+          by: Actor.from(j.objOrNull('by')),
+          at: j.dateOrNull('at'),
+          note: j.strOrNull('note'),
+        );
+
+  /// GROSSISTE or BIOBALANCE.
+  final String source;
+  final String? supplier;
+  final Actor? by;
+  final DateTime? at;
+  final String? note;
 }
 
 /// A grossiste the admin can send an order from, with what it holds of the order's products.

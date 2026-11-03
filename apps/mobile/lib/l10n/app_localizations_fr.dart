@@ -4045,4 +4045,215 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get rewardsShort => 'Gains';
+
+  @override
+  String get roleOrders => 'Gestionnaire des commandes';
+
+  @override
+  String get ordersToPrepare => 'À préparer';
+
+  @override
+  String get ordersProposed => 'Chez l’admin';
+
+  @override
+  String get ordersToShip => 'À expédier';
+
+  @override
+  String get ordersOnTheRoad => 'En route';
+
+  @override
+  String get ordersDelivered => 'Livrées';
+
+  @override
+  String get ordersToApprove => 'À approuver';
+
+  @override
+  String get ordersToApproveHint => 'Réceptions, par l’admin';
+
+  @override
+  String get ordersAttention => 'Paras à surveiller';
+
+  @override
+  String get ordersAttentionNone => 'Tous les paras ont assez de stock.';
+
+  @override
+  String get paraOut => 'En rupture';
+
+  @override
+  String get paraLow => 'Stock bas';
+
+  @override
+  String get paraStockOk => 'Stock suffisant';
+
+  @override
+  String paraOutCount(int count) {
+    return '$count en rupture';
+  }
+
+  @override
+  String paraLowCount(int count) {
+    return '$count bas';
+  }
+
+  @override
+  String paraOpenOrders(int count) {
+    return '$count en commande';
+  }
+
+  @override
+  String get parasTitle => 'Paras';
+
+  @override
+  String get parasSearch => 'Chercher un para';
+
+  @override
+  String get parasAll => 'Tous';
+
+  @override
+  String get parasLowOnly => 'Bas ou en rupture';
+
+  @override
+  String get parasNone => 'Aucun para trouvé';
+
+  @override
+  String get paraAsk => 'Demander ce dont ils ont besoin';
+
+  @override
+  String get paraAskTitle => 'Avez-vous besoin de quelque chose ?';
+
+  @override
+  String get paraAskSend => 'Envoyer';
+
+  @override
+  String get paraAskHint => 'Un message pour l’équipe (facultatif)';
+
+  @override
+  String get paraAsked => 'L’équipe et son responsable sont prévenus.';
+
+  @override
+  String paraAskedAt(String date) {
+    return 'Dernière demande : $date';
+  }
+
+  @override
+  String paraSold7(int count) {
+    return '$count vendus en 7 jours';
+  }
+
+  @override
+  String get paraRegion => 'Région';
+
+  @override
+  String get paraGroup => 'Groupe';
+
+  @override
+  String get paraAddress => 'Adresse';
+
+  @override
+  String get paraStockUnits => 'Unités en stock';
+
+  @override
+  String get paraOrderFor => 'Commander pour ce para';
+
+  @override
+  String get paraContacts => 'Qui appeler';
+
+  @override
+  String get paraOrders => 'Commandes';
+
+  @override
+  String get paraStockTitle => 'Stock';
+
+  @override
+  String get paraNoStock => 'Aucun stock déclaré pour l’instant';
+
+  @override
+  String get paraNoSales => 'Rien vendu cette semaine';
+
+  @override
+  String paraCover(int days) {
+    return 'environ $days jours restants';
+  }
+
+  @override
+  String get paraCall => 'Appeler';
+
+  @override
+  String get paraWhatsapp => 'WhatsApp';
+
+  @override
+  String orderDeliveredBy(String name) {
+    return 'Livrée par $name';
+  }
+
+  @override
+  String get orderPapers => 'Documents';
+
+  @override
+  String get orderAddPapers => 'Ajouter des documents';
+
+  @override
+  String get orderPapersHint =>
+      'Facture, bon de préparation ou de livraison : photos ou PDF.';
+
+  @override
+  String get papersAdded => 'Documents ajoutés';
+
+  @override
+  String get orderMarkDelivered => 'Marquer comme livrée';
+
+  @override
+  String get orderDeliveredHint =>
+      'La marchandise est arrivée. Ajoutez le bon de livraison si vous l’avez. Le lieu confirme encore la réception et l’admin l’approuve.';
+
+  @override
+  String get orderDeliveredDone => 'Marquée comme livrée';
+
+  @override
+  String get proposalTitle => 'Proposition';
+
+  @override
+  String get proposalBy => 'Proposé par';
+
+  @override
+  String get proposalApprove => 'Approuver la proposition';
+
+  @override
+  String get proposalApproved => 'Proposition approuvée';
+
+  @override
+  String get proposalRefuse => 'Refuser la proposition';
+
+  @override
+  String get proposalRefuseHint => 'Pourquoi ? Le gestionnaire est prévenu.';
+
+  @override
+  String get proposalRefused => 'Proposition refusée';
+
+  @override
+  String get proposalWaiting => 'Proposition envoyée : en attente de l’admin';
+
+  @override
+  String get proposalSent => 'Proposition envoyée à l’admin';
+
+  @override
+  String get proposeTitle => 'Proposer à l’admin';
+
+  @override
+  String get proposeSend => 'Envoyer la proposition';
+
+  @override
+  String get proposeNoteHint => 'Une note pour l’admin (facultatif)';
+
+  @override
+  String get proposeGrossiste => 'Proposer un grossiste';
+
+  @override
+  String get proposeBiobalance => 'Proposer d’envoyer depuis BioBalance';
+
+  @override
+  String get colProposed => 'Proposé';
+
+  @override
+  String get roleOrdersShort => 'Commandes';
 }

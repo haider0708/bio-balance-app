@@ -99,6 +99,10 @@ The worker drops a transfer nobody decided after 3 days (`transfer-expire`, hour
 
 The worker drops a return nobody decided after 3 days (`return-expire`, hourly). A return whose approval fails with `RETURN_STOCK` is not stuck: the admin approves a smaller quantity or refuses it. Stock history lines of a return carry `reason` RETURN_OUT or RETURN_IN and `refType = StockReturn`; the audit log has `return.requested`, `return.changed`, `return.approved`, `return.rejected`, `return.cancelled`, `return.expired`.
 
+## Order manager
+
+Create the account in People (role *Orders*): it is active at once, no region, no para; the invitation mail carries the code like any other account. An unused one is suspended like the others. Audit entries: `orders.asked`, `restock.proposed`, `restock.proposal_approved`, `restock.proposal_refused`, `restock.documents_added`, `restock.delivered`. A proposal the admin never answers simply stays on the order (nothing moves); the admin can route the order his own way at any time.
+
 ## A wrong reward rate
 
 If a rate was wrong for a while (3 TND typed as 3000 on 30 October 2026): cancel the rule and set the right one in Rewards, then open each sale it touched (a sale's detail, admin) and use **Re-price this sale** with a short reason. Sales made under the wrong rate show in the admin inbox as "sale.reward.high" when one earned over 50 TND. Check afterwards that no payout was approved meanwhile. Never void a sale to fix a price: it gives the stock back.

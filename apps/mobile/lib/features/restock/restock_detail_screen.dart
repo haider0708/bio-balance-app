@@ -101,6 +101,11 @@ class _RestockDetailScreenState extends ConsumerState<RestockDetailScreen> {
                     if (o.suggestedSupplier != null &&
                         o.status == RestockStatus.requested)
                       InfoRow(t.suggestedSupplier, o.suggestedSupplier!.name),
+                    if (o.deliveredAt != null)
+                      InfoRow(
+                        t.orderDeliveredBy(o.deliveredBy?.name ?? ''),
+                        Dates.dateTime(o.deliveredAt!, t.localeName),
+                      ),
                     if (o.receiver != null)
                       InfoRow(t.receivedBy, o.receiver!.name),
                     if (o.receiptNote != null)
@@ -113,8 +118,14 @@ class _RestockDetailScreenState extends ConsumerState<RestockDetailScreen> {
                   ],
                 ),
               ),
+              if (o.proposal != null && o.status == RestockStatus.requested)
+                _ProposalCard(proposal: o.proposal!),
               SectionHeader(t.products),
               _Lines(order: o, adjusted: _adjusted),
+              if (o.documentIds.isNotEmpty) ...[
+                SectionHeader(t.orderPapers),
+                PhotoStrip(ids: o.documentIds),
+              ],
               if (o.receiptPhotoIds.isNotEmpty || o.receiptPhotoId != null) ...[
                 SectionHeader(t.deliveryPaper),
                 PhotoStrip(
@@ -139,6 +150,39 @@ class _RestockDetailScreenState extends ConsumerState<RestockDetailScreen> {
     final w = <Widget>[];
 
     if (me.role == Role.admin) {
+      if (o.status == RestockStatus.requested && o.proposal != null) {
+        w
+          ..add(
+            AsyncButton(
+              label: t.proposalApprove,
+              icon: LucideIcons.check,
+              onPressed: () =>
+                  _act(() => repo.approveProposal(o.id), t.proposalApproved),
+            ),
+          )
+          ..add(gap)
+          ..add(
+            AsyncButton(
+              label: t.proposalRefuse,
+              icon: LucideIcons.x,
+              style: AsyncButtonStyle.outlined,
+              onPressed: () async {
+                final note = await askNote(
+                  context,
+                  title: t.proposalRefuse,
+                  confirmLabel: t.proposalRefuse,
+                  hint: t.proposalRefuseHint,
+                );
+                if (note == null) return;
+                await _act(
+                  () => repo.rejectProposal(o.id, note),
+                  t.proposalRefused,
+                );
+              },
+            ),
+          )
+          ..add(const Gap(16));
+      }
       if (o.status == RestockStatus.requested) {
         final suggested = o.toDepot ? null : o.suggestedSupplier;
         // The responsable suggested a grossiste: one tap approves it as suggested.
@@ -285,9 +329,143 @@ class _RestockDetailScreenState extends ConsumerState<RestockDetailScreen> {
       }
     }
 
+    if (me.role == Role.orders &&
+        o.status == RestockStatus.requested &&
+        o.proposal == null) {
+      // The order manager prepares; the admin approves in one tap.
+      Future<void> propose(String source, {String? depotId}) async {
+        final note = await askNote(
+          context,
+          title: t.proposeTitle,
+          confirmLabel: t.proposeSend,
+          hint: t.proposeNoteHint,
+          required: false,
+        );
+        if (note == null) return;
+        await _act(
+          () => repo.propose(
+            o.id,
+            source: source,
+            depotId: depotId,
+            lines: _adjusted,
+            note: note,
+          ),
+          t.proposalSent,
+        );
+      }
+
+      if (!o.toDepot) {
+        w
+          ..add(
+            AsyncButton(
+              label: t.proposeGrossiste,
+              icon: LucideIcons.truck,
+              onPressed: () async {
+                final depot = await _pickDepot(context, o);
+                if (depot == null) return;
+                await propose('GROSSISTE', depotId: depot.id);
+              },
+            ),
+          )
+          ..add(gap);
+      }
+      w
+        ..add(
+          AsyncButton(
+            label: t.proposeBiobalance,
+            icon: LucideIcons.send,
+            style: o.toDepot
+                ? AsyncButtonStyle.filled
+                : AsyncButtonStyle.outlined,
+            onPressed: () => propose('BIOBALANCE'),
+          ),
+        )
+        ..add(gap)
+        ..add(
+          AsyncButton(
+            label: t.adjustQuantities,
+            icon: LucideIcons.pencil,
+            style: AsyncButtonStyle.text,
+            onPressed: () async {
+              final lines = await amendQuantities(
+                context,
+                title: t.adjustQuantities,
+                hint: t.adjustQuantitiesHint,
+                items: [
+                  for (final l in o.lines)
+                    QuantityItem(
+                      productId: l.productId,
+                      name: l.name,
+                      family: l.family,
+                      quantity: l.requested,
+                      hint: t.requestedQuantity(l.requested),
+                    ),
+                ],
+              );
+              if (lines != null) setState(() => _adjusted = lines);
+            },
+          ),
+        );
+    }
+    if (o.proposal != null &&
+        o.status == RestockStatus.requested &&
+        me.role == Role.orders) {
+      w
+        ..add(
+          StatusChip(
+            t.proposalWaiting,
+            tone: Tone.info,
+            icon: LucideIcons.hourglass,
+          ),
+        )
+        ..add(gap);
+    }
+    // Papers until the order is closed; "delivered" once it is on the road.
+    if ((me.role == Role.orders || me.role == Role.admin) &&
+        o.status != RestockStatus.completed &&
+        o.status != RestockStatus.cancelled &&
+        (o.documentIds.length < 10)) {
+      w
+        ..add(
+          AsyncButton(
+            label: t.orderAddPapers,
+            icon: LucideIcons.paperclip,
+            style: AsyncButtonStyle.outlined,
+            onPressed: () async {
+              final done = await context.push<bool>(
+                '/restocks/${o.id}/papers',
+                extra: o,
+              );
+              if (done ?? false) _reload();
+            },
+          ),
+        )
+        ..add(gap);
+    }
+    if ((me.role == Role.orders || me.role == Role.admin) &&
+        o.status == RestockStatus.shipped &&
+        o.deliveredAt == null) {
+      w
+        ..add(
+          AsyncButton(
+            label: t.orderMarkDelivered,
+            icon: LucideIcons.circleCheck,
+            onPressed: () async {
+              final done = await context.push<bool>(
+                '/restocks/${o.id}/delivered',
+                extra: o,
+              );
+              if (done ?? false) _reload();
+            },
+          ),
+        )
+        ..add(gap);
+    }
+
     // The responsable of the region (or the admin) ships from the grossiste.
     final shipsIt =
         me.role == Role.admin ||
+        me.role == Role.orders ||
         (me.role == Role.responsable && o.supplierRegionId == me.region?.id);
     if (o.status == RestockStatus.assigned &&
         o.supplierId != null &&
@@ -380,7 +558,9 @@ class _RestockDetailScreenState extends ConsumerState<RestockDetailScreen> {
 
     final canCancel = me.role == Role.admin
         ? o.status.open && o.status != RestockStatus.received
-        : (me.role == Role.responsable && o.status == RestockStatus.requested);
+        : ((me.role == Role.responsable || me.role == Role.orders) &&
+              o.status == RestockStatus.requested &&
+              o.requestedBy?.id == me.id);
     if (canCancel) {
       w.add(
         AsyncButton(
@@ -464,6 +644,7 @@ class _Lines extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
+    final showProposed = order.lines.any((l) => l.proposed != null);
     final showShipped = order.lines.any((l) => l.shipped != null);
     final showReceived = order.lines.any((l) => l.received != null);
     final showApproved = order.lines.any((l) => l.approved != null);
@@ -505,6 +686,7 @@ class _Lines extends StatelessWidget {
                 children: [
                   Expanded(child: Text(l.name, style: context.text.titleSmall)),
                   cell(t.colRequested, l.requested),
+                  if (showProposed) cell(t.colProposed, l.proposed),
                   if (showShipped) cell(t.colShipped, l.shipped),
                   if (showReceived) cell(t.colReceived, l.received),
                   if (showApproved)
@@ -669,6 +851,42 @@ class _ReceiverSheet extends StatelessWidget {
             ),
           const Gap(8),
         ],
+      ),
+    );
+  }
+}
+
+/// What the order manager proposed, shown to the admin who decides.
+class _ProposalCard extends StatelessWidget {
+  const _ProposalCard({required this.proposal});
+
+  final Proposal proposal;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(top: 12),
+      child: AppCard(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          spacing: 8,
+          children: [
+            StatusChip(
+              t.proposalTitle,
+              tone: Tone.info,
+              icon: LucideIcons.clipboardCheck,
+            ),
+            InfoRow(
+              t.sentFrom,
+              proposal.source == 'BIOBALANCE'
+                  ? 'BioBalance'
+                  : (proposal.supplier ?? t.grossisteLabel),
+            ),
+            if (proposal.by != null) InfoRow(t.proposalBy, proposal.by!.name),
+            if (proposal.note != null) InfoRow(t.note, proposal.note!),
+          ],
+        ),
       ),
     );
   }

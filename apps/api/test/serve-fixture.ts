@@ -35,6 +35,10 @@ export async function serveFixture(out: string) {
   });
   const a = client(api, admin.token);
   const n = client(api, nord.token);
+  const orders = await createAccount({
+    role: "ORDERS",
+    name: "Omar Commandes",
+  });
   const products: string[] = [];
   for (const [reference, name, family] of [
     ["P1", "Serum Vitamin C", "Sérums"],
@@ -250,6 +254,7 @@ export async function serveFixture(out: string) {
         responsable: nord.token,
         responsableSud: sud.token,
         vendeur: memberAccount.token,
+        orders: orders.token,
       },
       ids: {
         pdv: pdv.id,

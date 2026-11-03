@@ -77,6 +77,42 @@ class RestockRepository {
       .read(apiClientProvider)
       .post('/v1/restocks/$id/send-direct', {'lines': ?lines});
 
+  /// The order manager proposes a source (a grossiste, or BioBalance directly); the admin approves.
+  Future<void> propose(
+    String id, {
+    required String source,
+    String? depotId,
+    List<Map<String, Object>>? lines,
+    String? note,
+    List<String> photoIds = const [],
+  }) => _ref.read(apiClientProvider).post('/v1/restocks/$id/propose', {
+    'source': source,
+    'depotId': ?depotId,
+    'lines': ?lines,
+    if (note != null && note.isNotEmpty) 'note': note,
+    if (photoIds.isNotEmpty) 'photoIds': photoIds,
+  });
+
+  Future<void> approveProposal(String id) =>
+      _ref.read(apiClientProvider).post('/v1/restocks/$id/approve-proposal');
+
+  Future<void> rejectProposal(String id, String note) => _ref
+      .read(apiClientProvider)
+      .post('/v1/restocks/$id/reject-proposal', {'note': note});
+
+  Future<void> addDocuments(String id, List<String> photoIds) => _ref
+      .read(apiClientProvider)
+      .post('/v1/restocks/$id/documents', {'photoIds': photoIds});
+
+  Future<void> delivered(
+    String id, {
+    List<String> photoIds = const [],
+    String? note,
+  }) => _ref.read(apiClientProvider).post('/v1/restocks/$id/delivered', {
+    if (photoIds.isNotEmpty) 'photoIds': photoIds,
+    if (note != null && note.isNotEmpty) 'note': note,
+  });
+
   Future<void> ship(String id, List<Map<String, Object>> lines) => _ref
       .read(apiClientProvider)
       .post('/v1/restocks/$id/ship', {'lines': lines});

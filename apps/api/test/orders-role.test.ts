@@ -236,7 +236,13 @@ describe("seeing the network", () => {
     expect((await m.get("/v1/returns")).body.map((r: any) => r.id)).toEqual([
       ret.id,
     ]);
-    expect((await m.get(`/v1/returns/${ret.id}`)).status).toBe(200);
+    const seen = await m.get(`/v1/returns/${ret.id}`);
+    expect(seen.status).toBe(200);
+    expect(seen.body).toMatchObject({
+      canEdit: false,
+      canCancel: false,
+      canDecide: false,
+    });
     expect(
       (await m.post("/v1/returns", { pdvId: marsa.id, lines: lines(1) }))
         .status,

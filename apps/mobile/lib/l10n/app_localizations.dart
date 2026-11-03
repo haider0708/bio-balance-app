@@ -6889,6 +6889,396 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Rewards'**
   String get rewardsShort;
+
+  /// No description provided for @roleOrders.
+  ///
+  /// In en, this message translates to:
+  /// **'Order manager'**
+  String get roleOrders;
+
+  /// No description provided for @ordersToPrepare.
+  ///
+  /// In en, this message translates to:
+  /// **'To prepare'**
+  String get ordersToPrepare;
+
+  /// No description provided for @ordersProposed.
+  ///
+  /// In en, this message translates to:
+  /// **'With the admin'**
+  String get ordersProposed;
+
+  /// No description provided for @ordersToShip.
+  ///
+  /// In en, this message translates to:
+  /// **'To ship'**
+  String get ordersToShip;
+
+  /// No description provided for @ordersOnTheRoad.
+  ///
+  /// In en, this message translates to:
+  /// **'On the road'**
+  String get ordersOnTheRoad;
+
+  /// No description provided for @ordersDelivered.
+  ///
+  /// In en, this message translates to:
+  /// **'Delivered'**
+  String get ordersDelivered;
+
+  /// No description provided for @ordersToApprove.
+  ///
+  /// In en, this message translates to:
+  /// **'To approve'**
+  String get ordersToApprove;
+
+  /// No description provided for @ordersToApproveHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Receipts, by the admin'**
+  String get ordersToApproveHint;
+
+  /// No description provided for @ordersAttention.
+  ///
+  /// In en, this message translates to:
+  /// **'Paras to watch'**
+  String get ordersAttention;
+
+  /// No description provided for @ordersAttentionNone.
+  ///
+  /// In en, this message translates to:
+  /// **'Every para has enough stock.'**
+  String get ordersAttentionNone;
+
+  /// No description provided for @paraOut.
+  ///
+  /// In en, this message translates to:
+  /// **'Out of stock'**
+  String get paraOut;
+
+  /// No description provided for @paraLow.
+  ///
+  /// In en, this message translates to:
+  /// **'Getting low'**
+  String get paraLow;
+
+  /// No description provided for @paraStockOk.
+  ///
+  /// In en, this message translates to:
+  /// **'Stock is fine'**
+  String get paraStockOk;
+
+  /// No description provided for @paraOutCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} out'**
+  String paraOutCount(int count);
+
+  /// No description provided for @paraLowCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} low'**
+  String paraLowCount(int count);
+
+  /// No description provided for @paraOpenOrders.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} on order'**
+  String paraOpenOrders(int count);
+
+  /// No description provided for @parasTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Paras'**
+  String get parasTitle;
+
+  /// No description provided for @parasSearch.
+  ///
+  /// In en, this message translates to:
+  /// **'Search a para'**
+  String get parasSearch;
+
+  /// No description provided for @parasAll.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get parasAll;
+
+  /// No description provided for @parasLowOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'Low or out'**
+  String get parasLowOnly;
+
+  /// No description provided for @parasNone.
+  ///
+  /// In en, this message translates to:
+  /// **'No para found'**
+  String get parasNone;
+
+  /// No description provided for @paraAsk.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask what they need'**
+  String get paraAsk;
+
+  /// No description provided for @paraAskTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Do you need anything?'**
+  String get paraAskTitle;
+
+  /// No description provided for @paraAskSend.
+  ///
+  /// In en, this message translates to:
+  /// **'Send'**
+  String get paraAskSend;
+
+  /// No description provided for @paraAskHint.
+  ///
+  /// In en, this message translates to:
+  /// **'A message for the team (optional)'**
+  String get paraAskHint;
+
+  /// No description provided for @paraAsked.
+  ///
+  /// In en, this message translates to:
+  /// **'The team and its responsable are told.'**
+  String get paraAsked;
+
+  /// No description provided for @paraAskedAt.
+  ///
+  /// In en, this message translates to:
+  /// **'Last asked {date}'**
+  String paraAskedAt(String date);
+
+  /// No description provided for @paraSold7.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} sold in 7 days'**
+  String paraSold7(int count);
+
+  /// No description provided for @paraRegion.
+  ///
+  /// In en, this message translates to:
+  /// **'Region'**
+  String get paraRegion;
+
+  /// No description provided for @paraGroup.
+  ///
+  /// In en, this message translates to:
+  /// **'Group'**
+  String get paraGroup;
+
+  /// No description provided for @paraAddress.
+  ///
+  /// In en, this message translates to:
+  /// **'Address'**
+  String get paraAddress;
+
+  /// No description provided for @paraStockUnits.
+  ///
+  /// In en, this message translates to:
+  /// **'Units in stock'**
+  String get paraStockUnits;
+
+  /// No description provided for @paraOrderFor.
+  ///
+  /// In en, this message translates to:
+  /// **'Order for this para'**
+  String get paraOrderFor;
+
+  /// No description provided for @paraContacts.
+  ///
+  /// In en, this message translates to:
+  /// **'Who to call'**
+  String get paraContacts;
+
+  /// No description provided for @paraOrders.
+  ///
+  /// In en, this message translates to:
+  /// **'Orders'**
+  String get paraOrders;
+
+  /// No description provided for @paraStockTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Stock'**
+  String get paraStockTitle;
+
+  /// No description provided for @paraNoStock.
+  ///
+  /// In en, this message translates to:
+  /// **'No stock declared yet'**
+  String get paraNoStock;
+
+  /// No description provided for @paraNoSales.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing sold this week'**
+  String get paraNoSales;
+
+  /// No description provided for @paraCover.
+  ///
+  /// In en, this message translates to:
+  /// **'about {days} days left'**
+  String paraCover(int days);
+
+  /// No description provided for @paraCall.
+  ///
+  /// In en, this message translates to:
+  /// **'Call'**
+  String get paraCall;
+
+  /// No description provided for @paraWhatsapp.
+  ///
+  /// In en, this message translates to:
+  /// **'WhatsApp'**
+  String get paraWhatsapp;
+
+  /// No description provided for @orderDeliveredBy.
+  ///
+  /// In en, this message translates to:
+  /// **'Delivered by {name}'**
+  String orderDeliveredBy(String name);
+
+  /// No description provided for @orderPapers.
+  ///
+  /// In en, this message translates to:
+  /// **'Papers'**
+  String get orderPapers;
+
+  /// No description provided for @orderAddPapers.
+  ///
+  /// In en, this message translates to:
+  /// **'Add papers'**
+  String get orderAddPapers;
+
+  /// No description provided for @orderPapersHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Invoice, preparation or delivery note: photos or a PDF.'**
+  String get orderPapersHint;
+
+  /// No description provided for @papersAdded.
+  ///
+  /// In en, this message translates to:
+  /// **'Papers added'**
+  String get papersAdded;
+
+  /// No description provided for @orderMarkDelivered.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark as delivered'**
+  String get orderMarkDelivered;
+
+  /// No description provided for @orderDeliveredHint.
+  ///
+  /// In en, this message translates to:
+  /// **'The goods reached the place. Add the delivery paper if you have it. The place still confirms the receipt and the admin approves it.'**
+  String get orderDeliveredHint;
+
+  /// No description provided for @orderDeliveredDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Marked as delivered'**
+  String get orderDeliveredDone;
+
+  /// No description provided for @proposalTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Proposal'**
+  String get proposalTitle;
+
+  /// No description provided for @proposalBy.
+  ///
+  /// In en, this message translates to:
+  /// **'Proposed by'**
+  String get proposalBy;
+
+  /// No description provided for @proposalApprove.
+  ///
+  /// In en, this message translates to:
+  /// **'Approve the proposal'**
+  String get proposalApprove;
+
+  /// No description provided for @proposalApproved.
+  ///
+  /// In en, this message translates to:
+  /// **'Proposal approved'**
+  String get proposalApproved;
+
+  /// No description provided for @proposalRefuse.
+  ///
+  /// In en, this message translates to:
+  /// **'Refuse the proposal'**
+  String get proposalRefuse;
+
+  /// No description provided for @proposalRefuseHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Why? The order manager is told.'**
+  String get proposalRefuseHint;
+
+  /// No description provided for @proposalRefused.
+  ///
+  /// In en, this message translates to:
+  /// **'Proposal refused'**
+  String get proposalRefused;
+
+  /// No description provided for @proposalWaiting.
+  ///
+  /// In en, this message translates to:
+  /// **'Proposal sent: waiting for the admin'**
+  String get proposalWaiting;
+
+  /// No description provided for @proposalSent.
+  ///
+  /// In en, this message translates to:
+  /// **'Proposal sent to the admin'**
+  String get proposalSent;
+
+  /// No description provided for @proposeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Propose to the admin'**
+  String get proposeTitle;
+
+  /// No description provided for @proposeSend.
+  ///
+  /// In en, this message translates to:
+  /// **'Send the proposal'**
+  String get proposeSend;
+
+  /// No description provided for @proposeNoteHint.
+  ///
+  /// In en, this message translates to:
+  /// **'A note for the admin (optional)'**
+  String get proposeNoteHint;
+
+  /// No description provided for @proposeGrossiste.
+  ///
+  /// In en, this message translates to:
+  /// **'Propose a grossiste'**
+  String get proposeGrossiste;
+
+  /// No description provided for @proposeBiobalance.
+  ///
+  /// In en, this message translates to:
+  /// **'Propose to send from BioBalance'**
+  String get proposeBiobalance;
+
+  /// No description provided for @colProposed.
+  ///
+  /// In en, this message translates to:
+  /// **'Proposed'**
+  String get colProposed;
+
+  /// No description provided for @roleOrdersShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Orders'**
+  String get roleOrdersShort;
 }
 
 class _AppLocalizationsDelegate

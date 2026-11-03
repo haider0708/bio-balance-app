@@ -178,7 +178,8 @@ class _RequestRestockScreenState extends ConsumerState<RequestRestockScreen> {
       child: Scaffold(
         appBar: AppBar(
           title: Text(
-            ref.watch(meProvider).role == Role.admin
+            ref.watch(meProvider).role == Role.admin ||
+                    ref.watch(meProvider).role == Role.orders
                 ? t.newOrder
                 : t.requestRestock,
           ),

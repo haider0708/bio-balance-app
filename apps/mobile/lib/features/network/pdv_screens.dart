@@ -716,6 +716,10 @@ class _CreateAccountScreenState extends ConsumerState<CreateAccountScreen> {
                   value: Role.vendeur,
                   label: Text(t.roleVendeurShort),
                 ),
+                ButtonSegment(
+                  value: Role.orders,
+                  label: Text(t.roleOrdersShort),
+                ),
               ],
               selected: {_role},
               onSelectionChanged: (s) => setState(() => _role = s.first),

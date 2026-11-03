@@ -3,7 +3,8 @@ import '../api/json.dart';
 enum Role {
   admin,
   responsable,
-  vendeur;
+  vendeur,
+  orders;
 
   static Role parse(String value) => Role.values.firstWhere(
     (r) => r.name.toUpperCase() == value.toUpperCase(),

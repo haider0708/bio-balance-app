@@ -1982,5 +1982,119 @@
   "days7Short": "7 jours",
   "days30Short": "30 jours",
   "unitsShort": "Unités",
-  "rewardsShort": "Gains"
+  "rewardsShort": "Gains",
+  "roleOrders": "Gestionnaire des commandes",
+  "ordersToPrepare": "À préparer",
+  "ordersProposed": "Chez l’admin",
+  "ordersToShip": "À expédier",
+  "ordersOnTheRoad": "En route",
+  "ordersDelivered": "Livrées",
+  "ordersToApprove": "À approuver",
+  "ordersToApproveHint": "Réceptions, par l’admin",
+  "ordersAttention": "Paras à surveiller",
+  "ordersAttentionNone": "Tous les paras ont assez de stock.",
+  "paraOut": "En rupture",
+  "paraLow": "Stock bas",
+  "paraStockOk": "Stock suffisant",
+  "paraOutCount": "{count} en rupture",
+  "@paraOutCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "paraLowCount": "{count} bas",
+  "@paraLowCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "paraOpenOrders": "{count} en commande",
+  "@paraOpenOrders": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "parasTitle": "Paras",
+  "parasSearch": "Chercher un para",
+  "parasAll": "Tous",
+  "parasLowOnly": "Bas ou en rupture",
+  "parasNone": "Aucun para trouvé",
+  "paraAsk": "Demander ce dont ils ont besoin",
+  "paraAskTitle": "Avez-vous besoin de quelque chose ?",
+  "paraAskSend": "Envoyer",
+  "paraAskHint": "Un message pour l’équipe (facultatif)",
+  "paraAsked": "L’équipe et son responsable sont prévenus.",
+  "paraAskedAt": "Dernière demande : {date}",
+  "@paraAskedAt": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "paraSold7": "{count} vendus en 7 jours",
+  "@paraSold7": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "paraRegion": "Région",
+  "paraGroup": "Groupe",
+  "paraAddress": "Adresse",
+  "paraStockUnits": "Unités en stock",
+  "paraOrderFor": "Commander pour ce para",
+  "paraContacts": "Qui appeler",
+  "paraOrders": "Commandes",
+  "paraStockTitle": "Stock",
+  "paraNoStock": "Aucun stock déclaré pour l’instant",
+  "paraNoSales": "Rien vendu cette semaine",
+  "paraCover": "environ {days} jours restants",
+  "@paraCover": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "paraCall": "Appeler",
+  "paraWhatsapp": "WhatsApp",
+  "orderDeliveredBy": "Livrée par {name}",
+  "@orderDeliveredBy": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "orderPapers": "Documents",
+  "orderAddPapers": "Ajouter des documents",
+  "orderPapersHint": "Facture, bon de préparation ou de livraison : photos ou PDF.",
+  "papersAdded": "Documents ajoutés",
+  "orderMarkDelivered": "Marquer comme livrée",
+  "orderDeliveredHint": "La marchandise est arrivée. Ajoutez le bon de livraison si vous l’avez. Le lieu confirme encore la réception et l’admin l’approuve.",
+  "orderDeliveredDone": "Marquée comme livrée",
+  "proposalTitle": "Proposition",
+  "proposalBy": "Proposé par",
+  "proposalApprove": "Approuver la proposition",
+  "proposalApproved": "Proposition approuvée",
+  "proposalRefuse": "Refuser la proposition",
+  "proposalRefuseHint": "Pourquoi ? Le gestionnaire est prévenu.",
+  "proposalRefused": "Proposition refusée",
+  "proposalWaiting": "Proposition envoyée : en attente de l’admin",
+  "proposalSent": "Proposition envoyée à l’admin",
+  "proposeTitle": "Proposer à l’admin",
+  "proposeSend": "Envoyer la proposition",
+  "proposeNoteHint": "Une note pour l’admin (facultatif)",
+  "proposeGrossiste": "Proposer un grossiste",
+  "proposeBiobalance": "Proposer d’envoyer depuis BioBalance",
+  "colProposed": "Proposé",
+  "roleOrdersShort": "Commandes"
 }

@@ -17,6 +17,7 @@ import 'package:biobalance/features/notifications/notifications_repository.dart'
 import 'package:biobalance/features/analytics/analytics_repository.dart';
 import 'package:biobalance/features/analytics/lens.dart';
 import 'package:biobalance/features/reports/reports_repository.dart';
+import 'package:biobalance/features/orders/orders_repository.dart';
 import 'package:biobalance/features/restock/restock_models.dart';
 import 'package:biobalance/features/restock/restock_repository.dart';
 import 'package:biobalance/features/rewards/rewards_repository.dart';
@@ -501,6 +502,53 @@ void main() {
         containsAll(['NORD', 'CENTRE', 'SUD']),
       );
     });
+  });
+
+  group('order manager', () {
+    test('sees the paras, opens one and asks it what it needs', () async {
+      final c = as('orders');
+      final overview = await c.read(ordersRepositoryProvider).overview();
+      expect(overview.total, greaterThan(0));
+      final paras = await c.read(ordersRepositoryProvider).paras();
+      final lac = paras.firstWhere((p) => p.id == id('pdv'));
+      final detail = await c.read(ordersRepositoryProvider).para(lac.id);
+      expect(detail.row.name, lac.name);
+      expect(detail.contacts, isNotEmpty);
+      await c.read(ordersRepositoryProvider).ask(lac.id, message: 'Besoin ?');
+      expect(
+        (await c.read(ordersRepositoryProvider).para(lac.id)).lastAskedAt,
+        isNotNull,
+      );
+    });
+
+    test(
+      'prepares an order, the admin approves, then it is delivered',
+      () async {
+        final m = as('orders');
+        final repo = m.read(restockRepositoryProvider);
+        final created = await repo.create(
+          destId: id('pdv'),
+          note: '',
+          lines: [
+            {'productId': id('product'), 'quantity': 4},
+          ],
+        );
+        await repo.propose(created.id, source: 'BIOBALANCE', note: 'Lundi');
+        final proposed = await repo.get(created.id);
+        expect(proposed.proposal?.source, 'BIOBALANCE');
+        expect(proposed.proposal?.by?.name, 'Omar Commandes');
+        expect(proposed.lines.single.proposed, 4);
+
+        final a = as('admin');
+        await a.read(restockRepositoryProvider).approveProposal(created.id);
+        final routed = await repo.get(created.id);
+        expect(routed.status, RestockStatus.shipped);
+        await repo.delivered(created.id, note: 'Remis');
+        final delivered = await repo.get(created.id);
+        expect(delivered.deliveredAt, isNotNull);
+        expect(delivered.deliveredBy?.name, 'Omar Commandes');
+      },
+    );
   });
 }
 

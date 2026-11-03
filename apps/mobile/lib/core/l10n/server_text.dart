@@ -715,6 +715,26 @@ class ServerText {
       'Restock {number} was taken back by the admin and will be routed again.',
       'Le réassort {number} a été repris par l’admin et sera acheminé à nouveau.',
     ),
+    'restock.proposed': (
+      '{by} proposes to fulfil order {number} from {from}: waiting for your approval.',
+      '{by} propose de traiter la commande {number} depuis {from} : en attente de votre approbation.',
+    ),
+    'restock.proposal_approved': (
+      'Your proposal for order {number} was approved.',
+      'Votre proposition pour la commande {number} a été approuvée.',
+    ),
+    'restock.proposal_refused': (
+      'Your proposal for order {number} was refused: {note}',
+      'Votre proposition pour la commande {number} a été refusée : {note}',
+    ),
+    'restock.delivered': (
+      'Order {number} was delivered by {by}: confirm the receipt.',
+      'La commande {number} a été livrée par {by} : confirmez la réception.',
+    ),
+    'orders.asks': (
+      '{by} asks whether {place} needs anything.{message}',
+      '{by} demande si {place} a besoin de quelque chose.{message}',
+    ),
     'restock.to_prepare': (
       'Restock {number} was given to {depot}: ship it.',
       'Le réassort {number} a été confié à {depot} : expédiez-le.',

@@ -764,8 +764,8 @@ export class ReturnsService {
           requestedQuantity: l.requestedQuantity,
         })),
       // What the viewer may do now.
-      canEdit: r.status === "PENDING",
-      canCancel: r.status === "PENDING",
+      canEdit: r.status === "PENDING" && actor.role !== "ORDERS",
+      canCancel: r.status === "PENDING" && actor.role !== "ORDERS",
       canDecide: r.status === "PENDING" && actor.role === "ADMIN",
       changes: detail
         ? (r.revisions ?? []).map((rev) => ({

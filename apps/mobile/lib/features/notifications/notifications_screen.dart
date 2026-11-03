@@ -33,6 +33,7 @@ String? routeForEntity(Role role, String? type, String? id) {
     ('StockDeclaration', Role.admin) => '/approvals',
     ('StockDeclaration', _) => '/stock/declarations/$id',
     ('Pdv', Role.admin) || ('Pdv', Role.responsable) => '/pdvs/$id',
+    ('Pdv', Role.orders) => '/paras/$id',
     ('Group', Role.admin) => '/approvals',
     ('User', Role.admin) => '/approvals',
     ('Sale', Role.vendeur) || ('Sale', Role.responsable) => '/sales/$id',

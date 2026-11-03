@@ -209,6 +209,16 @@ Paras of the **same group** (a group is a set of paras of one region) can exchan
 
 ## Returns (2026-11)
 
+## The order manager (2026-11)
+
+A fourth kind of account, **Gestionnaire des commandes** (`ORDERS`), is created by the admin (name, email, phone; no region, no para) and signs in like a responsable. It works on stock and orders, never on money or people.
+
+- **Sees:** every para of the network (the test region stays hidden): units, products low (5 or fewer) and out, what sold in the last 7 days, orders still open, the days a product would last at that pace, and who to call (the para's team and its responsable, with a call button and a WhatsApp button). The board puts the worst paras first and can keep only those low or out. Also the transfers and returns (read only), the grossistes and the catalog.
+- **Asks a para:** "Ask what they need" tells the team and the responsable of the para (an optional short message); at most once every 30 minutes per para.
+- **Orders:** creates an order for any para or grossiste (it goes to the admin like a responsable's), and receives the responsables' requests (told when one is made). On a requested order it **proposes** a source: a grossiste (with what each holds, like the admin sees) or BioBalance direct, with quantities it may lower (never above what was asked), a note and papers. Nothing moves: the admin sees the proposal on the order and in the Approvals inbox, and **approves it in one tap** (the order is routed exactly as proposed) or **refuses it with a reason** (the order manager is told; the order stays waiting). The admin can still route the order his own way.
+- **Follows it:** ships an order a grossiste was given (the stock leaves the grossiste then), attaches papers (invoice, preparation or delivery note; up to 10 per order, until it is closed) and marks it **delivered** with the delivery paper. The place's team still confirms the receipt with its own paper and the admin approves it: **only then does the stock arrive.** It can cancel the orders it created while they wait.
+- **Never:** money (prices, rewards, wallets, payouts), sales, accounts and people, approvals, stock declarations or corrections, planning. The database itself shows it none of those (checked by tests that count rows, not by the screens).
+
 A **return** takes quantities out of one para's stock. It has its own section (Returns, in More and in the web console's sidebar) and is for nothing else: no reasons, no destination to pick, no photo.
 
 - **The responsable asks:** for a para of their own region, the products and quantities (never more than the para holds) and an optional note. The admin is told; nothing moves yet. Until the admin decides, the responsable can **change the quantities** (each change is written down, the first quantities stay visible) or **cancel**. A team member has no returns.

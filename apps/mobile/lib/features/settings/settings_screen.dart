@@ -23,6 +23,7 @@ String roleLabel(AppLocalizations t, Role role) => switch (role) {
   Role.admin => t.roleAdmin,
   Role.responsable => t.roleResponsable,
   Role.vendeur => t.roleVendeur,
+  Role.orders => t.roleOrders,
 };
 
 class SettingsScreen extends ConsumerWidget {

@@ -4023,4 +4023,215 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get rewardsShort => 'Rewards';
+
+  @override
+  String get roleOrders => 'Order manager';
+
+  @override
+  String get ordersToPrepare => 'To prepare';
+
+  @override
+  String get ordersProposed => 'With the admin';
+
+  @override
+  String get ordersToShip => 'To ship';
+
+  @override
+  String get ordersOnTheRoad => 'On the road';
+
+  @override
+  String get ordersDelivered => 'Delivered';
+
+  @override
+  String get ordersToApprove => 'To approve';
+
+  @override
+  String get ordersToApproveHint => 'Receipts, by the admin';
+
+  @override
+  String get ordersAttention => 'Paras to watch';
+
+  @override
+  String get ordersAttentionNone => 'Every para has enough stock.';
+
+  @override
+  String get paraOut => 'Out of stock';
+
+  @override
+  String get paraLow => 'Getting low';
+
+  @override
+  String get paraStockOk => 'Stock is fine';
+
+  @override
+  String paraOutCount(int count) {
+    return '$count out';
+  }
+
+  @override
+  String paraLowCount(int count) {
+    return '$count low';
+  }
+
+  @override
+  String paraOpenOrders(int count) {
+    return '$count on order';
+  }
+
+  @override
+  String get parasTitle => 'Paras';
+
+  @override
+  String get parasSearch => 'Search a para';
+
+  @override
+  String get parasAll => 'All';
+
+  @override
+  String get parasLowOnly => 'Low or out';
+
+  @override
+  String get parasNone => 'No para found';
+
+  @override
+  String get paraAsk => 'Ask what they need';
+
+  @override
+  String get paraAskTitle => 'Do you need anything?';
+
+  @override
+  String get paraAskSend => 'Send';
+
+  @override
+  String get paraAskHint => 'A message for the team (optional)';
+
+  @override
+  String get paraAsked => 'The team and its responsable are told.';
+
+  @override
+  String paraAskedAt(String date) {
+    return 'Last asked $date';
+  }
+
+  @override
+  String paraSold7(int count) {
+    return '$count sold in 7 days';
+  }
+
+  @override
+  String get paraRegion => 'Region';
+
+  @override
+  String get paraGroup => 'Group';
+
+  @override
+  String get paraAddress => 'Address';
+
+  @override
+  String get paraStockUnits => 'Units in stock';
+
+  @override
+  String get paraOrderFor => 'Order for this para';
+
+  @override
+  String get paraContacts => 'Who to call';
+
+  @override
+  String get paraOrders => 'Orders';
+
+  @override
+  String get paraStockTitle => 'Stock';
+
+  @override
+  String get paraNoStock => 'No stock declared yet';
+
+  @override
+  String get paraNoSales => 'Nothing sold this week';
+
+  @override
+  String paraCover(int days) {
+    return 'about $days days left';
+  }
+
+  @override
+  String get paraCall => 'Call';
+
+  @override
+  String get paraWhatsapp => 'WhatsApp';
+
+  @override
+  String orderDeliveredBy(String name) {
+    return 'Delivered by $name';
+  }
+
+  @override
+  String get orderPapers => 'Papers';
+
+  @override
+  String get orderAddPapers => 'Add papers';
+
+  @override
+  String get orderPapersHint =>
+      'Invoice, preparation or delivery note: photos or a PDF.';
+
+  @override
+  String get papersAdded => 'Papers added';
+
+  @override
+  String get orderMarkDelivered => 'Mark as delivered';
+
+  @override
+  String get orderDeliveredHint =>
+      'The goods reached the place. Add the delivery paper if you have it. The place still confirms the receipt and the admin approves it.';
+
+  @override
+  String get orderDeliveredDone => 'Marked as delivered';
+
+  @override
+  String get proposalTitle => 'Proposal';
+
+  @override
+  String get proposalBy => 'Proposed by';
+
+  @override
+  String get proposalApprove => 'Approve the proposal';
+
+  @override
+  String get proposalApproved => 'Proposal approved';
+
+  @override
+  String get proposalRefuse => 'Refuse the proposal';
+
+  @override
+  String get proposalRefuseHint => 'Why? The order manager is told.';
+
+  @override
+  String get proposalRefused => 'Proposal refused';
+
+  @override
+  String get proposalWaiting => 'Proposal sent: waiting for the admin';
+
+  @override
+  String get proposalSent => 'Proposal sent to the admin';
+
+  @override
+  String get proposeTitle => 'Propose to the admin';
+
+  @override
+  String get proposeSend => 'Send the proposal';
+
+  @override
+  String get proposeNoteHint => 'A note for the admin (optional)';
+
+  @override
+  String get proposeGrossiste => 'Propose a grossiste';
+
+  @override
+  String get proposeBiobalance => 'Propose to send from BioBalance';
+
+  @override
+  String get colProposed => 'Proposed';
+
+  @override
+  String get roleOrdersShort => 'Orders';
 }

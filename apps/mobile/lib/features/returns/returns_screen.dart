@@ -5,6 +5,8 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../core/theme/app_theme.dart';
 import '../../core/util/dates.dart';
+import '../../core/auth/me.dart';
+import '../../core/auth/session.dart';
 import '../../core/widgets/async_body.dart';
 import '../../core/widgets/components.dart';
 import '../../core/widgets/states.dart';
@@ -36,15 +38,17 @@ class _ReturnsScreenState extends ConsumerState<ReturnsScreen> {
     final returns = ref.watch(returnsProvider);
     return Scaffold(
       appBar: AppBar(title: Text(t.returnsTitle)),
-      floatingActionButton: FloatingActionButton.extended(
-        heroTag: null,
-        onPressed: () async {
-          await context.push('/returns/new');
-          ref.invalidate(returnsProvider);
-        },
-        icon: const Icon(LucideIcons.plus),
-        label: Text(t.returnNew),
-      ),
+      floatingActionButton: ref.watch(meProvider).role == Role.orders
+          ? null
+          : FloatingActionButton.extended(
+              heroTag: null,
+              onPressed: () async {
+                await context.push('/returns/new');
+                ref.invalidate(returnsProvider);
+              },
+              icon: const Icon(LucideIcons.plus),
+              label: Text(t.returnNew),
+            ),
       body: RefreshIndicator(
         onRefresh: () async {
           ref.invalidate(returnsProvider);

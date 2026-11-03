@@ -213,6 +213,9 @@ class _ApprovalTile extends ConsumerWidget {
     final subtitle = <String>[
       if (item.by != null) t.byName(item.by!),
       if (item.region != null) item.region!,
+      if (item.type == ApprovalType.restockRequest &&
+          item.meta['proposal'] != null)
+        t.proposalTitle,
       switch (item.type) {
         ApprovalType.pdv => item.meta.str('city'),
         ApprovalType.member => item.meta.str('pdv'),

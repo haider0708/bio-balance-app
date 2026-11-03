@@ -31,6 +31,8 @@ import '../features/network/depots_screen.dart';
 import '../features/network/network_screen.dart';
 import '../features/network/pdv_screens.dart';
 import '../features/network/regions_screen.dart';
+import '../features/orders/order_papers_screen.dart';
+import '../features/orders/orders_screens.dart';
 import '../features/network/people_widgets.dart';
 import '../features/notifications/notifications_screen.dart';
 import '../features/restock/restock_models.dart';
@@ -201,6 +203,24 @@ StatefulShellRoute _shell(List<TabSpec> tabs) =>
 
 List<RouteBase> _roleRoutes(Role role) => switch (role) {
   Role.vendeur => [..._vendeur(), ..._shared()],
+  // The order manager: the paras' stock and the orders, on the phone and in the browser.
+  Role.orders =>
+    kIsWeb
+        ? [
+            ShellRoute(
+              builder: (_, _, child) => ConsoleShell(child: child),
+              routes: [
+                GoRoute(path: '/home', builder: (_, _) => const OrdersHome()),
+                GoRoute(path: '/paras', builder: (_, _) => const ParasScreen()),
+                GoRoute(
+                  path: '/restocks',
+                  builder: (_, _) => const RestocksScreen(),
+                ),
+                ..._shared(),
+              ],
+            ),
+          ]
+        : [..._ordersTabs(), ..._shared()],
   Role.responsable =>
     kIsWeb
         ? [
@@ -418,6 +438,36 @@ List<RouteBase> _responsable() => [
   ]),
 ];
 
+/// The order manager's bottom tabs on the phone.
+List<RouteBase> _ordersTabs() => [
+  _shell([
+    TabSpec(
+      LucideIcons.house,
+      (t) => t.tabHome,
+      '/home',
+      () => const OrdersHome(),
+    ),
+    TabSpec(
+      LucideIcons.store,
+      (t) => t.parasTitle,
+      '/paras',
+      () => const ParasScreen(),
+    ),
+    TabSpec(
+      LucideIcons.truck,
+      (t) => t.tabRestocks,
+      '/restocks',
+      () => const RestocksScreen(),
+    ),
+    TabSpec(
+      LucideIcons.menu,
+      (t) => t.moreTitle,
+      '/more',
+      () => _more(Role.orders),
+    ),
+  ]),
+];
+
 /// The admin's bottom tabs on the phone.
 List<RouteBase> _adminTabs() => [
   _shell([
@@ -548,6 +598,11 @@ List<RouteBase> _admin() => [
 
 /// Screens that several roles can open.
 List<RouteBase> _shared() => [
+  GoRoute(
+    path: '/paras/:id',
+    builder: (_, state) =>
+        ParaDetailScreen(paraId: state.pathParameters['id']!),
+  ),
   // Returns: a responsable asks, the admin decides (a team member has no returns).
   GoRoute(path: '/returns', builder: (_, _) => const ReturnsScreen()),
   GoRoute(path: '/returns/new', builder: (_, _) => const NewReturnScreen()),
@@ -682,6 +737,22 @@ List<RouteBase> _shared() => [
     builder: (_, state) => ShipScreen(order: state.extra! as RestockOrder),
   ),
   GoRoute(
+    path: '/restocks/:id/papers',
+    redirect: (_, state) => state.extra is RestockOrder
+        ? null
+        : '/restocks/${state.pathParameters['id']}',
+    builder: (_, state) =>
+        OrderPapersScreen(order: state.extra! as RestockOrder),
+  ),
+  GoRoute(
+    path: '/restocks/:id/delivered',
+    redirect: (_, state) => state.extra is RestockOrder
+        ? null
+        : '/restocks/${state.pathParameters['id']}',
+    builder: (_, state) =>
+        OrderPapersScreen(order: state.extra! as RestockOrder, delivered: true),
+  ),
+  GoRoute(
     path: '/restocks/:id/receive',
     redirect: (_, state) => state.extra is RestockOrder
         ? null
@@ -734,6 +805,24 @@ Widget _more(Role role) => Builder(
           '/reports',
           tone: Tone.info,
         ),
+        MoreEntry(
+          LucideIcons.bell,
+          t.notificationsTitle,
+          '/notifications',
+          tone: Tone.warning,
+        ),
+        MoreEntry(
+          LucideIcons.settings,
+          t.settingsTitle,
+          '/settings',
+          tone: Tone.muted,
+        ),
+      ],
+      Role.orders => [
+        MoreEntry(LucideIcons.arrowLeftRight, t.transfersTitle, '/transfers'),
+        MoreEntry(LucideIcons.undo2, t.returnsTitle, '/returns'),
+        MoreEntry(LucideIcons.warehouse, t.grossistesTitle, '/depots'),
+        MoreEntry(LucideIcons.package, t.catalogTitle, '/catalog'),
         MoreEntry(
           LucideIcons.bell,
           t.notificationsTitle,

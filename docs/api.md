@@ -271,6 +271,25 @@ Visits: `status` PLANNED, ON_SITE, DONE, MISSED, CANCELLED; `revision` grows wit
 
 ## Returns (2026-11)
 
+## The order manager (2026-11)
+
+Role `ORDERS`: created with `POST /v1/users {role: "ORDERS", name, email, phone}` (admin; active at once, no region, no para). Its sign-in is the responsable's.
+
+| Method | Path | Who |
+|---|---|---|
+| GET | `/v1/orders/overview` | ORDERS, admin: `{orders: {requested, proposed, toShip, onTheRoad, delivered, toApprove}, paras: {total, low, out}, attention[]}` |
+| GET | `/v1/orders/paras?regionId&groupId&q&low` | the same: `[{id, name, address, city, phone, region, group, stock: {products, units, low, out}, sold7Days, openOrders}]`, worst first; no money anywhere |
+| GET | `/v1/orders/paras/:id` | the same, plus `stock.lines[{productId, name, family, quantity, level: OK\|LOW\|OUT, sold7Days, coverDays}]`, `orders[]`, `contacts[{id, name, role, phone}]`, `lastAskedAt` |
+| POST | `/v1/orders/paras/:id/ask` `{message?}` | ORDERS (`TOO_SOON` 429 within 30 minutes) |
+| POST | `/v1/restocks` | ORDERS too: any para or grossiste |
+| POST | `/v1/restocks/:id/propose` `{source: BIOBALANCE\|GROSSISTE, depotId?, lines?, note?, photoIds?}` | ORDERS (REQUESTED only; a depot order is BIOBALANCE) |
+| POST | `/v1/restocks/:id/approve-proposal` / `reject-proposal` `{note}` | admin |
+| POST | `/v1/restocks/:id/documents` `{photoIds}` | ORDERS, admin (until closed; at most 10) |
+| POST | `/v1/restocks/:id/delivered` `{photoIds?, note?}` | ORDERS, admin (SHIPPED, once) |
+| POST | `/v1/restocks/:id/ship` | ORDERS too, from any grossiste |
+
+An order carries `proposal {source, supplier, by, at, note}` while it waits, `documentIds`, `deliveredAt`, `deliveredBy`, and each line `proposed`. Reads opened to ORDERS: `/v1/pdvs`, `/v1/groups`, `/v1/depots`, `/v1/restocks`, `/v1/transfers`, `/v1/returns` (the last two with `canEdit`, `canCancel`, `canDecide` all false). `/v1/approvals` shows `meta.proposal` and `meta.proposedBy` on a restock request. Notifications: `restock.proposed`, `restock.proposal_approved`, `restock.proposal_refused`, `restock.delivered`, `orders.asks`.
+
 | Method | Path | Who |
 |---|---|---|
 | GET | `/v1/returns?status&pdvId` | responsable (their region's), admin (all) |
