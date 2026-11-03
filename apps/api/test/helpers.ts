@@ -80,12 +80,14 @@ export interface Account {
 
 /** Create an active account with a live session, skipping the sign-in screen. */
 export async function createAccount(input: {
-  role: "ADMIN" | "RESPONSABLE" | "VENDEUR" | "ORDERS";
+  role: "ADMIN" | "RESPONSABLE" | "VENDEUR" | "ORDERS" | "ACHETEUR";
   email?: string;
   name?: string;
   regionCode?: string;
   pdvId?: string;
   status?: "ACTIVE" | "PENDING";
+  /** A vendeur who also places the orders of the para. */
+  canOrder?: boolean;
 }): Promise<Account> {
   const db = await owner();
   try {
@@ -106,8 +108,8 @@ export async function createAccount(input: {
         ])
       ).rows[0].regionId;
     const { rows } = await db.query(
-      `INSERT INTO "User"(id,email,name,role,status,"regionId","pdvId","passwordHash")
-       VALUES (gen_random_uuid(),$1,$2,$3::"Role",$4::"Status",$5,$6,'x') RETURNING id`,
+      `INSERT INTO "User"(id,email,name,role,status,"regionId","pdvId","passwordHash","canOrder")
+       VALUES (gen_random_uuid(),$1,$2,$3::"Role",$4::"Status",$5,$6,'x',$7) RETURNING id`,
       [
         email,
         input.name ?? email.split("@")[0],
@@ -115,6 +117,7 @@ export async function createAccount(input: {
         input.status ?? "ACTIVE",
         regionId,
         input.pdvId ?? null,
+        input.canOrder ?? false,
       ],
     );
     const id = rows[0].id as string;

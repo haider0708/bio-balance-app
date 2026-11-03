@@ -14,8 +14,8 @@ import '../../core/widgets/feedback.dart';
 import '../../core/widgets/states.dart';
 import '../../l10n/app_localizations.dart';
 import '../approvals/approvals_repository.dart';
-import '../settings/settings_screen.dart';
 import '../shared/status_chips.dart';
+import 'duties.dart';
 import 'network_models.dart';
 import 'person_sales.dart';
 import 'network_repository.dart';
@@ -207,7 +207,7 @@ class PersonTile extends ConsumerWidget {
               children: [
                 Text(person.name, style: context.text.titleSmall),
                 Text(
-                  roleLabel(t, person.role),
+                  personRoleLabel(t, person),
                   style: context.text.bodySmall?.copyWith(
                     color: context.status.muted,
                   ),
@@ -326,7 +326,7 @@ class PersonPanel extends ConsumerWidget {
                 children: [
                   Text(person.name, style: context.text.titleLarge),
                   Text(
-                    roleLabel(t, person.role),
+                    personRoleLabel(t, person),
                     style: context.text.bodyMedium?.copyWith(
                       color: context.status.muted,
                     ),
@@ -357,6 +357,35 @@ class PersonPanel extends ConsumerWidget {
           ),
         if (person.decisionNote != null)
           InfoRow(t.decision, person.decisionNote!),
+        // What the person does in the para: the responsable of the region and the admin change it.
+        if (person.role.isTeam &&
+            (person.status == ItemStatus.active ||
+                person.status == ItemStatus.pending) &&
+            (me.role == Role.admin || me.role == Role.responsable))
+          Align(
+            alignment: AlignmentDirectional.centerEnd,
+            child: TextButton.icon(
+              onPressed: () async {
+                final chosen = await showModalBottomSheet<Duty>(
+                  context: context,
+                  isScrollControlled: true,
+                  builder: (_) => DutiesSheet(current: Duty.of(person)),
+                );
+                if (chosen == null || chosen == Duty.of(person)) return;
+                if (!context.mounted) return;
+                await act(
+                  () => repo.setDuties(
+                    person.id,
+                    sells: chosen.sells,
+                    buys: chosen.buys,
+                  ),
+                  t.dutiesSaved,
+                );
+              },
+              icon: const Icon(LucideIcons.arrowLeftRight, size: 16),
+              label: Text(t.dutiesChange),
+            ),
+          ),
         if (me.role == Role.admin && person.role == Role.responsable)
           Align(
             alignment: AlignmentDirectional.centerEnd,
@@ -593,6 +622,56 @@ class _EditPersonSheetState extends ConsumerState<_EditPersonSheet> {
             TextButton(
               onPressed: () => Navigator.pop(context),
               child: Text(t.cancel),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Pick what a team member does; the change is saved by the caller.
+class DutiesSheet extends StatefulWidget {
+  const DutiesSheet({required this.current, super.key});
+
+  final Duty current;
+
+  @override
+  State<DutiesSheet> createState() => _DutiesSheetState();
+}
+
+class _DutiesSheetState extends State<DutiesSheet> {
+  late Duty _duty = widget.current;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    return SafeArea(
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(20, 0, 20, 20 + sheetBottomInset(context)),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(t.dutiesChange, style: context.text.titleLarge),
+            const Gap(4),
+            Text(
+              t.dutiesChangeHint,
+              style: context.text.bodyMedium?.copyWith(
+                color: context.status.muted,
+              ),
+            ),
+            const Gap(16),
+            DutyPicker(
+              value: _duty,
+              onChanged: (d) => setState(() => _duty = d),
+            ),
+            const Gap(16),
+            FilledButton(
+              onPressed: _duty == widget.current
+                  ? null
+                  : () => Navigator.pop(context, _duty),
+              child: Text(t.save),
             ),
           ],
         ),

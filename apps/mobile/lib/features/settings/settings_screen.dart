@@ -24,7 +24,12 @@ String roleLabel(AppLocalizations t, Role role) => switch (role) {
   Role.responsable => t.roleResponsable,
   Role.vendeur => t.roleVendeur,
   Role.orders => t.roleOrders,
+  Role.acheteur => t.roleAcheteur,
 };
+
+/// A seller who also orders says so: "Seller and buyer".
+String meRoleLabel(AppLocalizations t, Me me) =>
+    me.role == Role.vendeur && me.canOrder ? t.dutyBoth : roleLabel(t, me.role);
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -59,7 +64,7 @@ class SettingsScreen extends ConsumerWidget {
                       Wrap(
                         spacing: 6,
                         children: [
-                          StatusChip(roleLabel(t, me.role), tone: Tone.success),
+                          StatusChip(meRoleLabel(t, me), tone: Tone.success),
                           if (where != null) StatusChip(where),
                         ],
                       ),
@@ -284,7 +289,7 @@ class MoreScreen extends ConsumerWidget {
                       const SizedBox(height: 2),
                       Text(
                         [
-                          roleLabel(t, me.role),
+                          meRoleLabel(t, me),
                           ?me.region?.name,
                           ?me.pdv?.name,
                         ].join(' · '),

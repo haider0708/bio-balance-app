@@ -47,7 +47,7 @@ class _RestocksScreenState extends ConsumerState<RestocksScreen> {
     final orders = ref.watch(restocksProvider(_query));
     return Scaffold(
       appBar: AppBar(title: Text(t.restocksTitle)),
-      floatingActionButton: me.role != Role.vendeur
+      floatingActionButton: me.role != Role.vendeur || me.isBuyer
           ? FloatingActionButton.extended(
               heroTag: null,
               onPressed: () async {
@@ -56,7 +56,7 @@ class _RestocksScreenState extends ConsumerState<RestocksScreen> {
               },
               icon: const Icon(LucideIcons.plus),
               label: Text(
-                me.role == Role.admin ? t.newOrder : t.requestRestock,
+                me.role == Role.responsable ? t.requestRestock : t.newOrder,
               ),
             )
           : null,

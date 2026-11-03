@@ -73,7 +73,7 @@ const Status = z.enum([
 export class RestockController {
   constructor(private readonly restocks: RestockService) {}
 
-  @Roles("ADMIN", "RESPONSABLE", "ORDERS")
+  @Roles("ADMIN", "RESPONSABLE", "ORDERS", "VENDEUR", "ACHETEUR")
   @Post()
   create(@Req() r: AuthRequest, @Body() b: unknown) {
     return this.restocks.create(r.actor, parse(Create, b));
@@ -144,7 +144,7 @@ export class RestockController {
       parse(Receiver, b).userId,
     );
   }
-  @Roles("ADMIN", "RESPONSABLE", "VENDEUR")
+  @Roles("ADMIN", "RESPONSABLE", "VENDEUR", "ACHETEUR")
   @Post(":id/receipt")
   receive(@Req() r: AuthRequest, @Param("id") i: string, @Body() b: unknown) {
     return this.restocks.receive(r.actor, parse(id, i), parse(Receive, b));
@@ -175,7 +175,7 @@ export class RestockController {
   reject(@Req() r: AuthRequest, @Param("id") i: string, @Body() b: unknown) {
     return this.restocks.reject(r.actor, parse(id, i), parse(Reason, b).note);
   }
-  @Roles("ADMIN", "RESPONSABLE", "ORDERS")
+  @Roles("ADMIN", "RESPONSABLE", "ORDERS", "VENDEUR", "ACHETEUR")
   @Post(":id/cancel")
   cancel(@Req() r: AuthRequest, @Param("id") i: string, @Body() b: unknown) {
     return this.restocks.cancel(r.actor, parse(id, i), parse(Reason, b).note);

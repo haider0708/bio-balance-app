@@ -501,6 +501,11 @@ class _RestockDetailScreenState extends ConsumerState<RestockDetailScreen> {
     final canReceive =
         o.status == RestockStatus.shipped &&
         (isReceiver ||
+            // A buyer of the para confirms its deliveries, unless the responsable named someone else.
+            (me.isBuyer &&
+                !o.toDepot &&
+                o.destinationId == me.pdv?.id &&
+                o.receiver == null) ||
             (me.role == Role.responsable && o.regionId == me.region?.id) ||
             (me.role == Role.admin && o.toDepot));
     if (canReceive) {
@@ -558,7 +563,9 @@ class _RestockDetailScreenState extends ConsumerState<RestockDetailScreen> {
 
     final canCancel = me.role == Role.admin
         ? o.status.open && o.status != RestockStatus.received
-        : ((me.role == Role.responsable || me.role == Role.orders) &&
+        : ((me.role == Role.responsable ||
+                  me.role == Role.orders ||
+                  me.isBuyer) &&
               o.status == RestockStatus.requested &&
               o.requestedBy?.id == me.id);
     if (canCancel) {

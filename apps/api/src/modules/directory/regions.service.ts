@@ -1,4 +1,5 @@
 import { refuseDeleted } from "../auth/deleted";
+import { TEAM_ROLES } from "../../core/roles";
 import { Injectable } from "@nestjs/common";
 import type { Actor } from "../../core/actor";
 import { audit } from "../../core/audit";
@@ -67,7 +68,7 @@ export class RegionsService {
           tx.depot.groupBy({ by: ["regionId"], _count: { _all: true } }),
           tx.user.groupBy({
             by: ["regionId"],
-            where: { role: "VENDEUR" },
+            where: { role: { in: TEAM_ROLES } },
             _count: { _all: true },
           }),
         ]);

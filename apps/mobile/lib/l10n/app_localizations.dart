@@ -7279,6 +7279,120 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Orders'**
   String get roleOrdersShort;
+
+  /// No description provided for @roleAcheteur.
+  ///
+  /// In en, this message translates to:
+  /// **'Buyer'**
+  String get roleAcheteur;
+
+  /// No description provided for @dutySeller.
+  ///
+  /// In en, this message translates to:
+  /// **'Seller'**
+  String get dutySeller;
+
+  /// No description provided for @dutyBuyer.
+  ///
+  /// In en, this message translates to:
+  /// **'Buyer'**
+  String get dutyBuyer;
+
+  /// No description provided for @dutyBoth.
+  ///
+  /// In en, this message translates to:
+  /// **'Seller and buyer'**
+  String get dutyBoth;
+
+  /// No description provided for @dutySellerHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Records sales and earns rewards.'**
+  String get dutySellerHint;
+
+  /// No description provided for @dutyBuyerHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Sees the para’s stock, places its orders and receives them. No sales, no rewards.'**
+  String get dutyBuyerHint;
+
+  /// No description provided for @dutyBothHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Sells, and also places and receives the para’s orders.'**
+  String get dutyBothHint;
+
+  /// No description provided for @dutiesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'What this person does'**
+  String get dutiesTitle;
+
+  /// No description provided for @dutiesChange.
+  ///
+  /// In en, this message translates to:
+  /// **'Change what they do'**
+  String get dutiesChange;
+
+  /// No description provided for @dutiesChangeHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Someone who stops selling must first be paid out: no reward is ever lost.'**
+  String get dutiesChangeHint;
+
+  /// No description provided for @dutiesSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved. The person is told.'**
+  String get dutiesSaved;
+
+  /// No description provided for @buyerNoPara.
+  ///
+  /// In en, this message translates to:
+  /// **'You are not in a point of sale yet.'**
+  String get buyerNoPara;
+
+  /// No description provided for @buyerUnits.
+  ///
+  /// In en, this message translates to:
+  /// **'In stock'**
+  String get buyerUnits;
+
+  /// No description provided for @buyerOrderNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Order for my para'**
+  String get buyerOrderNow;
+
+  /// No description provided for @buyerRunningLow.
+  ///
+  /// In en, this message translates to:
+  /// **'Running low'**
+  String get buyerRunningLow;
+
+  /// No description provided for @buyerMyOrders.
+  ///
+  /// In en, this message translates to:
+  /// **'Orders on their way'**
+  String get buyerMyOrders;
+
+  /// No description provided for @buyerNoOrders.
+  ///
+  /// In en, this message translates to:
+  /// **'No order on its way'**
+  String get buyerNoOrders;
+
+  /// No description provided for @buyerNoOrdersHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Order what the para needs: the admin is told.'**
+  String get buyerNoOrdersHint;
+
+  /// No description provided for @buyerOrderFor.
+  ///
+  /// In en, this message translates to:
+  /// **'Your order is for this para'**
+  String get buyerOrderFor;
 }
 
 class _AppLocalizationsDelegate

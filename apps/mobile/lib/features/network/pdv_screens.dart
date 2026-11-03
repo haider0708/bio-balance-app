@@ -13,6 +13,7 @@ import '../../core/widgets/feedback.dart';
 import '../../l10n/app_localizations.dart';
 import '../approvals/approvals_repository.dart';
 import '../shared/status_chips.dart';
+import 'duties.dart';
 import 'network_models.dart';
 import 'network_repository.dart';
 import 'region_moves.dart';
@@ -39,12 +40,7 @@ class PdvDetailScreen extends ConsumerWidget {
     final me = ref.watch(meProvider);
     final pdv = ref.watch(pdvProvider(pdvId));
     final team = ref.watch(
-      peopleProvider((
-        role: 'VENDEUR',
-        pdvId: pdvId,
-        regionId: null,
-        status: null,
-      )),
+      peopleProvider((role: null, pdvId: pdvId, regionId: null, status: null)),
     );
     final repo = ref.read(networkRepositoryProvider);
     return Scaffold(
@@ -515,6 +511,7 @@ class _AddMemberScreenState extends ConsumerState<AddMemberScreen> {
   final _name = TextEditingController();
   final _email = TextEditingController();
   final _phone = TextEditingController();
+  Duty _duty = Duty.seller;
 
   @override
   void dispose() {
@@ -553,6 +550,8 @@ class _AddMemberScreenState extends ConsumerState<AddMemberScreen> {
             name: _name.text.trim(),
             email: _email.text.trim().toLowerCase(),
             phone: phone,
+            sells: _duty.sells,
+            buys: _duty.buys,
           ),
       success: t.memberAdded,
     );
@@ -601,6 +600,13 @@ class _AddMemberScreenState extends ConsumerState<AddMemberScreen> {
               controller: _phone,
               textInputAction: TextInputAction.done,
             ),
+            const Gap(20),
+            Text(t.dutiesTitle, style: context.text.titleSmall),
+            const Gap(8),
+            DutyPicker(
+              value: _duty,
+              onChanged: (d) => setState(() => _duty = d),
+            ),
             const Gap(24),
             AsyncButton(
               label: t.sendForApproval,
@@ -634,6 +640,7 @@ class _CreateAccountScreenState extends ConsumerState<CreateAccountScreen> {
   final _phone = TextEditingController();
   late String? _regionId = widget.regionId;
   String? _pdvId;
+  Duty _duty = Duty.seller;
 
   @override
   void dispose() {
@@ -668,12 +675,18 @@ class _CreateAccountScreenState extends ConsumerState<CreateAccountScreen> {
     }
     if (!mounted) return;
     final body = {
-      'role': _role.wire,
+      // A team member is a seller (who may also buy) or a buyer only.
+      'role': _role == Role.vendeur
+          ? (_duty.sells ? Role.vendeur.wire : Role.acheteur.wire)
+          : _role.wire,
       'name': _name.text.trim(),
       'email': _email.text.trim().toLowerCase(),
       'phone': phone,
       if (_role == Role.responsable) 'regionId': _regionId,
-      if (_role == Role.vendeur) 'pdvId': _pdvId,
+      if (_role == Role.vendeur) ...{
+        'pdvId': _pdvId,
+        if (_duty.sells && _duty.buys) 'buys': true,
+      },
     };
     final ok = await perform(
       context,
@@ -773,6 +786,15 @@ class _CreateAccountScreenState extends ConsumerState<CreateAccountScreen> {
                 onChanged: (v) => setState(() => _pdvId = v),
                 validator: (v) => v == null ? t.fieldRequired : null,
               ),
+            if (_role == Role.vendeur) ...[
+              const Gap(20),
+              Text(t.dutiesTitle, style: context.text.titleSmall),
+              const Gap(8),
+              DutyPicker(
+                value: _duty,
+                onChanged: (d) => setState(() => _duty = d),
+              ),
+            ],
             const Gap(24),
             AsyncButton(
               label: t.createAndInvite,

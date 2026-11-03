@@ -8,7 +8,7 @@ import '../core/brand/leaf_mark.dart';
 import '../core/theme/app_theme.dart';
 import '../core/widgets/components.dart';
 import '../features/notifications/notifications_repository.dart';
-import '../features/settings/settings_screen.dart' show roleLabel;
+import '../features/settings/settings_screen.dart' show meRoleLabel;
 import '../l10n/app_localizations.dart';
 import 'console_nav.dart';
 
@@ -276,7 +276,7 @@ class _SidebarPanel extends ConsumerWidget {
                           overflow: TextOverflow.ellipsis,
                         ),
                         Text(
-                          roleLabel(t, me.role),
+                          meRoleLabel(t, me),
                           style: context.text.labelSmall?.copyWith(
                             color: s.muted,
                           ),

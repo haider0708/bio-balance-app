@@ -97,6 +97,14 @@ class ServerText {
       'Only a responsable can be moved this way.',
       'Seul un responsable peut être déplacé ainsi.',
     ),
+    'WALLET_NOT_EMPTY': (
+      'This person still has rewards in their wallet. Pay them out first, then they can stop selling.',
+      'Cette personne a encore des récompenses dans son portefeuille. Payez-la d’abord, elle pourra ensuite arrêter de vendre.',
+    ),
+    'DUTIES_REQUIRED': (
+      'A team member sells, buys, or both.',
+      'Un membre de l’équipe vend, achète, ou les deux.',
+    ),
     'REGION_REQUIRED': ('Choose a region.', 'Choisissez une région.'),
     'REGION_NOT_FOUND': (
       'This region no longer exists.',
@@ -734,6 +742,10 @@ class ServerText {
     'orders.asks': (
       '{by} asks whether {place} needs anything.{message}',
       '{by} demande si {place} a besoin de quelque chose.{message}',
+    ),
+    'duties.changed': (
+      '{by} changed what you do in your point of sale. Open the app to see it.',
+      '{by} a changé ce que vous faites dans votre point de vente. Ouvrez l’application pour le voir.',
     ),
     'restock.to_prepare': (
       'Restock {number} was given to {depot}: ship it.',

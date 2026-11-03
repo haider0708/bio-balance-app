@@ -14,6 +14,8 @@ enum Role {
   VENDEUR
   /// Runs the supply side: sees the paras, prepares orders for the admin to approve, ships and delivers.
   ORDERS
+  /// Places the orders of one para (and receives them): no sales, no wallet. A vendeur can do the same with `canOrder`.
+  ACHETEUR
 }
 
 /// Lifecycle of an account, group or point of sale. PENDING waits for the admin.
@@ -189,6 +191,8 @@ model User {
   lastTotpStep      BigInt    @default(-1)
   /// A responsable the admin lets suggest the grossiste of a restock (when the global switch is on).
   canChooseSupplier Boolean   @default(false)
+  /// A vendeur who also places the orders of the para (an ACHETEUR always does).
+  canOrder          Boolean   @default(false)
   createdById       String?   @db.Uuid
   createdAt         DateTime  @default(now())
   decidedById       String?   @db.Uuid

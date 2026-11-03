@@ -31,6 +31,7 @@ import '../features/network/depots_screen.dart';
 import '../features/network/network_screen.dart';
 import '../features/network/pdv_screens.dart';
 import '../features/network/regions_screen.dart';
+import '../features/orders/buyer_home.dart';
 import '../features/orders/order_papers_screen.dart';
 import '../features/orders/orders_screens.dart';
 import '../features/network/people_widgets.dart';
@@ -95,6 +96,9 @@ final routerProvider = Provider<GoRouter>((ref) {
   ref.listen(splashDoneProvider, (_, _) => refresh.value++);
   ref.onDispose(refresh.dispose);
   final role = ref.watch(sessionProvider.select((s) => s.value?.me.role));
+  // A seller who is allowed to order gets another tab: the routes change with it.
+  final buys =
+      ref.watch(sessionProvider.select((s) => s.value?.me.canOrder)) ?? false;
 
   final router = GoRouter(
     initialLocation: '/splash',
@@ -163,7 +167,7 @@ final routerProvider = Provider<GoRouter>((ref) {
             ForgotScreen(code: state.uri.queryParameters['code']),
       ),
       GoRoute(path: '/code', builder: (_, _) => const SizedBox.shrink()),
-      if (role != null) ..._roleRoutes(role),
+      if (role != null) ..._roleRoutes(role, buys: buys),
     ],
     errorBuilder: (_, _) => const _NotFound(),
   );
@@ -201,8 +205,9 @@ StatefulShellRoute _shell(List<TabSpec> tabs) =>
       ],
     );
 
-List<RouteBase> _roleRoutes(Role role) => switch (role) {
-  Role.vendeur => [..._vendeur(), ..._shared()],
+List<RouteBase> _roleRoutes(Role role, {required bool buys}) => switch (role) {
+  Role.vendeur => [..._vendeur(buys: buys), ..._shared()],
+  Role.acheteur => [..._buyerTabs(), ..._shared()],
   // The order manager: the paras' stock and the orders, on the phone and in the browser.
   Role.orders =>
     kIsWeb
@@ -306,7 +311,7 @@ GoRoute _withExtra<T>(
   builder: (_, state) => builder(state, state.extra as T),
 );
 
-List<RouteBase> _vendeur() => [
+List<RouteBase> _vendeur({required bool buys}) => [
   _shell([
     TabSpec(
       LucideIcons.house,
@@ -320,6 +325,14 @@ List<RouteBase> _vendeur() => [
       '/sales',
       () => const SalesHistoryScreen(embedded: true),
     ),
+    // A seller the responsable allowed to order has the para's orders in a tab of its own.
+    if (buys)
+      TabSpec(
+        LucideIcons.truck,
+        (t) => t.tabRestocks,
+        '/restocks',
+        () => const RestocksScreen(),
+      ),
     TabSpec(
       LucideIcons.wallet,
       (t) => t.tabWallet,
@@ -434,6 +447,30 @@ List<RouteBase> _responsable() => [
       (t) => t.moreTitle,
       '/more',
       () => _more(Role.responsable),
+    ),
+  ]),
+];
+
+/// The buyer's bottom tabs: the para's stock and orders, and nothing about sales.
+List<RouteBase> _buyerTabs() => [
+  _shell([
+    TabSpec(
+      LucideIcons.house,
+      (t) => t.tabHome,
+      '/home',
+      () => const BuyerHome(),
+    ),
+    TabSpec(
+      LucideIcons.truck,
+      (t) => t.tabRestocks,
+      '/restocks',
+      () => const RestocksScreen(),
+    ),
+    TabSpec(
+      LucideIcons.menu,
+      (t) => t.moreTitle,
+      '/more',
+      () => _more(Role.acheteur),
     ),
   ]),
 ];
@@ -805,6 +842,21 @@ Widget _more(Role role) => Builder(
           '/reports',
           tone: Tone.info,
         ),
+        MoreEntry(
+          LucideIcons.bell,
+          t.notificationsTitle,
+          '/notifications',
+          tone: Tone.warning,
+        ),
+        MoreEntry(
+          LucideIcons.settings,
+          t.settingsTitle,
+          '/settings',
+          tone: Tone.muted,
+        ),
+      ],
+      Role.acheteur => [
+        MoreEntry(LucideIcons.package, t.catalogTitle, '/catalog'),
         MoreEntry(
           LucideIcons.bell,
           t.notificationsTitle,

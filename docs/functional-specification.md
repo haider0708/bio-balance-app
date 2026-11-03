@@ -211,6 +211,16 @@ Paras of the **same group** (a group is a set of paras of one region) can exchan
 
 ## The order manager (2026-11)
 
+## The buyer (2026-11)
+
+The **buyer** (*Acheteur*) works in one para and does one thing: the para's orders. It is not the order manager (who works across the whole network).
+
+- **Two ways to be one:** an account of its own, **buyer only** (no sales, no wallet, no rewards), or a **seller who also buys**: the same account, with a switch. The responsable of the region (or the admin) chooses when adding a team member (*What this person does*: Seller, Buyer, Seller and buyer; a new member still waits for the admin's approval) and can change it any time from the person's page. Several buyers per para are allowed.
+- **Changing it:** a seller can become a buyer too (or stop), a buyer can start selling. Someone who stops selling must have **nothing left in the wallet** (no balance, no payout waiting): pay first, so no reward is stranded. The person is told, and it is written down. The app notices at the next opening or return to the app.
+- **What a buyer does:** sees its own para's stock (units, low, out) and what is running low; **places an order for its own para** (never another para or a grossiste, and it cannot choose the grossiste); sees the orders of its para; cancels its own order while it waits; **receives the delivery** with the paper as justification (unless the responsable named someone else to receive it), after which the admin approves and only then does the stock arrive.
+- **Who is told:** the responsable of the region (who can cancel it while it waits), the order manager and the admin, as for any request. The rest of the flow is unchanged.
+- **Never:** sales, wallet, other paras, people, approvals, transfers, returns, planning. Closed to the web console (phone only), like a seller.
+
 A fourth kind of account, **Gestionnaire des commandes** (`ORDERS`), is created by the admin (name, email, phone; no region, no para) and signs in like a responsable. It works on stock and orders, never on money or people.
 
 - **Sees:** every para of the network (the test region stays hidden): units, products low (5 or fewer) and out, what sold in the last 7 days, orders still open, the days a product would last at that pace, and who to call (the para's team and its responsable, with a call button and a WhatsApp button). The board puts the worst paras first and can keep only those low or out. Also the transfers and returns (read only), the grossistes and the catalog.

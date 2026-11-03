@@ -4,7 +4,8 @@ enum Role {
   admin,
   responsable,
   vendeur,
-  orders;
+  orders,
+  acheteur;
 
   static Role parse(String value) => Role.values.firstWhere(
     (r) => r.name.toUpperCase() == value.toUpperCase(),
@@ -12,6 +13,9 @@ enum Role {
   );
 
   String get wire => name.toUpperCase();
+
+  /// Works in a para: sells, buys, or both.
+  bool get isTeam => this == vendeur || this == acheteur;
 }
 
 class Region {
@@ -46,6 +50,7 @@ class Me {
     this.region,
     this.pdv,
     this.canChooseSupplier = false,
+    this.canOrder = false,
   });
 
   factory Me.fromJson(Json j) => Me(
@@ -60,6 +65,7 @@ class Me {
         : Region.fromJson(j.obj('region')),
     pdv: j.objOrNull('pdv') == null ? null : Place.fromJson(j.obj('pdv')),
     canChooseSupplier: j['canChooseSupplier'] == true,
+    canOrder: j['canOrder'] == true,
   );
 
   final String id;
@@ -73,6 +79,13 @@ class Me {
 
   /// A responsable the admin lets suggest the grossiste of a restock (the switch is on too).
   final bool canChooseSupplier;
+
+  /// Places and receives the orders of its para: a buyer always, a team member the responsable allowed.
+  final bool canOrder;
+
+  /// A buyer, whether or not the account also sells.
+  bool get isBuyer =>
+      role == Role.acheteur || (role == Role.vendeur && canOrder);
 
   /// The first letters of the name, for avatars.
   String get initials {

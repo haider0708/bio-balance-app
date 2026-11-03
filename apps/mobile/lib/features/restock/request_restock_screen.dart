@@ -33,7 +33,12 @@ class RequestRestockScreen extends ConsumerStatefulWidget {
 class _RequestRestockScreenState extends ConsumerState<RequestRestockScreen> {
   final _quantities = QuantityController();
   final _note = TextEditingController();
-  late String? _destId = widget.destId;
+
+  /// A buyer orders for its own para only: no place to choose.
+  bool get _buyer => ref.read(meProvider).isBuyer;
+
+  late String? _destId =
+      widget.destId ?? (_buyer ? ref.read(meProvider).pdv?.id : null);
 
   /// The grossiste suggested (a responsable the admin allowed); the admin decides.
   SupplierCoverage? _supplier;
@@ -127,9 +132,11 @@ class _RequestRestockScreenState extends ConsumerState<RequestRestockScreen> {
   bool get _admin => ref.read(meProvider).role == Role.admin;
 
   /// A grossiste's delivery is always recorded when it arrives; a store's can be left to its responsable.
-  bool get _isDepot => (ref.read(depotsProvider).value ?? const <Depot>[]).any(
-    (d) => d.id == _destId,
-  );
+  bool get _isDepot =>
+      !_buyer &&
+      (ref.read(depotsProvider).value ?? const <Depot>[]).any(
+        (d) => d.id == _destId,
+      );
 
   bool get _recordNow => _isDepot || _deliver == 'now';
 
@@ -164,8 +171,14 @@ class _RequestRestockScreenState extends ConsumerState<RequestRestockScreen> {
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
-    final pdvs = ref.watch(pdvsProvider(null));
-    final depots = ref.watch(depotsProvider);
+    final buyer = _buyer;
+    // A buyer's own para is all it can order for: neither the stores nor the grossistes are read.
+    final pdvs = buyer
+        ? const AsyncValue<List<Pdv>>.data(<Pdv>[])
+        : ref.watch(pdvsProvider(null));
+    final depots = buyer
+        ? const AsyncValue<List<Depot>>.data(<Depot>[])
+        : ref.watch(depotsProvider);
     // Active points of sale and grossistes of the region, the place's own name first.
     final places = <(String, String, IconData)>[
       for (final p in pdvs.value ?? const <Pdv>[])
@@ -178,8 +191,7 @@ class _RequestRestockScreenState extends ConsumerState<RequestRestockScreen> {
       child: Scaffold(
         appBar: AppBar(
           title: Text(
-            ref.watch(meProvider).role == Role.admin ||
-                    ref.watch(meProvider).role == Role.orders
+            ref.watch(meProvider).role != Role.responsable
                 ? t.newOrder
                 : t.requestRestock,
           ),
@@ -188,61 +200,95 @@ class _RequestRestockScreenState extends ConsumerState<RequestRestockScreen> {
           padding: const EdgeInsets.all(16),
           children: [
             if (_restored) DraftNotice(onStartOver: _startOver),
-            AsyncBody(
-              value: pdvs,
-              onRetry: () {
-                ref
-                  ..invalidate(pdvsProvider(null))
-                  ..invalidate(depotsProvider);
-              },
-              builder: (_) {
-                if (places.isEmpty) {
+            if (buyer)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 16),
+                child: AppCard(
+                  child: Row(
+                    spacing: 12,
+                    children: [
+                      const IconBadge(LucideIcons.store),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              ref.watch(meProvider).pdv?.name ?? '',
+                              style: context.text.titleSmall,
+                            ),
+                            Text(
+                              t.buyerOrderFor,
+                              style: context.text.bodySmall?.copyWith(
+                                color: context.status.muted,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              )
+            else
+              AsyncBody(
+                value: pdvs,
+                onRetry: () {
+                  ref
+                    ..invalidate(pdvsProvider(null))
+                    ..invalidate(depotsProvider);
+                },
+                builder: (_) {
+                  if (places.isEmpty) {
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 16),
+                      child: Text(
+                        t.noActivePdv,
+                        style: context.text.bodyMedium?.copyWith(
+                          color: context.status.muted,
+                        ),
+                      ),
+                    );
+                  }
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 16),
-                    child: Text(
-                      t.noActivePdv,
-                      style: context.text.bodyMedium?.copyWith(
-                        color: context.status.muted,
-                      ),
+                    child: DropdownButtonFormField<String>(
+                      // Made again when the grossistes arrive after the stores, or on starting over.
+                      key: ValueKey((_round, places.length)),
+                      initialValue: places.any((p) => p.$1 == _destId)
+                          ? _destId
+                          : null,
+                      isExpanded: true,
+                      decoration: InputDecoration(labelText: t.deliverTo),
+                      items: [
+                        for (final (id, name, icon) in places)
+                          DropdownMenuItem(
+                            value: id,
+                            child: Row(
+                              children: [
+                                Icon(
+                                  icon,
+                                  size: 18,
+                                  color: context.status.muted,
+                                ),
+                                const SizedBox(width: 10),
+                                Flexible(
+                                  child: Text(
+                                    name,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                      ],
+                      onChanged: (v) {
+                        setState(() => _destId = v);
+                        _keep();
+                      },
                     ),
                   );
-                }
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 16),
-                  child: DropdownButtonFormField<String>(
-                    // Made again when the grossistes arrive after the stores, or on starting over.
-                    key: ValueKey((_round, places.length)),
-                    initialValue: places.any((p) => p.$1 == _destId)
-                        ? _destId
-                        : null,
-                    isExpanded: true,
-                    decoration: InputDecoration(labelText: t.deliverTo),
-                    items: [
-                      for (final (id, name, icon) in places)
-                        DropdownMenuItem(
-                          value: id,
-                          child: Row(
-                            children: [
-                              Icon(icon, size: 18, color: context.status.muted),
-                              const SizedBox(width: 10),
-                              Flexible(
-                                child: Text(
-                                  name,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                    ],
-                    onChanged: (v) {
-                      setState(() => _destId = v);
-                      _keep();
-                    },
-                  ),
-                );
-              },
-            ),
+                },
+              ),
             Text(t.productsNeeded, style: context.text.titleMedium),
             const Gap(8),
             QuantityEditor(controller: _quantities, allowPaste: true),

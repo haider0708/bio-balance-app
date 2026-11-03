@@ -139,7 +139,7 @@ class SessionNotifier extends AsyncNotifier<Session?> {
     // Known from last time: start from it at once and let the server confirm in the background, so a
     // slow or missing connection never keeps a person on the opening screen.
     final known = _decode(cached);
-    if (known != null && !(kIsWeb && known.role == Role.vendeur)) {
+    if (known != null && !(kIsWeb && known.role.isTeam)) {
       unawaited(_confirm(token));
       return Session(token: token, me: known);
     }
@@ -148,7 +148,7 @@ class SessionNotifier extends AsyncNotifier<Session?> {
         await ref.read(apiClientProvider).get('/v1/me') as Json,
       );
       // The web console is for administrators and responsables; team members use the phone (see [login]).
-      if (kIsWeb && me.role == Role.vendeur) {
+      if (kIsWeb && me.role.isTeam) {
         await _clear();
         return null;
       }
@@ -181,7 +181,7 @@ class SessionNotifier extends AsyncNotifier<Session?> {
         await ref.read(apiClientProvider).get('/v1/me') as Json,
       );
       if (state.value?.token != token) return;
-      if (kIsWeb && me.role == Role.vendeur) {
+      if (kIsWeb && me.role.isTeam) {
         await _clear();
         state = const AsyncData(null);
         return;
@@ -208,7 +208,7 @@ class SessionNotifier extends AsyncNotifier<Session?> {
     }) as Json;
     final token = response.str('token');
     final me = Me.fromJson(response.obj('me'));
-    if (kIsWeb && me.role == Role.vendeur) {
+    if (kIsWeb && me.role.isTeam) {
       // A team member: close the session that was just opened and point to the phone app.
       ref.read(tokenProvider.notifier).set(token);
       try {
@@ -291,6 +291,7 @@ class SessionNotifier extends AsyncNotifier<Session?> {
           },
     'pdv': me.pdv == null ? null : {'id': me.pdv!.id, 'name': me.pdv!.name},
     'canChooseSupplier': me.canChooseSupplier,
+    'canOrder': me.canOrder,
   };
 }
 

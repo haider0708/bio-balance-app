@@ -19,6 +19,7 @@ import '../sales/sales_outbox.dart';
 import '../transfers/transfers_repository.dart';
 import '../wallet/wallet_models.dart';
 import 'dashboard_repository.dart';
+import '../orders/buyer_home.dart';
 import 'home_scaffold.dart';
 
 /// A team member's home: what they earned today, and the one big button.
@@ -86,6 +87,7 @@ class VendeurHome extends ConsumerWidget {
                 label: Text(t.newSale),
               ),
               const _ExchangeButton(),
+              if (me.isBuyer) const BuyerShortcut(),
               const Gap(12),
               AutoGrid(
                 minItemWidth: 120,

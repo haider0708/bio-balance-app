@@ -28,6 +28,8 @@ export interface Me {
   pdv: { id: string; name: string } | null;
   /** A responsable who may suggest the grossiste of a restock (allowed by the admin, switch on). */
   canChooseSupplier: boolean;
+  /** Places the orders of its para: a buyer always, a vendeur when the responsable allowed it. */
+  canOrder: boolean;
 }
 
 @Injectable()
@@ -208,12 +210,13 @@ export class AuthService {
           locale: string;
           regionId: string | null;
           pdvId: string | null;
+          canOrder: boolean;
           status: string;
           sessionId: string;
           sandbox: boolean | null;
           expiresAt: Date;
         }[]
-      >`SELECT u.id,u.name,u.email,u.role,u.locale,u."regionId",u."pdvId",u.status,s.id AS "sessionId",r.sandbox,
+      >`SELECT u.id,u.name,u.email,u.role,u.locale,u."regionId",u."pdvId",u."canOrder",u.status,s.id AS "sessionId",r.sandbox,
         s."expiresAt" AS "expiresAt"
       FROM "Session" s JOIN "User" u ON u.id=s."userId" LEFT JOIN "Region" r ON r.id=u."regionId"
       WHERE s."tokenHash"=${tokenHash(token)} AND s."revokedAt" IS NULL
@@ -247,6 +250,7 @@ export class AuthService {
       role: row.role,
       regionId: row.regionId,
       pdvId: row.pdvId,
+      canOrder: row.canOrder,
       locale: row.locale === "en" ? "en" : "fr",
       sessionId: row.sessionId,
       sandbox: row.sandbox === true,
@@ -285,6 +289,7 @@ export class AuthService {
         },
         pdv: pdv && { id: pdv.id, name: pdv.name },
         canChooseSupplier: supplierChoice,
+        canOrder: user.role === "ACHETEUR" || user.canOrder,
       };
     });
   }

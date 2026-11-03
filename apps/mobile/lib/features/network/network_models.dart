@@ -152,6 +152,7 @@ class Person {
     this.pdvId,
     this.decisionNote,
     this.canChooseSupplier = false,
+    this.canOrder = false,
   });
 
   factory Person.fromJson(Json j) => Person(
@@ -166,6 +167,7 @@ class Person {
     activated: j.flag('activated'),
     decisionNote: j.strOrNull('decisionNote'),
     canChooseSupplier: j['canChooseSupplier'] == true,
+    canOrder: j['canOrder'] == true,
   );
 
   final String id;
@@ -181,6 +183,15 @@ class Person {
 
   /// A responsable the admin lets suggest the grossiste of a restock.
   final bool canChooseSupplier;
+
+  /// A team member who also places the orders of the para (a buyer always does).
+  final bool canOrder;
+
+  /// A team member sells (a buyer-only account does not).
+  bool get sells => role == Role.vendeur;
+
+  /// A team member buys: places and receives the orders of the para.
+  bool get buys => role == Role.acheteur || canOrder;
 
   String get initials {
     final parts = name

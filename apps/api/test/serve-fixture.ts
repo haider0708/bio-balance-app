@@ -142,6 +142,11 @@ export async function serveFixture(out: string) {
     name: "Amira Vendeuse",
   });
   const vendeur = client(api, memberAccount.token);
+  const buyer = await createAccount({
+    role: "ACHETEUR",
+    pdvId: pdv.id,
+    name: "Aya Acheteuse",
+  });
 
   // The team member records a transfer to the sister para: it waits for the admin.
   const transfer = (
@@ -255,6 +260,7 @@ export async function serveFixture(out: string) {
         responsableSud: sud.token,
         vendeur: memberAccount.token,
         orders: orders.token,
+        buyer: buyer.token,
       },
       ids: {
         pdv: pdv.id,
@@ -267,6 +273,7 @@ export async function serveFixture(out: string) {
         product: products[0],
         product3: products[2],
         member: member.id,
+        seller: memberAccount.id,
         sale: sale.id,
         payout: payout.id,
         doneRestock: done.id,

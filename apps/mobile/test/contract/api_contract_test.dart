@@ -550,6 +550,34 @@ void main() {
       },
     );
   });
+
+  group('buyer', () {
+    test('sees its para, orders for it, and the responsable sets its duties', () async {
+      final b = as('buyer');
+      final stock = await b.read(stockRepositoryProvider).levels(id('pdv'));
+      expect(stock.items, isNotEmpty);
+      final repo = b.read(restockRepositoryProvider);
+      final created = await repo.create(
+        destId: id('pdv'),
+        note: '',
+        lines: [
+          {'productId': id('product'), 'quantity': 2},
+        ],
+      );
+      expect(created.status, RestockStatus.requested);
+      final mine = await repo.list(active: true);
+      expect(mine.every((o) => o.destinationId == id('pdv')), isTrue);
+      await repo.cancel(created.id, 'Test');
+
+      // The responsable of the region makes the seller a buyer too, then back.
+      final n = as('responsable');
+      final net = n.read(networkRepositoryProvider);
+      final both = await net.setDuties(id('seller'), sells: true, buys: true);
+      expect(both.canOrder, isTrue);
+      final back = await net.setDuties(id('seller'), sells: true, buys: false);
+      expect(back.canOrder, isFalse);
+    });
+  });
 }
 
 /// Just what the idempotency check needs from a sale response.

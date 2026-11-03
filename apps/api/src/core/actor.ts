@@ -10,6 +10,8 @@ export interface Actor {
   regionId: string | null;
   /** Vendeurs. */
   pdvId: string | null;
+  /** A vendeur who also places the orders of the para (switched on by the responsable). */
+  canOrder?: boolean;
   locale: "fr" | "en";
   sessionId?: string;
   /**

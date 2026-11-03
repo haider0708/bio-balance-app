@@ -4234,4 +4234,65 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get roleOrdersShort => 'Orders';
+
+  @override
+  String get roleAcheteur => 'Buyer';
+
+  @override
+  String get dutySeller => 'Seller';
+
+  @override
+  String get dutyBuyer => 'Buyer';
+
+  @override
+  String get dutyBoth => 'Seller and buyer';
+
+  @override
+  String get dutySellerHint => 'Records sales and earns rewards.';
+
+  @override
+  String get dutyBuyerHint =>
+      'Sees the para’s stock, places its orders and receives them. No sales, no rewards.';
+
+  @override
+  String get dutyBothHint =>
+      'Sells, and also places and receives the para’s orders.';
+
+  @override
+  String get dutiesTitle => 'What this person does';
+
+  @override
+  String get dutiesChange => 'Change what they do';
+
+  @override
+  String get dutiesChangeHint =>
+      'Someone who stops selling must first be paid out: no reward is ever lost.';
+
+  @override
+  String get dutiesSaved => 'Saved. The person is told.';
+
+  @override
+  String get buyerNoPara => 'You are not in a point of sale yet.';
+
+  @override
+  String get buyerUnits => 'In stock';
+
+  @override
+  String get buyerOrderNow => 'Order for my para';
+
+  @override
+  String get buyerRunningLow => 'Running low';
+
+  @override
+  String get buyerMyOrders => 'Orders on their way';
+
+  @override
+  String get buyerNoOrders => 'No order on its way';
+
+  @override
+  String get buyerNoOrdersHint =>
+      'Order what the para needs: the admin is told.';
+
+  @override
+  String get buyerOrderFor => 'Your order is for this para';
 }

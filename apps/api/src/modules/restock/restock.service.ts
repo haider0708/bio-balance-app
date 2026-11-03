@@ -3,6 +3,7 @@ import { Injectable } from "@nestjs/common";
 import type { OrderStatus, Prisma } from "@prisma/client";
 import type { Actor } from "../../core/actor";
 import { audit } from "../../core/audit";
+import { isBuyer, isTeamRole } from "../../core/roles";
 import { Database, type Tx } from "../../core/database";
 import { DomainError, notFound, requireRule } from "../../core/errors";
 import { decisionLocked, withinDecisionWindow } from "../../core/approval";
@@ -57,20 +58,28 @@ export class RestockService {
     },
   ) {
     requireRule(
-      ["ADMIN", "RESPONSABLE", "ORDERS"].includes(actor.role),
+      ["ADMIN", "RESPONSABLE", "ORDERS"].includes(actor.role) || isBuyer(actor),
       "FORBIDDEN",
-      "Only the admin, the order manager or a responsable restocks.",
+      "Only the admin, the order manager, a responsable or a buyer restocks.",
       403,
     );
     return this.db.run(actor, async (tx) => {
       requireRule(input.destId, "DESTINATION_REQUIRED", "Choose a place.");
       const dest = await findLocation(tx, input.destId);
       const byAdmin = actor.role === "ADMIN";
+      // A buyer orders for its own para, never for another place.
+      requireRule(
+        !isTeamRole(actor.role) ||
+          (dest.kind === "PDV" && dest.id === actor.pdvId),
+        "FORBIDDEN",
+        "You can only order for your own point of sale.",
+        403,
+      );
       // The order manager asks for any place of the network, like the admin, but only the admin records or sends at once.
       requireRule(
         byAdmin ||
           actor.role === "ORDERS" ||
-          dest.stockRegionId === actor.regionId,
+          dest.stockRegionId === actor.regionId, // a buyer's own para is in its region
         "FORBIDDEN",
         "You cannot request stock for this place.",
         403,
@@ -233,8 +242,16 @@ export class RestockService {
           entityType: "RestockOrder",
           entityId: order.id,
         });
-        // A responsable's request lands in the order manager's queue too.
-        if (actor.role === "RESPONSABLE")
+        // A buyer's order tells the responsable of the region, who can still cancel it while it waits.
+        if (isTeamRole(actor.role) && order.regionId)
+          await notify(tx, await responsableIds(tx, order.regionId), {
+            key: "restock.requested",
+            params: asked,
+            entityType: "RestockOrder",
+            entityId: order.id,
+          });
+        // A responsable's or a buyer's request lands in the order manager's queue too.
+        if (actor.role === "RESPONSABLE" || isTeamRole(actor.role))
           await notify(tx, await ordersIds(tx), {
             key: "restock.requested",
             params: asked,
@@ -972,8 +989,8 @@ export class RestockService {
       if (userId) {
         const member = await tx.user.findUnique({ where: { id: userId } });
         requireRule(
-          member?.role === "VENDEUR" &&
-            member.status === "ACTIVE" &&
+          isTeamRole(member?.role ?? "ADMIN") &&
+            member?.status === "ACTIVE" &&
             member.pdvId === order.destId &&
             !!member.passwordHash,
           "RECEIVER_INVALID",
@@ -1023,8 +1040,15 @@ export class RestockService {
     return this.db.run(actor, async (tx) => {
       const order = await this.load(tx, id, "SHIPPED");
       const isReceiver = order.receiverId === actor.id;
+      // A buyer of the para confirms its deliveries too, unless the responsable named someone else.
+      const buyerOfPara =
+        isBuyer(actor) &&
+        order.destKind === "PDV" &&
+        order.destId === actor.pdvId &&
+        (order.receiverId === null || isReceiver);
       const allowed =
         isReceiver ||
+        buyerOfPara ||
         (actor.role === "RESPONSABLE" && order.regionId === actor.regionId) ||
         actor.role === "ADMIN";
       requireRule(
@@ -1401,8 +1425,20 @@ export class RestockService {
       const order = await this.load(tx, id);
       const own =
         order.requestedById === actor.id && order.status === "REQUESTED";
+      // The responsable of the region can also cancel a buyer's order while it waits.
+      const requester =
+        actor.role === "RESPONSABLE" &&
+        order.regionId === actor.regionId &&
+        order.status === "REQUESTED"
+          ? await tx.user.findUnique({
+              where: { id: order.requestedById },
+              select: { role: true },
+            })
+          : null;
       requireRule(
-        actor.role === "ADMIN" || own,
+        actor.role === "ADMIN" ||
+          own ||
+          (requester !== null && isTeamRole(requester.role)),
         "FORBIDDEN",
         "You cannot cancel this order.",
         403,
@@ -1462,7 +1498,9 @@ export class RestockService {
     },
   ) {
     requireRule(
-      ["ADMIN", "RESPONSABLE", "VENDEUR", "ORDERS"].includes(actor.role),
+      ["ADMIN", "RESPONSABLE", "VENDEUR", "ORDERS", "ACHETEUR"].includes(
+        actor.role,
+      ),
       "FORBIDDEN",
       "Not allowed.",
       403,

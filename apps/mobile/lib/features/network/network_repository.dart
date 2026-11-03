@@ -147,11 +147,26 @@ class NetworkRepository {
     required String name,
     required String email,
     String? phone,
+    bool sells = true,
+    bool buys = false,
   }) async => Person.fromJson(
     await _ref.read(apiClientProvider).post('/v1/pdvs/$pdvId/members', {
       'name': name,
       'email': email,
       if (phone != null && phone.isNotEmpty) 'phone': phone,
+      'duties': {'sells': sells, 'buys': buys},
+    }) as Json,
+  );
+
+  /// What a team member does: sells, buys, or both (the responsable of the region, or the admin).
+  Future<Person> setDuties(
+    String id, {
+    required bool sells,
+    required bool buys,
+  }) async => Person.fromJson(
+    await _ref.read(apiClientProvider).post('/v1/users/$id/duties', {
+      'sells': sells,
+      'buys': buys,
     }) as Json,
   );
 

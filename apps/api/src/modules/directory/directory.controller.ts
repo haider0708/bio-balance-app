@@ -33,7 +33,16 @@ const Pdv = z.object({
   groupId: id.nullable().optional(),
   regionId: id.optional(),
 });
-const Member = z.object({ name: text(100), email, phone });
+// What a team member does: sells, buys (places and receives the para's orders), or both.
+const Duties = z
+  .object({ sells: z.boolean(), buys: z.boolean() })
+  .refine((d) => d.sells || d.buys, "A team member sells, buys, or both.");
+const Member = z.object({
+  name: text(100),
+  email,
+  phone,
+  duties: Duties.optional(),
+});
 const AdminUser = z.discriminatedUnion("role", [
   z.object({
     role: z.literal("RESPONSABLE"),
@@ -43,8 +52,10 @@ const AdminUser = z.discriminatedUnion("role", [
     phone,
   }),
   z.object({
-    role: z.literal("VENDEUR"),
+    role: z.enum(["VENDEUR", "ACHETEUR"]),
     pdvId: id,
+    // A vendeur who also places the orders of the para.
+    buys: z.boolean().optional(),
     name: text(100),
     email,
     phone,
@@ -272,13 +283,20 @@ export class DirectoryController {
     return this.users.createByAdmin(r.actor, parse(AdminUser, b));
   }
   @Roles("ADMIN", "RESPONSABLE")
+  @Post("users/:id/duties")
+  duties(@Req() r: AuthRequest, @Param("id") i: string, @Body() b: unknown) {
+    return this.users.setDuties(r.actor, parse(id, i), parse(Duties, b));
+  }
+  @Roles("ADMIN", "RESPONSABLE")
   @Get("users")
   list(@Req() r: AuthRequest, @Query() q: Record<string, string>) {
     return this.users.list(
       r.actor,
       parse(
         z.object({
-          role: z.enum(["ADMIN", "RESPONSABLE", "VENDEUR"]).optional(),
+          role: z
+            .enum(["ADMIN", "RESPONSABLE", "VENDEUR", "ACHETEUR", "ORDERS"])
+            .optional(),
           status: Status.optional(),
           regionId: id.optional(),
           pdvId: id.optional(),

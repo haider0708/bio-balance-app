@@ -1,4 +1,5 @@
 import { Injectable } from "@nestjs/common";
+import { TEAM_ROLES } from "../../core/roles";
 import type { Actor } from "../../core/actor";
 import { audit } from "../../core/audit";
 import { Database } from "../../core/database";
@@ -208,7 +209,7 @@ export class OrdersService {
           status: "ACTIVE",
           OR: [
             { role: "RESPONSABLE", regionId: row.regionId },
-            { role: "VENDEUR", pdvId: id },
+            { role: { in: TEAM_ROLES }, pdvId: id },
           ],
         },
         select: { id: true, name: true, role: true, phone: true },
@@ -297,7 +298,7 @@ export class OrdersService {
           429,
         );
       const team = await tx.user.findMany({
-        where: { role: "VENDEUR", status: "ACTIVE", pdvId: pdv.id },
+        where: { role: { in: TEAM_ROLES }, status: "ACTIVE", pdvId: pdv.id },
         select: { id: true },
       });
       const text = input.message?.trim();

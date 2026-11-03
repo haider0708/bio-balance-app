@@ -14,6 +14,8 @@ import { DomainError, notFound, requireRule } from "../../core/errors";
 import { notify, notifyAdmins } from "../../core/notifier";
 import { issueCode } from "../auth/codes";
 import { canonicalPhone } from "../../core/phone";
+import { isTeamRole, TEAM_ROLES } from "../../core/roles";
+import { walletSummary } from "../rewards/wallet.queries";
 
 export interface NewMember {
   name: string;
@@ -32,6 +34,7 @@ const publicUser = {
   pdvId: true,
   passwordHash: true,
   canChooseSupplier: true,
+  canOrder: true,
   createdAt: true,
   decisionNote: true,
   createdById: true,
@@ -41,6 +44,24 @@ function present<T extends { passwordHash: string | null }>(user: T) {
   const { passwordHash, ...rest } = user;
   return { ...rest, activated: passwordHash !== null };
 }
+
+/** What a team member does: sells, buys (places and receives the para's orders), or both. */
+export interface Duties {
+  sells: boolean;
+  buys: boolean;
+}
+
+/** The account that carries the duties: a buyer only is an ACHETEUR, anyone who sells is a VENDEUR. */
+function rolesFor(duties: Duties): { role: Role; canOrder: boolean } {
+  return duties.sells
+    ? { role: "VENDEUR", canOrder: duties.buys }
+    : { role: "ACHETEUR", canOrder: false };
+}
+
+const dutiesOf = (user: { role: Role; canOrder: boolean }): Duties => ({
+  sells: user.role === "VENDEUR",
+  buys: user.role === "ACHETEUR" || user.canOrder,
+});
 
 /** People: responsables (admin) and team members (responsable, approved by the admin). */
 @Injectable()
@@ -52,7 +73,11 @@ export class UsersService {
     actor: Actor,
     input:
       | ({ role: "RESPONSABLE"; regionId: string } & NewMember)
-      | ({ role: "VENDEUR"; pdvId: string } & NewMember)
+      | ({
+          role: "VENDEUR" | "ACHETEUR";
+          pdvId: string;
+          buys?: boolean;
+        } & NewMember)
       | ({ role: "ORDERS" } & NewMember),
   ) {
     requireRule(
@@ -86,7 +111,7 @@ export class UsersService {
           409,
         );
       }
-      if (input.role === "VENDEUR") {
+      if (input.role === "VENDEUR" || input.role === "ACHETEUR") {
         const pdv = await tx.pdv.findUnique({ where: { id: input.pdvId } });
         requireRule(pdv, "PDV_NOT_FOUND", "Point of sale not found.", 404);
         regionId = pdv.regionId;
@@ -99,6 +124,7 @@ export class UsersService {
           name: input.name,
           phone,
           role: input.role,
+          canOrder: input.role === "VENDEUR" && input.buys === true,
           status: "ACTIVE",
           regionId,
           pdvId,
@@ -121,8 +147,15 @@ export class UsersService {
     });
   }
 
-  /** A responsable adds a vendeur to a point of sale of their region. The admin must approve. */
-  async addMember(actor: Actor, pdvId: string, input: NewMember) {
+  /**
+   * A responsable adds a team member to a point of sale of their region: a seller, a buyer, or both
+   * (`duties`). The admin must approve.
+   */
+  async addMember(
+    actor: Actor,
+    pdvId: string,
+    input: NewMember & { duties?: Duties },
+  ) {
     requireRule(
       actor.role === "RESPONSABLE" && actor.regionId,
       "FORBIDDEN",
@@ -139,7 +172,7 @@ export class UsersService {
           email: input.email,
           name: input.name,
           phone,
-          role: "VENDEUR",
+          ...rolesFor(input.duties ?? { sells: true, buys: false }),
           status: "PENDING",
           regionId: pdv.regionId,
           pdvId: pdv.id,
@@ -152,7 +185,7 @@ export class UsersService {
         "member.created",
         "User",
         user.id,
-        { pdvId, name: input.name },
+        { pdvId, name: input.name, role: user.role, canOrder: user.canOrder },
         pdv.regionId,
       );
       await notifyAdmins(tx, pdv.regionId, {
@@ -162,6 +195,76 @@ export class UsersService {
         entityId: user.id,
       });
       return present(user);
+    });
+  }
+
+  /**
+   * Changes what a team member does: sells, buys, or both. The responsable of the region (or the
+   * admin) decides. Someone who stops selling must have nothing left in their wallet (the money
+   * is paid or the payout is settled first), so no reward is ever stranded.
+   */
+  async setDuties(actor: Actor, id: string, duties: Duties) {
+    requireRule(
+      ["ADMIN", "RESPONSABLE"].includes(actor.role),
+      "FORBIDDEN",
+      "Not allowed.",
+      403,
+    );
+    requireRule(
+      duties.sells || duties.buys,
+      "DUTIES_REQUIRED",
+      "A team member sells, buys, or both.",
+      422,
+    );
+    return this.db.run(actor, async (tx) => {
+      await this.db.lock(tx, "User", id);
+      const user = await tx.user.findUnique({ where: { id } });
+      const visible =
+        user &&
+        isTeamRole(user.role) &&
+        (actor.role === "ADMIN" || user.regionId === actor.regionId);
+      if (!user || !visible) throw notFound("User");
+      refuseDeleted(user);
+      requireRule(
+        user.status === "ACTIVE" || user.status === "PENDING",
+        "INVALID_STATE",
+        "This account is not in use.",
+        409,
+      );
+      const before = dutiesOf(user);
+      const next = rolesFor(duties);
+      if (before.sells === duties.sells && before.buys === duties.buys)
+        return present(user);
+      if (before.sells && !duties.sells) {
+        // The wallet is the person's own: trusted code reads it for the responsable.
+        const wallet = await this.db.run("SYSTEM", (t) => walletSummary(t, id));
+        requireRule(
+          wallet.balanceMillimes === 0n && wallet.pendingPayoutMillimes === 0n,
+          "WALLET_NOT_EMPTY",
+          "This person still has rewards in their wallet. Pay them out first, then they can stop selling.",
+          409,
+        );
+      }
+      const updated = await tx.user.update({
+        where: { id },
+        data: next,
+      });
+      await audit(
+        tx,
+        actor,
+        "user.duties_changed",
+        "User",
+        id,
+        { from: before, to: duties },
+        user.regionId,
+      );
+      await notify(tx, [id], {
+        key: "duties.changed",
+        params: { by: actor.name },
+        entityType: "User",
+        entityId: id,
+      });
+      return present(updated);
     });
   }
 
@@ -186,7 +289,7 @@ export class UsersService {
         where: {
           // A responsable only ever sees the vendeurs of their own region.
           ...(actor.role === "RESPONSABLE"
-            ? { role: "VENDEUR" as Role, regionId: actor.regionId }
+            ? { role: { in: TEAM_ROLES }, regionId: actor.regionId }
             : {
                 ...(filter.role && { role: filter.role }),
                 ...(filter.regionId && { regionId: filter.regionId }),
@@ -221,7 +324,7 @@ export class UsersService {
     const visible =
       user &&
       (actor.role === "ADMIN" ||
-        (user.role === "VENDEUR" && user.regionId === actor.regionId));
+        (isTeamRole(user.role) && user.regionId === actor.regionId));
     if (!visible) throw notFound("User");
     return present(user);
   }
@@ -255,7 +358,7 @@ export class UsersService {
       const visible =
         user &&
         (actor.role === "ADMIN" ||
-          (user.role === "VENDEUR" && user.regionId === actor.regionId));
+          (isTeamRole(user.role) && user.regionId === actor.regionId));
       if (!user || !visible) throw notFound("User");
       refuseDeleted(user);
       // Administrators are managed with the server command, never from here.
@@ -273,7 +376,7 @@ export class UsersService {
       const phoneChanged = phone !== undefined && phone !== user.phone;
       if (input.pdvId) {
         requireRule(
-          user.role === "VENDEUR",
+          isTeamRole(user.role),
           "INVALID_STATE",
           "Only team members can move.",
           409,
@@ -340,7 +443,7 @@ export class UsersService {
       const visible =
         user &&
         (actor.role === "ADMIN" ||
-          (user.role === "VENDEUR" && user.regionId === actor.regionId));
+          (isTeamRole(user.role) && user.regionId === actor.regionId));
       if (!user || !visible) throw notFound("User");
       refuseDeleted(user);
       requireRule(
@@ -466,7 +569,7 @@ export class UsersService {
       if (!user) throw notFound("User");
       refuseDeleted(user);
       requireRule(
-        user.role === "VENDEUR" &&
+        isTeamRole(user.role) &&
           (user.status === "REJECTED" ||
             (user.status === "ACTIVE" && !user.passwordHash)),
         "INVALID_STATE",
@@ -517,7 +620,7 @@ export class UsersService {
       const visible =
         user &&
         (actor.role === "ADMIN" ||
-          (user.role === "VENDEUR" && user.regionId === actor.regionId));
+          (isTeamRole(user.role) && user.regionId === actor.regionId));
       if (!user || !visible) throw notFound("User");
       refuseDeleted(user);
       requireRule(
@@ -549,7 +652,7 @@ export class UsersService {
       const visible =
         user &&
         (actor.role === "ADMIN" ||
-          (user.role === "VENDEUR" && user.regionId === actor.regionId));
+          (isTeamRole(user.role) && user.regionId === actor.regionId));
       if (!user || !visible) throw notFound("User");
       refuseDeleted(user);
       requireRule(

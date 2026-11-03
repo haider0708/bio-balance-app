@@ -273,6 +273,22 @@ Visits: `status` PLANNED, ON_SITE, DONE, MISSED, CANCELLED; `revision` grows wit
 
 ## The order manager (2026-11)
 
+## The buyer (2026-11)
+
+Role `ACHETEUR` (a buyer only, region and para set) or a `VENDEUR` with `canOrder`. `GET /v1/me` returns `canOrder` (true for a buyer, and for a seller who may order).
+
+| Method | Path | Who |
+|---|---|---|
+| POST | `/v1/pdvs/:id/members` `{name, email, phone, duties?: {sells, buys}}` | responsable (waits for the admin): `sells` only = VENDEUR, `buys` only = ACHETEUR, both = VENDEUR with `canOrder` |
+| POST | `/v1/users` `{role: "ACHETEUR"\|"VENDEUR", pdvId, buys?, ...}` | admin (active at once) |
+| POST | `/v1/users/:id/duties` `{sells, buys}` | responsable of the region, admin (`DUTIES_REQUIRED` 400 when both false; `WALLET_NOT_EMPTY` 409 when a seller with money left stops selling) |
+| POST | `/v1/restocks` | buyer: `destId` must be its own para (404 otherwise); a seller without `canOrder` gets 403 |
+| GET | `/v1/restocks`, `/v1/restocks/:id` | buyer: its para's orders only |
+| POST | `/v1/restocks/:id/receipt`, `/cancel` | buyer: receives its para's delivery unless a `receiver` is named; cancels its own order while REQUESTED (the responsable can too) |
+| GET | `/v1/stock/locations/:id` | buyer: its own para |
+
+`PUT /v1/restocks/:id/receiver` accepts a buyer. Users lists (`GET /v1/users`) include buyers; notification `duties.changed`; audit `user.duties_changed {from, to}`.
+
 Role `ORDERS`: created with `POST /v1/users {role: "ORDERS", name, email, phone}` (admin; active at once, no region, no para). Its sign-in is the responsable's.
 
 | Method | Path | Who |

@@ -1,4 +1,5 @@
 import { Injectable } from "@nestjs/common";
+import { isTeamRole, TEAM_ROLES } from "../../core/roles";
 import type { Actor } from "../../core/actor";
 import { Database, type Tx } from "../../core/database";
 import { DECISION_WINDOW_MS, withinDecisionWindow } from "../../core/approval";
@@ -250,7 +251,7 @@ export class ApprovalsService {
             const u = users.find((x) => x.id === id);
             if (
               u &&
-              u.role === "VENDEUR" &&
+              isTeamRole(u.role) &&
               fresh(u.decidedAt) &&
               ((approved && u.status === "ACTIVE" && !u.passwordHash) ||
                 (rejected && u.status === "REJECTED"))
@@ -418,7 +419,7 @@ export class ApprovalsService {
         const rows = await tx.user.findMany({
           where: {
             status: "PENDING",
-            role: "VENDEUR",
+            role: { in: TEAM_ROLES },
             ...(region && { regionId: region }),
           },
           orderBy: { createdAt: "asc" },
@@ -689,7 +690,7 @@ export async function countPending(tx: Tx, regionId?: string) {
     tx.group.count({ where: { status: "PENDING", ...region } }),
     tx.pdv.count({ where: { status: "PENDING", ...region } }),
     tx.user.count({
-      where: { status: "PENDING", role: "VENDEUR", ...region },
+      where: { status: "PENDING", role: { in: TEAM_ROLES }, ...region },
     }),
     tx.stockDeclaration.count({ where: { status: "PENDING", ...region } }),
     tx.restockOrder.count({ where: { status: "RECEIVED", ...region } }),

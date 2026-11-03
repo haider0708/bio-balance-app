@@ -4256,4 +4256,66 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get roleOrdersShort => 'Commandes';
+
+  @override
+  String get roleAcheteur => 'Acheteur';
+
+  @override
+  String get dutySeller => 'Vendeur';
+
+  @override
+  String get dutyBuyer => 'Acheteur';
+
+  @override
+  String get dutyBoth => 'Vendeur et acheteur';
+
+  @override
+  String get dutySellerHint =>
+      'Enregistre les ventes et gagne des récompenses.';
+
+  @override
+  String get dutyBuyerHint =>
+      'Voit le stock du para, passe ses commandes et les réceptionne. Pas de ventes, pas de récompenses.';
+
+  @override
+  String get dutyBothHint =>
+      'Vend, et passe aussi les commandes du para et les réceptionne.';
+
+  @override
+  String get dutiesTitle => 'Ce que fait cette personne';
+
+  @override
+  String get dutiesChange => 'Changer ce qu’elle fait';
+
+  @override
+  String get dutiesChangeHint =>
+      'Quelqu’un qui arrête de vendre doit d’abord être payé : aucune récompense n’est jamais perdue.';
+
+  @override
+  String get dutiesSaved => 'Enregistré. La personne est prévenue.';
+
+  @override
+  String get buyerNoPara => 'Vous n’êtes pas encore dans un point de vente.';
+
+  @override
+  String get buyerUnits => 'En stock';
+
+  @override
+  String get buyerOrderNow => 'Commander pour mon para';
+
+  @override
+  String get buyerRunningLow => 'Bientôt épuisé';
+
+  @override
+  String get buyerMyOrders => 'Commandes en cours';
+
+  @override
+  String get buyerNoOrders => 'Aucune commande en cours';
+
+  @override
+  String get buyerNoOrdersHint =>
+      'Commandez ce dont le para a besoin : l’admin est prévenu.';
+
+  @override
+  String get buyerOrderFor => 'Votre commande est pour ce para';
 }

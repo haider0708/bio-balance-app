@@ -65,7 +65,7 @@ const Decision = z.object({ note: z.string().trim().max(500).optional() });
 export class StockController {
   constructor(private readonly stock: StockService) {}
 
-  @Roles("ADMIN", "RESPONSABLE", "VENDEUR")
+  @Roles("ADMIN", "RESPONSABLE", "VENDEUR", "ACHETEUR")
   @Get("locations/:id")
   levels(@Req() r: AuthRequest, @Param("id") i: string) {
     return this.stock.levels(r.actor, parse(id, i));

@@ -17,7 +17,7 @@ const id = z.uuid();
 const Audience = z.object({
   all: z.boolean().optional(),
   roles: z
-    .array(z.enum(["RESPONSABLE", "VENDEUR"]))
+    .array(z.enum(["RESPONSABLE", "VENDEUR", "ACHETEUR"]))
     .max(3)
     .optional(),
   regionIds: z.array(id).max(3).optional(),

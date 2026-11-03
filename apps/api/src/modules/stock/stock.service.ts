@@ -2,6 +2,7 @@ import { Injectable } from "@nestjs/common";
 import type { Approval, Prisma } from "@prisma/client";
 import type { Actor } from "../../core/actor";
 import { audit } from "../../core/audit";
+import { isTeamRole } from "../../core/roles";
 import { Database, type Tx } from "../../core/database";
 import { DomainError, notFound, requireRule } from "../../core/errors";
 import { decisionLocked, withinDecisionWindow } from "../../core/approval";
@@ -47,7 +48,7 @@ export class StockService {
         location.stockRegionId !== null &&
         location.stockRegionId === actor.regionId) ||
       // A team member reads their own store's stock (to see what can be sold), nothing else.
-      (actor.role === "VENDEUR" &&
+      (isTeamRole(actor.role) &&
         location.kind === "PDV" &&
         location.id === actor.pdvId);
     if (!ok) throw notFound("Location");
