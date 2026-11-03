@@ -42,6 +42,13 @@ def check_host():
     except (subprocess.SubprocessError,OSError):return ['HOST_UNREACHABLE']
     except (KeyError,ValueError,TypeError):return ['REPORT_FAILED']
 
+def check_host_confirmed(pause=20):
+    """A problem counts only if the host still reports it after a pause: one odd reading is not an incident."""
+    first=check_host()
+    if not first:return []
+    time.sleep(pause)
+    return sorted(set(first)&set(check_host()))
+
 def check_api():
     for attempt in range(3):
         try:
@@ -75,7 +82,7 @@ def main():
     if a.state.exists():
         previous=json.loads(a.state.read_text())
         if previous.get('version')!=1 or not isinstance(previous.get('incident'),list) or any(x not in CODES for x in previous['incident']) or not isinstance(previous.get('sentAt'),int) or previous['sentAt']>time.time()+60:raise ValueError('Invalid previous monitor state')
-    problems=sorted(set(check_api()+check_host()));now=int(time.time());kind,state=decide(previous,problems,now,a.diagnostic)
+    problems=sorted(set(check_api()+check_host_confirmed()));now=int(time.time());kind,state=decide(previous,problems,now,a.diagnostic)
     if kind:send(kind,problems,now)
     a.state.parent.mkdir(parents=True,exist_ok=True)
     temp=a.state.with_suffix('.tmp');temp.write_text(json.dumps(state)+'\n');temp.replace(a.state)
