@@ -9,6 +9,8 @@ COPY apps/api/package.json apps/api/package.json
 RUN bash scripts/install-dependencies.sh
 COPY apps/api apps/api
 RUN npm run db:generate && npm run build
+# Packages are hoisted to the root when versions agree: the app's own folder may not exist, and the runtime copies it.
+RUN mkdir -p apps/api/node_modules
 
 FROM node:24.21.0-bookworm-slim AS runtime
 ENV NODE_ENV=production
