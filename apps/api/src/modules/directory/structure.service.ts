@@ -98,7 +98,7 @@ export class StructureService {
       const groups = await tx.group.findMany({
         where: {
           ...(filter.status && { status: filter.status }),
-          ...(actor.role === "ADMIN" &&
+          ...(["ADMIN", "ORDERS"].includes(actor.role) &&
             filter.regionId && { regionId: filter.regionId }),
         },
         orderBy: { name: "asc" },
@@ -289,7 +289,7 @@ export class StructureService {
     },
   ) {
     requireRule(
-      ["ADMIN", "RESPONSABLE", "VENDEUR"].includes(actor.role),
+      ["ADMIN", "RESPONSABLE", "VENDEUR", "ORDERS"].includes(actor.role),
       "FORBIDDEN",
       "Not allowed.",
       403,
@@ -299,7 +299,7 @@ export class StructureService {
         where: {
           ...(filter.status && { status: filter.status }),
           ...(filter.groupId && { groupId: filter.groupId }),
-          ...(actor.role === "ADMIN" &&
+          ...(["ADMIN", "ORDERS"].includes(actor.role) &&
             filter.regionId && { regionId: filter.regionId }),
           ...(filter.q && {
             name: { contains: filter.q, mode: "insensitive" },

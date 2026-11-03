@@ -6,7 +6,12 @@ import { audit } from "../../core/audit";
 import { Database, type Tx } from "../../core/database";
 import { DomainError, notFound, requireRule } from "../../core/errors";
 import { decisionLocked, withinDecisionWindow } from "../../core/approval";
-import { notify, notifyAdmins, responsableIds } from "../../core/notifier";
+import {
+  notify,
+  notifyAdmins,
+  ordersIds,
+  responsableIds,
+} from "../../core/notifier";
 import { adjustStock, currentQuantity, findLocation } from "../stock/ledger";
 import { SettingsService } from "../../core/settings";
 
@@ -52,17 +57,20 @@ export class RestockService {
     },
   ) {
     requireRule(
-      ["ADMIN", "RESPONSABLE"].includes(actor.role),
+      ["ADMIN", "RESPONSABLE", "ORDERS"].includes(actor.role),
       "FORBIDDEN",
-      "Only the admin or a responsable restocks.",
+      "Only the admin, the order manager or a responsable restocks.",
       403,
     );
     return this.db.run(actor, async (tx) => {
       requireRule(input.destId, "DESTINATION_REQUIRED", "Choose a place.");
       const dest = await findLocation(tx, input.destId);
       const byAdmin = actor.role === "ADMIN";
+      // The order manager asks for any place of the network, like the admin, but only the admin records or sends at once.
       requireRule(
-        byAdmin || dest.stockRegionId === actor.regionId,
+        byAdmin ||
+          actor.role === "ORDERS" ||
+          dest.stockRegionId === actor.regionId,
         "FORBIDDEN",
         "You cannot request stock for this place.",
         403,
@@ -212,18 +220,28 @@ export class RestockService {
           { number, amended: 0, note: input.note ?? null },
           actor.id,
         );
-      } else
+      } else {
+        const asked = {
+          number,
+          place: dest.name,
+          by: actor.name,
+          depot: suggested?.name ?? "",
+        };
         await notifyAdmins(tx, order.regionId, {
           key: suggested ? "restock.requested_from" : "restock.requested",
-          params: {
-            number,
-            place: dest.name,
-            by: actor.name,
-            depot: suggested?.name ?? "",
-          },
+          params: asked,
           entityType: "RestockOrder",
           entityId: order.id,
         });
+        // A responsable's request lands in the order manager's queue too.
+        if (actor.role === "RESPONSABLE")
+          await notify(tx, await ordersIds(tx), {
+            key: "restock.requested",
+            params: asked,
+            entityType: "RestockOrder",
+            entityId: order.id,
+          });
+      }
       return this.one(tx, order);
     });
   }
@@ -237,9 +255,9 @@ export class RestockService {
    */
   suppliers(actor: Actor, id: string) {
     requireRule(
-      actor.role === "ADMIN",
+      actor.role === "ADMIN" || actor.role === "ORDERS",
       "FORBIDDEN",
-      "Only the admin chooses the grossiste.",
+      "Only the admin or the order manager chooses the grossiste.",
       403,
     );
     return this.db.run(actor, async (tx) => {
@@ -365,57 +383,65 @@ export class RestockService {
       "Only the admin can assign.",
       403,
     );
-    return this.db.run(actor, async (tx) => {
-      const order = await this.load(tx, id, "REQUESTED");
-      requireRule(
-        order.destKind === "PDV",
-        "INVALID_STATE",
-        "A depot restock is sent directly by BioBalance.",
-        409,
-      );
-      const depot = await tx.depot.findUnique({ where: { id: input.depotId } });
-      requireRule(
-        depot?.status === "ACTIVE",
-        "DEPOT_NOT_FOUND",
-        "Choose an active grossiste.",
-        404,
-      );
-      if (input.lines) await this.reshape(tx, order, input.lines);
-      const updated = await tx.restockOrder.update({
-        where: { id },
-        data: {
-          status: "ASSIGNED",
-          source: "GROSSISTE",
-          supplierDepotId: depot.id,
-          supplierRegionId: depot.regionId,
-          assignedAt: new Date(),
-        },
-        include: { lines: true },
-      });
-      await audit(
-        tx,
-        actor,
-        "restock.assigned",
-        "RestockOrder",
-        id,
-        { depot: depot.name },
-        order.regionId,
-      );
-      // The responsable of the grossiste's region ships it; the one who asked is told where it comes from.
-      const shippers = await responsableIds(tx, depot.regionId);
-      await notify(tx, shippers, {
-        key: "restock.to_prepare",
-        params: { number: order.number, depot: depot.name },
-        entityType: "RestockOrder",
-        entityId: id,
-      });
-      if (!shippers.includes(order.requestedById))
-        await this.tellRequester(tx, order, "restock.assigned", {
-          number: order.number,
-          depot: depot.name,
-        });
-      return this.one(tx, updated);
+    return this.db.run(actor, (tx) => this.assignIn(tx, actor, id, input));
+  }
+
+  /** The assignment itself, inside a transaction (also used when the admin approves a proposal). */
+  private async assignIn(
+    tx: Tx,
+    actor: Actor,
+    id: string,
+    input: { depotId: string; lines?: QtyLine[] },
+  ) {
+    const order = await this.load(tx, id, "REQUESTED");
+    requireRule(
+      order.destKind === "PDV",
+      "INVALID_STATE",
+      "A depot restock is sent directly by BioBalance.",
+      409,
+    );
+    const depot = await tx.depot.findUnique({ where: { id: input.depotId } });
+    requireRule(
+      depot?.status === "ACTIVE",
+      "DEPOT_NOT_FOUND",
+      "Choose an active grossiste.",
+      404,
+    );
+    if (input.lines) await this.reshape(tx, order, input.lines);
+    const updated = await tx.restockOrder.update({
+      where: { id },
+      data: {
+        status: "ASSIGNED",
+        source: "GROSSISTE",
+        supplierDepotId: depot.id,
+        supplierRegionId: depot.regionId,
+        assignedAt: new Date(),
+      },
+      include: { lines: true },
     });
+    await audit(
+      tx,
+      actor,
+      "restock.assigned",
+      "RestockOrder",
+      id,
+      { depot: depot.name },
+      order.regionId,
+    );
+    // The responsable of the grossiste's region ships it; the one who asked is told where it comes from.
+    const shippers = await responsableIds(tx, depot.regionId);
+    await notify(tx, shippers, {
+      key: "restock.to_prepare",
+      params: { number: order.number, depot: depot.name },
+      entityType: "RestockOrder",
+      entityId: id,
+    });
+    if (!shippers.includes(order.requestedById))
+      await this.tellRequester(tx, order, "restock.assigned", {
+        number: order.number,
+        depot: depot.name,
+      });
+    return this.one(tx, updated);
   }
 
   /** BioBalance holds unlimited stock: ship straight to the place. */
@@ -426,33 +452,388 @@ export class RestockService {
       "Only the admin can send directly.",
       403,
     );
+    return this.db.run(actor, (tx) => this.sendDirectIn(tx, actor, id, input));
+  }
+
+  private async sendDirectIn(
+    tx: Tx,
+    actor: Actor,
+    id: string,
+    input: { lines?: QtyLine[] },
+  ) {
+    const order = await this.load(tx, id, "REQUESTED");
+    if (input.lines) await this.reshape(tx, order, input.lines);
+    await tx.$executeRaw`UPDATE "RestockLine" SET shipped = requested WHERE "orderId" = ${id}::uuid`;
+    const updated = await tx.restockOrder.update({
+      where: { id },
+      data: {
+        status: "SHIPPED",
+        source: "BIOBALANCE",
+        shippedAt: new Date(),
+        assignedAt: new Date(),
+      },
+      include: { lines: true },
+    });
+    await audit(
+      tx,
+      actor,
+      "restock.sent_direct",
+      "RestockOrder",
+      id,
+      {},
+      order.regionId,
+    );
+    await this.tellRequester(tx, order, "restock.shipped", {
+      number: order.number,
+      from: "BioBalance",
+    });
+    return this.one(tx, updated);
+  }
+
+  // ───────────────────────── The order manager prepares, the admin approves ─────────────────────────
+
+  /**
+   * The order manager says how a waiting order should be fulfilled: sent directly by BioBalance, or
+   * by a given grossiste, with the quantities they would send and a note. The admin approves (one
+   * tap), or refuses; nothing leaves before.
+   */
+  propose(
+    actor: Actor,
+    id: string,
+    input: {
+      source: "BIOBALANCE" | "GROSSISTE";
+      depotId?: string;
+      lines?: QtyLine[];
+      note?: string;
+      photoIds?: string[];
+    },
+  ) {
+    requireRule(
+      actor.role === "ORDERS",
+      "FORBIDDEN",
+      "Only the order manager proposes.",
+      403,
+    );
     return this.db.run(actor, async (tx) => {
       const order = await this.load(tx, id, "REQUESTED");
-      if (input.lines) await this.reshape(tx, order, input.lines);
-      await tx.$executeRaw`UPDATE "RestockLine" SET shipped = requested WHERE "orderId" = ${id}::uuid`;
+      let depot: { id: string; name: string } | null = null;
+      if (input.source === "GROSSISTE") {
+        requireRule(
+          order.destKind === "PDV",
+          "INVALID_STATE",
+          "A depot restock is sent directly by BioBalance.",
+          409,
+        );
+        requireRule(input.depotId, "DEPOT_REQUIRED", "Choose a grossiste.");
+        const found = await tx.depot.findUnique({
+          where: { id: input.depotId },
+        });
+        requireRule(
+          found?.status === "ACTIVE" && found.id !== order.destId,
+          "DEPOT_NOT_FOUND",
+          "Choose an active grossiste.",
+          404,
+        );
+        depot = found;
+      } else
+        requireRule(
+          !input.depotId,
+          "INVALID_ACTION",
+          "A direct shipment has no grossiste.",
+        );
+      // What the order manager would send, per product (never more than asked; 0 leaves it out).
+      const proposed = new Map(
+        order.lines.map((l) => [l.productId, l.requested]),
+      );
+      if (input.lines) {
+        const wanted = new Map(
+          input.lines.map((l) => [l.productId, l.quantity]),
+        );
+        requireRule(
+          wanted.size === input.lines.length,
+          "DUPLICATE_PRODUCT",
+          "A product appears twice.",
+        );
+        for (const [productId, quantity] of wanted) {
+          const line = order.lines.find((l) => l.productId === productId);
+          requireRule(
+            line,
+            "PRODUCT_NOT_FOUND",
+            "That product is not in the order.",
+            422,
+          );
+          requireRule(
+            quantity >= 0 && quantity <= line.requested,
+            "TOO_MANY",
+            "You cannot propose more than was requested.",
+          );
+          proposed.set(productId, quantity);
+        }
+      }
+      requireRule(
+        [...proposed.values()].some((q) => q > 0),
+        "NOTHING_SHIPPED",
+        "Propose at least one unit.",
+      );
+      const papers = input.photoIds?.length
+        ? await ownedProofs(tx, actor, input.photoIds, "Add a document.")
+        : [];
+      for (const line of order.lines)
+        await tx.restockLine.update({
+          where: { id: line.id },
+          data: { proposed: proposed.get(line.productId) ?? line.requested },
+        });
       const updated = await tx.restockOrder.update({
         where: { id },
         data: {
-          status: "SHIPPED",
-          source: "BIOBALANCE",
-          shippedAt: new Date(),
-          assignedAt: new Date(),
+          proposedSource: input.source,
+          proposedDepotId: depot?.id ?? null,
+          proposedById: actor.id,
+          proposedAt: new Date(),
+          proposalNote: input.note?.trim() || null,
+          documentIds: [...new Set([...order.documentIds, ...papers])].slice(
+            0,
+            10,
+          ),
         },
         include: { lines: true },
       });
       await audit(
         tx,
         actor,
-        "restock.sent_direct",
+        "restock.proposed",
         "RestockOrder",
         id,
-        {},
+        { source: input.source, depot: depot?.name ?? null },
         order.regionId,
       );
-      await this.tellRequester(tx, order, "restock.shipped", {
-        number: order.number,
-        from: "BioBalance",
+      await notifyAdmins(tx, order.regionId, {
+        key: "restock.proposed",
+        params: {
+          number: order.number,
+          by: actor.name,
+          from: depot?.name ?? "BioBalance",
+        },
+        entityType: "RestockOrder",
+        entityId: id,
       });
+      return this.one(tx, updated);
+    });
+  }
+
+  /** The admin approves the proposal: the order is assigned (or sent directly) exactly as proposed. */
+  approveProposal(actor: Actor, id: string, input: { note?: string }) {
+    requireRule(
+      actor.role === "ADMIN",
+      "FORBIDDEN",
+      "Only the admin approves a proposal.",
+      403,
+    );
+    return this.db.run(actor, async (tx) => {
+      const order = await this.load(tx, id, "REQUESTED");
+      requireRule(
+        order.proposedSource,
+        "NO_PROPOSAL",
+        "Nobody proposed anything for this order.",
+        409,
+      );
+      const lines = order.lines
+        .map((l) => ({
+          productId: l.productId,
+          quantity: l.proposed ?? l.requested,
+        }))
+        .filter((l) => l.quantity > 0);
+      const done =
+        order.proposedSource === "GROSSISTE"
+          ? await this.assignIn(tx, actor, id, {
+              depotId: order.proposedDepotId!,
+              lines,
+            })
+          : await this.sendDirectIn(tx, actor, id, { lines });
+      await audit(
+        tx,
+        actor,
+        "restock.proposal_approved",
+        "RestockOrder",
+        id,
+        { note: input.note ?? null },
+        order.regionId,
+      );
+      if (order.proposedById)
+        await notify(tx, [order.proposedById], {
+          key: "restock.proposal_approved",
+          params: { number: order.number, note: input.note ?? "" },
+          entityType: "RestockOrder",
+          entityId: id,
+        });
+      return done;
+    });
+  }
+
+  /** The admin refuses the proposal, with a reason: the order stays waiting, and the order manager is told. */
+  rejectProposal(actor: Actor, id: string, input: { note: string }) {
+    requireRule(
+      actor.role === "ADMIN",
+      "FORBIDDEN",
+      "Only the admin decides a proposal.",
+      403,
+    );
+    return this.db.run(actor, async (tx) => {
+      const order = await this.load(tx, id, "REQUESTED");
+      requireRule(
+        order.proposedSource,
+        "NO_PROPOSAL",
+        "Nobody proposed anything for this order.",
+        409,
+      );
+      await tx.restockLine.updateMany({
+        where: { orderId: id },
+        data: { proposed: null },
+      });
+      const updated = await tx.restockOrder.update({
+        where: { id },
+        data: {
+          proposedSource: null,
+          proposedDepotId: null,
+          proposedById: null,
+          proposedAt: null,
+          proposalNote: null,
+        },
+        include: { lines: true },
+      });
+      await audit(
+        tx,
+        actor,
+        "restock.proposal_refused",
+        "RestockOrder",
+        id,
+        { note: input.note.trim() },
+        order.regionId,
+      );
+      if (order.proposedById)
+        await notify(tx, [order.proposedById], {
+          key: "restock.proposal_refused",
+          params: { number: order.number, note: input.note.trim() },
+          entityType: "RestockOrder",
+          entityId: id,
+        });
+      return this.one(tx, updated);
+    });
+  }
+
+  /** Papers (preparation, shipping, delivery notes): the order manager or the admin adds them until the order is closed. */
+  addDocuments(actor: Actor, id: string, input: { photoIds: string[] }) {
+    requireRule(
+      actor.role === "ADMIN" || actor.role === "ORDERS",
+      "FORBIDDEN",
+      "Only the admin or the order manager adds documents.",
+      403,
+    );
+    return this.db.run(actor, async (tx) => {
+      const order = await this.load(tx, id);
+      requireRule(
+        order.status !== "COMPLETED" && order.status !== "CANCELLED",
+        "INVALID_STATE",
+        "This order is closed.",
+        409,
+      );
+      const added = await ownedProofs(
+        tx,
+        actor,
+        input.photoIds,
+        "Add a document.",
+        { regionId: order.regionId },
+      );
+      const all = [...new Set([...order.documentIds, ...added])];
+      requireRule(
+        all.length <= 10,
+        "TOO_MANY_PHOTOS",
+        "An order holds at most ten documents.",
+      );
+      const updated = await tx.restockOrder.update({
+        where: { id },
+        data: { documentIds: all },
+        include: { lines: true },
+      });
+      await audit(
+        tx,
+        actor,
+        "restock.documents_added",
+        "RestockOrder",
+        id,
+        { count: added.length },
+        order.regionId,
+      );
+      return this.one(tx, updated);
+    });
+  }
+
+  /**
+   * The goods were handed to the place: recorded by the order manager (or the admin) with the
+   * delivery paper. The place's team still confirms the receipt, and the admin approves it: only
+   * then does the stock arrive.
+   */
+  markDelivered(
+    actor: Actor,
+    id: string,
+    input: { photoIds?: string[]; note?: string },
+  ) {
+    requireRule(
+      actor.role === "ADMIN" || actor.role === "ORDERS",
+      "FORBIDDEN",
+      "Only the admin or the order manager marks a delivery.",
+      403,
+    );
+    return this.db.run(actor, async (tx) => {
+      const order = await this.load(tx, id, "SHIPPED");
+      requireRule(
+        !order.deliveredAt,
+        "INVALID_STATE",
+        "This order was already marked delivered.",
+        409,
+      );
+      const papers = input.photoIds?.length
+        ? await ownedProofs(tx, actor, input.photoIds, "Add a document.", {
+            regionId: order.regionId,
+          })
+        : [];
+      const updated = await tx.restockOrder.update({
+        where: { id },
+        data: {
+          deliveredAt: new Date(),
+          deliveredById: actor.id,
+          documentIds: [...new Set([...order.documentIds, ...papers])].slice(
+            0,
+            10,
+          ),
+        },
+        include: { lines: true },
+      });
+      await audit(
+        tx,
+        actor,
+        "restock.delivered",
+        "RestockOrder",
+        id,
+        { note: input.note ?? null },
+        order.regionId,
+      );
+      // The place's responsable confirms the receipt (with a team member if they choose); the admin knows.
+      await this.tellEveryone(
+        tx,
+        order,
+        "restock.delivered",
+        { number: order.number, by: actor.name },
+        actor.id,
+      );
+      if (actor.role !== "ADMIN")
+        await notifyAdmins(tx, order.regionId, {
+          key: "restock.delivered",
+          params: { number: order.number, by: actor.name },
+          entityType: "RestockOrder",
+          entityId: id,
+          push: false,
+        });
       return this.one(tx, updated);
     });
   }
@@ -462,9 +843,9 @@ export class RestockService {
   /** The responsable of the grossiste's region (or the admin) says what really leaves it. */
   ship(actor: Actor, id: string, input: { lines: QtyLine[] }) {
     requireRule(
-      ["ADMIN", "RESPONSABLE"].includes(actor.role),
+      ["ADMIN", "RESPONSABLE", "ORDERS"].includes(actor.role),
       "FORBIDDEN",
-      "Only the admin or the responsable ships.",
+      "Only the admin, the order manager or the responsable ships.",
       403,
     );
     return this.db.run(actor, async (tx) => {
@@ -472,7 +853,9 @@ export class RestockService {
       // The goods leave a grossiste: its region's responsable (or the admin) ships them.
       requireRule(
         order.supplierDepotId &&
-          (actor.role === "ADMIN" || order.supplierRegionId === actor.regionId),
+          (actor.role === "ADMIN" ||
+            actor.role === "ORDERS" ||
+            order.supplierRegionId === actor.regionId),
         "FORBIDDEN",
         "This order is not yours to ship.",
         403,
@@ -1079,7 +1462,7 @@ export class RestockService {
     },
   ) {
     requireRule(
-      ["ADMIN", "RESPONSABLE", "VENDEUR"].includes(actor.role),
+      ["ADMIN", "RESPONSABLE", "VENDEUR", "ORDERS"].includes(actor.role),
       "FORBIDDEN",
       "Not allowed.",
       403,
@@ -1099,7 +1482,7 @@ export class RestockService {
             },
           }),
           ...(filter.destId && { destId: filter.destId }),
-          ...(actor.role === "ADMIN" &&
+          ...((actor.role === "ADMIN" || actor.role === "ORDERS") &&
             filter.regionId && { regionId: filter.regionId }),
         },
         include: { lines: true },
@@ -1224,18 +1607,25 @@ export class RestockService {
     const placeIds = [
       ...new Set(
         orders.flatMap((o) =>
-          [o.destId, o.supplierDepotId, o.suggestedDepotId].filter(
-            (x): x is string => !!x,
-          ),
+          [
+            o.destId,
+            o.supplierDepotId,
+            o.suggestedDepotId,
+            o.proposedDepotId,
+          ].filter((x): x is string => !!x),
         ),
       ),
     ];
     const userIds = [
       ...new Set(
         orders.flatMap((o) =>
-          [o.requestedById, o.receiverId, o.decidedById].filter(
-            (x): x is string => !!x,
-          ),
+          [
+            o.requestedById,
+            o.receiverId,
+            o.decidedById,
+            o.proposedById,
+            o.deliveredById,
+          ].filter((x): x is string => !!x),
         ),
       ),
     ];
@@ -1310,6 +1700,24 @@ export class RestockService {
       receiptNote: o.receiptNote,
       decisionNote: o.decisionNote,
       cancelReason: o.cancelReason,
+      /** The order manager's proposal, waiting for the admin. */
+      proposal: o.proposedSource
+        ? {
+            source: o.proposedSource,
+            supplier: o.proposedDepotId
+              ? {
+                  id: o.proposedDepotId,
+                  name: place.get(o.proposedDepotId) ?? "",
+                }
+              : null,
+            by: who(o.proposedById),
+            at: o.proposedAt,
+            note: o.proposalNote,
+          }
+        : null,
+      documentIds: o.documentIds,
+      deliveredAt: o.deliveredAt,
+      deliveredBy: who(o.deliveredById),
       /** The grossiste the responsable suggested (the admin decides). */
       suggestedSupplier: o.suggestedDepotId
         ? { id: o.suggestedDepotId, name: place.get(o.suggestedDepotId) ?? "" }
@@ -1323,6 +1731,7 @@ export class RestockService {
           shipped: l.shipped,
           received: l.received,
           approved: l.approved,
+          proposed: l.proposed,
         }))
         .sort((a, b) => a.name.localeCompare(b.name)),
     }));

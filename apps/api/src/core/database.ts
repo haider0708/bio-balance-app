@@ -66,7 +66,8 @@ export class Database extends PrismaClient implements OnModuleDestroy {
                 set_config('app.quiet_alerts',${actor.quietAlerts ? "on" : ""},true),
                 set_config('app.sandbox',${actor.sandbox ? "on" : ""},true),
                 set_config('app.hidden_region',${
-                  actor.role === "ADMIN" && !actor.showSandbox
+                  (actor.role === "ADMIN" && !actor.showSandbox) ||
+                  actor.role === "ORDERS"
                     ? Prisma.sql`COALESCE((SELECT id::text FROM "Region" WHERE sandbox), '')`
                     : Prisma.sql`''`
                 },true)`;

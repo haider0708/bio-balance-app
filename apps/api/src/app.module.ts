@@ -5,6 +5,7 @@ import { Public } from "./core/http";
 import { CatalogModule } from "./modules/catalog/catalog.module";
 import { DirectoryModule } from "./modules/directory/directory.module";
 import { MediaModule } from "./modules/media/media.module";
+import { OrdersModule } from "./modules/orders/orders.module";
 import { PlanningModule } from "./modules/planning/planning.module";
 import { ReturnsModule } from "./modules/returns/returns.module";
 import { TransfersModule } from "./modules/transfers/transfers.module";
@@ -48,6 +49,7 @@ class HealthController {
     PlanningModule,
     TransfersModule,
     ReturnsModule,
+    OrdersModule,
   ],
   controllers: [
     HealthController,

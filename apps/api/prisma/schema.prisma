@@ -12,6 +12,8 @@ enum Role {
   ADMIN
   RESPONSABLE
   VENDEUR
+  /// Runs the supply side: sees the paras, prepares orders for the admin to approve, ships and delivers.
+  ORDERS
 }
 
 /// Lifecycle of an account, group or point of sale. PENDING waits for the admin.
@@ -460,6 +462,17 @@ model RestockOrder {
   receiptNote      String?
   decisionNote     String?
   cancelReason     String?
+  /// The order manager's proposal on a waiting order: where it should come from; the admin approves it.
+  proposedSource   OrderSource?
+  proposedDepotId  String?       @db.Uuid
+  proposedById     String?       @db.Uuid
+  proposedAt       DateTime?
+  proposalNote     String?
+  /// Papers added by the order manager or the admin (preparation, shipping, delivery): media ids.
+  documentIds      String[]      @default([]) @db.Uuid
+  /// Handed to the place by the order manager (the place's team still confirms the receipt).
+  deliveredAt      DateTime?
+  deliveredById    String?       @db.Uuid
   lines            RestockLine[]
 
   @@index([status, createdAt])
@@ -477,6 +490,8 @@ model RestockLine {
   shipped   Int?
   received  Int?
   approved  Int?
+  /// The quantity the order manager proposed (null: no proposal, or the product was not changed).
+  proposed  Int?
   order     RestockOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
   @@unique([orderId, productId])

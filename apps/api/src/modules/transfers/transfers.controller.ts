@@ -26,7 +26,7 @@ const Create = z.object({
 export class TransfersController {
   constructor(private readonly transfers: TransfersService) {}
 
-  @Roles("VENDEUR", "RESPONSABLE", "ADMIN")
+  @Roles("VENDEUR", "RESPONSABLE", "ADMIN", "ORDERS")
   @Get()
   list(@Req() r: AuthRequest, @Query() q: Record<string, string>) {
     return this.transfers.list(
@@ -56,7 +56,7 @@ export class TransfersController {
     return this.transfers.create(r.actor, parse(Create, b));
   }
 
-  @Roles("VENDEUR", "RESPONSABLE", "ADMIN")
+  @Roles("VENDEUR", "RESPONSABLE", "ADMIN", "ORDERS")
   @Get(":id")
   get(@Req() r: AuthRequest, @Param("id") i: string) {
     return this.transfers.get(r.actor, parse(id, i));

@@ -49,6 +49,8 @@ const AdminUser = z.discriminatedUnion("role", [
     email,
     phone,
   }),
+  // The order manager belongs to no region and no para.
+  z.object({ role: z.literal("ORDERS"), name: text(100), email, phone }),
 ]);
 const UserPatch = z.object({
   name: text(100).optional(),
@@ -100,7 +102,7 @@ export class DirectoryController {
   createGroup(@Req() r: AuthRequest, @Body() b: unknown) {
     return this.structure.createGroup(r.actor, parse(Group, b));
   }
-  @Roles("ADMIN", "RESPONSABLE")
+  @Roles("ADMIN", "RESPONSABLE", "ORDERS")
   @Get("groups")
   groups(@Req() r: AuthRequest, @Query() q: Record<string, string>) {
     return this.structure.listGroups(
@@ -179,7 +181,7 @@ export class DirectoryController {
   createPdv(@Req() r: AuthRequest, @Body() b: unknown) {
     return this.structure.createPdv(r.actor, parse(Pdv, b));
   }
-  @Roles("ADMIN", "RESPONSABLE", "VENDEUR")
+  @Roles("ADMIN", "RESPONSABLE", "VENDEUR", "ORDERS")
   @Get("pdvs")
   pdvs(@Req() r: AuthRequest, @Query() q: Record<string, string>) {
     return this.structure.listPdvs(
@@ -195,7 +197,7 @@ export class DirectoryController {
       ),
     );
   }
-  @Roles("ADMIN", "RESPONSABLE", "VENDEUR")
+  @Roles("ADMIN", "RESPONSABLE", "VENDEUR", "ORDERS")
   @Get("pdvs/:id")
   pdv(@Req() r: AuthRequest, @Param("id") i: string) {
     return this.structure.getPdv(r.actor, parse(id, i));
@@ -462,7 +464,7 @@ export class DirectoryController {
   }
 
   // Grossistes (warehouses)
-  @Roles("ADMIN", "RESPONSABLE")
+  @Roles("ADMIN", "RESPONSABLE", "ORDERS")
   @Get("depots")
   depots(@Req() r: AuthRequest, @Query() q: Record<string, string>) {
     return this.depotsService.list(
@@ -476,7 +478,7 @@ export class DirectoryController {
       ),
     );
   }
-  @Roles("ADMIN", "RESPONSABLE")
+  @Roles("ADMIN", "RESPONSABLE", "ORDERS")
   @Get("depots/:id")
   depot(@Req() r: AuthRequest, @Param("id") i: string) {
     return this.depotsService.get(r.actor, parse(id, i));

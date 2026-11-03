@@ -330,5 +330,25 @@
   "return.added": {
     "en": "Return {number}: {units:unit|units} added to {para}.",
     "fr": "Retour {number} : {units:unité|unités} ajoutées à {para}."
+  },
+  "restock.proposed": {
+    "en": "{by} proposes to fulfil order {number} from {from}: waiting for your approval.",
+    "fr": "{by} propose de traiter la commande {number} depuis {from} : en attente de votre approbation."
+  },
+  "restock.proposal_approved": {
+    "en": "Your proposal for order {number} was approved.",
+    "fr": "Votre proposition pour la commande {number} a été approuvée."
+  },
+  "restock.proposal_refused": {
+    "en": "Your proposal for order {number} was refused: {note}",
+    "fr": "Votre proposition pour la commande {number} a été refusée : {note}"
+  },
+  "restock.delivered": {
+    "en": "Order {number} was delivered by {by}: confirm the receipt.",
+    "fr": "La commande {number} a été livrée par {by} : confirmez la réception."
+  },
+  "orders.asks": {
+    "en": "{by} asks whether {place} needs anything.{message}",
+    "fr": "{by} demande si {place} a besoin de quelque chose.{message}"
   }
 }

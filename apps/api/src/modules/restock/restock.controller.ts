@@ -47,6 +47,18 @@ const Approve = z.object({
   note: Note.optional(),
 });
 const Reason = z.object({ note: Note.min(2) });
+const Propose = z.object({
+  source: z.enum(["BIOBALANCE", "GROSSISTE"]),
+  depotId: id.optional(),
+  lines: Lines(qty).optional(),
+  note: Note.optional(),
+  photoIds: z.array(id).max(5).optional(),
+});
+const Documents = z.object({ photoIds: z.array(id).min(1).max(5) });
+const Delivered = z.object({
+  photoIds: z.array(id).max(5).optional(),
+  note: Note.optional(),
+});
 const Amend = z.object({ lines: Lines(qty), note: Note.optional() });
 const Status = z.enum([
   "REQUESTED",
@@ -61,7 +73,7 @@ const Status = z.enum([
 export class RestockController {
   constructor(private readonly restocks: RestockService) {}
 
-  @Roles("ADMIN", "RESPONSABLE")
+  @Roles("ADMIN", "RESPONSABLE", "ORDERS")
   @Post()
   create(@Req() r: AuthRequest, @Body() b: unknown) {
     return this.restocks.create(r.actor, parse(Create, b));
@@ -95,7 +107,7 @@ export class RestockController {
     return this.restocks.get(r.actor, parse(id, i));
   }
   /** Every active grossiste with what it holds of this order's products, to choose who sends it. */
-  @Roles("ADMIN")
+  @Roles("ADMIN", "ORDERS")
   @Get(":id/suppliers")
   suppliers(@Req() r: AuthRequest, @Param("id") i: string) {
     return this.restocks.suppliers(r.actor, parse(id, i));
@@ -118,7 +130,7 @@ export class RestockController {
       parse(Direct, b ?? {}),
     );
   }
-  @Roles("ADMIN", "RESPONSABLE")
+  @Roles("ADMIN", "RESPONSABLE", "ORDERS")
   @Post(":id/ship")
   ship(@Req() r: AuthRequest, @Param("id") i: string, @Body() b: unknown) {
     return this.restocks.ship(r.actor, parse(id, i), parse(Ship, b));
@@ -163,9 +175,62 @@ export class RestockController {
   reject(@Req() r: AuthRequest, @Param("id") i: string, @Body() b: unknown) {
     return this.restocks.reject(r.actor, parse(id, i), parse(Reason, b).note);
   }
-  @Roles("ADMIN", "RESPONSABLE")
+  @Roles("ADMIN", "RESPONSABLE", "ORDERS")
   @Post(":id/cancel")
   cancel(@Req() r: AuthRequest, @Param("id") i: string, @Body() b: unknown) {
     return this.restocks.cancel(r.actor, parse(id, i), parse(Reason, b).note);
+  }
+
+  // The order manager prepares, the admin approves.
+  @Roles("ORDERS")
+  @Post(":id/propose")
+  propose(@Req() r: AuthRequest, @Param("id") i: string, @Body() b: unknown) {
+    return this.restocks.propose(r.actor, parse(id, i), parse(Propose, b));
+  }
+
+  @Roles("ADMIN")
+  @Post(":id/approve-proposal")
+  approveProposal(
+    @Req() r: AuthRequest,
+    @Param("id") i: string,
+    @Body() b: unknown,
+  ) {
+    return this.restocks.approveProposal(
+      r.actor,
+      parse(id, i),
+      parse(z.object({ note: Note.optional() }), b ?? {}),
+    );
+  }
+
+  @Roles("ADMIN")
+  @Post(":id/reject-proposal")
+  rejectProposal(
+    @Req() r: AuthRequest,
+    @Param("id") i: string,
+    @Body() b: unknown,
+  ) {
+    return this.restocks.rejectProposal(r.actor, parse(id, i), {
+      note: parse(Reason, b).note,
+    });
+  }
+
+  @Roles("ADMIN", "ORDERS")
+  @Post(":id/documents")
+  documents(@Req() r: AuthRequest, @Param("id") i: string, @Body() b: unknown) {
+    return this.restocks.addDocuments(
+      r.actor,
+      parse(id, i),
+      parse(Documents, b),
+    );
+  }
+
+  @Roles("ADMIN", "ORDERS")
+  @Post(":id/delivered")
+  delivered(@Req() r: AuthRequest, @Param("id") i: string, @Body() b: unknown) {
+    return this.restocks.markDelivered(
+      r.actor,
+      parse(id, i),
+      parse(Delivered, b ?? {}),
+    );
   }
 }

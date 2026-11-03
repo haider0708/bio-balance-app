@@ -491,7 +491,7 @@ export class ApprovalsService {
           tx,
           rows.map((r) => r.destId),
         );
-        await person(rows.map((r) => r.requestedById));
+        await person(rows.flatMap((r) => [r.requestedById, r.proposedById]));
         for (const r of rows)
           items.push({
             type,
@@ -508,6 +508,13 @@ export class ApprovalsService {
                   s + (type === "RECEIPT" ? (l.received ?? 0) : l.requested),
                 0,
               ),
+              // The order manager prepared this one: the admin approves it in one tap.
+              ...(type === "RESTOCK_REQUEST" && {
+                proposal: r.proposedSource !== null,
+                proposedBy: r.proposedById
+                  ? (people.get(r.proposedById) ?? null)
+                  : null,
+              }),
             },
           });
       }

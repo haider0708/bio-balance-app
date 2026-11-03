@@ -25,7 +25,7 @@ export class DepotsService {
 
   list(actor: Actor, filter: { regionId?: string; status?: Status } = {}) {
     requireRule(
-      ["ADMIN", "RESPONSABLE"].includes(actor.role),
+      ["ADMIN", "RESPONSABLE", "ORDERS"].includes(actor.role),
       "FORBIDDEN",
       "Not allowed.",
       403,
@@ -33,7 +33,7 @@ export class DepotsService {
     return this.db.run(actor, async (tx) => {
       const depots = await tx.depot.findMany({
         where: {
-          ...(actor.role === "ADMIN" &&
+          ...(["ADMIN", "ORDERS"].includes(actor.role) &&
             filter.regionId && { regionId: filter.regionId }),
           ...(filter.status && { status: filter.status }),
         },
@@ -45,7 +45,7 @@ export class DepotsService {
 
   get(actor: Actor, id: string) {
     requireRule(
-      ["ADMIN", "RESPONSABLE"].includes(actor.role),
+      ["ADMIN", "RESPONSABLE", "ORDERS"].includes(actor.role),
       "FORBIDDEN",
       "Not allowed.",
       403,

@@ -47,6 +47,15 @@ export async function adminIds(tx: Tx): Promise<string[]> {
   return admins.map((a) => a.id);
 }
 
+/** The active order managers (the people who run the supply side). */
+export async function ordersIds(tx: Tx): Promise<string[]> {
+  const rows = await tx.user.findMany({
+    where: { role: "ORDERS", status: "ACTIVE" },
+    select: { id: true },
+  });
+  return rows.map((r) => r.id);
+}
+
 /**
  * Tells the admins about something that happened in `regionId`. Nothing done in the test region
  * (the store reviewers' accounts) reaches them.

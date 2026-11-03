@@ -18,7 +18,7 @@ const Lines = z
 export class ReturnsController {
   constructor(private readonly returns: ReturnsService) {}
 
-  @Roles("RESPONSABLE", "ADMIN")
+  @Roles("RESPONSABLE", "ADMIN", "ORDERS")
   @Get()
   list(@Req() r: AuthRequest, @Query() q: Record<string, string>) {
     return this.returns.list(
@@ -53,7 +53,7 @@ export class ReturnsController {
     );
   }
 
-  @Roles("RESPONSABLE", "ADMIN")
+  @Roles("RESPONSABLE", "ADMIN", "ORDERS")
   @Get(":id")
   get(@Req() r: AuthRequest, @Param("id") i: string) {
     return this.returns.get(r.actor, parse(id, i));

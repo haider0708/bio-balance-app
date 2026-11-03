@@ -80,7 +80,7 @@ export interface Account {
 
 /** Create an active account with a live session, skipping the sign-in screen. */
 export async function createAccount(input: {
-  role: "ADMIN" | "RESPONSABLE" | "VENDEUR";
+  role: "ADMIN" | "RESPONSABLE" | "VENDEUR" | "ORDERS";
   email?: string;
   name?: string;
   regionCode?: string;

@@ -691,7 +691,7 @@ export class TransfersService {
     filter: { status?: TransferStatus; pdvId?: string },
   ) {
     requireRule(
-      ["VENDEUR", "RESPONSABLE", "ADMIN"].includes(actor.role),
+      ["VENDEUR", "RESPONSABLE", "ADMIN", "ORDERS"].includes(actor.role),
       "FORBIDDEN",
       "Not allowed.",
       403,

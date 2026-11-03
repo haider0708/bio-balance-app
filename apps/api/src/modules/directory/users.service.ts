@@ -52,7 +52,8 @@ export class UsersService {
     actor: Actor,
     input:
       | ({ role: "RESPONSABLE"; regionId: string } & NewMember)
-      | ({ role: "VENDEUR"; pdvId: string } & NewMember),
+      | ({ role: "VENDEUR"; pdvId: string } & NewMember)
+      | ({ role: "ORDERS" } & NewMember),
   ) {
     requireRule(
       actor.role === "ADMIN",

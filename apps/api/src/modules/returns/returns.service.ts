@@ -619,9 +619,11 @@ export class ReturnsService {
 
   async list(actor: Actor, filter: { status?: ReturnStatus; pdvId?: string }) {
     requireRule(
-      actor.role === "RESPONSABLE" || actor.role === "ADMIN",
+      actor.role === "RESPONSABLE" ||
+        actor.role === "ADMIN" ||
+        actor.role === "ORDERS",
       "FORBIDDEN",
-      "Only a responsable or the admin handles returns.",
+      "Only a responsable, the order manager or the admin sees returns.",
       403,
     );
     const rows = await this.db.run(actor, (tx) =>
@@ -640,9 +642,11 @@ export class ReturnsService {
 
   async get(actor: Actor, id: string) {
     requireRule(
-      actor.role === "RESPONSABLE" || actor.role === "ADMIN",
+      actor.role === "RESPONSABLE" ||
+        actor.role === "ADMIN" ||
+        actor.role === "ORDERS",
       "FORBIDDEN",
-      "Only a responsable or the admin handles returns.",
+      "Only a responsable, the order manager or the admin sees returns.",
       403,
     );
     const row = await this.db.run(actor, (tx) =>
