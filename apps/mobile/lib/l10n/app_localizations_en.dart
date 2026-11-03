@@ -1630,6 +1630,72 @@ class AppLocalizationsEn extends AppLocalizations {
   String get retry => 'Try again';
 
   @override
+  String get returnActionAdd => 'Add only';
+
+  @override
+  String get returnActionMove => 'Move to another para';
+
+  @override
+  String get returnActionRemove => 'Take out';
+
+  @override
+  String get returnAdded => 'Added to the para';
+
+  @override
+  String get returnApproveMove => 'Approve and move to another para';
+
+  @override
+  String get returnCancel => 'Cancel this return';
+
+  @override
+  String get returnCancelAsk => 'Cancel this return?';
+
+  @override
+  String get returnCancelled => 'Return cancelled';
+
+  @override
+  String get returnDone => 'Stock updated';
+
+  @override
+  String get returnMoveTo => 'Moves to';
+
+  @override
+  String returnMovedTo(String name) {
+    return 'Moved to $name';
+  }
+
+  @override
+  String get returnNew => 'New return';
+
+  @override
+  String get returnNone => 'No return here';
+
+  @override
+  String get returnNoneHint =>
+      'A return takes quantities out of a para\'s stock. Ask here; the admin decides.';
+
+  @override
+  String get returnPara => 'Para';
+
+  @override
+  String get returnRejected => 'Return refused';
+
+  @override
+  String get returnSent => 'Return sent to the admin';
+
+  @override
+  String get returnSubmit => 'Send to the admin';
+
+  @override
+  String get returnSubmitNow => 'Apply now';
+
+  @override
+  String get returnTakenOut => 'Taken out';
+
+  @override
+  String get returnsTitle => 'Returns';
+
+  @override
   String reviewSale(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
@@ -2041,6 +2107,147 @@ class AppLocalizationsEn extends AppLocalizations {
   String get trainingTitle => 'Training';
 
   @override
+  String get transferApprove => 'Approve';
+
+  @override
+  String get transferApproveChange => 'Change and approve';
+
+  @override
+  String get transferApproved => 'Approved: the stock moved';
+
+  @override
+  String transferAsked(int count) {
+    return 'Asked $count';
+  }
+
+  @override
+  String get transferCancel => 'Cancel this transfer';
+
+  @override
+  String get transferCancelAsk => 'Cancel this transfer?';
+
+  @override
+  String get transferCancelled => 'Transfer cancelled';
+
+  @override
+  String transferChangedBy(String name) {
+    return '$name changed the quantities';
+  }
+
+  @override
+  String get transferChanges => 'Changes';
+
+  @override
+  String get transferChoosePara => 'Choose a para';
+
+  @override
+  String get transferDecidedTab => 'Decided';
+
+  @override
+  String get transferDirection => 'My para';
+
+  @override
+  String get transferEdit => 'Change the quantities';
+
+  @override
+  String get transferEdited => 'Quantities updated';
+
+  @override
+  String get transferExchange => 'Exchange with a para';
+
+  @override
+  String transferExpires(String date) {
+    return 'Expires $date';
+  }
+
+  @override
+  String get transferFrom => 'From';
+
+  @override
+  String transferGroupName(String name) {
+    return 'Group $name';
+  }
+
+  @override
+  String get transferMoved => 'Stock moved';
+
+  @override
+  String get transferMyReceives => 'My para receives';
+
+  @override
+  String get transferMySends => 'My para sends';
+
+  @override
+  String get transferNew => 'New transfer';
+
+  @override
+  String get transferNoGroup =>
+      'This para is not in a group. Ask the admin to put it in one.';
+
+  @override
+  String get transferNoPartners => 'No other active para in this group.';
+
+  @override
+  String get transferNone => 'No transfer here';
+
+  @override
+  String get transferNoneHint =>
+      'Paras of the same group can exchange products. Call each other, then record it here.';
+
+  @override
+  String get transferPhotoLabel => 'Photo as proof';
+
+  @override
+  String get transferProducts => 'Products';
+
+  @override
+  String get transferReject => 'Refuse';
+
+  @override
+  String get transferRejectTitle => 'Why is it refused?';
+
+  @override
+  String get transferRejected => 'Transfer refused';
+
+  @override
+  String get transferSent => 'Transfer sent for approval';
+
+  @override
+  String transferShortageLine(String name, int available, int wanted) {
+    return '$name: $available in stock, $wanted wanted';
+  }
+
+  @override
+  String get transferStatusApproved => 'Approved';
+
+  @override
+  String get transferStatusCancelled => 'Cancelled';
+
+  @override
+  String get transferStatusExpired => 'Expired';
+
+  @override
+  String get transferStatusPending => 'Waiting for the admin';
+
+  @override
+  String get transferStatusRejected => 'Refused';
+
+  @override
+  String get transferSubmit => 'Send for approval';
+
+  @override
+  String get transferSubmitNow => 'Move the stock now';
+
+  @override
+  String get transferTo => 'To';
+
+  @override
+  String get transferWaitingTab => 'Waiting';
+
+  @override
+  String get transfersTitle => 'Transfers';
+
+  @override
   String trendSemantics(int total) {
     return 'Chart: $total units sold over the last 14 days';
   }
@@ -2064,7 +2271,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get typeRestockRequest => 'Restock request';
 
   @override
+  String get typeReturn => 'Return';
+
+  @override
   String get typeStock => 'Stock';
+
+  @override
+  String get typeTransfer => 'Transfer';
 
   @override
   String units(int count) {

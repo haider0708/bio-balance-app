@@ -93,7 +93,8 @@ void main() {
 
   testWidgets('the admin also gets the regions', (tester) async {
     final handle = tester.ensureSemantics();
-    await pump(tester, const Size(1400, 900));
+    // Tall enough for the whole sidebar (it has grown: planning, transfers, returns).
+    await pump(tester, const Size(1400, 1300));
     expect(find.bySemanticsLabel('Regions'), findsOneWidget);
     handle.dispose();
   });

@@ -91,6 +91,14 @@ The apps report the errors they meet (release builds; platform, version and the 
 
 The worker reminds every minute (`visit.reminder`), queues the evening alert from 20:00 (`visit-evening`) and the day's closing from 23:30 (`visit-close`, also for yesterday if the worker was down: a planned visit not started becomes *missed*, one still on site is closed). Visits and check-ins older than 12 months are erased by the hourly cleanup; the evidence table refuses any other delete or update. If a responsable says the calendar app shows nothing: Planning → settings → "Make a new link" and add it again. The position of a place can be fixed or corrected by the admin (`PUT /v1/planning/positions/pdv/:id`, audit `place.position_set`).
 
+## Transfers between paras
+
+The worker drops a transfer nobody decided after 3 days (`transfer-expire`, hourly). A transfer whose approval fails with `TRANSFER_STOCK` is not stuck: the admin approves a smaller quantity or refuses it. The stock history of a para shows `TRANSFER_OUT` / `TRANSFER_IN` lines with `refType = StockTransfer`. To see what happened to one: `SELECT * FROM "AuditEntry" WHERE entity = 'StockTransfer' AND "entityId" = '<id>'`.
+
+## Returns
+
+The worker drops a return nobody decided after 3 days (`return-expire`, hourly). A return whose approval fails with `RETURN_STOCK` is not stuck: the admin approves a smaller quantity or refuses it. Stock history lines of a return carry `reason` RETURN_OUT or RETURN_IN and `refType = StockReturn`; the audit log has `return.requested`, `return.changed`, `return.approved`, `return.rejected`, `return.cancelled`, `return.expired`.
+
 ## A wrong reward rate
 
 If a rate was wrong for a while (3 TND typed as 3000 on 30 October 2026): cancel the rule and set the right one in Rewards, then open each sale it touched (a sale's detail, admin) and use **Re-price this sale** with a short reason. Sales made under the wrong rate show in the admin inbox as "sale.reward.high" when one earned over 50 TND. Check afterwards that no payout was approved meanwhile. Never void a sale to fix a price: it gives the stock back.

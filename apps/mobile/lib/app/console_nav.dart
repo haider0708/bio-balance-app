@@ -71,6 +71,16 @@ List<ConsoleNavEntry> _responsableEntries(AppLocalizations t) => [
     path: '/restocks',
   ),
   ConsoleNavEntry.item(
+    icon: LucideIcons.arrowLeftRight,
+    label: t.transfersTitle,
+    path: '/transfers',
+  ),
+  ConsoleNavEntry.item(
+    icon: LucideIcons.undo2,
+    label: t.returnsTitle,
+    path: '/returns',
+  ),
+  ConsoleNavEntry.item(
     icon: LucideIcons.calendarDays,
     label: t.planningTitle,
     path: '/planning',
@@ -137,6 +147,16 @@ List<ConsoleNavEntry> _adminEntries(AppLocalizations t) => [
     icon: LucideIcons.truck,
     label: t.tabRestocks,
     path: '/restocks',
+  ),
+  ConsoleNavEntry.item(
+    icon: LucideIcons.arrowLeftRight,
+    label: t.transfersTitle,
+    path: '/transfers',
+  ),
+  ConsoleNavEntry.item(
+    icon: LucideIcons.undo2,
+    label: t.returnsTitle,
+    path: '/returns',
   ),
   ConsoleNavEntry.item(
     icon: LucideIcons.wallet,

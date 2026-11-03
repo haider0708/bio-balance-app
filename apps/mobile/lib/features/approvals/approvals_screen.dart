@@ -178,6 +178,8 @@ String _typeLabel(AppLocalizations t, ApprovalType type) => switch (type) {
   ApprovalType.restockRequest => t.typeRestockRequest,
   ApprovalType.payout => t.typePayout,
   ApprovalType.recount => t.typeRecount,
+  ApprovalType.transfer => t.typeTransfer,
+  ApprovalType.stockReturn => t.typeReturn,
 };
 
 IconData _typeIcon(ApprovalType type) => switch (type) {
@@ -189,6 +191,8 @@ IconData _typeIcon(ApprovalType type) => switch (type) {
   ApprovalType.restockRequest => LucideIcons.truck,
   ApprovalType.payout => LucideIcons.banknote,
   ApprovalType.recount => LucideIcons.rotateCcw,
+  ApprovalType.transfer => LucideIcons.arrowLeftRight,
+  ApprovalType.stockReturn => LucideIcons.undo2,
 };
 
 /// A recount and a correction request share a kind; the correction says what it is.
@@ -224,6 +228,8 @@ class _ApprovalTile extends ConsumerWidget {
         ),
         ApprovalType.group => '',
         ApprovalType.recount => item.meta.str('reason'),
+        ApprovalType.transfer || ApprovalType.stockReturn =>
+          '${item.meta.str('number')} · ${t.units(item.meta.integer('units'))}',
       },
     ].where((s) => s.isNotEmpty).toList();
     return AppCard(
@@ -282,6 +288,10 @@ class _ApprovalTile extends ConsumerWidget {
         await context.push('/restocks/${item.id}');
       case ApprovalType.payout:
         await context.push('/payouts');
+      case ApprovalType.transfer:
+        await context.push('/transfers/${item.id}');
+      case ApprovalType.stockReturn:
+        await context.push('/returns/${item.id}');
       case ApprovalType.recount:
         final approve = await showModalBottomSheet<bool>(
           context: context,

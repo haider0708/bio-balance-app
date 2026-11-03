@@ -53,7 +53,13 @@ import '../features/planning/planning_screen.dart';
 import '../features/planning/planning_settings_screen.dart';
 import '../features/planning/visit_detail_screen.dart';
 import '../features/planning/visit_form_screen.dart';
+import '../features/returns/new_return_screen.dart';
+import '../features/returns/return_detail_screen.dart';
+import '../features/returns/returns_screen.dart';
 import '../features/settings/settings_screen.dart';
+import '../features/transfers/new_transfer_screen.dart';
+import '../features/transfers/transfer_detail_screen.dart';
+import '../features/transfers/transfers_screen.dart';
 import '../features/splash/splash_screen.dart';
 import '../features/stock/edit_declaration_screen.dart';
 import '../features/stock/stock_models.dart';
@@ -542,6 +548,22 @@ List<RouteBase> _admin() => [
 
 /// Screens that several roles can open.
 List<RouteBase> _shared() => [
+  // Returns: a responsable asks, the admin decides (a team member has no returns).
+  GoRoute(path: '/returns', builder: (_, _) => const ReturnsScreen()),
+  GoRoute(path: '/returns/new', builder: (_, _) => const NewReturnScreen()),
+  GoRoute(
+    path: '/returns/:id',
+    builder: (_, state) =>
+        ReturnDetailScreen(returnId: state.pathParameters['id']!),
+  ),
+  // Transfers between paras of a group: a team member records them, the admin decides.
+  GoRoute(path: '/transfers', builder: (_, _) => const TransfersScreen()),
+  GoRoute(path: '/transfers/new', builder: (_, _) => const NewTransferScreen()),
+  GoRoute(
+    path: '/transfers/:id',
+    builder: (_, state) =>
+        TransferDetailScreen(transferId: state.pathParameters['id']!),
+  ),
   GoRoute(
     path: '/notifications',
     builder: (_, _) => const NotificationsScreen(),
@@ -686,6 +708,8 @@ Widget _more(Role role) => Builder(
           t.planningOverviewTitle,
           '/planning/overview',
         ),
+        MoreEntry(LucideIcons.arrowLeftRight, t.transfersTitle, '/transfers'),
+        MoreEntry(LucideIcons.undo2, t.returnsTitle, '/returns'),
         MoreEntry(
           LucideIcons.wallet,
           t.payoutsTitle,
@@ -725,6 +749,8 @@ Widget _more(Role role) => Builder(
       ],
       Role.responsable => [
         MoreEntry(LucideIcons.calendarDays, t.planningTitle, '/planning'),
+        MoreEntry(LucideIcons.arrowLeftRight, t.transfersTitle, '/transfers'),
+        MoreEntry(LucideIcons.undo2, t.returnsTitle, '/returns'),
         MoreEntry(LucideIcons.warehouse, t.grossistesTitle, '/depots'),
         MoreEntry(LucideIcons.package, t.catalogTitle, '/catalog'),
         MoreEntry(LucideIcons.graduationCap, t.trainingTitle, '/training'),

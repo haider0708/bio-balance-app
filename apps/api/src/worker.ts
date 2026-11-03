@@ -14,6 +14,8 @@ import {
 } from "./demo/sandbox";
 import { scheduleDaySummary, sendDaySummaries } from "./jobs/day-summary";
 import { cleanup, scheduleCleanup } from "./jobs/maintenance";
+import { expireReturns, scheduleReturnJobs } from "./jobs/returns";
+import { expireTransfers, scheduleTransferJobs } from "./jobs/transfers";
 import {
   closeVisitDay,
   scheduleVisitJobs,
@@ -73,6 +75,10 @@ const execute: JobExecutor = async (job, stillOwned) => {
       return;
     case "day-summary":
       return sendDaySummaries(db, String(job.payload.day));
+    case "transfer-expire":
+      return expireTransfers(db);
+    case "return-expire":
+      return expireReturns(db);
     case "visit-evening":
       return sendEveningPlans(db, String(job.payload.day));
     case "visit-close":
@@ -107,6 +113,8 @@ async function main() {
       "visit-evening",
       "visit-close",
       "visit-settle",
+      "transfer-expire",
+      "return-expire",
     ],
     execute,
   );
@@ -137,6 +145,8 @@ async function main() {
             await scheduleSandbox(db);
             await scheduleDaySummary(db);
             await scheduleVisitJobs(db);
+            await scheduleTransferJobs(db);
+            await scheduleReturnJobs(db);
             await sendVisitReminders(db);
             nextSandbox = Date.now() + 60_000;
           }

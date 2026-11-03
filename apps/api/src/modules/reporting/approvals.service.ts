@@ -12,7 +12,9 @@ export type ApprovalType =
   | "RECEIPT"
   | "PAYOUT"
   | "RESTOCK_REQUEST"
-  | "RECOUNT";
+  | "RECOUNT"
+  | "TRANSFER"
+  | "RETURN";
 
 export interface ApprovalItem {
   type: ApprovalType;
@@ -79,6 +81,8 @@ export class ApprovalsService {
         orders,
         payouts,
         recounts,
+        transfers,
+        returnRows,
       ] = await Promise.all([
         tx.region.findMany(),
         tx.group.findMany({ where: { id: { in: ids("Group") } } }),
@@ -125,6 +129,14 @@ export class ApprovalsService {
             declarationId: true,
           },
         }),
+        tx.stockTransfer.findMany({
+          where: { id: { in: ids("StockTransfer") } },
+          select: { id: true, number: true, fromPdvId: true, toPdvId: true },
+        }),
+        tx.stockReturn.findMany({
+          where: { id: { in: ids("StockReturn") } },
+          select: { id: true, number: true, pdvId: true, toPdvId: true },
+        }),
       ]);
       // A store that already sold something cannot be taken back to waiting.
       const sold = new Set(
@@ -139,6 +151,11 @@ export class ApprovalsService {
         ...declarations.map((d) => d.locationId),
         ...orders.map((o) => o.destId),
         ...recounts.map((r) => r.locationId),
+        ...transfers.flatMap((t) => [t.fromPdvId, t.toPdvId]),
+        ...returnRows.flatMap((r) => [
+          r.pdvId,
+          ...(r.toPdvId ? [r.toPdvId] : []),
+        ]),
       ]);
       const payees = new Map(
         (
@@ -166,6 +183,20 @@ export class ApprovalsService {
             ] as const,
         ),
         ...recounts.map((r) => [r.id, places.get(r.locationId) ?? ""] as const),
+        ...transfers.map(
+          (t) =>
+            [
+              t.id,
+              `${places.get(t.fromPdvId) ?? ""} → ${places.get(t.toPdvId) ?? ""} · ${t.number}`,
+            ] as const,
+        ),
+        ...returnRows.map(
+          (r) =>
+            [
+              r.id,
+              `${places.get(r.pdvId) ?? ""}${r.toPdvId ? ` → ${places.get(r.toPdvId) ?? ""}` : ""} · ${r.number}`,
+            ] as const,
+        ),
       ]);
       const regionName = new Map(regions.map((r) => [r.id, r.name]));
       const adminName = new Map(admins.map((a) => [a.id, a.name]));
@@ -503,6 +534,62 @@ export class ApprovalsService {
             meta: { reason: r.reason, kind: r.kind },
           });
       }
+      if (want("TRANSFER")) {
+        const rows = await tx.stockTransfer.findMany({
+          where: { status: "PENDING", ...(region && { regionId: region }) },
+          include: { lines: { select: { quantity: true } } },
+          orderBy: { createdAt: "asc" },
+          take: 100,
+        });
+        const places = await placeNames(
+          tx,
+          rows.flatMap((r) => [r.fromPdvId, r.toPdvId]),
+        );
+        await person(rows.map((r) => r.createdById));
+        for (const r of rows)
+          items.push({
+            type: "TRANSFER",
+            id: r.id,
+            name: `${places.get(r.fromPdvId) ?? ""} → ${places.get(r.toPdvId) ?? ""}`,
+            by: people.get(r.createdById) ?? null,
+            regionId: r.regionId,
+            region: at(r.regionId),
+            createdAt: r.createdAt,
+            meta: {
+              number: r.number,
+              units: r.lines.reduce((s, l) => s + l.quantity, 0),
+              changed: r.revision > 0,
+            },
+          });
+      }
+      if (want("RETURN")) {
+        const rows = await tx.stockReturn.findMany({
+          where: { status: "PENDING", ...(region && { regionId: region }) },
+          include: { lines: { select: { quantity: true } } },
+          orderBy: { createdAt: "asc" },
+          take: 100,
+        });
+        const places = await placeNames(
+          tx,
+          rows.map((r) => r.pdvId),
+        );
+        await person(rows.map((r) => r.createdById));
+        for (const r of rows)
+          items.push({
+            type: "RETURN",
+            id: r.id,
+            name: places.get(r.pdvId) ?? "",
+            by: people.get(r.createdById) ?? null,
+            regionId: r.regionId,
+            region: at(r.regionId),
+            createdAt: r.createdAt,
+            meta: {
+              number: r.number,
+              units: r.lines.reduce((s, l) => s + l.quantity, 0),
+              changed: r.revision > 0,
+            },
+          });
+      }
       if (want("PAYOUT")) {
         const rows = await tx.payoutRequest.findMany({
           where: { status: "PENDING", ...(region && { regionId: region }) },
@@ -557,6 +644,10 @@ const DECISIONS: Record<
   "payout.rejected": { type: "PAYOUT", outcome: "REJECTED" },
   "stock.recount_approved": { type: "RECOUNT", outcome: "APPROVED" },
   "stock.recount_rejected": { type: "RECOUNT", outcome: "REJECTED" },
+  "transfer.approved": { type: "TRANSFER", outcome: "APPROVED" },
+  "transfer.rejected": { type: "TRANSFER", outcome: "REJECTED" },
+  "return.approved": { type: "RETURN", outcome: "APPROVED" },
+  "return.rejected": { type: "RETURN", outcome: "REJECTED" },
 };
 
 async function placeNames(tx: Tx, ids: string[]) {
@@ -576,19 +667,31 @@ async function placeNames(tx: Tx, ids: string[]) {
 /** How many things wait for the admin, by kind. Scoped by row-level security to the caller. */
 export async function countPending(tx: Tx, regionId?: string) {
   const region = regionId ? { regionId } : {};
-  const [groups, pdvs, members, stock, receipts, requests, payouts, recounts] =
-    await Promise.all([
-      tx.group.count({ where: { status: "PENDING", ...region } }),
-      tx.pdv.count({ where: { status: "PENDING", ...region } }),
-      tx.user.count({
-        where: { status: "PENDING", role: "VENDEUR", ...region },
-      }),
-      tx.stockDeclaration.count({ where: { status: "PENDING", ...region } }),
-      tx.restockOrder.count({ where: { status: "RECEIVED", ...region } }),
-      tx.restockOrder.count({ where: { status: "REQUESTED", ...region } }),
-      tx.payoutRequest.count({ where: { status: "PENDING", ...region } }),
-      tx.stockRecount.count({ where: { status: "PENDING", ...region } }),
-    ]);
+  const [
+    groups,
+    pdvs,
+    members,
+    stock,
+    receipts,
+    requests,
+    payouts,
+    recounts,
+    transfers,
+    returns,
+  ] = await Promise.all([
+    tx.group.count({ where: { status: "PENDING", ...region } }),
+    tx.pdv.count({ where: { status: "PENDING", ...region } }),
+    tx.user.count({
+      where: { status: "PENDING", role: "VENDEUR", ...region },
+    }),
+    tx.stockDeclaration.count({ where: { status: "PENDING", ...region } }),
+    tx.restockOrder.count({ where: { status: "RECEIVED", ...region } }),
+    tx.restockOrder.count({ where: { status: "REQUESTED", ...region } }),
+    tx.payoutRequest.count({ where: { status: "PENDING", ...region } }),
+    tx.stockRecount.count({ where: { status: "PENDING", ...region } }),
+    tx.stockTransfer.count({ where: { status: "PENDING", ...region } }),
+    tx.stockReturn.count({ where: { status: "PENDING", ...region } }),
+  ]);
   return {
     GROUP: groups,
     PDV: pdvs,
@@ -598,6 +701,8 @@ export async function countPending(tx: Tx, regionId?: string) {
     RESTOCK_REQUEST: requests,
     PAYOUT: payouts,
     RECOUNT: recounts,
+    TRANSFER: transfers,
+    RETURN: returns,
     total:
       groups +
       pdvs +
@@ -606,6 +711,8 @@ export async function countPending(tx: Tx, regionId?: string) {
       receipts +
       requests +
       payouts +
-      recounts,
+      recounts +
+      transfers +
+      returns,
   };
 }

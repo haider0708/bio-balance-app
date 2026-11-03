@@ -86,6 +86,8 @@ export class ReportingController {
             "PAYOUT",
             "RESTOCK_REQUEST",
             "RECOUNT",
+            "TRANSFER",
+            "RETURN",
           ])
           .optional(),
         before: z.coerce.date().optional(),
@@ -113,6 +115,8 @@ export class ReportingController {
               "PAYOUT",
               "RESTOCK_REQUEST",
               "RECOUNT",
+              "TRANSFER",
+              "RETURN",
             ])
             .optional(),
         }),

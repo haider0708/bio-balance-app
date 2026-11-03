@@ -38,7 +38,13 @@ export async function findLocation(tx: Tx, id: string): Promise<Location> {
   throw notFound("Location");
 }
 
-const LEAVING = new Set(["SALE", "SALE_CORRECTION", "SHIPMENT"]);
+const LEAVING = new Set([
+  "SALE",
+  "SALE_CORRECTION",
+  "SHIPMENT",
+  "TRANSFER_OUT",
+  "RETURN_OUT",
+]);
 
 export interface MovementRef {
   reason:
@@ -51,6 +57,12 @@ export interface MovementRef {
     | "SHIPMENT"
     | "SALE"
     | "SALE_CORRECTION"
+    /** Goods leaving a para for another one of its group, and arriving there. */
+    | "TRANSFER_OUT"
+    | "TRANSFER_IN"
+    /** Goods taken out of a para as a return, or put into one (a move, an addition). */
+    | "RETURN_OUT"
+    | "RETURN_IN"
     | "ADJUSTMENT";
   refType: string;
   refId: string;

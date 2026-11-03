@@ -194,3 +194,25 @@ A responsable keeps a calendar of **visits** to the stores and grossistes of the
 - **An unplanned visit** ("I'm at a place now") records the visit and the arrival at once.
 - **The admin's overview:** per responsable and period, visits planned, done, missed, and how many check-ins were at the place, away or without a position, with the average time on site; each visit shows its check-in and check-out, the reason, the flags and an "Open in Maps" link.
 - **Privacy:** positions and visits are kept **12 months** then erased; the privacy page says so. A deleted account's calendar link and settings go and its planned visits are cancelled; its past check-ins stay without a name until the 12 months end.
+
+## Transfers between paras of a group (2026-11)
+
+Paras of the **same group** (a group is a set of paras of one region) can exchange products. The two paras settle it **by phone**, then someone records it in the app; **the admin approves the quantities** and only then does the stock move.
+
+- **Who records:** a team member of either para (their own para is one side: "My para sends" or "My para receives"), the responsable of the region (any two paras of a group), or the admin. A team member always speaks for their own para, whatever the screen says.
+- **What:** the two paras (the second is chosen among the first one's group: a para without a group has no one to exchange with), the products and quantities (never more than the sender holds), **one photo** as proof, an optional note. The **admin's own transfer** needs no photo and no approval: the stock moves at once.
+- **Then:** it waits for the admin (Approvals, type *Transfer*, with its photo and lines). Meanwhile either para's team members or the responsable can **change the quantities** or **cancel**; each change is written down (who, from what to what) and the first quantities stay visible. The admin approves as it is, **corrects the quantities while approving**, or refuses with a reason.
+- **Stock:** checked when it is recorded, when it is changed, and again when the admin approves (a sale in between can make it impossible: the admin is told which products fall short and can approve a smaller quantity). The movement is one transaction: out of the sender, into the receiver, with a history line on each side (`TRANSFER_OUT`, `TRANSFER_IN`). Nothing moves before approval.
+- **A transfer nobody decides in 3 days expires** (the people who made it are told). A decided transfer cannot be changed.
+- **Who sees it:** a team member the transfers of their own para, the responsable their region's, the admin all (the test region stays hidden). Everybody concerned is told of the outcome (the creator, the responsable, the teams of both paras).
+- **Not included:** prices, delivery tracking, partial approvals, stock reserved while waiting, exchanges between different groups.
+
+## Returns (2026-11)
+
+A **return** takes quantities out of one para's stock. It has its own section (Returns, in More and in the web console's sidebar) and is for nothing else: no reasons, no destination to pick, no photo.
+
+- **The responsable asks:** for a para of their own region, the products and quantities (never more than the para holds) and an optional note. The admin is told; nothing moves yet. Until the admin decides, the responsable can **change the quantities** (each change is written down, the first quantities stay visible) or **cancel**. A team member has no returns.
+- **The admin controls it:** approves as it is, **corrects the quantities** while approving, **moves it to another para instead** (the quantities leave this para and enter the one he picks, in any region), or refuses with a reason. Nobody decided in 3 days: it expires, and the responsable is told. The stock is checked again at approval (a sale in between can make it impossible; the admin is told which products fall short).
+- **The admin acts directly,** on any para of any region, from the same screen: **take out only**, **move to another para**, or **add only** (quantities put into a para, no stock needed elsewhere). It applies at once, with no request and no approval, and the responsable of the para (and of the receiving para) is told.
+- **Stock:** one transaction, with a history line each (`RETURN_OUT`, `RETURN_IN`, reference `StockReturn`), and never below zero. Returns appear in the admin's Approvals (type *Return*) and its history.
+- **Not included:** reasons, prices or credit notes, a grossiste confirming receipt, customer returns (a sale is corrected from the sale). A move between paras of one group, recorded by a team member with a photo, is a *transfer*, not a return.

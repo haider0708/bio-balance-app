@@ -16,6 +16,7 @@ import '../../l10n/app_localizations.dart';
 import '../catalog/catalog_repository.dart';
 import '../notifications/notifications_repository.dart';
 import '../sales/sales_outbox.dart';
+import '../transfers/transfers_repository.dart';
 import '../wallet/wallet_models.dart';
 import 'dashboard_repository.dart';
 import 'home_scaffold.dart';
@@ -84,6 +85,7 @@ class VendeurHome extends ConsumerWidget {
                 icon: const Icon(LucideIcons.plus, size: 26),
                 label: Text(t.newSale),
               ),
+              const _ExchangeButton(),
               const Gap(12),
               AutoGrid(
                 minItemWidth: 120,
@@ -294,6 +296,29 @@ class _Banner extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// "Exchange with a para": only for a team member whose para is in a group with other active paras.
+class _ExchangeButton extends ConsumerWidget {
+  const _ExchangeButton();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final partners = ref.watch(transferPartnersProvider(null)).value;
+    if (partners == null || partners.paras.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    final t = AppLocalizations.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: OutlinedButton.icon(
+        onPressed: () => context.push('/transfers'),
+        style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(52)),
+        icon: const Icon(LucideIcons.arrowLeftRight),
+        label: Text(t.transferExchange),
       ),
     );
   }

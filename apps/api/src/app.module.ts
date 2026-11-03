@@ -6,6 +6,8 @@ import { CatalogModule } from "./modules/catalog/catalog.module";
 import { DirectoryModule } from "./modules/directory/directory.module";
 import { MediaModule } from "./modules/media/media.module";
 import { PlanningModule } from "./modules/planning/planning.module";
+import { ReturnsModule } from "./modules/returns/returns.module";
+import { TransfersModule } from "./modules/transfers/transfers.module";
 import { DiagnosticsModule } from "./modules/diagnostics/diagnostics.module";
 import { MessagingModule } from "./modules/messaging/messaging.module";
 import { ReportingModule } from "./modules/reporting/reporting.module";
@@ -44,6 +46,8 @@ class HealthController {
     TrainingModule,
     ReportingModule,
     PlanningModule,
+    TransfersModule,
+    ReturnsModule,
   ],
   controllers: [
     HealthController,

@@ -13,7 +13,9 @@ enum ApprovalType {
   receipt('RECEIPT'),
   restockRequest('RESTOCK_REQUEST'),
   payout('PAYOUT'),
-  recount('RECOUNT');
+  recount('RECOUNT'),
+  transfer('TRANSFER'),
+  stockReturn('RETURN');
 
   const ApprovalType(this.wire);
   final String wire;
@@ -171,6 +173,8 @@ Future<void> reopenDecision(ApiClient client, HistoryItem item) {
     ApprovalType.receipt ||
     ApprovalType.restockRequest => '/v1/restocks/${item.id}/reopen',
     ApprovalType.payout => throw StateError('payouts cannot be reopened'),
+    ApprovalType.transfer => throw StateError('transfers cannot be reopened'),
+    ApprovalType.stockReturn => throw StateError('returns cannot be reopened'),
   };
   return client.post(path);
 }

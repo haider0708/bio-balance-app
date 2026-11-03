@@ -817,6 +817,34 @@
   "resubmit": "Submit again",
   "resubmitted": "Submitted again",
   "retry": "Try again",
+  "returnActionAdd": "Add only",
+  "returnActionMove": "Move to another para",
+  "returnActionRemove": "Take out",
+  "returnAdded": "Added to the para",
+  "returnApproveMove": "Approve and move to another para",
+  "returnCancel": "Cancel this return",
+  "returnCancelAsk": "Cancel this return?",
+  "returnCancelled": "Return cancelled",
+  "returnDone": "Stock updated",
+  "returnMoveTo": "Moves to",
+  "returnMovedTo": "Moved to {name}",
+  "@returnMovedTo": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "returnNew": "New return",
+  "returnNone": "No return here",
+  "returnNoneHint": "A return takes quantities out of a para's stock. Ask here; the admin decides.",
+  "returnPara": "Para",
+  "returnRejected": "Return refused",
+  "returnSent": "Return sent to the admin",
+  "returnSubmit": "Send to the admin",
+  "returnSubmitNow": "Apply now",
+  "returnTakenOut": "Taken out",
+  "returnsTitle": "Returns",
   "reviewSale": "{count, plural, =1{Review sale · 1 unit} other{Review sale · {count} units}}",
   "@reviewSale": {
     "placeholders": {
@@ -1025,6 +1053,90 @@
   "torch": "Flashlight",
   "totalUnits": "Total units",
   "trainingTitle": "Training",
+  "transferApprove": "Approve",
+  "transferApproveChange": "Change and approve",
+  "transferApproved": "Approved: the stock moved",
+  "transferAsked": "Asked {count}",
+  "@transferAsked": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "transferCancel": "Cancel this transfer",
+  "transferCancelAsk": "Cancel this transfer?",
+  "transferCancelled": "Transfer cancelled",
+  "transferChangedBy": "{name} changed the quantities",
+  "@transferChangedBy": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "transferChanges": "Changes",
+  "transferChoosePara": "Choose a para",
+  "transferDecidedTab": "Decided",
+  "transferDirection": "My para",
+  "transferEdit": "Change the quantities",
+  "transferEdited": "Quantities updated",
+  "transferExchange": "Exchange with a para",
+  "transferExpires": "Expires {date}",
+  "@transferExpires": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "transferFrom": "From",
+  "transferGroupName": "Group {name}",
+  "@transferGroupName": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "transferMoved": "Stock moved",
+  "transferMyReceives": "My para receives",
+  "transferMySends": "My para sends",
+  "transferNew": "New transfer",
+  "transferNoGroup": "This para is not in a group. Ask the admin to put it in one.",
+  "transferNoPartners": "No other active para in this group.",
+  "transferNone": "No transfer here",
+  "transferNoneHint": "Paras of the same group can exchange products. Call each other, then record it here.",
+  "transferPhotoLabel": "Photo as proof",
+  "transferProducts": "Products",
+  "transferReject": "Refuse",
+  "transferRejectTitle": "Why is it refused?",
+  "transferRejected": "Transfer refused",
+  "transferSent": "Transfer sent for approval",
+  "transferShortageLine": "{name}: {available} in stock, {wanted} wanted",
+  "@transferShortageLine": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "available": {
+        "type": "int"
+      },
+      "wanted": {
+        "type": "int"
+      }
+    }
+  },
+  "transferStatusApproved": "Approved",
+  "transferStatusCancelled": "Cancelled",
+  "transferStatusExpired": "Expired",
+  "transferStatusPending": "Waiting for the admin",
+  "transferStatusRejected": "Refused",
+  "transferSubmit": "Send for approval",
+  "transferSubmitNow": "Move the stock now",
+  "transferTo": "To",
+  "transferWaitingTab": "Waiting",
+  "transfersTitle": "Transfers",
   "trendSemantics": "Chart: {total} units sold over the last 14 days",
   "@trendSemantics": {
     "placeholders": {
@@ -1039,7 +1151,9 @@
   "typePdv": "Point of sale",
   "typeReceipt": "Delivery",
   "typeRestockRequest": "Restock request",
+  "typeReturn": "Return",
   "typeStock": "Stock",
+  "typeTransfer": "Transfer",
   "units": "{count, plural, =1{1 unit} other{{count} units}}",
   "@units": {
     "placeholders": {

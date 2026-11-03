@@ -253,3 +253,31 @@ Round three: `GET /v1/approvals/history`, `POST /v1/stock/adjust`, `POST /v1/sto
 | GET | `/cal/<43-character token>.ics` (public, secret link, `Cache-Control: private, no-store`) | calendar apps |
 
 Visits: `status` PLANNED, ON_SITE, DONE, MISSED, CANCELLED; `revision` grows with every change (the calendar replaces its copy). Each event: `kind` CHECK_IN or CHECK_OUT, `verdict` VERIFIED, OUT_OF_RANGE, NO_FIX, NO_POSITION or SANDBOX, `distanceM`, `flags` (MOCK_LOCATION, LATE_SYNC, LOW_ACCURACY). Errors: `VISIT_OVERLAP` (409, resend with `allowOverlap`), `POSITION_REASON_REQUIRED` (422: arrival away or without a position needs `reason`), `TOO_EARLY` (more than one hour before), `WRONG_DAY`, `POSITION_FIXED` (403), `LOW_ACCURACY`, `OUTSIDE_TUNISIA`, `PLACE_NOT_FOUND`, `TOO_MANY_VISITS`, `INVALID_LEAD`. A check-in or check-out sent twice returns the first; the phone picks the id of an unplanned visit.
+
+## Transfers between paras of a group (2026-11)
+
+| Method | Path | Who |
+|---|---|---|
+| GET | `/v1/transfers?status&pdvId` | team member (own para), responsable (region), admin |
+| GET | `/v1/transfers/partners[?pdvId]` | the active paras of the same group (a team member: their own para's; a responsable or the admin pass `pdvId`) |
+| POST | `/v1/transfers` `{fromPdvId, toPdvId, direction: SEND\|REQUEST, lines[{productId, quantity}], photoId?, note?}` | team member of either para, responsable, admin |
+| GET | `/v1/transfers/:id` | those who see it |
+| POST | `/v1/transfers/:id/edit` `{lines}` | either para's team member, the responsable, the admin (while PENDING) |
+| POST | `/v1/transfers/:id/cancel` | the same |
+| POST | `/v1/transfers/:id/approve` `{note?, lines?}` | admin (`lines` replaces the quantities: what the admin writes is what moves) |
+| POST | `/v1/transfers/:id/reject` `{note}` | admin |
+
+`status` PENDING, APPROVED, REJECTED, CANCELLED, EXPIRED. A transfer carries `number` (TR-YYYY-nnnnnn), `from`, `to`, `group`, `createdBy`, `photoId`, `lines[{productId, name, quantity, requestedQuantity}]`, `changes[]` (detail only), and what the caller may do: `canEdit`, `canCancel`, `canDecide`. A team member's `direction` follows their para (they send if it is `fromPdvId`). One photo is required except from the admin, whose transfer is created APPROVED. Errors: `NOT_SAME_GROUP`, `SAME_PLACE`, `PLACE_INACTIVE`, `GROUP_INACTIVE`, `TRANSFER_STOCK` (409, `details.products[{name, available, wanted}]`), `PHOTO_REQUIRED`, `INVALID_STATE`, `NO_LINES`, `DUPLICATE_PRODUCT`. Approvals: `/v1/approvals` lists `type: TRANSFER` (name "From → To", `meta {number, units, changed}`) and its history uses `transfer.approved` and `transfer.rejected`.
+
+## Returns (2026-11)
+
+| Method | Path | Who |
+|---|---|---|
+| GET | `/v1/returns?status&pdvId` | responsable (their region's), admin (all) |
+| POST | `/v1/returns` `{pdvId, action: REMOVE\|MOVE\|ADD, toPdvId?, lines[{productId, quantity}], note?}` | responsable (`REMOVE` only, for a para of their region: waits for the admin), admin (any para, any action: applied at once) |
+| GET | `/v1/returns/:id` | the same |
+| POST | `/v1/returns/:id/edit` `{lines}` / `cancel` | responsable, admin (while PENDING) |
+| POST | `/v1/returns/:id/approve` `{note?, lines?, toPdvId?}` | admin (`lines` replaces the quantities; `toPdvId` turns a take-out into a move) |
+| POST | `/v1/returns/:id/reject` `{note}` | admin |
+
+`status` PENDING, APPROVED, REJECTED, CANCELLED, EXPIRED; `action` REMOVE (take out of `para`), MOVE (out of `para`, into `to`), ADD (into `para`). A return carries `number` (RT-YYYY-nnnnnn), `para`, `to`, `createdBy`, `lines[{productId, name, quantity, requestedQuantity}]`, `changes[]` (detail only) and `canEdit`, `canCancel`, `canDecide`. Errors: `RETURN_STOCK` (409, `details.products[{name, available, wanted}]`), `INVALID_ACTION` (a move needs `toPdvId`; only a move has one), `PARA_NOT_FOUND`, `SAME_PLACE`, `PLACE_INACTIVE`, `INVALID_STATE`. `/v1/approvals` lists `type: RETURN`; the history uses `return.approved` and `return.rejected`.

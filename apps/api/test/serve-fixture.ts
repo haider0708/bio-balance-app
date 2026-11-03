@@ -68,6 +68,16 @@ export async function serveFixture(out: string) {
     })
   ).body;
   await a.post(`/v1/pdvs/${pdv.id}/approve`, {});
+  // A second active para of the same group, to exchange products with.
+  const sister = (
+    await n.post("/v1/pdvs", {
+      name: "Para Carthage",
+      address: "5 avenue Habib Bourguiba",
+      city: "Carthage",
+      groupId: group.id,
+    })
+  ).body;
+  await a.post(`/v1/pdvs/${sister.id}/approve`, {});
   const waiting = (
     await n.post("/v1/pdvs", {
       name: "Para Marsa",
@@ -128,6 +138,27 @@ export async function serveFixture(out: string) {
     name: "Amira Vendeuse",
   });
   const vendeur = client(api, memberAccount.token);
+
+  // The team member records a transfer to the sister para: it waits for the admin.
+  const transfer = (
+    await vendeur.post("/v1/transfers", {
+      fromPdvId: pdv.id,
+      toPdvId: sister.id,
+      direction: "SEND",
+      lines: lines([2, 1]),
+      photoId: await photo(memberAccount.token),
+      note: "Appelé Mehdi",
+    })
+  ).body;
+
+  // The responsable asks for a return of one unit: it waits for the admin.
+  const stockReturn = (
+    await n.post("/v1/returns", {
+      pdvId: pdv.id,
+      lines: lines([1]),
+      note: "Boîte périmée",
+    })
+  ).body;
 
   await a.post("/v1/reward-rules", {
     scope: "FAMILY",
@@ -222,6 +253,9 @@ export async function serveFixture(out: string) {
       },
       ids: {
         pdv: pdv.id,
+        sisterPdv: sister.id,
+        transfer: transfer.id,
+        stockReturn: stockReturn.id,
         waitingPdv: waiting.id,
         group: group.id,
         depot: depotId,

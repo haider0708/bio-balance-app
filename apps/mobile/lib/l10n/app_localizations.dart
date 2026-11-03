@@ -2876,6 +2876,132 @@ abstract class AppLocalizations {
   /// **'Try again'**
   String get retry;
 
+  /// No description provided for @returnActionAdd.
+  ///
+  /// In en, this message translates to:
+  /// **'Add only'**
+  String get returnActionAdd;
+
+  /// No description provided for @returnActionMove.
+  ///
+  /// In en, this message translates to:
+  /// **'Move to another para'**
+  String get returnActionMove;
+
+  /// No description provided for @returnActionRemove.
+  ///
+  /// In en, this message translates to:
+  /// **'Take out'**
+  String get returnActionRemove;
+
+  /// No description provided for @returnAdded.
+  ///
+  /// In en, this message translates to:
+  /// **'Added to the para'**
+  String get returnAdded;
+
+  /// No description provided for @returnApproveMove.
+  ///
+  /// In en, this message translates to:
+  /// **'Approve and move to another para'**
+  String get returnApproveMove;
+
+  /// No description provided for @returnCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel this return'**
+  String get returnCancel;
+
+  /// No description provided for @returnCancelAsk.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel this return?'**
+  String get returnCancelAsk;
+
+  /// No description provided for @returnCancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'Return cancelled'**
+  String get returnCancelled;
+
+  /// No description provided for @returnDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Stock updated'**
+  String get returnDone;
+
+  /// No description provided for @returnMoveTo.
+  ///
+  /// In en, this message translates to:
+  /// **'Moves to'**
+  String get returnMoveTo;
+
+  /// No description provided for @returnMovedTo.
+  ///
+  /// In en, this message translates to:
+  /// **'Moved to {name}'**
+  String returnMovedTo(String name);
+
+  /// No description provided for @returnNew.
+  ///
+  /// In en, this message translates to:
+  /// **'New return'**
+  String get returnNew;
+
+  /// No description provided for @returnNone.
+  ///
+  /// In en, this message translates to:
+  /// **'No return here'**
+  String get returnNone;
+
+  /// No description provided for @returnNoneHint.
+  ///
+  /// In en, this message translates to:
+  /// **'A return takes quantities out of a para\'s stock. Ask here; the admin decides.'**
+  String get returnNoneHint;
+
+  /// No description provided for @returnPara.
+  ///
+  /// In en, this message translates to:
+  /// **'Para'**
+  String get returnPara;
+
+  /// No description provided for @returnRejected.
+  ///
+  /// In en, this message translates to:
+  /// **'Return refused'**
+  String get returnRejected;
+
+  /// No description provided for @returnSent.
+  ///
+  /// In en, this message translates to:
+  /// **'Return sent to the admin'**
+  String get returnSent;
+
+  /// No description provided for @returnSubmit.
+  ///
+  /// In en, this message translates to:
+  /// **'Send to the admin'**
+  String get returnSubmit;
+
+  /// No description provided for @returnSubmitNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Apply now'**
+  String get returnSubmitNow;
+
+  /// No description provided for @returnTakenOut.
+  ///
+  /// In en, this message translates to:
+  /// **'Taken out'**
+  String get returnTakenOut;
+
+  /// No description provided for @returnsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Returns'**
+  String get returnsTitle;
+
   /// No description provided for @reviewSale.
   ///
   /// In en, this message translates to:
@@ -3566,6 +3692,264 @@ abstract class AppLocalizations {
   /// **'Training'**
   String get trainingTitle;
 
+  /// No description provided for @transferApprove.
+  ///
+  /// In en, this message translates to:
+  /// **'Approve'**
+  String get transferApprove;
+
+  /// No description provided for @transferApproveChange.
+  ///
+  /// In en, this message translates to:
+  /// **'Change and approve'**
+  String get transferApproveChange;
+
+  /// No description provided for @transferApproved.
+  ///
+  /// In en, this message translates to:
+  /// **'Approved: the stock moved'**
+  String get transferApproved;
+
+  /// No description provided for @transferAsked.
+  ///
+  /// In en, this message translates to:
+  /// **'Asked {count}'**
+  String transferAsked(int count);
+
+  /// No description provided for @transferCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel this transfer'**
+  String get transferCancel;
+
+  /// No description provided for @transferCancelAsk.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel this transfer?'**
+  String get transferCancelAsk;
+
+  /// No description provided for @transferCancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'Transfer cancelled'**
+  String get transferCancelled;
+
+  /// No description provided for @transferChangedBy.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} changed the quantities'**
+  String transferChangedBy(String name);
+
+  /// No description provided for @transferChanges.
+  ///
+  /// In en, this message translates to:
+  /// **'Changes'**
+  String get transferChanges;
+
+  /// No description provided for @transferChoosePara.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a para'**
+  String get transferChoosePara;
+
+  /// No description provided for @transferDecidedTab.
+  ///
+  /// In en, this message translates to:
+  /// **'Decided'**
+  String get transferDecidedTab;
+
+  /// No description provided for @transferDirection.
+  ///
+  /// In en, this message translates to:
+  /// **'My para'**
+  String get transferDirection;
+
+  /// No description provided for @transferEdit.
+  ///
+  /// In en, this message translates to:
+  /// **'Change the quantities'**
+  String get transferEdit;
+
+  /// No description provided for @transferEdited.
+  ///
+  /// In en, this message translates to:
+  /// **'Quantities updated'**
+  String get transferEdited;
+
+  /// No description provided for @transferExchange.
+  ///
+  /// In en, this message translates to:
+  /// **'Exchange with a para'**
+  String get transferExchange;
+
+  /// No description provided for @transferExpires.
+  ///
+  /// In en, this message translates to:
+  /// **'Expires {date}'**
+  String transferExpires(String date);
+
+  /// No description provided for @transferFrom.
+  ///
+  /// In en, this message translates to:
+  /// **'From'**
+  String get transferFrom;
+
+  /// No description provided for @transferGroupName.
+  ///
+  /// In en, this message translates to:
+  /// **'Group {name}'**
+  String transferGroupName(String name);
+
+  /// No description provided for @transferMoved.
+  ///
+  /// In en, this message translates to:
+  /// **'Stock moved'**
+  String get transferMoved;
+
+  /// No description provided for @transferMyReceives.
+  ///
+  /// In en, this message translates to:
+  /// **'My para receives'**
+  String get transferMyReceives;
+
+  /// No description provided for @transferMySends.
+  ///
+  /// In en, this message translates to:
+  /// **'My para sends'**
+  String get transferMySends;
+
+  /// No description provided for @transferNew.
+  ///
+  /// In en, this message translates to:
+  /// **'New transfer'**
+  String get transferNew;
+
+  /// No description provided for @transferNoGroup.
+  ///
+  /// In en, this message translates to:
+  /// **'This para is not in a group. Ask the admin to put it in one.'**
+  String get transferNoGroup;
+
+  /// No description provided for @transferNoPartners.
+  ///
+  /// In en, this message translates to:
+  /// **'No other active para in this group.'**
+  String get transferNoPartners;
+
+  /// No description provided for @transferNone.
+  ///
+  /// In en, this message translates to:
+  /// **'No transfer here'**
+  String get transferNone;
+
+  /// No description provided for @transferNoneHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Paras of the same group can exchange products. Call each other, then record it here.'**
+  String get transferNoneHint;
+
+  /// No description provided for @transferPhotoLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Photo as proof'**
+  String get transferPhotoLabel;
+
+  /// No description provided for @transferProducts.
+  ///
+  /// In en, this message translates to:
+  /// **'Products'**
+  String get transferProducts;
+
+  /// No description provided for @transferReject.
+  ///
+  /// In en, this message translates to:
+  /// **'Refuse'**
+  String get transferReject;
+
+  /// No description provided for @transferRejectTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Why is it refused?'**
+  String get transferRejectTitle;
+
+  /// No description provided for @transferRejected.
+  ///
+  /// In en, this message translates to:
+  /// **'Transfer refused'**
+  String get transferRejected;
+
+  /// No description provided for @transferSent.
+  ///
+  /// In en, this message translates to:
+  /// **'Transfer sent for approval'**
+  String get transferSent;
+
+  /// No description provided for @transferShortageLine.
+  ///
+  /// In en, this message translates to:
+  /// **'{name}: {available} in stock, {wanted} wanted'**
+  String transferShortageLine(String name, int available, int wanted);
+
+  /// No description provided for @transferStatusApproved.
+  ///
+  /// In en, this message translates to:
+  /// **'Approved'**
+  String get transferStatusApproved;
+
+  /// No description provided for @transferStatusCancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancelled'**
+  String get transferStatusCancelled;
+
+  /// No description provided for @transferStatusExpired.
+  ///
+  /// In en, this message translates to:
+  /// **'Expired'**
+  String get transferStatusExpired;
+
+  /// No description provided for @transferStatusPending.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting for the admin'**
+  String get transferStatusPending;
+
+  /// No description provided for @transferStatusRejected.
+  ///
+  /// In en, this message translates to:
+  /// **'Refused'**
+  String get transferStatusRejected;
+
+  /// No description provided for @transferSubmit.
+  ///
+  /// In en, this message translates to:
+  /// **'Send for approval'**
+  String get transferSubmit;
+
+  /// No description provided for @transferSubmitNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Move the stock now'**
+  String get transferSubmitNow;
+
+  /// No description provided for @transferTo.
+  ///
+  /// In en, this message translates to:
+  /// **'To'**
+  String get transferTo;
+
+  /// No description provided for @transferWaitingTab.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting'**
+  String get transferWaitingTab;
+
+  /// No description provided for @transfersTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Transfers'**
+  String get transfersTitle;
+
   /// No description provided for @trendSemantics.
   ///
   /// In en, this message translates to:
@@ -3608,11 +3992,23 @@ abstract class AppLocalizations {
   /// **'Restock request'**
   String get typeRestockRequest;
 
+  /// No description provided for @typeReturn.
+  ///
+  /// In en, this message translates to:
+  /// **'Return'**
+  String get typeReturn;
+
   /// No description provided for @typeStock.
   ///
   /// In en, this message translates to:
   /// **'Stock'**
   String get typeStock;
+
+  /// No description provided for @typeTransfer.
+  ///
+  /// In en, this message translates to:
+  /// **'Transfer'**
+  String get typeTransfer;
 
   /// No description provided for @units.
   ///

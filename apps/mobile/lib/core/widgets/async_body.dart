@@ -56,6 +56,20 @@ String errorMessage(BuildContext context, Object error) {
       ];
       if (lines.isNotEmpty) return '$text\n${lines.join('\n')}';
     }
+    // A transfer asking for more than the para holds: say what each product has.
+    if ((error.code == 'TRANSFER_STOCK' || error.code == 'RETURN_STOCK') &&
+        details is Map) {
+      final lines = [
+        for (final p in (details['products'] as List? ?? const []))
+          if (p is Map)
+            t.transferShortageLine(
+              '${p['name']}',
+              (p['available'] as num?)?.toInt() ?? 0,
+              (p['wanted'] as num?)?.toInt() ?? 0,
+            ),
+      ];
+      if (lines.isNotEmpty) return '$text\n${lines.join('\n')}';
+    }
     return text;
   }
   return t.errorGeneric;

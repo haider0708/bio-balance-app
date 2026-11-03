@@ -26,6 +26,8 @@ String? routeForEntity(Role role, String? type, String? id) {
   if (type == null || id == null) return null;
   return switch ((type, role)) {
     ('RestockOrder', _) => '/restocks/$id',
+    ('StockTransfer', _) => '/transfers/$id',
+    ('StockReturn', _) => '/returns/$id',
     ('StockRecount', Role.admin) => '/approvals',
     ('Location', _) => '/stock/$id',
     ('StockDeclaration', Role.admin) => '/approvals',

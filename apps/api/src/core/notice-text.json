@@ -282,5 +282,53 @@
   "visit.missed": {
     "en": "You did not start your visit to {place} on {day}.",
     "fr": "Vous n’avez pas commencé votre visite à {place} le {day}."
+  },
+  "transfer.requested": {
+    "en": "{by} recorded a transfer from {from} to {to}: {units:unit|units}, waiting for approval.",
+    "fr": "{by} a enregistré un transfert de {from} vers {to} : {units:unité|unités}, en attente d’approbation."
+  },
+  "transfer.changed": {
+    "en": "{by} changed the quantities of transfer {number} ({from} → {to}): {units:unit|units} now.",
+    "fr": "{by} a modifié les quantités du transfert {number} ({from} → {to}) : {units:unité|unités} maintenant."
+  },
+  "transfer.approved": {
+    "en": "Transfer {number} approved: {units:unit|units} moved from {from} to {to}.",
+    "fr": "Transfert {number} approuvé : {units:unité|unités} déplacées de {from} vers {to}."
+  },
+  "transfer.rejected": {
+    "en": "Transfer {number} was refused: {note}",
+    "fr": "Le transfert {number} a été refusé : {note}"
+  },
+  "transfer.expired": {
+    "en": "Transfer {number} expired: nobody decided it in time.",
+    "fr": "Le transfert {number} a expiré : personne ne l’a décidé à temps."
+  },
+  "return.requested": {
+    "en": "{by} asks to return {units:unit|units} from {para}: waiting for approval.",
+    "fr": "{by} demande le retour de {units:unité|unités} de {para} : en attente d’approbation."
+  },
+  "return.changed": {
+    "en": "{by} changed the quantities of return {number} ({para}): {units:unit|units} now.",
+    "fr": "{by} a modifié les quantités du retour {number} ({para}) : {units:unité|unités} maintenant."
+  },
+  "return.approved": {
+    "en": "Return {number} approved: {units:unit|units} taken out of {para}.",
+    "fr": "Retour {number} approuvé : {units:unité|unités} retirées de {para}."
+  },
+  "return.rejected": {
+    "en": "Return {number} was refused: {note}",
+    "fr": "Le retour {number} a été refusé : {note}"
+  },
+  "return.expired": {
+    "en": "Return {number} expired: nobody decided it in time.",
+    "fr": "Le retour {number} a expiré : personne ne l’a décidé à temps."
+  },
+  "return.moved": {
+    "en": "Return {number}: {units:unit|units} moved from {para} to {to}.",
+    "fr": "Retour {number} : {units:unité|unités} déplacées de {para} vers {to}."
+  },
+  "return.added": {
+    "en": "Return {number}: {units:unit|units} added to {para}.",
+    "fr": "Retour {number} : {units:unité|unités} ajoutées à {para}."
   }
 }

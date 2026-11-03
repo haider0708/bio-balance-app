@@ -64,6 +64,38 @@ enum PresenceVerdict {
   SANDBOX
 }
 
+/// A transfer of products between two paras of the same group, waiting for the admin.
+enum TransferStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+  EXPIRED
+}
+
+/// What the person who made it meant: SEND (I send) or REQUEST (I need).
+enum TransferDirection {
+  SEND
+  REQUEST
+}
+
+/// A return: a quantity taken out of a para's stock, asked by its responsable and decided by the admin.
+enum ReturnStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+  EXPIRED
+}
+
+/// What a return does to stock: REMOVE takes quantities out of a para; MOVE takes them out and puts
+/// them into another para at once; ADD only puts them in (admin only).
+enum ReturnAction {
+  REMOVE
+  MOVE
+  ADD
+}
+
 enum DeclarationKind {
   INITIAL
   COUNT
@@ -333,7 +365,7 @@ model StockMovement {
   locationKind LocationKind
   regionId     String?      @db.Uuid
   delta        Int
-  /// DECLARATION, RECEIPT, SHIPMENT, SALE, SALE_CORRECTION, ADJUSTMENT
+  /// DECLARATION, RECEIPT, SHIPMENT, SALE, SALE_CORRECTION, TRANSFER_OUT, TRANSFER_IN, RETURN_OUT, RETURN_IN, ADJUSTMENT
   reason       String
   refType      String
   refId        String       @db.Uuid
@@ -826,4 +858,126 @@ model PlanningPreference {
   leadMinutes    Int     @default(60)
   /// The evening alert about tomorrow's visits.
   eveningSummary Boolean @default(true)
+}
+
+// ───────────────────────────── Transfers between paras of a group ─────────────────────────────
+
+/// Products moving from one para to another of the same group. The admin approves the quantities;
+/// only then does the stock move. Made by the admin, it is applied at once.
+model StockTransfer {
+  id           String             @id @default(uuid()) @db.Uuid
+  /// TR-2026-000001
+  number       String             @unique
+  regionId     String             @db.Uuid
+  groupId      String             @db.Uuid
+  fromPdvId    String             @db.Uuid
+  toPdvId      String             @db.Uuid
+  direction    TransferDirection
+  status       TransferStatus     @default(PENDING)
+  createdById  String             @db.Uuid
+  /// The one proof photo (a media id); none when the admin made it.
+  photoId      String?            @db.Uuid
+  note         String?
+  /// Grows with every change of the quantities.
+  revision     Int                @default(0)
+  expiresAt    DateTime?
+  decidedById  String?            @db.Uuid
+  decidedAt    DateTime?
+  decisionNote String?
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @default(now()) @updatedAt
+  lines        TransferLine[]
+  revisions    TransferRevision[]
+
+  @@index([regionId, status])
+  @@index([fromPdvId, status])
+  @@index([toPdvId, status])
+  @@index([status, expiresAt])
+}
+
+model TransferLine {
+  id                String        @id @default(uuid()) @db.Uuid
+  transferId        String        @db.Uuid
+  productId         String        @db.Uuid
+  /// What would move now.
+  quantity          Int
+  /// What was first asked (0 for a product added later).
+  requestedQuantity Int
+  transfer          StockTransfer @relation(fields: [transferId], references: [id], onDelete: Cascade)
+
+  @@unique([transferId, productId])
+}
+
+/// Append-only: who changed the quantities, when, from what to what.
+model TransferRevision {
+  id         String        @id @default(uuid()) @db.Uuid
+  transferId String        @db.Uuid
+  version    Int
+  editorId   String        @db.Uuid
+  before     Json
+  after      Json
+  createdAt  DateTime      @default(now())
+  transfer   StockTransfer @relation(fields: [transferId], references: [id], onDelete: Cascade)
+
+  @@unique([transferId, version])
+}
+
+// ───────────────────────────── Returns ─────────────────────────────
+
+/// Quantities taken out of one para's stock. A responsable asks, the admin decides (and may correct
+/// the quantities); made by the admin it applies at once.
+model StockReturn {
+  id           String           @id @default(uuid()) @db.Uuid
+  /// RT-2026-000001
+  number       String           @unique
+  regionId     String           @db.Uuid
+  /// The para the quantities leave (REMOVE, MOVE) or enter (ADD).
+  pdvId        String           @db.Uuid
+  action       ReturnAction     @default(REMOVE)
+  /// The para that receives them (MOVE only).
+  toPdvId      String?          @db.Uuid
+  status       ReturnStatus     @default(PENDING)
+  createdById  String           @db.Uuid
+  note         String?
+  /// Grows with every change of the quantities.
+  revision     Int              @default(0)
+  expiresAt    DateTime?
+  decidedById  String?          @db.Uuid
+  decidedAt    DateTime?
+  decisionNote String?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @default(now()) @updatedAt
+  lines        ReturnLine[]
+  revisions    ReturnRevision[]
+
+  @@index([regionId, status])
+  @@index([pdvId, status])
+  @@index([status, expiresAt])
+}
+
+model ReturnLine {
+  id                String      @id @default(uuid()) @db.Uuid
+  returnId          String      @db.Uuid
+  productId         String      @db.Uuid
+  /// What would leave now.
+  quantity          Int
+  /// What was first asked (0 for a product added later).
+  requestedQuantity Int
+  stockReturn       StockReturn @relation(fields: [returnId], references: [id], onDelete: Cascade)
+
+  @@unique([returnId, productId])
+}
+
+/// Append-only: who changed the quantities, when, from what to what.
+model ReturnRevision {
+  id          String      @id @default(uuid()) @db.Uuid
+  returnId    String      @db.Uuid
+  version     Int
+  editorId    String      @db.Uuid
+  before      Json
+  after       Json
+  createdAt   DateTime    @default(now())
+  stockReturn StockReturn @relation(fields: [returnId], references: [id], onDelete: Cascade)
+
+  @@unique([returnId, version])
 }

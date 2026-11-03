@@ -366,10 +366,7 @@ class ServerText {
       'Choose a store or a grossiste of your region.',
       'Choisissez un point de vente ou un grossiste de votre région.',
     ),
-    'PLACE_INACTIVE': (
-      'This place is not active.',
-      'Ce lieu n’est pas actif.',
-    ),
+    'PLACE_INACTIVE': ('This place is not active.', 'Ce lieu n’est pas actif.'),
     'TOO_EARLY': (
       'You can start a visit one hour before it begins.',
       'Vous pouvez commencer une visite une heure avant son début.',
@@ -389,6 +386,35 @@ class ServerText {
     'OUTSIDE_TUNISIA': (
       'This position is outside Tunisia.',
       'Cette position est hors de Tunisie.',
+    ),
+    'NOT_SAME_GROUP': (
+      'Only paras of the same group can exchange products.',
+      'Seuls les paras d’un même groupe peuvent s’échanger des produits.',
+    ),
+    'SAME_PLACE': (
+      'Choose two different paras.',
+      'Choisissez deux paras différents.',
+    ),
+    'GROUP_INACTIVE': (
+      'The group is not active.',
+      'Le groupe n’est pas actif.',
+    ),
+    'PARA_NOT_FOUND': ('Unknown para.', 'Para inconnu.'),
+    'INVALID_QUANTITY': (
+      'Quantities are whole numbers above zero.',
+      'Les quantités sont des nombres entiers supérieurs à zéro.',
+    ),
+    'TRANSFER_STOCK': (
+      'A para does not hold enough of these products.',
+      'Un para n’a pas assez de ces produits.',
+    ),
+    'RETURN_STOCK': (
+      'A para does not hold enough of these products.',
+      'Un para n’a pas assez de ces produits.',
+    ),
+    'INVALID_ACTION': (
+      'This action does not fit: a move needs the receiving para.',
+      'Cette action ne convient pas : un déplacement demande le para qui reçoit.',
     ),
     'NOTHING_TO_REPRICE': (
       'The rates of that day already match this sale.',
@@ -740,6 +766,54 @@ class ServerText {
     'visit.missed': (
       'You did not start your visit to {place} on {day}.',
       'Vous n’avez pas commencé votre visite à {place} le {day}.',
+    ),
+    'transfer.requested': (
+      '{by} recorded a transfer from {from} to {to}: {units:unit|units}, waiting for approval.',
+      '{by} a enregistré un transfert de {from} vers {to} : {units:unité|unités}, en attente d’approbation.',
+    ),
+    'transfer.changed': (
+      '{by} changed the quantities of transfer {number} ({from} → {to}): {units:unit|units} now.',
+      '{by} a modifié les quantités du transfert {number} ({from} → {to}) : {units:unité|unités} maintenant.',
+    ),
+    'transfer.approved': (
+      'Transfer {number} approved: {units:unit|units} moved from {from} to {to}.',
+      'Transfert {number} approuvé : {units:unité|unités} déplacées de {from} vers {to}.',
+    ),
+    'transfer.rejected': (
+      'Transfer {number} was refused: {note}',
+      'Le transfert {number} a été refusé : {note}',
+    ),
+    'transfer.expired': (
+      'Transfer {number} expired: nobody decided it in time.',
+      'Le transfert {number} a expiré : personne ne l’a décidé à temps.',
+    ),
+    'return.requested': (
+      '{by} asks to return {units:unit|units} from {para}: waiting for approval.',
+      '{by} demande le retour de {units:unité|unités} de {para} : en attente d’approbation.',
+    ),
+    'return.changed': (
+      '{by} changed the quantities of return {number} ({para}): {units:unit|units} now.',
+      '{by} a modifié les quantités du retour {number} ({para}) : {units:unité|unités} maintenant.',
+    ),
+    'return.approved': (
+      'Return {number} approved: {units:unit|units} taken out of {para}.',
+      'Retour {number} approuvé : {units:unité|unités} retirées de {para}.',
+    ),
+    'return.rejected': (
+      'Return {number} was refused: {note}',
+      'Le retour {number} a été refusé : {note}',
+    ),
+    'return.expired': (
+      'Return {number} expired: nobody decided it in time.',
+      'Le retour {number} a expiré : personne ne l’a décidé à temps.',
+    ),
+    'return.moved': (
+      'Return {number}: {units:unit|units} moved from {para} to {to}.',
+      'Retour {number} : {units:unité|unités} déplacées de {para} vers {to}.',
+    ),
+    'return.added': (
+      'Return {number}: {units:unit|units} added to {para}.',
+      'Retour {number} : {units:unité|unités} ajoutées à {para}.',
     ),
     'sale.repriced': (
       '{by} corrected the reward of one of your sales.',

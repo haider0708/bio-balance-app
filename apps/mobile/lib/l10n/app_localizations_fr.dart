@@ -1636,6 +1636,72 @@ class AppLocalizationsFr extends AppLocalizations {
   String get retry => 'Réessayer';
 
   @override
+  String get returnActionAdd => 'Ajouter seulement';
+
+  @override
+  String get returnActionMove => 'Déplacer vers un autre para';
+
+  @override
+  String get returnActionRemove => 'Retirer';
+
+  @override
+  String get returnAdded => 'Ajouté au para';
+
+  @override
+  String get returnApproveMove => 'Approuver et déplacer vers un autre para';
+
+  @override
+  String get returnCancel => 'Annuler ce retour';
+
+  @override
+  String get returnCancelAsk => 'Annuler ce retour ?';
+
+  @override
+  String get returnCancelled => 'Retour annulé';
+
+  @override
+  String get returnDone => 'Stock mis à jour';
+
+  @override
+  String get returnMoveTo => 'Vers';
+
+  @override
+  String returnMovedTo(String name) {
+    return 'Déplacé vers $name';
+  }
+
+  @override
+  String get returnNew => 'Nouveau retour';
+
+  @override
+  String get returnNone => 'Aucun retour ici';
+
+  @override
+  String get returnNoneHint =>
+      'Un retour retire des quantités du stock d’un para. Demandez-le ici ; l’administrateur décide.';
+
+  @override
+  String get returnPara => 'Para';
+
+  @override
+  String get returnRejected => 'Retour refusé';
+
+  @override
+  String get returnSent => 'Retour envoyé à l’administrateur';
+
+  @override
+  String get returnSubmit => 'Envoyer à l’administrateur';
+
+  @override
+  String get returnSubmitNow => 'Appliquer maintenant';
+
+  @override
+  String get returnTakenOut => 'Retiré';
+
+  @override
+  String get returnsTitle => 'Retours';
+
+  @override
   String reviewSale(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
@@ -2047,6 +2113,147 @@ class AppLocalizationsFr extends AppLocalizations {
   String get trainingTitle => 'Formation';
 
   @override
+  String get transferApprove => 'Approuver';
+
+  @override
+  String get transferApproveChange => 'Modifier et approuver';
+
+  @override
+  String get transferApproved => 'Approuvé : le stock a été déplacé';
+
+  @override
+  String transferAsked(int count) {
+    return 'Demandé $count';
+  }
+
+  @override
+  String get transferCancel => 'Annuler ce transfert';
+
+  @override
+  String get transferCancelAsk => 'Annuler ce transfert ?';
+
+  @override
+  String get transferCancelled => 'Transfert annulé';
+
+  @override
+  String transferChangedBy(String name) {
+    return '$name a modifié les quantités';
+  }
+
+  @override
+  String get transferChanges => 'Modifications';
+
+  @override
+  String get transferChoosePara => 'Choisir un para';
+
+  @override
+  String get transferDecidedTab => 'Traités';
+
+  @override
+  String get transferDirection => 'Mon para';
+
+  @override
+  String get transferEdit => 'Modifier les quantités';
+
+  @override
+  String get transferEdited => 'Quantités modifiées';
+
+  @override
+  String get transferExchange => 'Échanger avec un para';
+
+  @override
+  String transferExpires(String date) {
+    return 'Expire le $date';
+  }
+
+  @override
+  String get transferFrom => 'De';
+
+  @override
+  String transferGroupName(String name) {
+    return 'Groupe $name';
+  }
+
+  @override
+  String get transferMoved => 'Stock déplacé';
+
+  @override
+  String get transferMyReceives => 'Mon para reçoit';
+
+  @override
+  String get transferMySends => 'Mon para envoie';
+
+  @override
+  String get transferNew => 'Nouveau transfert';
+
+  @override
+  String get transferNoGroup =>
+      'Ce para n’est dans aucun groupe. Demandez à l’administrateur de l’y mettre.';
+
+  @override
+  String get transferNoPartners => 'Aucun autre para actif dans ce groupe.';
+
+  @override
+  String get transferNone => 'Aucun transfert ici';
+
+  @override
+  String get transferNoneHint =>
+      'Les paras d’un même groupe peuvent s’échanger des produits. Appelez-vous, puis enregistrez-le ici.';
+
+  @override
+  String get transferPhotoLabel => 'Photo comme preuve';
+
+  @override
+  String get transferProducts => 'Produits';
+
+  @override
+  String get transferReject => 'Refuser';
+
+  @override
+  String get transferRejectTitle => 'Pourquoi est-il refusé ?';
+
+  @override
+  String get transferRejected => 'Transfert refusé';
+
+  @override
+  String get transferSent => 'Transfert envoyé pour approbation';
+
+  @override
+  String transferShortageLine(String name, int available, int wanted) {
+    return '$name : $available en stock, $wanted demandés';
+  }
+
+  @override
+  String get transferStatusApproved => 'Approuvé';
+
+  @override
+  String get transferStatusCancelled => 'Annulé';
+
+  @override
+  String get transferStatusExpired => 'Expiré';
+
+  @override
+  String get transferStatusPending => 'En attente de l’administrateur';
+
+  @override
+  String get transferStatusRejected => 'Refusé';
+
+  @override
+  String get transferSubmit => 'Envoyer pour approbation';
+
+  @override
+  String get transferSubmitNow => 'Déplacer le stock maintenant';
+
+  @override
+  String get transferTo => 'Vers';
+
+  @override
+  String get transferWaitingTab => 'En attente';
+
+  @override
+  String get transfersTitle => 'Transferts';
+
+  @override
   String trendSemantics(int total) {
     return 'Graphique : $total unités vendues sur les 14 derniers jours';
   }
@@ -2070,7 +2277,13 @@ class AppLocalizationsFr extends AppLocalizations {
   String get typeRestockRequest => 'Demande de réassort';
 
   @override
+  String get typeReturn => 'Retour';
+
+  @override
   String get typeStock => 'Stock';
+
+  @override
+  String get typeTransfer => 'Transfert';
 
   @override
   String units(int count) {

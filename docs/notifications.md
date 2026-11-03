@@ -106,3 +106,24 @@ Only codes and security: the invitation code (account approved), the password re
 | `visit.reminder` | the chosen minutes before a planned visit | its responsable | yes | the visit |
 | `visit.tomorrow` | 20:00 the evening before, if there are visits (can be turned off) | the responsable | yes | the calendar |
 | `visit.missed` | 23:30: a planned visit nobody started | its responsable | yes | the visit |
+
+## Transfers (2026-11)
+
+| Key | When | Who | Push | Opens |
+|---|---|---|---|---|
+| `transfer.requested` | a team member or responsable records one | the admins (push); the region's responsable when a team member did (inbox only) | yes / no | the transfer |
+| `transfer.changed` | the quantities change while it waits | the admins (push), the creator, the responsable and the teams of both paras (inbox only) | yes / no | the transfer |
+| `transfer.approved` | the admin approves (or makes) it | the creator, the responsable, the teams of both paras | yes | the transfer |
+| `transfer.rejected` | the admin refuses it, with the reason | the same | yes | the transfer |
+| `transfer.expired` | nobody decided in 3 days | the creator and the responsable | yes | the transfer |
+
+## Returns (2026-11)
+
+| Key | When | Who | Push | Opens |
+|---|---|---|---|---|
+| `return.requested` | a responsable asks | the admins | yes | the return |
+| `return.changed` | the quantities change while it waits | the admins | yes | the return |
+| `return.approved` | the admin approves (or takes out directly) | whoever asked, the region's responsable | yes | the return |
+| `return.moved` / `return.added` | moved to another para / added only | the same, and the receiving region's responsable | yes | the return |
+| `return.rejected` | the admin refuses it, with the reason | whoever asked, the responsable | yes | the return |
+| `return.expired` | nobody decided in 3 days | whoever asked, the responsable | yes | the return |

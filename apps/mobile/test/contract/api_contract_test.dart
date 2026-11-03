@@ -23,7 +23,11 @@ import 'package:biobalance/features/rewards/rewards_repository.dart';
 import 'package:biobalance/features/sales/sales_repository.dart';
 import 'package:biobalance/features/stock/stock_models.dart';
 import 'package:biobalance/features/stock/stock_repository.dart';
+import 'package:biobalance/features/returns/return_models.dart';
+import 'package:biobalance/features/returns/returns_repository.dart';
 import 'package:biobalance/features/training/training_repository.dart';
+import 'package:biobalance/features/transfers/transfer_models.dart';
+import 'package:biobalance/features/transfers/transfers_repository.dart';
 import 'package:biobalance/features/wallet/wallet_models.dart';
 import 'package:biobalance/features/wallet/wallet_repository.dart';
 import 'package:dio/dio.dart';
@@ -69,6 +73,112 @@ void main() {
   HttpOverrides.global = null;
   SharedPreferences.setMockInitialValues({});
   setUpAll(() => fixture = jsonDecode(File(path).readAsStringSync()) as Json);
+
+  group('transfers between paras of a group', () {
+    test(
+      'a team member sees the partners and their pending transfer',
+      () async {
+        final c = as('vendeur');
+        final partners = await c.read(transfersRepositoryProvider).partners();
+        expect(partners.groupName, 'Groupe Tunis');
+        expect(partners.paras.map((p) => p.name), ['Para Carthage']);
+        final mine = await c.read(transfersRepositoryProvider).list();
+        expect(mine, hasLength(1));
+        final t = await c.read(transfersRepositoryProvider).get(id('transfer'));
+        expect(t.status, TransferStatus.pending);
+        expect(t.send, isTrue);
+        expect(t.from.name, 'Para Lac');
+        expect(t.to.name, 'Para Carthage');
+        expect(t.groupName, 'Groupe Tunis');
+        expect(t.units, 3);
+        expect(t.lines.map((l) => (l.name, l.quantity)), [
+          ('Serum Niacinamide', 1),
+          ('Serum Vitamin C', 2),
+        ]);
+        expect(t.photoId, isNotNull);
+        expect(t.note, 'Appelé Mehdi');
+        expect(t.canEdit, isTrue);
+        expect(t.canCancel, isTrue);
+        expect(t.canDecide, isFalse);
+        expect(t.createdBy, 'Amira Vendeuse');
+      },
+    );
+
+    test(
+      'the responsable changes the quantities; the admin sees it waiting',
+      () async {
+        final r = as('responsable');
+        final before = await r
+            .read(transfersRepositoryProvider)
+            .get(id('transfer'));
+        final edited = await r.read(transfersRepositoryProvider).edit(
+          id('transfer'),
+          [
+            for (final l in before.lines)
+              {'productId': l.productId, 'quantity': l.quantity + 1},
+          ],
+        );
+        expect(edited.units, 5);
+        expect(edited.changes, hasLength(1));
+        expect(edited.changes.single.by, 'Nora Nord');
+        expect(edited.lines.every((l) => l.changed), isTrue);
+        final a = as('admin');
+        final seen = await a
+            .read(transfersRepositoryProvider)
+            .get(id('transfer'));
+        expect(seen.canDecide, isTrue);
+        final approvals = await a.read(approvalsProvider(null).future);
+        expect(approvals.counts[ApprovalType.transfer], 1);
+        final item = approvals.items.firstWhere(
+          (i) => i.type == ApprovalType.transfer,
+        );
+        expect(item.name, 'Para Lac → Para Carthage');
+        expect(item.meta['units'], 5);
+        expect(item.meta['changed'], isTrue);
+        // Another region's responsable sees nothing of it.
+        final other = as('responsableSud');
+        expect(await other.read(transfersRepositoryProvider).list(), isEmpty);
+      },
+    );
+  });
+
+  group('returns', () {
+    test('the responsable asks, the admin sees it waiting, a team member sees nothing', () async {
+      final r = as('responsable');
+      final mine = await r.read(returnsRepositoryProvider).list();
+      expect(mine, hasLength(1));
+      final x = await r.read(returnsRepositoryProvider).get(id('stockReturn'));
+      expect(x.status, TransferStatus.pending);
+      expect(x.action, ReturnAction.remove);
+      expect(x.para.name, 'Para Lac');
+      expect(x.to, isNull);
+      expect(x.units, 1);
+      expect(x.note, 'Boîte périmée');
+      expect(x.createdBy, 'Nora Nord');
+      expect(x.canEdit, isTrue);
+      expect(x.canDecide, isFalse);
+      final a = as('admin');
+      final seen = await a
+          .read(returnsRepositoryProvider)
+          .get(id('stockReturn'));
+      expect(seen.canDecide, isTrue);
+      final approvals = await a.read(approvalsProvider(null).future);
+      expect(approvals.counts[ApprovalType.stockReturn], 1);
+      final item = approvals.items.firstWhere(
+        (i) => i.type == ApprovalType.stockReturn,
+      );
+      expect(item.name, 'Para Lac');
+      expect(item.meta['units'], 1);
+      expect(
+        await as('responsableSud').read(returnsRepositoryProvider).list(),
+        isEmpty,
+      );
+      await expectLater(
+        as('vendeur').read(returnsRepositoryProvider).list(),
+        throwsA(isA<ApiException>()),
+      );
+    });
+  });
 
   group('team member', () {
     test('sees their wallet, sales, notifications and training', () async {
@@ -168,7 +278,7 @@ void main() {
       );
 
       final groups = await network.groups();
-      expect(groups.single.pdvCount, 1);
+      expect(groups.single.pdvCount, 2);
       final team = await network.people(role: 'VENDEUR', pdvId: id('pdv'));
       expect(
         team.map((p) => p.name),
