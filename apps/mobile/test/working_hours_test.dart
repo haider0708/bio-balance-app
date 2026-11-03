@@ -27,6 +27,8 @@ void main() {
       300,
       scrollable: find.byType(Scrollable).first,
     );
+    await tester.ensureVisible(find.text('Close the app outside the hours'));
+    await tester.pump();
     await tester.tap(find.text('Close the app outside the hours'));
     await tester.pump();
     await tester.ensureVisible(find.text('Save the hours'));

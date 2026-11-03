@@ -13,6 +13,7 @@ import '../../l10n/app_localizations.dart';
 import '../network/network_models.dart';
 import '../network/network_repository.dart';
 import 'app_settings.dart';
+import 'setting_widgets.dart';
 
 /// The admin's settings for the whole application: the oldest app version still allowed, and
 /// (further down) the working hours and who may choose a grossiste.
@@ -45,6 +46,46 @@ class AppSettingsScreen extends ConsumerWidget {
   }
 }
 
+/// A titled card: what the setting is for, then its controls.
+class _Section extends StatelessWidget {
+  const _Section({
+    required this.title,
+    required this.hint,
+    required this.children,
+  });
+
+  final String title;
+  final String hint;
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.only(bottom: 8),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SectionHeader(title),
+        AppCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            spacing: 16,
+            children: [
+              Text(
+                hint,
+                style: context.text.bodyMedium?.copyWith(
+                  color: context.status.muted,
+                  height: 1.4,
+                ),
+              ),
+              ...children,
+            ],
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
 class _MinimumVersion extends ConsumerStatefulWidget {
   const _MinimumVersion(this.settings);
 
@@ -63,86 +104,96 @@ class _MinimumVersionState extends ConsumerState<_MinimumVersion> {
   );
 
   @override
+  void initState() {
+    super.initState();
+    _ios.addListener(_changed);
+    _android.addListener(_changed);
+  }
+
+  @override
   void dispose() {
     _ios.dispose();
     _android.dispose();
     super.dispose();
   }
 
+  void _changed() => setState(() {});
+
+  int _value(TextEditingController c) => int.tryParse(c.text.trim()) ?? 0;
+
+  /// Nothing to save until a number differs from what the server holds.
+  bool get _dirty =>
+      _value(_ios) != widget.settings.minimumIos ||
+      _value(_android) != widget.settings.minimumAndroid;
+
   Future<void> _save() async {
     final t = AppLocalizations.of(context);
     final ok = await perform(
       context,
       () => ref.read(appSettingsRepositoryProvider).save({
-        'minimumBuild': {
-          'ios': int.tryParse(_ios.text.trim()) ?? 0,
-          'android': int.tryParse(_android.text.trim()) ?? 0,
-        },
+        'minimumBuild': {'ios': _value(_ios), 'android': _value(_android)},
       }),
       success: t.saved,
     );
     if (ok) ref.invalidate(appSettingsProvider);
   }
 
-  Widget _field(TextEditingController controller, String label) => TextField(
+  Widget _field(
+    TextEditingController controller,
+    String label,
+    IconData icon,
+  ) => TextField(
     controller: controller,
     keyboardType: TextInputType.number,
     inputFormatters: [
       FilteringTextInputFormatter.digitsOnly,
       LengthLimitingTextInputFormatter(7),
     ],
-    decoration: InputDecoration(labelText: label),
+    decoration: InputDecoration(
+      labelText: label,
+      prefixIcon: Icon(icon, size: 20, color: context.status.muted),
+    ),
   );
 
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
     final build = ref.watch(appBuildProvider).value ?? 0;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return _Section(
+      title: t.minimumVersionTitle,
+      hint: t.minimumVersionHint,
       children: [
-        SectionHeader(t.minimumVersionTitle),
-        AppCard(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            spacing: 12,
+        _field(_ios, t.minimumIosLabel, LucideIcons.smartphone),
+        _field(_android, t.minimumAndroidLabel, LucideIcons.tabletSmartphone),
+        if (build > 0)
+          Row(
+            spacing: 8,
             children: [
-              Text(
-                t.minimumVersionHint,
-                style: context.text.bodyMedium?.copyWith(
-                  color: context.status.muted,
+              Expanded(
+                child: Text(
+                  t.thisBuild(build),
+                  style: context.text.bodySmall?.copyWith(
+                    color: context.status.muted,
+                  ),
                 ),
               ),
-              _field(_ios, t.minimumIosLabel),
-              _field(_android, t.minimumAndroidLabel),
-              if (build > 0)
-                Row(
-                  spacing: 8,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        t.thisBuild(build),
-                        style: context.text.bodySmall?.copyWith(
-                          color: context.status.muted,
-                        ),
-                      ),
-                    ),
-                    TextButton(
-                      onPressed: () => setState(() {
-                        _ios.text = '$build';
-                        _android.text = '$build';
-                      }),
-                      child: Text(t.useThisBuild),
-                    ),
-                  ],
+              OutlinedButton(
+                onPressed: () => setState(() {
+                  _ios.text = '$build';
+                  _android.text = '$build';
+                }),
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size(0, 40),
+                  padding: const EdgeInsets.symmetric(horizontal: 14),
                 ),
-              AsyncButton(
-                label: t.save,
-                icon: LucideIcons.check,
-                onPressed: _save,
+                child: Text(t.useThisBuild),
               ),
             ],
           ),
+        AsyncButton(
+          label: t.save,
+          icon: LucideIcons.check,
+          onPressed: _dirty ? _save : null,
         ),
       ],
     );
@@ -161,68 +212,62 @@ class _SupplierChoice extends ConsumerWidget {
     final people = settings.supplierChoice
         ? ref.watch(_responsablesProvider)
         : null;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return _Section(
+      title: t.supplierChoiceTitle,
+      hint: t.supplierChoiceHint,
       children: [
-        SectionHeader(t.supplierChoiceTitle),
-        AppCard(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                t.supplierChoiceHint,
-                style: context.text.bodyMedium?.copyWith(
-                  color: context.status.muted,
-                ),
-              ),
-              SwitchListTile(
-                contentPadding: EdgeInsets.zero,
-                title: Text(t.supplierChoiceSwitch),
-                value: settings.supplierChoice,
-                onChanged: (on) async {
-                  final ok = await perform(
-                    context,
-                    () => ref.read(appSettingsRepositoryProvider).save({
-                      'supplierChoice': on,
-                    }),
-                  );
-                  if (ok) ref.invalidate(appSettingsProvider);
-                },
-              ),
-              if (people != null)
-                people.when(
-                  loading: () => const Padding(
-                    padding: EdgeInsets.all(12),
-                    child: Center(child: CircularProgressIndicator()),
-                  ),
-                  error: (_, _) => const SizedBox.shrink(),
-                  data: (list) => list.isEmpty
-                      ? Text(t.supplierChoiceNone)
-                      : Column(
-                          children: [
-                            for (final p in list)
-                              SwitchListTile(
-                                contentPadding: EdgeInsets.zero,
-                                secondary: Avatar(p.initials, size: 36),
-                                title: Text(p.name),
-                                value: p.canChooseSupplier,
-                                onChanged: (on) async {
-                                  final ok = await perform(
-                                    context,
-                                    () => ref
-                                        .read(networkRepositoryProvider)
-                                        .setSupplierChoice(p.id, allowed: on),
-                                  );
-                                  if (ok) ref.invalidate(_responsablesProvider);
-                                },
-                              ),
-                          ],
-                        ),
-                ),
-            ],
-          ),
+        SettingGroup(
+          children: [
+            SettingSwitch(
+              title: t.supplierChoiceSwitch,
+              value: settings.supplierChoice,
+              onChanged: (on) async {
+                final ok = await perform(
+                  context,
+                  () => ref.read(appSettingsRepositoryProvider).save({
+                    'supplierChoice': on,
+                  }),
+                );
+                if (ok) ref.invalidate(appSettingsProvider);
+              },
+            ),
+          ],
         ),
-        const Gap(16),
+        if (people != null)
+          people.when(
+            loading: () => const Padding(
+              padding: EdgeInsets.all(12),
+              child: Center(child: CircularProgressIndicator()),
+            ),
+            error: (_, _) => const SizedBox.shrink(),
+            data: (list) => list.isEmpty
+                ? Text(
+                    t.supplierChoiceNone,
+                    style: context.text.bodyMedium?.copyWith(
+                      color: context.status.muted,
+                    ),
+                  )
+                : SettingGroup(
+                    children: [
+                      for (final p in list)
+                        SettingSwitch(
+                          leading: Avatar(p.initials, size: 36),
+                          title: p.name,
+                          subtitle: p.email,
+                          value: p.canChooseSupplier,
+                          onChanged: (on) async {
+                            final ok = await perform(
+                              context,
+                              () => ref
+                                  .read(networkRepositoryProvider)
+                                  .setSupplierChoice(p.id, allowed: on),
+                            );
+                            if (ok) ref.invalidate(_responsablesProvider);
+                          },
+                        ),
+                    ],
+                  ),
+          ),
       ],
     );
   }
@@ -275,104 +320,148 @@ class _WorkingHoursState extends ConsumerState<_WorkingHours> {
   bool get _valid =>
       _days.every((d) => d == null || d.open.compareTo(d.close) < 0);
 
+  /// Nothing to save until something differs from what the server holds.
+  bool get _dirty {
+    final saved = widget.settings;
+    if (_enabled != saved.hoursEnabled) return true;
+    for (var i = 0; i < 7; i++) {
+      final a = _days[i];
+      final b = saved.days[i];
+      if ((a == null) != (b == null)) return true;
+      if (a != null && (a.open != b!.open || a.close != b.close)) return true;
+    }
+    return false;
+  }
+
+  Future<void> _save() async {
+    final t = AppLocalizations.of(context);
+    final ok = await perform(
+      context,
+      () => ref.read(appSettingsRepositoryProvider).save({
+        'hours': {
+          'enabled': _enabled,
+          'days': [for (final d in _days) d?.toJson()],
+        },
+      }),
+      success: t.hoursSaved,
+    );
+    if (ok) ref.invalidate(appSettingsProvider);
+  }
+
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
     final locale = t.localeName;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return _Section(
+      title: t.workingHoursTitle,
+      hint: t.workingHoursHint,
       children: [
-        SectionHeader(t.workingHoursTitle),
-        AppCard(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+        SettingGroup(
+          children: [
+            SettingSwitch(
+              title: t.workingHoursSwitch,
+              subtitle: widget.settings.open
+                  ? t.hoursOpenNow
+                  : t.hoursClosedNow,
+              value: _enabled,
+              onChanged: (on) => setState(() => _enabled = on),
+            ),
+          ],
+        ),
+        if (_enabled)
+          SettingGroup(
             children: [
-              Text(
-                t.workingHoursHint,
-                style: context.text.bodyMedium?.copyWith(
-                  color: context.status.muted,
-                ),
-              ),
-              SwitchListTile(
-                contentPadding: EdgeInsets.zero,
-                title: Text(t.workingHoursSwitch),
-                subtitle: Text(
-                  widget.settings.open ? t.hoursOpenNow : t.hoursClosedNow,
-                ),
-                value: _enabled,
-                onChanged: (on) => setState(() => _enabled = on),
-              ),
-              if (_enabled)
-                for (var day = 0; day < 7; day++)
-                  Row(
-                    children: [
-                      SizedBox(
-                        width: 48,
-                        child: Text(
-                          // 7 January 2024 was a Sunday.
-                          toBeginningOfSentenceCase(
-                            DateFormat.E(locale)
-                                .format(DateTime(2024, 1, 7 + day)),
-                          ),
-                          style: context.text.titleSmall,
-                        ),
-                      ),
-                      Expanded(
-                        child: _days[day] == null
-                            ? Text(
-                                t.closedDay,
-                                style: context.text.bodyMedium?.copyWith(
-                                  color: context.status.muted,
-                                ),
-                              )
-                            : Row(
-                                children: [
-                                  TextButton(
-                                    onPressed: () => _pick(day, open: true),
-                                    child: Text(_days[day]!.open),
-                                  ),
-                                  const Text('–'),
-                                  TextButton(
-                                    onPressed: () => _pick(day, open: false),
-                                    child: Text(_days[day]!.close),
-                                  ),
-                                ],
-                              ),
-                      ),
-                      Switch(
-                        value: _days[day] != null,
-                        onChanged: (on) => setState(() {
-                          _days[day] = on
-                              ? const DayHours('08:00', '21:00')
-                              : null;
-                        }),
-                      ),
-                    ],
+              for (var day = 0; day < 7; day++)
+                _DayRow(
+                  // 7 January 2024 was a Sunday.
+                  name: toBeginningOfSentenceCase(
+                    DateFormat.E(locale).format(DateTime(2024, 1, 7 + day)),
                   ),
-              const SizedBox(height: 8),
-              FilledButton(
-                onPressed: _valid
-                    ? () async {
-                        final ok = await perform(
-                          context,
-                          () => ref.read(appSettingsRepositoryProvider).save({
-                            'hours': {
-                              'enabled': _enabled,
-                              'days': [for (final d in _days) d?.toJson()],
-                            },
-                          }),
-                          success: t.hoursSaved,
-                        );
-                        if (ok) ref.invalidate(appSettingsProvider);
-                      }
-                    : null,
-                child: Text(t.hoursSave),
-              ),
+                  hours: _days[day],
+                  onOpen: () => _pick(day, open: true),
+                  onClose: () => _pick(day, open: false),
+                  onChanged: (on) => setState(() {
+                    _days[day] = on ? const DayHours('08:00', '21:00') : null;
+                  }),
+                ),
             ],
           ),
+        if (!_valid)
+          Text(
+            t.hoursInvalid,
+            style: context.text.bodySmall?.copyWith(
+              color: context.status.danger,
+            ),
+          ),
+        AsyncButton(
+          label: t.hoursSave,
+          icon: LucideIcons.check,
+          onPressed: _valid && _dirty ? _save : null,
         ),
-        const SizedBox(height: 16),
       ],
+    );
+  }
+}
+
+/// One weekday: its name, the opening and closing times in boxes, and whether it is open at all.
+class _DayRow extends StatelessWidget {
+  const _DayRow({
+    required this.name,
+    required this.hours,
+    required this.onOpen,
+    required this.onClose,
+    required this.onChanged,
+  });
+
+  final String name;
+  final DayHours? hours;
+  final VoidCallback onOpen;
+  final VoidCallback onClose;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    final open = hours != null;
+    return ConstrainedBox(
+      constraints: const BoxConstraints(minHeight: 60),
+      child: Row(
+        spacing: 8,
+        children: [
+          SizedBox(
+            width: 44,
+            child: Text(
+              name,
+              style: context.text.titleSmall?.copyWith(
+                color: open ? null : context.status.muted,
+              ),
+            ),
+          ),
+          Expanded(
+            child: open
+                // Shrinks a little on a narrow screen or with a large text size, never overflows.
+                ? FittedBox(
+                    alignment: AlignmentDirectional.centerStart,
+                    fit: BoxFit.scaleDown,
+                    child: Row(
+                      spacing: 8,
+                      children: [
+                        TimeBox(hours!.open, onTap: onOpen),
+                        Text('–', style: context.text.bodyMedium),
+                        TimeBox(hours!.close, onTap: onClose),
+                      ],
+                    ),
+                  )
+                : Text(
+                    t.closedDay,
+                    style: context.text.bodyMedium?.copyWith(
+                      color: context.status.muted,
+                    ),
+                  ),
+          ),
+          Switch(value: open, onChanged: onChanged),
+        ],
+      ),
     );
   }
 }
@@ -389,65 +478,41 @@ class _WhatsAppCodes extends ConsumerWidget {
     final status = settings.whatsappStatus;
     final configured = status != 'NOT_CONFIGURED';
     final connected = status == 'CONNECTED';
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return _Section(
+      title: t.whatsappSettingsTitle,
+      hint: t.whatsappSettingsHint,
       children: [
-        SectionHeader(t.whatsappSettingsTitle),
-        AppCard(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                t.whatsappSettingsHint,
-                style: context.text.bodyMedium?.copyWith(
-                  color: context.status.muted,
-                ),
-              ),
-              const Gap(8),
-              Row(
-                children: [
-                  Icon(
-                    connected
-                        ? LucideIcons.circleCheck
-                        : LucideIcons.circleAlert,
-                    size: 18,
-                    color: connected
-                        ? context.status.success
-                        : context.status.warning,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      !configured
-                          ? t.whatsappNotSetUp
-                          : connected
-                          ? t.whatsappConnected
-                          : t.whatsappDisconnected,
-                      style: context.text.bodySmall,
-                    ),
-                  ),
-                ],
-              ),
-              SwitchListTile(
-                contentPadding: EdgeInsets.zero,
-                title: Text(t.whatsappSwitch),
-                value: settings.whatsappEnabled,
-                onChanged: configured
-                    ? (on) async {
-                        final ok = await perform(
-                          context,
-                          () => ref.read(appSettingsRepositoryProvider).save({
-                            'whatsapp': {'enabled': on},
-                          }),
-                        );
-                        if (ok) ref.invalidate(appSettingsProvider);
-                      }
-                    : null,
-              ),
-            ],
+        Align(
+          alignment: AlignmentDirectional.centerStart,
+          child: StatusChip(
+            !configured
+                ? t.whatsappNotSetUp
+                : connected
+                ? t.whatsappConnected
+                : t.whatsappDisconnected,
+            tone: connected ? Tone.success : Tone.warning,
+            icon: connected ? LucideIcons.circleCheck : LucideIcons.circleAlert,
           ),
         ),
-        const SizedBox(height: 16),
+        SettingGroup(
+          children: [
+            SettingSwitch(
+              title: t.whatsappSwitch,
+              value: settings.whatsappEnabled,
+              onChanged: configured
+                  ? (on) async {
+                      final ok = await perform(
+                        context,
+                        () => ref.read(appSettingsRepositoryProvider).save({
+                          'whatsapp': {'enabled': on},
+                        }),
+                      );
+                      if (ok) ref.invalidate(appSettingsProvider);
+                    }
+                  : null,
+            ),
+          ],
+        ),
       ],
     );
   }

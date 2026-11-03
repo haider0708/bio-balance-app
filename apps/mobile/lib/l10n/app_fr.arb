@@ -2115,5 +2115,6 @@
   "buyerMyOrders": "Commandes en cours",
   "buyerNoOrders": "Aucune commande en cours",
   "buyerNoOrdersHint": "Commandez ce dont le para a besoin : l’admin est prévenu.",
-  "buyerOrderFor": "Votre commande est pour ce para"
+  "buyerOrderFor": "Votre commande est pour ce para",
+  "hoursInvalid": "L’heure de fermeture doit être après l’ouverture."
 }

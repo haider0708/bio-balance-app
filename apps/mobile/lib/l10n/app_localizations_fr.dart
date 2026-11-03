@@ -4318,4 +4318,8 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get buyerOrderFor => 'Votre commande est pour ce para';
+
+  @override
+  String get hoursInvalid =>
+      'L’heure de fermeture doit être après l’ouverture.';
 }

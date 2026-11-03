@@ -4295,4 +4295,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get buyerOrderFor => 'Your order is for this para';
+
+  @override
+  String get hoursInvalid => 'Closing time must be after opening time.';
 }

@@ -2309,5 +2309,6 @@
   "buyerMyOrders": "Orders on their way",
   "buyerNoOrders": "No order on its way",
   "buyerNoOrdersHint": "Order what the para needs: the admin is told.",
-  "buyerOrderFor": "Your order is for this para"
+  "buyerOrderFor": "Your order is for this para",
+  "hoursInvalid": "Closing time must be after opening time."
 }

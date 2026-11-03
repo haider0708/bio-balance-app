@@ -7393,6 +7393,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Your order is for this para'**
   String get buyerOrderFor;
+
+  /// No description provided for @hoursInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Closing time must be after opening time.'**
+  String get hoursInvalid;
 }
 
 class _AppLocalizationsDelegate

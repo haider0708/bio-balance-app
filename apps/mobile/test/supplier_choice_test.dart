@@ -202,16 +202,11 @@ void main() {
     unawaited(container.read(routerProvider).push('/app-settings'));
     await settle(tester);
     expect(find.text('Nora Nord'), findsNothing);
-    await tester.tap(
-      find.widgetWithText(
-        SwitchListTile,
-        'Responsables may suggest the grossiste',
-      ),
-    );
+    await tester.tap(find.text('Responsables may suggest the grossiste'));
     await settle(tester);
     expect(sent(s, 'PUT', '/v1/settings'), {'supplierChoice': true});
     expect(find.text('Nora Nord'), findsOneWidget);
-    await tester.tap(find.widgetWithText(SwitchListTile, 'Nora Nord'));
+    await tester.tap(find.text('Nora Nord'));
     await settle(tester);
     expect(sent(s, 'PUT', '/v1/users/u9/supplier-choice'), {'allowed': true});
   });

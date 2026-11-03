@@ -353,6 +353,18 @@ class AppTheme {
         space: 1,
         thickness: 1,
       ),
+      // Switches: a white thumb on a primary track when on, a quiet grey track when off, no outline.
+      switchTheme: SwitchThemeData(
+        thumbColor: const WidgetStatePropertyAll(Colors.white),
+        trackColor: WidgetStateProperty.resolveWith((s) {
+          final on = s.contains(WidgetState.selected);
+          final off = s.contains(WidgetState.disabled);
+          if (on) return scheme.primary.withValues(alpha: off ? 0.4 : 1);
+          return status.muted.withValues(alpha: off ? 0.18 : 0.45);
+        }),
+        trackOutlineColor: const WidgetStatePropertyAll(Colors.transparent),
+        thumbIcon: const WidgetStatePropertyAll<Icon?>(null),
+      ),
       // Solid primary — clean and deliberate, no gradient wash on every CTA.
       filledButtonTheme: FilledButtonThemeData(
         style: ButtonStyle(
