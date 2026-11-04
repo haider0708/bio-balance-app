@@ -2,6 +2,7 @@ import { z } from "zod";
 import type { Database } from "../core/database";
 import { hashCode } from "../modules/auth/codes";
 import { openCredentials, wipeCredentials } from "../modules/auth/credentials";
+import { installPageUrl } from "../core/install";
 import { SettingsService } from "../core/settings";
 import { type EmailContent, renderEmail } from "./templates";
 
@@ -83,6 +84,7 @@ export class EmailDelivery {
         password,
         expiresAt: user.passwordExpiresAt!,
         stores: (await this.settings.get()).stores,
+        installPage: installPageUrl(),
       });
       if (!(await stillOwned())) throw new Error("EMAIL_LEASE_LOST");
       await this.transport.send(user.email, content, job.id);

@@ -135,9 +135,9 @@ describe("the demonstration region", () => {
          FROM "Sale" WHERE "regionId" = $1`,
         [result.regionId],
       );
-      // The demonstration never puts a sale in the future and Tunis sales start at 9:00:
-      // before 10:00 (Tunis time) today has none yet.
-      const early = (new Date().getUTCHours() + 1) % 24 < 10;
+      // The demonstration never puts a sale in the future, and the sales of the first hours of a day
+      // are few and spread by the minute: early in the day (Tunis time) today may have none yet.
+      const early = (new Date().getUTCHours() + 1) % 24 < 12;
       expect(salesByDay[0]).toMatchObject({
         first: result.from,
         last: early ? addDays(today(), -1) : today(),

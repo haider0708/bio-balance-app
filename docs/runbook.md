@@ -50,7 +50,7 @@ The administrator can also work from a browser: **https://admin.galylio.com/**. 
 `API_PUBLIC_URL` (for example `https://api.galylio.com`) is used by the API and the worker to put the "copy your code" link in emails.
 
 
-`API_IMAGE` (set by the deploy script), `DATABASE_URL` (restricted application role), `MIGRATION_DATABASE_URL` (owner), `POSTGRES_USER`/`POSTGRES_PASSWORD`/`POSTGRES_DB`, `MFA_ENCRYPTION_KEY` (32 random bytes, base64 — losing it locks the admin's authenticator), `SMTP_HOST`/`SMTP_PORT`/`SMTP_SECURE`/`SMTP_REQUIRE_TLS`/`SMTP_FROM`/`SMTP_USER`/`SMTP_PASSWORD`, `WORKER_CONCURRENCY`, `SUPPORT_EMAIL`, `MIN_APP_BUILD` (the oldest app build still allowed: older phones show "Update required"; 0 allows all) with `IOS_STORE_URL` (the App Store page, once it exists) and `PLAY_STORE_URL` (defaults to the Play page), and for push alerts `FCM_SERVICE_ACCOUNT` (Android) and `APNS_KEY_ID`/`APNS_TEAM_ID`/`APNS_KEY_P8`/`APNS_TOPIC` (iPhone), below.
+`API_IMAGE` (set by the deploy script), `DATABASE_URL` (restricted application role), `MIGRATION_DATABASE_URL` (owner), `POSTGRES_USER`/`POSTGRES_PASSWORD`/`POSTGRES_DB`, `MFA_ENCRYPTION_KEY` (32 random bytes, base64 — losing it locks the admin's authenticator), `SMTP_HOST`/`SMTP_PORT`/`SMTP_SECURE`/`SMTP_REQUIRE_TLS`/`SMTP_FROM`/`SMTP_USER`/`SMTP_PASSWORD`, `WORKER_CONCURRENCY`, `SUPPORT_EMAIL`, `MIN_APP_BUILD` (the oldest app build still allowed: older phones show "Update required"; 0 allows all) with `IOS_STORE_URL` (the App Store page, once it exists) and `PLAY_STORE_URL` (defaults to the APK download, see "Installing the app"), and for push alerts `FCM_SERVICE_ACCOUNT` (Android) and `APNS_KEY_ID`/`APNS_TEAM_ID`/`APNS_KEY_P8`/`APNS_TOPIC` (iPhone), below.
 
 ### Push alerts
 
@@ -102,6 +102,14 @@ The worker drops a return nobody decided after 3 days (`return-expire`, hourly).
 ## Team accounts: passwords by email and WhatsApp
 
 A seller or buyer added by a responsable is created when the admin approves; the admin's own creations are active at once. The generated password goes by email and WhatsApp together (the worker's `email` and `whatsapp` jobs, template `credentials`). If a person says nothing arrived: check the email address and the number on their page, then **Send a new password**. If WhatsApp is off or the number has no WhatsApp the email still goes. A password older than 7 days is refused with a clear message: send a new one. Never ask a person to read their password to you; nobody (not even the admin) can see it. The audit log has `user.credentials_issued` with the expiry date only. A stuck message holds the password encrypted until it is sent or dropped.
+
+## Installing the app: the welcome message, the Android file, TestFlight
+
+The welcome message (email and WhatsApp, same text: hello, the two install steps with their links, then the email and temporary password) comes from `core/install.ts` (the steps), `email/templates.ts` and `whatsapp/templates.ts`. It links the two downloads in the application settings (`stores`) and the page `https://api.galylio.com/install` (the same steps again, French or English by the phone's language, the visitor's phone first).
+
+- **Android:** `https://api.galylio.com/download/biobalance.apk` is the latest signed APK, the default Android link of the settings (`PLAY_STORE_URL` in the server env overrides it). `scripts/publish-apk.sh` builds it (checks, version from `pubspec.yaml`, signed with the key in `~/.biobalance/signing/`, signature and version verified), uploads it to `/opt/biobalance-downloads/` on the server (the previous file goes to `previous/`, `latest.json` carries version, size and checksum) and downloads it back to prove the public file is the one built. nginx serves it (`shared-vps/nginx.conf`); the folder lives outside the repository folder, so a deploy never touches it. **Run it for every Android release**, from the Mac or the Linux PC (same key path). It is signed like the Play build: phones update from one to the other. Rollback: copy `previous/biobalance.apk` over `biobalance.apk` and fix `latest.json`.
+- **iPhone:** the TestFlight public link of the group "Testeurs" is `IOS_STORE_URL` in `/etc/biobalance/backend.env` (and the settings). `scripts/ios-release.sh --upload` sends a build; then add it to the group "Testeurs" (`node scripts/testflight.mjs status` shows builds, groups and the link). **A TestFlight build expires after 90 days**: upload a new one before then, or the link stops installing.
+- A person who says the message did not arrive: People > the person > Send a new password (email and WhatsApp again).
 
 ## Order manager
 

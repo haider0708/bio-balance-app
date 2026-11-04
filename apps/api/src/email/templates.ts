@@ -1,3 +1,5 @@
+import { installWords, type Stores } from "../core/install";
+
 export interface EmailContent {
   subject: string;
   text: string;
@@ -27,7 +29,8 @@ export type EmailTemplate =
       email: string;
       password: string;
       expiresAt: Date;
-      stores: { ios: string | null; android: string | null };
+      stores: Stores;
+      installPage: string | null;
     };
 
 const escape = (value: string) =>
@@ -132,12 +135,10 @@ const credentials = {
     heading: "Votre compte BioBalance est prêt",
     intro: (name: string) =>
       `Bonjour ${name}, votre compte BioBalance a été créé.`,
-    steps:
-      "Installez l’application BioBalance, puis connectez-vous avec l’adresse email et le mot de passe provisoire ci-dessous. L’application vous demandera aussitôt de choisir votre propre mot de passe.",
     emailLabel: "Adresse email",
     passwordLabel: "Mot de passe provisoire",
-    ios: "Application iPhone",
-    android: "Application Android",
+    first:
+      "À la première connexion, l’application vous demande de choisir votre propre mot de passe.",
     valid: (date: string) =>
       `Ce mot de passe provisoire fonctionne jusqu’au ${date} (heure de Tunis).`,
     note: "Ne le partagez avec personne. Si vous ne vous attendiez pas à ce message, ignorez-le et prévenez votre responsable.",
@@ -147,12 +148,10 @@ const credentials = {
     heading: "Your BioBalance account is ready",
     intro: (name: string) =>
       `Hello ${name}, your BioBalance account has been created.`,
-    steps:
-      "Install the BioBalance app, then sign in with the email address and the temporary password below. The app will ask you right away to choose your own password.",
     emailLabel: "Email address",
     passwordLabel: "Temporary password",
-    ios: "iPhone app",
-    android: "Android app",
+    first:
+      "When you first sign in, the app asks you to choose your own password.",
     valid: (date: string) =>
       `This temporary password works until ${date} (Tunis time).`,
     note: "Do not share it with anyone. If you were not expecting this message, ignore it and tell your manager.",
@@ -224,19 +223,25 @@ function renderCredentials(
   input: Extract<EmailTemplate, { kind: "credentials" }>,
 ): EmailContent {
   const c = credentials[locale];
-  const links: (readonly [string, string])[] = [];
-  if (input.stores.ios) links.push([c.ios, input.stores.ios]);
-  if (input.stores.android) links.push([c.android, input.stores.android]);
+  const w = installWords[locale];
+  // One block per phone: what to do, then the link.
+  const phones = [
+    input.stores.android &&
+      ([w.android, w.androidSteps, input.stores.android] as const),
+    input.stores.ios && ([w.iphone, w.iphoneSteps, input.stores.ios] as const),
+  ].filter((p) => !!p);
   const valid = c.valid(when(locale, input.expiresAt));
   const text = [
     "BioBalance",
     c.heading,
     c.intro(input.name),
-    c.steps,
-    ...links.map(([label, url]) => `${label} : ${url}`),
+    w.install,
+    ...phones.map(([label, steps, url]) => `${label}\n${steps}\n${url}`),
+    ...(input.installPage ? [`${w.help}\n${input.installPage}`] : []),
+    w.signIn,
     `${c.emailLabel} : ${input.email}`,
     `${c.passwordLabel} : ${input.password}`,
-    valid,
+    `${valid} ${c.first}`,
     c.note,
   ].join("\n\n");
   const box = (label: string, value: string, mono: boolean) =>
@@ -249,10 +254,12 @@ function renderCredentials(
 <tr><td style="padding:0 0 24px;color:#146c43;font-size:15px;font-weight:600">BioBalance</td></tr>
 <tr><td><h1 style="margin:0 0 16px;font-size:22px;line-height:1.35">${escape(c.heading)}</h1>
 <p style="margin:0 0 16px;font-size:16px;line-height:1.6">${escape(c.intro(input.name))}</p>
-<p style="margin:0 0 20px;font-size:16px;line-height:1.6">${escape(c.steps)}</p>
-${links.map(([label, url]) => `<p style="margin:0 0 10px"><a href="${escape(url)}" style="display:inline-block;padding:12px 18px;background:#146c43;color:#ffffff;text-decoration:none;border-radius:6px;font-size:15px;font-weight:700">${escape(label)}</a></p>`).join("")}
+<h2 style="margin:24px 0 12px;font-size:18px">${escape(w.install)}</h2>
+${phones.map(([label, steps, url]) => `<p style="margin:0 0 6px;font-size:16px;font-weight:700">${escape(label)}</p><p style="margin:0 0 10px;font-size:15px;line-height:1.6">${escape(steps)}</p><p style="margin:0 0 20px"><a href="${escape(url)}" style="display:inline-block;padding:12px 18px;background:#146c43;color:#ffffff;text-decoration:none;border-radius:6px;font-size:15px;font-weight:700">${escape(label)}</a></p>`).join("")}
+${input.installPage ? `<p style="margin:0 0 8px;font-size:14px;line-height:1.5"><a href="${escape(input.installPage)}" style="color:#146c43">${escape(w.help)}</a></p>` : ""}
+<h2 style="margin:24px 0 12px;font-size:18px">${escape(w.signIn)}</h2>
 ${box(c.emailLabel, input.email, false)}${box(c.passwordLabel, input.password, true)}
-<p style="margin:0 0 20px;font-size:14px;line-height:1.5;color:#5d665f">${escape(valid)}</p>
+<p style="margin:0 0 20px;font-size:14px;line-height:1.5;color:#5d665f">${escape(valid)} ${escape(c.first)}</p>
 <p style="margin:24px 0 0;font-size:14px;line-height:1.6;color:#5d665f">${escape(c.note)}</p>
 </td></tr></table></td></tr></table></body></html>`;
   return { subject: c.subject, text, html };

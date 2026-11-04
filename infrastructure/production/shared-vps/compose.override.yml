@@ -7,6 +7,7 @@ services:
       - ./shared-vps/nginx-common.conf:/etc/nginx/biobalance-common.conf:ro
       - ./shared-vps/nginx-api-proxy.conf:/etc/nginx/biobalance-api-proxy.conf:ro
       - /opt/biobalance-web:/usr/share/biobalance-web:ro
+      - /opt/biobalance-downloads:/usr/share/biobalance-downloads:ro
     mem_limit: 128m
     cpus: 1
     read_only: true

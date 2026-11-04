@@ -1,5 +1,6 @@
 import type { Database } from "../core/database";
 import { normalizeTunisianPhone } from "../core/phone";
+import { installPageUrl } from "../core/install";
 import { SettingsService } from "../core/settings";
 import { hashCode } from "../modules/auth/codes";
 import { openCredentials, wipeCredentials } from "../modules/auth/credentials";
@@ -59,6 +60,7 @@ export class WhatsAppDelivery {
         password,
         expiresAt: user.passwordExpiresAt!,
         stores: (await this.settings.get()).stores,
+        installPage: installPageUrl(),
       });
     } else if (p.template === "password-changed")
       text = renderWhatsApp(locale, {

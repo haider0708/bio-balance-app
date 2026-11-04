@@ -18,6 +18,7 @@ import { SalesModule } from "./modules/sales/sales.module";
 import { TrainingModule } from "./modules/training/training.module";
 import { StockModule } from "./modules/stock/stock.module";
 import { CodePageController } from "./modules/auth/code-page.controller";
+import { InstallPageController } from "./modules/auth/install-page.controller";
 import { CalendarController } from "./modules/planning/calendar.controller";
 import { SetupLinkController } from "./modules/auth/setup-link.controller";
 import { AppConfigController } from "./modules/legal/app-config.controller";
@@ -54,6 +55,7 @@ class HealthController {
   controllers: [
     HealthController,
     CodePageController,
+    InstallPageController,
     SetupLinkController,
     CalendarController,
     LegalController,

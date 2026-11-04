@@ -405,6 +405,12 @@ describe("sending a new password", () => {
 });
 
 describe("the messages", () => {
+  beforeAll(() => {
+    process.env.API_PUBLIC_URL = "https://api.example.test";
+  });
+  afterAll(() => {
+    delete process.env.API_PUBLIC_URL;
+  });
   const sender = (
     sent: { to: string; subject: string; text: string; html: string }[],
   ): EmailTransport => ({
@@ -416,9 +422,8 @@ describe("the messages", () => {
     get: async () => ({
       whatsapp: { enabled: true },
       stores: {
-        ios: "https://apps.apple.com/app/id1",
-        android:
-          "https://play.google.com/store/apps/details?id=tn.biobalance.app",
+        ios: "https://testflight.apple.com/join/AbCd1234",
+        android: "https://api.example.test/download/biobalance.apk",
       },
     }),
   } as unknown as SettingsService;
@@ -437,7 +442,13 @@ describe("the messages", () => {
     for (const part of [sent[0]!.text, sent[0]!.html]) {
       expect(part).toContain(password);
       expect(part).toContain("amira@example.test");
-      expect(part).toContain("play.google.com");
+      // The install steps and both downloads travel with the account details.
+      expect(part).toContain(
+        "https://api.example.test/download/biobalance.apk",
+      );
+      expect(part).toContain("https://testflight.apple.com/join/AbCd1234");
+      expect(part).toContain("TestFlight");
+      expect(part).toContain("https://api.example.test/install");
     }
     expect(sent[0]!.text).toContain("Amira Gharbi");
     // Sent: the password is gone from the stored message, so a retry or a leak finds nothing.
@@ -465,6 +476,14 @@ describe("the messages", () => {
     expect(sent[0]!.text).toContain(password);
     expect(sent[0]!.text).toContain("Bonjour Amira Gharbi");
     expect(sent[0]!.text).toContain("amira@example.test");
+    expect(sent[0]!.text).toContain("1. Installez l’application");
+    expect(sent[0]!.text).toContain(
+      "https://api.example.test/download/biobalance.apk",
+    );
+    expect(sent[0]!.text).toContain(
+      "https://testflight.apple.com/join/AbCd1234",
+    );
+    expect(sent[0]!.text).toContain("2. Connectez-vous");
     expect((await jobs("whatsapp"))[0]!.payload.sealed).toBe("");
   });
 
