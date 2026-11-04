@@ -1,4 +1,4 @@
-import { installWords, type Stores } from "../core/install";
+import { installBlocks, installWords, type Stores } from "../core/install";
 
 export interface EmailContent {
   subject: string;
@@ -224,19 +224,13 @@ function renderCredentials(
 ): EmailContent {
   const c = credentials[locale];
   const w = installWords[locale];
-  // One block per phone: what to do, then the link.
-  const phones = [
-    input.stores.android &&
-      ([w.android, w.androidSteps, input.stores.android] as const),
-    input.stores.ios && ([w.iphone, w.iphoneSteps, input.stores.ios] as const),
-  ].filter((p) => !!p);
+  const blocks = installBlocks(locale, input.stores);
   const valid = c.valid(when(locale, input.expiresAt));
   const text = [
     "BioBalance",
     c.heading,
     c.intro(input.name),
-    w.install,
-    ...phones.map(([label, steps, url]) => `${label}\n${steps}\n${url}`),
+    ...blocks.map((b) => `${b.title}\n${b.lines.join("\n")}`),
     ...(input.installPage ? [`${w.help}\n${input.installPage}`] : []),
     w.signIn,
     `${c.emailLabel} : ${input.email}`,
@@ -254,8 +248,7 @@ function renderCredentials(
 <tr><td style="padding:0 0 24px;color:#146c43;font-size:15px;font-weight:600">BioBalance</td></tr>
 <tr><td><h1 style="margin:0 0 16px;font-size:22px;line-height:1.35">${escape(c.heading)}</h1>
 <p style="margin:0 0 16px;font-size:16px;line-height:1.6">${escape(c.intro(input.name))}</p>
-<h2 style="margin:24px 0 12px;font-size:18px">${escape(w.install)}</h2>
-${phones.map(([label, steps, url]) => `<p style="margin:0 0 6px;font-size:16px;font-weight:700">${escape(label)}</p><p style="margin:0 0 10px;font-size:15px;line-height:1.6">${escape(steps)}</p><p style="margin:0 0 20px"><a href="${escape(url)}" style="display:inline-block;padding:12px 18px;background:#146c43;color:#ffffff;text-decoration:none;border-radius:6px;font-size:15px;font-weight:700">${escape(label)}</a></p>`).join("")}
+${blocks.map((b) => `<h2 style="margin:24px 0 10px;font-size:18px">${escape(b.title)}</h2>${b.lines.map((line) => (/^https:/.test(line) ? `<p style="margin:0 0 16px"><a href="${escape(line)}" style="display:inline-block;padding:12px 18px;background:#146c43;color:#ffffff;text-decoration:none;border-radius:6px;font-size:15px;font-weight:700;word-break:break-all">${escape(line)}</a></p>` : `<p style="margin:0 0 8px;font-size:15px;line-height:1.6">${escape(line)}</p>`)).join("")}`).join("")}
 ${input.installPage ? `<p style="margin:0 0 8px;font-size:14px;line-height:1.5"><a href="${escape(input.installPage)}" style="color:#146c43">${escape(w.help)}</a></p>` : ""}
 <h2 style="margin:24px 0 12px;font-size:18px">${escape(w.signIn)}</h2>
 ${box(c.emailLabel, input.email, false)}${box(c.passwordLabel, input.password, true)}

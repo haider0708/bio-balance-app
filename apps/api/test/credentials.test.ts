@@ -476,14 +476,18 @@ describe("the messages", () => {
     expect(sent[0]!.text).toContain(password);
     expect(sent[0]!.text).toContain("Bonjour Amira Gharbi");
     expect(sent[0]!.text).toContain("amira@example.test");
-    expect(sent[0]!.text).toContain("1. Installez l’application");
+    expect(sent[0]!.text).toContain("Si vous avez un téléphone Android");
+    expect(sent[0]!.text).toContain("Si vous avez un iPhone");
+    expect(sent[0]!.text).toContain(
+      "https://apps.apple.com/app/testflight/id899247664",
+    );
     expect(sent[0]!.text).toContain(
       "https://api.example.test/download/biobalance.apk",
     );
     expect(sent[0]!.text).toContain(
       "https://testflight.apple.com/join/AbCd1234",
     );
-    expect(sent[0]!.text).toContain("2. Connectez-vous");
+    expect(sent[0]!.text).toContain("Vos informations de connexion");
     expect((await jobs("whatsapp"))[0]!.payload.sealed).toBe("");
   });
 

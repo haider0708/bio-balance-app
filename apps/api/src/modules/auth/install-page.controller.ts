@@ -2,9 +2,8 @@ import { createHash } from "node:crypto";
 import { Controller, Get, Header, Res } from "@nestjs/common";
 import type { Response } from "express";
 import { Public } from "../../core/http";
+import { TESTFLIGHT_STORE } from "../../core/install";
 import { SettingsService } from "../../core/settings";
-
-const TESTFLIGHT = "https://apps.apple.com/app/testflight/id899247664";
 
 /** What the page says, in each language (the visitor's phone language picks one). */
 const words = {
@@ -99,7 +98,7 @@ export function renderInstallPage(stores: {
     ? `<section id="android"><h2>${both((w) => esc(w.android))}</h2>${list("androidSteps")}<a class="go" href="${esc(stores.android)}">${both((w) => esc(w.download))}<small id="version"></small></a></section>`
     : "";
   const iphone = stores.ios
-    ? `<section id="iphone"><h2>${both((w) => esc(w.iphone))}</h2>${list("iphoneSteps")}<a class="alt" href="${TESTFLIGHT}">${both((w) => esc(w.testflight))}</a><a class="go" href="${esc(stores.ios)}">${both((w) => esc(w.open))}</a></section>`
+    ? `<section id="iphone"><h2>${both((w) => esc(w.iphone))}</h2>${list("iphoneSteps")}<a class="alt" href="${TESTFLIGHT_STORE}">${both((w) => esc(w.testflight))}</a><a class="go" href="${esc(stores.ios)}">${both((w) => esc(w.open))}</a></section>`
     : "";
   return `<!doctype html>
 <html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex"><title>BioBalance</title>

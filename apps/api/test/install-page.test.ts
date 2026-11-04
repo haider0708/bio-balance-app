@@ -67,6 +67,13 @@ describe("the welcome message", () => {
         expect(text.indexOf(stores.android)).toBeLessThan(
           text.indexOf("Kd7mPq2xWz"),
         );
+        // An iPhone is first sent to TestFlight in the App Store, then to the app's own link.
+        const store = text.indexOf("apps.apple.com/app/testflight");
+        expect(store).toBeGreaterThan(-1);
+        expect(store).toBeLessThan(text.indexOf(stores.ios));
+        expect(text.indexOf(stores.ios)).toBeLessThan(
+          text.indexOf("Kd7mPq2xWz"),
+        );
       }
     }
   });
@@ -77,6 +84,7 @@ describe("the welcome message", () => {
       stores: { android: stores.android, ios: null },
     });
     expect(text).not.toContain("TestFlight");
-    expect(text).toContain("Android");
+    expect(text).toContain("If you have an Android phone");
+    expect(text).not.toContain("If you have an iPhone");
   });
 });
