@@ -104,7 +104,7 @@ Not collected: contacts, health, financial info, browsing, search history, perfo
 > • Team member (records sales): [email] / [password]
 > • Regional manager (stock, restocks, region analytics): [email] / [password]
 >
-> The app is intended for unlisted distribution to the members of our network (we will send the unlisted distribution request once this build is in review).
+> Unlisted App Distribution was approved by Apple (case 103005988856): the app is reached only through the direct link, by the members of our network.
 >
 > To try it: sign in as the team member, tap “New sale”, add a product and record the sale: the reward is shown. Sign in as the regional manager to see the region's dashboard; every number opens its analytics. These two accounts are demonstration accounts: what they submit is approved automatically after a minute, and if one is deleted (Settings → Delete my account) it is restored a few minutes later so another reviewer can still sign in; a team member deactivated by the regional manager is reactivated after a minute for the same reason.
 > The camera is used to scan product barcodes and to photograph stock as proof. Account deletion: Settings → Delete my account.
