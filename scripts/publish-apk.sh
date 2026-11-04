@@ -12,7 +12,6 @@ cd "$(dirname "$0")/.."
 source scripts/deploy-guard.sh
 source ~/.biobalance/signing/env.sh
 guard_start apk "$host"
-trap guard_release EXIT
 cd apps/mobile
 
 version=$(sed -n 's/^version: *//p' pubspec.yaml)
