@@ -11,6 +11,7 @@ import '../../core/util/money.dart';
 import '../../core/widgets/async_body.dart';
 import '../../core/widgets/components.dart';
 import '../../core/widgets/feedback.dart';
+import '../../core/widgets/list_tools.dart';
 import '../../core/widgets/paged_list.dart';
 import '../../core/widgets/states.dart';
 import '../../l10n/app_localizations.dart';
@@ -34,6 +35,7 @@ class _ApprovalsScreenState extends ConsumerState<ApprovalsScreen> {
   ApprovalType? _type;
   String? _regionId;
   bool _history = false;
+  String _query = '';
 
   void _reload() {
     ref.invalidate(approvalsProvider);
@@ -129,6 +131,11 @@ class _ApprovalsScreenState extends ConsumerState<ApprovalsScreen> {
                 ],
               ),
             ),
+            SearchBox(
+              hint: t.searchApprovals,
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+              onChanged: (v) => setState(() => _query = v),
+            ),
             Expanded(
               child: RefreshIndicator(
                 onRefresh: () async {
@@ -141,17 +148,31 @@ class _ApprovalsScreenState extends ConsumerState<ApprovalsScreen> {
                   builder: (a) {
                     final items = a.items
                         .where((i) => _type == null || i.type == _type)
+                        .where(
+                          (i) => matchesSearch(_query, [
+                            i.name,
+                            i.by,
+                            i.region,
+                            ...i.meta.values.map((v) => v is String ? v : null),
+                          ]),
+                        )
                         .toList();
-                    if (items.isEmpty)
+                    if (items.isEmpty) {
                       return ListView(
                         children: [
-                          EmptyState(
-                            icon: LucideIcons.circleCheck,
-                            title: t.nothingToApprove,
-                            message: t.allCaughtUp,
-                          ),
+                          _query.isNotEmpty
+                              ? EmptyState(
+                                  icon: LucideIcons.search,
+                                  title: t.noResults,
+                                )
+                              : EmptyState(
+                                  icon: LucideIcons.circleCheck,
+                                  title: t.nothingToApprove,
+                                  message: t.allCaughtUp,
+                                ),
                         ],
                       );
+                    }
                     return ListView.separated(
                       padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
                       itemCount: items.length,
@@ -393,6 +414,7 @@ class _History extends ConsumerStatefulWidget {
 
 class _HistoryState extends ConsumerState<_History> {
   ApprovalType? _type;
+  String _query = '';
   late PagedController<HistoryItem> _paged = _make();
 
   PagedController<HistoryItem> _make() =>
@@ -550,6 +572,11 @@ class _HistoryState extends ConsumerState<_History> {
     final t = AppLocalizations.of(context);
     return Column(
       children: [
+        SearchBox(
+          hint: t.searchApprovals,
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+          onChanged: (v) => setState(() => _query = v),
+        ),
         SizedBox(
           height: 48,
           child: ListView(
@@ -588,6 +615,9 @@ class _HistoryState extends ConsumerState<_History> {
           child: PagedList<HistoryItem>(
             controller: _paged,
             empty: EmptyState(icon: LucideIcons.history, title: t.noHistoryYet),
+            noMatch: EmptyState(icon: LucideIcons.search, title: t.noResults),
+            test: (i) =>
+                matchesSearch(_query, [i.name, i.decidedBy, i.region, i.note]),
             itemBuilder: (context, item, index) {
               final tone = switch (item.outcome) {
                 'APPROVED' => Tone.success,

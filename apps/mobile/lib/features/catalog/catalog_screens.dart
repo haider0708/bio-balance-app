@@ -8,6 +8,7 @@ import '../../core/theme/app_theme.dart';
 import '../analytics/analytics_widgets.dart' show AnalyticsButton;
 import '../analytics/lens.dart' show Facet;
 import '../../core/widgets/async_body.dart';
+import '../../core/widgets/list_tools.dart';
 import '../../core/widgets/components.dart';
 import '../../core/widgets/feedback.dart';
 import '../../core/widgets/photo_field.dart';
@@ -30,6 +31,7 @@ class CatalogScreen extends ConsumerStatefulWidget {
 class _CatalogScreenState extends ConsumerState<CatalogScreen> {
   String _query = '';
   String? _family;
+  bool _byFamily = false;
 
   @override
   Widget build(BuildContext context) {
@@ -38,7 +40,16 @@ class _CatalogScreenState extends ConsumerState<CatalogScreen> {
       widget.editable ? allProductsProvider : productsProvider,
     );
     return Scaffold(
-      appBar: AppBar(title: Text(t.catalogTitle)),
+      appBar: AppBar(
+        title: Text(t.catalogTitle),
+        actions: [
+          SortMenu<bool>(
+            value: _byFamily,
+            onChanged: (v) => setState(() => _byFamily = v),
+            options: [(false, t.sortName), (true, t.sortFamily)],
+          ),
+        ],
+      ),
       floatingActionButton: widget.editable
           ? FloatingActionButton.extended(
               heroTag: null,
@@ -59,15 +70,19 @@ class _CatalogScreenState extends ConsumerState<CatalogScreen> {
         },
         builder: (all) {
           final families = {for (final p in all) p.family}.toList()..sort();
-          final shown = all
-              .where((p) => _family == null || p.family == _family)
-              .where(
-                (p) =>
-                    _query.isEmpty ||
-                    p.name.toLowerCase().contains(_query) ||
-                    (p.barcode ?? '').contains(_query),
-              )
-              .toList();
+          final shown =
+              all
+                  .where((p) => _family == null || p.family == _family)
+                  .where(
+                    (p) => matchesSearch(_query, [p.name, p.barcode, p.family]),
+                  )
+                  .toList()
+                ..sort(
+                  (a, b) => _byFamily
+                      ? foldText('${a.family} ${a.name}')
+                            .compareTo(foldText('${b.family} ${b.name}'))
+                      : foldText(a.name).compareTo(foldText(b.name)),
+                );
           return Column(
             children: [
               Padding(
@@ -77,8 +92,7 @@ class _CatalogScreenState extends ConsumerState<CatalogScreen> {
                     hintText: t.searchProducts,
                     prefixIcon: const Icon(LucideIcons.search, size: 20),
                   ),
-                  onChanged: (v) =>
-                      setState(() => _query = v.trim().toLowerCase()),
+                  onChanged: (v) => setState(() => _query = v.trim()),
                 ),
               ),
               SizedBox(

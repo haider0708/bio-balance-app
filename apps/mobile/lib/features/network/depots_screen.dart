@@ -10,6 +10,7 @@ import '../../core/theme/app_theme.dart';
 import '../../core/widgets/async_body.dart';
 import '../../core/widgets/components.dart';
 import '../../core/widgets/feedback.dart';
+import '../../core/widgets/list_tools.dart';
 import '../../core/widgets/photo_set.dart';
 import '../../core/widgets/states.dart';
 import '../../l10n/app_localizations.dart';
@@ -24,11 +25,22 @@ void _call(String phone) =>
 
 /// The grossistes: warehouses of the regions, with their stock. Responsables see their region's;
 /// the admin sees them all and creates them.
-class DepotsScreen extends ConsumerWidget {
+enum _DepotSort { name, units, products }
+
+class DepotsScreen extends ConsumerStatefulWidget {
   const DepotsScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<DepotsScreen> createState() => _DepotsScreenState();
+}
+
+class _DepotsScreenState extends ConsumerState<DepotsScreen> {
+  String _query = '';
+  int _show = 0;
+  _DepotSort _sort = _DepotSort.name;
+
+  @override
+  Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
     final admin = ref.watch(meProvider).role == Role.admin;
     final depots = ref.watch(depotsProvider);
@@ -45,48 +57,120 @@ class DepotsScreen extends ConsumerWidget {
               label: Text(t.depotNew),
             )
           : null,
-      body: RefreshIndicator(
-        onRefresh: () async {
-          ref.invalidate(depotsProvider);
-          await ref.read(depotsProvider.future);
-        },
-        child: AsyncBody(
-          value: depots,
-          onRetry: () => ref.invalidate(depotsProvider),
-          isEmpty: (l) => l.isEmpty,
-          empty: ListView(
-            children: [
-              EmptyState(
-                icon: LucideIcons.warehouse,
-                title: t.noGrossisteShort,
-                message: admin ? t.noGrossisteYet : null,
-              ),
-            ],
-          ),
-          builder: (list) {
-            final regions = {for (final d in list) d.regionName}.toList()
-              ..sort();
-            return ListView(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 96),
-              children: [
-                for (final region in regions) ...[
-                  // One region (a responsable's own) needs no heading.
-                  if (regions.length > 1) SectionHeader(region),
-                  AutoGrid(
-                    minItemWidth: 360,
-                    maxColumns: 2,
-                    spacing: 8,
-                    children: [
-                      for (final d in list.where((d) => d.regionName == region))
-                        _DepotTile(depot: d),
-                    ],
-                  ),
-                  const Gap(8),
-                ],
+      body: Column(
+        children: [
+          ListToolbar(
+            hint: t.searchDepots,
+            onSearch: (v) => setState(() => _query = v),
+            sort: SortMenu<_DepotSort>(
+              value: _sort,
+              onChanged: (v) => setState(() => _sort = v),
+              options: [
+                (_DepotSort.name, t.sortName),
+                (_DepotSort.units, t.sortPieces),
+                (_DepotSort.products, t.sortProducts),
               ],
-            );
-          },
-        ),
+            ),
+            chips: FilterChips<int>(
+              value: _show,
+              onChanged: (v) => setState(() => _show = v ?? 0),
+              options: [
+                (0, t.all),
+                (1, t.statusActive),
+                (2, t.inactive),
+                (3, t.depotNotCounted),
+              ],
+            ),
+          ),
+          Expanded(
+            child: RefreshIndicator(
+              onRefresh: () async {
+                ref.invalidate(depotsProvider);
+                await ref.read(depotsProvider.future);
+              },
+              child: AsyncBody(
+                value: depots,
+                onRetry: () => ref.invalidate(depotsProvider),
+                isEmpty: (l) => l.isEmpty,
+                empty: ListView(
+                  children: [
+                    EmptyState(
+                      icon: LucideIcons.warehouse,
+                      title: t.noGrossisteShort,
+                      message: admin ? t.noGrossisteYet : null,
+                    ),
+                  ],
+                ),
+                builder: (all) {
+                  final list =
+                      all
+                          .where(
+                            (d) => switch (_show) {
+                              1 => d.active,
+                              2 => !d.active,
+                              3 => d.active && !d.counted,
+                              _ => true,
+                            },
+                          )
+                          .where(
+                            (d) => matchesSearch(_query, [
+                              d.name,
+                              d.city,
+                              d.address,
+                              d.regionName,
+                              d.phone,
+                            ]),
+                          )
+                          .toList()
+                        ..sort(
+                          (a, b) => switch (_sort) {
+                            _DepotSort.name => foldText(
+                              a.name,
+                            ).compareTo(foldText(b.name)),
+                            _DepotSort.units => b.units.compareTo(a.units),
+                            _DepotSort.products => b.products.compareTo(
+                              a.products,
+                            ),
+                          },
+                        );
+                  if (list.isEmpty) {
+                    return ListView(
+                      children: [
+                        EmptyState(
+                          icon: LucideIcons.search,
+                          title: t.noResults,
+                        ),
+                      ],
+                    );
+                  }
+                  final regions = {for (final d in list) d.regionName}.toList()
+                    ..sort();
+                  return ListView(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 96),
+                    children: [
+                      for (final region in regions) ...[
+                        // One region (a responsable's own) needs no heading.
+                        if (regions.length > 1) SectionHeader(region),
+                        AutoGrid(
+                          minItemWidth: 360,
+                          maxColumns: 2,
+                          spacing: 8,
+                          children: [
+                            for (final d in list.where(
+                              (d) => d.regionName == region,
+                            ))
+                              _DepotTile(depot: d),
+                          ],
+                        ),
+                        const Gap(8),
+                      ],
+                    ],
+                  );
+                },
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

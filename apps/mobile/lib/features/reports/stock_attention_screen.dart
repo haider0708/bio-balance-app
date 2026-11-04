@@ -7,59 +7,128 @@ import '../../core/auth/session.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/async_body.dart';
 import '../../core/widgets/components.dart';
+import '../../core/widgets/list_tools.dart';
 import '../../core/widgets/states.dart';
 import '../../l10n/app_localizations.dart';
 import '../dashboard/dashboard_widgets.dart' show StockAttentionTile;
 import 'reports_repository.dart';
 
 /// Products that are nearly out, grouped by store so a long list stays readable.
-class StockAttentionScreen extends ConsumerWidget {
+class StockAttentionScreen extends ConsumerStatefulWidget {
   const StockAttentionScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<StockAttentionScreen> createState() =>
+      _StockAttentionScreenState();
+}
+
+class _StockAttentionScreenState extends ConsumerState<StockAttentionScreen> {
+  String _query = '';
+  int _show = 0;
+  bool _byPieces = false;
+
+  @override
+  Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
     final rows = ref.watch(stockAttentionProvider);
     final canOrder = ref.watch(meProvider).role == Role.responsable;
     return Scaffold(
       appBar: AppBar(title: Text(t.needsAttention)),
-      body: RefreshIndicator(
-        onRefresh: () async {
-          ref.invalidate(stockAttentionProvider);
-          await ref.read(stockAttentionProvider.future);
-        },
-        child: AsyncBody(
-          value: rows,
-          onRetry: () => ref.invalidate(stockAttentionProvider),
-          isEmpty: (l) => l.isEmpty,
-          empty: ListView(
-            children: [
-              EmptyState(icon: LucideIcons.circleCheck, title: t.stockAllGood),
-            ],
+      body: Column(
+        children: [
+          ListToolbar(
+            hint: t.searchStockAttention,
+            onSearch: (v) => setState(() => _query = v),
+            sort: SortMenu<bool>(
+              value: _byPieces,
+              onChanged: (v) => setState(() => _byPieces = v),
+              options: [(false, t.sortMostUrgent), (true, t.sortPiecesLeast)],
+            ),
+            chips: FilterChips<int>(
+              value: _show,
+              onChanged: (v) => setState(() => _show = v ?? 0),
+              options: [(0, t.all), (1, t.outOfStock), (2, t.stockLow)],
+            ),
           ),
-          builder: (list) {
-            final byStore = <String, List<AttentionRow>>{};
-            for (final r in list) {
-              byStore.putIfAbsent(r.locationId, () => []).add(r);
-            }
-            final stores = byStore.values.toList()
-              ..sort((a, b) {
-                final outA = a.where((r) => r.quantity <= 0).length;
-                final outB = b.where((r) => r.quantity <= 0).length;
-                return outB != outA ? outB - outA : b.length - a.length;
-              });
-            return ListView.separated(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-              itemCount: stores.length,
-              separatorBuilder: (_, _) => const Gap(8),
-              itemBuilder: (context, i) => _StoreGroup(
-                rows: stores[i],
-                canOrder: canOrder,
-                startOpen: i == 0,
+          Expanded(
+            child: RefreshIndicator(
+              onRefresh: () async {
+                ref.invalidate(stockAttentionProvider);
+                await ref.read(stockAttentionProvider.future);
+              },
+              child: AsyncBody(
+                value: rows,
+                onRetry: () => ref.invalidate(stockAttentionProvider),
+                isEmpty: (l) => l.isEmpty,
+                empty: ListView(
+                  children: [
+                    EmptyState(
+                      icon: LucideIcons.circleCheck,
+                      title: t.stockAllGood,
+                    ),
+                  ],
+                ),
+                builder: (all) {
+                  final list = all
+                      .where(
+                        (r) => switch (_show) {
+                          1 => r.quantity <= 0,
+                          2 => r.quantity > 0,
+                          _ => true,
+                        },
+                      )
+                      .where(
+                        (r) => matchesSearch(_query, [
+                          r.place,
+                          r.product,
+                          r.family,
+                        ]),
+                      )
+                      .toList();
+                  if (list.isEmpty) {
+                    return ListView(
+                      children: [
+                        EmptyState(
+                          icon: LucideIcons.search,
+                          title: t.noResults,
+                        ),
+                      ],
+                    );
+                  }
+                  final byStore = <String, List<AttentionRow>>{};
+                  for (final r in list) {
+                    byStore.putIfAbsent(r.locationId, () => []).add(r);
+                  }
+                  final stores = byStore.values.toList()
+                    ..sort((a, b) {
+                      if (_byPieces) {
+                        final fewestA = a
+                            .map((r) => r.quantity)
+                            .reduce((x, y) => x < y ? x : y);
+                        final fewestB = b
+                            .map((r) => r.quantity)
+                            .reduce((x, y) => x < y ? x : y);
+                        return fewestA.compareTo(fewestB);
+                      }
+                      final outA = a.where((r) => r.quantity <= 0).length;
+                      final outB = b.where((r) => r.quantity <= 0).length;
+                      return outB != outA ? outB - outA : b.length - a.length;
+                    });
+                  return ListView.separated(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+                    itemCount: stores.length,
+                    separatorBuilder: (_, _) => const Gap(8),
+                    itemBuilder: (context, i) => _StoreGroup(
+                      rows: stores[i],
+                      canOrder: canOrder,
+                      startOpen: i == 0,
+                    ),
+                  );
+                },
               ),
-            );
-          },
-        ),
+            ),
+          ),
+        ],
       ),
     );
   }

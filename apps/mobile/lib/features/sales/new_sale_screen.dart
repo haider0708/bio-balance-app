@@ -8,6 +8,7 @@ import '../../core/drafts/drafts.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/async_body.dart';
 import '../../core/widgets/components.dart';
+import '../../core/widgets/list_tools.dart';
 import '../../core/widgets/feedback.dart';
 import '../../core/widgets/quantity_editor.dart' show QtyStepper;
 import '../../core/widgets/states.dart';
@@ -184,8 +185,7 @@ class _NewSaleScreenState extends ConsumerState<NewSaleScreen> {
                 .where(
                   (p) =>
                       _query.isEmpty ||
-                      p.name.toLowerCase().contains(_query) ||
-                      (p.barcode ?? '').contains(_query),
+                      matchesSearch(_query, [p.name, p.barcode, p.family]),
                 )
                 .toList();
             return Column(
@@ -202,8 +202,7 @@ class _NewSaleScreenState extends ConsumerState<NewSaleScreen> {
                       hintText: t.searchProducts,
                       prefixIcon: const Icon(LucideIcons.search, size: 20),
                     ),
-                    onChanged: (v) =>
-                        setState(() => _query = v.trim().toLowerCase()),
+                    onChanged: (v) => setState(() => _query = v.trim()),
                   ),
                 ),
                 SizedBox(

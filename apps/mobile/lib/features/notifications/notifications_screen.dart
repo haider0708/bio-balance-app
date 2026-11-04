@@ -11,6 +11,7 @@ import '../../core/theme/app_theme.dart';
 import '../../core/util/dates.dart';
 import '../../core/widgets/components.dart';
 import '../../core/widgets/feedback.dart';
+import '../../core/widgets/list_tools.dart';
 import '../../core/widgets/paged_list.dart';
 import '../../core/widgets/states.dart';
 import '../../l10n/app_localizations.dart';
@@ -61,6 +62,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
 
   /// null shows everything; 'UNREAD' only what was not read; otherwise a category.
   String? _filter;
+  String _query = '';
   late PagedController<AppNotification> _paged = _make();
 
   PagedController<AppNotification> _make() => PagedController((cursor) async {
@@ -141,6 +143,11 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
       ),
       body: Column(
         children: [
+          SearchBox(
+            hint: t.searchNotifications,
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+            onChanged: (v) => setState(() => _query = v),
+          ),
           SizedBox(
             height: 52,
             child: ListView(
@@ -184,6 +191,8 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
   Widget _list(AppLocalizations t) {
     return PagedList<AppNotification>(
       controller: _paged,
+      noMatch: EmptyState(icon: LucideIcons.search, title: t.noResults),
+      test: (n) => matchesSearch(_query, [n.headline(t.localeName), n.body]),
       empty: EmptyState(
         icon: LucideIcons.bellOff,
         title: t.noNotifications,

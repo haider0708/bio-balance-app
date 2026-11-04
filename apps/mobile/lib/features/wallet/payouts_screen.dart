@@ -8,6 +8,7 @@ import '../../core/util/money.dart';
 import '../../core/widgets/async_body.dart';
 import '../../core/widgets/components.dart';
 import '../../core/widgets/feedback.dart';
+import '../../core/widgets/list_tools.dart';
 import '../../core/widgets/states.dart';
 import '../../l10n/app_localizations.dart';
 import '../approvals/approvals_repository.dart';
@@ -74,11 +75,37 @@ class _Requests extends ConsumerWidget {
             ),
           ],
         ),
-        builder: (list) => ListView.separated(
+        builder: (list) => SearchableList<Payout>(
+          items: list,
+          hint: t.searchPayouts,
+          emptyTitle: t.noResults,
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-          itemCount: list.length,
-          separatorBuilder: (_, _) => const Gap(8),
-          itemBuilder: (context, i) => _RequestCard(payout: list[i]),
+          fields: (p) => [p.userName, p.userPdv],
+          sorts: [
+            ListSort(
+              t.sortOldest,
+              (a, b) => a.createdAt.compareTo(b.createdAt),
+            ),
+            ListSort(
+              t.sortNewest,
+              (a, b) => b.createdAt.compareTo(a.createdAt),
+            ),
+            ListSort(
+              t.sortAmountMost,
+              (a, b) => b.amountMillimes.compareTo(a.amountMillimes),
+            ),
+            ListSort(
+              t.sortAmountLeast,
+              (a, b) => a.amountMillimes.compareTo(b.amountMillimes),
+            ),
+            ListSort(
+              t.sortName,
+              (a, b) =>
+                  foldText(a.userName ?? '')
+                      .compareTo(foldText(b.userName ?? '')),
+            ),
+          ],
+          itemBuilder: (context, p) => _RequestCard(payout: p),
         ),
       ),
     );
@@ -270,12 +297,47 @@ class _History extends ConsumerWidget {
         final list = all
             .where((p) => p.status != PayoutStatus.pending)
             .toList();
-        return ListView.separated(
+        return SearchableList<Payout>(
+          items: list,
+          hint: t.searchPayouts,
+          emptyTitle: t.noResults,
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-          itemCount: list.length,
-          separatorBuilder: (_, _) => const Gap(8),
-          itemBuilder: (context, i) {
-            final p = list[i];
+          fields: (p) => [p.userName, p.userPdv, p.reference],
+          filters: [
+            ListFilter(t.all, (_) => true),
+            ListFilter(t.payoutPaid, (p) => p.status == PayoutStatus.approved),
+            ListFilter(
+              t.statusRejected,
+              (p) => p.status == PayoutStatus.rejected,
+            ),
+            ListFilter(
+              t.statusCancelled,
+              (p) => p.status == PayoutStatus.cancelled,
+            ),
+          ],
+          sorts: [
+            ListSort(
+              t.sortNewest,
+              (a, b) => (b.paidAt ?? b.decidedAt ?? b.createdAt).compareTo(
+                a.paidAt ?? a.decidedAt ?? a.createdAt,
+              ),
+            ),
+            ListSort(
+              t.sortOldest,
+              (a, b) => (a.paidAt ?? a.decidedAt ?? a.createdAt).compareTo(
+                b.paidAt ?? b.decidedAt ?? b.createdAt,
+              ),
+            ),
+            ListSort(
+              t.sortAmountMost,
+              (a, b) => b.amountMillimes.compareTo(a.amountMillimes),
+            ),
+            ListSort(
+              t.sortAmountLeast,
+              (a, b) => a.amountMillimes.compareTo(b.amountMillimes),
+            ),
+          ],
+          itemBuilder: (context, p) {
             final (tone, label) = switch (p.status) {
               PayoutStatus.approved => (Tone.success, t.payoutPaid),
               PayoutStatus.rejected => (Tone.danger, t.statusRejected),
@@ -326,12 +388,27 @@ class _Wallets extends ConsumerWidget {
       onRetry: () => ref.invalidate(_overviewProvider),
       isEmpty: (l) => l.isEmpty,
       empty: EmptyState(icon: LucideIcons.wallet, title: t.noWalletsYet),
-      builder: (list) => ListView.separated(
+      builder: (list) => SearchableList<WalletOverview>(
+        items: list,
+        hint: t.searchWallets,
+        emptyTitle: t.noResults,
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-        itemCount: list.length,
-        separatorBuilder: (_, _) => const Gap(8),
-        itemBuilder: (context, i) {
-          final w = list[i];
+        fields: (w) => [w.name, w.pdv, w.region],
+        filters: [
+          ListFilter(t.all, (_) => true),
+          ListFilter(t.walletsWithBalance, (w) => w.balance > 0),
+          ListFilter(t.walletsEmpty, (w) => w.balance <= 0),
+        ],
+        sorts: [
+          ListSort(t.sortBalanceMost, (a, b) => b.balance.compareTo(a.balance)),
+          ListSort(
+            t.sortName,
+            (a, b) => foldText(a.name).compareTo(foldText(b.name)),
+          ),
+          ListSort(t.sortEarnedMost, (a, b) => b.earned.compareTo(a.earned)),
+          ListSort(t.sortPaidMost, (a, b) => b.paid.compareTo(a.paid)),
+        ],
+        itemBuilder: (context, w) {
           return AppCard(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,

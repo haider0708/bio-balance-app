@@ -3486,6 +3486,123 @@ class AppLocalizationsEn extends AppLocalizations {
   String get sortBy => 'Sort';
 
   @override
+  String get searchRestocks => 'Search a number, a store, a person…';
+
+  @override
+  String get searchStockAttention => 'Search a store or a product';
+
+  @override
+  String get sortMostUrgent => 'Most urgent first';
+
+  @override
+  String get searchCourses => 'Search a course';
+
+  @override
+  String get courseToDo => 'To do';
+
+  @override
+  String get sortShortest => 'Shortest first';
+
+  @override
+  String get sortLongest => 'Longest first';
+
+  @override
+  String get searchAnnouncements => 'Search an announcement';
+
+  @override
+  String get searchNotifications => 'Search your notifications';
+
+  @override
+  String get searchPayouts => 'Search a name, a store, a reference…';
+
+  @override
+  String get searchWallets => 'Search a name, a store, a region…';
+
+  @override
+  String get sortAmountMost => 'Highest amount first';
+
+  @override
+  String get sortAmountLeast => 'Lowest amount first';
+
+  @override
+  String get walletsWithBalance => 'With a balance';
+
+  @override
+  String get walletsEmpty => 'Empty';
+
+  @override
+  String get sortBalanceMost => 'Biggest balance first';
+
+  @override
+  String get sortEarnedMost => 'Most earned';
+
+  @override
+  String get sortPaidMost => 'Most paid';
+
+  @override
+  String get sortNewest => 'Newest first';
+
+  @override
+  String get sortOldest => 'Oldest first';
+
+  @override
+  String get searchTransfers => 'Search a number, a store, a product…';
+
+  @override
+  String get searchReturns => 'Search a number, a store, a product…';
+
+  @override
+  String get sortPiecesMost => 'Most pieces first';
+
+  @override
+  String get sortPiecesLeast => 'Fewest pieces first';
+
+  @override
+  String get sortFamily => 'Family';
+
+  @override
+  String get searchApprovals => 'Search a name, a store, a number…';
+
+  @override
+  String get searchRegions => 'Search a region or its manager';
+
+  @override
+  String get sortStores => 'Number of stores';
+
+  @override
+  String get searchDepots => 'Search a warehouse, a city…';
+
+  @override
+  String get sortPieces => 'Pieces in stock';
+
+  @override
+  String get sortProducts => 'Number of products';
+
+  @override
+  String get depotNotCounted => 'Not counted yet';
+
+  @override
+  String get searchPeople => 'Search a name, an email, a phone…';
+
+  @override
+  String get searchGroups => 'Search a group';
+
+  @override
+  String get sortCity => 'City';
+
+  @override
+  String get sortTeam => 'Team size';
+
+  @override
+  String get sortStatus => 'Status';
+
+  @override
+  String get sortRole => 'Role';
+
+  @override
+  String get clearSearch => 'Clear the search';
+
+  @override
   String get sortUnits => 'Units sold';
 
   @override

@@ -8,6 +8,7 @@ import '../../core/util/dates.dart';
 import '../../core/auth/me.dart';
 import '../../core/auth/session.dart';
 import '../../core/widgets/async_body.dart';
+import '../../core/widgets/list_tools.dart';
 import '../../core/widgets/components.dart';
 import '../../core/widgets/states.dart';
 import '../../l10n/app_localizations.dart';
@@ -31,6 +32,8 @@ class ReturnsScreen extends ConsumerStatefulWidget {
 
 class _ReturnsScreenState extends ConsumerState<ReturnsScreen> {
   bool _waiting = true;
+  String _query = '';
+  DocSort _sort = DocSort.newest;
 
   @override
   Widget build(BuildContext context) {
@@ -58,6 +61,16 @@ class _ReturnsScreenState extends ConsumerState<ReturnsScreen> {
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
           children: [
+            ListToolbar(
+              padding: const EdgeInsets.only(bottom: 8),
+              hint: t.searchReturns,
+              onSearch: (v) => setState(() => _query = v),
+              sort: SortMenu<DocSort>(
+                value: _sort,
+                onChanged: (v) => setState(() => _sort = v),
+                options: DocSort.options(t),
+              ),
+            ),
             Wrap(
               spacing: 8,
               children: [
@@ -78,13 +91,36 @@ class _ReturnsScreenState extends ConsumerState<ReturnsScreen> {
               value: returns,
               onRetry: () => ref.invalidate(returnsProvider),
               builder: (all) {
-                final shown = all.where((x) => x.pending == _waiting).toList();
+                final inTab = all.where((x) => x.pending == _waiting).toList();
+                final shown =
+                    inTab
+                        .where(
+                          (x) => matchesSearch(_query, [
+                            x.number,
+                            x.para.name,
+                            x.to?.name,
+                            x.region,
+                            x.createdBy,
+                            ...x.lines.map((l) => l.name),
+                          ]),
+                        )
+                        .toList()
+                      ..sort(
+                        (a, b) => _sort.compare(
+                          a.createdAt,
+                          a.units,
+                          b.createdAt,
+                          b.units,
+                        ),
+                      );
                 if (shown.isEmpty) {
-                  return EmptyState(
-                    icon: LucideIcons.undo2,
-                    title: t.returnNone,
-                    message: t.returnNoneHint,
-                  );
+                  return _query.isNotEmpty && inTab.isNotEmpty
+                      ? EmptyState(icon: LucideIcons.search, title: t.noResults)
+                      : EmptyState(
+                          icon: LucideIcons.undo2,
+                          title: t.returnNone,
+                          message: t.returnNoneHint,
+                        );
                 }
                 return Column(
                   spacing: 12,

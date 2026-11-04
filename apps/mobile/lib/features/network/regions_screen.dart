@@ -7,6 +7,7 @@ import '../../core/theme/app_theme.dart';
 import '../../core/widgets/async_body.dart';
 import '../../core/widgets/components.dart';
 import '../../core/widgets/feedback.dart';
+import '../../core/widgets/list_tools.dart';
 import '../../core/widgets/states.dart';
 import '../../l10n/app_localizations.dart';
 import 'network_models.dart';
@@ -65,11 +66,21 @@ Future<bool> deleteRegionFlow(
 
 /// The regions of the network: who looks after each and what it holds. The admin names them,
 /// adds and deletes them (only when empty), and opens one to change its responsable.
-class RegionsScreen extends ConsumerWidget {
+enum _RegionSort { name, stores, team }
+
+class RegionsScreen extends ConsumerStatefulWidget {
   const RegionsScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<RegionsScreen> createState() => _RegionsScreenState();
+}
+
+class _RegionsScreenState extends ConsumerState<RegionsScreen> {
+  String _query = '';
+  _RegionSort _sort = _RegionSort.name;
+
+  @override
+  Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
     final regions = ref.watch(regionsOverviewProvider);
     return Scaffold(
@@ -95,35 +106,87 @@ class RegionsScreen extends ConsumerWidget {
         icon: const Icon(LucideIcons.plus),
         label: Text(t.regionNew),
       ),
-      body: RefreshIndicator(
-        onRefresh: () async {
-          ref.invalidate(regionsOverviewProvider);
-          await ref.read(regionsOverviewProvider.future);
-        },
-        child: AsyncBody(
-          value: regions,
-          onRetry: () => ref.invalidate(regionsOverviewProvider),
-          isEmpty: (l) => l.isEmpty,
-          empty: ListView(
-            children: [
-              EmptyState(
-                icon: LucideIcons.map,
-                title: t.regionNoneYet,
-                message: t.regionNoneYetHint,
-              ),
-            ],
+      body: Column(
+        children: [
+          ListToolbar(
+            hint: t.searchRegions,
+            onSearch: (v) => setState(() => _query = v),
+            sort: SortMenu<_RegionSort>(
+              value: _sort,
+              onChanged: (v) => setState(() => _sort = v),
+              options: [
+                (_RegionSort.name, t.sortName),
+                (_RegionSort.stores, t.sortStores),
+                (_RegionSort.team, t.sortTeam),
+              ],
+            ),
           ),
-          builder: (list) => ListView(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
-            children: [
-              AutoGrid(
-                minItemWidth: 320,
-                maxColumns: 3,
-                children: [for (final r in list) _RegionCard(region: r)],
+          Expanded(
+            child: RefreshIndicator(
+              onRefresh: () async {
+                ref.invalidate(regionsOverviewProvider);
+                await ref.read(regionsOverviewProvider.future);
+              },
+              child: AsyncBody(
+                value: regions,
+                onRetry: () => ref.invalidate(regionsOverviewProvider),
+                isEmpty: (l) => l.isEmpty,
+                empty: ListView(
+                  children: [
+                    EmptyState(
+                      icon: LucideIcons.map,
+                      title: t.regionNoneYet,
+                      message: t.regionNoneYetHint,
+                    ),
+                  ],
+                ),
+                builder: (all) {
+                  final list =
+                      all
+                          .where(
+                            (r) => matchesSearch(_query, [
+                              r.name,
+                              r.responsable?.name,
+                              r.responsable?.email,
+                            ]),
+                          )
+                          .toList()
+                        ..sort(
+                          (a, b) => switch (_sort) {
+                            _RegionSort.name => foldText(
+                              a.name,
+                            ).compareTo(foldText(b.name)),
+                            _RegionSort.stores => b.pdvs.compareTo(a.pdvs),
+                            _RegionSort.team => b.members.compareTo(a.members),
+                          },
+                        );
+                  if (list.isEmpty) {
+                    return ListView(
+                      children: [
+                        EmptyState(
+                          icon: LucideIcons.search,
+                          title: t.noResults,
+                        ),
+                      ],
+                    );
+                  }
+                  return ListView(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
+                    children: [
+                      AutoGrid(
+                        minItemWidth: 320,
+                        maxColumns: 3,
+                        children: [
+                          for (final r in list) _RegionCard(region: r),
+                        ],
+                      ),
+                    ],
+                  );
+                },
               ),
-            ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }

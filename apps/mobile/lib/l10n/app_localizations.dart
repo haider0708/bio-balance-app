@@ -5996,6 +5996,240 @@ abstract class AppLocalizations {
   /// **'Sort'**
   String get sortBy;
 
+  /// No description provided for @searchRestocks.
+  ///
+  /// In en, this message translates to:
+  /// **'Search a number, a store, a person…'**
+  String get searchRestocks;
+
+  /// No description provided for @searchStockAttention.
+  ///
+  /// In en, this message translates to:
+  /// **'Search a store or a product'**
+  String get searchStockAttention;
+
+  /// No description provided for @sortMostUrgent.
+  ///
+  /// In en, this message translates to:
+  /// **'Most urgent first'**
+  String get sortMostUrgent;
+
+  /// No description provided for @searchCourses.
+  ///
+  /// In en, this message translates to:
+  /// **'Search a course'**
+  String get searchCourses;
+
+  /// No description provided for @courseToDo.
+  ///
+  /// In en, this message translates to:
+  /// **'To do'**
+  String get courseToDo;
+
+  /// No description provided for @sortShortest.
+  ///
+  /// In en, this message translates to:
+  /// **'Shortest first'**
+  String get sortShortest;
+
+  /// No description provided for @sortLongest.
+  ///
+  /// In en, this message translates to:
+  /// **'Longest first'**
+  String get sortLongest;
+
+  /// No description provided for @searchAnnouncements.
+  ///
+  /// In en, this message translates to:
+  /// **'Search an announcement'**
+  String get searchAnnouncements;
+
+  /// No description provided for @searchNotifications.
+  ///
+  /// In en, this message translates to:
+  /// **'Search your notifications'**
+  String get searchNotifications;
+
+  /// No description provided for @searchPayouts.
+  ///
+  /// In en, this message translates to:
+  /// **'Search a name, a store, a reference…'**
+  String get searchPayouts;
+
+  /// No description provided for @searchWallets.
+  ///
+  /// In en, this message translates to:
+  /// **'Search a name, a store, a region…'**
+  String get searchWallets;
+
+  /// No description provided for @sortAmountMost.
+  ///
+  /// In en, this message translates to:
+  /// **'Highest amount first'**
+  String get sortAmountMost;
+
+  /// No description provided for @sortAmountLeast.
+  ///
+  /// In en, this message translates to:
+  /// **'Lowest amount first'**
+  String get sortAmountLeast;
+
+  /// No description provided for @walletsWithBalance.
+  ///
+  /// In en, this message translates to:
+  /// **'With a balance'**
+  String get walletsWithBalance;
+
+  /// No description provided for @walletsEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Empty'**
+  String get walletsEmpty;
+
+  /// No description provided for @sortBalanceMost.
+  ///
+  /// In en, this message translates to:
+  /// **'Biggest balance first'**
+  String get sortBalanceMost;
+
+  /// No description provided for @sortEarnedMost.
+  ///
+  /// In en, this message translates to:
+  /// **'Most earned'**
+  String get sortEarnedMost;
+
+  /// No description provided for @sortPaidMost.
+  ///
+  /// In en, this message translates to:
+  /// **'Most paid'**
+  String get sortPaidMost;
+
+  /// No description provided for @sortNewest.
+  ///
+  /// In en, this message translates to:
+  /// **'Newest first'**
+  String get sortNewest;
+
+  /// No description provided for @sortOldest.
+  ///
+  /// In en, this message translates to:
+  /// **'Oldest first'**
+  String get sortOldest;
+
+  /// No description provided for @searchTransfers.
+  ///
+  /// In en, this message translates to:
+  /// **'Search a number, a store, a product…'**
+  String get searchTransfers;
+
+  /// No description provided for @searchReturns.
+  ///
+  /// In en, this message translates to:
+  /// **'Search a number, a store, a product…'**
+  String get searchReturns;
+
+  /// No description provided for @sortPiecesMost.
+  ///
+  /// In en, this message translates to:
+  /// **'Most pieces first'**
+  String get sortPiecesMost;
+
+  /// No description provided for @sortPiecesLeast.
+  ///
+  /// In en, this message translates to:
+  /// **'Fewest pieces first'**
+  String get sortPiecesLeast;
+
+  /// No description provided for @sortFamily.
+  ///
+  /// In en, this message translates to:
+  /// **'Family'**
+  String get sortFamily;
+
+  /// No description provided for @searchApprovals.
+  ///
+  /// In en, this message translates to:
+  /// **'Search a name, a store, a number…'**
+  String get searchApprovals;
+
+  /// No description provided for @searchRegions.
+  ///
+  /// In en, this message translates to:
+  /// **'Search a region or its manager'**
+  String get searchRegions;
+
+  /// No description provided for @sortStores.
+  ///
+  /// In en, this message translates to:
+  /// **'Number of stores'**
+  String get sortStores;
+
+  /// No description provided for @searchDepots.
+  ///
+  /// In en, this message translates to:
+  /// **'Search a warehouse, a city…'**
+  String get searchDepots;
+
+  /// No description provided for @sortPieces.
+  ///
+  /// In en, this message translates to:
+  /// **'Pieces in stock'**
+  String get sortPieces;
+
+  /// No description provided for @sortProducts.
+  ///
+  /// In en, this message translates to:
+  /// **'Number of products'**
+  String get sortProducts;
+
+  /// No description provided for @depotNotCounted.
+  ///
+  /// In en, this message translates to:
+  /// **'Not counted yet'**
+  String get depotNotCounted;
+
+  /// No description provided for @searchPeople.
+  ///
+  /// In en, this message translates to:
+  /// **'Search a name, an email, a phone…'**
+  String get searchPeople;
+
+  /// No description provided for @searchGroups.
+  ///
+  /// In en, this message translates to:
+  /// **'Search a group'**
+  String get searchGroups;
+
+  /// No description provided for @sortCity.
+  ///
+  /// In en, this message translates to:
+  /// **'City'**
+  String get sortCity;
+
+  /// No description provided for @sortTeam.
+  ///
+  /// In en, this message translates to:
+  /// **'Team size'**
+  String get sortTeam;
+
+  /// No description provided for @sortStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Status'**
+  String get sortStatus;
+
+  /// No description provided for @sortRole.
+  ///
+  /// In en, this message translates to:
+  /// **'Role'**
+  String get sortRole;
+
+  /// No description provided for @clearSearch.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear the search'**
+  String get clearSearch;
+
   /// No description provided for @sortUnits.
   ///
   /// In en, this message translates to:

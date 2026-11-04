@@ -8,6 +8,7 @@ import '../../core/auth/session.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/util/dates.dart';
 import '../../core/widgets/async_body.dart';
+import '../../core/widgets/list_tools.dart';
 import '../../core/widgets/components.dart';
 import '../../core/widgets/states.dart';
 import '../../l10n/app_localizations.dart';
@@ -29,6 +30,8 @@ class RestocksScreen extends ConsumerStatefulWidget {
 
 class _RestocksScreenState extends ConsumerState<RestocksScreen> {
   _Filter _filter = _Filter.open;
+  String _query2 = '';
+  bool _oldestFirst = false;
 
   RestockQuery get _query => (
     active: switch (_filter) {
@@ -62,6 +65,15 @@ class _RestocksScreenState extends ConsumerState<RestocksScreen> {
           : null,
       body: Column(
         children: [
+          ListToolbar(
+            hint: t.searchRestocks,
+            onSearch: (v) => setState(() => _query2 = v),
+            sort: SortMenu<bool>(
+              value: _oldestFirst,
+              onChanged: (v) => setState(() => _oldestFirst = v),
+              options: [(false, t.sortNewest), (true, t.sortOldest)],
+            ),
+          ),
           SizedBox(
             height: 48,
             child: ListView(
@@ -105,12 +117,43 @@ class _RestocksScreenState extends ConsumerState<RestocksScreen> {
                     ),
                   ],
                 ),
-                builder: (list) => ListView.separated(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
-                  itemCount: list.length,
-                  separatorBuilder: (_, _) => const Gap(8),
-                  itemBuilder: (context, i) => RestockTile(order: list[i]),
-                ),
+                builder: (all) {
+                  final list =
+                      all
+                          .where(
+                            (o) => matchesSearch(_query2, [
+                              o.number,
+                              o.destination,
+                              o.source,
+                              o.supplier,
+                              o.requestedBy?.name,
+                              o.receiver?.name,
+                              o.note,
+                            ]),
+                          )
+                          .toList()
+                        ..sort(
+                          (a, b) => _oldestFirst
+                              ? a.createdAt.compareTo(b.createdAt)
+                              : b.createdAt.compareTo(a.createdAt),
+                        );
+                  if (list.isEmpty) {
+                    return ListView(
+                      children: [
+                        EmptyState(
+                          icon: LucideIcons.search,
+                          title: t.noResults,
+                        ),
+                      ],
+                    );
+                  }
+                  return ListView.separated(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
+                    itemCount: list.length,
+                    separatorBuilder: (_, _) => const Gap(8),
+                    itemBuilder: (context, i) => RestockTile(order: list[i]),
+                  );
+                },
               ),
             ),
           ),

@@ -9,6 +9,7 @@ import '../../core/theme/app_theme.dart';
 import '../../core/util/dates.dart';
 import '../../core/util/money.dart';
 import '../../core/widgets/async_body.dart';
+import '../../core/widgets/list_tools.dart';
 import '../../core/widgets/components.dart';
 import '../../core/widgets/feedback.dart';
 import '../../core/widgets/quantity_editor.dart';
@@ -86,12 +87,7 @@ class _TodayState extends ConsumerState<_Today> {
       ),
       builder: (list) {
         final shown = list
-            .where(
-              (r) =>
-                  _query.isEmpty ||
-                  r.name.toLowerCase().contains(_query) ||
-                  r.family.toLowerCase().contains(_query),
-            )
+            .where((r) => matchesSearch(_query, [r.name, r.family]))
             .toList();
         final byFamily = <String, List<EffectiveReward>>{};
         for (final r in shown) {
@@ -105,7 +101,7 @@ class _TodayState extends ConsumerState<_Today> {
                 hintText: t.searchProducts,
                 prefixIcon: const Icon(LucideIcons.search, size: 20),
               ),
-              onChanged: (v) => setState(() => _query = v.trim().toLowerCase()),
+              onChanged: (v) => setState(() => _query = v.trim()),
             ),
             for (final family in byFamily.keys.toList()..sort())
               _FamilyCard(

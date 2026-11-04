@@ -9,6 +9,7 @@ import '../../core/theme/app_theme.dart';
 import '../../core/widgets/async_body.dart';
 import '../../core/widgets/components.dart';
 import '../../core/widgets/feedback.dart';
+import '../../core/widgets/list_tools.dart';
 import '../../core/widgets/states.dart';
 import '../../l10n/app_localizations.dart';
 import '../media/media_repository.dart';
@@ -58,15 +59,30 @@ class ManageCoursesScreen extends ConsumerWidget {
           title: t.noCourses,
           message: t.noCoursesAdminHint,
         ),
-        builder: (list) => ListView.separated(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
-          itemCount: list.length,
-          separatorBuilder: (_, _) => const Gap(12),
-          itemBuilder: (context, i) => CourseCard(
-            course: list[i],
+        builder: (list) => SearchableList<Course>(
+          items: list,
+          hint: t.searchCourses,
+          emptyTitle: t.noResults,
+          spacing: 12,
+          fields: (c) => [c.title, c.summary],
+          filters: [
+            ListFilter(t.all, (_) => true),
+            ListFilter(t.published, (c) => c.published),
+            ListFilter(t.draft, (c) => !c.published),
+          ],
+          sorts: [
+            ListSort(
+              t.sortName,
+              (a, b) => foldText(a.title).compareTo(foldText(b.title)),
+            ),
+            ListSort(t.sortShortest, (a, b) => a.minutes.compareTo(b.minutes)),
+            ListSort(t.sortLongest, (a, b) => b.minutes.compareTo(a.minutes)),
+          ],
+          itemBuilder: (context, c) => CourseCard(
+            course: c,
             showStatus: true,
             onTap: () async {
-              await context.push('/training/manage/${list[i].id}');
+              await context.push('/training/manage/${c.id}');
               ref.invalidate(coursesProvider);
             },
           ),

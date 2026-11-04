@@ -12,6 +12,7 @@ import '../analytics/lens.dart' show Facet;
 import '../../core/widgets/async_body.dart';
 import '../../core/widgets/components.dart';
 import '../../core/widgets/feedback.dart';
+import '../../core/widgets/list_tools.dart';
 import '../../core/widgets/states.dart';
 import '../../l10n/app_localizations.dart';
 import '../approvals/approvals_repository.dart';
@@ -111,6 +112,8 @@ class PeopleList extends ConsumerStatefulWidget {
 
 class _PeopleListState extends ConsumerState<PeopleList> {
   String? _role;
+  ItemStatus? _status;
+  String _query = '';
 
   @override
   Widget build(BuildContext context) {
@@ -125,29 +128,35 @@ class _PeopleListState extends ConsumerState<PeopleList> {
     final people = ref.watch(peopleProvider(query));
     return Column(
       children: [
-        if (me.role == Role.admin)
-          SizedBox(
-            height: 48,
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-              children: [
-                for (final (value, label) in [
-                  (null, t.all),
-                  ('RESPONSABLE', t.roleResponsable),
-                  ('VENDEUR', t.roleVendeur),
-                ])
-                  Padding(
-                    padding: const EdgeInsetsDirectional.only(end: 8),
-                    child: ChoiceChip(
-                      label: Text(label),
-                      selected: _role == value,
-                      onSelected: (_) => setState(() => _role = value),
-                    ),
-                  ),
+        ListToolbar(
+          hint: t.searchPeople,
+          onSearch: (v) => setState(() => _query = v),
+          // Only the admin sees every kind of account; a responsable sees the team.
+          chips: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (me.role == Role.admin) ...[
+                FilterChips<String>(
+                  options: [
+                    (null, t.all),
+                    ('RESPONSABLE', t.roleResponsable),
+                    ('VENDEUR', t.roleVendeur),
+                    ('ACHETEUR', t.roleAcheteur),
+                    ('ORDERS', t.roleOrders),
+                  ],
+                  value: _role,
+                  onChanged: (v) => setState(() => _role = v),
+                ),
+                const Gap(8),
               ],
-            ),
+              FilterChips<ItemStatus>(
+                options: itemStatusOptions(t),
+                value: _status,
+                onChanged: (v) => setState(() => _status = v),
+              ),
+            ],
           ),
+        ),
         Expanded(
           child: RefreshIndicator(
             onRefresh: () async {
@@ -163,15 +172,35 @@ class _PeopleListState extends ConsumerState<PeopleList> {
                   EmptyState(icon: LucideIcons.users, title: t.noPeople),
                 ],
               ),
-              builder: (list) => ListView.separated(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-                itemCount: list.length,
-                separatorBuilder: (_, _) => const Gap(8),
-                itemBuilder: (context, i) => PersonTile(
-                  person: list[i],
-                  onChanged: () => ref.invalidate(peopleProvider),
-                ),
-              ),
+              builder: (all) {
+                final list =
+                    all
+                        .where((p) => _status == null || p.status == _status)
+                        .where(
+                          (p) =>
+                              matchesSearch(_query, [p.name, p.email, p.phone]),
+                        )
+                        .toList()
+                      ..sort(
+                        (a, b) => foldText(a.name).compareTo(foldText(b.name)),
+                      );
+                if (list.isEmpty) {
+                  return ListView(
+                    children: [
+                      EmptyState(icon: LucideIcons.search, title: t.noResults),
+                    ],
+                  );
+                }
+                return ListView.separated(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+                  itemCount: list.length,
+                  separatorBuilder: (_, _) => const Gap(8),
+                  itemBuilder: (context, i) => PersonTile(
+                    person: list[i],
+                    onChanged: () => ref.invalidate(peopleProvider),
+                  ),
+                );
+              },
             ),
           ),
         ),

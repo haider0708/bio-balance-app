@@ -10,6 +10,7 @@ import '../../core/util/money.dart';
 import '../../core/widgets/async_body.dart';
 import '../../core/widgets/components.dart';
 import '../../core/widgets/feedback.dart';
+import '../../core/widgets/list_tools.dart';
 import '../../core/widgets/states.dart';
 import '../../l10n/app_localizations.dart';
 import 'wallet_models.dart';
@@ -87,16 +88,70 @@ class WalletScreen extends ConsumerWidget {
                   icon: LucideIcons.wallet,
                   title: t.noActivityYet,
                 ),
-                builder: (page) => Column(
-                  children: [
-                    for (final e in page.entries) _EntryTile(entry: e),
-                  ],
-                ),
+                builder: (page) => _Activity(entries: page.entries),
               ),
             ],
           ),
         ),
       ),
+    );
+  }
+}
+
+/// The wallet's activity with chips for what kind of line it is (rewards, corrections, payouts) and a sort.
+class _Activity extends StatefulWidget {
+  const _Activity({required this.entries});
+
+  final List<WalletEntry> entries;
+
+  @override
+  State<_Activity> createState() => _ActivityState();
+}
+
+class _ActivityState extends State<_Activity> {
+  WalletKind? _kind;
+  bool _byAmount = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    final shown =
+        widget.entries.where((e) => _kind == null || e.kind == _kind).toList()
+          ..sort(
+            (a, b) => _byAmount
+                ? b.amountMillimes.abs().compareTo(a.amountMillimes.abs())
+                : b.createdAt.compareTo(a.createdAt),
+          );
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: FilterChips<WalletKind>(
+                value: _kind,
+                onChanged: (v) => setState(() => _kind = v),
+                options: [
+                  (null, t.all),
+                  (WalletKind.sale, t.entrySale),
+                  (WalletKind.correction, t.entryCorrection),
+                  (WalletKind.payout, t.entryPayout),
+                ],
+              ),
+            ),
+            SortMenu<bool>(
+              value: _byAmount,
+              onChanged: (v) => setState(() => _byAmount = v),
+              options: [(false, t.sortNewest), (true, t.sortAmountMost)],
+            ),
+          ],
+        ),
+        const Gap(8),
+        if (shown.isEmpty)
+          EmptyState(icon: LucideIcons.search, title: t.noResults)
+        else
+          for (final e in shown) _EntryTile(entry: e),
+      ],
     );
   }
 }

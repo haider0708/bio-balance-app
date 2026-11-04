@@ -10,17 +10,25 @@ import '../../core/util/dates.dart';
 import '../../core/widgets/async_body.dart';
 import '../../core/widgets/components.dart';
 import '../../core/widgets/feedback.dart';
+import '../../core/widgets/list_tools.dart';
 import '../../core/widgets/states.dart';
 import '../../l10n/app_localizations.dart';
 import '../network/network_repository.dart';
 import 'messages_repository.dart';
 
 /// Announcements the admin has sent or scheduled.
-class MessagesScreen extends ConsumerWidget {
+class MessagesScreen extends ConsumerStatefulWidget {
   const MessagesScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<MessagesScreen> createState() => _MessagesScreenState();
+}
+
+class _MessagesScreenState extends ConsumerState<MessagesScreen> {
+  String _query = '';
+
+  @override
+  Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
     final messages = ref.watch(announcementsProvider);
     return Scaffold(
@@ -34,113 +42,142 @@ class MessagesScreen extends ConsumerWidget {
         icon: const Icon(LucideIcons.megaphone),
         label: Text(t.newAnnouncement),
       ),
-      body: RefreshIndicator(
-        onRefresh: () async {
-          ref.invalidate(announcementsProvider);
-          await ref.read(announcementsProvider.future);
-        },
-        child: AsyncBody(
-          value: messages,
-          onRetry: () => ref.invalidate(announcementsProvider),
-          isEmpty: (l) => l.isEmpty,
-          empty: ListView(
-            children: [
-              EmptyState(
-                icon: LucideIcons.megaphone,
-                title: t.noAnnouncements,
-                message: t.noAnnouncementsHint,
-              ),
-            ],
+      body: Column(
+        children: [
+          SearchBox(
+            hint: t.searchAnnouncements,
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+            onChanged: (v) => setState(() => _query = v),
           ),
-          builder: (list) {
-            final scheduled = list.where((m) => m.scheduled).toList();
-            final sent = list.where((m) => !m.scheduled).toList();
-            Widget card(Announcement m) => Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: AppCard(
-                onTap: () => context.push('/messages/${m.id}'),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+          Expanded(
+            child: RefreshIndicator(
+              onRefresh: () async {
+                ref.invalidate(announcementsProvider);
+                await ref.read(announcementsProvider.future);
+              },
+              child: AsyncBody(
+                value: messages,
+                onRetry: () => ref.invalidate(announcementsProvider),
+                isEmpty: (l) => l.isEmpty,
+                empty: ListView(
                   children: [
-                    Row(
-                      spacing: 8,
+                    EmptyState(
+                      icon: LucideIcons.megaphone,
+                      title: t.noAnnouncements,
+                      message: t.noAnnouncementsHint,
+                    ),
+                  ],
+                ),
+                builder: (all) {
+                  final list = all
+                      .where((m) => matchesSearch(_query, [m.title, m.body]))
+                      .toList();
+                  if (list.isEmpty) {
+                    return ListView(
                       children: [
-                        Expanded(
-                          child: Text(m.title, style: context.text.titleSmall),
+                        EmptyState(
+                          icon: LucideIcons.search,
+                          title: t.noResults,
                         ),
-                        if (m.pinned)
-                          const Padding(
-                            padding: EdgeInsets.only(left: 6),
-                            child: Icon(LucideIcons.pin, size: 16),
-                          ),
                       ],
-                    ),
-                    const Gap(4),
-                    Text(
-                      m.body,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: context.text.bodySmall?.copyWith(
-                        color: context.status.muted,
-                      ),
-                    ),
-                    const Gap(10),
-                    Row(
-                      children: [
-                        Icon(
-                          m.scheduled ? LucideIcons.clock : LucideIcons.send,
-                          size: 14,
-                          color: context.status.muted,
-                        ),
-                        const SizedBox(width: 6),
-                        Expanded(
-                          child: Text(
-                            '${Dates.dateTime(m.scheduledFor ?? m.sentAt ?? m.createdAt, t.localeName)} · ${t.sentTo(m.recipientCount)}',
+                    );
+                  }
+                  final scheduled = list.where((m) => m.scheduled).toList();
+                  final sent = list.where((m) => !m.scheduled).toList();
+                  Widget card(Announcement m) => Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: AppCard(
+                      onTap: () => context.push('/messages/${m.id}'),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            spacing: 8,
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  m.title,
+                                  style: context.text.titleSmall,
+                                ),
+                              ),
+                              if (m.pinned)
+                                const Padding(
+                                  padding: EdgeInsets.only(left: 6),
+                                  child: Icon(LucideIcons.pin, size: 16),
+                                ),
+                            ],
+                          ),
+                          const Gap(4),
+                          Text(
+                            m.body,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
                             style: context.text.bodySmall?.copyWith(
                               color: context.status.muted,
                             ),
                           ),
-                        ),
-                        if (!m.scheduled && m.recipientCount > 0)
-                          StatusChip(
-                            t.readOf(m.readCount, m.recipientCount),
-                            tone: m.readCount == m.recipientCount
-                                ? Tone.success
-                                : Tone.muted,
-                            icon: LucideIcons.eye,
+                          const Gap(10),
+                          Row(
+                            children: [
+                              Icon(
+                                m.scheduled
+                                    ? LucideIcons.clock
+                                    : LucideIcons.send,
+                                size: 14,
+                                color: context.status.muted,
+                              ),
+                              const SizedBox(width: 6),
+                              Expanded(
+                                child: Text(
+                                  '${Dates.dateTime(m.scheduledFor ?? m.sentAt ?? m.createdAt, t.localeName)} · ${t.sentTo(m.recipientCount)}',
+                                  style: context.text.bodySmall?.copyWith(
+                                    color: context.status.muted,
+                                  ),
+                                ),
+                              ),
+                              if (!m.scheduled && m.recipientCount > 0)
+                                StatusChip(
+                                  t.readOf(m.readCount, m.recipientCount),
+                                  tone: m.readCount == m.recipientCount
+                                      ? Tone.success
+                                      : Tone.muted,
+                                  icon: LucideIcons.eye,
+                                ),
+                            ],
                           ),
-                      ],
-                    ),
-                    if (!m.scheduled && m.recipientCount > 0) ...[
-                      const Gap(8),
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(4),
-                        child: LinearProgressIndicator(
-                          value: m.readCount / m.recipientCount,
-                          minHeight: 4,
-                          backgroundColor: context.status.mutedSoft,
-                        ),
+                          if (!m.scheduled && m.recipientCount > 0) ...[
+                            const Gap(8),
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(4),
+                              child: LinearProgressIndicator(
+                                value: m.readCount / m.recipientCount,
+                                minHeight: 4,
+                                backgroundColor: context.status.mutedSoft,
+                              ),
+                            ),
+                          ],
+                        ],
                       ),
+                    ),
+                  );
+                  return ListView(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 96),
+                    children: [
+                      if (scheduled.isNotEmpty) ...[
+                        SectionHeader(t.scheduledSection),
+                        for (final m in scheduled) card(m),
+                      ],
+                      if (sent.isNotEmpty) ...[
+                        SectionHeader(t.sentSection),
+                        for (final m in sent) card(m),
+                      ],
                     ],
-                  ],
-                ),
+                  );
+                },
               ),
-            );
-            return ListView(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 96),
-              children: [
-                if (scheduled.isNotEmpty) ...[
-                  SectionHeader(t.scheduledSection),
-                  for (final m in scheduled) card(m),
-                ],
-                if (sent.isNotEmpty) ...[
-                  SectionHeader(t.sentSection),
-                  for (final m in sent) card(m),
-                ],
-              ],
-            );
-          },
-        ),
+            ),
+          ),
+        ],
       ),
     );
   }

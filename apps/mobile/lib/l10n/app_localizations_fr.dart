@@ -3500,6 +3500,128 @@ class AppLocalizationsFr extends AppLocalizations {
   String get sortBy => 'Trier';
 
   @override
+  String get searchRestocks =>
+      'Chercher un numéro, un point de vente, une personne…';
+
+  @override
+  String get searchStockAttention => 'Chercher un point de vente ou un produit';
+
+  @override
+  String get sortMostUrgent => 'Plus urgent d’abord';
+
+  @override
+  String get searchCourses => 'Chercher une formation';
+
+  @override
+  String get courseToDo => 'À faire';
+
+  @override
+  String get sortShortest => 'Plus court d’abord';
+
+  @override
+  String get sortLongest => 'Plus long d’abord';
+
+  @override
+  String get searchAnnouncements => 'Chercher une annonce';
+
+  @override
+  String get searchNotifications => 'Chercher dans vos notifications';
+
+  @override
+  String get searchPayouts =>
+      'Chercher un nom, un point de vente, une référence…';
+
+  @override
+  String get searchWallets => 'Chercher un nom, un point de vente, une région…';
+
+  @override
+  String get sortAmountMost => 'Montant le plus élevé d’abord';
+
+  @override
+  String get sortAmountLeast => 'Montant le plus bas d’abord';
+
+  @override
+  String get walletsWithBalance => 'Avec un solde';
+
+  @override
+  String get walletsEmpty => 'Vides';
+
+  @override
+  String get sortBalanceMost => 'Plus gros solde d’abord';
+
+  @override
+  String get sortEarnedMost => 'Plus gagné';
+
+  @override
+  String get sortPaidMost => 'Plus payé';
+
+  @override
+  String get sortNewest => 'Plus récent d’abord';
+
+  @override
+  String get sortOldest => 'Plus ancien d’abord';
+
+  @override
+  String get searchTransfers =>
+      'Chercher un numéro, un point de vente, un produit…';
+
+  @override
+  String get searchReturns =>
+      'Chercher un numéro, un point de vente, un produit…';
+
+  @override
+  String get sortPiecesMost => 'Plus de pièces d’abord';
+
+  @override
+  String get sortPiecesLeast => 'Moins de pièces d’abord';
+
+  @override
+  String get sortFamily => 'Famille';
+
+  @override
+  String get searchApprovals =>
+      'Chercher un nom, un point de vente, un numéro…';
+
+  @override
+  String get searchRegions => 'Chercher une région ou son responsable';
+
+  @override
+  String get sortStores => 'Nombre de points de vente';
+
+  @override
+  String get searchDepots => 'Chercher un grossiste, une ville…';
+
+  @override
+  String get sortPieces => 'Pièces en stock';
+
+  @override
+  String get sortProducts => 'Nombre de produits';
+
+  @override
+  String get depotNotCounted => 'Pas encore compté';
+
+  @override
+  String get searchPeople => 'Chercher un nom, un email, un téléphone…';
+
+  @override
+  String get searchGroups => 'Chercher un groupe';
+
+  @override
+  String get sortCity => 'Ville';
+
+  @override
+  String get sortTeam => 'Taille de l’équipe';
+
+  @override
+  String get sortStatus => 'Statut';
+
+  @override
+  String get sortRole => 'Rôle';
+
+  @override
+  String get clearSearch => 'Effacer la recherche';
+
+  @override
   String get sortUnits => 'Unités vendues';
 
   @override

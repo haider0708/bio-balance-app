@@ -11,6 +11,7 @@ import '../analytics/lens.dart' show Facet;
 import '../../core/widgets/async_body.dart';
 import '../../core/widgets/components.dart';
 import '../../core/widgets/feedback.dart';
+import '../../core/widgets/list_tools.dart';
 import '../../core/widgets/states.dart';
 import '../../l10n/app_localizations.dart';
 import '../shared/status_chips.dart';
@@ -252,41 +253,112 @@ class _RegionFilter extends ConsumerWidget {
   }
 }
 
-class _PdvList extends ConsumerWidget {
+enum _PdvSort { name, city, team }
+
+class _PdvList extends ConsumerStatefulWidget {
   const _PdvList({required this.regionId});
 
   final String? regionId;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_PdvList> createState() => _PdvListState();
+}
+
+class _PdvListState extends ConsumerState<_PdvList> {
+  String _query = '';
+  ItemStatus? _status;
+  _PdvSort _sort = _PdvSort.name;
+
+  @override
+  Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
     final me = ref.watch(meProvider);
+    final regionId = widget.regionId;
     final pdvs = ref.watch(pdvsProvider(regionId));
-    return RefreshIndicator(
-      onRefresh: () async {
-        ref.invalidate(pdvsProvider(regionId));
-        await ref.read(pdvsProvider(regionId).future);
-      },
-      child: AsyncBody(
-        value: pdvs,
-        onRetry: () => ref.invalidate(pdvsProvider(regionId)),
-        isEmpty: (l) => l.isEmpty,
-        empty: ListView(
-          children: [
-            EmptyState(
-              icon: LucideIcons.store,
-              title: t.noPdvs,
-              message: me.role == Role.responsable ? t.noPdvsHint : null,
+    return Column(
+      children: [
+        ListToolbar(
+          hint: t.searchStores,
+          onSearch: (v) => setState(() => _query = v),
+          sort: SortMenu<_PdvSort>(
+            value: _sort,
+            onChanged: (v) => setState(() => _sort = v),
+            options: [
+              (_PdvSort.name, t.sortName),
+              (_PdvSort.city, t.sortCity),
+              (_PdvSort.team, t.sortTeam),
+            ],
+          ),
+          chips: FilterChips<ItemStatus>(
+            options: itemStatusOptions(t),
+            value: _status,
+            onChanged: (v) => setState(() => _status = v),
+          ),
+        ),
+        Expanded(
+          child: RefreshIndicator(
+            onRefresh: () async {
+              ref.invalidate(pdvsProvider(regionId));
+              await ref.read(pdvsProvider(regionId).future);
+            },
+            child: AsyncBody(
+              value: pdvs,
+              onRetry: () => ref.invalidate(pdvsProvider(regionId)),
+              isEmpty: (l) => l.isEmpty,
+              empty: ListView(
+                children: [
+                  EmptyState(
+                    icon: LucideIcons.store,
+                    title: t.noPdvs,
+                    message: me.role == Role.responsable ? t.noPdvsHint : null,
+                  ),
+                ],
+              ),
+              builder: (all) {
+                final list =
+                    all
+                        .where((p) => _status == null || p.status == _status)
+                        .where(
+                          (p) => matchesSearch(_query, [
+                            p.name,
+                            p.city,
+                            p.address,
+                            p.groupName,
+                            p.phone,
+                          ]),
+                        )
+                        .toList()
+                      ..sort(
+                        (a, b) => switch (_sort) {
+                          _PdvSort.name => foldText(
+                            a.name,
+                          ).compareTo(foldText(b.name)),
+                          _PdvSort.city => foldText(
+                            a.city,
+                          ).compareTo(foldText(b.city)),
+                          _PdvSort.team => b.memberCount.compareTo(
+                            a.memberCount,
+                          ),
+                        },
+                      );
+                if (list.isEmpty) {
+                  return ListView(
+                    children: [
+                      EmptyState(icon: LucideIcons.search, title: t.noResults),
+                    ],
+                  );
+                }
+                return ListView.separated(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
+                  itemCount: list.length,
+                  separatorBuilder: (_, _) => const Gap(8),
+                  itemBuilder: (context, i) => PdvTile(pdv: list[i]),
+                );
+              },
             ),
-          ],
+          ),
         ),
-        builder: (list) => ListView.separated(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
-          itemCount: list.length,
-          separatorBuilder: (_, _) => const Gap(8),
-          itemBuilder: (context, i) => PdvTile(pdv: list[i]),
-        ),
-      ),
+      ],
     );
   }
 }
@@ -347,80 +419,117 @@ class PdvTile extends StatelessWidget {
   }
 }
 
-class _GroupList extends ConsumerWidget {
+class _GroupList extends ConsumerStatefulWidget {
   const _GroupList({required this.regionId});
 
   final String? regionId;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_GroupList> createState() => _GroupListState();
+}
+
+class _GroupListState extends ConsumerState<_GroupList> {
+  String _query = '';
+  ItemStatus? _status;
+
+  @override
+  Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
     final me = ref.watch(meProvider);
+    final regionId = widget.regionId;
     final groups = ref.watch(groupsProvider(regionId));
-    return AsyncBody(
-      value: groups,
-      onRetry: () => ref.invalidate(groupsProvider(regionId)),
-      isEmpty: (l) => l.isEmpty,
-      empty: EmptyState(
-        icon: LucideIcons.layers,
-        title: t.noGroups,
-        message: me.role == Role.responsable ? t.noGroupsHint : null,
-      ),
-      builder: (list) => ListView.separated(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
-        itemCount: list.length,
-        separatorBuilder: (_, _) => const Gap(8),
-        itemBuilder: (context, i) {
-          final g = list[i];
-          return AppCard(
-            onTap: () => context.push('/groups/${g.id}', extra: g),
-            child: Row(
-              children: [
-                const Icon(LucideIcons.layers),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(g.name, style: context.text.titleSmall),
-                      Text(
-                        t.pdvCount(g.pdvCount),
-                        style: context.text.bodySmall?.copyWith(
-                          color: context.status.muted,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                ItemStatusChip(g.status),
-                if (me.role == Role.admin && g.status == ItemStatus.pending)
-                  IconButton(
-                    tooltip: t.approve,
-                    icon: Icon(
-                      LucideIcons.check,
-                      color: context.status.success,
-                    ),
-                    onPressed: () async {
-                      if (await perform(
-                        context,
-                        () => ref
-                            .read(networkRepositoryProvider)
-                            .decideGroup(g.id, 'approve'),
-                        success: t.approved,
-                      ))
-                        ref.invalidate(groupsProvider);
-                    },
-                  ),
-              ],
+    return Column(
+      children: [
+        ListToolbar(
+          hint: t.searchGroups,
+          onSearch: (v) => setState(() => _query = v),
+          chips: FilterChips<ItemStatus>(
+            options: itemStatusOptions(t),
+            value: _status,
+            onChanged: (v) => setState(() => _status = v),
+          ),
+        ),
+        Expanded(
+          child: AsyncBody(
+            value: groups,
+            onRetry: () => ref.invalidate(groupsProvider(regionId)),
+            isEmpty: (l) => l.isEmpty,
+            empty: EmptyState(
+              icon: LucideIcons.layers,
+              title: t.noGroups,
+              message: me.role == Role.responsable ? t.noGroupsHint : null,
             ),
-          );
-        },
-      ),
+            builder: (all) {
+              final list =
+                  all
+                      .where((g) => _status == null || g.status == _status)
+                      .where((g) => matchesSearch(_query, [g.name]))
+                      .toList()
+                    ..sort(
+                      (a, b) => foldText(a.name).compareTo(foldText(b.name)),
+                    );
+              if (list.isEmpty) {
+                return EmptyState(icon: LucideIcons.search, title: t.noResults);
+              }
+              return ListView.separated(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
+                itemCount: list.length,
+                separatorBuilder: (_, _) => const Gap(8),
+                itemBuilder: (context, i) {
+                  final g = list[i];
+                  return AppCard(
+                    onTap: () => context.push('/groups/${g.id}', extra: g),
+                    child: Row(
+                      children: [
+                        const Icon(LucideIcons.layers),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(g.name, style: context.text.titleSmall),
+                              Text(
+                                t.pdvCount(g.pdvCount),
+                                style: context.text.bodySmall?.copyWith(
+                                  color: context.status.muted,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        ItemStatusChip(g.status),
+                        if (me.role == Role.admin &&
+                            g.status == ItemStatus.pending)
+                          IconButton(
+                            tooltip: t.approve,
+                            icon: Icon(
+                              LucideIcons.check,
+                              color: context.status.success,
+                            ),
+                            onPressed: () async {
+                              if (await perform(
+                                context,
+                                () => ref
+                                    .read(networkRepositoryProvider)
+                                    .decideGroup(g.id, 'approve'),
+                                success: t.approved,
+                              ))
+                                ref.invalidate(groupsProvider);
+                            },
+                          ),
+                      ],
+                    ),
+                  );
+                },
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 }
 
-/// A group and the stores in it.
 class GroupScreen extends ConsumerWidget {
   const GroupScreen({required this.group, super.key});
 

@@ -6,6 +6,15 @@ import '../network/network_models.dart';
 import '../restock/restock_models.dart';
 import '../stock/stock_models.dart';
 
+/// The status chips above a list of stores, groups or people: "All", then each status.
+List<(ItemStatus?, String)> itemStatusOptions(AppLocalizations t) => [
+  (null, t.all),
+  (ItemStatus.active, t.statusActive),
+  (ItemStatus.pending, t.statusPending),
+  (ItemStatus.suspended, t.statusSuspended),
+  (ItemStatus.rejected, t.statusRejected),
+];
+
 /// Account / group / point-of-sale status.
 class ItemStatusChip extends StatelessWidget {
   const ItemStatusChip(this.status, {super.key});

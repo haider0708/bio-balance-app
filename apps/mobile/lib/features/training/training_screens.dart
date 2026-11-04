@@ -16,6 +16,7 @@ import '../../core/theme/app_theme.dart';
 import '../../core/widgets/async_body.dart';
 import '../../core/widgets/components.dart';
 import '../../core/widgets/feedback.dart';
+import '../../core/widgets/list_tools.dart';
 import '../../core/widgets/states.dart';
 import '../../l10n/app_localizations.dart';
 import '../media/media_repository.dart';
@@ -51,23 +52,33 @@ class CoursesScreen extends ConsumerWidget {
           title: t.noCourses,
           message: t.noCoursesHint,
         ),
-        builder: (list) => RefreshIndicator(
+        builder: (list) => SearchableList<Course>(
+          items: list.where((c) => c.published).toList(),
+          hint: t.searchCourses,
+          emptyTitle: t.noResults,
+          spacing: 12,
+          padding: const EdgeInsets.all(16),
           onRefresh: () async {
             ref.invalidate(coursesProvider);
             await ref.read(coursesProvider.future);
           },
-          child: ListView(
-            padding: const EdgeInsets.all(16),
-            children: [
-              for (final c in list.where((c) => c.published))
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: CourseCard(
-                    course: c,
-                    onTap: () => context.push('/training/${c.id}'),
-                  ),
-                ),
-            ],
+          fields: (c) => [c.title, c.summary],
+          filters: [
+            ListFilter(t.all, (_) => true),
+            ListFilter(t.courseToDo, (c) => !c.done),
+            ListFilter(t.done, (c) => c.done),
+          ],
+          sorts: [
+            ListSort(
+              t.sortName,
+              (a, b) => foldText(a.title).compareTo(foldText(b.title)),
+            ),
+            ListSort(t.sortShortest, (a, b) => a.minutes.compareTo(b.minutes)),
+            ListSort(t.sortLongest, (a, b) => b.minutes.compareTo(a.minutes)),
+          ],
+          itemBuilder: (context, c) => CourseCard(
+            course: c,
+            onTap: () => context.push('/training/${c.id}'),
           ),
         ),
       ),

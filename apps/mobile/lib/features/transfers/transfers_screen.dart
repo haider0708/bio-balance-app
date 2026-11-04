@@ -6,6 +6,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../core/auth/me.dart';
 import '../../core/auth/session.dart';
 import '../../core/widgets/async_body.dart';
+import '../../core/widgets/list_tools.dart';
 import '../../core/widgets/states.dart';
 import '../../l10n/app_localizations.dart';
 import 'transfer_models.dart';
@@ -22,6 +23,8 @@ class TransfersScreen extends ConsumerStatefulWidget {
 
 class _TransfersScreenState extends ConsumerState<TransfersScreen> {
   bool _waiting = true;
+  String _query = '';
+  DocSort _sort = DocSort.newest;
 
   @override
   Widget build(BuildContext context) {
@@ -49,6 +52,16 @@ class _TransfersScreenState extends ConsumerState<TransfersScreen> {
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
           children: [
+            ListToolbar(
+              padding: const EdgeInsets.only(bottom: 8),
+              hint: t.searchTransfers,
+              onSearch: (v) => setState(() => _query = v),
+              sort: SortMenu<DocSort>(
+                value: _sort,
+                onChanged: (v) => setState(() => _sort = v),
+                options: DocSort.options(t),
+              ),
+            ),
             Wrap(
               spacing: 8,
               children: [
@@ -69,13 +82,36 @@ class _TransfersScreenState extends ConsumerState<TransfersScreen> {
               value: transfers,
               onRetry: () => ref.invalidate(transfersProvider(null)),
               builder: (all) {
-                final shown = all.where((x) => x.pending == _waiting).toList();
+                final inTab = all.where((x) => x.pending == _waiting).toList();
+                final shown =
+                    inTab
+                        .where(
+                          (x) => matchesSearch(_query, [
+                            x.number,
+                            x.from.name,
+                            x.to.name,
+                            x.groupName,
+                            x.createdBy,
+                            ...x.lines.map((l) => l.name),
+                          ]),
+                        )
+                        .toList()
+                      ..sort(
+                        (a, b) => _sort.compare(
+                          a.createdAt,
+                          a.units,
+                          b.createdAt,
+                          b.units,
+                        ),
+                      );
                 if (shown.isEmpty) {
-                  return EmptyState(
-                    icon: LucideIcons.arrowLeftRight,
-                    title: t.transferNone,
-                    message: t.transferNoneHint,
-                  );
+                  return _query.isNotEmpty && inTab.isNotEmpty
+                      ? EmptyState(icon: LucideIcons.search, title: t.noResults)
+                      : EmptyState(
+                          icon: LucideIcons.arrowLeftRight,
+                          title: t.transferNone,
+                          message: t.transferNoneHint,
+                        );
                 }
                 return Column(
                   spacing: 12,

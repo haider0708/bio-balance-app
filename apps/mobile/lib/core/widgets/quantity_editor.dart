@@ -10,6 +10,7 @@ import '../../l10n/app_localizations.dart';
 import '../theme/app_theme.dart';
 import 'async_body.dart';
 import 'components.dart';
+import 'list_tools.dart';
 import 'paste_list_sheet.dart';
 import 'states.dart';
 
@@ -435,8 +436,7 @@ class _ProductPickerSheetState extends ConsumerState<ProductPickerSheet> {
                     hintText: t.searchProducts,
                     prefixIcon: const Icon(LucideIcons.search, size: 20),
                   ),
-                  onChanged: (v) =>
-                      setState(() => _query = v.trim().toLowerCase()),
+                  onChanged: (v) => setState(() => _query = v.trim()),
                 ),
                 const Gap(10),
                 products.maybeWhen(
@@ -487,8 +487,7 @@ class _ProductPickerSheetState extends ConsumerState<ProductPickerSheet> {
                     .where(
                       (p) =>
                           _query.isEmpty ||
-                          p.name.toLowerCase().contains(_query) ||
-                          (p.barcode ?? '').contains(_query),
+                          matchesSearch(_query, [p.name, p.barcode, p.family]),
                     )
                     .toList();
                 if (shown.isEmpty)

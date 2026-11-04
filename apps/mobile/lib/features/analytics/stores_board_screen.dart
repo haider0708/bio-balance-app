@@ -8,6 +8,7 @@ import '../../core/theme/app_theme.dart';
 import '../../core/util/dates.dart';
 import '../../core/util/money.dart';
 import '../../core/widgets/async_body.dart';
+import '../../core/widgets/list_tools.dart';
 import '../../core/widgets/components.dart';
 import '../../core/widgets/states.dart';
 import '../../l10n/app_localizations.dart';
@@ -77,13 +78,12 @@ class _StoresBoardScreenState extends ConsumerState<StoresBoardScreen> {
       _Show.lowStock => active && r.integer('low') + r.integer('out') > 0,
     };
     if (!ok) return false;
-    if (_query.isEmpty) return true;
-    return [
+    return matchesSearch(_query, [
       r.str('name'),
       r.str('city'),
       r.str('region'),
       r.str('group'),
-    ].any((s) => s.toLowerCase().contains(_query));
+    ]);
   }
 
   int _compare(Json a, Json b) => switch (_order) {
@@ -159,8 +159,7 @@ class _StoresBoardScreenState extends ConsumerState<StoresBoardScreen> {
                   prefixIcon: const Icon(LucideIcons.search),
                   hintText: t.searchStores,
                 ),
-                onChanged: (v) =>
-                    setState(() => _query = v.trim().toLowerCase()),
+                onChanged: (v) => setState(() => _query = v.trim()),
               ),
               const Gap(8),
               SingleChildScrollView(

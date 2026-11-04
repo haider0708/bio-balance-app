@@ -13,6 +13,7 @@ import '../../core/widgets/async_body.dart';
 import '../../core/widgets/components.dart';
 import '../../core/drafts/drafts.dart';
 import '../../core/widgets/feedback.dart';
+import '../../core/widgets/list_tools.dart';
 import '../../core/widgets/photo_set.dart';
 import '../../core/widgets/quantity_editor.dart';
 import '../../core/widgets/states.dart';
@@ -275,11 +276,7 @@ class StockScreen extends ConsumerWidget {
                   )
                 else ...[
                   SectionHeader(t.stockLevels),
-                  for (final item in data.items)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: StockTile(item: item),
-                    ),
+                  _StockLevels(items: data.items),
                 ],
                 if (recent.isNotEmpty) ...[
                   SectionHeader(t.declarations),
@@ -320,6 +317,83 @@ class StockScreen extends ConsumerWidget {
           },
         ),
       ),
+    );
+  }
+}
+
+enum _StockSort { name, piecesMost, piecesLeast, family }
+
+/// The products of a place with a search, filters (all, low, out) and a sort (name, pieces, family).
+class _StockLevels extends StatefulWidget {
+  const _StockLevels({required this.items});
+
+  final List<StockItem> items;
+
+  @override
+  State<_StockLevels> createState() => _StockLevelsState();
+}
+
+class _StockLevelsState extends State<_StockLevels> {
+  String _query = '';
+  int _show = 0;
+  _StockSort _sort = _StockSort.name;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    final shown =
+        widget.items
+            .where(
+              (i) => switch (_show) {
+                1 => i.level == StockLevel.low,
+                2 => i.quantity <= 0,
+                _ => true,
+              },
+            )
+            .where((i) => matchesSearch(_query, [i.name, i.family]))
+            .toList()
+          ..sort(
+            (a, b) => switch (_sort) {
+              _StockSort.name => foldText(a.name).compareTo(foldText(b.name)),
+              _StockSort.piecesMost => b.quantity.compareTo(a.quantity),
+              _StockSort.piecesLeast => a.quantity.compareTo(b.quantity),
+              _StockSort.family => foldText(
+                a.family,
+              ).compareTo(foldText(b.family)),
+            },
+          );
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ListToolbar(
+          padding: const EdgeInsets.only(bottom: 8),
+          hint: t.searchProducts,
+          onSearch: (v) => setState(() => _query = v),
+          sort: SortMenu<_StockSort>(
+            value: _sort,
+            onChanged: (v) => setState(() => _sort = v),
+            options: [
+              (_StockSort.name, t.sortName),
+              (_StockSort.piecesMost, t.sortPiecesMost),
+              (_StockSort.piecesLeast, t.sortPiecesLeast),
+              (_StockSort.family, t.sortFamily),
+            ],
+          ),
+          chips: FilterChips<int>(
+            value: _show,
+            onChanged: (v) => setState(() => _show = v ?? 0),
+            options: [(0, t.all), (1, t.stockLow), (2, t.outOfStock)],
+          ),
+        ),
+        if (shown.isEmpty)
+          EmptyState(icon: LucideIcons.search, title: t.noResults)
+        else
+          for (final item in shown)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: StockTile(item: item),
+            ),
+      ],
     );
   }
 }

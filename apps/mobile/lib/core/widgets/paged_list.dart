@@ -80,6 +80,8 @@ class PagedList<T> extends StatefulWidget {
     required this.itemBuilder,
     required this.empty,
     this.header,
+    this.test,
+    this.noMatch,
     this.padding = const EdgeInsets.fromLTRB(16, 8, 16, 24),
     super.key,
   });
@@ -88,6 +90,13 @@ class PagedList<T> extends StatefulWidget {
   final Widget Function(BuildContext context, T item, int index) itemBuilder;
   final Widget empty;
   final Widget? header;
+
+  /// Keeps only the rows that pass (a search or a filter on what is loaded). While few rows pass and more pages
+  /// exist, the next pages are fetched, so a search keeps looking instead of showing a false "nothing found".
+  final bool Function(T item)? test;
+
+  /// Shown when the loaded rows are all filtered out and there is no more to load (defaults to [empty]).
+  final Widget? noMatch;
   final EdgeInsetsGeometry padding;
 
   @override
@@ -105,6 +114,17 @@ class _PagedListState<T> extends State<PagedList<T>> {
         if (c.error != null && c.items.isEmpty)
           return ErrorState(error: c.error!, onRetry: c.refresh);
         final header = widget.header;
+        final test = widget.test;
+        final rows = test == null ? c.items : c.items.where(test).toList();
+        if (test != null &&
+            c.hasMore &&
+            !c.loading &&
+            c.error == null &&
+            rows.length < 12) {
+          WidgetsBinding.instance.addPostFrameCallback(
+            (_) => unawaited(c.load()),
+          );
+        }
         if (c.items.isEmpty && header == null) return widget.empty;
         return RefreshIndicator(
           onRefresh: c.refresh,
@@ -121,17 +141,21 @@ class _PagedListState<T> extends State<PagedList<T>> {
               physics: const AlwaysScrollableScrollPhysics(),
               padding: widget.padding,
               itemCount:
-                  c.items.length +
+                  rows.length +
                   (header == null ? 0 : 1) +
-                  (c.items.isEmpty ? 1 : 0) +
+                  (rows.isEmpty && !c.hasMore ? 1 : 0) +
                   (c.hasMore ? 1 : 0),
               itemBuilder: (context, index) {
                 if (header != null) {
                   if (index == 0) return header;
                   index--;
                 }
-                if (c.items.isEmpty) return widget.empty;
-                if (index >= c.items.length) {
+                if (rows.isEmpty && !c.hasMore) {
+                  return c.items.isEmpty
+                      ? widget.empty
+                      : (widget.noMatch ?? widget.empty);
+                }
+                if (index >= rows.length) {
                   return Padding(
                     padding: const EdgeInsets.all(16),
                     child: Center(
@@ -147,7 +171,7 @@ class _PagedListState<T> extends State<PagedList<T>> {
                     ),
                   );
                 }
-                return widget.itemBuilder(context, c.items[index], index);
+                return widget.itemBuilder(context, rows[index], index);
               },
             ),
           ),
