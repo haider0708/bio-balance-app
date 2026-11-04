@@ -67,7 +67,7 @@ The admin can also restock a grossiste herself: she enters what BioBalance deliv
 
 ## Wallet and payouts
 
-Rewards credit the team member's wallet. They can **request a payout** up to what is available (requested amounts are held). The admin pays them outside the app, then **approves**, entering the date and an optional reference; only then is the amount deducted. A declined or cancelled request releases the hold. If corrections lower the balance below a pending request, the approval is refused.
+Rewards credit the team member's wallet. They can **request a payout** up to what is available (requested amounts are held), **only in whole steps of 5 TND**: the sheet has no typing, only a **+** and a **−** button (hold to repeat) from 5 TND up to the most that is available, then the request. Under 5 TND available the button is off and says a payout starts at 5 TND. The server refuses any other amount (`PAYOUT_STEP`) and tells the app the step (`payoutStepMillimes` in `GET /v1/wallet`). The admin pays them outside the app, then **approves**, entering the date and an optional reference; only then is the amount deducted. A declined or cancelled request releases the hold. If corrections lower the balance below a pending request, the approval is refused.
 
 ## Announcements and training
 

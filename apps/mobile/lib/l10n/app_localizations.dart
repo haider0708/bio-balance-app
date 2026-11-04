@@ -2108,6 +2108,30 @@ abstract class AppLocalizations {
   /// **'The admin will pay you and confirm. The amount leaves your wallet once approved.'**
   String get payoutExplain;
 
+  /// No description provided for @payoutStepHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Amounts go up by {step}. Hold + or − to go faster.'**
+  String payoutStepHint(String step);
+
+  /// No description provided for @payoutMinimum.
+  ///
+  /// In en, this message translates to:
+  /// **'A payout starts at {amount}.'**
+  String payoutMinimum(String amount);
+
+  /// No description provided for @increaseAmount.
+  ///
+  /// In en, this message translates to:
+  /// **'Increase the amount'**
+  String get increaseAmount;
+
+  /// No description provided for @decreaseAmount.
+  ///
+  /// In en, this message translates to:
+  /// **'Decrease the amount'**
+  String get decreaseAmount;
+
   /// No description provided for @payoutPaid.
   ///
   /// In en, this message translates to:

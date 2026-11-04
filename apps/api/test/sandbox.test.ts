@@ -43,7 +43,7 @@ beforeAll(async () => {
   await w.a.post("/v1/reward-rules", {
     scope: "FAMILY",
     family: "Serums",
-    amountMillimes: 500,
+    amountMillimes: 1000,
     startsOn: tunisDay(new Date()),
   });
   // One real store in Nord and one in Sud, each with stock, a seller and a sale.
@@ -135,7 +135,7 @@ describe("nothing done in the test region reaches the admin", () => {
   it("sends the admin no notification", async () => {
     expect(await adminUnread()).toBe(0);
     const s = client(api, sudSeller.token);
-    expect((await s.post("/v1/payouts", { amountMillimes: 1000 })).status).toBe(
+    expect((await s.post("/v1/payouts", { amountMillimes: 5000 })).status).toBe(
       201,
     );
     await w.s.post("/v1/pdvs", {

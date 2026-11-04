@@ -568,6 +568,24 @@
   "past": "Past",
   "payoutApproved": "Payout recorded",
   "payoutExplain": "The admin will pay you and confirm. The amount leaves your wallet once approved.",
+  "payoutStepHint": "Amounts go up by {step}. Hold + or − to go faster.",
+  "@payoutStepHint": {
+    "placeholders": {
+      "step": {
+        "type": "String"
+      }
+    }
+  },
+  "payoutMinimum": "A payout starts at {amount}.",
+  "@payoutMinimum": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "increaseAmount": "Increase the amount",
+  "decreaseAmount": "Decrease the amount",
   "payoutPaid": "Paid",
   "payoutRequested": "Payout requested",
   "payoutRequests": "Payout requests",

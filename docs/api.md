@@ -142,7 +142,7 @@ Every route is under `https://api.galylio.com`, JSON in and out, `Authorization:
 | Method | Path | Who |
 |---|---|---|
 | GET | `/v1/payouts` | vendeur, admin |
-| POST | `/v1/payouts` | vendeur |
+| POST | `/v1/payouts` | vendeur (`amountMillimes` a multiple of 5 000, else 400 `PAYOUT_STEP`; `GET /v1/wallet` carries `payoutStepMillimes`) |
 | POST | `/v1/payouts/:id/approve` | admin |
 | POST | `/v1/payouts/:id/cancel` | vendeur |
 | POST | `/v1/payouts/:id/reject` | admin |

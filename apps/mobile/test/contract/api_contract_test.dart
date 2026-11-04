@@ -192,10 +192,11 @@ void main() {
       expect(me.region?.code, 'NORD');
 
       final wallet = await c.read(walletRepositoryProvider).summary();
-      // 2 units at 800 + 1 at 500 = 2100, corrected to 1 unit at 800 + 1 at 500 = 1300; 500 requested for payout.
-      expect(wallet.balanceMillimes, 1300);
-      expect(wallet.pendingMillimes, 500);
-      expect(wallet.availableMillimes, 800);
+      // 2 units at 8 TND + 1 at 5 = 21, corrected to 1 unit at 8 + 1 at 5 = 13; 5 TND requested for payout (the step).
+      expect(wallet.balanceMillimes, 13000);
+      expect(wallet.pendingMillimes, 5000);
+      expect(wallet.availableMillimes, 8000);
+      expect(wallet.payoutStepMillimes, 5000);
       expect(wallet.today.sales, 1);
 
       final entries = await c.read(walletRepositoryProvider).entries();
@@ -216,13 +217,13 @@ void main() {
         sale.lines.map((l) => l.name),
         containsAll(['Serum Vitamin C', 'Serum Niacinamide']),
       );
-      expect(sale.rewardMillimes, 1300);
+      expect(sale.rewardMillimes, 13000);
 
       final dashboard =
           await c.read(apiClientProvider).get('/v1/dashboard') as Json;
       expect(
         WalletSummary.fromJson(dashboard.obj('wallet')).balanceMillimes,
-        1300,
+        13000,
       );
       expect(dashboard.obj('pdv').str('status'), 'ACTIVE');
 
@@ -446,7 +447,7 @@ void main() {
       expect(payouts.single.userName, 'Amira Vendeuse');
       expect(payouts.single.userPdv, 'Para Lac');
       final wallets = await c.read(walletRepositoryProvider).overview();
-      expect(wallets.single.balance, 1300);
+      expect(wallets.single.balance, 13000);
 
       final rules = await c.read(rewardsRepositoryProvider).rules('current');
       expect(
@@ -460,8 +461,8 @@ void main() {
       expect(
         {for (final e in effective) e.name: e.amountMillimes},
         {
-          'Serum Vitamin C': 800,
-          'Serum Niacinamide': 500,
+          'Serum Vitamin C': 8000,
+          'Serum Niacinamide': 5000,
           'Shampoing Argan': 0,
         },
       );

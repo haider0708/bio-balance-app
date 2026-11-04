@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
@@ -154,8 +156,13 @@ class _BalanceCard extends ConsumerWidget {
           ],
           const Gap(18),
           FilledButton.icon(
-            onPressed: wallet.availableMillimes > 0
-                ? () => _request(context, ref, wallet.availableMillimes)
+            onPressed: wallet.availableMillimes >= wallet.payoutStepMillimes
+                ? () => _request(
+                    context,
+                    ref,
+                    wallet.availableMillimes,
+                    wallet.payoutStepMillimes,
+                  )
                 : null,
             style: FilledButton.styleFrom(
               backgroundColor: context.status.onHero,
@@ -165,6 +172,15 @@ class _BalanceCard extends ConsumerWidget {
             icon: const Icon(LucideIcons.banknote),
             label: Text(t.requestPayout),
           ),
+          if (wallet.availableMillimes < wallet.payoutStepMillimes) ...[
+            const Gap(8),
+            Text(
+              t.payoutMinimum(Money.format(wallet.payoutStepMillimes, locale)),
+              style: TextStyle(
+                color: context.status.onHero.withValues(alpha: 0.85),
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -174,12 +190,13 @@ class _BalanceCard extends ConsumerWidget {
     BuildContext context,
     WidgetRef ref,
     int available,
+    int step,
   ) async {
     final t = AppLocalizations.of(context);
     final amount = await showModalBottomSheet<int>(
       context: context,
       isScrollControlled: true,
-      builder: (_) => _PayoutSheet(available: available),
+      builder: (_) => _PayoutSheet(available: available, step: step),
     );
     if (amount == null || !context.mounted) return;
     final ok = await perform(
@@ -194,31 +211,29 @@ class _BalanceCard extends ConsumerWidget {
   }
 }
 
+/// The amount is chosen with + and - only, in whole steps (5 TND), from one step up to what is available.
 class _PayoutSheet extends StatefulWidget {
-  const _PayoutSheet({required this.available});
+  const _PayoutSheet({required this.available, required this.step});
 
   final int available;
+  final int step;
 
   @override
   State<_PayoutSheet> createState() => _PayoutSheetState();
 }
 
 class _PayoutSheetState extends State<_PayoutSheet> {
-  late final _controller = TextEditingController(
-    text: (widget.available / 1000).toStringAsFixed(3),
-  );
+  int _steps = 1;
 
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
+  int get _most => widget.available ~/ widget.step;
+
+  void _change(int by) =>
+      setState(() => _steps = (_steps + by).clamp(1, _most));
 
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
-    final amount = Money.parse(_controller.text);
-    final valid = amount != null && amount > 0 && amount <= widget.available;
+    final amount = _steps * widget.step;
     return Padding(
       padding: EdgeInsets.fromLTRB(20, 0, 20, 20 + sheetBottomInset(context)),
       child: Column(
@@ -233,29 +248,136 @@ class _PayoutSheetState extends State<_PayoutSheet> {
               color: context.status.muted,
             ),
           ),
-          const Gap(16),
-          TextField(
-            controller: _controller,
-            autofocus: true,
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            decoration: InputDecoration(
-              labelText: t.amountTnd,
-              helperText: t.availableUpTo(
-                Money.format(widget.available, t.localeName),
+          const Gap(20),
+          Row(
+            children: [
+              _StepButton(
+                icon: LucideIcons.minus,
+                label: t.decreaseAmount,
+                enabled: _steps > 1,
+                onStep: () => _change(-1),
               ),
-              suffixText: 'TND',
+              Expanded(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    Money.format(amount, t.localeName),
+                    key: const Key('payout-amount'),
+                    maxLines: 1,
+                    style: context.text.headlineMedium?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+              ),
+              _StepButton(
+                icon: LucideIcons.plus,
+                label: t.increaseAmount,
+                enabled: _steps < _most,
+                onStep: () => _change(1),
+              ),
+            ],
+          ),
+          const Gap(12),
+          Center(
+            child: Text(
+              t.availableUpTo(Money.format(_most * widget.step, t.localeName)),
+              style: context.text.bodySmall?.copyWith(
+                color: context.status.muted,
+              ),
             ),
-            onChanged: (_) => setState(() {}),
+          ),
+          const Gap(2),
+          Center(
+            child: Text(
+              t.payoutStepHint(Money.format(widget.step, t.localeName)),
+              textAlign: TextAlign.center,
+              style: context.text.bodySmall?.copyWith(
+                color: context.status.muted,
+              ),
+            ),
           ),
           const Gap(16),
           FilledButton(
-            onPressed: valid ? () => Navigator.pop(context, amount) : null,
+            onPressed: () => Navigator.pop(context, amount),
             child: Text(t.requestPayout),
           ),
         ],
       ),
     );
   }
+}
+
+/// A round + or - button: one tap is one step, holding it repeats.
+class _StepButton extends StatefulWidget {
+  const _StepButton({
+    required this.icon,
+    required this.label,
+    required this.enabled,
+    required this.onStep,
+  });
+
+  final IconData icon;
+  final String label;
+  final bool enabled;
+  final VoidCallback onStep;
+
+  @override
+  State<_StepButton> createState() => _StepButtonState();
+}
+
+class _StepButtonState extends State<_StepButton> {
+  Timer? _wait;
+  Timer? _repeat;
+  bool _repeated = false;
+
+  void _stop() {
+    _wait?.cancel();
+    _repeat?.cancel();
+  }
+
+  @override
+  void didUpdateWidget(_StepButton old) {
+    super.didUpdateWidget(old);
+    if (!widget.enabled) _stop();
+  }
+
+  @override
+  void dispose() {
+    _stop();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => Listener(
+    onPointerDown: (_) {
+      _repeated = false;
+      _wait = Timer(const Duration(milliseconds: 400), () {
+        _repeat = Timer.periodic(const Duration(milliseconds: 110), (_) {
+          _repeated = true;
+          widget.onStep();
+        });
+      });
+    },
+    onPointerUp: (_) => _stop(),
+    onPointerCancel: (_) => _stop(),
+    child: IconButton.filledTonal(
+      tooltip: widget.label,
+      iconSize: 26,
+      constraints: const BoxConstraints.tightFor(width: 56, height: 56),
+      onPressed: widget.enabled
+          ? () {
+              // The release that ends a long press is not one more step.
+              if (_repeated) {
+                _repeated = false;
+                return;
+              }
+              widget.onStep();
+            }
+          : null,
+      icon: Icon(widget.icon),
+    ),
+  );
 }
 
 class _EntryTile extends StatelessWidget {

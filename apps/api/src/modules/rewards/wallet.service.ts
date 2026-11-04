@@ -6,7 +6,7 @@ import { Database, type Tx } from "../../core/database";
 import { DomainError, notFound, requireRule } from "../../core/errors";
 import { notify, notifyAdmins } from "../../core/notifier";
 import { decodeCursor, page } from "../../core/pagination";
-import { walletSummary } from "./wallet.queries";
+import { PAYOUT_STEP_MILLIMES, walletSummary } from "./wallet.queries";
 
 /** A team member's wallet: it receives the rewards, and money leaves it only when the admin approves a payout. */
 @Injectable()
@@ -57,6 +57,13 @@ export class WalletService {
       "FORBIDDEN",
       "Only team members request payouts.",
       403,
+    );
+    requireRule(
+      amountMillimes >= PAYOUT_STEP_MILLIMES &&
+        amountMillimes % PAYOUT_STEP_MILLIMES === 0,
+      "PAYOUT_STEP",
+      "A payout is requested in multiples of 5 TND.",
+      400,
     );
     return this.db.run(actor, async (tx) => {
       // Requests from one person are handled one at a time, so they can never exceed the balance together.

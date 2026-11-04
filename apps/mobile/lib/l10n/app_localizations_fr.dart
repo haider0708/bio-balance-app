@@ -1190,6 +1190,22 @@ class AppLocalizationsFr extends AppLocalizations {
       'L’administration vous paie puis confirme. Le montant quitte votre portefeuille une fois approuvé.';
 
   @override
+  String payoutStepHint(String step) {
+    return 'Les montants vont de $step en $step. Maintenez + ou − pour aller plus vite.';
+  }
+
+  @override
+  String payoutMinimum(String amount) {
+    return 'Un paiement commence à $amount.';
+  }
+
+  @override
+  String get increaseAmount => 'Augmenter le montant';
+
+  @override
+  String get decreaseAmount => 'Diminuer le montant';
+
+  @override
   String get payoutPaid => 'Payé';
 
   @override

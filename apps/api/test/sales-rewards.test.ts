@@ -458,24 +458,25 @@ describe("wallet and payouts", () => {
 
   it("deducts a payout only when the admin approves it", async () => {
     const { m } = await shop();
-    await earn(m, 5); // 5 000 millimes
+    await earn(m, 10); // 10 000 millimes
     expect((await m.get("/v1/wallet")).body).toMatchObject({
-      balanceMillimes: 5000,
-      availableMillimes: 5000,
+      balanceMillimes: 10000,
+      availableMillimes: 10000,
+      payoutStepMillimes: 5000,
     });
-    const tooMuch = await m.post("/v1/payouts", { amountMillimes: 6000 });
+    const tooMuch = await m.post("/v1/payouts", { amountMillimes: 15000 });
     expect(tooMuch.body.code).toBe("INSUFFICIENT_BALANCE");
-    const request = (await m.post("/v1/payouts", { amountMillimes: 3000 }))
+    const request = (await m.post("/v1/payouts", { amountMillimes: 5000 }))
       .body;
     expect(request.status).toBe("PENDING");
     // The requested amount is held, but the balance has not moved yet.
     expect((await m.get("/v1/wallet")).body).toMatchObject({
-      balanceMillimes: 5000,
-      pendingPayoutMillimes: 3000,
-      availableMillimes: 2000,
+      balanceMillimes: 10000,
+      pendingPayoutMillimes: 5000,
+      availableMillimes: 5000,
     });
     expect(
-      (await m.post("/v1/payouts", { amountMillimes: 2500 })).body.code,
+      (await m.post("/v1/payouts", { amountMillimes: 10000 })).body.code,
     ).toBe("INSUFFICIENT_BALANCE");
 
     const approved = await w.a.post(`/v1/payouts/${request.id}/approve`, {
@@ -487,39 +488,64 @@ describe("wallet and payouts", () => {
       user: { name: "Karim" },
     });
     expect((await m.get("/v1/wallet")).body).toMatchObject({
-      balanceMillimes: 2000,
+      balanceMillimes: 5000,
       pendingPayoutMillimes: 0,
-      availableMillimes: 2000,
+      availableMillimes: 5000,
     });
     expect((await m.get("/v1/wallet/entries")).body.items[0]).toMatchObject({
       kind: "PAYOUT",
-      amountMillimes: -3000,
+      amountMillimes: -5000,
     });
     expect(
       (await w.a.post(`/v1/payouts/${request.id}/approve`, {})).status,
     ).toBe(409);
   });
 
+  it("accepts a payout request only in whole steps of 5 TND", async () => {
+    const { m } = await shop();
+    await earn(m, 20); // 20 000 millimes
+    for (const amountMillimes of [1, 1000, 4999, 5001, 7500, 12000]) {
+      const r = await m.post("/v1/payouts", { amountMillimes });
+      expect(r.status, String(amountMillimes)).toBe(400);
+      expect(r.body.code).toBe("PAYOUT_STEP");
+    }
+    expect((await m.post("/v1/payouts", { amountMillimes: 0 })).status).toBe(
+      400,
+    );
+    expect(
+      (await m.post("/v1/payouts", { amountMillimes: -5000 })).status,
+    ).toBe(400);
+    // Nothing was held by the refused ones; whole steps go through, up to the balance.
+    expect((await m.get("/v1/wallet")).body.availableMillimes).toBe(20000);
+    expect((await m.post("/v1/payouts", { amountMillimes: 5000 })).status).toBe(
+      201,
+    );
+    expect(
+      (await m.post("/v1/payouts", { amountMillimes: 15000 })).status,
+    ).toBe(201);
+    expect((await m.get("/v1/wallet")).body.availableMillimes).toBe(0);
+  });
+
   it("releases the held amount when a payout is rejected or cancelled", async () => {
     const { m } = await shop();
-    await earn(m, 4);
-    const first = (await m.post("/v1/payouts", { amountMillimes: 4000 })).body;
+    await earn(m, 10);
+    const first = (await m.post("/v1/payouts", { amountMillimes: 10000 })).body;
     await w.a.post(`/v1/payouts/${first.id}/reject`, {
       note: "Come back on Friday",
     });
-    expect((await m.get("/v1/wallet")).body.availableMillimes).toBe(4000);
-    const second = (await m.post("/v1/payouts", { amountMillimes: 1000 })).body;
+    expect((await m.get("/v1/wallet")).body.availableMillimes).toBe(10000);
+    const second = (await m.post("/v1/payouts", { amountMillimes: 5000 })).body;
     expect((await m.post(`/v1/payouts/${second.id}/cancel`)).body.status).toBe(
       "CANCELLED",
     );
-    expect((await m.get("/v1/wallet")).body.availableMillimes).toBe(4000);
+    expect((await m.get("/v1/wallet")).body.availableMillimes).toBe(10000);
     expect((await m.get("/v1/payouts")).body).toHaveLength(2);
   });
 
   it("won't pay out money a correction has since taken back", async () => {
     const { m } = await shop();
-    const sale = (await earn(m, 4)).body; // 4 000
-    const request = (await m.post("/v1/payouts", { amountMillimes: 4000 }))
+    const sale = (await earn(m, 5)).body; // 5 000
+    const request = (await m.post("/v1/payouts", { amountMillimes: 5000 }))
       .body;
     await m.post(`/v1/sales/${sale.id}/correct`, {
       reason: "Wrong count",

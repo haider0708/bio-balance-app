@@ -1187,6 +1187,22 @@ class AppLocalizationsEn extends AppLocalizations {
       'The admin will pay you and confirm. The amount leaves your wallet once approved.';
 
   @override
+  String payoutStepHint(String step) {
+    return 'Amounts go up by $step. Hold + or − to go faster.';
+  }
+
+  @override
+  String payoutMinimum(String amount) {
+    return 'A payout starts at $amount.';
+  }
+
+  @override
+  String get increaseAmount => 'Increase the amount';
+
+  @override
+  String get decreaseAmount => 'Decrease the amount';
+
+  @override
   String get payoutPaid => 'Paid';
 
   @override

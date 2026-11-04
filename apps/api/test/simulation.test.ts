@@ -224,10 +224,10 @@ describe("a month of activity", () => {
       if (day % 7 === 6) {
         const seller = pick(sales).seller;
         const wallet = (await client(api, seller.token).get("/v1/wallet")).body;
-        if (wallet.availableMillimes > 1000) {
+        if (wallet.availableMillimes >= 5000) {
           const payout = (
             await client(api, seller.token).post("/v1/payouts", {
-              amountMillimes: 1000,
+              amountMillimes: 5000,
             })
           ).body;
           await a.post(

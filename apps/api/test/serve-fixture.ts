@@ -172,13 +172,13 @@ export async function serveFixture(out: string) {
   await a.post("/v1/reward-rules", {
     scope: "FAMILY",
     family: "Sérums",
-    amountMillimes: 500,
+    amountMillimes: 5000,
     startsOn: tunisDay(new Date()),
   });
   await a.post("/v1/reward-rules", {
     scope: "PRODUCT",
     productId: products[0],
-    amountMillimes: 800,
+    amountMillimes: 8000,
     startsOn: tunisDay(new Date()),
     note: "Promo",
   });
@@ -198,7 +198,7 @@ export async function serveFixture(out: string) {
       { productId: products[1], quantity: 1 },
     ],
   });
-  const payout = (await vendeur.post("/v1/payouts", { amountMillimes: 500 }))
+  const payout = (await vendeur.post("/v1/payouts", { amountMillimes: 5000 }))
     .body;
 
   // One restock fully through the chain, one still waiting, one shipped.

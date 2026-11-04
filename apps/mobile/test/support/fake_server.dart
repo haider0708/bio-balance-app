@@ -141,6 +141,7 @@ Map<String, Object?> walletJson({
   'balanceMillimes': balance,
   'pendingPayoutMillimes': 0,
   'availableMillimes': balance,
+  'payoutStepMillimes': 5000,
   'today': {
     'sales': todaySales,
     'units': todaySales * 3,

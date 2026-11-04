@@ -80,7 +80,7 @@ describe("what the test region submits is approved a minute later", () => {
       city: "Tunis",
     });
     expect(store.body.status).toBe("PENDING");
-    const payout = await v.post("/v1/payouts", { amountMillimes: 1000 });
+    const payout = await v.post("/v1/payouts", { amountMillimes: 5000 });
     expect(payout.status).toBe(201);
 
     const services = sandboxServices(db);
@@ -142,7 +142,7 @@ describe("the test shop keeps selling", () => {
 describe("while the test region is being built", () => {
   it("the worker leaves it alone, and comes back once it is done", async () => {
     const v = (await vendeur()).c;
-    expect((await v.post("/v1/payouts", { amountMillimes: 1000 })).status).toBe(
+    expect((await v.post("/v1/payouts", { amountMillimes: 5000 })).status).toBe(
       201,
     );
     const later = new Date(Date.now() + 3_600_000);

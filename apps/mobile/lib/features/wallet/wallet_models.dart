@@ -26,6 +26,7 @@ class WalletSummary {
     required this.balanceMillimes,
     required this.pendingMillimes,
     required this.availableMillimes,
+    required this.payoutStepMillimes,
     required this.today,
     required this.week,
     required this.month,
@@ -35,6 +36,7 @@ class WalletSummary {
     balanceMillimes: j.integer('balanceMillimes'),
     pendingMillimes: j.integer('pendingPayoutMillimes'),
     availableMillimes: j.integer('availableMillimes'),
+    payoutStepMillimes: j.integer('payoutStepMillimes', 5000),
     today: EarningsWindow.fromJson(j.obj('today')),
     week: EarningsWindow.fromJson(j.obj('week')),
     month: EarningsWindow.fromJson(j.obj('month')),
@@ -43,6 +45,9 @@ class WalletSummary {
   final int balanceMillimes;
   final int pendingMillimes;
   final int availableMillimes;
+
+  /// Payouts are requested in whole steps of this amount (5 TND).
+  final int payoutStepMillimes;
   final EarningsWindow today;
   final EarningsWindow week;
   final EarningsWindow month;

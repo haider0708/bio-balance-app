@@ -530,6 +530,24 @@
   "past": "Passées",
   "payoutApproved": "Paiement enregistré",
   "payoutExplain": "L’administration vous paie puis confirme. Le montant quitte votre portefeuille une fois approuvé.",
+  "payoutStepHint": "Les montants vont de {step} en {step}. Maintenez + ou − pour aller plus vite.",
+  "@payoutStepHint": {
+    "placeholders": {
+      "step": {
+        "type": "String"
+      }
+    }
+  },
+  "payoutMinimum": "Un paiement commence à {amount}.",
+  "@payoutMinimum": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "increaseAmount": "Augmenter le montant",
+  "decreaseAmount": "Diminuer le montant",
   "payoutPaid": "Payé",
   "payoutRequested": "Paiement demandé",
   "payoutRequests": "Demandes de paiement",

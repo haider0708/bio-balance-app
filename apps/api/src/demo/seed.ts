@@ -532,16 +532,18 @@ async function build(
     availableMillimes: number | bigint;
   };
   const balance = Number(wallet.availableMillimes);
-  const paid = Math.floor((balance * 0.35) / 1000) * 1000;
-  if (paid >= 1000) {
+  // Payouts are asked in whole steps of 5 TND, here as everywhere.
+  const step = 5000;
+  const paid = Math.floor((balance * 0.35) / step) * step;
+  if (paid >= step) {
     const request = (await s.wallet.request(seller, paid)) as { id: string };
     await s.wallet.approve(admin, request.id, {
       paidAt: new Date(now.getTime() - 6 * 86_400_000),
       reference: "DEMO-1",
     });
   }
-  const left = Math.floor((balance * 0.1) / 1000) * 1000;
-  if (left >= 1000) await s.wallet.request(seller, left);
+  const left = Math.floor((balance * 0.1) / step) * step;
+  if (left >= step) await s.wallet.request(seller, left);
   await s.messaging.send(admin, {
     title: "Bienvenue dans la région Démo",
     body: "Voici une région d'exemple : un point de vente et son équipe, des ventes sur deux mois, des récompenses et des réassorts. Explorez librement.",

@@ -1,6 +1,9 @@
 import type { Tx } from "../../core/database";
 import { addDays, dayToDate, tunisDay } from "../../core/dates";
 
+/** A payout is requested in whole steps of 5 TND (5 000 millimes): the app offers only + and - by this step. */
+export const PAYOUT_STEP_MILLIMES = 5000;
+
 /** What a team member sees: balance, what is already requested, and what they earned recently. */
 export async function walletSummary(tx: Tx, userId: string) {
   const [balance, held, today, week, month] = await Promise.all([
@@ -22,6 +25,7 @@ export async function walletSummary(tx: Tx, userId: string) {
     balanceMillimes: total,
     pendingPayoutMillimes: pending,
     availableMillimes: total - pending,
+    payoutStepMillimes: PAYOUT_STEP_MILLIMES,
     today,
     week,
     month,

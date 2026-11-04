@@ -346,7 +346,7 @@ describe("payouts", () => {
     });
     const seller = client(api, (await teamMember(w, pdv.id)).token);
     await seller.post("/v1/sales", { id: randomUUID(), lines: [line(0, 5)] });
-    const payout = (await seller.post("/v1/payouts", { amountMillimes: 2000 }))
+    const payout = (await seller.post("/v1/payouts", { amountMillimes: 5000 }))
       .body;
     await w.a.post(`/v1/payouts/${payout.id}/approve`, {});
     const item = await latest(payout.id);

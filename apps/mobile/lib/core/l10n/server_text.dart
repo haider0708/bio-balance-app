@@ -436,6 +436,10 @@ class ServerText {
       'The rates of that day already match this sale.',
       'Les tarifs de ce jour correspondent déjà à cette vente.',
     ),
+    'PAYOUT_STEP': (
+      'A payout is requested in multiples of 5 TND.',
+      'Un paiement se demande par multiples de 5 TND.',
+    ),
     'INSUFFICIENT_BALANCE': (
       'The amount is higher than the available balance.',
       'Le montant dépasse le solde disponible.',
