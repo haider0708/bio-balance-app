@@ -1,6 +1,9 @@
 #!/usr/bin/env node
 // Looks at (and sets up) the app's TestFlight side through the App Store Connect API key in ~/.biobalance/appstore/.
 // Usage: node scripts/testflight.mjs status      builds, groups, the public link, the review details
+//        node scripts/testflight.mjs release <build>   gives a processed build to the group "Testeurs" (the public link
+//                                                      everyone is sent), lifts the link's 50-tester limit, and sends
+//                                                      the build to Apple's beta review if it needs one
 //        node scripts/testflight.mjs get <path>  one GET (for looking further)
 // Reads ASC_KEY_ID, ASC_ISSUER_ID and ASC_KEY_PATH from the environment: `source ~/.biobalance/appstore/env.sh` first.
 import { createPrivateKey, sign } from "node:crypto";
@@ -43,4 +46,27 @@ else if (cmd === "status") {
   }
   const d = (await call("GET", `/v1/apps/${APP}/betaAppReviewDetail`)).data.attributes;
   console.log(`review details: contact=${d.contactEmail ?? "-"} demoAccountRequired=${d.demoAccountRequired} demoAccountName=${d.demoAccountName ? "set" : "-"}`);
-} else console.log("Usage: testflight.mjs status | get <path>");
+} else if (cmd === "release") {
+  const builds = await call("GET", `/v1/builds?filter[app]=${APP}&filter[version]=${arg}&limit=1`);
+  const build = builds.data[0];
+  if (!build) throw new Error(`Build ${arg} is not in App Store Connect yet.`);
+  if (build.attributes.processingState !== "VALID") throw new Error(`Build ${arg} is ${build.attributes.processingState}: Apple is still processing it.`);
+  const groups = await call("GET", `/v1/apps/${APP}/betaGroups`);
+  const group = groups.data.find((g) => g.attributes.name === "Testeurs" && !g.attributes.isInternalGroup);
+  if (!group) throw new Error('The external group "Testeurs" does not exist.');
+  // Everyone gets the one public link: the default limit of 50 testers is too low for a network of stores.
+  await call("PATCH", `/v1/betaGroups/${group.id}`, {
+    data: { type: "betaGroups", id: group.id, attributes: { publicLinkLimitEnabled: false } },
+  });
+  await call("POST", `/v1/betaGroups/${group.id}/relationships/builds`, { data: [{ type: "builds", id: build.id }] });
+  try {
+    await call("POST", "/v1/betaAppReviewSubmissions", {
+      data: { type: "betaAppReviewSubmissions", relationships: { build: { data: { type: "builds", id: build.id } } } },
+    });
+    console.log(`Build ${arg} sent to Apple's beta review.`);
+  } catch (error) {
+    console.log(`Beta review: ${error.message}`);
+  }
+  const detail = (await call("GET", `/v1/builds/${build.id}/buildBetaDetail`)).data.attributes;
+  console.log(`Build ${arg} in "Testeurs": external state ${detail.externalBuildState}; link ${group.attributes.publicLink}`);
+} else console.log("Usage: testflight.mjs status | get <path> | release <build>");

@@ -1,3 +1,5 @@
 /* Why the app asks for the camera and the photos, in the person's language. */
 "NSCameraUsageDescription" = "BioBalance uses the camera to scan product barcodes and to photograph stock and delivery papers as proof.";
 "NSPhotoLibraryUsageDescription" = "Choose a photo of your stock or of a delivery paper to attach it as proof.";
+"NSLocationWhenInUseUsageDescription" = "BioBalance reads your position once, when you tap “I’m here” or “I’m leaving” on a visit, to confirm you are at the place. It is never followed in the background.";
+"NSLocationAlwaysAndWhenInUseUsageDescription" = "BioBalance reads your position once, when you tap “I’m here” or “I’m leaving” on a visit, to confirm you are at the place. It is never followed in the background.";
