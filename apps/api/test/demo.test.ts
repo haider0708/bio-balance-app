@@ -136,12 +136,14 @@ describe("the demonstration region", () => {
         [result.regionId],
       );
       // The demonstration never puts a sale in the future, and the sales of the first hours of a day
-      // are few and spread by the minute: early in the day (Tunis time) today may have none yet.
+      // are few and spread by the minute: early in the day (Tunis time) today may or may not have one.
       const early = (new Date().getUTCHours() + 1) % 24 < 12;
+      const lastDay = salesByDay[0].last;
+      const accepted = early ? [addDays(today(), -1), today()] : [today()];
+      expect(accepted).toContain(lastDay);
       expect(salesByDay[0]).toMatchObject({
         first: result.from,
-        last: early ? addDays(today(), -1) : today(),
-        days: early ? 11 : 12,
+        days: lastDay === today() ? 12 : 11,
         sales: result.sales,
         units: result.units,
         unpaid: 0,
