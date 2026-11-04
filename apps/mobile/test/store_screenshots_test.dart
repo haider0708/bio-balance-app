@@ -161,15 +161,15 @@ void main() {
         await tester.pump(const Duration(minutes: 6));
       });
 
-      testWidgets('store: admin, $device, $lang', skip: skip, (tester) async {
+      testWidgets('store: regional manager, $device, $lang', skip: skip, (tester) async {
         await launch(
           tester,
-          analytics.analyticsServer(),
+          analytics.analyticsServer(role: 'RESPONSABLE'),
           language: lang,
           size: size,
           pixelRatio: ratio,
         );
-        await shot(tester, '04-network-home');
+        await shot(tester, '04-region-home');
         await tester.tap(
           find.widgetWithText(StatTile, fr ? 'Aujourd’hui' : 'Today'),
         );
