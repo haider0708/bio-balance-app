@@ -10,7 +10,9 @@ host=${DEPLOY_HOST:-go2code}
 url=${APK_URL:-https://api.galylio.com/download/biobalance.apk}
 cd "$(dirname "$0")/.."
 source scripts/deploy-guard.sh
-source ~/.biobalance/signing/env.sh
+# env.sh may name the other machine's home folder (/home/haydar/...); the files are in the same place under this one.
+eval "$(sed "s#/home/[^/]*/#$HOME/#g" ~/.biobalance/signing/env.sh)"
+[ -f "$BIOBALANCE_KEYSTORE" ] || { echo "The release key is not at $BIOBALANCE_KEYSTORE." >&2; exit 1; }
 guard_start apk "$host"
 cd apps/mobile
 
