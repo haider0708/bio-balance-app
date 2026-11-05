@@ -1,4 +1,10 @@
-import { installBlocks, installWords, type Stores } from "../core/install";
+import {
+  installBlocks,
+  installWords,
+  updateBlocks,
+  updateWords,
+  type Stores,
+} from "../core/install";
 
 export interface EmailContent {
   subject: string;
@@ -23,6 +29,12 @@ export type EmailTemplate =
       link?: string;
     }
   | { kind: "password-changed"; changedAt: Date; name: string }
+  | {
+      kind: "update";
+      name: string;
+      stores: Stores;
+      installPage: string | null;
+    }
   | {
       kind: "credentials";
       name: string;
@@ -166,6 +178,7 @@ export function renderEmail(
   input: EmailTemplate,
 ): EmailContent {
   if (input.kind === "credentials") return renderCredentials(locale, input);
+  if (input.kind === "update") return renderUpdate(locale, input);
   const t = words[locale];
   let subject: string, heading: string, intro: string, note: string;
   let steps: string | undefined,
@@ -262,4 +275,36 @@ ${box(c.emailLabel, input.email, false)}${box(c.passwordLabel, input.password, t
 <p style="margin:24px 0 0;font-size:14px;line-height:1.6;color:#5d665f">${escape(c.note)}</p>
 </td></tr></table></td></tr></table></body></html>`;
   return { subject: c.subject, text, html };
+}
+
+function renderUpdate(
+  locale: Locale,
+  input: Extract<EmailTemplate, { kind: "update" }>,
+): EmailContent {
+  const w = updateWords[locale];
+  const blocks = updateBlocks(locale, input.stores);
+  const help = installWords[locale].help;
+  const text = [
+    "BioBalance",
+    w.heading,
+    w.intro(input.name),
+    w.news,
+    ...blocks.map((b) => `${b.title}\n${b.lines.join("\n")}`),
+    w.same,
+    ...(input.installPage ? [`${help}\n${input.installPage}`] : []),
+  ].join("\n\n");
+  const html = `<!doctype html>
+<html lang="${locale}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${escape(w.subject)}</title></head>
+<body style="margin:0;padding:0;background:#ffffff;color:#1f2a24;font-family:Arial,Helvetica,sans-serif">
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0"><tr><td align="center" style="padding:32px 20px">
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width:480px;text-align:left">
+<tr><td style="padding:0 0 24px;color:#146c43;font-size:15px;font-weight:600">BioBalance</td></tr>
+<tr><td><h1 style="margin:0 0 16px;font-size:22px;line-height:1.35">${escape(w.heading)}</h1>
+<p style="margin:0 0 16px;font-size:16px;line-height:1.6">${escape(w.intro(input.name))}</p>
+<p style="margin:0 0 8px;font-size:15px;line-height:1.6">${escape(w.news)}</p>
+${blocks.map((b) => `<h3 style="margin:18px 0 8px;font-size:16px">${escape(b.title)}</h3>${b.lines.map((line) => (/^https:/.test(line) ? `<p style="margin:0 0 16px"><a href="${escape(line)}" style="display:inline-block;padding:12px 18px;background:#146c43;color:#ffffff;text-decoration:none;border-radius:6px;font-size:15px;font-weight:700;word-break:break-all">${escape(line)}</a></p>` : `<p style="margin:0 0 8px;font-size:15px;line-height:1.6">${escape(line)}</p>`)).join("")}`).join("")}
+<p style="margin:20px 0 8px;font-size:15px;line-height:1.6">${escape(w.same)}</p>
+${input.installPage ? `<p style="margin:0 0 8px;font-size:14px;line-height:1.5"><a href="${escape(input.installPage)}" style="color:#146c43">${escape(help)}</a></p>` : ""}
+</td></tr></table></td></tr></table></body></html>`;
+  return { subject: w.subject, text, html };
 }

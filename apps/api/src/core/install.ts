@@ -61,3 +61,47 @@ export function installBlocks(
     },
   ].filter((b) => !!b);
 }
+
+/** The words of the "update your app" message: for people who already have an account. */
+export const updateWords = {
+  fr: {
+    subject: "Mettez à jour BioBalance",
+    heading: "Une nouvelle version de BioBalance est disponible",
+    intro: (name: string) =>
+      `Bonjour ${name}, mettez l’application à jour pour continuer à l’utiliser.`,
+    news: "Nouveautés : retrait de gains par paliers de 5 TND, recherche et filtres dans toutes les listes.",
+    android: "Sur Android",
+    androidDo: "Ouvrez Google Play et touchez Mettre à jour :",
+    iphone: "Sur iPhone",
+    iphoneDo:
+      "Ouvrez l’application TestFlight et touchez Mettre à jour à côté de BioBalance. Si vous ne la trouvez pas, ouvrez ce lien et touchez Installer :",
+    same: "Vos identifiants ne changent pas : gardez le même email et le même mot de passe.",
+  },
+  en: {
+    subject: "Update BioBalance",
+    heading: "A new version of BioBalance is available",
+    intro: (name: string) =>
+      `Hello ${name}, please update the app to keep using it.`,
+    news: "What’s new: payouts in steps of 5 TND, search and filters on every list.",
+    android: "On Android",
+    androidDo: "Open Google Play and tap Update:",
+    iphone: "On iPhone",
+    iphoneDo:
+      "Open the TestFlight app and tap Update next to BioBalance. If you cannot find it, open this link and tap Install:",
+    same: "Your sign-in details do not change: use the same email and password.",
+  },
+} as const satisfies Record<Locale, object>;
+
+export function updateBlocks(
+  locale: Locale,
+  stores: Stores,
+): { title: string; lines: string[] }[] {
+  const w = updateWords[locale];
+  return [
+    stores.android && {
+      title: w.android,
+      lines: [w.androidDo, stores.android],
+    },
+    stores.ios && { title: w.iphone, lines: [w.iphoneDo, stores.ios] },
+  ].filter((b) => !!b);
+}

@@ -62,6 +62,13 @@ export class WhatsAppDelivery {
         stores: (await this.settings.get()).stores,
         installPage: installPageUrl(),
       });
+    } else if (p.template === "update") {
+      text = renderWhatsApp(locale, {
+        kind: "update",
+        name: user.name,
+        stores: (await this.settings.get()).stores,
+        installPage: installPageUrl(),
+      });
     } else if (p.template === "password-changed")
       text = renderWhatsApp(locale, {
         kind: p.template,

@@ -31,6 +31,12 @@ export const Payload = z.discriminatedUnion("template", [
     issuedAt: z.iso.datetime(),
   }),
   z.object({
+    template: z.literal("update"),
+    userId: z.uuid(),
+    /** The app version the message announces (also part of the job key, so it goes once). */
+    version: z.string(),
+  }),
+  z.object({
     template: z.literal("password-changed"),
     userId: z.uuid(),
     changedAt: z.iso.datetime(),
@@ -89,6 +95,17 @@ export class EmailDelivery {
       if (!(await stillOwned())) throw new Error("EMAIL_LEASE_LOST");
       await this.transport.send(user.email, content, job.id);
       await wipeCredentials(this.db, job.id);
+      return "accepted" as const;
+    }
+    if (p.template === "update") {
+      content = renderEmail(locale, {
+        kind: "update",
+        name: user.name,
+        stores: (await this.settings.get()).stores,
+        installPage: installPageUrl(),
+      });
+      if (!(await stillOwned())) throw new Error("EMAIL_LEASE_LOST");
+      await this.transport.send(user.email, content, job.id);
       return "accepted" as const;
     }
     if (p.template === "password-changed")

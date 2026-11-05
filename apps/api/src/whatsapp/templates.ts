@@ -1,5 +1,11 @@
 import type { Locale } from "../email/templates";
-import { installBlocks, installWords, type Stores } from "../core/install";
+import {
+  installBlocks,
+  installWords,
+  updateBlocks,
+  updateWords,
+  type Stores,
+} from "../core/install";
 
 export type WhatsAppTemplate =
   | { kind: "invite"; code: string; name: string; link?: string }
@@ -11,6 +17,12 @@ export type WhatsAppTemplate =
       link?: string;
     }
   | { kind: "password-changed"; name: string; changedAt: Date }
+  | {
+      kind: "update";
+      name: string;
+      stores: Stores;
+      installPage: string | null;
+    }
   | {
       kind: "credentials";
       name: string;
@@ -56,8 +68,27 @@ const installLines = (
     .filter(Boolean)
     .join("\n\n");
 
+/** The "update your app" message: what is new, one block per phone, the help page. */
+const updateText = (
+  locale: Locale,
+  t: Extract<WhatsAppTemplate, { kind: "update" }>,
+) => {
+  const w = updateWords[locale];
+  return [
+    `${w.intro(t.name)}\n${w.news}`,
+    ...updateBlocks(locale, t.stores).map(
+      (b) => `*${b.title}*\n${b.lines.join("\n")}`,
+    ),
+    w.same,
+    t.installPage && `${installWords[locale].help}\n${t.installPage}`,
+  ]
+    .filter(Boolean)
+    .join("\n\n");
+};
+
 /** The WhatsApp text of each message that is also sent by email: short, with the code on its own line. */
 export function renderWhatsApp(locale: Locale, t: WhatsAppTemplate): string {
+  if (t.kind === "update") return updateText(locale, t);
   if (locale === "fr") {
     switch (t.kind) {
       case "invite":
