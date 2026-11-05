@@ -103,6 +103,8 @@ The worker drops a return nobody decided after 3 days (`return-expire`, hourly).
 
 A seller or buyer added by a responsable is created when the admin approves; the admin's own creations are active at once. The generated password goes by email and WhatsApp together (the worker's `email` and `whatsapp` jobs, template `credentials`). If a person says nothing arrived: check the email address and the number on their page, then **Send a new password**. If WhatsApp is off or the number has no WhatsApp the email still goes. A password older than 7 days is refused with a clear message: send a new one. Never ask a person to read their password to you; nobody (not even the admin) can see it. The audit log has `user.credentials_issued` with the expiry date only. A stuck message holds the password encrypted until it is sent or dropped.
 
+Secrets, where they live and how to set up a new machine: [secrets-and-new-machine.md](secrets-and-new-machine.md).
+
 ## Installing the app: the welcome message, the Android file, TestFlight
 
 The welcome message (email and WhatsApp, same content in three numbered steps: 1. install, Google Play for Android or TestFlight first then the app link for iPhone; 2. sign in with the email and temporary password; 3. choose your own password) comes from `core/install.ts` (the steps), `email/templates.ts` and `whatsapp/templates.ts`. It links the two downloads in the application settings (`stores`) and the page `https://api.galylio.com/install` (the same steps again, French or English by the phone's language, the visitor's phone first).

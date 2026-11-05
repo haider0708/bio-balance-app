@@ -1,6 +1,6 @@
 # BioBalance: instructions for Claude (read automatically at the start of every session)
 
-This file is the shared memory of the project. It lives in Git, so the Linux PC and the Mac see the same one. Claude's own per-machine memory is not shared: **what matters is written here and in `docs/`.**
+This file is the shared memory of the project. It lives in Git, so every machine sees the same one. Claude's own per-machine memory is not shared: **what matters is written here and in `docs/`.**
 
 ## At the start of every session
 
@@ -12,18 +12,18 @@ This file is the shared memory of the project. It lives in Git, so the Linux PC 
 
 1. Update `docs/project-status.md` (state, what changed, what is next, date) and anything in `docs/` that the change made stale.
 2. Commit with a message that explains the change; `git push`. Then say plainly what is done, deployed and left.
-3. The other machine gets it with `git pull`. If it is not pushed, it does not exist for the other machine.
+3. Another machine gets it with `git pull`. If it is not pushed, it does not exist for it.
 
 ## The project in one paragraph
 
 BioBalance runs a network of parapharmacies: points of sale and their teams, stock, restocks, sales and the rewards sellers earn (French and English, TND in millimes). `apps/api`: NestJS 12, Prisma 7, PostgreSQL 17 (row-level security keeps regions apart). `apps/mobile`: one Flutter 3.47.5 app for Android, iPhone and the web console (admin.galylio.com). Production: api.galylio.com on a shared VPS behind Cloudflare. Package/bundle id `tn.biobalance.app`. Roles: ADMIN (the owner, with two-step sign-in), RESPONSABLE (one per region), VENDEUR (team member of one store). A grossiste is a warehouse record, not an account.
 
-## Two machines, one repository
+## Machines and secrets
 
-- **Linux PC** (the owner's main machine): the server (API, worker, database), Android builds and the Android signing key, the web console, and the server deploys. **Mac**: the iPhone app (Xcode, signing, TestFlight, App Store).
-- **Both** can edit, test, commit, push, and deploy, through the scripts only: `scripts/deploy-vps.sh` (API) and `scripts/deploy-web.sh` (web console). They refuse to run unless the checkout is on `main`, fully committed, **equal to GitHub's main**, and not older than what the server runs; they take a server lock so two deploys cannot overlap (`scripts/deploy-guard.sh`). Never deploy by hand, and never bypass the guard unless the owner asks for a rollback (`FORCE_DEPLOY=1`).
-- The one-time setup of a machine: `scripts/mac-setup.sh` (Mac). A machine that deploys needs `ssh go2code` (its own key, never copied) and, for the API, Node 24 and Docker for the tests.
-- One codebase, two stores: `apps/mobile/lib` is shared by Android, iPhone and web, so a change there ships to all three. iPhone-only changes belong in `apps/mobile/ios/` or behind `defaultTargetPlatform == TargetPlatform.iOS`; do not remove the Android path. The GitHub checks build **both** apps (`ios` and `android` jobs) on every push: never release while one is red. See `docs/mac-handoff.md`.
+- The owner works from one machine at a time (today the Mac; the Linux PC is gone). **Secrets are not on any machine for good: they are on the server in `/etc/biobalance/secrets/` (root only)**, and `docs/secrets-and-new-machine.md` says what is where, how to set up a new machine, and what to do before a machine is sold.
+- The server (API, worker, database), Android builds, the web console and the iPhone app (Xcode, TestFlight, App Store) are all built and deployed from whichever machine has the keys, through the scripts only: `scripts/deploy-vps.sh` (API), `scripts/deploy-web.sh` (web console), `scripts/publish-apk.sh` (direct APK), `scripts/ios-release.sh` and `scripts/testflight.mjs` (iPhone). The deploy scripts refuse to run unless the checkout is on `main`, fully committed, **equal to GitHub's main**, and not older than what the server runs; they take a server lock so two deploys cannot overlap (`scripts/deploy-guard.sh`). Never deploy by hand, and never bypass the guard unless the owner asks for a rollback (`FORCE_DEPLOY=1`).
+- A machine that deploys needs `ssh go2code` (its own key, never copied) and, for the API, Node 24 and Docker for the tests. The one-time setup of a Mac: `scripts/mac-setup.sh`.
+- One codebase, three targets: `apps/mobile/lib` is shared by Android, iPhone and web, so a change there ships to all three. iPhone-only changes belong in `apps/mobile/ios/` or behind `defaultTargetPlatform == TargetPlatform.iOS`; do not remove the Android path. The GitHub checks build **both** apps (`ios` and `android` jobs) on every push: never release while one is red. See `docs/mac-handoff.md`.
 
 ## Before a change is "done"
 
