@@ -134,7 +134,7 @@ const credentials = {
     subject: "Votre compte BioBalance est prêt",
     heading: "Votre compte BioBalance est prêt",
     intro: (name: string) =>
-      `Bonjour ${name}, votre compte BioBalance a été créé.`,
+      `Bonjour ${name}, bienvenue sur BioBalance : votre compte est prêt. Suivez ces 3 étapes.`,
     emailLabel: "Adresse email",
     passwordLabel: "Mot de passe provisoire",
     first:
@@ -147,7 +147,7 @@ const credentials = {
     subject: "Your BioBalance account is ready",
     heading: "Your BioBalance account is ready",
     intro: (name: string) =>
-      `Hello ${name}, your BioBalance account has been created.`,
+      `Hello ${name}, welcome to BioBalance: your account is ready. Follow these 3 steps.`,
     emailLabel: "Email address",
     passwordLabel: "Temporary password",
     first:
@@ -230,12 +230,14 @@ function renderCredentials(
     "BioBalance",
     c.heading,
     c.intro(input.name),
+    w.install,
     ...blocks.map((b) => `${b.title}\n${b.lines.join("\n")}`),
     ...(input.installPage ? [`${w.help}\n${input.installPage}`] : []),
-    w.signIn,
+    `${w.signIn}\n${w.signInDo}`,
     `${c.emailLabel} : ${input.email}`,
     `${c.passwordLabel} : ${input.password}`,
-    `${valid} ${c.first}`,
+    valid,
+    `${w.choose}\n${c.first}`,
     c.note,
   ].join("\n\n");
   const box = (label: string, value: string, mono: boolean) =>
@@ -248,11 +250,15 @@ function renderCredentials(
 <tr><td style="padding:0 0 24px;color:#146c43;font-size:15px;font-weight:600">BioBalance</td></tr>
 <tr><td><h1 style="margin:0 0 16px;font-size:22px;line-height:1.35">${escape(c.heading)}</h1>
 <p style="margin:0 0 16px;font-size:16px;line-height:1.6">${escape(c.intro(input.name))}</p>
-${blocks.map((b) => `<h2 style="margin:24px 0 10px;font-size:18px">${escape(b.title)}</h2>${b.lines.map((line) => (/^https:/.test(line) ? `<p style="margin:0 0 16px"><a href="${escape(line)}" style="display:inline-block;padding:12px 18px;background:#146c43;color:#ffffff;text-decoration:none;border-radius:6px;font-size:15px;font-weight:700;word-break:break-all">${escape(line)}</a></p>` : `<p style="margin:0 0 8px;font-size:15px;line-height:1.6">${escape(line)}</p>`)).join("")}`).join("")}
+<h2 style="margin:24px 0 4px;font-size:19px">${escape(w.install)}</h2>
+${blocks.map((b) => `<h3 style="margin:18px 0 8px;font-size:16px">${escape(b.title)}</h3>${b.lines.map((line) => (/^https:/.test(line) ? `<p style="margin:0 0 16px"><a href="${escape(line)}" style="display:inline-block;padding:12px 18px;background:#146c43;color:#ffffff;text-decoration:none;border-radius:6px;font-size:15px;font-weight:700;word-break:break-all">${escape(line)}</a></p>` : `<p style="margin:0 0 8px;font-size:15px;line-height:1.6">${escape(line)}</p>`)).join("")}`).join("")}
 ${input.installPage ? `<p style="margin:0 0 8px;font-size:14px;line-height:1.5"><a href="${escape(input.installPage)}" style="color:#146c43">${escape(w.help)}</a></p>` : ""}
-<h2 style="margin:24px 0 12px;font-size:18px">${escape(w.signIn)}</h2>
+<h2 style="margin:28px 0 4px;font-size:19px">${escape(w.signIn)}</h2>
+<p style="margin:0 0 12px;font-size:15px;line-height:1.6">${escape(w.signInDo)}</p>
 ${box(c.emailLabel, input.email, false)}${box(c.passwordLabel, input.password, true)}
-<p style="margin:0 0 20px;font-size:14px;line-height:1.5;color:#5d665f">${escape(valid)} ${escape(c.first)}</p>
+<p style="margin:0 0 20px;font-size:14px;line-height:1.5;color:#5d665f">${escape(valid)}</p>
+<h2 style="margin:28px 0 4px;font-size:19px">${escape(w.choose)}</h2>
+<p style="margin:0 0 20px;font-size:15px;line-height:1.6">${escape(c.first)}</p>
 <p style="margin:24px 0 0;font-size:14px;line-height:1.6;color:#5d665f">${escape(c.note)}</p>
 </td></tr></table></td></tr></table></body></html>`;
   return { subject: c.subject, text, html };

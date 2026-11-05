@@ -9,39 +9,37 @@ export interface Stores {
 export const TESTFLIGHT_STORE =
   "https://apps.apple.com/app/testflight/id899247664";
 
-/** Where the Android app is downloaded from: the latest signed APK that scripts/publish-apk.sh puts on the server. */
-export const apkUrl = () => {
-  const base = process.env.API_PUBLIC_URL?.replace(/\/$/, "");
-  return base ? `${base}/download/biobalance.apk` : null;
-};
-
 /** The page that shows the install steps again (the same steps as the welcome message). */
 export const installPageUrl = () => {
   const base = process.env.API_PUBLIC_URL?.replace(/\/$/, "");
   return base ? `${base}/install` : null;
 };
 
-/** The words of the welcome message's install part, in the person's language: by email, by WhatsApp. */
+/** The words of the welcome message's three steps, in the person's language: by email, by WhatsApp. */
 export const installWords = {
   fr: {
-    android: "Si vous avez un téléphone Android",
-    androidDo:
-      "Téléchargez l’application ici, ouvrez le fichier, puis autorisez l’installation depuis cette source si le téléphone le demande :",
-    iphone: "Si vous avez un iPhone",
+    install: "1. Installez l’application",
+    android: "Sur Android",
+    androidDo: "Ouvrez Google Play et touchez Installer :",
+    iphone: "Sur iPhone",
     iphoneStore:
-      "1. Installez l’application gratuite TestFlight depuis l’App Store :",
-    iphoneApp: "2. Puis ouvrez ce lien et touchez Installer :",
-    signIn: "Vos informations de connexion",
+      "a) Installez d’abord l’application gratuite TestFlight, depuis l’App Store :",
+    iphoneApp: "b) Puis ouvrez ce lien et touchez Installer :",
+    signIn: "2. Connectez-vous",
+    signInDo: "Ouvrez BioBalance et saisissez ces informations :",
+    choose: "3. Choisissez votre mot de passe",
     help: "Besoin d’aide pour l’installation ?",
   },
   en: {
-    android: "If you have an Android phone",
-    androidDo:
-      "Download the app here, open the file, then allow the installation from this source if the phone asks:",
-    iphone: "If you have an iPhone",
-    iphoneStore: "1. Install the free TestFlight app from the App Store:",
-    iphoneApp: "2. Then open this link and tap Install:",
-    signIn: "Your sign-in details",
+    install: "1. Install the app",
+    android: "On Android",
+    androidDo: "Open Google Play and tap Install:",
+    iphone: "On iPhone",
+    iphoneStore: "a) First install the free TestFlight app from the App Store:",
+    iphoneApp: "b) Then open this link and tap Install:",
+    signIn: "2. Sign in",
+    signInDo: "Open BioBalance and enter these details:",
+    choose: "3. Choose your password",
     help: "Need help installing?",
   },
 } as const satisfies Record<Locale, object>;

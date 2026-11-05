@@ -4,7 +4,6 @@ import type { Actor } from "./actor";
 import { audit } from "./audit";
 import { Database } from "./database";
 import { DEFAULT_HOURS, type Hours } from "./hours";
-import { apkUrl } from "./install";
 import { requireRule } from "./errors";
 import { json } from "./database";
 
@@ -78,7 +77,7 @@ export class SettingsService {
       },
       stores: {
         ios: process.env.IOS_STORE_URL || null,
-        android: process.env.PLAY_STORE_URL || apkUrl() || ANDROID_STORE,
+        android: process.env.PLAY_STORE_URL || ANDROID_STORE,
         ...((stored.get("stores") as object | undefined) ?? {}),
       },
       hours: (stored.get("hours") as Hours | undefined) ?? DEFAULT_HOURS,

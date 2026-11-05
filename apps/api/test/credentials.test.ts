@@ -423,7 +423,8 @@ describe("the messages", () => {
       whatsapp: { enabled: true },
       stores: {
         ios: "https://testflight.apple.com/join/AbCd1234",
-        android: "https://api.example.test/download/biobalance.apk",
+        android:
+          "https://play.google.com/store/apps/details?id=tn.biobalance.app",
       },
     }),
   } as unknown as SettingsService;
@@ -444,7 +445,7 @@ describe("the messages", () => {
       expect(part).toContain("amira@example.test");
       // The install steps and both downloads travel with the account details.
       expect(part).toContain(
-        "https://api.example.test/download/biobalance.apk",
+        "https://play.google.com/store/apps/details?id=tn.biobalance.app",
       );
       expect(part).toContain("https://testflight.apple.com/join/AbCd1234");
       expect(part).toContain("TestFlight");
@@ -476,18 +477,18 @@ describe("the messages", () => {
     expect(sent[0]!.text).toContain(password);
     expect(sent[0]!.text).toContain("Bonjour Amira Gharbi");
     expect(sent[0]!.text).toContain("amira@example.test");
-    expect(sent[0]!.text).toContain("Si vous avez un téléphone Android");
-    expect(sent[0]!.text).toContain("Si vous avez un iPhone");
+    expect(sent[0]!.text).toContain("Sur Android");
+    expect(sent[0]!.text).toContain("Sur iPhone");
     expect(sent[0]!.text).toContain(
       "https://apps.apple.com/app/testflight/id899247664",
     );
     expect(sent[0]!.text).toContain(
-      "https://api.example.test/download/biobalance.apk",
+      "https://play.google.com/store/apps/details?id=tn.biobalance.app",
     );
     expect(sent[0]!.text).toContain(
       "https://testflight.apple.com/join/AbCd1234",
     );
-    expect(sent[0]!.text).toContain("Vos informations de connexion");
+    expect(sent[0]!.text).toContain("2. Connectez-vous");
     expect((await jobs("whatsapp"))[0]!.payload.sealed).toBe("");
   });
 

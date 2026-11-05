@@ -11,7 +11,7 @@ beforeAll(async () => {
 afterAll(() => api.close());
 
 const stores = {
-  android: "https://api.example.test/download/biobalance.apk",
+  android: "https://play.google.com/store/apps/details?id=tn.biobalance.app",
   ios: "https://testflight.apple.com/join/AbCd1234",
 };
 
@@ -84,7 +84,7 @@ describe("the welcome message", () => {
       stores: { android: stores.android, ios: null },
     });
     expect(text).not.toContain("TestFlight");
-    expect(text).toContain("If you have an Android phone");
-    expect(text).not.toContain("If you have an iPhone");
+    expect(text).toContain("On Android");
+    expect(text).not.toContain("On iPhone");
   });
 });
