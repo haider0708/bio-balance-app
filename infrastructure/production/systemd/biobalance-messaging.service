@@ -1,0 +1,10 @@
+[Unit]
+Description=BioBalance messaging diagnostics (WhatsApp session, failed messages)
+After=docker.service
+Requires=docker.service
+[Service]
+Type=oneshot
+EnvironmentFile=/etc/biobalance/backup.env
+WorkingDirectory=/opt/biobalance
+ExecStart=/opt/biobalance/scripts/check-messaging.sh
+UMask=0077

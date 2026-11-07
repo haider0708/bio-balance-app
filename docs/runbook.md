@@ -85,7 +85,22 @@ The apps report the errors they meet (release builds; platform, version and the 
 
 ## Monitoring
 
-`biobalance-monitor.timer` checks every few minutes: services healthy, memory and load, jobs failing or stuck, backup freshness, the public HTTPS endpoint and the certificate (more than 7 days left). The GitHub workflow `operations-monitor.yml` checks from outside and emails incidents.
+Two timers on the server and one check from outside:
+
+- `biobalance-monitor.timer` (every minute, `scripts/check-vps.sh`): services healthy, memory and load, jobs stuck (running more than 16 minutes or waiting more than 5), backup freshness, the public HTTPS endpoint and the certificate (more than 7 days left).
+- `biobalance-messaging.timer` (every five minutes, `scripts/check-messaging.sh`): WhatsApp, if switched on in the settings, has a session that is `WORKING` (asked twice, 20 seconds apart), and no email or WhatsApp **failed for good in the last 3 days**. Its exit status says which: 1 = WhatsApp down, 2 = failed messages, 3 = both, 64 = the check could not run.
+- The GitHub workflow `operations-monitor.yml` checks from outside (HTTPS, then a fixed read-only command over SSH, `scripts/monitor-report.py`) and sends **one** email per incident (and again every 6 hours while it lasts, then one "back"). The alert names the cause: `WHATSAPP_DOWN`, `JOBS_FAILED`, `MESSAGING_CHECK_FAILED`, `LOCAL_CHECK_FAILED` (infrastructure), and the others in `external-monitor.py`. Every code the server can report must exist in `CODES` there (a test checks it), and the workflow is updated by pushing to `main` **before** deploying a server that reports a new code.
+- The units are installed by hand (they are not part of the deploy): `sudo cp infrastructure/production/systemd/biobalance-messaging.{service,timer} /etc/systemd/system/ && sudo systemctl daemon-reload && sudo systemctl enable --now biobalance-messaging.timer`.
+- A failed message is dropped by the hourly cleanup after 14 days (its content is wiped as soon as it fails). Failed messages are the people who did not get their email or WhatsApp: find them with `SELECT key, kind FROM "Job" WHERE status = 'failed'` (the key holds the user id), then use **Send a new password** on their page once the cause is fixed.
+- `journalctl` also shows `sSMTP ... mail.tdiscount.tn` errors every minute: that is another site's cron job on the shared server (`/home/ubuntu/test.py`), not BioBalance, and not our alerts.
+
+## WhatsApp
+
+The number is a linked device of the owner's WhatsApp, run by the `waha` container (session `default`). Limits that keep the number safe: at most **30 messages a day** (`DAILY_CAP`), **45 to 75 seconds** between two messages, and never a burst of first-contact messages (on 5 November 2026 about 75 in 10 minutes restricted the number for a day and dropped the link). Large announcements go in small batches over several days.
+
+- Status: Settings → WhatsApp in the console, or `docker exec biobalance-waha-1 sh -c 'wget -qO- --header="X-Api-Key: $WAHA_API_KEY" http://localhost:3000/api/sessions/default'` (`WORKING` is good).
+- `FAILED` or "Connection Failure": the phone's linked device was removed. Reset the session and scan again: `POST /api/sessions/default/logout`, then `/start` (same header, from inside the container), fetch the code with `GET /api/default/auth/qr` and `Accept: image/png`, and scan it in WhatsApp → Settings → Linked devices → Link a device within about 20 seconds (it refreshes). The status turns `WORKING` a few seconds later. Nothing is lost: the messages that failed are not retried, so send a new password to whoever missed theirs.
+- While the session is down the monitor mails `WHATSAPP_DOWN`; credentials still go by email.
 
 ## Planning (visits and positions)
 
@@ -250,7 +265,7 @@ Everything BioBalance sends by email as a code or a security notice (an account 
 - **App errors** are grouped by what they are, not by object id or minified line: one bug is one row. The web console's repeated "RenderBox was not laid out" and null-check errors came from a page-wide text selection; it was removed (a value that people copy is selectable where it is shown).
 - **Server files:** only BioBalance's own containers, images (the current and the previous API image, for a rollback), volumes (`database`, `media`, `whatsapp`) and folders are touched. Unused settings were removed from `/etc/biobalance/backend.env` and `.env.example` (the old media and activation-link variables), and the old plaintext copies of that file were deleted; the two newest copies are kept.
 - **Not BioBalance's:** `certbot.service` failing on the host belongs to other sites on the shared server (their certificates), not to BioBalance, whose certificate is renewed by `biobalance-tls.timer`.
-- **WhatsApp is not a monitored service:** it is optional and the email always goes; the admin settings show whether its session is connected.
+- **WhatsApp is monitored** since 7 November 2026 (`WHATSAPP_DOWN`, see Monitoring): it carries the passwords and the codes next to the email.
 
 ## Reading an error from the web console
 

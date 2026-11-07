@@ -1,6 +1,6 @@
 import 'dart:ui' show PlatformDispatcher;
 
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show kIsWeb, visibleForTesting;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -317,8 +317,51 @@ GoRoute _withExtra<T>(
 ) => GoRoute(
   path: path,
   redirect: (_, state) => state.extra is T ? null : fallback,
-  builder: (_, state) => builder(state, state.extra as T),
+  builder: (_, state) =>
+      pageNeeding<T>(state, fallback, (extra) => builder(state, extra)),
 );
+
+/// The page for the object the previous screen handed over. The router can rebuild a page that is
+/// already on screen without it (after the system restores the app, or when the router refreshes); that
+/// goes back to [fallback] instead of failing with a cast error (seen in build 47: SaleOutcome, Product).
+@visibleForTesting
+Widget pageNeeding<T>(
+  GoRouterState state,
+  String fallback,
+  Widget Function(T extra) build,
+) {
+  final extra = state.extra;
+  return extra is T ? build(extra) : _GoTo(fallback);
+}
+
+/// The optional object handed over, or null when there is none or it is not the expected kind.
+T? _extra<T>(GoRouterState state) {
+  final extra = state.extra;
+  return extra is T ? extra : null;
+}
+
+/// An empty page that moves on to [location] as soon as it is shown.
+class _GoTo extends StatefulWidget {
+  const _GoTo(this.location);
+
+  final String location;
+
+  @override
+  State<_GoTo> createState() => _GoToState();
+}
+
+class _GoToState extends State<_GoTo> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) context.go(widget.location);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) => const Scaffold();
+}
 
 List<RouteBase> _vendeur({required bool buys}) => [
   _shell([
@@ -375,7 +418,7 @@ List<RouteBase> _planning(Role role) => [
     GoRoute(path: '/planning', builder: (_, _) => const PlanningScreen()),
     GoRoute(
       path: '/planning/new',
-      builder: (_, state) => VisitFormScreen(day: state.extra as DateTime?),
+      builder: (_, state) => VisitFormScreen(day: _extra<DateTime>(state)),
     ),
     GoRoute(
       path: '/planning/settings',
@@ -573,21 +616,21 @@ List<RouteBase> _admin() => [
     path: '/stock/:id/adjust',
     builder: (_, state) => AdjustStockScreen(
       locationId: state.pathParameters['id']!,
-      locationName: state.extra as String?,
+      locationName: _extra<String>(state),
     ),
   ),
   GoRoute(
     path: '/regions/:id',
     builder: (_, state) => RegionScreen(
       regionId: state.pathParameters['id']!,
-      name: state.extra as String?,
+      name: _extra<String>(state),
     ),
   ),
   GoRoute(path: '/rewards', builder: (_, _) => const RewardsScreen()),
   GoRoute(
     path: '/rewards/new',
     builder: (_, state) =>
-        RewardFormScreen(preset: state.extra as RewardPreset?),
+        RewardFormScreen(preset: _extra<RewardPreset>(state)),
   ),
   GoRoute(path: '/messages', builder: (_, _) => const MessagesScreen()),
   GoRoute(
@@ -601,8 +644,7 @@ List<RouteBase> _admin() => [
   ),
   GoRoute(
     path: '/people/new',
-    builder: (_, state) =>
-        CreateAccountScreen(regionId: state.extra as String?),
+    builder: (_, state) => CreateAccountScreen(regionId: _extra<String>(state)),
   ),
   _withExtra<Person>(
     '/people/:id',
@@ -632,13 +674,13 @@ List<RouteBase> _admin() => [
     path: '/training/manage/:id/lessons/:lesson',
     builder: (_, state) => LessonEditorScreen(
       courseId: state.pathParameters['id']!,
-      lesson: state.extra as Lesson?,
+      lesson: _extra<Lesson>(state),
     ),
   ),
   GoRoute(path: '/catalog/new', builder: (_, _) => const ProductFormScreen()),
   GoRoute(
     path: '/catalog/:id/edit',
-    builder: (_, state) => ProductFormScreen(existing: state.extra as Product?),
+    builder: (_, state) => ProductFormScreen(existing: _extra<Product>(state)),
   ),
 ];
 
@@ -731,7 +773,7 @@ List<RouteBase> _shared() => [
   ),
   GoRoute(
     path: '/pdvs/:id/edit',
-    builder: (_, state) => PdvFormScreen(existing: state.extra as Pdv?),
+    builder: (_, state) => PdvFormScreen(existing: _extra<Pdv>(state)),
   ),
   GoRoute(
     path: '/pdvs/:id/sales',
@@ -749,63 +791,60 @@ List<RouteBase> _shared() => [
   ),
   GoRoute(
     path: '/stock/declarations/:id/edit',
-    builder: (_, state) =>
-        EditDeclarationScreen(declaration: state.extra! as StockDeclaration),
+    redirect: (_, state) => state.extra is StockDeclaration
+        ? null
+        : '/stock/declarations/${state.pathParameters['id']}',
+    builder: (_, state) => pageNeeding<StockDeclaration>(
+      state,
+      '/stock/declarations/${state.pathParameters['id']}',
+      (declaration) => EditDeclarationScreen(declaration: declaration),
+    ),
   ),
   GoRoute(
     path: '/stock/:id',
     builder: (_, state) => StockScreen(
       locationId: state.pathParameters['id']!,
-      title: state.extra as String?,
+      title: _extra<String>(state),
     ),
   ),
   GoRoute(
     path: '/stock/:id/declare',
     builder: (_, state) => DeclareStockScreen(
       locationId: state.pathParameters['id']!,
-      locationName: state.extra as String?,
+      locationName: _extra<String>(state),
     ),
   ),
   GoRoute(
     path: '/restocks/new',
-    builder: (_, state) => RequestRestockScreen(destId: state.extra as String?),
+    builder: (_, state) => RequestRestockScreen(destId: _extra<String>(state)),
   ),
   GoRoute(
     path: '/restocks/:id',
     builder: (_, state) =>
         RestockDetailScreen(orderId: state.pathParameters['id']!),
   ),
-  GoRoute(
-    path: '/restocks/:id/ship',
-    redirect: (_, state) => state.extra is RestockOrder
-        ? null
-        : '/restocks/${state.pathParameters['id']}',
-    builder: (_, state) => ShipScreen(order: state.extra! as RestockOrder),
+  _restockStep('ship', (order) => ShipScreen(order: order)),
+  _restockStep('papers', (order) => OrderPapersScreen(order: order)),
+  _restockStep(
+    'delivered',
+    (order) => OrderPapersScreen(order: order, delivered: true),
   ),
-  GoRoute(
-    path: '/restocks/:id/papers',
-    redirect: (_, state) => state.extra is RestockOrder
-        ? null
-        : '/restocks/${state.pathParameters['id']}',
-    builder: (_, state) =>
-        OrderPapersScreen(order: state.extra! as RestockOrder),
-  ),
-  GoRoute(
-    path: '/restocks/:id/delivered',
-    redirect: (_, state) => state.extra is RestockOrder
-        ? null
-        : '/restocks/${state.pathParameters['id']}',
-    builder: (_, state) =>
-        OrderPapersScreen(order: state.extra! as RestockOrder, delivered: true),
-  ),
-  GoRoute(
-    path: '/restocks/:id/receive',
-    redirect: (_, state) => state.extra is RestockOrder
-        ? null
-        : '/restocks/${state.pathParameters['id']}',
-    builder: (_, state) => ReceiveScreen(order: state.extra! as RestockOrder),
-  ),
+  _restockStep('receive', (order) => ReceiveScreen(order: order)),
 ];
+
+/// A step of a restock order (ship, papers, receive): opened without the order it goes back to the order.
+GoRoute _restockStep(String step, Widget Function(RestockOrder order) build) =>
+    GoRoute(
+      path: '/restocks/:id/$step',
+      redirect: (_, state) => state.extra is RestockOrder
+          ? null
+          : '/restocks/${state.pathParameters['id']}',
+      builder: (_, state) => pageNeeding<RestockOrder>(
+        state,
+        '/restocks/${state.pathParameters['id']}',
+        build,
+      ),
+    );
 
 Widget _more(Role role) => Builder(
   builder: (context) {

@@ -97,5 +97,37 @@ class IncidentMail(unittest.TestCase):
         self.assertEqual(kind, 'recovery')
 
 
+class MessagingChecks(unittest.TestCase):
+    def codes(self, **data):
+        return report.messaging_problems(data)
+
+    def test_a_successful_check_raises_nothing(self):
+        self.assertEqual(self.codes(Result='success', ExecMainStatus='0'), [])
+
+    def test_a_dead_whatsapp_session_is_named(self):
+        self.assertEqual(self.codes(Result='exit-code', ExecMainStatus='1'), ['WHATSAPP_DOWN'])
+
+    def test_failed_messages_are_named(self):
+        self.assertEqual(self.codes(Result='exit-code', ExecMainStatus='2'), ['JOBS_FAILED'])
+
+    def test_both_problems_are_named_together(self):
+        self.assertEqual(
+            self.codes(Result='exit-code', ExecMainStatus='3'), ['WHATSAPP_DOWN', 'JOBS_FAILED']
+        )
+
+    def test_a_check_that_could_not_run_is_its_own_problem(self):
+        for status in ('64', '127', '', 'n/a'):
+            self.assertEqual(
+                self.codes(Result='exit-code', ExecMainStatus=status), ['MESSAGING_CHECK_FAILED']
+            )
+
+    def test_every_code_the_server_can_report_has_a_mail_text(self):
+        for code in (
+            'WHATSAPP_DOWN', 'JOBS_FAILED', 'MESSAGING_CHECK_FAILED', 'MESSAGING_TIMER',
+            'LOCAL_CHECK_FAILED', 'MONITOR_STALE',
+        ):
+            self.assertIn(code, external.CODES)
+
+
 if __name__ == '__main__':
     unittest.main()

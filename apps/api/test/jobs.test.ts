@@ -219,4 +219,22 @@ describe("cleanup", () => {
     ).toBeGreaterThanOrEqual(0);
     await o.end();
   });
+
+  it("drops a failed message after two weeks (the monitor only warns about the last three days)", async () => {
+    const o = await owner();
+    for (const [key, age] of [
+      ["wa:old-failed", "20 days"],
+      ["wa:recent-failed", "2 days"],
+    ] as const)
+      await o.query(
+        `INSERT INTO "Job"(id,kind,key,payload,status,"createdAt") VALUES (gen_random_uuid(),'whatsapp',$1,'{}','failed',now()-$2::interval)`,
+        [key, age],
+      );
+    await cleanup(db);
+    const left = (
+      await o.query(`SELECT key FROM "Job" WHERE key LIKE 'wa:%failed'`)
+    ).rows.map((r) => r.key);
+    expect(left).toEqual(["wa:recent-failed"]);
+    await o.end();
+  });
 });

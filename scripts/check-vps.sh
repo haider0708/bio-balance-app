@@ -17,7 +17,7 @@ PY
 expected_services=$("${compose[@]}" config --services)
 "${compose[@]}" ps --format json | BIOBALANCE_EXPECTED_SERVICES="$expected_services" python3 -c 'import sys,json,os; rows=[json.loads(s) for s in sys.stdin if s.strip()]; expected=set(os.environ["BIOBALANCE_EXPECTED_SERVICES"].split())-{"migrate"}; states={r["Service"]:r for r in rows}; bad=[s for s in expected if s not in states or states[s].get("State")!="running" or states[s].get("Health")!="healthy"]; print("Unhealthy services:",bad);sys.exit(bool(bad))'
 "${compose[@]}" exec -T postgres sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v ON_ERROR_STOP=1 -At' <<'SQL' | python3 -c 'import sys,json; row=json.loads(sys.stdin.read());print("Job diagnostics:",row);sys.exit(any(row.values()))'
-SELECT json_build_object('failed',count(*) FILTER(WHERE status='failed'),
+SELECT json_build_object(
   'stale',count(*) FILTER(WHERE status='running' AND "lockedAt"<now()-interval '16 minutes'),
   'overdue',count(*) FILTER(WHERE status='pending' AND "availableAt"<now()-interval '5 minutes')) FROM "Job";
 SQL

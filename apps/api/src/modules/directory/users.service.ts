@@ -13,6 +13,7 @@ import { Database } from "../../core/database";
 import { DomainError, notFound, requireRule } from "../../core/errors";
 import { isSandbox, notify, notifyAdmins } from "../../core/notifier";
 import { issueCode } from "../auth/codes";
+import { assertEmailLooksRight } from "../../core/email-typo";
 import { canonicalPhone } from "../../core/phone";
 import { issueCredentials } from "../auth/credentials";
 import { isTeamRole, TEAM_ROLES } from "../../core/roles";
@@ -727,6 +728,7 @@ export class UsersService {
     tx: Parameters<Parameters<Database["run"]>[1]>[0],
     email: string,
   ) {
+    assertEmailLooksRight(email);
     if (await tx.user.findUnique({ where: { email }, select: { id: true } }))
       throw new DomainError(
         "EMAIL_TAKEN",

@@ -205,6 +205,15 @@ describe("team members", () => {
       email: "karim@example.test",
     });
     expect(dup.body.code).toBe("EMAIL_TAKEN");
+
+    // "gamail" is a slip, not a provider: no account (and no password) goes to a mistyped address.
+    const typo = await w.n.post(`/v1/pdvs/${pdv.id}/members`, {
+      phone: "23 000 000",
+      name: "Arij",
+      email: "arij@gamail.com",
+    });
+    expect(typo.status).toBe(422);
+    expect(typo.body.code).toBe("EMAIL_TYPO");
   });
 
   it("a responsable can deactivate a team member, but not approve one", async () => {

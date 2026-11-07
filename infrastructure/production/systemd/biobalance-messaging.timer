@@ -1,0 +1,7 @@
+[Unit]
+Description=BioBalance messaging checks every five minutes
+[Timer]
+OnBootSec=3min
+OnUnitActiveSec=5min
+[Install]
+WantedBy=timers.target

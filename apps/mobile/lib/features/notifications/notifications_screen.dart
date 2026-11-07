@@ -95,6 +95,8 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
   }
 
   Future<void> _open(AppNotification n) async {
+    // A tap can land while the screen is already closing (seen on iPhone, build 43): `ref` is unusable then.
+    if (!mounted) return;
     final me = ref.read(meProvider);
     if (n.unread) {
       // The screen can close while this waits: take what is needed from `ref` before the first await.

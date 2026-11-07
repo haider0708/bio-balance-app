@@ -7,8 +7,12 @@ CODES={
  'API_UNREACHABLE':'API HTTPS indisponible', 'HOST_UNREACHABLE':'Contrôle du serveur inaccessible',
  'DISK_LOW':'Espace disque faible', 'MEMORY_LOW':'Mémoire disponible faible', 'CPU_HIGH':'Charge CPU élevée',
  'BACKUP_TIMER':'Planification des sauvegardes inactive','MONITOR_TIMER':'Planification des contrôles inactive',
- 'BACKUP_FAILED':'Échec de sauvegarde','LOCAL_CHECK_FAILED':'Échec du contrôle local (services, jobs, sauvegardes ou certificat)',
+ 'BACKUP_FAILED':'Échec de sauvegarde','LOCAL_CHECK_FAILED':'Échec du contrôle local (services, jobs bloqués, sauvegardes ou certificat)',
  'MONITOR_STALE':'Contrôle local trop ancien','BACKUP_STALE':'Aucune sauvegarde récente','REPORT_FAILED':'Rapport du serveur invalide',
+ 'MESSAGING_TIMER':'Planification du contrôle des messages inactive',
+ 'WHATSAPP_DOWN':'WhatsApp déconnecté : les mots de passe et les codes ne partent plus par WhatsApp (scanner à nouveau le code QR)',
+ 'JOBS_FAILED':'Des messages (email ou WhatsApp) ont échoué définitivement ces 3 derniers jours',
+ 'MESSAGING_CHECK_FAILED':'Le contrôle des messages n’a pas pu s’exécuter',
  'TLS_TIMER':'Planification du renouvellement HTTPS inactive','TLS_RENEWAL_FAILED':'Échec du renouvellement HTTPS BioBalance',
 }
 class NoRedirect(urllib.request.HTTPRedirectHandler):

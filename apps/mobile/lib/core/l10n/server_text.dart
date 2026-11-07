@@ -184,6 +184,10 @@ class ServerText {
       'This email already has an account.',
       'Cet e-mail a déjà un compte.',
     ),
+    'EMAIL_TYPO': (
+      'This email address looks mistyped (for example “gamail” instead of “gmail”). Check it.',
+      'Cette adresse e-mail semble mal écrite (par exemple « gamail » au lieu de « gmail »). Vérifiez-la.',
+    ),
     'REGION_HAS_RESPONSABLE': (
       'This region already has a responsable: swap the two, or move that one first.',
       'Cette région a déjà un responsable : échangez les deux, ou déplacez-le d’abord.',
