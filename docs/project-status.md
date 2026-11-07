@@ -24,7 +24,7 @@ The network was emptied for its real start (`docs/runbook.md`, "The test region"
 
 1. Owner (Play Console): upload the 3.5.1+48 App Bundle and update the Data safety form if not done (location, crash logs: `docs/store-publishing.md`).
 2. Owner: when Apple approves 3.5.0 for the App Store, set `IOS_STORE_URL` on the server and in the settings to the App Store link (until then it is the TestFlight link; a TestFlight build expires after 90 days).
-3. Owner (shared server): the host needs a planned reboot (kernel 5.15.0-202 is installed, 185 runs) and about 150 package updates; it also runs other sites, so choose a quiet hour. Nothing of BioBalance's is affected by waiting a few days.
+3. Done 2026-11-07: the host was patched (about 150 packages, including MySQL 8.0.46 and runc 1.3.4) and rebooted onto kernel 5.15.0-202 after a fresh backup; all containers, WhatsApp (session kept) and the timers came back by themselves. Do it again every few months (`sudo apt-get upgrade`, then reboot in a quiet hour: the host also runs other sites).
 4. Before selling the Mac: `docs/secrets-and-new-machine.md` (second copy of the Android keystore, a new place for off-server backups, add the new machine's SSH key before removing the Mac's, delete `~/Desktop` files holding phone numbers).
 5. Owner (Cloudflare, optional): remove the stray `v=DMARC1; p=none;` TXT on `galylio.com` itself (the real one is on `_dmarc`); later raise DMARC to `quarantine`.
 6. Once old builds must stop: set `MIN_APP_BUILD` on the server.
