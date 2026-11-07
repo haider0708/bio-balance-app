@@ -9,7 +9,7 @@ import { renderWhatsApp } from "./templates";
 import type { WhatsAppTransport } from "./transport";
 
 /** The most WhatsApp messages sent in a day: a few dozen invitations is normal, a flood is not. */
-export const DAILY_CAP = 200;
+export const DAILY_CAP = 30;
 
 export type Outcome = "sent" | "suppressed";
 

@@ -38,7 +38,7 @@ export class WahaTransport implements WhatsAppTransport {
     this.url = options.url.replace(/\/$/, "");
     this.session = options.session ?? "default";
     this.fetcher = options.fetchImpl ?? fetch;
-    this.gap = options.gapMs ?? (() => 3000 + Math.random() * 5000);
+    this.gap = options.gapMs ?? (() => 45_000 + Math.random() * 30_000);
     this.sleep = options.sleep ?? wait;
   }
 
