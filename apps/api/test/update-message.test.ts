@@ -17,7 +17,7 @@ const input = {
 describe("the 'update your app' message", () => {
   it("tells an existing user to update, with the right link per phone, and no password", () => {
     for (const locale of ["fr", "en"] as const) {
-      const whatsapp = renderWhatsApp(locale, input);
+      const whatsapp = renderWhatsApp(locale, input).join("\n\n");
       const email = renderEmail(locale, input);
       for (const part of [whatsapp, email.text, email.html]) {
         expect(part).toContain("Amira");
@@ -27,8 +27,8 @@ describe("the 'update your app' message", () => {
         expect(part).not.toMatch(/mot de passe provisoire|temporary password/i);
       }
     }
-    expect(renderWhatsApp("fr", input)).toContain("Mettre à jour");
-    expect(renderWhatsApp("en", input)).toContain("tap Update");
+    expect(renderWhatsApp("fr", input).join("\n")).toContain("Mettre à jour");
+    expect(renderWhatsApp("en", input).join("\n")).toContain("tap Update");
     expect(renderEmail("fr", input).subject).toBe("Mettez à jour BioBalance");
   });
 

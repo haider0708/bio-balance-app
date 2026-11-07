@@ -49,11 +49,11 @@ export class WhatsAppDelivery {
     const phone = user.phone ? normalizeTunisianPhone(user.phone) : null;
     if (!phone) return wipe("suppressed");
     const locale = user.locale === "en" ? "en" : "fr";
-    let text: string;
+    let texts: string[];
     if (p.template === "credentials") {
       const password = await openCredentials(user, p.sealed);
       if (!password) return wipe("suppressed");
-      text = renderWhatsApp(locale, {
+      texts = renderWhatsApp(locale, {
         kind: "credentials",
         name: user.name,
         email: user.email,
@@ -63,14 +63,14 @@ export class WhatsAppDelivery {
         installPage: installPageUrl(),
       });
     } else if (p.template === "update") {
-      text = renderWhatsApp(locale, {
+      texts = renderWhatsApp(locale, {
         kind: "update",
         name: user.name,
         stores: (await this.settings.get()).stores,
         installPage: installPageUrl(),
       });
     } else if (p.template === "password-changed")
-      text = renderWhatsApp(locale, {
+      texts = renderWhatsApp(locale, {
         kind: p.template,
         name: user.name,
         changedAt: new Date(p.changedAt),
@@ -91,7 +91,7 @@ export class WhatsAppDelivery {
       const link = base
         ? `${base}/c#${p.template === "reset" ? "r" : "i"}.${p.code}`
         : undefined;
-      text =
+      texts =
         p.template === "invite"
           ? renderWhatsApp(locale, {
               kind: "invite",
@@ -120,7 +120,7 @@ export class WhatsAppDelivery {
       },
     });
     if (today > this.cap) throw new Error("WHATSAPP_DAILY_CAP");
-    await this.transport.send(phone, text);
+    await this.transport.send(phone, texts);
     return wipe("sent");
   }
 }

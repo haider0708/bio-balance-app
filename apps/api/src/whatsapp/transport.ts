@@ -4,7 +4,8 @@ import { whatsappChatId } from "../core/phone";
 export interface WhatsAppTransport {
   /** Whether the number has WhatsApp (messaging numbers that do not is what gets a number banned). */
   hasWhatsApp(phone: string): Promise<boolean | null>;
-  send(phone: string, text: string): Promise<void>;
+  /** The messages of one notice, in order: the first waits its turn, the others follow a couple of seconds apart. */
+  send(phone: string, texts: string[]): Promise<void>;
   /** CONNECTED, or what is wrong (the session was lost, the QR code must be scanned again). */
   status(): Promise<"CONNECTED" | "DISCONNECTED">;
 }
@@ -16,6 +17,8 @@ export interface WahaOptions {
   fetchImpl?: typeof fetch;
   /** Pause before each message, in milliseconds (people do not send several messages in one second). */
   gapMs?: () => number;
+  /** Pause between the messages of one notice (a code or password alone in its message follows the text). */
+  partGapMs?: () => number;
   sleep?: (ms: number) => Promise<void>;
 }
 
@@ -30,6 +33,7 @@ export class WahaTransport implements WhatsAppTransport {
   private readonly session: string;
   private readonly fetcher: typeof fetch;
   private readonly gap: () => number;
+  private readonly partGap: () => number;
   private readonly sleep: (ms: number) => Promise<void>;
   private tail: Promise<unknown> = Promise.resolve();
   private lastSent = 0;
@@ -39,6 +43,7 @@ export class WahaTransport implements WhatsAppTransport {
     this.session = options.session ?? "default";
     this.fetcher = options.fetchImpl ?? fetch;
     this.gap = options.gapMs ?? (() => 45_000 + Math.random() * 30_000);
+    this.partGap = options.partGapMs ?? (() => 2000 + Math.random() * 2000);
     this.sleep = options.sleep ?? wait;
   }
 
@@ -72,21 +77,24 @@ export class WahaTransport implements WhatsAppTransport {
     }
   }
 
-  send(phone: string, text: string) {
-    // One message at a time, spaced out: the chain makes concurrent jobs wait their turn.
+  send(phone: string, texts: string[]) {
+    // One notice at a time, spaced out: the chain makes concurrent jobs wait their turn.
     const run = this.tail.then(async () => {
       const pause = this.lastSent + this.gap() - Date.now();
       if (pause > 0) await this.sleep(pause);
       try {
-        const res = await this.call("/api/sendText", {
-          method: "POST",
-          body: JSON.stringify({
-            session: this.session,
-            chatId: whatsappChatId(phone),
-            text,
-          }),
-        });
-        if (!res.ok) throw new Error("WHATSAPP_SEND_FAILED");
+        for (const [index, text] of texts.entries()) {
+          if (index > 0) await this.sleep(this.partGap());
+          const res = await this.call("/api/sendText", {
+            method: "POST",
+            body: JSON.stringify({
+              session: this.session,
+              chatId: whatsappChatId(phone),
+              text,
+            }),
+          });
+          if (!res.ok) throw new Error("WHATSAPP_SEND_FAILED");
+        }
       } catch (error) {
         // Only a safe machine word leaves this file: provider errors can carry the number or the code.
         throw error instanceof Error && error.message === "WHATSAPP_SEND_FAILED"

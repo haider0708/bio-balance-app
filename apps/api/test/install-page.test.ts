@@ -55,7 +55,7 @@ describe("the welcome message", () => {
 
   it("says hello, installs, signs in: in French and in English, the same on both channels", () => {
     for (const locale of ["fr", "en"] as const) {
-      const wa = renderWhatsApp(locale, input);
+      const wa = renderWhatsApp(locale, input).join("\n\n");
       const mail = renderEmail(locale, input).text;
       for (const text of [wa, mail]) {
         expect(text).toContain("Amira");
@@ -82,9 +82,9 @@ describe("the welcome message", () => {
     const text = renderWhatsApp("en", {
       ...input,
       stores: { android: stores.android, ios: null },
-    });
+    }).join("\n\n");
     expect(text).not.toContain("TestFlight");
-    expect(text).toContain("On Android");
-    expect(text).not.toContain("On iPhone");
+    expect(text).toContain("Android:");
+    expect(text).not.toContain("iPhone");
   });
 });

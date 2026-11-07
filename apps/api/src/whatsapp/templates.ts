@@ -1,7 +1,7 @@
 import type { Locale } from "../email/templates";
 import {
-  installBlocks,
   installWords,
+  TESTFLIGHT_STORE,
   updateBlocks,
   updateWords,
   type Stores,
@@ -48,25 +48,23 @@ export const shown = (code: string) => `${code.slice(0, 4)}-${code.slice(4)}`;
 const tap = (locale: Locale, link?: string) =>
   link
     ? locale === "fr"
-      ? `\n\nCopier le code en un toucher :\n${link}`
-      : `\n\nCopy the code in one tap:\n${link}`
+      ? `\n\nCopier le code et ouvrir l’application :\n${link}`
+      : `\n\nCopy the code and open the app:\n${link}`
     : "";
 
-/** Step 1 of the welcome message: one block per phone, then the help page. */
-const installLines = (
-  locale: Locale,
-  stores: Stores,
-  installPage: string | null,
-) =>
-  [
-    `*${installWords[locale].install}*`,
-    ...installBlocks(locale, stores).map(
-      (b) => `_${b.title}_\n${b.lines.join("\n")}`,
-    ),
-    installPage && `${installWords[locale].help}\n${installPage}`,
+/** Step 1 of the welcome message, short: a block per phone, every link alone on its line so it can be tapped. */
+const installLines = (locale: Locale, stores: Stores) => {
+  const fr = locale === "fr";
+  return [
+    stores.android && `Android${fr ? " :" : ":"}\n${stores.android}`,
+    stores.ios &&
+      (fr
+        ? `iPhone, en 2 temps :\na) TestFlight, à installer d’abord :\n${TESTFLIGHT_STORE}\nb) BioBalance, touchez Installer :\n${stores.ios}`
+        : `iPhone, in 2 steps:\na) TestFlight, install it first:\n${TESTFLIGHT_STORE}\nb) BioBalance, tap Install:\n${stores.ios}`),
   ]
     .filter(Boolean)
     .join("\n\n");
+};
 
 /** The "update your app" message: what is new, one block per phone, the help page. */
 const updateText = (
@@ -86,29 +84,46 @@ const updateText = (
     .join("\n\n");
 };
 
-/** The WhatsApp text of each message that is also sent by email: short, with the code on its own line. */
-export function renderWhatsApp(locale: Locale, t: WhatsAppTemplate): string {
-  if (t.kind === "update") return updateText(locale, t);
-  if (locale === "fr") {
-    switch (t.kind) {
-      case "invite":
-        return `Bonjour ${t.name}, votre compte BioBalance est prêt.\n\nCode d’activation :\n*${shown(t.code)}*${tap(locale, t.link)}\n\nDans l’application BioBalance, touchez « Activer mon compte », saisissez votre email et ce code, puis choisissez votre mot de passe. Le code est valable 72 heures.\n\nNe le partagez avec personne.`;
-      case "reset":
-        return `Bonjour ${t.name}, voici votre code pour réinitialiser votre mot de passe BioBalance :\n\n*${shown(t.code)}*${tap(locale, t.link)}\n\nDans l’application BioBalance, touchez « Mot de passe oublié ? », puis « J’ai déjà un code », saisissez votre email et ce code, puis choisissez un nouveau mot de passe.\n\nLe code est valable ${t.minutes} minutes. Si vous ne l’avez pas demandé, ignorez ce message.\n\nNe le partagez avec personne.`;
-      case "credentials":
-        return `Bonjour ${t.name}, bienvenue sur BioBalance : votre compte est prêt. Suivez ces 3 étapes.\n\n${installLines(locale, t.stores, t.installPage)}\n\n*${installWords.fr.signIn}*\n${installWords.fr.signInDo}\nEmail :\n${t.email}\nMot de passe provisoire :\n*${t.password}*\nValable jusqu’au ${at(locale, t.expiresAt)}.\n\n*${installWords.fr.choose}*\nÀ la première connexion, l’application vous demande de choisir votre propre mot de passe.\n\nNe partagez ce message avec personne.`;
-      case "password-changed":
-        return `Bonjour ${t.name}, votre mot de passe BioBalance a été modifié le ${at(locale, t.changedAt)}.\n\nSi ce n’est pas vous, prévenez votre responsable tout de suite.`;
-    }
-  }
+/**
+ * The WhatsApp messages of each notice, in the order they are sent. Short, and anything the person has
+ * to copy (a code, an email, a password) is a message of its own with nothing else in it, not even bold
+ * marks: a long press on that message then copies exactly the value.
+ */
+export function renderWhatsApp(locale: Locale, t: WhatsAppTemplate): string[] {
+  const fr = locale === "fr";
   switch (t.kind) {
+    case "update":
+      return [updateText(locale, t)];
     case "invite":
-      return `Hello ${t.name}, your BioBalance account is ready.\n\nActivation code:\n*${shown(t.code)}*${tap(locale, t.link)}\n\nIn the BioBalance app, tap “Activate my account”, enter your email and this code, then choose your password. The code is valid for 72 hours.\n\nDo not share it with anyone.`;
+      return [
+        fr
+          ? `Bonjour ${t.name}, votre compte BioBalance est prêt.\n\nDans l’application, touchez « Activer mon compte », puis saisissez votre email et le code ci-dessous. Valable 72 heures. Ne le partagez avec personne.${tap(locale, t.link)}\n\nVotre code (touchez longuement, puis Copier) :`
+          : `Hello ${t.name}, your BioBalance account is ready.\n\nIn the app, tap “Activate my account”, then enter your email and the code below. Valid for 72 hours. Do not share it with anyone.${tap(locale, t.link)}\n\nYour code (long-press, then Copy):`,
+        shown(t.code),
+      ];
     case "reset":
-      return `Hello ${t.name}, here is your code to reset your BioBalance password:\n\n*${shown(t.code)}*${tap(locale, t.link)}\n\nIn the BioBalance app, tap “Forgot password?”, then “I already have a code”, enter your email and this code, then choose a new password.\n\nThe code is valid for ${t.minutes} minutes. If you did not ask for it, ignore this message.\n\nDo not share it with anyone.`;
+      return [
+        fr
+          ? `Bonjour ${t.name}, voici le code pour réinitialiser votre mot de passe BioBalance.\n\nDans l’application, touchez « Mot de passe oublié ? » puis « J’ai déjà un code », et saisissez votre email et le code ci-dessous. Valable ${t.minutes} minutes. Si vous ne l’avez pas demandé, ignorez ce message. Ne le partagez avec personne.${tap(locale, t.link)}\n\nVotre code (touchez longuement, puis Copier) :`
+          : `Hello ${t.name}, here is the code to reset your BioBalance password.\n\nIn the app, tap “Forgot password?” then “I already have a code”, and enter your email and the code below. Valid for ${t.minutes} minutes. If you did not ask for it, ignore this message. Do not share it with anyone.${tap(locale, t.link)}\n\nYour code (long-press, then Copy):`,
+        shown(t.code),
+      ];
     case "credentials":
-      return `Hello ${t.name}, welcome to BioBalance: your account is ready. Follow these 3 steps.\n\n${installLines(locale, t.stores, t.installPage)}\n\n*${installWords.en.signIn}*\n${installWords.en.signInDo}\nEmail:\n${t.email}\nTemporary password:\n*${t.password}*\nValid until ${at(locale, t.expiresAt)}.\n\n*${installWords.en.choose}*\nWhen you first sign in, the app asks you to choose your own password.\n\nDo not share this message with anyone.`;
+      return [
+        fr
+          ? `Bonjour ${t.name}, votre compte BioBalance est prêt.\n\n*1. Installez l’application*\n${installLines(locale, t.stores)}\n\n*2. Connectez-vous*\nVotre email, puis votre mot de passe provisoire, arrivent chacun dans un message à part. Touchez longuement un message, puis Copier.`
+          : `Hello ${t.name}, your BioBalance account is ready.\n\n*1. Install the app*\n${installLines(locale, t.stores)}\n\n*2. Sign in*\nYour email, then your temporary password, each arrive in a message of their own. Long-press a message, then Copy.`,
+        t.email,
+        t.password,
+        fr
+          ? `*3. Choisissez votre mot de passe*\nÀ la première connexion, l’application vous demande d’en choisir un nouveau. Le mot de passe provisoire est valable jusqu’au ${at(locale, t.expiresAt)}. Ne partagez ces messages avec personne.${t.installPage ? `\n\nBesoin d’aide ? ${t.installPage}` : ""}`
+          : `*3. Choose your password*\nWhen you first sign in, the app asks you to choose a new one. The temporary password is valid until ${at(locale, t.expiresAt)}. Do not share these messages with anyone.${t.installPage ? `\n\nNeed help? ${t.installPage}` : ""}`,
+      ];
     case "password-changed":
-      return `Hello ${t.name}, your BioBalance password was changed on ${at(locale, t.changedAt)}.\n\nIf this was not you, tell your manager right away.`;
+      return [
+        fr
+          ? `Bonjour ${t.name}, votre mot de passe BioBalance a été modifié le ${at(locale, t.changedAt)}. Si ce n’est pas vous, prévenez votre responsable tout de suite.`
+          : `Hello ${t.name}, your BioBalance password was changed on ${at(locale, t.changedAt)}. If this was not you, tell your manager right away.`,
+      ];
   }
 }

@@ -462,11 +462,11 @@ describe("the messages", () => {
   it("WhatsApp carries the same, in the person's language, and wipes it too", async () => {
     await addAndApprove();
     const password = await latestPassword();
-    const sent: { phone: string; text: string }[] = [];
+    const sent: { phone: string; texts: string[]; text: string }[] = [];
     const transport: WhatsAppTransport = {
       hasWhatsApp: async () => true,
-      send: async (phone, text) => {
-        sent.push({ phone, text });
+      send: async (phone, texts) => {
+        sent.push({ phone, texts, text: texts.join("\n\n") });
       },
       status: async () => "CONNECTED",
     };
@@ -477,8 +477,15 @@ describe("the messages", () => {
     expect(sent[0]!.text).toContain(password);
     expect(sent[0]!.text).toContain("Bonjour Amira Gharbi");
     expect(sent[0]!.text).toContain("amira@example.test");
-    expect(sent[0]!.text).toContain("Sur Android");
-    expect(sent[0]!.text).toContain("Sur iPhone");
+    expect(sent[0]!.text).toContain("Android :");
+    expect(sent[0]!.text).toContain("iPhone, en 2 temps");
+    // The email and the password are each a message of their own, with nothing else in them:
+    // a long press copies exactly the value.
+    expect(sent[0]!.texts).toHaveLength(4);
+    expect(sent[0]!.texts[1]).toBe("amira@example.test");
+    expect(sent[0]!.texts[2]).toBe(password);
+    expect(sent[0]!.texts[0]).not.toContain(password);
+    expect(sent[0]!.texts[3]).toContain("3. Choisissez votre mot de passe");
     expect(sent[0]!.text).toContain(
       "https://apps.apple.com/app/testflight/id899247664",
     );

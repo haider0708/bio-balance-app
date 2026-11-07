@@ -96,6 +96,8 @@ Two timers on the server and one check from outside:
 
 ## WhatsApp
 
+**How the messages look** (`whatsapp/templates.ts`, one function, French and English): short, and everything the person must copy is a **message of its own with nothing else in it, not even bold marks**, so a long press then Copy copies exactly the value. A welcome is four messages (install steps; the email; the temporary password; the "choose your password" note); an activation or reset is two (explanation with the one-tap link `/c#i.CODE`, which also copies the code and opens the app; then the code alone). The messages of one notice leave 2 to 4 seconds apart; two notices leave 45 to 75 seconds apart. The update and "password changed" notices are one message. The email keeps its own, longer layout (`email/templates.ts`).
+
 The number is a linked device of the owner's WhatsApp, run by the `waha` container (session `default`). Limits that keep the number safe: at most **30 messages a day** (`DAILY_CAP`), **45 to 75 seconds** between two messages, and never a burst of first-contact messages (on 5 November 2026 about 75 in 10 minutes restricted the number for a day and dropped the link). Large announcements go in small batches over several days.
 
 - Status: Settings → WhatsApp in the console, or `docker exec biobalance-waha-1 sh -c 'wget -qO- --header="X-Api-Key: $WAHA_API_KEY" http://localhost:3000/api/sessions/default'` (`WORKING` is good).

@@ -24,11 +24,11 @@ beforeEach(async () => {
 
 /** A sender that records what it was asked to send. */
 function fake(options: { has?: boolean | null } = {}) {
-  const sent: { phone: string; text: string }[] = [];
+  const sent: { phone: string; text: string; texts: string[] }[] = [];
   const transport: WhatsAppTransport = {
     hasWhatsApp: async () => (options.has === undefined ? true : options.has),
-    send: async (phone, text) => {
-      sent.push({ phone, text });
+    send: async (phone, texts) => {
+      sent.push({ phone, text: texts.join("\n\n"), texts });
     },
     status: async () => "CONNECTED",
   };
@@ -126,6 +126,13 @@ describe("codes by WhatsApp", () => {
     expect(sent[0]!.text).toContain(`${code.slice(0, 4)}-${code.slice(4)}`);
     expect(sent[0]!.text).toContain(`https://api.example.test/c#i.${code}`);
     expect(sent[0]!.text).toContain("Bonjour Hanen Smiri");
+    // The code is a message of its own, last, with nothing else in it: a long press copies exactly it.
+    expect(sent[0]!.texts).toHaveLength(2);
+    expect(sent[0]!.texts[1]).toBe(`${code.slice(0, 4)}-${code.slice(4)}`);
+    // The text before it only carries the code inside the one-tap link.
+    expect(sent[0]!.texts[0]).not.toContain(
+      `${code.slice(0, 4)}-${code.slice(4)}`,
+    );
   });
 
   it("stays silent when the channel is off, not set up, or the number is not usable", async () => {
@@ -215,6 +222,7 @@ describe("the WAHA sender", () => {
       url: "http://waha:3000/",
       apiKey: "secret",
       gapMs: () => 4000,
+      partGapMs: () => 2500,
       sleep: async (ms) => {
         naps.push(ms);
       },
@@ -228,10 +236,12 @@ describe("the WAHA sender", () => {
       }) as unknown as typeof fetch,
     });
     await Promise.all([
-      t.send("+21621345678", "one"),
-      t.send("+21622333444", "two"),
+      t.send("+21621345678", ["one"]),
+      // Several messages for one person (text, then a code alone) follow each other closely.
+      t.send("+21622333444", ["two", "ABCD-2345"]),
     ]);
-    expect(calls.map((c) => c.body.text)).toEqual(["one", "two"]);
+    expect(calls.map((c) => c.body.text)).toEqual(["one", "two", "ABCD-2345"]);
+    expect(naps).toContain(2500);
     expect(calls[0]).toMatchObject({
       url: "http://waha:3000/api/sendText",
       key: "secret",
@@ -249,7 +259,7 @@ describe("the WAHA sender", () => {
         throw new Error("connect ECONNREFUSED 21621345678 code ABCD2345");
       }) as unknown as typeof fetch,
     });
-    await expect(t.send("+21621345678", "x")).rejects.toThrow(
+    await expect(t.send("+21621345678", ["x"])).rejects.toThrow(
       /^WHATSAPP_UNREACHABLE$/,
     );
     expect(await t.status()).toBe("DISCONNECTED");
