@@ -17,6 +17,19 @@ export type JobExecutor = (
 const MAX_ATTEMPTS = 8;
 
 /**
+ * Thrown by a job that must wait without having failed (WhatsApp's daily cap): it goes back in the queue
+ * after `delayMs` and the try does not count, so waiting for tomorrow never uses up its attempts.
+ */
+export class DeferJob extends Error {
+  constructor(
+    message: string,
+    readonly delayMs: number,
+  ) {
+    super(message);
+  }
+}
+
+/**
  * A small durable queue on PostgreSQL. A worker leases one job at a time
  * (FOR UPDATE SKIP LOCKED), renews the lease while it works, and retries failures
  * with exponential backoff.
@@ -101,6 +114,20 @@ export class JobRunner {
     });
   }
 
+  async defer(job: ClaimedJob, delayMs: number, reason: string) {
+    await this.db.job.updateMany({
+      where: this.owned(job),
+      data: {
+        status: "pending",
+        attempts: { decrement: 1 },
+        availableAt: new Date(Date.now() + delayMs),
+        lastError: reason,
+        leaseToken: null,
+        lockedAt: null,
+      },
+    });
+  }
+
   /** Run one job if there is one. Returns whether it found work. */
   async tick() {
     const job = await this.claim();
@@ -122,6 +149,10 @@ export class JobRunner {
       await this.execute(job, () => this.renew(job));
       await this.complete(job);
     } catch (error) {
+      if (error instanceof DeferJob) {
+        await this.defer(job, error.delayMs, error.message);
+        return true;
+      }
       await this.fail(job, error);
       console.error(
         JSON.stringify({

@@ -4,12 +4,7 @@ import { audit } from "../../core/audit";
 import { Database, json, type Tx } from "../../core/database";
 import { DomainError, notFound, requireRule } from "../../core/errors";
 import { decodeCursor, page } from "../../core/pagination";
-import {
-  type Audience,
-  aimsOnlyAtHidden,
-  audienceRegion,
-  resolveAudience,
-} from "./audience";
+import { type Audience, audienceRegion, resolveAudience } from "./audience";
 
 export interface MessageInput {
   title: string;
@@ -222,19 +217,10 @@ export class MessagingService {
       403,
     );
     return this.db.run(actor, async (tx) => {
-      const [hidden] = await tx.$queryRaw<{ id: string | null }[]>`
-        SELECT app_hidden_region()::text AS id`;
-      const all = await tx.message.findMany({
+      const messages = await tx.message.findMany({
         orderBy: { createdAt: "desc" },
         take: 100,
       });
-      const messages = [];
-      for (const m of all)
-        if (
-          !hidden?.id ||
-          !(await aimsOnlyAtHidden(tx, m.audience as Audience))
-        )
-          messages.push(m);
       const reads = await tx.notification.groupBy({
         by: ["messageId"],
         where: {

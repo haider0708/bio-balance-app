@@ -34,19 +34,14 @@ export async function cleanup(db: Database, now = new Date()) {
       db.$executeRaw`DELETE FROM "Job" WHERE id IN (SELECT id FROM "Job" WHERE status = 'failed' AND kind IN ('email', 'whatsapp') AND "createdAt" < ${new Date(now.getTime() - 14 * DAY)} LIMIT 1000)`,
   );
   // One-time authenticator links (a new administrator's): gone a week after they expire.
-  await db.$executeRaw`DELETE FROM "SetupLink" WHERE NOT keep AND "expiresAt" < ${new Date(now.getTime() - 7 * DAY)}`;
+  await db.$executeRaw`DELETE FROM "SetupLink" WHERE "expiresAt" < ${new Date(now.getTime() - 7 * DAY)}`;
   // App error reports are kept a month.
   await purge(
     () =>
       db.$executeRaw`DELETE FROM "ClientError" WHERE id IN (SELECT id FROM "ClientError" WHERE "lastSeen" < ${new Date(now.getTime() - 30 * DAY)} LIMIT 1000)`,
   );
-  // The test region's routine jobs (every minute) are not worth keeping past a day.
-  await purge(
-    () =>
-      db.$executeRaw`DELETE FROM "Job" WHERE id IN (SELECT id FROM "Job" WHERE status = 'completed' AND kind IN ('sandbox-approve','sandbox-sell') AND "createdAt" < ${day} LIMIT 1000)`,
-  );
-  // A restored demonstration account's job carried its password hash: not kept once done.
-  await db.$executeRaw`UPDATE "Job" SET payload = '{}'::jsonb WHERE kind = 'demo-restore' AND status = 'completed' AND payload <> '{}'::jsonb`;
+  // Calendar links expire after a year (a week of grace before the row goes).
+  await db.$executeRaw`DELETE FROM "CalendarFeed" WHERE "createdAt" < ${new Date(now.getTime() - 372 * DAY)}`;
   // Planned visits and their check-ins: 12 months.
   await purgeOldVisits(db);
   // Failed email jobs may still carry a code from older attempts.

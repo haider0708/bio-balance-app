@@ -12,7 +12,7 @@ On the server, `/etc/biobalance/` (root only, mode 700; files 600). Reach it wit
 | First admin created at set-up | `/etc/biobalance/admin/initial-admin.json` |
 | **Android signing key** (upload key of Google Play, also signs the direct APK), its password and the Gradle variables | `/etc/biobalance/secrets/android/` (`biobalance-release.jks`, `store.pass`, `env.sh`) |
 | **App Store Connect API keys** (upload builds, TestFlight, listing) and their ids | `/etc/biobalance/secrets/apple/` (`AuthKey_*.p8`, `env.sh`) |
-| The admin's authenticator secret (2-step sign-in) and the reviewers' demo accounts | `/etc/biobalance/secrets/admin/` |
+| The admin's authenticator secret (2-step sign-in) | `/etc/biobalance/secrets/admin/` |
 | The old hand-off notes with the reviewer passwords, the iOS team id file, small helper scripts | `/etc/biobalance/secrets/other/` |
 
 The copy was checked file by file (SHA-256) against the originals on 2026-11-05. The server's nightly backups are in `/srv/biobalance-backups` (02:30 UTC).

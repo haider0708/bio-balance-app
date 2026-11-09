@@ -117,14 +117,13 @@ describe("the account", () => {
 });
 
 describe("seeing the network", () => {
-  it("shows every para with what is low and out, the worst first, without the test region", async () => {
-    const ownerDb = await owner();
-    await ownerDb.query(
-      `UPDATE "Region" SET sandbox = true WHERE code = 'SUD'`,
-    );
-    await ownerDb.end();
+  it("shows every para with what is low and out, the worst first", async () => {
     const paras = (await m.get("/v1/orders/paras")).body;
-    expect(paras.map((p: any) => p.name)).toEqual(["Para Lac", "Para Marsa"]);
+    expect(paras.map((p: any) => p.name)).toEqual([
+      "Para Lac",
+      "Para Marsa",
+      "Para Sud",
+    ]);
     expect(paras[0]).toMatchObject({
       name: "Para Lac",
       region: { name: "Nord" },

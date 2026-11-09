@@ -4,14 +4,6 @@ import { Database } from "./core/database";
 import { EmailDelivery } from "./email/delivery";
 import { SmtpEmailTransport } from "./email/smtp";
 import { type JobExecutor, JobRunner } from "./jobs/job-runner";
-import {
-  approveSandbox,
-  keepSandboxSelling,
-  restoreDemoAccount,
-  sandboxServices,
-  scheduleSandbox,
-  type RestorePayload,
-} from "./demo/sandbox";
 import { scheduleDaySummary, sendDaySummaries } from "./jobs/day-summary";
 import { cleanup, scheduleCleanup } from "./jobs/maintenance";
 import { expireReturns, scheduleReturnJobs } from "./jobs/returns";
@@ -41,7 +33,6 @@ const whatsapp = new WhatsAppDelivery(
 const messages = new MessagingService(db);
 const transports = transportsFromEnv();
 const pushes = new PushDelivery(db, transports);
-const sandbox = sandboxServices(db);
 const wake = new NotificationSignal(process.env.DATABASE_URL ?? "");
 let stopping = false;
 
@@ -67,12 +58,6 @@ const execute: JobExecutor = async (job, stillOwned) => {
       return messages.deliverScheduled(String(job.payload.messageId));
     case "cleanup":
       return cleanup(db);
-    case "sandbox-approve":
-      await approveSandbox(sandbox);
-      return;
-    case "sandbox-sell":
-      await keepSandboxSelling(sandbox);
-      return;
     case "day-summary":
       return sendDaySummaries(db, String(job.payload.day));
     case "transfer-expire":
@@ -85,8 +70,6 @@ const execute: JobExecutor = async (job, stillOwned) => {
       return closeVisitDay(db, String(job.payload.day), true);
     case "visit-settle":
       return closeVisitDay(db, String(job.payload.day), false);
-    case "demo-restore":
-      return restoreDemoAccount(db, job.payload as unknown as RestorePayload);
     default:
       throw new Error("UNKNOWN_JOB");
   }
@@ -106,9 +89,6 @@ async function main() {
       "whatsapp",
       "message-send",
       "cleanup",
-      "sandbox-approve",
-      "sandbox-sell",
-      "demo-restore",
       "day-summary",
       "visit-evening",
       "visit-close",
@@ -123,7 +103,7 @@ async function main() {
     Math.min(4, Number(process.env.WORKER_CONCURRENCY) || 2),
   );
   let nextSchedule = 0;
-  let nextSandbox = 0;
+  let nextRoutine = 0;
   let lastHealthy = Date.now();
   // The container health check reads this file; it stops updating if the worker stops making progress.
   const heartbeat = setInterval(() => {
@@ -141,14 +121,13 @@ async function main() {
             await scheduleCleanup(db);
             nextSchedule = Date.now() + 3_600_000;
           }
-          if (index === 0 && Date.now() >= nextSandbox) {
-            await scheduleSandbox(db);
+          if (index === 0 && Date.now() >= nextRoutine) {
             await scheduleDaySummary(db);
             await scheduleVisitJobs(db);
             await scheduleTransferJobs(db);
             await scheduleReturnJobs(db);
             await sendVisitReminders(db);
-            nextSandbox = Date.now() + 60_000;
+            nextRoutine = Date.now() + 60_000;
           }
           const worked = await runner.tick();
           lastHealthy = Date.now();

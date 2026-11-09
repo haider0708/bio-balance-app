@@ -252,7 +252,7 @@ export class ReturnsService {
           { number, units },
           pdv.regionId,
         );
-        await notifyAdmins(tx, pdv.regionId, {
+        await notifyAdmins(tx, {
           key: "return.requested",
           params: { by: actor.name, para: pdv.name, units },
           entityType: "StockReturn",
@@ -381,7 +381,7 @@ export class ReturnsService {
         { number: r.number, units },
         r.regionId,
       );
-      await notifyAdmins(tx, r.regionId, {
+      await notifyAdmins(tx, {
         key: "return.changed",
         params: { by: actor.name, number: r.number, para: para.name, units },
         entityType: "StockReturn",

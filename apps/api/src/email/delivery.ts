@@ -63,18 +63,6 @@ export class EmailDelivery {
       if (p.template === "credentials") await wipeCredentials(this.db, job.id);
       return "suppressed" as const;
     }
-    // No email ever leaves the test region (the store reviewers' accounts and what they invite).
-    if (user.regionId) {
-      const region = await this.db.region.findUnique({
-        where: { id: user.regionId },
-        select: { sandbox: true },
-      });
-      if (region?.sandbox) {
-        if (p.template === "credentials")
-          await wipeCredentials(this.db, job.id);
-        return "suppressed" as const;
-      }
-    }
     const locale = user.locale === "en" ? "en" : "fr";
     let content: EmailContent;
     if (p.template === "credentials") {

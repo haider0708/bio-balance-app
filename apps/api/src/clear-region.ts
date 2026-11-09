@@ -1,4 +1,6 @@
-import type { Client } from "pg";
+import { unlink } from "node:fs/promises";
+import path from "node:path";
+import { Client } from "pg";
 
 export interface ClearResult {
   /** The stored names of the photos and documents removed, to delete from the media folder. */
@@ -19,7 +21,7 @@ const APPEND_ONLY = [
  * Empties ONE region (a real one) and keeps the region itself: its stores, groups, grossistes,
  * people, sales, stock, restocks, rewards earned, payouts, photos and every history line. Nothing of
  * any other region changes, and neither do the admins, the catalogue, the reward rates, the courses
- * and the announcements. A test region (the store reviewers') is refused. One transaction, all or
+ * and the announcements. One transaction, all or
  * nothing; the database's integrity checks stay on, so a forgotten link aborts the whole thing, and
  * only the append-only guards of the history are lifted, only inside it. Needs the database owner.
  */
@@ -32,14 +34,9 @@ export async function clearRegion(
     id: string;
     code: string;
     name: string;
-    sandbox: boolean;
-  }>(`SELECT id, code, name, sandbox FROM "Region" WHERE code = $1`, [code]);
+  }>(`SELECT id, code, name FROM "Region" WHERE code = $1`, [code]);
   const region = found.rows[0];
   if (!region) throw new Error(`There is no region with the code ${code}.`);
-  if (region.sandbox)
-    throw new Error(
-      "This is a test region: remove it with the purge command, not this one.",
-    );
 
   const run = async (name: string, sql: string, values: unknown[]) => {
     counts[name] = (await owner.query(sql, values)).rowCount ?? 0;
@@ -227,3 +224,39 @@ export async function clearRegion(
     throw error;
   }
 }
+
+/**
+ * Empties ONE region (docs/runbook.md, "Emptying one region"): its stores, groups, grossistes, people,
+ * sales, stock, restocks, rewards, payouts, photos and history. It keeps the region itself, the admins,
+ * the catalogue, the reward rates and every other region.
+ *
+ *   node dist/clear-region.js CODE --delete-everything-in-it
+ *
+ * Needs MIGRATION_DATABASE_URL (the database owner): the history tables are append-only.
+ */
+async function main() {
+  const code = process.argv[2];
+  if (!code || process.argv[3] !== "--delete-everything-in-it")
+    throw new Error(
+      "Use: clear-region CODE --delete-everything-in-it (it deletes that region's stores, people, sales, stock and photos).",
+    );
+  const ownerUrl = process.env.MIGRATION_DATABASE_URL;
+  if (!ownerUrl) throw new Error("MIGRATION_DATABASE_URL is required.");
+  const owner = new Client({ connectionString: ownerUrl });
+  await owner.connect();
+  try {
+    const cleared = await clearRegion(owner, code);
+    const root = process.env.MEDIA_ROOT ?? "/var/lib/biobalance/media";
+    for (const file of cleared.files)
+      await unlink(path.join(root, file)).catch(() => undefined);
+    console.log(JSON.stringify(cleared, null, 2));
+  } finally {
+    await owner.end();
+  }
+}
+
+if (require.main === module)
+  main().catch((error) => {
+    console.error(error instanceof Error ? error.message : error);
+    process.exit(1);
+  });

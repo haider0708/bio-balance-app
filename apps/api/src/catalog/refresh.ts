@@ -127,7 +127,7 @@ export async function refreshCatalog(
 
       const imageId = image
         ? await storePhoto(tx, admin.id, entry, photo)
-        : current!.imageId;
+        : current.imageId;
       const data = {
         ...Object.fromEntries(FIELDS.map((f) => [f, entry[f]])),
         imageId,

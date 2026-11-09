@@ -416,25 +416,6 @@ describe("arriving and leaving", () => {
   });
 });
 
-describe("the test region", () => {
-  it("accepts a check-in from anywhere", async () => {
-    const ownerDb = await owner();
-    await ownerDb.query(
-      `UPDATE "Region" SET sandbox = true WHERE code = 'NORD'`,
-    );
-    await ownerDb.end();
-    const me = client(api, w.nord.token);
-    const visit = (await me.post("/v1/visits", plan({ start: nowStart() })))
-      .body;
-    const r = await me.post(`/v1/visits/${visit.id}/check-in`, {
-      latitude: 48.85,
-      longitude: 2.35,
-      accuracyMeters: 5,
-    });
-    expect(r.body.events[0].verdict).toBe("SANDBOX");
-  });
-});
-
 describe("the calendar link", () => {
   it("is private to the responsable, shows only their visits, and stops working when renewed", async () => {
     await w.n.post("/v1/visits", plan({ note: "Bring the form" }));
@@ -477,6 +458,26 @@ describe("the calendar link", () => {
       404,
     );
     expect((await fetch(`${api.url}/cal/not-a-token.ics`)).status).toBe(404);
+  });
+
+  it("expires after a year: the old link stops, and the app hands out a fresh one", async () => {
+    const link = (await w.n.get("/v1/planning/calendar-link")).body;
+    const path = new URL(link.url).pathname;
+    expect((await fetch(`${api.url}${path}`)).status).toBe(200);
+    const o = await owner();
+    try {
+      await o.query(
+        `UPDATE "CalendarFeed" SET "createdAt" = now() - interval '366 days'`,
+      );
+    } finally {
+      await o.end();
+    }
+    expect((await fetch(`${api.url}${path}`)).status).toBe(404);
+    const fresh = (await w.n.get("/v1/planning/calendar-link")).body;
+    expect(fresh.url).not.toBe(link.url);
+    expect(
+      (await fetch(`${api.url}${new URL(fresh.url).pathname}`)).status,
+    ).toBe(200);
   });
 
   it("drops a deactivated responsable's calendar", async () => {

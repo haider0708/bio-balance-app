@@ -31,6 +31,8 @@ const MAX_AGE_MS = 48 * 60 * MINUTE;
 const MAX_AHEAD_MS = 5 * MINUTE;
 /** Sent later than this after the tap, an event is marked LATE_SYNC. */
 const LATE_MS = 15 * MINUTE;
+/** A calendar link works for a year, then the app hands out a fresh one (and the old one stops). */
+const FEED_LIFE_MS = 365 * 86_400_000;
 const FEED_DAYS_BACK = 30;
 const FEED_DAYS_AHEAD = 120;
 export const LEAD_CHOICES = [0, 15, 30, 60, 120] as const;
@@ -343,7 +345,7 @@ export class PlanningService {
       const visits = await tx.visit.findMany({
         where: {
           day: { gte: dayToDate(filter.from), lte: dayToDate(filter.to) },
-          // A responsable sees their own; the admin can narrow down (RLS keeps the test region out).
+          // A responsable sees their own; the admin can narrow down.
           ...(actor.role === "RESPONSABLE"
             ? { responsableId: actor.id }
             : {
@@ -395,7 +397,6 @@ export class PlanningService {
 
   private async record(
     tx: Tx,
-    actor: Actor,
     visit: Visit,
     kind: "CHECK_IN" | "CHECK_OUT",
     occurredAt: Date,
@@ -413,7 +414,6 @@ export class PlanningService {
           ? { latitude: input.latitude, longitude: input.longitude }
           : null,
       accuracyM: input.accuracyMeters,
-      sandbox: actor.sandbox,
     });
     const flags = [...judged.flags];
     if (input.mocked) flags.push("MOCK_LOCATION");
@@ -471,7 +471,7 @@ export class PlanningService {
         "This visit was planned for another day.",
       );
       const place = await this.place(tx, visit.targetKind, visit.targetId);
-      await this.record(tx, actor, visit, "CHECK_IN", occurredAt, input, place);
+      await this.record(tx, visit, "CHECK_IN", occurredAt, input, place);
       const updated = await tx.visit.update({
         where: { id },
         data: {
@@ -513,15 +513,7 @@ export class PlanningService {
         "The time of this check is not possible.",
       );
       const place = await this.place(tx, visit.targetKind, visit.targetId);
-      await this.record(
-        tx,
-        actor,
-        visit,
-        "CHECK_OUT",
-        occurredAt,
-        input,
-        place,
-      );
+      await this.record(tx, visit, "CHECK_OUT", occurredAt, input, place);
       const updated = await tx.visit.update({
         where: { id },
         data: {
@@ -599,7 +591,7 @@ export class PlanningService {
           checkedInAt: occurredAt,
         },
       });
-      await this.record(tx, actor, visit, "CHECK_IN", occurredAt, input, place);
+      await this.record(tx, visit, "CHECK_IN", occurredAt, input, place);
       await audit(
         tx,
         actor,
@@ -664,7 +656,7 @@ export class PlanningService {
         );
       }
       requireRule(
-        actor.sandbox || inTunisia(input),
+        inTunisia(input),
         "OUTSIDE_TUNISIA",
         "This position is outside Tunisia.",
       );
@@ -759,7 +751,12 @@ export class PlanningService {
       const existing = await tx.calendarFeed.findUnique({
         where: { userId: actor.id },
       });
-      if (existing && !rotate) return this.feedUrl(existing.token);
+      if (
+        existing &&
+        !rotate &&
+        Date.now() - existing.createdAt.getTime() < FEED_LIFE_MS
+      )
+        return this.feedUrl(existing.token);
       // 32 random bytes: nobody can guess a link, and a new one makes the old one stop working.
       const token = randomBytes(32).toString("base64url");
       await tx.calendarFeed.upsert({
@@ -775,7 +772,8 @@ export class PlanningService {
   async calendar(token: string, now = new Date()) {
     return this.db.run("SYSTEM", async (tx) => {
       const feed = await tx.calendarFeed.findUnique({ where: { token } });
-      if (!feed) return null;
+      if (!feed || now.getTime() - feed.createdAt.getTime() >= FEED_LIFE_MS)
+        return null;
       const user = await tx.user.findUnique({
         where: { id: feed.userId },
         select: { id: true, locale: true, role: true, status: true },
@@ -865,7 +863,7 @@ export class PlanningService {
           COUNT(DISTINCT v.id) FILTER (WHERE v.status = 'ON_SITE')::int AS "onSite",
           COUNT(DISTINCT v.id) FILTER (WHERE v.status = 'CANCELLED')::int AS cancelled,
           COUNT(DISTINCT v.id) FILTER (WHERE v.unplanned)::int AS unplanned,
-          COUNT(e.id) FILTER (WHERE e.kind = 'CHECK_IN' AND e.verdict IN ('VERIFIED','SANDBOX'))::int AS verified,
+          COUNT(e.id) FILTER (WHERE e.kind = 'CHECK_IN' AND e.verdict = 'VERIFIED')::int AS verified,
           COUNT(e.id) FILTER (WHERE e.kind = 'CHECK_IN' AND e.verdict = 'OUT_OF_RANGE')::int AS "outOfRange",
           COUNT(e.id) FILTER (WHERE e.kind = 'CHECK_IN' AND e.verdict IN ('NO_FIX','NO_POSITION'))::int AS "noFix",
           COUNT(e.id) FILTER (WHERE cardinality(e.flags) > 0)::int AS flagged,

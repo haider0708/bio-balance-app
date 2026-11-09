@@ -47,28 +47,3 @@ export function audienceRegion(users: { regionId: string | null }[]) {
   const regions = new Set(users.map((u) => u.regionId));
   return regions.size === 1 ? [...regions][0]! : null;
 }
-
-/**
- * Whether an announcement went only to places the caller cannot see (the test region, hidden
- * from the admin): it is then left out of the admin's list, like everything else of that region.
- */
-export async function aimsOnlyAtHidden(tx: Tx, audience: Audience) {
-  if (audience.all) return false;
-  const [regions, pdvs, users] = await Promise.all([
-    audience.regionIds?.length
-      ? tx.region.count({ where: { id: { in: audience.regionIds } } })
-      : null,
-    audience.pdvIds?.length
-      ? tx.pdv.count({ where: { id: { in: audience.pdvIds } } })
-      : null,
-    audience.userIds?.length
-      ? tx.user.count({ where: { id: { in: audience.userIds } } })
-      : null,
-  ]);
-  const selectorsHidden =
-    regions === 0 ||
-    pdvs === 0 ||
-    (regions === null && pdvs === null && !audience.roles?.length);
-  const namedHidden = users === null || users === 0;
-  return selectorsHidden && namedHidden;
-}

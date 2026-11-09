@@ -1,9 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  formatPhone,
-  normalizeTunisianPhone,
-  whatsappChatId,
-} from "../src/core/phone";
+import { normalizeTunisianPhone, whatsappChatId } from "../src/core/phone";
 
 describe("Tunisian phone numbers", () => {
   it.each([
@@ -39,8 +35,7 @@ describe("Tunisian phone numbers", () => {
     expect(normalizeTunisianPhone(input)).toBeNull();
   });
 
-  it("shows a number back readably and gives its WhatsApp id", () => {
-    expect(formatPhone("+21621345678")).toBe("+216 21 345 678");
+  it("gives the WhatsApp id of a number", () => {
     expect(whatsappChatId("+21621345678")).toBe("21621345678@c.us");
   });
 });

@@ -166,7 +166,7 @@ export class SalesService {
       });
       // A reward this large is almost always a wrong rate: the admins hear of it at once.
       if (total > SALE_REWARD_ALERT_MILLIMES)
-        await notifyAdmins(tx, pdv.regionId, {
+        await notifyAdmins(tx, {
           key: "sale.reward.high",
           params: {
             seller: actor.name,

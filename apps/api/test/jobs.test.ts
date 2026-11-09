@@ -2,7 +2,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { Database } from "../src/core/database";
 import { EmailDelivery, type EmailTransport } from "../src/email/delivery";
 import { renderEmail } from "../src/email/templates";
-import { JobRunner } from "../src/jobs/job-runner";
+import { DeferJob, JobRunner } from "../src/jobs/job-runner";
 import { cleanup } from "../src/jobs/maintenance";
 import {
   client,
@@ -166,6 +166,30 @@ describe("job runner", () => {
     await runner.tick();
     job = await db.job.findUniqueOrThrow({ where: { key: "retry:1" } });
     expect(job.status).toBe("failed");
+  });
+
+  it("lets a job wait without using up its attempts (WhatsApp's daily cap)", async () => {
+    await db.job.create({
+      data: { kind: "whatsapp", key: "wait:1", payload: {} },
+    });
+    const runner = new JobRunner(db, ["whatsapp"], async () => {
+      throw new DeferJob("WHATSAPP_DAILY_CAP", 3_600_000);
+    });
+    for (let round = 0; round < 12; round++) {
+      await db.job.update({
+        where: { key: "wait:1" },
+        data: { availableAt: new Date() },
+      });
+      expect(await runner.tick()).toBe(true);
+    }
+    const job = await db.job.findUniqueOrThrow({ where: { key: "wait:1" } });
+    // Twelve waits, far more than the eight attempts: still waiting, never failed.
+    expect(job).toMatchObject({
+      status: "pending",
+      attempts: 0,
+      lastError: "WHATSAPP_DAILY_CAP",
+    });
+    expect(job.availableAt.getTime()).toBeGreaterThan(Date.now() + 3_000_000);
   });
 
   it("never lets two workers take the same job", async () => {

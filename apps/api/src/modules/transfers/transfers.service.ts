@@ -115,7 +115,7 @@ export class TransfersService {
         "GROUP_INACTIVE",
         "The group is not active.",
       );
-      return { from: from as Party, to: to as Party, group };
+      return { from, to, group };
     });
   }
 
@@ -318,7 +318,7 @@ export class TransfersService {
           { number, units, direction },
           from.regionId,
         );
-        await notifyAdmins(tx, from.regionId, {
+        await notifyAdmins(tx, {
           key: "transfer.requested",
           params: { by: actor.name, from: from.name, to: to.name, units },
           entityType: "StockTransfer",
@@ -451,7 +451,7 @@ export class TransfersService {
         to: place.get(t.toPdvId),
         units,
       };
-      await notifyAdmins(tx, t.regionId, {
+      await notifyAdmins(tx, {
         key: "transfer.changed",
         params,
         entityType: "StockTransfer",

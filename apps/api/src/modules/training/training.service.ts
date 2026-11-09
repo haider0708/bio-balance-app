@@ -370,7 +370,6 @@ export class TrainingService {
     });
     if (!course) throw notFound("Course");
     const audience = course.audience as CourseAudience;
-    // As the admin: people of the hidden test region are not listed.
     const people = await this.db.run(actor, (tx) =>
       tx.user.findMany({
         where: {

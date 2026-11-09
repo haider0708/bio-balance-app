@@ -98,18 +98,9 @@ describe("the evening summary", () => {
     ]);
   });
 
-  it("says when a region sold nothing, and leaves out the test region", async () => {
+  it("says when a region sold nothing", async () => {
     await sendDaySummaries(db, today());
     expect((await inbox(w.nord))[0]?.key).toBe("day.summary_none");
-    const ownerDb = await owner();
-    await ownerDb.query(`DELETE FROM "Notification"`);
-    await ownerDb.query(
-      `UPDATE "Region" SET sandbox = true WHERE code = 'NORD'`,
-    );
-    await ownerDb.end();
-    await sendDaySummaries(db, today());
-    expect(await inbox(w.nord)).toEqual([]);
-    expect(await inbox(w.admin)).toEqual([]);
   });
 
   it("goes out once a day, from 20:30 Tunis time", async () => {

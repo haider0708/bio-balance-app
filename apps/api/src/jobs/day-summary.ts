@@ -17,7 +17,7 @@ interface RegionDay {
 /**
  * The day in one alert, instead of one per sale: each responsable gets their region's sales,
  * units and rewards (and the products out of stock in its stores, or that nothing was sold), the
- * admins the whole network. Regions without an active store, and the test region, are left out;
+ * admins the whole network. Regions without an active store are left out;
  * a network without any store sends nothing.
  */
 export async function sendDaySummaries(
@@ -37,8 +37,7 @@ export async function sendDaySummaries(
             AND pr.active AND st.quantity <= 0) AS "outOfStock"
       FROM "Region" r
       LEFT JOIN "Sale" s ON s."regionId" = r.id AND s.status = 'ACTIVE' AND s.day = ${day}::date
-      WHERE NOT r.sandbox
-        AND EXISTS (SELECT 1 FROM "Pdv" p WHERE p."regionId" = r.id AND p.status = 'ACTIVE')
+      WHERE EXISTS (SELECT 1 FROM "Pdv" p WHERE p."regionId" = r.id AND p.status = 'ACTIVE')
       GROUP BY r.id, r.name
       ORDER BY r.name`;
     for (const r of regions)

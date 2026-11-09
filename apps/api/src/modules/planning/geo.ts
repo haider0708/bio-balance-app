@@ -15,8 +15,7 @@ export interface Point {
   longitude: number;
 }
 
-export type Verdict =
-  "VERIFIED" | "OUT_OF_RANGE" | "NO_FIX" | "NO_POSITION" | "SANDBOX";
+export type Verdict = "VERIFIED" | "OUT_OF_RANGE" | "NO_FIX" | "NO_POSITION";
 
 export function inTunisia(p: Point) {
   return (
@@ -48,15 +47,13 @@ export interface Judgement {
 
 /**
  * What the position given at a check-in says. It is evidence, not proof: it tells where the phone
- * was, not who held it. The test region accepts any position (a store reviewer is not at a store).
+ * was, not who held it.
  */
 export function judgePresence(input: {
   place: Point | null;
   fix: Partial<Point> | null;
   accuracyM?: number | null;
-  sandbox?: boolean;
 }): Judgement {
-  if (input.sandbox) return { verdict: "SANDBOX", distanceM: null, flags: [] };
   const { fix } = input;
   if (fix?.latitude == null || fix.longitude == null)
     return { verdict: "NO_FIX", distanceM: null, flags: [] };

@@ -236,7 +236,7 @@ export class RestockService {
           by: actor.name,
           depot: suggested?.name ?? "",
         };
-        await notifyAdmins(tx, order.regionId, {
+        await notifyAdmins(tx, {
           key: suggested ? "restock.requested_from" : "restock.requested",
           params: asked,
           entityType: "RestockOrder",
@@ -626,7 +626,7 @@ export class RestockService {
         { source: input.source, depot: depot?.name ?? null },
         order.regionId,
       );
-      await notifyAdmins(tx, order.regionId, {
+      await notifyAdmins(tx, {
         key: "restock.proposed",
         params: {
           number: order.number,
@@ -846,7 +846,7 @@ export class RestockService {
         actor.id,
       );
       if (actor.role !== "ADMIN")
-        await notifyAdmins(tx, order.regionId, {
+        await notifyAdmins(tx, {
           key: "restock.delivered",
           params: { number: order.number, by: actor.name },
           entityType: "RestockOrder",
@@ -894,7 +894,7 @@ export class RestockService {
           "That product is not in the order.",
           422,
         );
-      const depot = await findLocation(tx, order.supplierDepotId!);
+      const depot = await findLocation(tx, order.supplierDepotId);
       let total = 0;
       for (const line of order.lines) {
         const shipped = byProduct.get(line.productId) ?? 0;
@@ -947,7 +947,7 @@ export class RestockService {
         actor.id,
       );
       if (actor.role !== "ADMIN")
-        await notifyAdmins(tx, order.regionId, {
+        await notifyAdmins(tx, {
           key: "restock.shipped_info",
           params: { number: order.number, by: actor.name },
           entityType: "RestockOrder",
@@ -1122,7 +1122,7 @@ export class RestockService {
       );
       // The admin counting a delivery is also the one who approves it.
       if (actor.role === "ADMIN") return this.settle(tx, actor, updated);
-      await notifyAdmins(tx, order.regionId, {
+      await notifyAdmins(tx, {
         key: "restock.received",
         params: { number: order.number, by: actor.name },
         entityType: "RestockOrder",

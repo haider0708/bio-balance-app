@@ -83,7 +83,7 @@ export class StructureService {
           entityId: group.id,
         });
       else
-        await notifyAdmins(tx, group.regionId, {
+        await notifyAdmins(tx, {
           key: "group.submitted",
           params: { name: group.name, by: actor.name },
           entityType: "Group",
@@ -269,7 +269,7 @@ export class StructureService {
           entityId: pdv.id,
         });
       else
-        await notifyAdmins(tx, pdv.regionId, {
+        await notifyAdmins(tx, {
           key: "pdv.submitted",
           params: { name: pdv.name, by: actor.name },
           entityType: "Pdv",
@@ -430,7 +430,7 @@ export class StructureService {
       entityId: id,
     });
     if (isOwnerAction)
-      await notifyAdmins(tx, row.regionId, {
+      await notifyAdmins(tx, {
         key,
         params: { name: row.name, by: actor.name },
         entityType: entity,

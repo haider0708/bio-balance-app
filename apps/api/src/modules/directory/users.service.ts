@@ -11,7 +11,7 @@ import {
 } from "../../core/approval";
 import { Database } from "../../core/database";
 import { DomainError, notFound, requireRule } from "../../core/errors";
-import { isSandbox, notify, notifyAdmins } from "../../core/notifier";
+import { notify, notifyAdmins } from "../../core/notifier";
 import { issueCode } from "../auth/codes";
 import { assertEmailLooksRight } from "../../core/email-typo";
 import { canonicalPhone } from "../../core/phone";
@@ -63,20 +63,13 @@ function present<
   };
 }
 
-/**
- * A team member gets a generated password; anyone else is invited with a code. The test region's
- * accounts keep the passwords the store reviewers know: they are only given a code (never sent).
- */
+/** A team member gets a generated password; anyone else is invited with a code. */
 async function welcome(
   tx: Parameters<typeof issueCode>[0],
   actor: Actor | null,
-  user: { id: string; role: Role; regionId: string | null },
+  user: { id: string; role: Role },
 ) {
-  if (
-    isTeamRole(user.role) &&
-    !(user.regionId && (await isSandbox(tx, user.regionId)))
-  )
-    return issueCredentials(tx, actor, user.id);
+  if (isTeamRole(user.role)) return issueCredentials(tx, actor, user.id);
   return issueCode(tx, user.id, "invite");
 }
 
@@ -223,7 +216,7 @@ export class UsersService {
         { pdvId, name: input.name, role: user.role, canOrder: user.canOrder },
         pdv.regionId,
       );
-      await notifyAdmins(tx, pdv.regionId, {
+      await notifyAdmins(tx, {
         key: "member.submitted",
         params: { name: user.name, pdv: pdv.name, by: actor.name },
         entityType: "User",

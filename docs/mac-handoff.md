@@ -17,7 +17,7 @@ BioBalance: sales, stock, restocks and rewards for a parapharmacy network. Flutt
 ## State on 2026-10-12
 
 - **Android:** done and submitted. Closed test under Google review on Google Play (package `tn.biobalance.app`); 12 testers added; the 14-day countdown starts when they have joined. Nothing to do here from the Mac.
-- **Server:** deployed (push alerts for Android through Firebase, a demo region "Démo" with reviewer accounts). Deploys are done from the Linux PC, not from here (`scripts/deploy-vps.sh` needs ssh access to the server).
+- **Server:** deployed (push alerts for Android through Firebase). Deploys are done from the Linux PC, not from here (`scripts/deploy-vps.sh` needs ssh access to the server).
 - **iPhone app: compiles, never run.** It was written on Linux, where Xcode does not exist, but the GitHub check `ios` (a Mac machine, Xcode 26.6, `flutter build ios --release --no-codesign`) **builds it successfully** on every push (`Runner.app`, about 30 MB). What has *not* been exercised: signing and capabilities (push), archiving, and running on a real iPhone or in the simulator. Expect the real problems there, not in compilation.
 
 ## What this session is for
@@ -28,7 +28,7 @@ Get the iPhone app signed, tested on a simulator and a real iPhone, uploaded to 
 
 - Account deletion inside the app (Settings → Delete my account) and at `https://api.galylio.com/account-deletion`; privacy policy `https://api.galylio.com/privacy`; terms `/terms`; support `/support`.
 - Privacy manifest `ios/Runner/PrivacyInfo.xcprivacy` (no tracking). Age rating 4+. No export-compliance question (`ITSAppUsesNonExemptEncryption` is false). EU trader status must be declared in App Store Connect.
-- Reviewer accounts (the same two as for Google Play, in the demo region): team member `demo-vendeur@galylio.com`, regional manager `demo-responsable@galylio.com`. The passwords, the server access and where everything lives are in a **private file that is not in this repository** (the repository is public): the owner gives it to you directly (`mac-handoff-private.md`).
+- The demonstration region and its reviewer accounts were removed on 2026-11-09 (see `docs/runbook.md`, "Store reviewers"). The server access and where everything lives are in a **private file that is not in this repository** (the repository is public): the owner gives it to you directly (`mac-handoff-private.md`).
 
 ## One codebase, two stores: how not to break Android while fixing iPhone
 

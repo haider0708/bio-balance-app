@@ -29,12 +29,6 @@ export function normalizeTunisianPhone(input: string): string | null {
   return `+${TUNISIA_CODE}${national}`;
 }
 
-/** "+216 21 345 678", for showing a number back to the person who typed it. */
-export function formatPhone(e164: string): string {
-  const m = /^\+216(\d{2})(\d{3})(\d{3})$/.exec(e164);
-  return m ? `+216 ${m[1]} ${m[2]} ${m[3]}` : e164;
-}
-
 /** The WhatsApp chat id of a canonical number. */
 export const whatsappChatId = (e164: string) => `${e164.slice(1)}@c.us`;
 

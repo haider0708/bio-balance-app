@@ -66,11 +66,6 @@ export class AuthGuard implements CanActivate {
       request.headers.authorization?.replace(/^Bearer /, "") ?? "";
     request.actor = await this.auth.authenticate(request.bearer);
     if (
-      request.actor.role === "ADMIN" &&
-      request.headers["x-biobalance-sandbox"] === "show"
-    )
-      request.actor.showSandbox = true;
-    if (
       request.actor.mustChangePassword &&
       !PASSWORD_FIRST.has(
         `${request.method} ${request.path.replace(/\/+$/, "")}`,
@@ -92,13 +87,12 @@ export class AuthGuard implements CanActivate {
   }
 
   /**
-   * Outside the working hours (set by the admin, in Tunis time, never the phone's clock) only the admin and
-   * the test region work; everyone else may sign in and sign out, nothing more. A sale made while open and
+   * Outside the working hours (set by the admin, in Tunis time, never the phone's clock) only the admin works; everyone else may sign in and sign out, nothing more. A sale made while open and
    * sent later (a phone that was offline) still goes through.
    */
   private async requireOpen(request: AuthRequest) {
     const actor = request.actor;
-    if (actor.role === "ADMIN" || actor.sandbox) return;
+    if (actor.role === "ADMIN") return;
     const { hours } = await this.settings.get();
     if (!hours.enabled) return;
     const path = request.path.replace(/\/+$/, "");

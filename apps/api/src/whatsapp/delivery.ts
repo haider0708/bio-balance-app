@@ -5,6 +5,7 @@ import { SettingsService } from "../core/settings";
 import { hashCode } from "../modules/auth/codes";
 import { openCredentials, wipeCredentials } from "../modules/auth/credentials";
 import { Payload } from "../email/delivery";
+import { DeferJob } from "../jobs/job-runner";
 import { renderWhatsApp } from "./templates";
 import type { WhatsAppTransport } from "./transport";
 
@@ -38,14 +39,6 @@ export class WhatsAppDelivery {
       return wipe("suppressed");
     const user = await this.db.user.findUnique({ where: { id: p.userId } });
     if (!user || user.status !== "ACTIVE") return wipe("suppressed");
-    // Nothing leaves the test region (the store reviewers' accounts and what they invite).
-    if (user.regionId) {
-      const region = await this.db.region.findUnique({
-        where: { id: user.regionId },
-        select: { sandbox: true },
-      });
-      if (region?.sandbox) return wipe("suppressed");
-    }
     const phone = user.phone ? normalizeTunisianPhone(user.phone) : null;
     if (!phone) return wipe("suppressed");
     const locale = user.locale === "en" ? "en" : "fr";
@@ -122,7 +115,8 @@ export class WhatsAppDelivery {
         createdAt: { gt: new Date(Date.now() - 86_400_000) },
       },
     });
-    if (today > this.cap) throw new Error("WHATSAPP_DAILY_CAP");
+    // Waits for room (an hour at a time) without using up the job's attempts.
+    if (today > this.cap) throw new DeferJob("WHATSAPP_DAILY_CAP", 3_600_000);
     await this.transport.send(phone, texts);
     return wipe("sent");
   }

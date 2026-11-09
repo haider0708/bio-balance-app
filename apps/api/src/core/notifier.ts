@@ -12,20 +12,8 @@ export interface SystemNotice {
 
 /** Drops a system notification into each person's inbox. */
 export async function notify(tx: Tx, userIds: string[], notice: SystemNotice) {
-  let ids = [...new Set(userIds)];
+  const ids = [...new Set(userIds)];
   if (!ids.length) return;
-  const [setting] = await tx.$queryRaw<{ quiet: boolean; sandbox: boolean }[]>`
-    SELECT current_setting('app.quiet_alerts', true) = 'on' AS quiet,
-      current_setting('app.sandbox', true) = 'on' AS sandbox`;
-  // Automation acting for someone (Actor.quietAlerts): in the inbox, but never pushed to a phone.
-  const quiet = setting?.quiet === true;
-  // Done in the test region (Actor.sandbox): no admin hears of it, even one who created the
-  // account or the place it concerns.
-  if (setting?.sandbox) {
-    const admins = new Set(await adminIds(tx));
-    ids = ids.filter((id) => !admins.has(id));
-    if (!ids.length) return;
-  }
   await tx.notification.createMany({
     data: ids.map((userId) => ({
       userId,
@@ -34,7 +22,7 @@ export async function notify(tx: Tx, userIds: string[], notice: SystemNotice) {
       params: json(notice.params ?? {}),
       entityType: notice.entityType ?? null,
       entityId: notice.entityId ?? null,
-      pushedAt: quiet || notice.push === false ? new Date() : null,
+      pushedAt: notice.push === false ? new Date() : null,
     })),
   });
 }
@@ -56,26 +44,9 @@ export async function ordersIds(tx: Tx): Promise<string[]> {
   return rows.map((r) => r.id);
 }
 
-/**
- * Tells the admins about something that happened in `regionId`. Nothing done in the test region
- * (the store reviewers' accounts) reaches them.
- */
-export async function notifyAdmins(
-  tx: Tx,
-  regionId: string | null | undefined,
-  notice: SystemNotice,
-) {
-  if (regionId && (await isSandbox(tx, regionId))) return;
+/** Tells every active admin about something that happened. */
+export async function notifyAdmins(tx: Tx, notice: SystemNotice) {
   await notify(tx, await adminIds(tx), notice);
-}
-
-/** Whether a region is the test region. */
-export async function isSandbox(tx: Tx, regionId: string) {
-  const region = await tx.region.findUnique({
-    where: { id: regionId },
-    select: { sandbox: true },
-  });
-  return region?.sandbox === true;
 }
 
 /** The active responsable of a region (there is one per region). */

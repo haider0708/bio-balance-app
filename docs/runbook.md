@@ -190,42 +190,19 @@ Measured 2026-10-10: dashboards 0.3–0.6 s, analytics of 30 days 0.8 s (a regio
 - Photo downloads have their own, higher limit than uploads: a page full of photos no longer hits "too many requests".
 - The Apache log lines start with the time (`biobalance-access.log`).
 
-## The test region
+## Store reviewers
 
-The store reviewers' accounts live in one region marked as the **test region** (`Region.sandbox`, at most one): **Démo**, with its responsable `demo-responsable@galylio.com`, a group, the shop *Para Démo Lac* and its team member `demo-vendeur@galylio.com`, a grossiste, stock, 60 days of sales with their rewards, restocks, payouts and an announcement. The passwords are in the owner's private hand-off; Apple and Google have them.
+There is no test region any more. It was removed on **2026-11-09** (database dump taken first: `/srv/biobalance-backups/manual/before-demo-purge-20261109T095323Z.dump`; the region, its two accounts, 769 sales and the rest were purged, nothing else was touched). Its code is kept in the git tag `demo-region-last` if a store ever needs it again (`git show demo-region-last:apps/api/src/demo/seed.ts`, plus the migration `202610170001_sandbox_region`). For a review, create a team member and a responsable account in a small real region (People), give them in the review notes, and remove them afterwards (`docs/store-publishing.md`, decision 5).
 
-What makes it a test region (tested in `test/sandbox.test.ts` and `test/sandbox-life.test.ts`):
+### Emptying one region
 
-- **The admin does not see it**: every row-level policy hides it from the admin (`app_admin_sees`), so no screen, total, report, export, approval or list shows it. The admin can look at it with Settings → *Show the test region* (the app then sends `X-BioBalance-Sandbox: show`; only an admin is listened to).
-- **Nothing done there reaches the real network**: no alert to any admin (enforced in `notify`: an action by its people or its automation never notifies an admin, even the one who created the account), no email to its accounts, its audit entries are filed under it (so the audit log leaves them out), announcements sent only to it are left out of the admin's list, and the admin's announcements, courses and reward news do not reach it.
-- Its accounts cannot change their password or get a reset code (`DEMO_ACCOUNT`), so one reviewer never locks out the next. If a reviewer deletes one, it is deleted like any account and **comes back three minutes later**, history intact (a `demo-restore` job).
-- **It looks after itself** (the worker): what it submits (stores, members, stock counts, recounts, restocks, payouts) is approved a minute later, and a demo account a reviewer deactivated (as the responsable) is active again a minute later; its shop keeps selling through the day (a fixed plan per hour, stock topped up, nothing pushed).
-
-Rebuild everything for the real start (take a dump first; it keeps the admins, the catalogue and the reward rates, empties everything else, and builds the test region again with the review accounts' **current** passwords; the worker leaves the region alone while it is built):
-
-```sh
-sudo biobalance-compose run --rm demo node dist/demo.js fresh-start --delete-everything
-```
-
-Remove only the test region when the store reviews are over (the rest is left exactly as it was; tested):
-
-```sh
-sudo biobalance-compose run --rm demo node dist/demo.js purge
-```
-
-Build it on an empty network instead: `demo.js seed` with `DEMO_RESPONSABLE_PASSWORD` and `DEMO_VENDEUR_PASSWORD` set in the shell (never on a command line). These commands need the database owner (`MIGRATION_DATABASE_URL`) because the history is append-only.
-
-Done on 2026-10-13: the network was emptied (backup: `/srv/biobalance-backups/pre-deploy/before-fresh-start-20261013T150508Z*`) and the test region rebuilt; production then held the admin, the two review accounts, the catalogue (51 products) and the reward rates.
-
-### Emptying one real region
-
-`demo.js clear-region CODE --delete-everything-in-it` empties **one** real region (its stores, groups, grossistes, people, sales, stock, restocks, rewards earned, payouts, photos and every history line, with the admin's alerts about them) and keeps the region itself, the admins, the catalogue, the reward rates and **every other region, the test region included**. It refuses a test region (use `purge`). One transaction (all or nothing), the integrity checks stay on, the append-only guards of the history are lifted only inside it. Take a dump first:
+`clear-region.js CODE --delete-everything-in-it` empties **one** region (its stores, groups, grossistes, people, sales, stock, restocks, rewards earned, payouts, photos and every history line, with the admin's alerts about them) and keeps the region itself, the admins, the catalogue, the reward rates and **every other region**. One transaction (all or nothing), the integrity checks stay on, the append-only guards of the history are lifted only inside it. Take a dump first:
 
 ```sh
 sudo bash -s <<'SCRIPT'
 mkdir -p /srv/biobalance-backups/manual
 docker exec biobalance-postgres-1 sh -c 'pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Fc' > /srv/biobalance-backups/manual/before-clear-REGION-$(date -u +%Y%m%dT%H%M%SZ).dump
-biobalance-compose run --rm -T demo node dist/demo.js clear-region REGION --delete-everything-in-it </dev/null
+biobalance-compose run --rm -T clear-region node dist/clear-region.js REGION --delete-everything-in-it </dev/null
 SCRIPT
 ```
 
@@ -245,7 +222,7 @@ It matches by barcode, never touches stock, sales, rates or whether a product is
 ## Settings, working hours and a second admin (2026-10-17)
 
 - **Settings** are in the app (admin, Settings → Application): the minimum build per platform ("force an update": set it only after the store has published the version; Android testers on 3.3.0 have no update gate), the working hours, and who may choose a grossiste.
-- **Working hours**: when switched on, non-admin accounts get the closed screen outside the hours (the test region and the admin are never shut out). The server and its jobs keep running. To open at once, the admin switches the hours off.
+- **Working hours**: when switched on, non-admin accounts get the closed screen outside the hours (the admin is never shut out). The server and its jobs keep running. To open at once, the admin switches the hours off.
 - **A second admin**: from the VPS, `sudo biobalance-compose run --rm -T bootstrap-admin node dist/add-admin.js` reading one JSON line on stdin: `{"email","name","password"}` creates the account (password of at least 12 characters, never as an argument), `{"email","again":true}` reissues the authenticator and ends the sessions. It prints a `https://api.galylio.com/s#...` link: valid 24 hours, shows the QR once. Ask the new admin to change the password at first sign-in.
 - **Changing a decision**: the admin can reopen or correct a decision for 6 hours from Approvals → History (never a payout).
 

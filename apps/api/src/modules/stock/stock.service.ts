@@ -265,7 +265,7 @@ export class StockService {
             entityId: declaration.id,
           });
       } else
-        await notifyAdmins(tx, location.stockRegionId, {
+        await notifyAdmins(tx, {
           key: "stock.submitted",
           params: {
             place: location.name,
@@ -1040,7 +1040,7 @@ export class StockService {
           },
         );
       } else
-        await notifyAdmins(tx, location.stockRegionId, {
+        await notifyAdmins(tx, {
           key: approved ? "stock.corrected" : "stock.edited",
           params: {
             place: location.name,
@@ -1257,7 +1257,7 @@ export class StockService {
         { place: location.name },
         location.stockRegionId,
       );
-      await notifyAdmins(tx, location.stockRegionId, {
+      await notifyAdmins(tx, {
         key: "recount.requested",
         params: { place: location.name, by: actor.name },
         entityType: "StockRecount",
@@ -1350,7 +1350,7 @@ export class StockService {
         { place: location.name },
         location.stockRegionId,
       );
-      await notifyAdmins(tx, location.stockRegionId, {
+      await notifyAdmins(tx, {
         key: "correction.requested",
         params: { place: location.name, by: actor.name, reason: reason.trim() },
         entityType: "StockRecount",

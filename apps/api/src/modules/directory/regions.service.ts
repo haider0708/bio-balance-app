@@ -89,8 +89,6 @@ export class RegionsService {
           id: r.id,
           code: r.code,
           name: r.name,
-          /** The store reviewers' test region (only listed when the admin asks to see it). */
-          sandbox: r.sandbox,
           responsable,
           ...counts,
           /** Only a region with nothing left in it can be deleted. */
@@ -195,18 +193,18 @@ export class RegionsService {
         "Only a responsable can be moved.",
         422,
       );
-      refuseDeleted(user!);
+      refuseDeleted(user);
       const target = await tx.region.findUnique({ where: { id: regionId } });
       requireRule(target, "REGION_NOT_FOUND", "Unknown region.", 404);
       requireRule(
-        user!.regionId !== regionId,
+        user.regionId !== regionId,
         "SAME_REGION",
         "Already looking after this region.",
         409,
       );
-      const from = user!.regionId;
+      const from = user.regionId;
       // Only active (or invited) responsables take a seat; a suspended one can go anywhere.
-      const mover = ["PENDING", "ACTIVE"].includes(user!.status);
+      const mover = ["PENDING", "ACTIVE"].includes(user.status);
       const occupant = mover
         ? await tx.user.findFirst({
             where: {

@@ -61,7 +61,7 @@ export async function resetDatabase() {
     ])
       await db.query(
         `INSERT INTO "Region"(id, code, name) VALUES (gen_random_uuid(), $1, $2)
-         ON CONFLICT (code) DO UPDATE SET name = EXCLUDED.name, sandbox = false`,
+         ON CONFLICT (code) DO UPDATE SET name = EXCLUDED.name`,
         [code, name],
       );
     await db.query(

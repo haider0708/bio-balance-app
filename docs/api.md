@@ -233,7 +233,7 @@ Round three: `GET /v1/approvals/history`, `POST /v1/stock/adjust`, `POST /v1/sto
 ## Reward rates: limits and re-pricing (3 November 2026)
 
 - `POST /v1/reward-rules` refuses a rate above **100 TND per unit** (`422 REWARD_TOO_HIGH`). Above **10 TND** it answers `409 REWARD_CONFIRMATION_REQUIRED` (`details: {amountMillimes, thresholdMillimes}`) unless the body carries `confirmHigh: true`. Existing rules are not touched, and cancelling a rule always works.
-- A sale that earns more than **50 TND** tells every admin at once (`sale.reward.high`, not sent for the test region).
+- A sale that earns more than **50 TND** tells every admin at once (`sale.reward.high`).
 - `POST /v1/sales/:id/reprice {reason}` (admin only) recomputes an active sale's reward from the rates of its own day, keeps the sale, its units and the stock, writes the wallet difference as a `CORRECTION` entry and a revision (old and new `unitRewardMillimes`), and tells the seller (`sale.repriced`). `409 NOTHING_TO_REPRICE` when the rates already match.
 
 ## Planning (2026-11)

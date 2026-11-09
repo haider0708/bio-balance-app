@@ -164,18 +164,15 @@ services:
       ADMIN_SETUP_FILE: /setup/admin-setup.json
     healthcheck: {disable: true}
     volumes: [./setup:/setup]
-  # The demonstration region (docs/runbook.md): `compose run --rm demo node dist/demo.js seed|purge`.
-  demo:
+  # Empties one region (docs/runbook.md, "Emptying one region"): `compose run --rm clear-region node dist/clear-region.js CODE --delete-everything-in-it`.
+  clear-region:
     <<: *app
     profiles: [maintenance]
     restart: 'no'
-    command: [node,dist/demo.js]
+    command: [node,dist/clear-region.js]
     environment:
       <<: *api-env
       MIGRATION_DATABASE_URL: ${MIGRATION_DATABASE_URL:?Set migration owner connection}
-      DEMO_RESPONSABLE_PASSWORD: ${DEMO_RESPONSABLE_PASSWORD:-}
-      DEMO_VENDEUR_PASSWORD: ${DEMO_VENDEUR_PASSWORD:-}
-      DEMO_DAYS: ${DEMO_DAYS:-60}
     healthcheck: {disable: true}
   # The product catalogue (docs/runbook.md, "The product catalogue"): `compose run --rm catalog` shows
   # what would change, `compose run --rm catalog node dist/catalog.js refresh --apply` applies it.

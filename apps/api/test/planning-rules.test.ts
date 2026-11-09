@@ -54,19 +54,6 @@ describe("being at a place", () => {
     );
   });
 
-  it("accepts any position in the test region (a store reviewer is not at a store)", () => {
-    expect(
-      judgePresence({
-        place: tunis,
-        fix: { latitude: 48.85, longitude: 2.35 },
-        sandbox: true,
-      }).verdict,
-    ).toBe("SANDBOX");
-    expect(
-      judgePresence({ place: null, fix: null, sandbox: true }).verdict,
-    ).toBe("SANDBOX");
-  });
-
   it("knows Tunisia, so a latitude and longitude typed the wrong way round are caught", () => {
     expect(inTunisia(tunis)).toBe(true);
     expect(inTunisia({ latitude: 10.18, longitude: 36.8 })).toBe(false);

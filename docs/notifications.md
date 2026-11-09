@@ -5,7 +5,6 @@ Every alert is a row in the person's inbox (the bell). Most are also **pushed** 
 Rules that apply to all of them:
 
 - Nobody is told about their own action (a seller who corrects their own sale, the admin who decides).
-- Nothing done in the **test region** (the store reviewers' accounts and its automation) reaches an admin, by inbox, push or email, even an admin who created the account or place concerned (`notify` drops admins when the action is the test region's); the admin's announcements, courses and reward news do not reach it either.
 - Automation acting for someone (the test shop's sales) is never pushed.
 - More than three new alerts at once for one person become one summary push ("You have 5 new notifications"); alerts older than 30 minutes are never pushed late.
 - A signed-out phone gets nothing: its token is deleted at sign-out.
@@ -76,7 +75,7 @@ Rules that apply to all of them:
 
 ## Emails
 
-Only codes and security: the invitation code (account approved), the password reset code, and "your password was changed". Never to an account of the test region.
+Only codes and security: the invitation code (account approved), the password reset code, and "your password was changed".
 
 ## Added 2026-10-17
 

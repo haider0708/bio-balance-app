@@ -9,26 +9,24 @@ import { UsersService } from "./modules/directory/users.service";
  *   node dist/announce.js --send     does it
  * People waiting for approval are approved and, like anyone invited who has not chosen a password yet,
  * get the welcome message with a fresh temporary password. People who already have their own password get
- * the "update your app" message (email and WhatsApp). The test region, suspended people and admins are
+ * the "update your app" message (email and WhatsApp). Suspended people and admins are
  * left out. Running it again sends the update message to nobody twice (same job key).
  */
-const VERSION = process.env.ANNOUNCE_VERSION ?? "3.5.0";
+const VERSION = process.env.ANNOUNCE_VERSION;
+if (!VERSION)
+  throw new Error(
+    "Set ANNOUNCE_VERSION to the version being announced (it keeps one message per person per version).",
+  );
 
 async function main() {
   const send = process.argv.includes("--send");
   const db = new Database();
   try {
-    const sandbox = (
-      await db.run("SYSTEM", (tx) =>
-        tx.region.findMany({ where: { sandbox: true }, select: { id: true } }),
-      )
-    ).map((r) => r.id);
     const people = await db.run("SYSTEM", (tx) =>
       tx.user.findMany({
         where: {
           role: { not: "ADMIN" },
           status: { in: ["PENDING", "ACTIVE"] },
-          NOT: { regionId: { in: sandbox } },
         },
         select: {
           id: true,

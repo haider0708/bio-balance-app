@@ -32,7 +32,7 @@ interface ParaRow {
 /**
  * The order manager's view of the network: every para with its stock, what is getting low, how fast
  * it sells and what is on order, and a way to ask a para whether it needs anything. It carries no
- * money (no rewards, wallets or payouts), and never shows the test region. Reads are trusted
+ * money (no rewards, wallets or payouts), and shows every para. Reads are trusted
  * server work for a role that may see the whole network; the admin may use it too.
  */
 @Injectable()
@@ -84,7 +84,7 @@ export class OrdersService {
           SELECT "destId", COUNT(*)::int AS open FROM "RestockOrder"
           WHERE status IN ('REQUESTED', 'ASSIGNED', 'SHIPPED', 'RECEIVED') GROUP BY "destId"
         ) o ON o."destId" = p.id
-        WHERE NOT r.sandbox AND p.status = 'ACTIVE'
+        WHERE p.status = 'ACTIVE'
           AND (${filter.regionId ?? null}::uuid IS NULL OR p."regionId" = ${filter.regionId ?? null}::uuid)
           AND (${filter.groupId ?? null}::uuid IS NULL OR p."groupId" = ${filter.groupId ?? null}::uuid)
           AND (${filter.pdvId ?? null}::uuid IS NULL OR p.id = ${filter.pdvId ?? null}::uuid)
@@ -147,9 +147,7 @@ export class OrdersService {
           COUNT(*) FILTER (WHERE o.status = 'SHIPPED' AND o."deliveredAt" IS NULL)::int AS "onTheRoad",
           COUNT(*) FILTER (WHERE o.status = 'SHIPPED' AND o."deliveredAt" IS NOT NULL)::int AS delivered,
           COUNT(*) FILTER (WHERE o.status = 'RECEIVED')::int AS "toApprove"
-        FROM "RestockOrder" o
-        JOIN "Region" r ON r.id = o."regionId"
-        WHERE NOT r.sandbox`;
+        FROM "RestockOrder" o`;
         return counts!;
       })
       .then(async (counts) => {
@@ -270,13 +268,7 @@ export class OrdersService {
         where: { id: pdvId },
         select: { id: true, name: true, regionId: true, status: true },
       });
-      const region = pdv
-        ? await tx.region.findUnique({
-            where: { id: pdv.regionId },
-            select: { sandbox: true },
-          })
-        : null;
-      if (!pdv || region?.sandbox) throw notFound("Para");
+      if (!pdv) throw notFound("Para");
       requireRule(
         pdv.status === "ACTIVE",
         "PLACE_INACTIVE",

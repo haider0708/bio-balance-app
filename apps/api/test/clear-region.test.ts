@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { randomUUID } from "node:crypto";
 import { client, owner, resetDatabase, startApi, type Api } from "./helpers";
-import { clearRegion } from "../src/demo/clear-region";
+import { clearRegion } from "../src/clear-region";
 import {
   approvedPdv,
   buildWorld,
@@ -181,16 +181,12 @@ describe("clearing one region", () => {
     }
   }, 60_000);
 
-  it("refuses a test region and an unknown one, and changes nothing", async () => {
+  it("refuses an unknown region and changes nothing", async () => {
     const db = await owner();
     try {
-      await db.query(
-        `UPDATE "Region" SET sandbox = true WHERE code = 'CENTRE'`,
-      );
       const before = Number(
         (await db.query(`SELECT count(*) FROM "User"`)).rows[0].count,
       );
-      await expect(clearRegion(db, "CENTRE")).rejects.toThrow(/test region/);
       await expect(clearRegion(db, "NOWHERE")).rejects.toThrow(/no region/);
       expect(
         Number((await db.query(`SELECT count(*) FROM "User"`)).rows[0].count),
