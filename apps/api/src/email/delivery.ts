@@ -90,7 +90,7 @@ export class EmailDelivery {
         password,
         expiresAt: user.passwordExpiresAt!,
         stores: (await this.settings.get()).stores,
-        installPage: installPageUrl(),
+        installPage: installPageUrl(locale),
       });
       if (!(await stillOwned())) throw new Error("EMAIL_LEASE_LOST");
       await this.transport.send(user.email, content, job.id);
@@ -102,7 +102,7 @@ export class EmailDelivery {
         kind: "update",
         name: user.name,
         stores: (await this.settings.get()).stores,
-        installPage: installPageUrl(),
+        installPage: installPageUrl(locale),
       });
       if (!(await stillOwned())) throw new Error("EMAIL_LEASE_LOST");
       await this.transport.send(user.email, content, job.id);
@@ -134,6 +134,11 @@ export class EmailDelivery {
         link: process.env.API_PUBLIC_URL
           ? `${process.env.API_PUBLIC_URL.replace(/\/$/, "")}/c#${p.template === "reset" ? "r" : "i"}.${p.code}`
           : undefined,
+        // A new account also gets the install steps (the code alone is no use without the app).
+        ...(p.template === "invite" && {
+          stores: (await this.settings.get()).stores,
+          installPage: installPageUrl(locale),
+        }),
       });
     }
     if (!(await stillOwned())) throw new Error("EMAIL_LEASE_LOST");

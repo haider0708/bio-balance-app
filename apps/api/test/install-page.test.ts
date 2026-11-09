@@ -12,7 +12,7 @@ afterAll(() => api.close());
 
 const stores = {
   android: "https://play.google.com/store/apps/details?id=tn.biobalance.app",
-  ios: "https://testflight.apple.com/join/AbCd1234",
+  ios: "https://apps.apple.com/tn/app/biobalance/id6822445997",
 };
 
 describe("the install page", () => {
@@ -26,13 +26,62 @@ describe("the install page", () => {
     expect(await res.text()).toContain("BioBalance");
   });
 
-  it("gives each phone its steps and link, in both languages", () => {
-    const html = renderInstallPage(stores);
-    expect(html).toContain(`href="${stores.android}"`);
-    expect(html).toContain(`href="${stores.ios}"`);
-    expect(html).toContain("id899247664"); // TestFlight itself
-    for (const text of ["Télécharger BioBalance", "Download BioBalance"])
-      expect(html).toContain(text);
+  it("gives each phone its store, with the app's own screens, in each language", () => {
+    for (const [lang, title] of [
+      ["fr", "Installer BioBalance"],
+      ["en", "Install BioBalance"],
+    ] as const) {
+      const html = renderInstallPage(stores, lang);
+      expect(html).toContain(`href="${stores.android}"`);
+      expect(html).toContain(`href="${stores.ios}"`);
+      expect(html).toContain(title);
+      expect(html).not.toContain("TestFlight");
+      for (const shot of [
+        "1-sign-in",
+        "2-activate",
+        "3-choose-password",
+        "4-home",
+      ])
+        expect(html).toContain(`/install/img/${lang}/${shot}.jpg`);
+    }
+  });
+
+  it("picks the language of the link, then of the phone, then French", async () => {
+    const get = async (path: string, accept?: string) =>
+      (
+        await fetch(`${api.url}${path}`, {
+          headers: accept ? { "accept-language": accept } : {},
+        })
+      ).text();
+    expect(await get("/install?lang=en")).toContain("Install BioBalance");
+    expect(await get("/install", "en-GB,en;q=0.9")).toContain(
+      "Install BioBalance",
+    );
+    expect(await get("/install", "fr-TN")).toContain("Installer BioBalance");
+    expect(await get("/install?lang=en", "fr")).toContain("Install BioBalance");
+    expect(await get("/install")).toContain("Installer BioBalance");
+  });
+
+  it("serves its four pictures in both languages, and nothing else", async () => {
+    for (const lang of ["fr", "en"])
+      for (const shot of [
+        "1-sign-in",
+        "2-activate",
+        "3-choose-password",
+        "4-home",
+      ]) {
+        const res = await fetch(`${api.url}/install/img/${lang}/${shot}.jpg`);
+        expect(res.status).toBe(200);
+        expect(res.headers.get("content-type")).toContain("image/jpeg");
+        expect((await res.arrayBuffer()).byteLength).toBeGreaterThan(10_000);
+      }
+    for (const path of [
+      "/install/img/de/1-sign-in.jpg",
+      "/install/img/fr/secret.jpg",
+      "/install/img/fr/1-sign-in.png",
+      "/install/img/fr/..%2F..%2Fpackage.json",
+    ])
+      expect((await fetch(`${api.url}${path}`)).status).toBe(404);
   });
 
   it("leaves out a phone whose link is not set", () => {
@@ -67,10 +116,8 @@ describe("the welcome message", () => {
         expect(text.indexOf(stores.android)).toBeLessThan(
           text.indexOf("Kd7mPq2xWz"),
         );
-        // An iPhone is first sent to TestFlight in the App Store, then to the app's own link.
-        const store = text.indexOf("apps.apple.com/app/testflight");
-        expect(store).toBeGreaterThan(-1);
-        expect(store).toBeLessThan(text.indexOf(stores.ios));
+        // An iPhone goes straight to the app's page in the App Store, before the sign-in details.
+        expect(text).not.toContain("TestFlight");
         expect(text.indexOf(stores.ios)).toBeLessThan(
           text.indexOf("Kd7mPq2xWz"),
         );

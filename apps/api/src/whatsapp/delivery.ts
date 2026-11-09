@@ -60,14 +60,14 @@ export class WhatsAppDelivery {
         password,
         expiresAt: user.passwordExpiresAt!,
         stores: (await this.settings.get()).stores,
-        installPage: installPageUrl(),
+        installPage: installPageUrl(locale),
       });
     } else if (p.template === "update") {
       texts = renderWhatsApp(locale, {
         kind: "update",
         name: user.name,
         stores: (await this.settings.get()).stores,
-        installPage: installPageUrl(),
+        installPage: installPageUrl(locale),
       });
     } else if (p.template === "password-changed")
       texts = renderWhatsApp(locale, {
@@ -97,7 +97,10 @@ export class WhatsAppDelivery {
               kind: "invite",
               code: p.code,
               name: user.name,
+              email: user.email,
               link,
+              stores: (await this.settings.get()).stores,
+              installPage: installPageUrl(locale),
             })
           : renderWhatsApp(locale, {
               kind: "reset",

@@ -20,6 +20,9 @@ export type EmailTemplate =
       expiresAt: Date;
       name: string;
       link?: string;
+      /** When given, the install steps come first (a new account needs the app). */
+      stores?: Stores;
+      installPage?: string | null;
     }
   | {
       kind: "reset";
@@ -200,10 +203,27 @@ export function renderEmail(
     code = shown(input.code);
     detail = t.valid(when(locale, input.expiresAt));
   }
+  const install =
+    input.kind === "invite" && input.stores
+      ? {
+          title: installWords[locale].install,
+          blocks: installBlocks(locale, input.stores),
+          help: installWords[locale].help,
+          page: input.installPage ?? null,
+        }
+      : null;
   const text = [
     "BioBalance",
     heading,
     intro,
+    ...(install
+      ? [
+          install.title,
+          ...install.blocks.map((b) => `${b.title}\n${b.lines.join("\n")}`),
+          ...(install.page ? [`${install.help}\n${install.page}`] : []),
+          installWords[locale].activate,
+        ]
+      : []),
     ...(steps ? [steps] : []),
     ...(code
       ? [
@@ -223,6 +243,7 @@ export function renderEmail(
 <tr><td style="padding:0 0 24px;color:#146c43;font-size:15px;font-weight:600">BioBalance</td></tr>
 <tr><td><h1 style="margin:0 0 16px;font-size:22px;line-height:1.35">${escape(heading)}</h1>
 <p style="margin:0 0 16px;font-size:16px;line-height:1.6">${escape(intro)}</p>
+${install ? `<h2 style="margin:24px 0 4px;font-size:19px">${escape(install.title)}</h2>${install.blocks.map((b) => `<h3 style="margin:18px 0 8px;font-size:16px">${escape(b.title)}</h3>${b.lines.map((line) => (/^https:/.test(line) ? `<p style="margin:0 0 16px"><a href="${escape(line)}" style="display:inline-block;padding:12px 18px;background:#146c43;color:#ffffff;text-decoration:none;border-radius:6px;font-size:15px;font-weight:700;word-break:break-all">${escape(line)}</a></p>` : `<p style="margin:0 0 8px;font-size:15px;line-height:1.6">${escape(line)}</p>`)).join("")}`).join("")}${install.page ? `<p style="margin:0 0 8px;font-size:14px;line-height:1.5"><a href="${escape(install.page)}" style="color:#146c43">${escape(install.help)}</a></p>` : ""}<h2 style="margin:28px 0 4px;font-size:19px">${escape(installWords[locale].activate)}</h2>` : ""}
 ${steps ? `<p style="margin:0 0 20px;font-size:16px;line-height:1.6">${escape(steps)}</p>` : ""}
 ${code ? `<p style="margin:0 0 6px;font-size:14px;color:#5d665f">${escape(codeLabel!)}</p><p style="margin:0 0 8px;padding:14px;border:1px solid #dfe6e1;border-radius:6px;font-family:Consolas,monospace;font-size:30px;letter-spacing:5px;font-weight:700;-webkit-user-select:all;user-select:all">${escape(code)}</p>${link ? `<p style="margin:0 0 12px"><a href="${escape(link)}" style="display:inline-block;padding:12px 18px;background:#146c43;color:#ffffff;text-decoration:none;border-radius:6px;font-size:15px;font-weight:700">${escape(copyLink!)}</a></p>` : ""}${copyHint ? `<p style="margin:0 0 8px;font-size:13px;color:#5d665f">${escape(copyHint)}</p>` : ""}` : ""}
 ${detail ? `<p style="margin:0 0 20px;font-size:14px;line-height:1.5;color:#5d665f">${escape(detail)}</p>` : ""}

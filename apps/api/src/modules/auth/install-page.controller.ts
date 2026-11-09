@@ -1,69 +1,96 @@
 import { createHash } from "node:crypto";
-import { Controller, Get, Header, Res } from "@nestjs/common";
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
+import {
+  Controller,
+  Get,
+  Header,
+  Headers,
+  NotFoundException,
+  Param,
+  Query,
+  Res,
+  StreamableFile,
+} from "@nestjs/common";
 import type { Response } from "express";
 import { Public } from "../../core/http";
-import { TESTFLIGHT_STORE } from "../../core/install";
 import { SettingsService } from "../../core/settings";
 
-/** What the page says, in each language (the visitor's phone language picks one). */
+type Lang = "fr" | "en";
+
+/** The pictures of the app's own screens (`GUIDE_SHOTS=1 flutter test test/guide_screenshots_test.dart`). */
+const GUIDE_DIR = join(__dirname, "../../../guide");
+const SHOTS = [
+  "1-sign-in",
+  "2-activate",
+  "3-choose-password",
+  "4-home",
+] as const;
+
+/** What the page says, in each language. */
 const words = {
   fr: {
     title: "Installer BioBalance",
-    intro:
-      "Installez l’application, puis connectez-vous avec l’email et le mot de passe provisoire reçus.",
+    intro: "Quatre étapes, deux minutes. Suivez les images.",
+    s1: "1. Installez l’application",
     android: "Android",
-    androidSteps: [
-      "Touchez « Télécharger BioBalance ».",
-      "Ouvrez le fichier téléchargé.",
-      "Si le téléphone bloque l’installation, touchez Paramètres et autorisez l’installation depuis cette source, puis revenez et touchez Installer.",
-      "Ouvrez BioBalance.",
-    ],
-    download: "Télécharger BioBalance",
+    androidDo: "Touchez le bouton, puis Installer, puis Ouvrir.",
+    play: "Ouvrir Google Play",
     iphone: "iPhone",
-    iphoneSteps: [
-      "Installez l’application gratuite TestFlight depuis l’App Store.",
-      "Revenez ici et touchez « Ouvrir dans TestFlight ».",
-      "Touchez Installer, puis Ouvrir.",
+    iphoneDo: "Touchez le bouton, puis Obtenir, puis Ouvrir.",
+    appStore: "Ouvrir l’App Store",
+    s2: "2. Connectez-vous",
+    s2do: "Vous avez reçu un email et un mot de passe provisoire : saisissez-les, puis touchez « Se connecter ».",
+    s3: "3. Choisissez votre mot de passe",
+    s3do: "Choisissez un mot de passe à vous (8 caractères au moins), écrivez-le deux fois, puis touchez « Enregistrer et continuer ».",
+    code: "Vous avez reçu un code à la place ?",
+    codeDo:
+      "Sur l’écran de connexion, touchez « Activer mon compte ». Saisissez votre email et le code, choisissez un mot de passe, puis touchez « Activer mon compte ».",
+    s4: "4. C’est prêt",
+    s4do: "Votre accueil s’ouvre. La prochaine fois, connectez-vous avec votre email et votre mot de passe.",
+    alt: [
+      "Écran de connexion",
+      "Écran d’activation du compte",
+      "Écran pour choisir son mot de passe",
+      "Écran d’accueil",
     ],
-    testflight: "Installer TestFlight",
-    open: "Ouvrir dans TestFlight",
-    next: "Ensuite : connectez-vous avec l’email et le mot de passe provisoire reçus. L’application vous demandera de choisir votre propre mot de passe.",
+    other: "English",
   },
   en: {
     title: "Install BioBalance",
-    intro:
-      "Install the app, then sign in with the email and temporary password you received.",
+    intro: "Four steps, two minutes. Follow the pictures.",
+    s1: "1. Install the app",
     android: "Android",
-    androidSteps: [
-      "Tap “Download BioBalance”.",
-      "Open the downloaded file.",
-      "If the phone blocks the installation, tap Settings and allow installing from this source, then go back and tap Install.",
-      "Open BioBalance.",
-    ],
-    download: "Download BioBalance",
+    androidDo: "Tap the button, then Install, then Open.",
+    play: "Open Google Play",
     iphone: "iPhone",
-    iphoneSteps: [
-      "Install the free TestFlight app from the App Store.",
-      "Come back here and tap “Open in TestFlight”.",
-      "Tap Install, then Open.",
+    iphoneDo: "Tap the button, then Get, then Open.",
+    appStore: "Open the App Store",
+    s2: "2. Sign in",
+    s2do: "You received an email and a temporary password: enter them, then tap “Sign in”.",
+    s3: "3. Choose your password",
+    s3do: "Choose a password of your own (at least 8 characters), type it twice, then tap “Save and continue”.",
+    code: "Did you receive a code instead?",
+    codeDo:
+      "On the sign-in screen, tap “Activate my account”. Enter your email and the code, choose a password, then tap “Activate my account”.",
+    s4: "4. You are ready",
+    s4do: "Your home screen opens. Next time, sign in with your email and your password.",
+    alt: [
+      "Sign-in screen",
+      "Account activation screen",
+      "Screen to choose your password",
+      "Home screen",
     ],
-    testflight: "Install TestFlight",
-    open: "Open in TestFlight",
-    next: "Then sign in with the email and temporary password you received. The app will ask you to choose your own password.",
+    other: "Français",
   },
 } as const;
 
-/** Picks the visitor's language, puts their phone's section first, and shows the version that is on offer. */
+/** Puts the visitor's phone first: an iPhone sees the App Store before Google Play. */
 const script = `
-const fr=(navigator.language||"fr").toLowerCase().startsWith("en")?"en":"fr";
-document.documentElement.lang=fr;
 const apple=/iPhone|iPad|iPod/.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
 const first=document.getElementById(apple?"iphone":"android");
-if(first)first.parentNode.insertBefore(first,document.getElementById("intro").nextSibling);
-fetch("/download/latest.json").then(r=>r.ok?r.json():null).then(v=>{
- const el=document.getElementById("version");
- if(v&&el)el.textContent=" ("+v.version+", "+Math.round(v.bytes/1048576)+" MB)";
-}).catch(()=>{});`;
+const list=document.getElementById("stores");
+if(first&&list)list.insertBefore(first,list.firstChild);`;
 
 const hash = createHash("sha256").update(script).digest("base64");
 const esc = (v: string) =>
@@ -75,54 +102,58 @@ const esc = (v: string) =>
       ]!,
   );
 
-/** The page with both languages in it; CSS shows the one the script picks (French without a script). */
-export function renderInstallPage(stores: {
-  ios: string | null;
-  android: string | null;
-}): string {
-  const both = (f: (w: (typeof words)["fr"]) => string, tag = "span") =>
-    (["fr", "en"] as const)
-      .map(
-        (l) =>
-          `<${tag} lang="${l}">${f(words[l] as unknown as (typeof words)["fr"])}</${tag}>`,
-      )
-      .join("");
-  const list = (key: "androidSteps" | "iphoneSteps") =>
-    (["fr", "en"] as const)
-      .map(
-        (l) =>
-          `<ol lang="${l}">${words[l][key].map((s) => `<li>${esc(s)}</li>`).join("")}</ol>`,
-      )
-      .join("");
+/** The page in one language, with the pictures of the app's own screens. */
+export function renderInstallPage(
+  stores: { ios: string | null; android: string | null },
+  lang: Lang = "fr",
+): string {
+  const w = words[lang];
+  const other = lang === "fr" ? "en" : "fr";
+  const picture = (i: number) =>
+    `<img src="/install/img/${lang}/${SHOTS[i]}.jpg" alt="${esc(w.alt[i]!)}" width="260" loading="lazy">`;
   const android = stores.android
-    ? `<section id="android"><h2>${both((w) => esc(w.android))}</h2>${list("androidSteps")}<a class="go" href="${esc(stores.android)}">${both((w) => esc(w.download))}<small id="version"></small></a></section>`
+    ? `<div id="android" class="store"><h3>${esc(w.android)}</h3><p>${esc(w.androidDo)}</p><a class="go" href="${esc(stores.android)}">${esc(w.play)}</a></div>`
     : "";
   const iphone = stores.ios
-    ? `<section id="iphone"><h2>${both((w) => esc(w.iphone))}</h2>${list("iphoneSteps")}<a class="alt" href="${TESTFLIGHT_STORE}">${both((w) => esc(w.testflight))}</a><a class="go" href="${esc(stores.ios)}">${both((w) => esc(w.open))}</a></section>`
+    ? `<div id="iphone" class="store"><h3>${esc(w.iphone)}</h3><p>${esc(w.iphoneDo)}</p><a class="go" href="${esc(stores.ios)}">${esc(w.appStore)}</a></div>`
     : "";
   return `<!doctype html>
-<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex"><title>BioBalance</title>
+<html lang="${lang}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex"><title>BioBalance</title>
 <style>
 body{margin:0;background:#fff;color:#1f2a24;font-family:Arial,Helvetica,sans-serif;display:flex;justify-content:center}
-main{width:100%;max-width:460px;padding:32px 20px 48px}
+main{width:100%;max-width:460px;padding:24px 20px 56px}
+.top{display:flex;justify-content:space-between;align-items:center}
 .brand{color:#146c43;font-weight:700;font-size:15px}
-h1{font-size:24px;margin:20px 0 8px}
-h2{font-size:18px;margin:0 0 8px}
-p,li{font-size:15px;line-height:1.6}
-section{margin-top:24px;padding:16px;border:1px solid #dfe6e1;border-radius:12px}
-ol{margin:0 0 14px;padding-left:20px}
-a{display:block;margin-top:10px;padding:14px;border-radius:10px;font-size:16px;font-weight:700;text-align:center;text-decoration:none}
-a small{display:block;font-weight:400;font-size:12px}
-.go{background:#146c43;color:#fff}
-.alt{background:#fff;color:#146c43;border:2px solid #146c43}
-.next{color:#5d665f;margin-top:24px}
-html[lang=fr] [lang=en],html[lang=en] [lang=fr]{display:none}
+.lang{font-size:14px;color:#146c43;text-decoration:none;font-weight:700;margin:0;padding:0}
+h1{font-size:26px;margin:20px 0 8px}
+h2{font-size:19px;margin:0 0 8px}
+h3{font-size:16px;margin:0 0 4px}
+p{font-size:15px;line-height:1.6;margin:0 0 10px}
+section{margin-top:28px;padding:18px 16px;border:1px solid #dfe6e1;border-radius:14px}
+.store{margin-top:14px}
+img{display:block;margin:14px auto 4px;border:1px solid #dfe6e1;border-radius:14px;max-width:100%;height:auto}
+a.go{display:block;margin-top:8px;padding:14px;border-radius:10px;font-size:16px;font-weight:700;text-align:center;text-decoration:none;background:#146c43;color:#fff}
+.alt{background:#f3f7f4;border-radius:10px;padding:12px;margin-top:16px}
+.alt p{margin:0 0 4px}
 </style></head>
-<body><main><div class="brand">BioBalance</div><h1>${both((w) => esc(w.title))}</h1><p id="intro">${both((w) => esc(w.intro))}</p>
-${android}${iphone}
-<p class="next">${both((w) => esc(w.next))}</p></main>
+<body><main><div class="top"><div class="brand">BioBalance</div><a class="lang" href="/install?lang=${other}">${esc(w.other)}</a></div>
+<h1>${esc(w.title)}</h1><p>${esc(w.intro)}</p>
+<section><h2>${esc(w.s1)}</h2><div id="stores">${android}${iphone}</div></section>
+<section><h2>${esc(w.s2)}</h2><p>${esc(w.s2do)}</p>${picture(0)}
+<div class="alt"><p><strong>${esc(w.code)}</strong></p><p>${esc(w.codeDo)}</p>${picture(1)}</div></section>
+<section><h2>${esc(w.s3)}</h2><p>${esc(w.s3do)}</p>${picture(2)}</section>
+<section><h2>${esc(w.s4)}</h2><p>${esc(w.s4do)}</p>${picture(3)}</section>
+</main>
 <script>${script}</script></body></html>`;
 }
+
+/** The visitor's language: the link's own (`?lang=en`), else the phone's, else French. */
+const pick = (query: string | undefined, header: string | undefined): Lang =>
+  query === "en" || query === "fr"
+    ? query
+    : /^\s*en/i.test(header ?? "")
+      ? "en"
+      : "fr";
 
 @Controller("install")
 export class InstallPageController {
@@ -132,11 +163,39 @@ export class InstallPageController {
   @Get()
   @Header("Content-Type", "text/html; charset=utf-8")
   @Header("Cache-Control", "no-cache")
-  async show(@Res({ passthrough: true }) res: Response) {
+  @Header("Vary", "Accept-Language")
+  async show(
+    @Res({ passthrough: true }) res: Response,
+    @Query("lang") lang?: string,
+    @Headers("accept-language") accept?: string,
+  ) {
     res.setHeader(
       "Content-Security-Policy",
-      `default-src 'none'; style-src 'unsafe-inline'; script-src 'sha256-${hash}'; connect-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'`,
+      `default-src 'none'; style-src 'unsafe-inline'; img-src 'self'; script-src 'sha256-${hash}'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'`,
     );
-    return renderInstallPage((await this.settings.get()).stores);
+    return renderInstallPage(
+      (await this.settings.get()).stores,
+      pick(lang, accept),
+    );
+  }
+
+  /** One of the four pictures: only those names, in those two languages. */
+  @Public()
+  @Get("img/:lang/:file")
+  @Header("Content-Type", "image/jpeg")
+  @Header("Cache-Control", "public, max-age=86400")
+  async picture(@Param("lang") lang: string, @Param("file") file: string) {
+    const name = file.replace(/\.jpg$/, "");
+    if (
+      (lang !== "fr" && lang !== "en") ||
+      !file.endsWith(".jpg") ||
+      !(SHOTS as readonly string[]).includes(name)
+    )
+      throw new NotFoundException();
+    try {
+      return new StreamableFile(await readFile(join(GUIDE_DIR, lang, file)));
+    } catch {
+      throw new NotFoundException();
+    }
   }
 }

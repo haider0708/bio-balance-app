@@ -5,14 +5,10 @@ export interface Stores {
   android: string | null;
 }
 
-/** TestFlight itself, in the App Store: an iPhone needs it before it can open the app's link. */
-export const TESTFLIGHT_STORE =
-  "https://apps.apple.com/app/testflight/id899247664";
-
-/** The page that shows the install steps again (the same steps as the welcome message). */
-export const installPageUrl = () => {
+/** The page with the install steps and screenshots of the app, in the person's language. */
+export const installPageUrl = (locale: Locale = "fr") => {
   const base = process.env.API_PUBLIC_URL?.replace(/\/$/, "");
-  return base ? `${base}/install` : null;
+  return base ? `${base}/install?lang=${locale}` : null;
 };
 
 /** The words of the welcome message's three steps, in the person's language: by email, by WhatsApp. */
@@ -22,25 +18,24 @@ export const installWords = {
     android: "Sur Android",
     androidDo: "Ouvrez Google Play et touchez Installer :",
     iphone: "Sur iPhone",
-    iphoneStore:
-      "a) Installez d’abord l’application gratuite TestFlight, depuis l’App Store :",
-    iphoneApp: "b) Puis ouvrez ce lien et touchez Installer :",
+    iphoneDo: "Ouvrez l’App Store et touchez Obtenir :",
+    activate: "2. Activez votre compte",
     signIn: "2. Connectez-vous",
     signInDo: "Ouvrez BioBalance et saisissez ces informations :",
     choose: "3. Choisissez votre mot de passe",
-    help: "Besoin d’aide pour l’installation ?",
+    help: "Guide avec captures d’écran :",
   },
   en: {
     install: "1. Install the app",
     android: "On Android",
     androidDo: "Open Google Play and tap Install:",
     iphone: "On iPhone",
-    iphoneStore: "a) First install the free TestFlight app from the App Store:",
-    iphoneApp: "b) Then open this link and tap Install:",
+    iphoneDo: "Open the App Store and tap Get:",
+    activate: "2. Activate your account",
     signIn: "2. Sign in",
     signInDo: "Open BioBalance and enter these details:",
     choose: "3. Choose your password",
-    help: "Need help installing?",
+    help: "Guide with screenshots:",
   },
 } as const satisfies Record<Locale, object>;
 
@@ -57,7 +52,7 @@ export function installBlocks(
     },
     stores.ios && {
       title: w.iphone,
-      lines: [w.iphoneStore, TESTFLIGHT_STORE, w.iphoneApp, stores.ios],
+      lines: [w.iphoneDo, stores.ios],
     },
   ].filter((b) => !!b);
 }
@@ -69,12 +64,11 @@ export const updateWords = {
     heading: "Une nouvelle version de BioBalance est disponible",
     intro: (name: string) =>
       `Bonjour ${name}, mettez l’application à jour pour continuer à l’utiliser.`,
-    news: "Nouveautés : retrait de gains par paliers de 5 TND, recherche et filtres dans toutes les listes.",
+    news: "Corrections et améliorations.",
     android: "Sur Android",
     androidDo: "Ouvrez Google Play et touchez Mettre à jour :",
     iphone: "Sur iPhone",
-    iphoneDo:
-      "Ouvrez l’application TestFlight et touchez Mettre à jour à côté de BioBalance. Si vous ne la trouvez pas, ouvrez ce lien et touchez Installer :",
+    iphoneDo: "Ouvrez l’App Store et touchez Mettre à jour :",
     same: "Vos identifiants ne changent pas : gardez le même email et le même mot de passe.",
   },
   en: {
@@ -82,12 +76,11 @@ export const updateWords = {
     heading: "A new version of BioBalance is available",
     intro: (name: string) =>
       `Hello ${name}, please update the app to keep using it.`,
-    news: "What’s new: payouts in steps of 5 TND, search and filters on every list.",
+    news: "Fixes and improvements.",
     android: "On Android",
     androidDo: "Open Google Play and tap Update:",
     iphone: "On iPhone",
-    iphoneDo:
-      "Open the TestFlight app and tap Update next to BioBalance. If you cannot find it, open this link and tap Install:",
+    iphoneDo: "Open the App Store and tap Update:",
     same: "Your sign-in details do not change: use the same email and password.",
   },
 } as const satisfies Record<Locale, object>;

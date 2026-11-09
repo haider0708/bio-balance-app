@@ -5,7 +5,7 @@ import { renderWhatsApp } from "../src/whatsapp/templates";
 
 const stores = {
   android: "https://play.google.com/store/apps/details?id=tn.biobalance.app",
-  ios: "https://testflight.apple.com/join/AbCd1234",
+  ios: "https://apps.apple.com/tn/app/biobalance/id6822445997",
 };
 const input = {
   kind: "update" as const,
@@ -23,10 +23,12 @@ describe("the 'update your app' message", () => {
         expect(part).toContain("Amira");
         expect(part).toContain(stores.android);
         expect(part).toContain(stores.ios);
-        expect(part).toContain("https://api.example.test/install");
+        expect(part).not.toContain("TestFlight");
         expect(part).not.toMatch(/mot de passe provisoire|temporary password/i);
       }
     }
+    // They already have the app: WhatsApp keeps it to the two links.
+    expect(renderWhatsApp("fr", input).join("\n")).not.toContain("/install");
     expect(renderWhatsApp("fr", input).join("\n")).toContain("Mettre à jour");
     expect(renderWhatsApp("en", input).join("\n")).toContain("tap Update");
     expect(renderEmail("fr", input).subject).toBe("Mettez à jour BioBalance");

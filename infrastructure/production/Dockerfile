@@ -24,6 +24,8 @@ COPY --from=build --chown=node:node /app/apps/api/prisma.config.ts ./prisma.conf
 COPY --from=build --chown=node:node /app/apps/api/package.json ./package.json
 # The product catalogue (names, details, one photo per barcode): `node dist/catalog.js refresh`.
 COPY --from=build --chown=node:node /app/apps/api/catalog ./catalog
+# The pictures of the install page (the app's own screens).
+COPY --from=build --chown=node:node /app/apps/api/guide ./guide
 RUN mkdir -p /var/lib/biobalance/media && chown node:node /var/lib/biobalance/media
 USER node
 RUN node -e "require('./dist/app.module');require.resolve('nodemailer')"

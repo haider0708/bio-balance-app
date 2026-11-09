@@ -422,7 +422,7 @@ describe("the messages", () => {
     get: async () => ({
       whatsapp: { enabled: true },
       stores: {
-        ios: "https://testflight.apple.com/join/AbCd1234",
+        ios: "https://apps.apple.com/tn/app/biobalance/id6822445997",
         android:
           "https://play.google.com/store/apps/details?id=tn.biobalance.app",
       },
@@ -447,8 +447,10 @@ describe("the messages", () => {
       expect(part).toContain(
         "https://play.google.com/store/apps/details?id=tn.biobalance.app",
       );
-      expect(part).toContain("https://testflight.apple.com/join/AbCd1234");
-      expect(part).toContain("TestFlight");
+      expect(part).toContain(
+        "https://apps.apple.com/tn/app/biobalance/id6822445997",
+      );
+      expect(part).not.toContain("TestFlight");
       expect(part).toContain("https://api.example.test/install");
     }
     expect(sent[0]!.text).toContain("Amira Gharbi");
@@ -478,7 +480,12 @@ describe("the messages", () => {
     expect(sent[0]!.text).toContain("Bonjour Amira Gharbi");
     expect(sent[0]!.text).toContain("amira@example.test");
     expect(sent[0]!.text).toContain("Android :");
-    expect(sent[0]!.text).toContain("iPhone, en 2 temps");
+    expect(sent[0]!.text).toContain("iPhone :");
+    expect(sent[0]!.text).not.toContain("TestFlight");
+    // The guide with screenshots, in the person's language.
+    expect(sent[0]!.texts[0]).toContain(
+      "https://api.example.test/install?lang=fr",
+    );
     // The email and the password are each a message of their own, with nothing else in them:
     // a long press copies exactly the value.
     expect(sent[0]!.texts).toHaveLength(4);
@@ -487,13 +494,10 @@ describe("the messages", () => {
     expect(sent[0]!.texts[0]).not.toContain(password);
     expect(sent[0]!.texts[3]).toContain("3. Choisissez votre mot de passe");
     expect(sent[0]!.text).toContain(
-      "https://apps.apple.com/app/testflight/id899247664",
-    );
-    expect(sent[0]!.text).toContain(
       "https://play.google.com/store/apps/details?id=tn.biobalance.app",
     );
     expect(sent[0]!.text).toContain(
-      "https://testflight.apple.com/join/AbCd1234",
+      "https://apps.apple.com/tn/app/biobalance/id6822445997",
     );
     expect(sent[0]!.text).toContain("2. Connectez-vous");
     expect((await jobs("whatsapp"))[0]!.payload.sealed).toBe("");

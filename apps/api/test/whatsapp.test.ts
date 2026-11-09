@@ -113,6 +113,9 @@ describe("codes by WhatsApp", () => {
 
   it("sends the code to the number when the channel is on, in the person's language", async () => {
     await turn(true);
+    await w.a.put("/v1/settings", {
+      stores: { ios: "https://apps.apple.com/tn/app/biobalance/id6822445997" },
+    });
     await invite();
     const { sent, transport } = fake();
     const job = (await jobs("whatsapp"))[0]!;
@@ -126,10 +129,23 @@ describe("codes by WhatsApp", () => {
     expect(sent[0]!.text).toContain(`${code.slice(0, 4)}-${code.slice(4)}`);
     expect(sent[0]!.text).toContain(`https://api.example.test/c#i.${code}`);
     expect(sent[0]!.text).toContain("Bonjour Hanen Smiri");
-    // The code is a message of its own, last, with nothing else in it: a long press copies exactly it.
-    expect(sent[0]!.texts).toHaveLength(2);
-    expect(sent[0]!.texts[1]).toBe(`${code.slice(0, 4)}-${code.slice(4)}`);
-    // The text before it only carries the code inside the one-tap link.
+    // A new account also gets the install steps: both stores, and the guide with screenshots.
+    expect(sent[0]!.texts[0]).toContain("*1. Installez l’application*");
+    expect(sent[0]!.texts[0]).toContain(
+      "https://play.google.com/store/apps/details?id=tn.biobalance.app",
+    );
+    expect(sent[0]!.texts[0]).toContain(
+      "https://apps.apple.com/tn/app/biobalance/id6822445997",
+    );
+    expect(sent[0]!.texts[0]).toContain(
+      "https://api.example.test/install?lang=fr",
+    );
+    // The email and the code are each a message of their own, last, with nothing else in them: a long
+    // press copies exactly the value.
+    expect(sent[0]!.texts).toHaveLength(3);
+    expect(sent[0]!.texts[1]).toBe("hanen@example.test");
+    expect(sent[0]!.texts[2]).toBe(`${code.slice(0, 4)}-${code.slice(4)}`);
+    // The text before only carries the code inside the one-tap link.
     expect(sent[0]!.texts[0]).not.toContain(
       `${code.slice(0, 4)}-${code.slice(4)}`,
     );
