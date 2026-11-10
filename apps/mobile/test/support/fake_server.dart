@@ -97,7 +97,6 @@ class FakeServer implements HttpClientAdapter {
           onUnauthorized: () => ref.read(sessionProvider.notifier).expire(),
           onClosed: (details) =>
               ref.read(closedProvider.notifier).set(Closed.from(details)),
-          headers: ref.watch(apiHeadersProvider),
         ),
       ),
     ];

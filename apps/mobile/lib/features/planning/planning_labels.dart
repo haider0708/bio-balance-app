@@ -53,17 +53,16 @@ extension VisitEventText on VisitEvent {
     ),
     Presence.noFix => t.presenceNoFix,
     Presence.noPosition => t.presenceNoPosition,
-    Presence.sandbox => t.presenceSandbox,
   };
 
   Tone get tone => switch (presence) {
-    Presence.verified || Presence.sandbox => Tone.success,
+    Presence.verified => Tone.success,
     Presence.outOfRange => Tone.warning,
     Presence.noFix || Presence.noPosition => Tone.muted,
   };
 
   IconData get icon => switch (presence) {
-    Presence.verified || Presence.sandbox => LucideIcons.mapPinCheck,
+    Presence.verified => LucideIcons.mapPinCheck,
     Presence.outOfRange => LucideIcons.mapPinOff,
     Presence.noFix || Presence.noPosition => LucideIcons.mapPin,
   };

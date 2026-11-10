@@ -46,14 +46,12 @@ enum Presence {
   verified,
   outOfRange,
   noFix,
-  noPosition,
-  sandbox;
+  noPosition;
 
   static Presence parse(String value) => switch (value) {
     'VERIFIED' => verified,
     'OUT_OF_RANGE' => outOfRange,
     'NO_FIX' => noFix,
-    'SANDBOX' => sandbox,
     _ => noPosition,
   };
 }

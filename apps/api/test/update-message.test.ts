@@ -29,8 +29,8 @@ describe("the 'update your app' message", () => {
     }
     // They already have the app: WhatsApp keeps it to the two links.
     expect(renderWhatsApp("fr", input).join("\n")).not.toContain("/install");
-    expect(renderWhatsApp("fr", input).join("\n")).toContain("Mettre à jour");
-    expect(renderWhatsApp("en", input).join("\n")).toContain("tap Update");
+    expect(renderWhatsApp("fr", input).join("\n")).toContain("mettre à jour");
+    expect(renderWhatsApp("en", input).join("\n")).toContain("update");
     expect(renderEmail("fr", input).subject).toBe("Mettez à jour BioBalance");
   });
 

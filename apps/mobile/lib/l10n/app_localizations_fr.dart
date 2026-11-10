@@ -1405,9 +1405,6 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String get presenceSandbox => 'Position de test';
-
-  @override
   String get presenceVerified => 'Sur place';
 
   @override
@@ -2716,19 +2713,6 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get updateNow => 'Mettre à jour';
-
-  @override
-  String get testRegionTitle => 'Région de test';
-
-  @override
-  String get showTestRegion => 'Afficher la région de test';
-
-  @override
-  String get showTestRegionHint =>
-      'La région de démonstration des vérificateurs des stores. Masquée, rien d\'elle n\'apparaît dans vos chiffres, vos listes ni vos alertes.';
-
-  @override
-  String get testRegionBadge => 'Région de test';
 
   @override
   String get themeAuto => 'Auto';

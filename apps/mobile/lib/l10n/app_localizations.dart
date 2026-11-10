@@ -2444,12 +2444,6 @@ abstract class AppLocalizations {
   /// **'Away from the place ({distance})'**
   String presenceOutOfRange(String distance);
 
-  /// No description provided for @presenceSandbox.
-  ///
-  /// In en, this message translates to:
-  /// **'Test position'**
-  String get presenceSandbox;
-
   /// No description provided for @presenceVerified.
   ///
   /// In en, this message translates to:
@@ -4723,30 +4717,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Update'**
   String get updateNow;
-
-  /// No description provided for @testRegionTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Test region'**
-  String get testRegionTitle;
-
-  /// No description provided for @showTestRegion.
-  ///
-  /// In en, this message translates to:
-  /// **'Show the test region'**
-  String get showTestRegion;
-
-  /// No description provided for @showTestRegionHint.
-  ///
-  /// In en, this message translates to:
-  /// **'The store reviewers\' demonstration region. When it is hidden, nothing from it appears in your figures, lists or alerts.'**
-  String get showTestRegionHint;
-
-  /// No description provided for @testRegionBadge.
-  ///
-  /// In en, this message translates to:
-  /// **'Test region'**
-  String get testRegionBadge;
 
   /// No description provided for @themeAuto.
   ///

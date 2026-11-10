@@ -1,44 +1,40 @@
 import type { Locale } from "../email/templates";
-import { updateBlocks, updateWords, type Stores } from "../core/install";
+import type { Stores } from "../core/install";
+
+/** The two store links and the guide: in every message, so the app is always one tap away. */
+interface Links {
+  stores: Stores;
+  installPage: string | null;
+}
 
 /**
- * What a new account is sent. The same layout for everyone: a responsable, an order manager, a seller,
- * a buyer. `invite` carries an activation code (responsable, order manager, admin); `credentials` carries a
- * generated password (seller, buyer).
+ * What each notice carries. `invite` has an activation code (responsable, order manager, admin);
+ * `credentials` a generated password (seller, buyer): both start with the same install steps.
  */
 export type WhatsAppTemplate =
-  | {
+  | ({
       kind: "invite";
       code: string;
       name: string;
       email: string;
       link?: string;
-      stores: Stores;
-      installPage: string | null;
-    }
-  | {
+    } & Links)
+  | ({
       kind: "reset";
       code: string;
       name: string;
       minutes: number;
       link?: string;
-    }
-  | { kind: "password-changed"; name: string; changedAt: Date }
-  | {
-      kind: "update";
-      name: string;
-      stores: Stores;
-      installPage: string | null;
-    }
-  | {
+    } & Links)
+  | ({ kind: "password-changed"; name: string; changedAt: Date } & Links)
+  | ({ kind: "update"; name: string } & Links)
+  | ({
       kind: "credentials";
       name: string;
       email: string;
       password: string;
       expiresAt: Date;
-      stores: Stores;
-      installPage: string | null;
-    };
+    } & Links);
 
 const at = (locale: Locale, date: Date) =>
   new Intl.DateTimeFormat(locale === "fr" ? "fr-TN" : "en-GB", {
@@ -51,7 +47,11 @@ const at = (locale: Locale, date: Date) =>
 /** "ABCD2345" as "ABCD-2345", easier to read and to copy (the app accepts it with or without the dash). */
 export const shown = (code: string) => `${code.slice(0, 4)}-${code.slice(4)}`;
 
-/** Step 1 of the welcome: the store of each phone, every link alone on its line so it can be tapped. */
+/** One block of text: the parts that exist, a blank line between them. */
+const blocks = (...parts: (string | false | null | undefined)[]) =>
+  parts.filter(Boolean).join("\n\n");
+
+/** The store of each phone, every link alone on its line so it can be tapped. */
 const stores = (locale: Locale, s: Stores) =>
   [
     s.android && `Android${locale === "fr" ? " :" : ":"}\n${s.android}`,
@@ -63,105 +63,123 @@ const stores = (locale: Locale, s: Stores) =>
 /** The page with the steps and screenshots of the app. */
 const guide = (locale: Locale, page: string | null) =>
   page
-    ? `${locale === "fr" ? "Guide avec captures d’écran :" : "Guide with screenshots:"}\n${page}`
+    ? `${locale === "fr" ? "Guide illustré :" : "Illustrated guide:"}\n${page}`
     : "";
 
 /** The one-tap link that shows the code with a copy button and opens the app. */
-const tap = (locale: Locale, link?: string) =>
+const shortcut = (locale: Locale, link?: string) =>
   link
-    ? `${locale === "fr" ? "Plus simple, touchez ce lien : il copie le code et ouvre l’application :" : "Easier, tap this link: it copies the code and opens the app:"}\n${link}`
+    ? `${locale === "fr" ? "Raccourci (copie le code et ouvre l’application) :" : "Shortcut (copies the code and opens the app):"}\n${link}`
     : "";
 
-const blocks = (...parts: (string | false | null | undefined)[]) =>
-  parts.filter(Boolean).join("\n\n");
-
-/** The "update your app" message: one short message, a link per phone. */
-const updateText = (
-  locale: Locale,
-  t: Extract<WhatsAppTemplate, { kind: "update" }>,
-) => {
-  const w = updateWords[locale];
-  return blocks(
-    `${w.intro(t.name)} ${w.news}`,
-    ...updateBlocks(locale, t.stores).map(
-      (b) => `*${b.title}*\n${b.lines.join("\n")}`,
-    ),
-    w.same,
-  );
-};
+/** Every message opens with the name of the app, then greets the person. */
+const hello = (locale: Locale, name: string, line: string) =>
+  `*BioBalance*\n${locale === "fr" ? "Bonjour" : "Hello"} ${name}, ${line}`;
 
 /**
- * The WhatsApp messages of each notice, in the order they are sent. Short, and anything the person has
- * to copy (a code, an email, a password) is a message of its own with nothing else in it, not even bold
+ * The WhatsApp messages of each notice, in the order they are sent. Short and in the same layout:
+ * the app's name, one sentence, the steps, the store links. Anything the person has to copy (an
+ * email, a password, a code) is a message of its own with nothing else in it, not even bold
  * marks: a long press on that message then copies exactly the value.
  */
 export function renderWhatsApp(locale: Locale, t: WhatsAppTemplate): string[] {
   const fr = locale === "fr";
+  const apps = stores(locale, t.stores);
   switch (t.kind) {
-    case "update":
-      return [updateText(locale, t)];
     case "invite":
       return [
         blocks(
+          hello(
+            locale,
+            t.name,
+            fr ? "votre compte est prêt." : "your account is ready.",
+          ),
+          `*${fr ? "1. Installez l’application" : "1. Install the app"}*\n${apps}`,
           fr
-            ? `Bonjour ${t.name}, votre compte BioBalance est prêt.`
-            : `Hello ${t.name}, your BioBalance account is ready.`,
-          fr
-            ? `*1. Installez l’application*\n${stores(locale, t.stores)}`
-            : `*1. Install the app*\n${stores(locale, t.stores)}`,
-          fr
-            ? "*2. Activez votre compte*\nOuvrez l’application, touchez « Activer mon compte », puis saisissez votre email et le code ci-dessous (valable 72 heures). Pour copier : touchez longuement le message, puis Copier."
-            : "*2. Activate your account*\nOpen the app, tap “Activate my account”, then enter your email and the code below (valid for 72 hours). To copy: long-press the message, then Copy.",
-          tap(locale, t.link),
+            ? "*2. Activez votre compte*\nOuvrez l’application, touchez « Activer mon compte », puis saisissez votre e-mail et le code ci-dessous (valable 72 h)."
+            : "*2. Activate your account*\nOpen the app, tap “Activate my account”, then enter your email and the code below (valid for 72 hours).",
+          shortcut(locale, t.link),
           guide(locale, t.installPage),
-          fr
-            ? "Ne partagez ces messages avec personne."
-            : "Do not share these messages with anyone.",
+          fr ? "Ne partagez jamais ce code." : "Never share this code.",
         ),
         t.email,
-        shown(t.code),
-      ];
-    case "reset":
-      return [
-        blocks(
-          fr
-            ? `Bonjour ${t.name}, voici le code pour réinitialiser votre mot de passe BioBalance.`
-            : `Hello ${t.name}, here is the code to reset your BioBalance password.`,
-          fr
-            ? `Dans l’application, touchez « Mot de passe oublié ? » puis « J’ai déjà un code », et saisissez votre email et le code ci-dessous. Valable ${t.minutes} minutes.`
-            : `In the app, tap “Forgot password?” then “I already have a code”, and enter your email and the code below. Valid for ${t.minutes} minutes.`,
-          tap(locale, t.link),
-          fr
-            ? "Ce n’était pas vous ? Ignorez ce message. Ne le partagez avec personne."
-            : "Not you? Ignore this message. Do not share it with anyone.",
-        ),
         shown(t.code),
       ];
     case "credentials":
       return [
         blocks(
+          hello(
+            locale,
+            t.name,
+            fr ? "votre compte est prêt." : "your account is ready.",
+          ),
+          `*${fr ? "1. Installez l’application" : "1. Install the app"}*\n${apps}`,
           fr
-            ? `Bonjour ${t.name}, votre compte BioBalance est prêt.`
-            : `Hello ${t.name}, your BioBalance account is ready.`,
-          fr
-            ? `*1. Installez l’application*\n${stores(locale, t.stores)}`
-            : `*1. Install the app*\n${stores(locale, t.stores)}`,
-          fr
-            ? "*2. Connectez-vous*\nOuvrez l’application, puis saisissez votre email et votre mot de passe provisoire ci-dessous. Pour copier : touchez longuement le message, puis Copier."
-            : "*2. Sign in*\nOpen the app, then enter your email and temporary password below. To copy: long-press the message, then Copy.",
+            ? "*2. Connectez-vous*\nOuvrez l’application, puis saisissez l’e-mail et le mot de passe provisoire ci-dessous (appui long sur un message, puis Copier)."
+            : "*2. Sign in*\nOpen the app, then enter the email and temporary password below (long-press a message, then Copy).",
           guide(locale, t.installPage),
         ),
         t.email,
         t.password,
         fr
-          ? `*3. Choisissez votre mot de passe*\nÀ la première connexion, l’application vous demande d’en choisir un nouveau. Le mot de passe provisoire est valable jusqu’au ${at(locale, t.expiresAt)}. Ne partagez ces messages avec personne.`
-          : `*3. Choose your password*\nWhen you first sign in, the app asks you to choose a new one. The temporary password is valid until ${at(locale, t.expiresAt)}. Do not share these messages with anyone.`,
+          ? `*3. Choisissez votre mot de passe*\nÀ la première connexion, l’application vous demande d’en choisir un. Le mot de passe provisoire est valable jusqu’au ${at(locale, t.expiresAt)}. Ne partagez jamais ces messages.`
+          : `*3. Choose your password*\nOn your first sign-in, the app asks you to choose one. The temporary password is valid until ${at(locale, t.expiresAt)}. Never share these messages.`,
+      ];
+    case "reset":
+      return [
+        blocks(
+          hello(
+            locale,
+            t.name,
+            fr
+              ? `voici votre code pour réinitialiser votre mot de passe (valable ${t.minutes} min).`
+              : `here is your code to reset your password (valid for ${t.minutes} min).`,
+          ),
+          fr
+            ? "Dans l’application : « Mot de passe oublié ? », puis « J’ai déjà un code »."
+            : "In the app: “Forgot password?”, then “I already have a code”.",
+          shortcut(locale, t.link),
+          fr
+            ? "Ce n’était pas vous ? Ignorez ce message."
+            : "Not you? Ignore this message.",
+          apps,
+        ),
+        shown(t.code),
       ];
     case "password-changed":
       return [
-        fr
-          ? `Bonjour ${t.name}, votre mot de passe BioBalance a été modifié le ${at(locale, t.changedAt)}. Ce n’était pas vous ? Prévenez votre responsable tout de suite.`
-          : `Hello ${t.name}, your BioBalance password was changed on ${at(locale, t.changedAt)}. Not you? Tell your manager right away.`,
+        blocks(
+          hello(
+            locale,
+            t.name,
+            fr
+              ? `votre mot de passe a été modifié le ${at(locale, t.changedAt)}.`
+              : `your password was changed on ${at(locale, t.changedAt)}.`,
+          ),
+          fr
+            ? "Ce n’était pas vous ? Prévenez votre responsable immédiatement."
+            : "Not you? Tell your manager right away.",
+          apps,
+        ),
+      ];
+    case "update":
+      return [
+        blocks(
+          hello(
+            locale,
+            t.name,
+            fr
+              ? "une nouvelle version de l’application est disponible (corrections et améliorations)."
+              : "a new version of the app is available (fixes and improvements).",
+          ),
+          fr
+            ? "Touchez votre lien pour mettre à jour :"
+            : "Tap your link to update:",
+          apps,
+          fr
+            ? "Vos identifiants ne changent pas."
+            : "Your sign-in details do not change.",
+        ),
       ];
   }
 }

@@ -14,7 +14,6 @@ class ApiClient {
     required this.onUnauthorized,
     this.onClosed,
     this.retryDelay = const Duration(milliseconds: 700),
-    this.headers = const {},
     Dio? dio,
   }) : _dio = dio ?? _build();
 
@@ -24,9 +23,6 @@ class ApiClient {
 
   /// Called when the server is closed for now (outside the working hours), with its details.
   final void Function(Object? details)? onClosed;
-
-  /// Sent with every request (the admin's "Show the test region" choice).
-  final Map<String, String> headers;
 
   /// A read that fails for lack of a connection is tried once more after this pause: a flaky network
   /// often answers the second time, and a read does no harm twice.
@@ -49,7 +45,6 @@ class ApiClient {
       headers: {
         if (token != null) 'Authorization': 'Bearer $token',
         'Accept-Language': localeReader(),
-        ...this.headers,
         ...?headers,
       },
     );

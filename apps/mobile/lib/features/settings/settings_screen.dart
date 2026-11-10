@@ -133,19 +133,6 @@ class SettingsScreen extends ConsumerWidget {
             ),
           ),
           if (me.role == Role.admin) ...[
-            SectionHeader(t.testRegionTitle),
-            AppCard(
-              child: SwitchListTile(
-                contentPadding: EdgeInsets.zero,
-                secondary: const Icon(LucideIcons.flaskConical),
-                title: Text(t.showTestRegion),
-                subtitle: Text(t.showTestRegionHint),
-                value: ref.watch(showTestRegionProvider),
-                onChanged: (show) =>
-                    ref.read(showTestRegionProvider.notifier).choose(show),
-              ),
-            ),
-            const Gap(8),
             _Item(
               icon: LucideIcons.slidersHorizontal,
               label: t.appSettingsEntry,

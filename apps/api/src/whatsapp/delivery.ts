@@ -35,13 +35,19 @@ export class WhatsAppDelivery {
       if (p.template === "credentials") await wipeCredentials(this.db, job.id);
       return outcome;
     };
-    if (!this.transport || !(await this.settings.get()).whatsapp.enabled)
+    const settings = await this.settings.get();
+    if (!this.transport || !settings.whatsapp.enabled)
       return wipe("suppressed");
     const user = await this.db.user.findUnique({ where: { id: p.userId } });
     if (!user || user.status !== "ACTIVE") return wipe("suppressed");
     const phone = user.phone ? normalizeTunisianPhone(user.phone) : null;
     if (!phone) return wipe("suppressed");
     const locale = user.locale === "en" ? "en" : "fr";
+    // Every message carries the two store links and the guide.
+    const links = {
+      stores: settings.stores,
+      installPage: installPageUrl(locale),
+    };
     let texts: string[];
     if (p.template === "credentials") {
       const password = await openCredentials(user, p.sealed);
@@ -52,21 +58,20 @@ export class WhatsAppDelivery {
         email: user.email,
         password,
         expiresAt: user.passwordExpiresAt!,
-        stores: (await this.settings.get()).stores,
-        installPage: installPageUrl(locale),
+        ...links,
       });
     } else if (p.template === "update") {
       texts = renderWhatsApp(locale, {
         kind: "update",
         name: user.name,
-        stores: (await this.settings.get()).stores,
-        installPage: installPageUrl(locale),
+        ...links,
       });
     } else if (p.template === "password-changed")
       texts = renderWhatsApp(locale, {
         kind: p.template,
         name: user.name,
         changedAt: new Date(p.changedAt),
+        ...links,
       });
     else {
       const token = await this.db.accessToken.findUnique({
@@ -92,14 +97,14 @@ export class WhatsAppDelivery {
               name: user.name,
               email: user.email,
               link,
-              stores: (await this.settings.get()).stores,
-              installPage: installPageUrl(locale),
+              ...links,
             })
           : renderWhatsApp(locale, {
               kind: "reset",
               code: p.code,
               name: user.name,
               link,
+              ...links,
               minutes: Math.max(
                 1,
                 Math.round((token.expiresAt.getTime() - Date.now()) / 60_000),
