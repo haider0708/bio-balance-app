@@ -130,7 +130,7 @@ Every route is under `https://api.galylio.com`, JSON in and out, `Authorization:
 | POST | `/v1/restocks/:id/approve` | admin: `lines` are the quantities received (what is left out is what was sent) |
 | POST | `/v1/restocks/:id/assign` | admin |
 | POST | `/v1/restocks/:id/cancel` | admin, responsable |
-| POST | `/v1/restocks/:id/receipt` | admin (grossiste orders), the store's responsable, the chosen team member: the paper (`photoIds`, photos or PDF) and a `note`; `lines` only from the admin (or older apps) |
+| POST | `/v1/restocks/:id/receipt` | admin (any order on its way; with no `photoIds` it uses the papers already on the order, at most five), the store's responsable, the chosen team member: the paper (`photoIds`, photos or PDF) and a `note`; `lines` only from the admin (or older apps) |
 | PUT | `/v1/restocks/:id/receiver` | the store's responsable |
 | POST | `/v1/restocks/:id/reject-receipt` | admin |
 | POST | `/v1/restocks/:id/send-direct` | admin |

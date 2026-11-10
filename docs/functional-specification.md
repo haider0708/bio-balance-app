@@ -57,6 +57,8 @@ One quantity per product per place (point of sale or grossiste). **No lots, no e
 5. The admin looks at the paper, **enters the quantities received** (each starts at what was sent) and approves, or asks for the paper again.
 6. **Only then does the destination gain stock**: the approved quantities are added. A grossiste that supplied the order lost them when they were shipped.
 
+**The admin controls every order.** On an order that is on its way (to a store or a grossiste) she can **complete the delivery** herself, in one step: the quantities received start at what was sent, the papers already on the order count as the delivery paper (she adds none twice; at least one is needed), and the stock is added at once. An order marked delivered (by the order manager or the admin) shows "Delivered, to be confirmed" until the store confirms or the admin completes it. The store's responsable or chosen team member still photographs the signed paper themselves.
+
 The admin can also restock a grossiste herself: she enters what BioBalance delivered, adds photos or the paper, and the goods are added at once (the same when she receives a delivery to a grossiste).
 
 ## Sales and rewards
