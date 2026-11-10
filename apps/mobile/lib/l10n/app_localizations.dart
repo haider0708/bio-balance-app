@@ -2828,6 +2828,18 @@ abstract class AppLocalizations {
   /// **'Completed'**
   String get restockCompleted;
 
+  /// No description provided for @completeDelivery.
+  ///
+  /// In en, this message translates to:
+  /// **'Complete the delivery'**
+  String get completeDelivery;
+
+  /// No description provided for @restockDelivered.
+  ///
+  /// In en, this message translates to:
+  /// **'Delivered, to be confirmed'**
+  String get restockDelivered;
+
   /// No description provided for @restockReceived.
   ///
   /// In en, this message translates to:

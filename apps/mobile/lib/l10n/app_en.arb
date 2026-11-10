@@ -823,6 +823,8 @@
   "restockAssigned": "With the grossiste",
   "restockCancelled": "Restock cancelled",
   "restockCompleted": "Completed",
+  "completeDelivery": "Complete the delivery",
+  "restockDelivered": "Delivered, to be confirmed",
   "restockReceived": "To approve",
   "restockRequested": "Requested",
   "restockRouted": "The order was sent on",

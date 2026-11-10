@@ -51,10 +51,16 @@ class DeclarationStatusChip extends StatelessWidget {
   }
 }
 
-String restockStatusLabel(AppLocalizations t, RestockStatus s) => switch (s) {
+/// The label of an order's status. An order marked delivered is still on the road for the system (the
+/// store has not confirmed it yet), but it is shown as delivered, waiting for that confirmation.
+String restockStatusLabel(
+  AppLocalizations t,
+  RestockStatus s, {
+  bool delivered = false,
+}) => switch (s) {
   RestockStatus.requested => t.restockRequested,
   RestockStatus.assigned => t.restockAssigned,
-  RestockStatus.shipped => t.restockShipped,
+  RestockStatus.shipped => delivered ? t.restockDelivered : t.restockShipped,
   RestockStatus.received => t.restockReceived,
   RestockStatus.completed => t.restockCompleted,
   RestockStatus.cancelled => t.statusCancelled,
@@ -70,13 +76,18 @@ Tone restockTone(RestockStatus s) => switch (s) {
 };
 
 class RestockStatusChip extends StatelessWidget {
-  const RestockStatusChip(this.status, {super.key});
+  const RestockStatusChip(this.status, {this.delivered = false, super.key});
 
   final RestockStatus status;
+  final bool delivered;
 
   @override
   Widget build(BuildContext context) => StatusChip(
-    restockStatusLabel(AppLocalizations.of(context), status),
+    restockStatusLabel(
+      AppLocalizations.of(context),
+      status,
+      delivered: delivered,
+    ),
     tone: restockTone(status),
   );
 }

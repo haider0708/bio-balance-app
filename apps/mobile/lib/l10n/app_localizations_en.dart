@@ -1610,6 +1610,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get restockCompleted => 'Completed';
 
   @override
+  String get completeDelivery => 'Complete the delivery';
+
+  @override
+  String get restockDelivered => 'Delivered, to be confirmed';
+
+  @override
   String get restockReceived => 'To approve';
 
   @override

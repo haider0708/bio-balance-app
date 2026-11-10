@@ -1616,6 +1616,12 @@ class AppLocalizationsFr extends AppLocalizations {
   String get restockCompleted => 'Terminé';
 
   @override
+  String get completeDelivery => 'Terminer la livraison';
+
+  @override
+  String get restockDelivered => 'Livrée, à confirmer';
+
+  @override
   String get restockReceived => 'À valider';
 
   @override

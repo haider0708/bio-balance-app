@@ -652,6 +652,57 @@ describe("direct restock from BioBalance", () => {
     expect((await levels(w, pdv.id))["Serum Vitamin C"]).toBe(4);
   });
 
+  it("the admin completes a delivery with the papers already on the order, with no new photo", async () => {
+    const pdv = await approvedPdv(w);
+    const order = (
+      await w.n.post("/v1/restocks", {
+        destId: pdv.id,
+        lines: [{ productId: w.products[0]!.id, quantity: 4 }],
+      })
+    ).body;
+    await w.a.post(`/v1/restocks/${order.id}/send-direct`, {});
+    // Nothing on the order yet: a paper is still needed.
+    const none = await w.a.post(`/v1/restocks/${order.id}/receipt`, {});
+    expect(none.status).toBe(422);
+    expect(none.body.code).toBe("PHOTO_REQUIRED");
+    // The admin adds the papers, marks it delivered ("On its way" stays), then completes it.
+    const paper = await photo(w, w.admin);
+    expect(
+      (
+        await w.a.post(`/v1/restocks/${order.id}/documents`, {
+          photoIds: [paper],
+        })
+      ).status,
+    ).toBe(201);
+    const done = await w.a.post(`/v1/restocks/${order.id}/receipt`, {});
+    expect(done.status).toBe(201);
+    expect(done.body.status).toBe("COMPLETED");
+    expect(done.body.receiptPhotoIds).toEqual([paper]);
+    expect((await levels(w, pdv.id))["Serum Vitamin C"]).toBe(4);
+  });
+
+  it("the store's responsable still photographs the signed paper herself", async () => {
+    const pdv = await approvedPdv(w);
+    const order = (
+      await w.n.post("/v1/restocks", {
+        destId: pdv.id,
+        lines: [{ productId: w.products[0]!.id, quantity: 3 }],
+      })
+    ).body;
+    await w.a.post(`/v1/restocks/${order.id}/send-direct`, {});
+    await w.a.post(`/v1/restocks/${order.id}/documents`, {
+      photoIds: [await photo(w, w.admin)],
+    });
+    // The papers on the order do not stand in for her own paper.
+    const without = await w.n.post(`/v1/restocks/${order.id}/receipt`, {});
+    expect(without.status).toBe(422);
+    expect(without.body.code).toBe("PHOTO_REQUIRED");
+    const done = await w.n.post(`/v1/restocks/${order.id}/receipt`, {
+      photoIds: [await photo(w, w.nord)],
+    });
+    expect(done.body.status).toBe("RECEIVED");
+  });
+
   it("can be cancelled by its requester only while waiting", async () => {
     const pdv = await approvedPdv(w);
     const order = (

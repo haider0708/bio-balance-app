@@ -1,4 +1,4 @@
-import { ownedProofs } from "../media/proofs";
+import { MAX_PROOF_PHOTOS, ownedProofs } from "../media/proofs";
 import { Injectable } from "@nestjs/common";
 import type { OrderStatus, Prisma } from "@prisma/client";
 import type { Actor } from "../../core/actor";
@@ -1060,12 +1060,31 @@ export class RestockService {
         "You cannot receive this delivery.",
         403,
       );
-      const photoIds = await ownedProofs(
+      // The papers already on the order (added by the order manager or the admin) are the delivery paper
+      // too: the admin who completes the delivery does not add them again. Without any photo given, they
+      // are used as they are; the store's people photograph the signed paper themselves.
+      const given = input.photoIds ?? (input.photoId ? [input.photoId] : []);
+      const adminCounts = actor.role === "ADMIN";
+      const attached = adminCounts
+        ? (given.length
+            ? given.filter((id) => order.documentIds.includes(id))
+            : order.documentIds
+          ).slice(0, MAX_PROOF_PHOTOS)
+        : [];
+      const fresh = given.filter((id) => !attached.includes(id));
+      const added = await ownedProofs(
         tx,
         actor,
-        input.photoIds ?? (input.photoId ? [input.photoId] : []),
+        fresh,
         "Add a photo of the delivery paper.",
-        { regionId: order.regionId },
+        { regionId: order.regionId, min: attached.length ? 0 : 1 },
+      );
+      const photoIds = [...attached, ...added];
+      requireRule(
+        photoIds.length >= 1 && photoIds.length <= MAX_PROOF_PHOTOS,
+        "TOO_MANY_PHOTOS",
+        `Add between 1 and ${MAX_PROOF_PHOTOS} different photos or documents.`,
+        422,
       );
       // Quantities counted at the store, from apps that still send them: the admin starts from them.
       if (input.lines) {

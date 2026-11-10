@@ -84,7 +84,10 @@ class _RestockDetailScreenState extends ConsumerState<RestockDetailScreen> {
                             style: context.text.titleMedium,
                           ),
                         ),
-                        RestockStatusChip(o.status),
+                        RestockStatusChip(
+                          o.status,
+                          delivered: o.deliveredAt != null,
+                        ),
                       ],
                     ),
                     const Gap(8),
@@ -450,6 +453,10 @@ class _RestockDetailScreenState extends ConsumerState<RestockDetailScreen> {
           AsyncButton(
             label: t.orderMarkDelivered,
             icon: LucideIcons.circleCheck,
+            // For the admin, completing the delivery is the main step; this one only tells the store.
+            style: me.role == Role.admin
+                ? AsyncButtonStyle.outlined
+                : AsyncButtonStyle.filled,
             onPressed: () async {
               final done = await context.push<bool>(
                 '/restocks/${o.id}/delivered',
@@ -507,12 +514,15 @@ class _RestockDetailScreenState extends ConsumerState<RestockDetailScreen> {
                 o.destinationId == me.pdv?.id &&
                 o.receiver == null) ||
             (me.role == Role.responsable && o.regionId == me.region?.id) ||
-            (me.role == Role.admin && o.toDepot));
+            // The admin completes any delivery herself: the stock is added at once.
+            me.role == Role.admin);
     if (canReceive) {
       w
         ..add(
           AsyncButton(
-            label: t.confirmDelivery,
+            label: me.role == Role.admin
+                ? t.completeDelivery
+                : t.confirmDelivery,
             icon: LucideIcons.packageCheck,
             onPressed: () async {
               final sent = await context.push<bool>(

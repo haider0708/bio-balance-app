@@ -740,6 +740,8 @@
   "restockAssigned": "Chez le grossiste",
   "restockCancelled": "Réassort annulé",
   "restockCompleted": "Terminé",
+  "completeDelivery": "Terminer la livraison",
+  "restockDelivered": "Livrée, à confirmer",
   "restockReceived": "À valider",
   "restockRequested": "Demandé",
   "restockRouted": "La commande a été transmise",

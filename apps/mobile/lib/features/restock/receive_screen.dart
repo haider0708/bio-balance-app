@@ -41,6 +41,13 @@ class _ReceiveScreenState extends ConsumerState<ReceiveScreen> {
   bool _photosBusy = false;
 
   @override
+  void initState() {
+    super.initState();
+    // The admin completing a delivery starts from the papers already on the order: nothing to add twice.
+    if (_admin) _photoIds = widget.order.documentIds.take(5).toList();
+  }
+
+  @override
   void dispose() {
     _quantities.dispose();
     _note.dispose();
@@ -71,7 +78,9 @@ class _ReceiveScreenState extends ConsumerState<ReceiveScreen> {
     final t = AppLocalizations.of(context);
     final admin = ref.watch(meProvider).role == Role.admin;
     return Scaffold(
-      appBar: AppBar(title: Text(t.confirmDelivery)),
+      appBar: AppBar(
+        title: Text(admin ? t.completeDelivery : t.confirmDelivery),
+      ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -83,6 +92,7 @@ class _ReceiveScreenState extends ConsumerState<ReceiveScreen> {
           ),
           const Gap(16),
           PhotoSet(
+            initialIds: admin ? _photoIds : const [],
             label: t.photoOfPaper,
             onChanged: (ids, busy) => setState(() {
               _photoIds = ids;

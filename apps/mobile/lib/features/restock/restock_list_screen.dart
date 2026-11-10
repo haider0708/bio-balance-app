@@ -182,7 +182,10 @@ class RestockTile extends StatelessWidget {
               Expanded(
                 child: Text(order.number, style: context.text.titleSmall),
               ),
-              RestockStatusChip(order.status),
+              RestockStatusChip(
+                order.status,
+                delivered: order.deliveredAt != null,
+              ),
             ],
           ),
           const Gap(6),
