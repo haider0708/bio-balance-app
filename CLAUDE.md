@@ -41,6 +41,7 @@ BioBalance runs a network of parapharmacies: points of sale and their teams, sto
 - Cloudflare breaks script-free pages that show email addresses unless wrapped in `<!--email_off-->`; the pages are sent `no-transform`.
 - Never `pkill -f` a pattern that appears in your own command line (it kills your own shell); never `pkill -f flutter`.
 - The server is **shared with other, unrelated sites**: touch only BioBalance's containers, images, volumes and folders.
+- The router (`routerProvider`) must refresh only when signing in or out (or a password must be chosen), never on every update of the session: the app asks the server who is signed in each time it comes back to the foreground (after the camera, the gallery, the file chooser), and a refresh throws away the page the person is on when that page needs the object handed over by the previous screen (`extra`: the order of "Add papers"). That made every photo, gallery and PDF upload in the restock screens fall back to the order (found on the owner's Samsung, 2026-11-10; `test/resume_keeps_page_test.dart`).
 - There is no demonstration region any more (removed 2026-11-09; the code is in the git tag `demo-region-last`). Store reviewers get accounts created for the review (`docs/store-publishing.md`, decision 5).
 
 ## How the owner likes to work

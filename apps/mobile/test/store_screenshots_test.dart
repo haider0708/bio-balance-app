@@ -161,7 +161,9 @@ void main() {
         await tester.pump(const Duration(minutes: 6));
       });
 
-      testWidgets('store: regional manager, $device, $lang', skip: skip, (tester) async {
+      testWidgets('store: regional manager, $device, $lang', skip: skip, (
+        tester,
+      ) async {
         await launch(
           tester,
           analytics.analyticsServer(role: 'RESPONSABLE'),

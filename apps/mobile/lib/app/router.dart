@@ -93,7 +93,15 @@ void rememberLanding() {
 /// The app's routes. They depend on who is signed in, so a new router is built at sign-in and sign-out.
 final routerProvider = Provider<GoRouter>((ref) {
   final refresh = ValueNotifier<int>(0);
-  ref.listen(sessionProvider, (_, _) => refresh.value++);
+  // The pages are checked again when signing in or out, or when a password must be chosen: not each time the
+  // app asks the server who is signed in (it does, whenever it comes back to the foreground, e.g. from the
+  // camera), which would throw away the page the person is on and the order it was handed.
+  ref.listen(
+    sessionProvider.select(
+      (s) => (s.isLoading, s.value != null, s.value?.me.mustChangePassword),
+    ),
+    (_, _) => refresh.value++,
+  );
   ref.listen(splashDoneProvider, (_, _) => refresh.value++);
   ref.onDispose(refresh.dispose);
   final role = ref.watch(sessionProvider.select((s) => s.value?.me.role));
