@@ -192,7 +192,11 @@ Measured 2026-10-10: dashboards 0.3–0.6 s, analytics of 30 days 0.8 s (a regio
 
 ## Store reviewers
 
-There is no test region any more. It was removed on **2026-11-09** (database dump taken first: `/srv/biobalance-backups/manual/before-demo-purge-20261109T095323Z.dump`; the region, its two accounts, 769 sales and the rest were purged, nothing else was touched). Its code is kept in the git tag `demo-region-last` if a store ever needs it again (`git show demo-region-last:apps/api/src/demo/seed.ts`, plus the migration `202610170001_sandbox_region`). For a review, create a team member and a responsable account in a small real region (People), give them in the review notes, and remove them afterwards (`docs/store-publishing.md`, decision 5).
+There is no permanent test region (the demonstration region was removed on **2026-11-09**; its code is in the git tag `demo-region-last`). For a review, create temporary accounts and remove them when it ends.
+
+**Current ones (created 2026-11-10 for the App Store review of 3.5.2):** region **Revue** with the store *Para Revue* (6 products, 30 units each), a team member `review-vendeur@galylio.com` and a responsable `review-responsable@galylio.com`. No email or WhatsApp was sent for them. Their passwords are in the review notes in App Store Connect and in `~/.biobalance/review-accounts.txt` on the Mac (not in the repository). **Remove them once Apple has approved 3.5.2** (and use the same accounts for a Google Play review if one asks): `sudo biobalance-compose run --rm -T clear-region node dist/clear-region.js REVUE --delete-everything-in-it </dev/null` (dump first, see below), then delete the empty region *Revue* in the console (Regions). A review account sees only its region.
+
+How they were made (reuse for the next review): as the admin through the API (a short admin session inserted for the occasion and removed after): create the region, a responsable, a store, a team member, an approved count of a few products; set known passwords; stop the worker while doing it and delete the queued email and WhatsApp jobs of the two users.
 
 ### Emptying one region
 
