@@ -19,8 +19,15 @@ export interface Settings {
   whatsapp: { enabled: boolean };
 }
 
-const ANDROID_STORE =
+/**
+ * The two store pages. They are built in, so a message can never go out without one of them because a
+ * container was started without the variable (the worker once was, and its messages had no iPhone link);
+ * IOS_STORE_URL, PLAY_STORE_URL and the admin's settings override them.
+ */
+export const ANDROID_STORE =
   "https://play.google.com/store/apps/details?id=tn.biobalance.app";
+export const IOS_STORE =
+  "https://apps.apple.com/tn/app/biobalance/id6822445997";
 const time = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/);
 const day = z
   .object({ open: time, close: time })
@@ -76,7 +83,7 @@ export class SettingsService {
         ...((stored.get("minimumBuild") as object | undefined) ?? {}),
       },
       stores: {
-        ios: process.env.IOS_STORE_URL || null,
+        ios: process.env.IOS_STORE_URL || IOS_STORE,
         android: process.env.PLAY_STORE_URL || ANDROID_STORE,
         ...((stored.get("stores") as object | undefined) ?? {}),
       },

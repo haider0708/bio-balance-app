@@ -17,6 +17,7 @@ x-api-environment: &api-env
   # The oldest app build still allowed (older phones are asked to update), and the App Store page.
   MIN_APP_BUILD: ${MIN_APP_BUILD:-0}
   IOS_STORE_URL: ${IOS_STORE_URL:-}
+  PLAY_STORE_URL: ${PLAY_STORE_URL:-}
   # WhatsApp (docs/runbook.md, "WhatsApp codes"): the WAHA container below, on the private network.
   # Unset = the admin settings show it as not set up and only the email goes.
   WAHA_URL: ${WAHA_URL:-}
@@ -75,6 +76,9 @@ services:
       MFA_ENCRYPTION_KEY: ${MFA_ENCRYPTION_KEY}
       WORKER_CONCURRENCY: ${WORKER_CONCURRENCY:-2}
       API_PUBLIC_URL: ${API_PUBLIC_URL:-}
+      # The store links of the welcome and update messages (email and WhatsApp are sent by this container).
+      IOS_STORE_URL: ${IOS_STORE_URL:-}
+      PLAY_STORE_URL: ${PLAY_STORE_URL:-}
       SMTP_HOST: ${SMTP_HOST:?Set SMTP host}
       SMTP_PORT: ${SMTP_PORT:-587}
       SMTP_SECURE: ${SMTP_SECURE:-false}

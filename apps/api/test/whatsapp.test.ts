@@ -151,6 +151,26 @@ describe("codes by WhatsApp", () => {
     );
   });
 
+  it("every message carries the links of both apps, with nothing configured", async () => {
+    // No store setting and no environment variable: the built-in links still go out (the worker once had
+    // no iPhone link because its container was started without the variable).
+    await turn(true);
+    delete process.env.IOS_STORE_URL;
+    delete process.env.PLAY_STORE_URL;
+    api.app.get(SettingsService).forget();
+    await invite();
+    const { sent, transport } = fake();
+    const job = (await jobs("whatsapp"))[0]!;
+    expect(await delivery(transport).deliver(job)).toBe("sent");
+    const lines = sent[0]!.texts[0]!.split("\n");
+    expect(lines).toContain(
+      "https://play.google.com/store/apps/details?id=tn.biobalance.app",
+    );
+    expect(lines).toContain(
+      "https://apps.apple.com/tn/app/biobalance/id6822445997",
+    );
+  });
+
   it("stays silent when the channel is off, not set up, or the number is not usable", async () => {
     await invite();
     const job = (await jobs("whatsapp"))[0]!;
