@@ -115,9 +115,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get amountPerUnitHint => 'Example: 0.500';
 
   @override
-  String get amountTnd => 'Amount';
-
-  @override
   String get announcement => 'Announcement';
 
   @override
@@ -3559,12 +3556,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get sortTeam => 'Team size';
-
-  @override
-  String get sortStatus => 'Status';
-
-  @override
-  String get sortRole => 'Role';
 
   @override
   String get clearSearch => 'Clear the search';

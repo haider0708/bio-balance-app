@@ -953,8 +953,7 @@ export class PlanningService {
         revision: v.revision,
         checkedInAt: v.checkedInAt,
         checkedOutAt: v.checkedOutAt,
-        // The earliest moment the phone offers "I'm here".
-        // The whole planned day, from its first minute in Tunis.
+        // Kept for older apps, which offer the check-in from this moment: the first minute of the planned day in Tunis.
         canStartFrom: new Date(v.day.getTime() - TUNIS_OFFSET_MS),
         responsable: people
           ? { id: v.responsableId, name: people.get(v.responsableId) ?? "?" }

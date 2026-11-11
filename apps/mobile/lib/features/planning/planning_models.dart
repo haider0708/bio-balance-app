@@ -145,7 +145,6 @@ class Visit {
     required this.day,
     required this.target,
     required this.events,
-    required this.canStartFrom,
     this.note,
     this.checkedInAt,
     this.checkedOutAt,
@@ -163,7 +162,6 @@ class Visit {
     note: j.strOrNull('note'),
     checkedInAt: j.dateOrNull('checkedInAt'),
     checkedOutAt: j.dateOrNull('checkedOutAt'),
-    canStartFrom: j.date('canStartFrom'),
     responsableName: j.objOrNull('responsable')?.strOrNull('name'),
     target: VisitTarget.fromJson(j.obj('target')),
     events: j.list('events').map(VisitEvent.fromJson).toList(),
@@ -179,7 +177,6 @@ class Visit {
   final String? note;
   final DateTime? checkedInAt;
   final DateTime? checkedOutAt;
-  final DateTime canStartFrom;
   final String? responsableName;
   final VisitTarget target;
   final List<VisitEvent> events;

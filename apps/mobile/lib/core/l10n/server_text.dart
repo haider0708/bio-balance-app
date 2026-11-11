@@ -391,10 +391,6 @@ class ServerText {
       'Choisissez un point de vente ou un grossiste de votre région.',
     ),
     'PLACE_INACTIVE': ('This place is not active.', 'Ce lieu n’est pas actif.'),
-    'TOO_EARLY': (
-      'You can start a visit one hour before it begins.',
-      'Vous pouvez commencer une visite une heure avant son début.',
-    ),
     'WRONG_DAY': (
       'This visit was planned for another day.',
       'Cette visite était prévue un autre jour.',

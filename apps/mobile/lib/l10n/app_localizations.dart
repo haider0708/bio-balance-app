@@ -272,12 +272,6 @@ abstract class AppLocalizations {
   /// **'Example: 0.500'**
   String get amountPerUnitHint;
 
-  /// No description provided for @amountTnd.
-  ///
-  /// In en, this message translates to:
-  /// **'Amount'**
-  String get amountTnd;
-
   /// No description provided for @announcement.
   ///
   /// In en, this message translates to:
@@ -6157,18 +6151,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Team size'**
   String get sortTeam;
-
-  /// No description provided for @sortStatus.
-  ///
-  /// In en, this message translates to:
-  /// **'Status'**
-  String get sortStatus;
-
-  /// No description provided for @sortRole.
-  ///
-  /// In en, this message translates to:
-  /// **'Role'**
-  String get sortRole;
 
   /// No description provided for @clearSearch.
   ///

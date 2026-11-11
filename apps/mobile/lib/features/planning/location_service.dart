@@ -16,7 +16,7 @@ class LocationException implements Exception {
   String toString() => 'LocationException($failure)';
 }
 
-/// Where the phone is, read once when the person taps "I'm here" (never followed in the background).
+/// Where the phone is, read once when the person taps "Record my position" (never followed in the background).
 abstract class LocationService {
   /// The best reading within a few seconds. Throws [LocationException] when there is none.
   Future<Fix> current();

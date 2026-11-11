@@ -76,7 +76,7 @@ Data **linked to the user**, used **only for App Functionality**, **not used for
 | Identifiers → User ID, Device ID | the account; the phone's push-alert token |
 | User Content → Photos or Videos | proof photos of stock and delivery papers |
 | User Content → Other User Content | sales, stock counts, restocks, planned visits |
-| Location → Precise Location | a responsable's position at the moment of "I'm here" and "I'm leaving" on a visit (foreground only, never followed; optional: a check-in can be sent without it) |
+| Location → Precise Location | a responsable's position at the moment of "Record my position" and "I'm leaving" on a visit (foreground only, never followed; since 3.6 a visit is not recorded without it) |
 
 And **not linked** to the user (sent without signing in), App Functionality, not for tracking:
 
@@ -89,7 +89,7 @@ Not collected: contacts, health, financial info, browsing, search history, perfo
 ## Google Play “Data safety”
 
 - Data collected: **Personal info** (name, email address, phone number, user IDs), **Photos**, **Files and docs** (PDF proofs), **App activity → Other user-generated content** (sales, counts), **Device or other IDs** (the push-alert token), **App info and performance → Crash logs** (the app's own error reports, without identity, kept 30 days). All **required for app functionality**, **not shared** with third parties, **encrypted in transit**, and **deletable by the user** (in the app and at `/account-deletion`).
-- **Location → Approximate location and Precise location**: collected, **optional**, **not shared**, purpose **App functionality** (a responsable confirms a visit by sending their position once, at "I'm here" and "I'm leaving"; never in the background, never followed). The manifest asks for `ACCESS_FINE_LOCATION` and `ACCESS_COARSE_LOCATION` only (no background location, no foreground service for location: the plugin's service is removed from the manifest).
+- **Location → Approximate location and Precise location**: collected, **required since 3.6 for recording a visit** (it was optional before: change the answer in the Data safety form with the 3.6 upload), **not shared**, purpose **App functionality** (a responsable records a visit by sending their position once, at "Record my position" and optionally "I'm leaving"; never in the background, never followed). The manifest asks for `ACCESS_FINE_LOCATION` and `ACCESS_COARSE_LOCATION` only (no background location, no foreground service for location: the plugin's service is removed from the manifest).
 - No data sold, no ads (**Contains ads: No**).
 - **App access**: all functionality needs an account → give the reviewer accounts (decision 5).
 - **Content rating**: questionnaire → no violence, no user-to-user chat, no gambling → *Everyone*.
