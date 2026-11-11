@@ -224,7 +224,7 @@ describe("seeing the network", () => {
     expect(depots.body.map((d: { id: string }) => d.id)).toContain(w.depotId);
   });
 
-  it("sees transfers and returns, and can change none", async () => {
+  it("sees returns without changing them, and records transfers for the admin to approve", async () => {
     const group = (await w.n.post("/v1/groups", { name: "Groupe" })).body;
     await w.a.post(`/v1/groups/${group.id}/approve`, {});
     for (const p of [lac, marsa])
@@ -250,15 +250,14 @@ describe("seeing the network", () => {
       403,
     );
     expect((await m.get("/v1/transfers")).status).toBe(200);
-    expect(
-      (
-        await m.post("/v1/transfers", {
-          fromPdvId: lac.id,
-          toPdvId: marsa.id,
-          lines: lines(1),
-        })
-      ).status,
-    ).toBe(403);
+    // A transfer is its to record (with its photo: test/transfers.test.ts), never to approve.
+    const transfer = await m.post("/v1/transfers", {
+      fromPdvId: lac.id,
+      toPdvId: marsa.id,
+      direction: "SEND",
+      lines: lines(1),
+    });
+    expect(transfer.body.code).toBe("PHOTO_REQUIRED");
   });
 });
 

@@ -7,7 +7,9 @@
   <meta name="description" content="Console BioBalance — réseau, stock, ventes, récompenses et analyses.">
   <meta name="theme-color" content="#0C6B45">
   <meta name="robots" content="noindex, nofollow">
-  <meta name="referrer" content="no-referrer">
+  <!-- Other hosts (the API, the map tiles) learn the console's address only, never the page. The map's
+       tile server refuses a browser that says nothing at all. -->
+  <meta name="referrer" content="strict-origin-when-cross-origin">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="BioBalance">

@@ -200,17 +200,18 @@ describe("what a buyer sees", () => {
     expect((await b.get(`/v1/restocks/${other.id}`)).status).toBe(404);
   });
 
-  it("nothing of money, sales, people, approvals, transfers or the network", async () => {
+  it("nothing of money, sales, people, approvals or the network; only its own para's transfers and returns", async () => {
     for (const route of [
       "/v1/wallet",
       "/v1/orders/overview",
       "/v1/approvals",
       "/v1/users",
-      "/v1/transfers",
-      "/v1/returns",
       "/v1/rewards",
     ])
       expect([401, 403, 404]).toContain((await b.get(route)).status);
+    // What moves its para's stock is its to ask for (test/transfers.test.ts, test/returns.test.ts).
+    expect((await b.get("/v1/transfers")).body).toEqual([]);
+    expect((await b.get("/v1/returns")).body).toEqual([]);
     expect(
       (
         await b.post("/v1/sales", {
