@@ -2,6 +2,10 @@
 Description=Renew only the BioBalance certificate on the shared Apache host
 After=apache2.service network-online.target
 Wants=network-online.target
+# The host's own certbot (other sites) can hold Certbot's lock at the same minute: try again a few
+# times instead of staying failed until the next run twelve hours later (the alert of 2026-11-11).
+StartLimitIntervalSec=1h
+StartLimitBurst=5
 
 [Service]
 Type=oneshot
@@ -9,4 +13,6 @@ Type=oneshot
 # configuration retains the webroot challenge and the owned API hostname.
 ExecStart=/usr/bin/certbot renew --cert-name api.galylio.com --non-interactive --quiet
 TimeoutStartSec=15min
+Restart=on-failure
+RestartSec=5min
 UMask=0077
