@@ -821,7 +821,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get locationPrivacy =>
-      'Your position is read only when you tap “I\'m here” or “I\'m leaving”, and kept 12 months. Nobody follows you in between.';
+      'Your position is read only when you tap “Record my position” or “I\'m leaving”, and kept 12 months. Nobody follows you in between.';
 
   @override
   String get locationUnavailableBody =>
@@ -1364,22 +1364,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get positionSaved => 'Position saved';
-
-  @override
-  String positionSetBody(String place, int meters) {
-    return '$place has no position yet. Use where you are now (precision $meters m)? Only the admin can change it afterwards.';
-  }
-
-  @override
-  String get positionSetTitle => 'Save this place\'s position?';
-
-  @override
-  String get positionSetYes => 'Use this position';
-
-  @override
-  String positionTooPoor(int meters) {
-    return 'The position is not precise enough ($meters m). Go outdoors and try again.';
-  }
 
   @override
   String get precautions => 'Precautions';
@@ -2334,16 +2318,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get viewSales => 'View sales';
 
   @override
-  String get visitArrived => 'Arrival recorded';
+  String get visitArrived => 'Position recorded';
 
   @override
   String visitArrivedAt(String time) {
     return 'Arrived at $time';
-  }
-
-  @override
-  String visitAvailableFrom(String time) {
-    return 'Available from $time';
   }
 
   @override
@@ -2359,10 +2338,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get visitCancelled => 'Visit cancelled';
 
   @override
-  String get visitCheckIn => 'I\'m here';
+  String get visitCheckIn => 'Record my position';
 
   @override
-  String get visitCheckOut => 'I\'m leaving';
+  String get visitCheckOut => 'I\'m leaving (optional)';
 
   @override
   String get visitChoosePlace => 'Choose a store or a grossiste';
@@ -4482,4 +4461,39 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get personNoVisits => 'No visit planned or made in the last 30 days.';
+
+  @override
+  String get visitRecorded => 'Your position is recorded for this visit';
+
+  @override
+  String get locationNeeded =>
+      'A visit is recorded with your position: without it nothing is saved.';
+
+  @override
+  String get placePositionUse => 'Use as the place\'s position';
+
+  @override
+  String placePositionSetAsk(String place) {
+    return '$place has no position yet. Use the point recorded at this visit? The next visits are checked against it.';
+  }
+
+  @override
+  String placePositionReplaceAsk(String place) {
+    return 'Replace the position of $place with the point recorded at this visit?';
+  }
+
+  @override
+  String positionFromPlace(String distance, String place) {
+    return '$distance from $place';
+  }
+
+  @override
+  String placeHasNoPosition(String place) {
+    return '$place has no position yet';
+  }
+
+  @override
+  String positionPrecision(int meters) {
+    return 'precise to $meters m';
+  }
 }

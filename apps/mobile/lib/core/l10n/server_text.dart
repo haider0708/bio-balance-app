@@ -366,6 +366,10 @@ class ServerText {
       'This reward is above 10 TND per unit. Confirm it is not a typo.',
       'Cette récompense dépasse 10 TND par unité. Confirmez que ce n’est pas une faute de frappe.',
     ),
+    'POSITION_REQUIRED': (
+      'Turn on the location of your phone to record where you are.',
+      'Activez la localisation de votre téléphone pour enregistrer où vous êtes.',
+    ),
     'POSITION_REASON_REQUIRED': (
       'The position does not match this place: say why.',
       'La position ne correspond pas à ce lieu : dites pourquoi.',

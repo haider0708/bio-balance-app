@@ -23,8 +23,8 @@ import {
 } from "./geo";
 
 const MINUTE = 60_000;
-/** A responsable may start a visit this long before its planned time. */
-const EARLY_MS = 60 * MINUTE;
+/** Tunis is one hour ahead of UTC all year: its midnight is 23:00 UTC the day before. */
+const TUNIS_OFFSET_MS = 60 * MINUTE;
 const MAX_VISITS_PER_DAY = 20;
 /** A tap on the phone is accepted up to two days later (a phone without signal), never in the future. */
 const MAX_AGE_MS = 48 * 60 * MINUTE;
@@ -395,6 +395,19 @@ export class PlanningService {
     return at;
   }
 
+  /**
+   * Arriving is recorded with where the phone is, always: that position is the proof the admin
+   * reads. A phone that gives none (location off, permission refused) records nothing.
+   */
+  private needsPosition(input: PresenceInput) {
+    requireRule(
+      input.latitude != null && input.longitude != null,
+      "POSITION_REQUIRED",
+      "Turn on the location of your phone to record where you are.",
+      422,
+    );
+  }
+
   private async record(
     tx: Tx,
     visit: Visit,
@@ -403,6 +416,7 @@ export class PlanningService {
     input: PresenceInput,
     place: Place | null,
   ) {
+    if (kind === "CHECK_IN") this.needsPosition(input);
     const hasPlace = place?.latitude != null && place.longitude != null;
     const placePoint: Point | null = hasPlace
       ? { latitude: place!.latitude!, longitude: place!.longitude! }
@@ -418,7 +432,7 @@ export class PlanningService {
     const flags = [...judged.flags];
     if (input.mocked) flags.push("MOCK_LOCATION");
     if (Date.now() - occurredAt.getTime() > LATE_MS) flags.push("LATE_SYNC");
-    // Arriving where the position does not match (or with no position at all) is allowed, with a reason.
+    // Arriving where the position does not match the place (or is too doubtful to say) is allowed, with a reason.
     if (
       kind === "CHECK_IN" &&
       (judged.verdict === "OUT_OF_RANGE" || judged.verdict === "NO_FIX")
@@ -460,11 +474,7 @@ export class PlanningService {
         "This visit cannot be started.",
         409,
       );
-      requireRule(
-        occurredAt.getTime() >= visit.plannedStart.getTime() - EARLY_MS,
-        "TOO_EARLY",
-        "You can start a visit one hour before it begins.",
-      );
+      // Any time of the planned day: a visit made earlier or later than planned still counts.
       requireRule(
         tunisDay(occurredAt) === dateToDay(visit.day),
         "WRONG_DAY",
@@ -944,7 +954,8 @@ export class PlanningService {
         checkedInAt: v.checkedInAt,
         checkedOutAt: v.checkedOutAt,
         // The earliest moment the phone offers "I'm here".
-        canStartFrom: new Date(v.plannedStart.getTime() - EARLY_MS),
+        // The whole planned day, from its first minute in Tunis.
+        canStartFrom: new Date(v.day.getTime() - TUNIS_OFFSET_MS),
         responsable: people
           ? { id: v.responsableId, name: people.get(v.responsableId) ?? "?" }
           : undefined,

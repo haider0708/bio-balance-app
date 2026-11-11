@@ -1,14 +1,15 @@
 // The responsable's planning: the calendar of visits, planning one, and proving presence with the
-// position read once at "I'm here" and "I'm leaving" (denied, far, without a connection...); the
+// position read once at 'Record my position' and "I'm leaving" (denied, far, without a connection...); the
 // admin reads the overview. The position comes from a fake, never from a phone.
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:biobalance/features/planning/position_map.dart';
 import 'package:biobalance/app/router.dart';
 import 'package:biobalance/features/planning/location_service.dart';
 import 'package:biobalance/features/planning/planning_repository.dart';
 import 'package:biobalance/features/planning/visit_outbox.dart';
-import 'package:flutter/material.dart' show TextField;
+import 'package:flutter/material.dart' show Scrollable, TextField;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -20,7 +21,7 @@ class FakeLocation implements LocationService {
   FakeLocation({this.fix, this.failure});
 
   final Fix? fix;
-  final LocationFailure? failure;
+  LocationFailure? failure;
   int reads = 0;
   int settingsOpened = 0;
 
@@ -160,7 +161,7 @@ void main() {
     expect(find.text('Planned'), findsOneWidget);
     await tester.tap(find.text('Para Lac'));
     await settle(tester);
-    expect(find.text("I'm here"), findsOneWidget);
+    expect(find.text('Record my position'), findsOneWidget);
     expect(find.text('Count the serums'), findsOneWidget);
   });
 
@@ -224,7 +225,9 @@ void main() {
     expect(sent(s, 'POST', '/v1/visits')['allowOverlap'], isTrue);
   });
 
-  testWidgets('"I\'m here" sends the position read at the tap', (tester) async {
+  testWidgets('"Record my position" sends the position read at the tap', (
+    tester,
+  ) async {
     final s = server()
       ..on(
         'POST /v1/visits/v1/check-in',
@@ -233,7 +236,7 @@ void main() {
       );
     final phone = FakeLocation(fix: near);
     await open(tester, s, '/planning/visits/v1', location: phone);
-    await tester.tap(find.text("I'm here"));
+    await tester.tap(find.text('Record my position'));
     await settle(tester);
     expect(phone.reads, 1);
     final body = sent(s, 'POST', '/v1/visits/v1/check-in');
@@ -244,7 +247,43 @@ void main() {
     expect(body['occurredAt'], isA<String>());
   });
 
-  testWidgets('without permission the person can go on, and must say why', (
+  testWidgets(
+    'without a position nothing is recorded: settings, or try again',
+    (tester) async {
+      final s = server()
+        ..on(
+          'POST /v1/visits/v1/check-in',
+          visitJson(status: 'ON_SITE', events: [event('CHECK_IN', 'VERIFIED')]),
+          status: 201,
+        );
+      final phone = FakeLocation(fix: near, failure: LocationFailure.denied);
+      await open(tester, s, '/planning/visits/v1', location: phone);
+      await tester.tap(find.text('Record my position'));
+      await settle(tester);
+      expect(find.text('Position not allowed'), findsOneWidget);
+      // There is no way round it: a visit is recorded with the position.
+      expect(find.text('Check in without a position'), findsNothing);
+      expect(
+        find.textContaining('without it nothing is saved'),
+        findsOneWidget,
+      );
+      await tester.tap(find.text('Open settings'));
+      await settle(tester);
+      expect(phone.settingsOpened, 1);
+      expect(s.count('POST /v1/visits/v1/check-in'), 0);
+
+      // The permission is given: trying again reads the position and records the visit.
+      await tester.tap(find.text('Record my position'));
+      await settle(tester);
+      phone.failure = null;
+      await tester.tap(find.text('Try again'));
+      await settle(tester);
+      expect(s.count('POST /v1/visits/v1/check-in'), 1);
+      expect(sent(s, 'POST', '/v1/visits/v1/check-in')['latitude'], 36.8065);
+    },
+  );
+
+  testWidgets('a position away from the place is recorded with the reason', (
     tester,
   ) async {
     final calls = <Map<Object?, Object?>>[];
@@ -263,58 +302,102 @@ void main() {
                 status: 201,
                 body: visitJson(
                   status: 'ON_SITE',
-                  events: [event('CHECK_IN', 'NO_FIX')],
+                  events: [event('CHECK_IN', 'OUT_OF_RANGE', distance: 900)],
                 ),
               );
       });
-    final phone = FakeLocation(failure: LocationFailure.denied);
-    await open(tester, s, '/planning/visits/v1', location: phone);
-    await tester.tap(find.text("I'm here"));
-    await settle(tester);
-    expect(find.text('Position not allowed'), findsOneWidget);
-    await tester.tap(find.text('Open settings'));
-    await settle(tester);
-    expect(phone.settingsOpened, 1);
-    expect(s.count('POST /v1/visits/v1/check-in'), 0);
-
-    await tester.tap(find.text("I'm here"));
-    await settle(tester);
-    await tester.tap(find.text('Check in without a position'));
+    await open(tester, s, '/planning/visits/v1');
+    await tester.tap(find.text('Record my position'));
     await settle(tester);
     expect(find.text('Why does the position not match?'), findsOneWidget);
-    await tester.enterText(find.byType(TextField).last, 'The phone has no GPS');
+    await tester.enterText(
+      find.byType(TextField).last,
+      'Met them at the depot',
+    );
     await tester.pump();
     await tester.tap(find.text('Send'));
     await settle(tester);
     expect(calls, hasLength(2));
-    expect(calls.first.containsKey('latitude'), isFalse);
-    expect(calls.last['reason'], 'The phone has no GPS');
+    expect(calls.last['latitude'], 36.8065);
+    expect(calls.last['reason'], 'Met them at the depot');
   });
 
-  testWidgets('a place with no position offers to take where the phone is', (
-    tester,
-  ) async {
-    final s = server(visit: visitJson(hasPosition: false))
-      ..on('PUT /v1/planning/positions/pdv/p1', {'id': 'p1'})
-      ..on(
-        'POST /v1/visits/v1/check-in',
-        visitJson(
-          status: 'ON_SITE',
-          events: [event('CHECK_IN', 'VERIFIED', distance: 0)],
-        ),
-        status: 201,
+  testWidgets(
+    'one tap records the visit, even where the place has no position yet',
+    (tester) async {
+      final s = server(visit: visitJson(hasPosition: false))
+        ..on(
+          'POST /v1/visits/v1/check-in',
+          visitJson(
+            status: 'ON_SITE',
+            hasPosition: false,
+            events: [event('CHECK_IN', 'NO_POSITION')],
+          ),
+          status: 201,
+        );
+      await open(tester, s, '/planning/visits/v1');
+      await tester.tap(find.text('Record my position'));
+      await settle(tester);
+      // Nothing to answer: the position goes with the visit, and the admin decides what it is for.
+      expect(s.count('POST /v1/visits/v1/check-in'), 1);
+      expect(s.count('PUT /v1/planning/positions/pdv/p1'), 0);
+    },
+  );
+
+  testWidgets(
+    'the admin sees where the phone was on the map and makes it the place\'s position',
+    (tester) async {
+      final s = server(
+        role: 'ADMIN',
+        visit: {
+          ...visitJson(
+            status: 'DONE',
+            hasPosition: false,
+            events: [event('CHECK_IN', 'NO_POSITION')],
+          ),
+          'responsableName': 'Nora Nord',
+        },
+      )..on('PUT /v1/planning/positions/pdv/p1', {'id': 'p1'});
+      await open(tester, s, '/planning/visits/v1');
+      expect(find.byType(PositionMap), findsOneWidget);
+      expect(
+        find.textContaining('Para Lac has no position yet'),
+        findsOneWidget,
       );
-    await open(tester, s, '/planning/visits/v1');
-    await tester.tap(find.text("I'm here"));
-    await settle(tester);
-    expect(find.text("Save this place's position?"), findsOneWidget);
-    await tester.tap(find.text('Use this position'));
-    await settle(tester);
-    final position = sent(s, 'PUT', '/v1/planning/positions/pdv/p1');
-    expect(position['latitude'], 36.8065);
-    expect(position['accuracyMeters'], 10);
-    expect(s.count('POST /v1/visits/v1/check-in'), 1);
-  });
+      expect(find.textContaining('precise to 10 m'), findsOneWidget);
+      await screenshot(tester, 'visit_admin_map');
+      await tester.scrollUntilVisible(
+        find.text("Use as the place's position"),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.tap(find.text("Use as the place's position"));
+      await settle(tester);
+      await tester.tap(find.text("Use as the place's position").last);
+      await settle(tester);
+      final position = sent(s, 'PUT', '/v1/planning/positions/pdv/p1');
+      expect(position['latitude'], 36.8065);
+      expect(position['accuracyMeters'], 10);
+    },
+  );
+
+  testWidgets(
+    'a responsable sees the map of their own check-in, with the distance',
+    (tester) async {
+      final far = {...event('CHECK_IN', 'OUT_OF_RANGE'), 'latitude': 36.8105};
+      await open(
+        tester,
+        server(
+          visit: visitJson(status: 'ON_SITE', events: [far]),
+        ),
+        '/planning/visits/v1',
+      );
+      expect(find.byType(PositionMap), findsOneWidget);
+      expect(find.textContaining('from Para Lac'), findsOneWidget);
+      // Only the admin sets a place's position from a visit.
+      expect(find.text("Use as the place's position"), findsNothing);
+    },
+  );
 
   testWidgets(
     'without a connection the arrival waits on the phone and is sent later',
@@ -327,7 +410,7 @@ void main() {
         );
       final container = await open(tester, s, '/planning/visits/v1');
       s.offline = true;
-      await tester.tap(find.text("I'm here"));
+      await tester.tap(find.text('Record my position'));
       await settle(tester);
       expect(
         find.text('No connection: saved on the phone, it will be sent'),
@@ -370,24 +453,48 @@ void main() {
         );
     await open(tester, s, '/planning/visits/v1');
     expect(find.text('At the place'), findsOneWidget);
-    await tester.tap(find.text("I'm leaving"));
+    await tester.scrollUntilVisible(
+      find.text("I'm leaving (optional)"),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    expect(
+      find.text('Your position is recorded for this visit'),
+      findsOneWidget,
+    );
+    await tester.tap(find.text("I'm leaving (optional)"));
     await settle(tester);
     expect(s.count('POST /v1/visits/v1/check-out'), 1);
   });
 
-  testWidgets('a visit not yet open says when it opens', (tester) async {
-    // A visit more than an hour away, still today: the screen only counts down within the day.
-    final now = DateTime.now();
-    var later = now.add(const Duration(hours: 3));
-    if (later.day != now.day) later = now.add(const Duration(minutes: 61));
-    if (later.day != now.day) {
-      markTestSkipped('Too close to midnight to plan a visit later today.');
-      return;
-    }
-    final s = server(visit: visitJson(start: later));
+  testWidgets(
+    'a visit is recorded at any time of its day, not on another day',
+    (tester) async {
+      final now = DateTime.now();
+      final later = now.add(const Duration(hours: 3));
+      if (later.day != now.day) {
+        markTestSkipped('Too close to midnight to plan a visit later today.');
+        return;
+      }
+      final s = server(visit: visitJson(start: later))
+        ..on(
+          'POST /v1/visits/v1/check-in',
+          visitJson(status: 'ON_SITE', events: [event('CHECK_IN', 'VERIFIED')]),
+          status: 201,
+        );
+      await open(tester, s, '/planning/visits/v1');
+      await tester.tap(find.text('Record my position'));
+      await settle(tester);
+      expect(s.count('POST /v1/visits/v1/check-in'), 1);
+    },
+  );
+
+  testWidgets('a visit of another day waits for its day', (tester) async {
+    final tomorrow = DateTime.now().add(const Duration(days: 1));
+    final s = server(visit: visitJson(start: tomorrow));
     await open(tester, s, '/planning/visits/v1');
-    expect(find.textContaining('Available from'), findsOneWidget);
-    await tester.tap(find.text("I'm here"), warnIfMissed: false);
+    expect(find.text('Available on the day of the visit'), findsOneWidget);
+    await tester.tap(find.text('Record my position'), warnIfMissed: false);
     await settle(tester);
     expect(s.count('POST /v1/visits/v1/check-in'), 0);
   });
@@ -455,7 +562,7 @@ void main() {
       // The admin only reads: no button to start or change a visit.
       await tester.tap(find.text('Para Lac'));
       await settle(tester);
-      expect(find.text("I'm here"), findsNothing);
+      expect(find.text('Record my position'), findsNothing);
       expect(find.text('Cancel this visit'), findsNothing);
     },
   );

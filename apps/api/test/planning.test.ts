@@ -285,7 +285,7 @@ describe("arriving and leaving", () => {
     ]);
   });
 
-  it("allows a check-in away from the place or without a position, but asks why, and marks it", async () => {
+  it("records nothing without a position; away from the place or with a doubtful reading it asks why, and marks it", async () => {
     const visit = await started();
     const far = await w.n.post(`/v1/visits/${visit.id}/check-in`, {
       ...north(2000),
@@ -293,18 +293,36 @@ describe("arriving and leaving", () => {
     });
     expect(far.status).toBe(422);
     expect(far.body.code).toBe("POSITION_REASON_REQUIRED");
+    // No position, no arrival: a reason does not stand in for it.
     const none = await w.n.post(`/v1/visits/${visit.id}/check-in`, {});
-    expect(none.body.code).toBe("POSITION_REASON_REQUIRED");
+    expect(none.status).toBe(422);
+    expect(none.body.code).toBe("POSITION_REQUIRED");
+    expect(
+      (
+        await w.n.post(`/v1/visits/${visit.id}/check-in`, {
+          reason: "Phone had no signal",
+        })
+      ).body.code,
+    ).toBe("POSITION_REQUIRED");
+    expect((await w.n.get(`/v1/visits/${visit.id}`)).body.status).toBe(
+      "PLANNED",
+    );
+    // A reading too doubtful to place the phone is kept as it is, with the reason.
+    const doubtful = { ...north(20), accuracyMeters: 500, mocked: true };
+    expect(
+      (await w.n.post(`/v1/visits/${visit.id}/check-in`, doubtful)).body.code,
+    ).toBe("POSITION_REASON_REQUIRED");
     const ok = await w.n.post(`/v1/visits/${visit.id}/check-in`, {
+      ...doubtful,
       reason: "Phone had no signal",
-      mocked: true,
     });
     expect(ok.status).toBe(201);
     expect(ok.body.events[0]).toMatchObject({
       verdict: "NO_FIX",
       reason: "Phone had no signal",
-      flags: ["MOCK_LOCATION"],
+      flags: ["LOW_ACCURACY", "MOCK_LOCATION"],
     });
+    expect(ok.body.events[0].latitude).toBeCloseTo(doubtful.latitude, 4);
   });
 
   it("marks a check-in sent long after the tap, and refuses an impossible time", async () => {
@@ -323,13 +341,32 @@ describe("arriving and leaving", () => {
     expect(future.body.code).toBe("INVALID_DATE");
   });
 
-  it("does not start a visit of another day or long before it, and does not check out before checking in", async () => {
+  it("starts a visit at any time of its day, not on another day, and does not check out before checking in", async () => {
     const later = (await w.n.post("/v1/visits", plan())).body;
     const early = await w.n.post(`/v1/visits/${later.id}/check-in`, {
       ...tunis,
       accuracyMeters: 10,
     });
-    expect(["WRONG_DAY", "TOO_EARLY"]).toContain(early.body.code);
+    expect(early.body.code).toBe("WRONG_DAY");
+    // Planned for later today, started now: any time of the day counts (unless midnight is too near to try).
+    const soon = new Date(Date.now() + 3 * 3600_000);
+    if (
+      new Date(soon.getTime() + 3600_000).toISOString().slice(0, 10) === today()
+    ) {
+      const tonight = (
+        await w.n.post(
+          "/v1/visits",
+          plan({ start: soon.toISOString(), allowOverlap: true }),
+        )
+      ).body;
+      expect(new Date(tonight.canStartFrom).getTime()).toBeLessThan(Date.now());
+      const now = await w.n.post(`/v1/visits/${tonight.id}/check-in`, {
+        ...tunis,
+        accuracyMeters: 10,
+      });
+      expect(now.status).toBe(201);
+      expect(now.body.status).toBe("ON_SITE");
+    }
     const todayVisit = (
       await w.n.post("/v1/visits", plan({ start: nowStart() }))
     ).body;

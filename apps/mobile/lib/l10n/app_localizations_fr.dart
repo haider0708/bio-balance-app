@@ -822,7 +822,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get locationPrivacy =>
-      'Votre position n’est lue que lorsque vous touchez « Je suis là » ou « Je pars », et conservée 12 mois. Personne ne vous suit entre-temps.';
+      'Votre position n’est lue que lorsque vous touchez « Enregistrer ma position » ou « Je pars », et conservée 12 mois. Personne ne vous suit entre-temps.';
 
   @override
   String get locationUnavailableBody =>
@@ -1368,22 +1368,6 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get positionSaved => 'Position enregistrée';
-
-  @override
-  String positionSetBody(String place, int meters) {
-    return '$place n’a pas encore de position. Utiliser l’endroit où vous êtes (précision $meters m) ? Seul l’administrateur pourra la changer ensuite.';
-  }
-
-  @override
-  String get positionSetTitle => 'Enregistrer la position de ce lieu ?';
-
-  @override
-  String get positionSetYes => 'Utiliser cette position';
-
-  @override
-  String positionTooPoor(int meters) {
-    return 'La position n’est pas assez précise ($meters m). Sortez et réessayez.';
-  }
 
   @override
   String get precautions => 'Précautions';
@@ -2340,16 +2324,11 @@ class AppLocalizationsFr extends AppLocalizations {
   String get viewSales => 'Voir les ventes';
 
   @override
-  String get visitArrived => 'Arrivée enregistrée';
+  String get visitArrived => 'Position enregistrée';
 
   @override
   String visitArrivedAt(String time) {
     return 'Arrivé à $time';
-  }
-
-  @override
-  String visitAvailableFrom(String time) {
-    return 'Disponible à partir de $time';
   }
 
   @override
@@ -2365,10 +2344,10 @@ class AppLocalizationsFr extends AppLocalizations {
   String get visitCancelled => 'Visite annulée';
 
   @override
-  String get visitCheckIn => 'Je suis là';
+  String get visitCheckIn => 'Enregistrer ma position';
 
   @override
-  String get visitCheckOut => 'Je pars';
+  String get visitCheckOut => 'Je pars (facultatif)';
 
   @override
   String get visitChoosePlace => 'Choisir un magasin ou un grossiste';
@@ -4512,4 +4491,40 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get personNoVisits =>
       'Aucune visite prévue ou faite sur les 30 derniers jours.';
+
+  @override
+  String get visitRecorded =>
+      'Votre position est enregistrée pour cette visite';
+
+  @override
+  String get locationNeeded =>
+      'Une visite est enregistrée avec votre position : sans elle, rien n’est sauvegardé.';
+
+  @override
+  String get placePositionUse => 'Utiliser comme position du lieu';
+
+  @override
+  String placePositionSetAsk(String place) {
+    return '$place n’a pas encore de position. Utiliser le point enregistré lors de cette visite ? Les prochaines visites seront vérifiées par rapport à lui.';
+  }
+
+  @override
+  String placePositionReplaceAsk(String place) {
+    return 'Remplacer la position de $place par le point enregistré lors de cette visite ?';
+  }
+
+  @override
+  String positionFromPlace(String distance, String place) {
+    return 'à $distance de $place';
+  }
+
+  @override
+  String placeHasNoPosition(String place) {
+    return '$place n’a pas encore de position';
+  }
+
+  @override
+  String positionPrecision(int meters) {
+    return 'précision $meters m';
+  }
 }

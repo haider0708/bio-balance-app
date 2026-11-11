@@ -25,7 +25,7 @@ class Got extends Reading {
   final Fix fix;
 }
 
-/// The person chose to go on without a position (they will be asked why).
+/// The person chose to go on without a position (leaving only: arriving always records one).
 class Without extends Reading {
   const Without();
 }
@@ -34,12 +34,15 @@ class Cancelled extends Reading {
   const Cancelled();
 }
 
-/// To fix a place's position the reading must be this precise (metres); the server checks too.
-const _maxPositionAccuracy = 50.0;
 const _uuid = Uuid();
 
-/// Reads the position once, with a waiting message; when it fails, explains and offers to go on without.
-Future<Reading> readPosition(BuildContext context, WidgetRef ref) async {
+/// Reads the position once, with a waiting message. When it fails it explains why; arriving needs
+/// the position ([required]: try again or give up), leaving can go on without it.
+Future<Reading> readPosition(
+  BuildContext context,
+  WidgetRef ref, {
+  bool required = false,
+}) async {
   final t = AppLocalizations.of(context);
   final service = ref.read(locationServiceProvider);
   final navigator = Navigator.of(context, rootNavigator: true);
@@ -75,14 +78,26 @@ Future<Reading> readPosition(BuildContext context, WidgetRef ref) async {
   navigator.pop();
   if (fix != null) return Got(fix);
   if (!context.mounted) return const Cancelled();
-  return _explain(context, service, failure ?? LocationFailure.unavailable);
+  final next = await _explain(
+    context,
+    service,
+    failure ?? LocationFailure.unavailable,
+    required: required,
+  );
+  if (next == 'without') return const Without();
+  if (next == 'retry' && context.mounted) {
+    return readPosition(context, ref, required: required);
+  }
+  return const Cancelled();
 }
 
-Future<Reading> _explain(
+/// What the person chose after a failed reading: 'retry', 'without', or nothing (cancelled).
+Future<String?> _explain(
   BuildContext context,
   LocationService service,
-  LocationFailure failure,
-) async {
+  LocationFailure failure, {
+  required bool required,
+}) async {
   final t = AppLocalizations.of(context);
   final (title, body, canOpen) = switch (failure) {
     LocationFailure.serviceOff => (
@@ -105,7 +120,7 @@ Future<Reading> _explain(
     context: context,
     builder: (context) => AlertDialog(
       title: Text(title),
-      content: Text(body),
+      content: Text(required ? '$body\n\n${t.locationNeeded}' : body),
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context, 'cancel'),
@@ -116,15 +131,21 @@ Future<Reading> _explain(
             onPressed: () => Navigator.pop(context, 'settings'),
             child: Text(t.locationOpenSettings),
           ),
-        TextButton(
-          onPressed: () => Navigator.pop(context, 'without'),
-          child: Text(t.locationContinueWithout),
-        ),
+        if (required)
+          TextButton(
+            onPressed: () => Navigator.pop(context, 'retry'),
+            child: Text(t.retry),
+          )
+        else
+          TextButton(
+            onPressed: () => Navigator.pop(context, 'without'),
+            child: Text(t.locationContinueWithout),
+          ),
       ],
     ),
   );
   if (choice == 'settings') await service.openSettings();
-  return choice == 'without' ? const Without() : const Cancelled();
+  return choice == 'settings' ? null : choice;
 }
 
 bool _noConnection(ApiException error) =>
@@ -136,38 +157,15 @@ void _refresh(WidgetRef ref, String? visitId) {
   if (visitId != null) ref.invalidate(visitProvider(visitId));
 }
 
-/// "I'm here": read the position, offer to fix a place's position the first time, send the arrival
-/// (with a reason if the position does not match), or keep it on the phone when there is no connection.
+/// "Record my position": one tap reads where the phone is and sends the arrival with it (with a
+/// reason if it does not match the place), or keeps it on the phone when there is no connection.
+/// Without a position nothing is recorded.
 Future<void> checkIn(BuildContext context, WidgetRef ref, Visit visit) async {
   final t = AppLocalizations.of(context);
-  final reading = await readPosition(context, ref);
-  if (reading is Cancelled || !context.mounted) return;
-  final fix = reading is Got ? reading.fix : null;
+  final reading = await readPosition(context, ref, required: true);
+  if (reading is! Got || !context.mounted) return;
+  final fix = reading.fix;
   final repo = ref.read(planningRepositoryProvider);
-  if (fix != null &&
-      !visit.target.hasPosition &&
-      !visit.target.positionLocked) {
-    if (fix.accuracyMeters > _maxPositionAccuracy) {
-      showMessage(context, t.positionTooPoor(fix.accuracyMeters.round()));
-    } else if (await confirm(
-      context,
-      title: t.positionSetTitle,
-      message: t.positionSetBody(visit.target.name, fix.accuracyMeters.round()),
-      confirmLabel: t.positionSetYes,
-    )) {
-      if (!context.mounted) return;
-      await perform(
-        context,
-        () => repo.setPosition(
-          isDepot: visit.target.isDepot,
-          id: visit.target.id,
-          fix: fix,
-        ),
-        success: t.positionSaved,
-      );
-    }
-    if (!context.mounted) return;
-  }
   final at = DateTime.now();
   String? reason;
   for (var attempt = 0; attempt < 2; attempt++) {
@@ -256,8 +254,8 @@ Future<void> startUnplanned(
   required VisitKind kind,
 }) async {
   final t = AppLocalizations.of(context);
-  final reading = await readPosition(context, ref);
-  if (reading is Cancelled || !context.mounted) return;
+  final reading = await readPosition(context, ref, required: true);
+  if (reading is! Got || !context.mounted) return;
   final repo = ref.read(planningRepositoryProvider);
   final id = _uuid.v4();
   final at = DateTime.now();
@@ -268,11 +266,7 @@ Future<void> startUnplanned(
       'targetKind': isDepot ? 'DEPOT' : 'PDV',
       'targetId': placeId,
       'kind': kind.wire,
-      ...repo.presence(
-        occurredAt: at,
-        fix: reading is Got ? reading.fix : null,
-        reason: reason,
-      ),
+      ...repo.presence(occurredAt: at, fix: reading.fix, reason: reason),
     };
     try {
       await repo.unplanned(body);

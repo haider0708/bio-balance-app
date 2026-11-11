@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -15,6 +16,7 @@ import '../../l10n/app_localizations.dart';
 import 'planning_actions.dart';
 import 'planning_labels.dart';
 import 'planning_models.dart';
+import 'position_map.dart';
 import 'planning_repository.dart';
 
 /// One visit: where and when, what the check-in and check-out said, and what to do now.
@@ -33,18 +35,26 @@ class VisitDetailScreen extends ConsumerWidget {
       body: AsyncBody<Visit>(
         value: visit,
         onRetry: () => ref.invalidate(visitProvider(visitId)),
-        builder: (v) =>
-            _Body(visit: v, isResponsable: role == Role.responsable),
+        builder: (v) => _Body(
+          visit: v,
+          isResponsable: role == Role.responsable,
+          isAdmin: role == Role.admin,
+        ),
       ),
     );
   }
 }
 
 class _Body extends ConsumerWidget {
-  const _Body({required this.visit, required this.isResponsable});
+  const _Body({
+    required this.visit,
+    required this.isResponsable,
+    required this.isAdmin,
+  });
 
   final Visit visit;
   final bool isResponsable;
+  final bool isAdmin;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -52,10 +62,8 @@ class _Body extends ConsumerWidget {
     final locale = t.localeName;
     final target = visit.target;
     final today = Dates.day(DateTime.now());
-    final canStart =
-        visit.status == VisitStatus.planned &&
-        visit.day == today &&
-        !DateTime.now().isBefore(visit.canStartFrom);
+    // Any time of the planned day (the server refuses another day).
+    final canStart = visit.status == VisitStatus.planned && visit.day == today;
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
@@ -115,7 +123,8 @@ class _Body extends ConsumerWidget {
         ),
         if (visit.events.isNotEmpty) ...[
           SectionHeader(t.visitDetailTitle),
-          for (final e in visit.events) _EventCard(event: e),
+          for (final e in visit.events)
+            _EventCard(event: e, visit: visit, isAdmin: isAdmin),
         ],
         const Gap(16),
         if (isResponsable) ..._actions(context, ref, canStart),
@@ -135,7 +144,6 @@ class _Body extends ConsumerWidget {
 
   List<Widget> _actions(BuildContext context, WidgetRef ref, bool canStart) {
     final t = AppLocalizations.of(context);
-    final locale = t.localeName;
     switch (visit.status) {
       case VisitStatus.planned:
         return [
@@ -151,11 +159,7 @@ class _Body extends ConsumerWidget {
             Padding(
               padding: const EdgeInsets.only(top: 6),
               child: Text(
-                visit.day == Dates.day(DateTime.now())
-                    ? t.visitAvailableFrom(
-                        Dates.time(visit.canStartFrom, locale),
-                      )
-                    : t.visitAvailableOnDay,
+                t.visitAvailableOnDay,
                 textAlign: TextAlign.center,
                 style: context.text.bodySmall?.copyWith(
                   color: context.status.muted,
@@ -182,11 +186,18 @@ class _Body extends ConsumerWidget {
         ];
       case VisitStatus.onSite:
         return [
-          FilledButton.icon(
+          // The visit is recorded already: saying when one leaves is extra.
+          StatusChip(
+            t.visitRecorded,
+            tone: Tone.success,
+            icon: LucideIcons.mapPinCheck,
+          ),
+          const Gap(12),
+          OutlinedButton.icon(
             onPressed: () => checkOut(context, ref, visit),
             icon: const Icon(LucideIcons.logOut),
             label: Text(t.visitCheckOut),
-            style: FilledButton.styleFrom(
+            style: OutlinedButton.styleFrom(
               minimumSize: const Size.fromHeight(52),
             ),
           ),
@@ -233,15 +244,65 @@ Future<void> _maps(VisitTarget target) {
   );
 }
 
-/// A check-in or check-out: when, what the position said, and what to look at.
-class _EventCard extends StatelessWidget {
-  const _EventCard({required this.event});
+/// A check-in or check-out: when, what the position said, where it was on the map, and what to
+/// look at. The admin can make the recorded point the place's own position.
+class _EventCard extends ConsumerWidget {
+  const _EventCard({
+    required this.event,
+    required this.visit,
+    required this.isAdmin,
+  });
 
   final VisitEvent event;
+  final Visit visit;
+  final bool isAdmin;
+
+  Future<void> _usePosition(BuildContext context, WidgetRef ref) async {
+    final t = AppLocalizations.of(context);
+    final target = visit.target;
+    if (!await confirm(
+      context,
+      title: t.placePositionUse,
+      message: target.hasPosition
+          ? t.placePositionReplaceAsk(target.name)
+          : t.placePositionSetAsk(target.name),
+      confirmLabel: t.placePositionUse,
+    )) {
+      return;
+    }
+    if (!context.mounted) return;
+    final ok = await perform(
+      context,
+      () => ref
+          .read(planningRepositoryProvider)
+          .setPosition(
+            isDepot: target.isDepot,
+            id: target.id,
+            fix: Fix(
+              latitude: event.latitude!,
+              longitude: event.longitude!,
+              accuracyMeters: event.accuracyMeters ?? 0,
+            ),
+          ),
+      success: t.positionSaved,
+    );
+    if (ok) {
+      ref
+        ..invalidate(visitProvider(visit.id))
+        ..invalidate(visitsProvider);
+    }
+  }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final t = AppLocalizations.of(context);
+    final target = visit.target;
+    final recorded = event.latitude != null && event.longitude != null
+        ? LatLng(event.latitude!, event.longitude!)
+        : null;
+    final place = target.latitude != null && target.longitude != null
+        ? LatLng(target.latitude!, target.longitude!)
+        : null;
     final locale = t.localeName;
     final at = Dates.time(event.occurredAt, locale);
     return Padding(
@@ -264,9 +325,10 @@ class _EventCard extends StatelessWidget {
                     style: context.text.titleSmall,
                   ),
                 ),
-                StatusChip(event.label(t), tone: event.tone, icon: event.icon),
               ],
             ),
+            // On its own line: what the position said can be a long sentence.
+            StatusChip(event.label(t), tone: event.tone, icon: event.icon),
             if (event.reason != null && event.reason!.isNotEmpty)
               Text(event.reason!, style: context.text.bodyMedium),
             if (event.flags.isNotEmpty)
@@ -277,6 +339,35 @@ class _EventCard extends StatelessWidget {
                   for (final f in event.flags)
                     StatusChip(_flag(t, f), tone: Tone.warning),
                 ],
+              ),
+            if (recorded != null) ...[
+              PositionMap(
+                recorded: recorded,
+                place: place,
+                accuracyMeters: event.accuracyMeters,
+              ),
+              Text(
+                [
+                  if (place != null)
+                    t.positionFromPlace(
+                      distanceText(metersBetween(recorded, place)),
+                      target.name,
+                    )
+                  else
+                    t.placeHasNoPosition(target.name),
+                  if (event.accuracyMeters != null)
+                    t.positionPrecision(event.accuracyMeters!.round()),
+                ].join(' · '),
+                style: context.text.bodySmall?.copyWith(
+                  color: context.status.muted,
+                ),
+              ),
+            ],
+            if (recorded != null && isAdmin && event.isCheckIn)
+              OutlinedButton.icon(
+                onPressed: () => _usePosition(context, ref),
+                icon: const Icon(LucideIcons.mapPinPlus, size: 16),
+                label: Text(t.placePositionUse),
               ),
             if (event.latitude != null && event.longitude != null)
               TextButton.icon(

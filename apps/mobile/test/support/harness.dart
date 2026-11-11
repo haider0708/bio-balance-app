@@ -1,3 +1,4 @@
+import 'package:biobalance/features/planning/position_map.dart';
 import 'package:biobalance/app/app.dart';
 import 'package:biobalance/core/auth/session.dart';
 
@@ -35,6 +36,8 @@ Future<ProviderContainer> launch(
         token: signedIn ? 'a-valid-token-of-sufficient-length-123456' : null,
         cachedMe: cachedMe,
       ),
+      // No network in tests: the maps draw their points without the street tiles.
+      mapTilesProvider.overrideWithValue(false),
       ...overrides,
     ],
     retry: (_, _) => null,

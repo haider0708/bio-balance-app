@@ -1451,7 +1451,7 @@ abstract class AppLocalizations {
   /// No description provided for @locationPrivacy.
   ///
   /// In en, this message translates to:
-  /// **'Your position is read only when you tap “I\'m here” or “I\'m leaving”, and kept 12 months. Nobody follows you in between.'**
+  /// **'Your position is read only when you tap “Record my position” or “I\'m leaving”, and kept 12 months. Nobody follows you in between.'**
   String get locationPrivacy;
 
   /// No description provided for @locationUnavailableBody.
@@ -2383,30 +2383,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Position saved'**
   String get positionSaved;
-
-  /// No description provided for @positionSetBody.
-  ///
-  /// In en, this message translates to:
-  /// **'{place} has no position yet. Use where you are now (precision {meters} m)? Only the admin can change it afterwards.'**
-  String positionSetBody(String place, int meters);
-
-  /// No description provided for @positionSetTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Save this place\'s position?'**
-  String get positionSetTitle;
-
-  /// No description provided for @positionSetYes.
-  ///
-  /// In en, this message translates to:
-  /// **'Use this position'**
-  String get positionSetYes;
-
-  /// No description provided for @positionTooPoor.
-  ///
-  /// In en, this message translates to:
-  /// **'The position is not precise enough ({meters} m). Go outdoors and try again.'**
-  String positionTooPoor(int meters);
 
   /// No description provided for @precautions.
   ///
@@ -4085,7 +4061,7 @@ abstract class AppLocalizations {
   /// No description provided for @visitArrived.
   ///
   /// In en, this message translates to:
-  /// **'Arrival recorded'**
+  /// **'Position recorded'**
   String get visitArrived;
 
   /// No description provided for @visitArrivedAt.
@@ -4093,12 +4069,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Arrived at {time}'**
   String visitArrivedAt(String time);
-
-  /// No description provided for @visitAvailableFrom.
-  ///
-  /// In en, this message translates to:
-  /// **'Available from {time}'**
-  String visitAvailableFrom(String time);
 
   /// No description provided for @visitAvailableOnDay.
   ///
@@ -4127,13 +4097,13 @@ abstract class AppLocalizations {
   /// No description provided for @visitCheckIn.
   ///
   /// In en, this message translates to:
-  /// **'I\'m here'**
+  /// **'Record my position'**
   String get visitCheckIn;
 
   /// No description provided for @visitCheckOut.
   ///
   /// In en, this message translates to:
-  /// **'I\'m leaving'**
+  /// **'I\'m leaving (optional)'**
   String get visitCheckOut;
 
   /// No description provided for @visitChoosePlace.
@@ -7735,6 +7705,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No visit planned or made in the last 30 days.'**
   String get personNoVisits;
+
+  /// No description provided for @visitRecorded.
+  ///
+  /// In en, this message translates to:
+  /// **'Your position is recorded for this visit'**
+  String get visitRecorded;
+
+  /// No description provided for @locationNeeded.
+  ///
+  /// In en, this message translates to:
+  /// **'A visit is recorded with your position: without it nothing is saved.'**
+  String get locationNeeded;
+
+  /// No description provided for @placePositionUse.
+  ///
+  /// In en, this message translates to:
+  /// **'Use as the place\'s position'**
+  String get placePositionUse;
+
+  /// No description provided for @placePositionSetAsk.
+  ///
+  /// In en, this message translates to:
+  /// **'{place} has no position yet. Use the point recorded at this visit? The next visits are checked against it.'**
+  String placePositionSetAsk(String place);
+
+  /// No description provided for @placePositionReplaceAsk.
+  ///
+  /// In en, this message translates to:
+  /// **'Replace the position of {place} with the point recorded at this visit?'**
+  String placePositionReplaceAsk(String place);
+
+  /// No description provided for @positionFromPlace.
+  ///
+  /// In en, this message translates to:
+  /// **'{distance} from {place}'**
+  String positionFromPlace(String distance, String place);
+
+  /// No description provided for @placeHasNoPosition.
+  ///
+  /// In en, this message translates to:
+  /// **'{place} has no position yet'**
+  String placeHasNoPosition(String place);
+
+  /// No description provided for @positionPrecision.
+  ///
+  /// In en, this message translates to:
+  /// **'precise to {meters} m'**
+  String positionPrecision(int meters);
 }
 
 class _AppLocalizationsDelegate

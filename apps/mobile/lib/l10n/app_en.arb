@@ -402,7 +402,7 @@
   "locationOffBody": "Turn location on in your phone, or check in without a position and say why.",
   "locationOffTitle": "Location is off",
   "locationOpenSettings": "Open settings",
-  "locationPrivacy": "Your position is read only when you tap “I'm here” or “I'm leaving”, and kept 12 months. Nobody follows you in between.",
+  "locationPrivacy": "Your position is read only when you tap “Record my position” or “I'm leaving”, and kept 12 months. Nobody follows you in between.",
   "locationUnavailableBody": "Go outdoors or near a window and try again, or check in without a position and say why.",
   "locationUnavailableTitle": "No position found",
   "lowStock": "Products almost out",
@@ -670,27 +670,6 @@
   },
   "pointOfSale": "Point of sale",
   "positionSaved": "Position saved",
-  "positionSetBody": "{place} has no position yet. Use where you are now (precision {meters} m)? Only the admin can change it afterwards.",
-  "@positionSetBody": {
-    "placeholders": {
-      "place": {
-        "type": "String"
-      },
-      "meters": {
-        "type": "int"
-      }
-    }
-  },
-  "positionSetTitle": "Save this place's position?",
-  "positionSetYes": "Use this position",
-  "positionTooPoor": "The position is not precise enough ({meters} m). Go outdoors and try again.",
-  "@positionTooPoor": {
-    "placeholders": {
-      "meters": {
-        "type": "int"
-      }
-    }
-  },
   "precautions": "Precautions",
   "prepareAndShip": "Prepare and ship",
   "presenceNoFix": "No position",
@@ -1188,17 +1167,9 @@
   "uploadVideo": "Upload a video (MP4)",
   "videoUnavailable": "This video cannot be played.",
   "viewSales": "View sales",
-  "visitArrived": "Arrival recorded",
+  "visitArrived": "Position recorded",
   "visitArrivedAt": "Arrived at {time}",
   "@visitArrivedAt": {
-    "placeholders": {
-      "time": {
-        "type": "String"
-      }
-    }
-  },
-  "visitAvailableFrom": "Available from {time}",
-  "@visitAvailableFrom": {
     "placeholders": {
       "time": {
         "type": "String"
@@ -1209,8 +1180,8 @@
   "visitCancel": "Cancel this visit",
   "visitCancelAsk": "Cancel this visit?",
   "visitCancelled": "Visit cancelled",
-  "visitCheckIn": "I'm here",
-  "visitCheckOut": "I'm leaving",
+  "visitCheckIn": "Record my position",
+  "visitCheckOut": "I'm leaving (optional)",
   "visitChoosePlace": "Choose a store or a grossiste",
   "visitDate": "Date",
   "visitDetailTitle": "Visit",
@@ -2376,5 +2347,18 @@
   "personMoreOrders": "and {count} more in Restocks",
   "@personMoreOrders": {"placeholders": {"count": {"type": "int"}}},
   "personVisits": "Visits",
-  "personNoVisits": "No visit planned or made in the last 30 days."
+  "personNoVisits": "No visit planned or made in the last 30 days.",
+  "visitRecorded": "Your position is recorded for this visit",
+  "locationNeeded": "A visit is recorded with your position: without it nothing is saved.",
+  "placePositionUse": "Use as the place's position",
+  "placePositionSetAsk": "{place} has no position yet. Use the point recorded at this visit? The next visits are checked against it.",
+  "@placePositionSetAsk": {"placeholders": {"place": {"type": "String"}}},
+  "placePositionReplaceAsk": "Replace the position of {place} with the point recorded at this visit?",
+  "@placePositionReplaceAsk": {"placeholders": {"place": {"type": "String"}}},
+  "positionFromPlace": "{distance} from {place}",
+  "@positionFromPlace": {"placeholders": {"distance": {"type": "String"}, "place": {"type": "String"}}},
+  "placeHasNoPosition": "{place} has no position yet",
+  "@placeHasNoPosition": {"placeholders": {"place": {"type": "String"}}},
+  "positionPrecision": "precise to {meters} m",
+  "@positionPrecision": {"placeholders": {"meters": {"type": "int"}}}
 }
