@@ -209,6 +209,7 @@ A responsable keeps a calendar of **visits** to the stores and grossistes of the
 
 Paras of the **same group** (a group is a set of paras of one region) can exchange products. The two paras settle it **by phone**, then someone records it in the app; **the admin approves the quantities** and only then does the stock move.
 
+- **Since 3.6:** a **buyer** records transfers for their own para exactly like a seller, and the **order manager** records, changes and cancels them between any two paras of a group (both sides to choose, one photo). Only the admin approves.
 - **Who records:** a team member of either para (their own para is one side: "My para sends" or "My para receives"), the responsable of the region (any two paras of a group), or the admin. A team member always speaks for their own para, whatever the screen says.
 - **What:** the two paras (the second is chosen among the first one's group: a para without a group has no one to exchange with), the products and quantities (never more than the sender holds), **one photo** as proof, an optional note. The **admin's own transfer** needs no photo and no approval: the stock moves at once.
 - **Then:** it waits for the admin (Approvals, type *Transfer*, with its photo and lines). Meanwhile either para's team members or the responsable can **change the quantities** or **cancel**; each change is written down (who, from what to what) and the first quantities stay visible. The admin approves as it is, **corrects the quantities while approving**, or refuses with a reason.
@@ -218,6 +219,8 @@ Paras of the **same group** (a group is a set of paras of one region) can exchan
 - **Not included:** prices, delivery tracking, partial approvals, stock reserved while waiting, exchanges between different groups.
 
 ## Returns (2026-11)
+
+Quantities taken out of a para. **Who asks:** the responsable of the region, or (since 3.6) a **buyer of the para itself** (only to take out, only their own para; the responsable of the region is told). They can change or cancel it while it waits. **The admin decides:** approves (correcting the quantities if needed), sends it **to another para instead of back** (even in another region), or refuses with a reason; nothing leaves the stock before. The admin's own returns apply at once (take out, move, or only add). A plain seller sees nothing of returns; the order manager only reads them.
 
 ## Team accounts and their first password (2026-11)
 

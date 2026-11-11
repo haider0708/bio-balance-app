@@ -148,6 +148,27 @@ void main() {
     expect(find.text('No transfer here'), findsOneWidget);
   });
 
+  testWidgets('the order manager and the buyer record transfers too', (
+    tester,
+  ) async {
+    // The order manager: any two paras of a group, both sides to choose.
+    await open(tester, server('ORDERS', list: <Object?>[]), '/transfers');
+    await tester.tap(find.text('New transfer'));
+    await settle(tester);
+    expect(find.text('My para sends'), findsNothing);
+    await tester.pumpWidget(const SizedBox());
+    await tester.pump(const Duration(seconds: 1));
+  });
+
+  testWidgets('a buyer speaks for its own para, like a seller', (tester) async {
+    await open(tester, server('ACHETEUR', list: <Object?>[]), '/transfers/new');
+    // Its own para is one side; it says whether it sends or receives.
+    expect(find.text('My para sends'), findsOneWidget);
+    expect(find.text('Para Lac'), findsWidgets);
+    await tester.pumpWidget(const SizedBox());
+    await tester.pump(const Duration(seconds: 1));
+  });
+
   testWidgets(
     'the seller\'s home offers the exchange when the para has partners',
     (tester) async {

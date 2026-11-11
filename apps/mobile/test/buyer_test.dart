@@ -86,6 +86,29 @@ Object? body(FakeServer s, String route) => jsonDecode(
 void main() {
   setUpAll(loadFonts);
 
+  testWidgets('a buyer asks for a return of its own para from its home', (
+    tester,
+  ) async {
+    final s = server(meBuyer())
+      ..on('GET /v1/returns', <Object?>[])
+      ..on('GET /v1/transfers/partners', {
+        'group': null,
+        'partners': <Object?>[],
+      });
+    await launch(tester, s, language: 'en');
+    // No group: no exchange to offer, but returns are always there.
+    expect(find.text('Transfers'), findsNothing);
+    await tester.scrollUntilVisible(find.text('Returns'), 200);
+    await tester.tap(find.text('Returns'));
+    await settle(tester);
+    await tester.tap(find.text('New return'));
+    await settle(tester);
+    // Its para is already chosen, and it can only ask to take quantities out.
+    expect(find.text('Para Lac'), findsWidgets);
+    expect(find.text('Move to another para'), findsNothing);
+    await finish(tester);
+  });
+
   testWidgets(
     'a buyer lands on its para: stock, what runs low, the orders, no sales',
     (tester) async {

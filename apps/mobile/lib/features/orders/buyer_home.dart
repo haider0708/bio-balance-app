@@ -17,6 +17,7 @@ import '../restock/restock_list_screen.dart';
 import '../restock/restock_repository.dart';
 import '../stock/stock_models.dart';
 import '../stock/stock_repository.dart';
+import '../transfers/transfers_repository.dart';
 
 /// The orders still moving for the buyer's para.
 const _openOrders = (active: true, status: null, regionId: null, destId: null);
@@ -166,6 +167,34 @@ class _BuyerPanel extends ConsumerWidget {
               ],
             );
           },
+        ),
+        // What else moves the para's stock: exchanges inside the group (when there is one) and
+        // returns, both decided by the admin. A seller who buys has the exchange among the sales.
+        Row(
+          spacing: 8,
+          children: [
+            if (showOrders &&
+                (ref
+                        .watch(transferPartnersProvider(null))
+                        .value
+                        ?.paras
+                        .isNotEmpty ??
+                    false))
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () => context.push('/transfers'),
+                  icon: const Icon(LucideIcons.arrowLeftRight),
+                  label: Text(t.transfersTitle),
+                ),
+              ),
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: () => context.push('/returns'),
+                icon: const Icon(LucideIcons.undo2),
+                label: Text(t.returnsTitle),
+              ),
+            ),
+          ],
         ),
         if (showOrders) _OpenOrders(pdvId: pdvId),
       ],

@@ -908,6 +908,8 @@ Widget _more(Role role) => Builder(
         ),
       ],
       Role.acheteur => [
+        MoreEntry(LucideIcons.arrowLeftRight, t.transfersTitle, '/transfers'),
+        MoreEntry(LucideIcons.undo2, t.returnsTitle, '/returns'),
         MoreEntry(LucideIcons.package, t.catalogTitle, '/catalog'),
         MoreEntry(
           LucideIcons.bell,

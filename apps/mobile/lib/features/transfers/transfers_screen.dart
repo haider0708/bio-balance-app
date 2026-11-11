@@ -3,8 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
-import '../../core/auth/me.dart';
-import '../../core/auth/session.dart';
 import '../../core/widgets/async_body.dart';
 import '../../core/widgets/list_tools.dart';
 import '../../core/widgets/states.dart';
@@ -32,17 +30,15 @@ class _TransfersScreenState extends ConsumerState<TransfersScreen> {
     final transfers = ref.watch(transfersProvider(null));
     return Scaffold(
       appBar: AppBar(title: Text(t.transfersTitle)),
-      floatingActionButton: ref.watch(meProvider).role == Role.orders
-          ? null
-          : FloatingActionButton.extended(
-              heroTag: null,
-              onPressed: () async {
-                await context.push('/transfers/new');
-                ref.invalidate(transfersProvider);
-              },
-              icon: const Icon(LucideIcons.plus),
-              label: Text(t.transferNew),
-            ),
+      floatingActionButton: FloatingActionButton.extended(
+        heroTag: null,
+        onPressed: () async {
+          await context.push('/transfers/new');
+          ref.invalidate(transfersProvider);
+        },
+        icon: const Icon(LucideIcons.plus),
+        label: Text(t.transferNew),
+      ),
       body: RefreshIndicator(
         onRefresh: () async {
           ref.invalidate(transfersProvider(null));

@@ -47,6 +47,16 @@ class _NewReturnScreenState extends ConsumerState<NewReturnScreen> {
 
   bool get _admin => ref.read(meProvider).role == Role.admin;
 
+  @override
+  void initState() {
+    super.initState();
+    // A buyer asks for their own para only.
+    final me = ref.read(meProvider);
+    if (me.role.isTeam && me.pdv != null) {
+      _para = TransferPara(id: me.pdv!.id, name: me.pdv!.name);
+    }
+  }
+
   bool get _valid =>
       _para != null &&
       (_mode == _Mode.set
@@ -186,6 +196,7 @@ class _NewReturnScreenState extends ConsumerState<NewReturnScreen> {
             label: t.returnPara,
             para: _para,
             onTap: () async {
+              if (ref.read(meProvider).role.isTeam) return;
               final picked = await _pick();
               if (picked != null) {
                 setState(() {

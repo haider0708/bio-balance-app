@@ -259,11 +259,11 @@ Visits: `status` PLANNED, ON_SITE, DONE, MISSED, CANCELLED; `revision` grows wit
 
 | Method | Path | Who |
 |---|---|---|
-| GET | `/v1/transfers?status&pdvId` | team member (own para), responsable (region), admin |
+| GET | `/v1/transfers?status&pdvId` | team member, seller or buyer (own para), responsable (region), order manager and admin (all) |
 | GET | `/v1/transfers/partners[?pdvId]` | the active paras of the same group (a team member: their own para's; a responsable or the admin pass `pdvId`) |
-| POST | `/v1/transfers` `{fromPdvId, toPdvId, direction: SEND\|REQUEST, lines[{productId, quantity}], photoId?, note?}` | team member of either para, responsable, admin |
+| POST | `/v1/transfers` `{fromPdvId, toPdvId, direction: SEND\|REQUEST, lines[{productId, quantity}], photoId?, note?}` | team member (seller or buyer) of either para, responsable, order manager, admin (applied at once only from the admin) |
 | GET | `/v1/transfers/:id` | those who see it |
-| POST | `/v1/transfers/:id/edit` `{lines}` | either para's team member, the responsable, the admin (while PENDING) |
+| POST | `/v1/transfers/:id/edit` `{lines}` | either para's team member, the responsable, the order manager, the admin (while PENDING) |
 | POST | `/v1/transfers/:id/cancel` | the same |
 | POST | `/v1/transfers/:id/approve` `{note?, lines?}` | admin (`lines` replaces the quantities: what the admin writes is what moves) |
 | POST | `/v1/transfers/:id/reject` `{note}` | admin |
@@ -309,14 +309,14 @@ Role `ORDERS`: created with `POST /v1/users {role: "ORDERS", name, email, phone}
 | POST | `/v1/restocks/:id/delivered` `{photoIds?, note?}` | kept for older apps (once per order). ORDERS on an order on its way: RECEIVED, waiting for the admin; admin: only stamps `deliveredAt` |
 | POST | `/v1/restocks/:id/ship` | ORDERS too, from any grossiste |
 
-An order carries `proposal {source, supplier, by, at, note}` while it waits, `documentIds`, `deliveredAt`, `deliveredBy`, and each line `proposed`. Reads opened to ORDERS: `/v1/pdvs`, `/v1/groups`, `/v1/depots`, `/v1/restocks`, `/v1/transfers`, `/v1/returns` (the last two with `canEdit`, `canCancel`, `canDecide` all false). `/v1/approvals` shows `meta.proposal` and `meta.proposedBy` on a restock request. Notifications: `restock.proposed`, `restock.proposal_approved`, `restock.proposal_refused`, `restock.delivered`, `orders.asks`.
+An order carries `proposal {source, supplier, by, at, note}` while it waits, `documentIds`, `deliveredAt`, `deliveredBy`, and each line `proposed`. Reads opened to ORDERS: `/v1/pdvs`, `/v1/groups`, `/v1/depots`, `/v1/restocks`, `/v1/transfers` (which it also writes since 3.6), `/v1/returns` (read only: `canEdit`, `canCancel`, `canDecide` all false). `/v1/approvals` shows `meta.proposal` and `meta.proposedBy` on a restock request. Notifications: `restock.proposed`, `restock.proposal_approved`, `restock.proposal_refused`, `restock.delivered`, `orders.asks`.
 
 | Method | Path | Who |
 |---|---|---|
-| GET | `/v1/returns?status&pdvId` | responsable (their region's), admin (all) |
-| POST | `/v1/returns` `{pdvId, action: REMOVE\|MOVE\|ADD, toPdvId?, lines[{productId, quantity}], note?}` | responsable (`REMOVE` only, for a para of their region: waits for the admin), admin (any para, any action: applied at once) |
+| GET | `/v1/returns?status&pdvId` | responsable (their region's), a buyer (their own para's), order manager (read only), admin (all) |
+| POST | `/v1/returns` `{pdvId, action: REMOVE\|MOVE\|ADD, toPdvId?, lines[{productId, quantity}], note?}` | responsable (`REMOVE` only, for a para of their region: waits for the admin), a buyer (`REMOVE` only, their own para), admin (any para, any action: applied at once) |
 | GET | `/v1/returns/:id` | the same |
-| POST | `/v1/returns/:id/edit` `{lines}` / `cancel` | responsable, admin (while PENDING) |
+| POST | `/v1/returns/:id/edit` `{lines}` / `cancel` | responsable, a buyer of the para, admin (while PENDING) |
 | POST | `/v1/returns/:id/approve` `{note?, lines?, toPdvId?}` | admin (`lines` replaces the quantities; `toPdvId` turns a take-out into a move) |
 | POST | `/v1/returns/:id/reject` `{note}` | admin |
 

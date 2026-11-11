@@ -111,13 +111,79 @@ describe("a responsable asks for a return", () => {
     );
   });
 
-  it("is not for team members, who see nothing of returns", async () => {
-    const member = await teamMember(w, lac.id);
-    const c = client(api, member.token);
+  it("a buyer asks for the returns of their own para, a plain seller does not", async () => {
+    const seller = client(api, (await teamMember(w, lac.id)).token);
+    expect((await seller.get("/v1/returns")).status).toBe(403);
     expect(
-      (await c.post("/v1/returns", { pdvId: lac.id, lines: lines(1) })).status,
+      (await seller.post("/v1/returns", { pdvId: lac.id, lines: lines(1) }))
+        .status,
     ).toBe(403);
-    expect((await c.get("/v1/returns")).status).toBe(403);
+
+    const buyer = await createAccount({
+      role: "ACHETEUR",
+      pdvId: lac.id,
+      name: "Bilel Buyer",
+    });
+    const b = client(api, buyer.token);
+    const made = await b.post("/v1/returns", {
+      pdvId: lac.id,
+      lines: lines(2, 1),
+      note: "Damaged boxes",
+    });
+    expect(made.status).toBe(201);
+    expect(made.body).toMatchObject({
+      status: "PENDING",
+      canEdit: true,
+      canCancel: true,
+      canDecide: false,
+    });
+    // Only to take out, only from their own para, never more than it holds.
+    expect(
+      (await b.post("/v1/returns", { pdvId: marsa.id, lines: lines(1) }))
+        .status,
+    ).toBe(404);
+    expect(
+      (
+        await b.post("/v1/returns", {
+          pdvId: lac.id,
+          action: "MOVE",
+          toPdvId: marsa.id,
+          lines: lines(1),
+        })
+      ).status,
+    ).toBe(403);
+    expect(
+      (await b.post("/v1/returns", { pdvId: lac.id, lines: lines(99) })).status,
+    ).toBe(409);
+    // The admin and the responsable of the region are told; nothing left the stock.
+    expect(
+      (await inbox(w.admin)).some((n) => n.key === "return.requested"),
+    ).toBe(true);
+    expect(
+      (await inbox(w.nord)).some((n) => n.key === "return.requested"),
+    ).toBe(true);
+    expect((await levels(w, lac.id))["Serum Vitamin C"]).toBe(10);
+    // It sees its own para's returns.
+    expect((await b.get("/v1/returns")).body).toHaveLength(1);
+    // A buyer of another para sees nothing of it.
+    const stranger = await createAccount({
+      role: "ACHETEUR",
+      pdvId: marsa.id,
+      name: "Sami Stranger",
+    });
+    const st = client(api, stranger.token);
+    expect((await st.get("/v1/returns")).body).toHaveLength(0);
+    expect((await st.get(`/v1/returns/${made.body.id}`)).status).toBe(404);
+    expect(
+      (await st.post(`/v1/returns/${made.body.id}/cancel`, {})).status,
+    ).toBeGreaterThanOrEqual(403);
+    // The admin approves, sending it to another para instead of back.
+    const moved = await w.a.post(`/v1/returns/${made.body.id}/approve`, {
+      toPdvId: marsa.id,
+    });
+    expect(moved.body).toMatchObject({ status: "APPROVED", action: "MOVE" });
+    expect((await levels(w, lac.id))["Serum Vitamin C"]).toBe(8);
+    expect((await levels(w, marsa.id))["Serum Vitamin C"]).toBe(2);
   });
 
   it("can be changed or cancelled while it waits, and the change is written down", async () => {

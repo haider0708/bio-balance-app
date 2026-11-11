@@ -18,7 +18,7 @@ const Lines = z
 export class ReturnsController {
   constructor(private readonly returns: ReturnsService) {}
 
-  @Roles("RESPONSABLE", "ADMIN", "ORDERS")
+  @Roles("RESPONSABLE", "VENDEUR", "ACHETEUR", "ADMIN", "ORDERS")
   @Get()
   list(@Req() r: AuthRequest, @Query() q: Record<string, string>) {
     return this.returns.list(
@@ -35,7 +35,7 @@ export class ReturnsController {
     );
   }
 
-  @Roles("RESPONSABLE", "ADMIN")
+  @Roles("RESPONSABLE", "VENDEUR", "ACHETEUR", "ADMIN")
   @Post()
   create(@Req() r: AuthRequest, @Body() b: unknown) {
     return this.returns.create(
@@ -53,13 +53,13 @@ export class ReturnsController {
     );
   }
 
-  @Roles("RESPONSABLE", "ADMIN", "ORDERS")
+  @Roles("RESPONSABLE", "VENDEUR", "ACHETEUR", "ADMIN", "ORDERS")
   @Get(":id")
   get(@Req() r: AuthRequest, @Param("id") i: string) {
     return this.returns.get(r.actor, parse(id, i));
   }
 
-  @Roles("RESPONSABLE", "ADMIN")
+  @Roles("RESPONSABLE", "VENDEUR", "ACHETEUR", "ADMIN")
   @Post(":id/edit")
   edit(@Req() r: AuthRequest, @Param("id") i: string, @Body() b: unknown) {
     return this.returns.edit(
@@ -69,7 +69,7 @@ export class ReturnsController {
     );
   }
 
-  @Roles("RESPONSABLE", "ADMIN")
+  @Roles("RESPONSABLE", "VENDEUR", "ACHETEUR", "ADMIN")
   @Post(":id/cancel")
   cancel(@Req() r: AuthRequest, @Param("id") i: string) {
     return this.returns.cancel(r.actor, parse(id, i));

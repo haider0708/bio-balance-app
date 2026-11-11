@@ -10,6 +10,7 @@ import type { Actor } from "../../core/actor";
 import { audit } from "../../core/audit";
 import { Database, json, type Tx } from "../../core/database";
 import { DomainError, notFound, requireRule } from "../../core/errors";
+import { isBuyer } from "../../core/roles";
 import { notify, notifyAdmins, responsableIds } from "../../core/notifier";
 import { adjustStock, findLocation } from "../stock/ledger";
 
@@ -60,12 +61,24 @@ export class ReturnsService {
     return lines.map((l) => ({ productId: l.productId, quantity: l.quantity }));
   }
 
-  /** The para, checked: it exists, is active, and the actor may act on it (a responsable: their region's). */
+  /**
+   * Who asks for a return of a para, changes it or cancels it while it waits: the admin, the
+   * responsable of its region, and a buyer of the para itself. Only the admin decides.
+   */
+  private handles(actor: Actor, r: { regionId: string; pdvId: string }) {
+    return (
+      actor.role === "ADMIN" ||
+      (actor.role === "RESPONSABLE" && actor.regionId === r.regionId) ||
+      (isBuyer(actor) && actor.pdvId === r.pdvId)
+    );
+  }
+
+  /** The para, checked: it exists, is active, and the actor may act on it. */
   private async para(actor: Actor, pdvId: string) {
     requireRule(
-      actor.role === "RESPONSABLE" || actor.role === "ADMIN",
+      actor.role === "RESPONSABLE" || actor.role === "ADMIN" || isBuyer(actor),
       "FORBIDDEN",
-      "Only a responsable or the admin handles returns.",
+      "Only a responsable, a buyer or the admin handles returns.",
       403,
     );
     const pdv = await this.db.run("SYSTEM", (tx) =>
@@ -75,7 +88,7 @@ export class ReturnsService {
       }),
     );
     requireRule(
-      pdv && (actor.role === "ADMIN" || actor.regionId === pdv.regionId),
+      pdv && this.handles(actor, { regionId: pdv.regionId, pdvId: pdv.id }),
       "PARA_NOT_FOUND",
       "Unknown para.",
       404,
@@ -258,6 +271,15 @@ export class ReturnsService {
           entityType: "StockReturn",
           entityId: created.id,
         });
+        // The responsable of the region knows what a buyer of their paras asks for.
+        if (actor.role !== "RESPONSABLE")
+          await notify(tx, await responsableIds(tx, pdv.regionId), {
+            key: "return.requested",
+            params: { by: actor.name, para: pdv.name, units },
+            entityType: "StockReturn",
+            entityId: created.id,
+            push: false,
+          });
       }
       return created.id;
     });
@@ -338,8 +360,7 @@ export class ReturnsService {
     });
     if (!r) throw notFound("Return");
     requireRule(
-      actor.role === "ADMIN" ||
-        (actor.role === "RESPONSABLE" && actor.regionId === r.regionId),
+      this.handles(actor, r),
       "FORBIDDEN",
       "This is not one of your paras.",
       403,
@@ -621,9 +642,10 @@ export class ReturnsService {
     requireRule(
       actor.role === "RESPONSABLE" ||
         actor.role === "ADMIN" ||
-        actor.role === "ORDERS",
+        actor.role === "ORDERS" ||
+        isBuyer(actor),
       "FORBIDDEN",
-      "Only a responsable, the order manager or the admin sees returns.",
+      "Only a responsable, a buyer, the order manager or the admin sees returns.",
       403,
     );
     const rows = await this.db.run(actor, (tx) =>
@@ -644,9 +666,10 @@ export class ReturnsService {
     requireRule(
       actor.role === "RESPONSABLE" ||
         actor.role === "ADMIN" ||
-        actor.role === "ORDERS",
+        actor.role === "ORDERS" ||
+        isBuyer(actor),
       "FORBIDDEN",
-      "Only a responsable, the order manager or the admin sees returns.",
+      "Only a responsable, a buyer, the order manager or the admin sees returns.",
       403,
     );
     const row = await this.db.run(actor, (tx) =>
@@ -764,8 +787,8 @@ export class ReturnsService {
           requestedQuantity: l.requestedQuantity,
         })),
       // What the viewer may do now.
-      canEdit: r.status === "PENDING" && actor.role !== "ORDERS",
-      canCancel: r.status === "PENDING" && actor.role !== "ORDERS",
+      canEdit: r.status === "PENDING" && this.handles(actor, r),
+      canCancel: r.status === "PENDING" && this.handles(actor, r),
       canDecide: r.status === "PENDING" && actor.role === "ADMIN",
       changes: detail
         ? (r.revisions ?? []).map((rev) => ({

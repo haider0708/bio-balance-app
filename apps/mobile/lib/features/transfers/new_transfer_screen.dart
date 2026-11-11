@@ -53,7 +53,7 @@ class _NewTransferScreenState extends ConsumerState<NewTransferScreen> {
     final t = AppLocalizations.of(context);
     final me = ref.read(meProvider);
     final repo = ref.read(transfersRepositoryProvider);
-    final vendeur = me.role == Role.vendeur;
+    final vendeur = me.role.isTeam;
     final body = <String, Object?>{
       'fromPdvId': _from!.id,
       'toPdvId': _to!.id,
@@ -77,7 +77,7 @@ class _NewTransferScreenState extends ConsumerState<NewTransferScreen> {
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
     final me = ref.watch(meProvider);
-    final vendeur = me.role == Role.vendeur;
+    final vendeur = me.role.isTeam;
     final mine = me.pdv == null
         ? null
         : TransferPara(id: me.pdv!.id, name: me.pdv!.name);
@@ -188,7 +188,7 @@ class _NewTransferScreenState extends ConsumerState<NewTransferScreen> {
     required AsyncValue<Partners>? partners,
   }) async {
     final me = ref.read(meProvider);
-    final vendeur = me.role == Role.vendeur;
+    final vendeur = me.role.isTeam;
     List<TransferPara> options;
     final otherIsFixed = vendeur;
     if (otherIsFixed || !isFrom) {

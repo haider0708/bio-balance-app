@@ -11,6 +11,7 @@ import type { Actor } from "../../core/actor";
 import { audit } from "../../core/audit";
 import { Database, json, type Tx } from "../../core/database";
 import { DomainError, notFound, requireRule } from "../../core/errors";
+import { TEAM_ROLES, isTeamRole } from "../../core/roles";
 import { notify, notifyAdmins, responsableIds } from "../../core/notifier";
 import { ownedProofs } from "../media/proofs";
 import { adjustStock, findLocation } from "../stock/ledger";
@@ -119,14 +120,35 @@ export class TransfersService {
     });
   }
 
-  /** Who may act on a pair of paras: a team member of either, the responsable of the region, the admin. */
-  private mayAct(actor: Actor, from: Party, to: Party) {
-    const ok =
+  /**
+   * Who may make, change or cancel a transfer between two paras: a team member (seller or buyer)
+   * of either, the responsable of the region, the order manager and the admin. Only the admin
+   * approves.
+   */
+  private handles(
+    actor: Actor,
+    t: { regionId: string; fromPdvId: string; toPdvId: string },
+  ) {
+    return (
       actor.role === "ADMIN" ||
-      (actor.role === "RESPONSABLE" && actor.regionId === from.regionId) ||
-      (actor.role === "VENDEUR" &&
-        (actor.pdvId === from.id || actor.pdvId === to.id));
-    requireRule(ok, "FORBIDDEN", "This is not one of your paras.", 403);
+      actor.role === "ORDERS" ||
+      (actor.role === "RESPONSABLE" && actor.regionId === t.regionId) ||
+      (isTeamRole(actor.role) &&
+        (actor.pdvId === t.fromPdvId || actor.pdvId === t.toPdvId))
+    );
+  }
+
+  private mayAct(actor: Actor, from: Party, to: Party) {
+    requireRule(
+      this.handles(actor, {
+        regionId: from.regionId,
+        fromPdvId: from.id,
+        toPdvId: to.id,
+      }),
+      "FORBIDDEN",
+      "This is not one of your paras.",
+      403,
+    );
   }
 
   private async products(ids: string[]) {
@@ -183,21 +205,17 @@ export class TransfersService {
 
   /** Paras of the same group as `pdvId` (default: the team member's own), to choose who to exchange with. */
   async partners(actor: Actor, pdvId?: string) {
-    requireRule(
-      ["VENDEUR", "RESPONSABLE", "ADMIN"].includes(actor.role),
-      "FORBIDDEN",
-      "Not allowed.",
-      403,
-    );
-    const id = actor.role === "VENDEUR" ? actor.pdvId : (pdvId ?? actor.pdvId);
+    const id = isTeamRole(actor.role) ? actor.pdvId : (pdvId ?? actor.pdvId);
     requireRule(id, "PARA_NOT_FOUND", "Choose a para.", 404);
     return this.db.run("SYSTEM", async (tx) => {
       const own = await tx.pdv.findUnique({ where: { id } });
       requireRule(own, "PARA_NOT_FOUND", "Unknown para.", 404);
       requireRule(
-        actor.role === "ADMIN" ||
-          (actor.role === "RESPONSABLE" && actor.regionId === own.regionId) ||
-          (actor.role === "VENDEUR" && actor.pdvId === own.id),
+        this.handles(actor, {
+          regionId: own.regionId,
+          fromPdvId: own.id,
+          toPdvId: own.id,
+        }),
         "FORBIDDEN",
         "This is not one of your paras.",
         403,
@@ -221,12 +239,6 @@ export class TransfersService {
   }
 
   async create(actor: Actor, input: TransferInput) {
-    requireRule(
-      ["VENDEUR", "RESPONSABLE", "ADMIN"].includes(actor.role),
-      "FORBIDDEN",
-      "Not allowed.",
-      403,
-    );
     const lines = this.normalise(input.lines);
     const { from, to, group } = await this.parties(
       input.fromPdvId,
@@ -234,12 +246,11 @@ export class TransfersService {
     );
     this.mayAct(actor, from, to);
     // A team member always speaks for their own para.
-    const direction: TransferDirection =
-      actor.role === "VENDEUR"
-        ? actor.pdvId === from.id
-          ? "SEND"
-          : "REQUEST"
-        : input.direction;
+    const direction: TransferDirection = isTeamRole(actor.role)
+      ? actor.pdvId === from.id
+        ? "SEND"
+        : "REQUEST"
+      : input.direction;
     const names = await this.products(lines.map((l) => l.productId));
     const held = await this.available(
       from.id,
@@ -324,8 +335,8 @@ export class TransfersService {
           entityType: "StockTransfer",
           entityId: transfer.id,
         });
-        // The responsable of the region knows what their team members record.
-        if (actor.role === "VENDEUR")
+        // The responsable of the region knows what their team members and the order manager record.
+        if (isTeamRole(actor.role) || actor.role === "ORDERS")
           await notify(tx, await responsableIds(tx, from.regionId), {
             key: "transfer.requested",
             params: { by: actor.name, from: from.name, to: to.name, units },
@@ -369,7 +380,7 @@ export class TransfersService {
   private async audience(tx: Tx, t: StockTransfer, except?: string) {
     const sellers = await tx.user.findMany({
       where: {
-        role: "VENDEUR",
+        role: { in: TEAM_ROLES },
         status: "ACTIVE",
         pdvId: { in: [t.fromPdvId, t.toPdvId] },
       },
@@ -394,10 +405,7 @@ export class TransfersService {
     });
     if (!t) throw notFound("Transfer");
     requireRule(
-      actor.role === "ADMIN" ||
-        (actor.role === "RESPONSABLE" && actor.regionId === t.regionId) ||
-        (actor.role === "VENDEUR" &&
-          (actor.pdvId === t.fromPdvId || actor.pdvId === t.toPdvId)),
+      this.handles(actor, t),
       "FORBIDDEN",
       "This is not one of your paras.",
       403,
@@ -690,12 +698,6 @@ export class TransfersService {
     actor: Actor,
     filter: { status?: TransferStatus; pdvId?: string },
   ) {
-    requireRule(
-      ["VENDEUR", "RESPONSABLE", "ADMIN", "ORDERS"].includes(actor.role),
-      "FORBIDDEN",
-      "Not allowed.",
-      403,
-    );
     const rows = await this.db.run(actor, (tx) =>
       tx.stockTransfer.findMany({
         where: {
@@ -773,11 +775,7 @@ export class TransfersService {
     const product = new Map(products.map((p) => [p.id, p]));
     const person = new Map(people.map((p) => [p.id, p]));
     const group = new Map(groups.map((g) => [g.id, g.name]));
-    const mine = (r: Full) =>
-      actor.role === "ADMIN" ||
-      (actor.role === "RESPONSABLE" && actor.regionId === r.regionId) ||
-      (actor.role === "VENDEUR" &&
-        (actor.pdvId === r.fromPdvId || actor.pdvId === r.toPdvId));
+    const mine = (r: Full) => this.handles(actor, r);
     const side = (id: string) => {
       const p = place.get(id);
       return {

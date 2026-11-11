@@ -26,7 +26,7 @@ const Create = z.object({
 export class TransfersController {
   constructor(private readonly transfers: TransfersService) {}
 
-  @Roles("VENDEUR", "RESPONSABLE", "ADMIN", "ORDERS")
+  @Roles("VENDEUR", "ACHETEUR", "RESPONSABLE", "ADMIN", "ORDERS")
   @Get()
   list(@Req() r: AuthRequest, @Query() q: Record<string, string>) {
     return this.transfers.list(
@@ -44,25 +44,25 @@ export class TransfersController {
   }
 
   // Before ":id", so "partners" is not read as an id.
-  @Roles("VENDEUR", "RESPONSABLE", "ADMIN")
+  @Roles("VENDEUR", "ACHETEUR", "RESPONSABLE", "ADMIN", "ORDERS")
   @Get("partners")
   partners(@Req() r: AuthRequest, @Query("pdvId") pdvId?: string) {
     return this.transfers.partners(r.actor, parse(id.optional(), pdvId));
   }
 
-  @Roles("VENDEUR", "RESPONSABLE", "ADMIN")
+  @Roles("VENDEUR", "ACHETEUR", "RESPONSABLE", "ADMIN", "ORDERS")
   @Post()
   create(@Req() r: AuthRequest, @Body() b: unknown) {
     return this.transfers.create(r.actor, parse(Create, b));
   }
 
-  @Roles("VENDEUR", "RESPONSABLE", "ADMIN", "ORDERS")
+  @Roles("VENDEUR", "ACHETEUR", "RESPONSABLE", "ADMIN", "ORDERS")
   @Get(":id")
   get(@Req() r: AuthRequest, @Param("id") i: string) {
     return this.transfers.get(r.actor, parse(id, i));
   }
 
-  @Roles("VENDEUR", "RESPONSABLE", "ADMIN")
+  @Roles("VENDEUR", "ACHETEUR", "RESPONSABLE", "ADMIN", "ORDERS")
   @Post(":id/edit")
   edit(@Req() r: AuthRequest, @Param("id") i: string, @Body() b: unknown) {
     return this.transfers.edit(
@@ -72,7 +72,7 @@ export class TransfersController {
     );
   }
 
-  @Roles("VENDEUR", "RESPONSABLE", "ADMIN")
+  @Roles("VENDEUR", "ACHETEUR", "RESPONSABLE", "ADMIN", "ORDERS")
   @Post(":id/cancel")
   cancel(@Req() r: AuthRequest, @Param("id") i: string) {
     return this.transfers.cancel(r.actor, parse(id, i));

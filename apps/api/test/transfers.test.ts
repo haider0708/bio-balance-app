@@ -187,6 +187,92 @@ describe("recording a transfer", () => {
   });
 });
 
+describe("the buyer and the order manager", () => {
+  it("a buyer records a transfer for their own para like a seller; the admin approves and the stock moves", async () => {
+    const buyer = await createAccount({
+      role: "ACHETEUR",
+      pdvId: lac.id,
+      name: "Bilel Buyer",
+    });
+    const made = await send(buyer);
+    expect(made.status).toBe(201);
+    expect(made.body).toMatchObject({
+      status: "PENDING",
+      direction: "SEND",
+      canEdit: true,
+      canDecide: false,
+    });
+    const b = client(api, buyer.token);
+    expect((await b.get("/v1/transfers")).body).toHaveLength(1);
+    expect(
+      (await b.get("/v1/transfers/partners")).body.partners.map(
+        (p: any) => p.name,
+      ),
+    ).toEqual(["Para Carthage", "Para Marsa"]);
+    // The responsable of the region is told; a buyer of a third para has no part in it.
+    expect(
+      (await inbox(w.nord)).some((n) => n.key === "transfer.requested"),
+    ).toBe(true);
+    const third = await createAccount({
+      role: "ACHETEUR",
+      pdvId: carthage.id,
+      name: "Chedly Carthage",
+    });
+    expect((await send(third)).status).toBe(403);
+    expect(
+      (await client(api, third.token).get(`/v1/transfers/${made.body.id}`))
+        .status,
+    ).toBe(404);
+    expect(
+      (await b.post(`/v1/transfers/${made.body.id}/approve`, {})).status,
+    ).toBe(403);
+    await w.a.post(`/v1/transfers/${made.body.id}/approve`, {});
+    expect((await levels(w, marsa.id))["Serum Vitamin C"]).toBe(8);
+  });
+
+  it("the order manager records one between any two paras of a group, changes it and cancels it; only the admin approves", async () => {
+    const manager = await createAccount({
+      role: "ORDERS",
+      name: "Omar Orders",
+    });
+    const m = client(api, manager.token);
+    expect(
+      (await m.get(`/v1/transfers/partners?pdvId=${lac.id}`)).body.partners,
+    ).toHaveLength(2);
+    const made = await send(manager, { direction: "REQUEST" });
+    expect(made.status).toBe(201);
+    expect(made.body).toMatchObject({
+      status: "PENDING",
+      direction: "REQUEST",
+      canEdit: true,
+      canCancel: true,
+      canDecide: false,
+    });
+    // Still one photo, the same group, and enough stock.
+    expect((await send(manager, { photoId: undefined })).body.code).toBe(
+      "PHOTO_REQUIRED",
+    );
+    expect((await send(manager, { toPdvId: loner.id })).body.code).toBe(
+      "NOT_SAME_GROUP",
+    );
+    const edited = await m.post(`/v1/transfers/${made.body.id}/edit`, {
+      lines: lines(1),
+    });
+    expect(edited.body.lines).toHaveLength(1);
+    expect(
+      (await m.post(`/v1/transfers/${made.body.id}/approve`, {})).status,
+    ).toBe(403);
+    // Nothing moved; the responsable and the admin were told.
+    expect((await levels(w, lac.id))["Serum Vitamin C"]).toBe(10);
+    expect(
+      (await inbox(w.nord)).some((n) => n.key === "transfer.requested"),
+    ).toBe(true);
+    expect(
+      (await m.post(`/v1/transfers/${made.body.id}/cancel`, {})).body.status,
+    ).toBe("CANCELLED");
+  });
+});
+
 describe("the admin decides", () => {
   it("approving moves the stock in one go, with a history line on each side", async () => {
     const made = (await send(lacMember)).body;
