@@ -148,12 +148,12 @@
     "fr": "Vous êtes chargé(e) de recevoir le réassort {number}."
   },
   "restock.received": {
-    "en": "{by} sent the delivery paper for restock {number}: waiting for approval.",
-    "fr": "{by} a envoyé le bon de livraison du réassort {number} : en attente d’approbation."
+    "en": "{by} sent the delivery paper for restock {number}: check it and mark it delivered.",
+    "fr": "{by} a envoyé le bon de livraison du réassort {number} : vérifiez-le et marquez-le livré."
   },
   "restock.completed": {
-    "en": "Restock {number} is complete and the stock is updated.",
-    "fr": "Le réassort {number} est terminé et le stock est mis à jour."
+    "en": "Restock {number} is delivered and the stock is updated.",
+    "fr": "Le réassort {number} est livré et le stock est mis à jour."
   },
   "restock.receipt_rejected": {
     "en": "Send the delivery paper of restock {number} again.",
@@ -354,5 +354,9 @@
   "duties.changed": {
     "en": "{by} changed what you do in your point of sale. Open the app to see it.",
     "fr": "{by} a changé ce que vous faites dans votre point de vente. Ouvrez l’application pour le voir."
+  },
+  "restock.quantities_changed": {
+    "en": "The admin changed the quantities of restock {number}: {note}",
+    "fr": "L’admin a modifié les quantités du réassort {number} : {note}"
   }
 }

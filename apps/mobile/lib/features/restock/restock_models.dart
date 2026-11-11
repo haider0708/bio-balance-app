@@ -92,6 +92,7 @@ class RestockOrder {
     this.decidedAt,
     this.proposal,
     this.documentIds = const [],
+    this.changes = const [],
     this.deliveredAt,
     this.deliveredBy,
   });
@@ -128,6 +129,10 @@ class RestockOrder {
     proposal: Proposal.from(j.objOrNull('proposal')),
     documentIds: ((j['documentIds'] as List<dynamic>?) ?? const [])
         .cast<String>(),
+    changes: [
+      for (final c in (j['changes'] as List<dynamic>?) ?? const [])
+        QuantityChange.fromJson(c as Json),
+    ],
     deliveredAt: j.dateOrNull('deliveredAt'),
     deliveredBy: Actor.from(j.objOrNull('deliveredBy')),
   );
@@ -172,6 +177,9 @@ class RestockOrder {
   /// The papers the order manager and the admin attached (invoice, delivery note).
   final List<String> documentIds;
 
+  /// The admin's changes of quantities, oldest first (only on a single order, not in lists).
+  final List<QuantityChange> changes;
+
   /// When the order manager said it reached the place; the place still confirms, the admin approves.
   final DateTime? deliveredAt;
   final Actor? deliveredBy;
@@ -192,6 +200,35 @@ class RestockOrder {
 }
 
 /// What the order manager proposed for a requested order, waiting for the admin.
+/// A change of quantities made by the admin on an order: who, when, why, and what moved.
+class QuantityChange {
+  const QuantityChange({
+    required this.at,
+    required this.by,
+    required this.lines,
+    this.note,
+  });
+
+  factory QuantityChange.fromJson(Json j) => QuantityChange(
+    at: j.date('at'),
+    by: j.str('by'),
+    note: j.strOrNull('note'),
+    lines: [
+      for (final l in j.list('lines'))
+        (
+          name: l.str('name'),
+          before: l.integer('before'),
+          after: l.integer('after'),
+        ),
+    ],
+  );
+
+  final DateTime at;
+  final String by;
+  final String? note;
+  final List<({String name, int before, int after})> lines;
+}
+
 class Proposal {
   const Proposal({required this.source, this.supplier, this.by, this.note});
 

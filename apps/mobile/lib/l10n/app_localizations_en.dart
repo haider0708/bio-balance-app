@@ -222,9 +222,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get approveAndInvite => 'Approve and send invitation';
 
   @override
-  String get approveAsCounted => 'Approve the delivery';
-
-  @override
   String approveGroupTitle(String name) {
     return 'Approve the group “$name”?';
   }
@@ -404,7 +401,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get confirm => 'Confirm';
 
   @override
-  String get confirmDelivery => 'Confirm the delivery';
+  String get confirmDelivery => 'Send the delivery paper';
 
   @override
   String get confirmPassword => 'Confirm password';
@@ -566,7 +563,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get deliveryPaper => 'Delivery paper';
 
   @override
-  String get deliverySent => 'Sent to BioBalance for approval';
+  String get deliverySent =>
+      'Paper sent: the admin checks it and marks the order delivered';
 
   @override
   String get depotName => 'Depot name';
@@ -1468,7 +1466,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get receiveHint =>
-      'Photograph the signed delivery paper, or add it as a PDF. BioBalance checks it and enters the quantities received.';
+      'Photograph the signed delivery paper, or add it as a PDF. The admin checks it, enters the quantities received and marks the order delivered.';
 
   @override
   String get receivedBy => 'Received by';
@@ -1598,7 +1596,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get restock => 'Restock';
 
   @override
-  String get restockApproved => 'Restock approved. The stock is updated.';
+  String get restockApproved => 'Marked as delivered. The stock is updated.';
 
   @override
   String get restockAssigned => 'With the grossiste';
@@ -1607,16 +1605,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get restockCancelled => 'Restock cancelled';
 
   @override
-  String get restockCompleted => 'Completed';
+  String get restockCompleted => 'Delivered';
 
   @override
-  String get completeDelivery => 'Complete the delivery';
+  String get completeDelivery => 'Mark as delivered';
 
   @override
   String get restockDelivered => 'Delivered, to be confirmed';
 
   @override
-  String get restockReceived => 'To approve';
+  String get restockReceived => 'Paper sent, to verify';
 
   @override
   String get restockRequested => 'Requested';
@@ -3760,7 +3758,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get receiveHintAdmin =>
-      'Add the delivery paper and enter what really arrived: the stock is updated at once.';
+      'Enter what really arrived, with the delivery paper if you have it: the stock is updated at once.';
 
   @override
   String sentQuantity(int count) {
@@ -4290,16 +4288,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get papersAdded => 'Papers added';
 
   @override
-  String get orderMarkDelivered => 'Mark as delivered';
-
-  @override
-  String get orderDeliveredHint =>
-      'The goods reached the place. Add the delivery paper if you have it. The place still confirms the receipt and the admin approves it.';
-
-  @override
-  String get orderDeliveredDone => 'Marked as delivered';
-
-  @override
   String get proposalTitle => 'Proposal';
 
   @override
@@ -4460,4 +4448,21 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get passwordSet => 'Password saved';
+
+  @override
+  String get changeQuantities => 'Change quantities';
+
+  @override
+  String get changeQuantitiesHint =>
+      'Change what the order asks for, add a product, or set one to zero to take it out.';
+
+  @override
+  String get changeQuantitiesReason =>
+      'Why are the quantities changed? Everyone on the order is told.';
+
+  @override
+  String get quantitiesChanged => 'Quantities changed';
+
+  @override
+  String get quantityChanges => 'Changes of quantities';
 }

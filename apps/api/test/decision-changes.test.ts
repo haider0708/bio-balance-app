@@ -326,11 +326,20 @@ describe("restocks", () => {
       (await w.a.post(`/v1/restocks/${o.id}/amend`, { lines: [line(0, 3)] }))
         .body.code,
     ).toBe("BELOW_SOLD");
+    // A delivery found wrong later can still be corrected, with the reason kept on the order.
     await age("RestockOrder", o.id, "decidedAt", 7);
+    const later = await w.a.post(`/v1/restocks/${o.id}/amend`, {
+      lines: [line(0, 9)],
+      note: "One more box found",
+    });
+    expect(later.status).toBe(201);
+    expect((await levels(w, pdv.id))["Serum Vitamin C"]).toBe(5);
     expect(
-      (await w.a.post(`/v1/restocks/${o.id}/amend`, { lines: [line(0, 9)] }))
-        .body.code,
-    ).toBe("DECISION_LOCKED");
+      (await w.a.get(`/v1/restocks/${o.id}`)).body.changes.at(-1),
+    ).toMatchObject({
+      delivered: true,
+      note: "One more box found",
+    });
   });
 });
 

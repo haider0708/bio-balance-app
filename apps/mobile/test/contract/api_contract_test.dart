@@ -544,10 +544,13 @@ void main() {
         await a.read(restockRepositoryProvider).approveProposal(created.id);
         final routed = await repo.get(created.id);
         expect(routed.status, RestockStatus.shipped);
-        await repo.delivered(created.id, note: 'Remis');
+        // The admin marks it delivered, with no paper: the order is closed.
+        await a
+            .read(restockRepositoryProvider)
+            .receive(created.id, photoIds: const [], note: 'Remis');
         final delivered = await repo.get(created.id);
-        expect(delivered.deliveredAt, isNotNull);
-        expect(delivered.deliveredBy?.name, 'Omar Commandes');
+        expect(delivered.status, RestockStatus.completed);
+        expect(delivered.changes, isEmpty);
       },
     );
   });

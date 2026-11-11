@@ -33,7 +33,7 @@ class RestockDetailScreen extends ConsumerStatefulWidget {
 }
 
 class _RestockDetailScreenState extends ConsumerState<RestockDetailScreen> {
-  /// Quantities the admin changed before routing the order.
+  /// Quantities the order manager changed for the proposal being prepared.
   List<Map<String, Object>>? _adjusted;
 
   void _reload() {
@@ -51,6 +51,51 @@ class _RestockDetailScreenState extends ConsumerState<RestockDetailScreen> {
     if (!ok) return;
     _reload();
     if (leave && mounted) context.pop();
+  }
+
+  /// The admin changes the quantities and says why: what is asked (before the order leaves) or
+  /// what arrived (once delivered, where only the difference reaches the stock).
+  Future<void> _changeQuantities(RestockOrder o, {required bool before}) async {
+    final t = AppLocalizations.of(context);
+    final lines = await amendQuantities(
+      context,
+      title: t.changeQuantities,
+      hint: before ? t.changeQuantitiesHint : t.correctQuantitiesHint,
+      allowAdd: before,
+      items: [
+        for (final l in o.lines)
+          QuantityItem(
+            productId: l.productId,
+            name: l.name,
+            family: l.family,
+            quantity: before ? l.requested : (l.approved ?? 0),
+            hint: t.requestedQuantity(l.requested),
+          ),
+      ],
+    );
+    if (lines == null || !mounted) return;
+    final note = await askNote(
+      context,
+      title: t.changeQuantities,
+      confirmLabel: t.save,
+      hint: t.changeQuantitiesReason,
+    );
+    if (note == null) return;
+    final repo = ref.read(restockRepositoryProvider);
+    await _act(
+      () => before
+          ? repo.changeQuantities(
+              o.id,
+              // An order asks for at least one unit of each product: zero takes the product out.
+              lines: [
+                for (final l in lines)
+                  if ((l['quantity']! as int) > 0) l,
+              ],
+              note: note,
+            )
+          : repo.amend(o.id, lines: lines, note: note),
+      t.quantitiesChanged,
+    );
   }
 
   @override
@@ -125,6 +170,10 @@ class _RestockDetailScreenState extends ConsumerState<RestockDetailScreen> {
                 _ProposalCard(proposal: o.proposal!),
               SectionHeader(t.products),
               _Lines(order: o, adjusted: _adjusted),
+              if (o.changes.isNotEmpty) ...[
+                SectionHeader(t.quantityChanges),
+                for (final c in o.changes) _ChangeCard(change: c),
+              ],
               if (o.documentIds.isNotEmpty) ...[
                 SectionHeader(t.orderPapers),
                 PhotoStrip(ids: o.documentIds),
@@ -196,11 +245,7 @@ class _RestockDetailScreenState extends ConsumerState<RestockDetailScreen> {
                 label: t.assignToSuggested(suggested.name),
                 icon: LucideIcons.check,
                 onPressed: () => _act(
-                  () => repo.assign(
-                    o.id,
-                    depotId: suggested.id,
-                    lines: _adjusted,
-                  ),
+                  () => repo.assign(o.id, depotId: suggested.id),
                   t.restockRouted,
                 ),
               ),
@@ -217,14 +262,11 @@ class _RestockDetailScreenState extends ConsumerState<RestockDetailScreen> {
                   : AsyncButtonStyle.filled,
               onPressed: () async {
                 if (o.toDepot)
-                  return _act(
-                    () => repo.sendDirect(o.id, lines: _adjusted),
-                    t.restockRouted,
-                  );
+                  return _act(() => repo.sendDirect(o.id), t.restockRouted);
                 final depot = await _pickDepot(context, o);
                 if (depot == null) return;
                 await _act(
-                  () => repo.assign(o.id, depotId: depot.id, lines: _adjusted),
+                  () => repo.assign(o.id, depotId: depot.id),
                   t.restockRouted,
                 );
               },
@@ -238,40 +280,12 @@ class _RestockDetailScreenState extends ConsumerState<RestockDetailScreen> {
                 label: t.sendFromBiobalance,
                 icon: LucideIcons.send,
                 style: AsyncButtonStyle.outlined,
-                onPressed: () => _act(
-                  () => repo.sendDirect(o.id, lines: _adjusted),
-                  t.restockRouted,
-                ),
+                onPressed: () =>
+                    _act(() => repo.sendDirect(o.id), t.restockRouted),
               ),
             )
             ..add(gap);
         }
-        w.add(
-          AsyncButton(
-            label: t.adjustQuantities,
-            icon: LucideIcons.pencil,
-            style: AsyncButtonStyle.text,
-            onPressed: () async {
-              final lines = await amendQuantities(
-                context,
-                title: t.adjustQuantities,
-                hint: t.adjustQuantitiesHint,
-                allowAdd: true,
-                items: [
-                  for (final l in o.lines)
-                    QuantityItem(
-                      productId: l.productId,
-                      name: l.name,
-                      family: l.family,
-                      quantity: l.requested,
-                      hint: t.requestedQuantity(l.requested),
-                    ),
-                ],
-              );
-              if (lines != null) setState(() => _adjusted = lines);
-            },
-          ),
-        );
       }
       if (o.status == RestockStatus.received) {
         // The receiver sent the paper; the admin enters what arrived (from what was sent, or what
@@ -279,12 +293,12 @@ class _RestockDetailScreenState extends ConsumerState<RestockDetailScreen> {
         w
           ..add(
             AsyncButton(
-              label: t.approveAsCounted,
+              label: t.completeDelivery,
               icon: LucideIcons.check,
               onPressed: () async {
                 final lines = await amendQuantities(
                   context,
-                  title: t.approveAsCounted,
+                  title: t.completeDelivery,
                   hint: t.amendReceiptHint,
                   items: [
                     for (final l in o.lines.where((l) => (l.shipped ?? 0) > 0))
@@ -329,6 +343,22 @@ class _RestockDetailScreenState extends ConsumerState<RestockDetailScreen> {
               },
             ),
           );
+      }
+      // What the order asks for (before it leaves) or what arrived (once delivered), with the reason.
+      final before =
+          o.status == RestockStatus.requested ||
+          o.status == RestockStatus.assigned;
+      if (before || o.status == RestockStatus.completed) {
+        w
+          ..add(
+            AsyncButton(
+              label: t.changeQuantities,
+              icon: LucideIcons.pencil,
+              style: AsyncButtonStyle.outlined,
+              onPressed: () => _changeQuantities(o, before: before),
+            ),
+          )
+          ..add(gap);
       }
     }
 
@@ -423,8 +453,17 @@ class _RestockDetailScreenState extends ConsumerState<RestockDetailScreen> {
         )
         ..add(gap);
     }
-    // Papers until the order is closed; "delivered" once it is on the road.
-    if ((me.role == Role.orders || me.role == Role.admin) &&
+    // Papers until the order is closed. On an order on its way, everyone but the admin sends the
+    // delivery paper instead (below): it is what the admin checks before marking it delivered.
+    final ownPlace =
+        (me.role == Role.responsable && o.regionId == me.region?.id) ||
+        (me.isBuyer && !o.toDepot && o.destinationId == me.pdv?.id) ||
+        o.receiver?.id == me.id;
+    final addsPapers =
+        me.role == Role.admin ||
+        ((me.role == Role.orders || ownPlace) &&
+            o.status != RestockStatus.shipped);
+    if (addsPapers &&
         o.status != RestockStatus.completed &&
         o.status != RestockStatus.cancelled &&
         (o.documentIds.length < 10)) {
@@ -445,30 +484,6 @@ class _RestockDetailScreenState extends ConsumerState<RestockDetailScreen> {
         )
         ..add(gap);
     }
-    if ((me.role == Role.orders || me.role == Role.admin) &&
-        o.status == RestockStatus.shipped &&
-        o.deliveredAt == null) {
-      w
-        ..add(
-          AsyncButton(
-            label: t.orderMarkDelivered,
-            icon: LucideIcons.circleCheck,
-            // For the admin, completing the delivery is the main step; this one only tells the store.
-            style: me.role == Role.admin
-                ? AsyncButtonStyle.outlined
-                : AsyncButtonStyle.filled,
-            onPressed: () async {
-              final done = await context.push<bool>(
-                '/restocks/${o.id}/delivered',
-                extra: o,
-              );
-              if (done ?? false) _reload();
-            },
-          ),
-        )
-        ..add(gap);
-    }
-
     // The responsable of the region (or the admin) ships from the grossiste.
     final shipsIt =
         me.role == Role.admin ||
@@ -514,7 +529,8 @@ class _RestockDetailScreenState extends ConsumerState<RestockDetailScreen> {
                 o.destinationId == me.pdv?.id &&
                 o.receiver == null) ||
             (me.role == Role.responsable && o.regionId == me.region?.id) ||
-            // The admin completes any delivery herself: the stock is added at once.
+            me.role == Role.orders ||
+            // The admin marks any delivery done herself: the stock is added at once.
             me.role == Role.admin);
     if (canReceive) {
       w
@@ -713,6 +729,49 @@ class _Lines extends StatelessWidget {
             ),
           ),
       ],
+    );
+  }
+}
+
+/// One change of quantities by the admin: when, by whom, why, and what moved.
+class _ChangeCard extends StatelessWidget {
+  const _ChangeCard({required this.change});
+
+  final QuantityChange change;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: AppCard(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          spacing: 4,
+          children: [
+            Text(
+              '${Dates.dateTime(change.at, t.localeName)} · ${change.by}',
+              style: context.text.labelMedium?.copyWith(
+                color: context.status.muted,
+              ),
+            ),
+            if (change.note != null && change.note!.isNotEmpty)
+              Text(change.note!, style: context.text.bodyMedium),
+            for (final l in change.lines)
+              Row(
+                spacing: 12,
+                children: [
+                  Expanded(child: Text(l.name)),
+                  Text(
+                    '${l.before} → ${l.after}',
+                    style: context.text.titleSmall,
+                  ),
+                ],
+              ),
+          ],
+        ),
+      ),
     );
   }
 }

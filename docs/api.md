@@ -130,7 +130,8 @@ Every route is under `https://api.galylio.com`, JSON in and out, `Authorization:
 | POST | `/v1/restocks/:id/approve` | admin: `lines` are the quantities received (what is left out is what was sent) |
 | POST | `/v1/restocks/:id/assign` | admin |
 | POST | `/v1/restocks/:id/cancel` | admin, responsable |
-| POST | `/v1/restocks/:id/receipt` | admin (any order on its way; with no `photoIds` it uses the papers already on the order, at most five), the store's responsable, the chosen team member: the paper (`photoIds`, photos or PDF) and a `note`; `lines` only from the admin (or older apps) |
+| POST | `/v1/restocks/:id/receipt` | on an order on its way. Admin: marks it delivered at once, a paper is optional (with no `photoIds` the papers already on the order are used, at most five), `lines` are what arrived. The store's responsable, the chosen team member, a buyer of the para, the order manager: the paper (`photoIds`, photos or PDF, required) and a `note`; the order becomes RECEIVED ("paper sent, to verify") |
+| POST | `/v1/restocks/:id/quantities` `{lines, note}` | admin, REQUESTED or ASSIGNED: what the order asks for (a product left out is removed), with the reason (required). `GET /v1/restocks/:id` lists every change in `changes [{at, by, delivered, note, lines [{productId, name, before, after}]}]` |
 | PUT | `/v1/restocks/:id/receiver` | the store's responsable |
 | POST | `/v1/restocks/:id/reject-receipt` | admin |
 | POST | `/v1/restocks/:id/send-direct` | admin |
@@ -205,7 +206,7 @@ Round three: `GET /v1/approvals/history`, `POST /v1/stock/adjust`, `POST /v1/sto
 - **Working hours**: outside the hours set by the admin (Tunis time, never the phone's clock) every authenticated call of a non-admin, non-test-region account answers `423 SERVER_CLOSED` with `details {opensAt, time}`. Still answered: sign-in and the `auth/*` public routes, `GET /v1/me`, `POST /v1/auth/logout`, `POST /v1/me/push-device`, `POST /v1/me/password`, and `POST /v1/sales` for a sale whose `occurredAt` falls inside the hours (a phone that was offline). Background jobs keep running.
 - **Stock counts**: stock changes when a count is declared (no longer at approval); `PUT /v1/stock/declarations/:id` edits it, `POST/DELETE .../:id/edit` hold it while its responsable edits (the admin gets `EDITING`); an approved count is corrected for 3 days with a reason; a rejected count removes its stock; the admin may add products when approving. `BELOW_SOLD` carries `details` (product, minimum).
 - **Supplier choice**: `POST /v1/restocks/suppliers` (coverage only), `supplierId` on `POST /v1/restocks` (403 `SUPPLIER_CHOICE_OFF` unless the global switch and the personal permission are both on), `PUT /v1/users/:id/supplier-choice`, `canChooseSupplier` in `/v1/me`.
-- **Changing a decision for 6 hours** (admin): `POST /v1/groups|pdvs|users/:id/reopen`, `POST /v1/stock/declarations/:id/amend|reopen`, `POST /v1/stock/recounts/:id/reopen`, `POST /v1/restocks/:id/amend|reopen`. Payouts have none. `GET /v1/approvals/history` items carry `change {options, until}` (null once locked). Error `DECISION_LOCKED`.
+- **Changing a decision for 6 hours** (admin): `POST /v1/groups|pdvs|users/:id/reopen`, `POST /v1/stock/declarations/:id/amend|reopen`, `POST /v1/stock/recounts/:id/reopen`, `POST /v1/restocks/:id/reopen`. Payouts have none. (`POST /v1/restocks/:id/amend`, the quantities received of a delivered order, has no time limit since 3.6.) `GET /v1/approvals/history` items carry `change {options, until}` (null once locked). Error `DECISION_LOCKED`.
 - **Setup link** for a new admin's authenticator: `GET /s` (page), `POST /v1/setup-link/claim` (public, one-time).
 
 ## Counts and orders, second round (2026-10)
@@ -304,8 +305,8 @@ Role `ORDERS`: created with `POST /v1/users {role: "ORDERS", name, email, phone}
 | POST | `/v1/restocks` | ORDERS too: any para or grossiste |
 | POST | `/v1/restocks/:id/propose` `{source: BIOBALANCE\|GROSSISTE, depotId?, lines?, note?, photoIds?}` | ORDERS (REQUESTED only; a depot order is BIOBALANCE) |
 | POST | `/v1/restocks/:id/approve-proposal` / `reject-proposal` `{note}` | admin |
-| POST | `/v1/restocks/:id/documents` `{photoIds}` | ORDERS, admin (until closed; at most 10) |
-| POST | `/v1/restocks/:id/delivered` `{photoIds?, note?}` | ORDERS, admin (SHIPPED, once) |
+| POST | `/v1/restocks/:id/documents` `{photoIds}` | ORDERS, admin, the responsable of the place's region, a buyer of the para, the chosen receiver (until closed; at most 10). On an order on its way, from anyone but the admin, it is the delivery paper: the order becomes RECEIVED and the admin is told |
+| POST | `/v1/restocks/:id/delivered` `{photoIds?, note?}` | kept for older apps (once per order). ORDERS on an order on its way: RECEIVED, waiting for the admin; admin: only stamps `deliveredAt` |
 | POST | `/v1/restocks/:id/ship` | ORDERS too, from any grossiste |
 
 An order carries `proposal {source, supplier, by, at, note}` while it waits, `documentIds`, `deliveredAt`, `deliveredBy`, and each line `proposed`. Reads opened to ORDERS: `/v1/pdvs`, `/v1/groups`, `/v1/depots`, `/v1/restocks`, `/v1/transfers`, `/v1/returns` (the last two with `canEdit`, `canCancel`, `canDecide` all false). `/v1/approvals` shows `meta.proposal` and `meta.proposedBy` on a restock request. Notifications: `restock.proposed`, `restock.proposal_approved`, `restock.proposal_refused`, `restock.delivered`, `orders.asks`.

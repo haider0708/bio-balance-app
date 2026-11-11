@@ -833,10 +833,6 @@ List<RouteBase> _shared() => [
   ),
   _restockStep('ship', (order) => ShipScreen(order: order)),
   _restockStep('papers', (order) => OrderPapersScreen(order: order)),
-  _restockStep(
-    'delivered',
-    (order) => OrderPapersScreen(order: order, delivered: true),
-  ),
   _restockStep('receive', (order) => ReceiveScreen(order: order)),
 ];
 

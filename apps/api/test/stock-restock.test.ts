@@ -661,11 +661,7 @@ describe("direct restock from BioBalance", () => {
       })
     ).body;
     await w.a.post(`/v1/restocks/${order.id}/send-direct`, {});
-    // Nothing on the order yet: a paper is still needed.
-    const none = await w.a.post(`/v1/restocks/${order.id}/receipt`, {});
-    expect(none.status).toBe(422);
-    expect(none.body.code).toBe("PHOTO_REQUIRED");
-    // The admin adds the papers, marks it delivered ("On its way" stays), then completes it.
+    // The admin adds the papers, then marks it delivered: they are its delivery paper.
     const paper = await photo(w, w.admin);
     expect(
       (
@@ -679,6 +675,182 @@ describe("direct restock from BioBalance", () => {
     expect(done.body.status).toBe("COMPLETED");
     expect(done.body.receiptPhotoIds).toEqual([paper]);
     expect((await levels(w, pdv.id))["Serum Vitamin C"]).toBe(4);
+  });
+
+  it("the admin marks a delivery done without any paper, with the quantities she enters", async () => {
+    const pdv = await approvedPdv(w);
+    const order = (
+      await w.n.post("/v1/restocks", {
+        destId: pdv.id,
+        lines: [{ productId: w.products[0]!.id, quantity: 4 }],
+      })
+    ).body;
+    await w.a.post(`/v1/restocks/${order.id}/send-direct`, {});
+    const done = await w.a.post(`/v1/restocks/${order.id}/receipt`, {
+      lines: [{ productId: w.products[0]!.id, quantity: 3 }],
+      note: "One box was missing",
+    });
+    expect(done.status).toBe(201);
+    expect(done.body).toMatchObject({
+      status: "COMPLETED",
+      receiptPhotoIds: [],
+      receiptNote: "One box was missing",
+    });
+    expect((await levels(w, pdv.id))["Serum Vitamin C"]).toBe(3);
+  });
+
+  it("a paper added to an order on its way sends it to the admin, who checks it and marks it delivered", async () => {
+    const pdv = await approvedPdv(w);
+    const ask = async () => {
+      const o = (
+        await w.n.post("/v1/restocks", {
+          destId: pdv.id,
+          lines: [{ productId: w.products[0]!.id, quantity: 2 }],
+        })
+      ).body;
+      await w.a.post(`/v1/restocks/${o.id}/send-direct`, {});
+      return o;
+    };
+    // The responsable of the para's region.
+    const first = await ask();
+    const paper = await photo(w, w.nord);
+    const sent = await w.n.post(`/v1/restocks/${first.id}/documents`, {
+      photoIds: [paper],
+    });
+    expect(sent.status).toBe(201);
+    expect(sent.body).toMatchObject({
+      status: "RECEIVED",
+      receiptPhotoIds: [paper],
+      documentIds: [paper],
+    });
+    const told = (await w.a.get("/v1/notifications")).body.items.map(
+      (n: { key: string }) => n.key,
+    );
+    expect(told).toContain("restock.received");
+    const approved = await w.a.post(`/v1/restocks/${first.id}/approve`, {});
+    expect(approved.body.status).toBe("COMPLETED");
+    // The order manager, with the paper or through the receipt.
+    const manager = await createAccount({
+      role: "ORDERS",
+      name: "Omar Orders",
+    });
+    const m = client(api, manager.token);
+    const second = await ask();
+    expect(
+      (
+        await m.post(`/v1/restocks/${second.id}/receipt`, {
+          photoIds: [await photo(w, manager)],
+        })
+      ).body.status,
+    ).toBe("RECEIVED");
+    // A buyer of the para; not the buyer of another one, nor another region's responsable.
+    const third = await ask();
+    const buyer = await createAccount({
+      role: "ACHETEUR",
+      pdvId: pdv.id,
+      name: "Bilel Buyer",
+    });
+    const other = await approvedPdv(w, "n", "Para Autre");
+    const stranger = await createAccount({
+      role: "ACHETEUR",
+      pdvId: other.id,
+      name: "Sami Stranger",
+    });
+    expect(
+      (
+        await client(api, stranger.token).post(
+          `/v1/restocks/${third.id}/documents`,
+          { photoIds: [await photo(w, stranger)] },
+        )
+      ).status,
+    ).toBeGreaterThanOrEqual(403);
+    expect(
+      (
+        await w.s.post(`/v1/restocks/${third.id}/documents`, {
+          photoIds: [await photo(w, w.sud)],
+        })
+      ).status,
+    ).toBeGreaterThanOrEqual(403);
+    expect(
+      (
+        await client(api, buyer.token).post(
+          `/v1/restocks/${third.id}/documents`,
+          { photoIds: [await photo(w, buyer)] },
+        )
+      ).body.status,
+    ).toBe("RECEIVED");
+  });
+
+  it("papers added before the order leaves do not change where it stands", async () => {
+    const pdv = await approvedPdv(w);
+    const order = (
+      await w.n.post("/v1/restocks", {
+        destId: pdv.id,
+        lines: [{ productId: w.products[0]!.id, quantity: 2 }],
+      })
+    ).body;
+    const added = await w.n.post(`/v1/restocks/${order.id}/documents`, {
+      photoIds: [await photo(w, w.nord)],
+    });
+    expect(added.body.status).toBe("REQUESTED");
+    expect(added.body.documentIds).toHaveLength(1);
+  });
+
+  it("the admin changes what an order asks for before it leaves, and says why", async () => {
+    const pdv = await approvedPdv(w);
+    const [a, b] = [w.products[0]!.id, w.products[1]!.id];
+    const order = (
+      await w.n.post("/v1/restocks", {
+        destId: pdv.id,
+        lines: [{ productId: a, quantity: 10 }],
+      })
+    ).body;
+    const change = (lines: unknown, note?: string) =>
+      w.a.post(`/v1/restocks/${order.id}/quantities`, { lines, note });
+    // A reason is needed; only the admin.
+    expect((await change([{ productId: a, quantity: 6 }])).status).toBe(400);
+    expect(
+      (
+        await w.n.post(`/v1/restocks/${order.id}/quantities`, {
+          lines: [{ productId: a, quantity: 6 }],
+          note: "Less",
+        })
+      ).status,
+    ).toBe(403);
+    const changed = await change(
+      [
+        { productId: a, quantity: 6 },
+        { productId: b, quantity: 2 },
+      ],
+      "The grossiste has six left",
+    );
+    expect(changed.status).toBe(201);
+    expect(
+      Object.fromEntries(
+        changed.body.lines.map((l: any) => [l.productId, l.requested]),
+      ),
+    ).toEqual({ [a]: 6, [b]: 2 });
+    // The order keeps who changed what and why; its responsable is told.
+    const seen = (await w.n.get(`/v1/restocks/${order.id}`)).body;
+    expect(seen.changes).toEqual([
+      expect.objectContaining({
+        note: "The grossiste has six left",
+        delivered: false,
+        lines: expect.arrayContaining([
+          expect.objectContaining({ productId: a, before: 10, after: 6 }),
+          expect.objectContaining({ productId: b, before: 0, after: 2 }),
+        ]),
+      }),
+    ]);
+    const told = (await w.n.get("/v1/notifications")).body.items.map(
+      (n: { key: string }) => n.key,
+    );
+    expect(told).toContain("restock.quantities_changed");
+    // Once on its way the quantities are entered at the delivery.
+    await w.a.post(`/v1/restocks/${order.id}/send-direct`, {});
+    expect(
+      (await change([{ productId: a, quantity: 1 }], "Too late")).body.code,
+    ).toBe("INVALID_STATE");
   });
 
   it("the store's responsable still photographs the signed paper herself", async () => {

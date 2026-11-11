@@ -11,46 +11,30 @@ import '../../l10n/app_localizations.dart';
 import '../restock/restock_models.dart';
 import '../restock/restock_repository.dart';
 
-/// Attach the papers of an order (invoice, delivery note) or, with [delivered], say that it reached
-/// the place, with the paper that proves it. The place still confirms and the admin approves.
+/// Papers added to an order (invoice, preparation or delivery note): photos or a PDF. Added by
+/// anyone but the admin to an order on its way, they are its delivery paper and the order then
+/// waits for the admin to check it (the server decides).
 class OrderPapersScreen extends ConsumerStatefulWidget {
-  const OrderPapersScreen({
-    required this.order,
-    this.delivered = false,
-    super.key,
-  });
+  const OrderPapersScreen({required this.order, super.key});
 
   final RestockOrder order;
-  final bool delivered;
 
   @override
   ConsumerState<OrderPapersScreen> createState() => _OrderPapersScreenState();
 }
 
 class _OrderPapersScreenState extends ConsumerState<OrderPapersScreen> {
-  final _note = TextEditingController();
   List<String> _photoIds = const [];
   bool _busy = false;
 
-  @override
-  void dispose() {
-    _note.dispose();
-    super.dispose();
-  }
-
   Future<void> _send() async {
     final t = AppLocalizations.of(context);
-    final repo = ref.read(restockRepositoryProvider);
     final ok = await perform(
       context,
-      () => widget.delivered
-          ? repo.delivered(
-              widget.order.id,
-              photoIds: _photoIds,
-              note: _note.text.trim(),
-            )
-          : repo.addDocuments(widget.order.id, _photoIds),
-      success: widget.delivered ? t.orderDeliveredDone : t.papersAdded,
+      () => ref
+          .read(restockRepositoryProvider)
+          .addDocuments(widget.order.id, _photoIds),
+      success: t.papersAdded,
     );
     if (ok && mounted) context.pop(true);
   }
@@ -58,18 +42,13 @@ class _OrderPapersScreenState extends ConsumerState<OrderPapersScreen> {
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
-    final delivered = widget.delivered;
-    // Saying "delivered" needs no paper; adding papers needs at least one.
-    final ready = !_busy && (delivered || _photoIds.isNotEmpty);
     return Scaffold(
-      appBar: AppBar(
-        title: Text(delivered ? t.orderMarkDelivered : t.orderAddPapers),
-      ),
+      appBar: AppBar(title: Text(t.orderAddPapers)),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
           Text(
-            delivered ? t.orderDeliveredHint : t.orderPapersHint,
+            t.orderPapersHint,
             style: context.text.bodyMedium?.copyWith(
               color: context.status.muted,
             ),
@@ -82,23 +61,11 @@ class _OrderPapersScreenState extends ConsumerState<OrderPapersScreen> {
               _busy = busy;
             }),
           ),
-          if (delivered) ...[
-            const Gap(16),
-            TextField(
-              controller: _note,
-              maxLength: 300,
-              minLines: 1,
-              maxLines: 3,
-              decoration: InputDecoration(
-                labelText: '${t.note} (${t.optional})',
-              ),
-            ),
-          ],
           const Gap(8),
           AsyncButton(
-            label: delivered ? t.orderMarkDelivered : t.orderAddPapers,
-            icon: delivered ? LucideIcons.circleCheck : LucideIcons.paperclip,
-            onPressed: ready ? _send : null,
+            label: t.orderAddPapers,
+            icon: LucideIcons.paperclip,
+            onPressed: _busy || _photoIds.isEmpty ? null : _send,
           ),
         ],
       ),

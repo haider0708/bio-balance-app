@@ -104,15 +104,6 @@ class RestockRepository {
       .read(apiClientProvider)
       .post('/v1/restocks/$id/documents', {'photoIds': photoIds});
 
-  Future<void> delivered(
-    String id, {
-    List<String> photoIds = const [],
-    String? note,
-  }) => _ref.read(apiClientProvider).post('/v1/restocks/$id/delivered', {
-    if (photoIds.isNotEmpty) 'photoIds': photoIds,
-    if (note != null && note.isNotEmpty) 'note': note,
-  });
-
   Future<void> ship(String id, List<Map<String, Object>> lines) => _ref
       .read(apiClientProvider)
       .post('/v1/restocks/$id/ship', {'lines': lines});
@@ -149,6 +140,26 @@ class RestockRepository {
   }) => _ref.read(apiClientProvider).post('/v1/restocks/$id/approve', {
     'lines': ?lines,
     if (note != null && note.isNotEmpty) 'note': note,
+  });
+
+  /// The admin changes what an order asks for before it leaves, with the reason.
+  Future<void> changeQuantities(
+    String id, {
+    required List<Map<String, Object>> lines,
+    required String note,
+  }) => _ref.read(apiClientProvider).post('/v1/restocks/$id/quantities', {
+    'lines': lines,
+    'note': note,
+  });
+
+  /// The admin corrects what arrived of a delivered order: only the difference reaches the stock.
+  Future<void> amend(
+    String id, {
+    required List<Map<String, Object>> lines,
+    required String note,
+  }) => _ref.read(apiClientProvider).post('/v1/restocks/$id/amend', {
+    'lines': lines,
+    'note': note,
   });
 
   Future<void> rejectReceipt(String id, String note) => _ref

@@ -147,7 +147,7 @@ void main() {
     final container = await launch(tester, s, language: 'en');
     unawaited(container.read(routerProvider).push('/restocks/o1'));
     await settle(tester);
-    expect(find.text('Confirm the delivery'), findsOneWidget);
+    expect(find.text('Send the delivery paper'), findsOneWidget);
     await finish(tester);
   });
 
@@ -164,7 +164,7 @@ void main() {
     final container = await launch(tester, s, language: 'en');
     unawaited(container.read(routerProvider).push('/restocks/o1'));
     await settle(tester);
-    expect(find.text('Confirm the delivery'), findsNothing);
+    expect(find.text('Send the delivery paper'), findsNothing);
     await finish(tester);
   });
 

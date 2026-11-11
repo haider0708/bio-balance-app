@@ -424,7 +424,7 @@ describe("preparing an order for the admin to approve", () => {
     ).toBe(true);
   });
 
-  it("then ships, adds papers and marks it delivered; the place confirms and the admin approves: only then does the stock arrive", async () => {
+  it("then ships and sends the delivery paper; the admin checks and marks it delivered: only then does the stock arrive", async () => {
     const order = await request(lac.id, [6, 4]);
     await m.post(`/v1/restocks/${order.id}/propose`, {
       source: "GROSSISTE",
@@ -443,31 +443,30 @@ describe("preparing an order for the admin to approve", () => {
     });
     expect(await levels(w, lac.id)).toMatchObject({ "Serum Vitamin C": 3 });
 
+    // Its paper on an order on its way puts the order in front of the admin.
     const docs = await m.post(`/v1/restocks/${order.id}/documents`, {
       photoIds: [await photo(w, manager)],
     });
     expect(docs.body.documentIds).toHaveLength(1);
+    expect(docs.body.status).toBe("RECEIVED");
+    // An app that still has the "delivered" step: it stamps the order, once.
     const delivered = await m.post(`/v1/restocks/${order.id}/delivered`, {
       photoIds: [await photo(w, manager)],
     });
     expect(delivered.body).toMatchObject({
-      status: "SHIPPED",
+      status: "RECEIVED",
       deliveredBy: { name: "Omar Orders" },
     });
     expect(delivered.body.deliveredAt).toBeTruthy();
     expect(delivered.body.documentIds).toHaveLength(2);
     expect(
-      (await inbox(w.nord)).some((n) => n.key === "restock.delivered"),
+      (await inbox(w.admin)).some((n) => n.key === "restock.delivered"),
     ).toBe(true);
     expect(
       (await m.post(`/v1/restocks/${order.id}/delivered`, {})).body.code,
     ).toBe("INVALID_STATE");
 
-    // The place still confirms, and the admin approves.
-    const receipt = await w.n.post(`/v1/restocks/${order.id}/receipt`, {
-      photoIds: [await photo(w, w.nord)],
-    });
-    expect(receipt.status).toBe(201);
+    // Nothing reached the stock yet: the admin checks and marks it delivered.
     expect(await levels(w, lac.id)).toMatchObject({ "Serum Vitamin C": 3 });
     const done = await w.a.post(`/v1/restocks/${order.id}/approve`, {
       lines: lines(6, 4),
@@ -477,6 +476,23 @@ describe("preparing an order for the admin to approve", () => {
       "Serum Vitamin C": 9,
       "Serum Niacinamide": 4,
     });
+  });
+
+  it("says an order was delivered without a paper (older apps): it waits for the admin all the same", async () => {
+    const order = await request(lac.id, [6, 4]);
+    await m.post(`/v1/restocks/${order.id}/propose`, { source: "BIOBALANCE" });
+    await w.a.post(`/v1/restocks/${order.id}/approve-proposal`, {});
+    const delivered = await m.post(`/v1/restocks/${order.id}/delivered`, {
+      note: "Handed to Karim",
+    });
+    expect(delivered.body).toMatchObject({
+      status: "RECEIVED",
+      receiptPhotoIds: [],
+      receiptNote: "Handed to Karim",
+    });
+    expect(
+      (await w.a.post(`/v1/restocks/${order.id}/approve`, {})).body.status,
+    ).toBe("COMPLETED");
   });
 
   it("files its papers under the order's region: the responsable of the place can open them", async () => {
@@ -632,6 +648,7 @@ describe("preparing an order for the admin to approve", () => {
       "send-direct",
       "approve",
       "amend",
+      "quantities",
       "reopen",
       "reject-receipt",
     ])
@@ -645,15 +662,23 @@ describe("preparing an order for the admin to approve", () => {
       ).toBe(403);
   });
 
-  it("papers: only the order manager or the admin add them, until the order is closed", async () => {
+  it("papers: the order manager, the admin and the place's responsable add them, until the order is closed", async () => {
     const order = await request(lac.id);
+    // Not the responsable of another region (who does not even see the order).
+    expect(
+      (
+        await w.s.post(`/v1/restocks/${order.id}/documents`, {
+          photoIds: [await photo(w, w.sud)],
+        })
+      ).status,
+    ).toBeGreaterThanOrEqual(403);
     expect(
       (
         await w.n.post(`/v1/restocks/${order.id}/documents`, {
           photoIds: [await photo(w, w.nord)],
         })
       ).status,
-    ).toBe(403);
+    ).toBe(201);
     expect(
       (
         await m.post(`/v1/restocks/${order.id}/documents`, {

@@ -222,9 +222,6 @@ class AppLocalizationsFr extends AppLocalizations {
   String get approveAndInvite => 'Approuver et envoyer l’invitation';
 
   @override
-  String get approveAsCounted => 'Approuver la livraison';
-
-  @override
   String approveGroupTitle(String name) {
     return 'Approuver le groupe « $name » ?';
   }
@@ -404,7 +401,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get confirm => 'Confirmer';
 
   @override
-  String get confirmDelivery => 'Confirmer la livraison';
+  String get confirmDelivery => 'Envoyer le bon de livraison';
 
   @override
   String get confirmPassword => 'Confirmer le mot de passe';
@@ -567,7 +564,8 @@ class AppLocalizationsFr extends AppLocalizations {
   String get deliveryPaper => 'Bon de livraison';
 
   @override
-  String get deliverySent => 'Envoyé à BioBalance pour approbation';
+  String get deliverySent =>
+      'Bon envoyé : l’admin le vérifie et marque la commande livrée';
 
   @override
   String get depotName => 'Nom du dépôt';
@@ -1473,7 +1471,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get receiveHint =>
-      'Photographiez le bon de livraison signé, ou ajoutez-le en PDF. BioBalance le vérifie et saisit les quantités reçues.';
+      'Photographiez le bon de livraison signé, ou ajoutez-le en PDF. L’admin le vérifie, saisit les quantités reçues et marque la commande livrée.';
 
   @override
   String get receivedBy => 'Reçu par';
@@ -1604,7 +1602,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get restock => 'Réassort';
 
   @override
-  String get restockApproved => 'Réassort approuvé. Le stock est mis à jour.';
+  String get restockApproved => 'Marqué comme livré. Le stock est mis à jour.';
 
   @override
   String get restockAssigned => 'Chez le grossiste';
@@ -1613,16 +1611,16 @@ class AppLocalizationsFr extends AppLocalizations {
   String get restockCancelled => 'Réassort annulé';
 
   @override
-  String get restockCompleted => 'Terminé';
+  String get restockCompleted => 'Livré';
 
   @override
-  String get completeDelivery => 'Terminer la livraison';
+  String get completeDelivery => 'Marquer comme livré';
 
   @override
   String get restockDelivered => 'Livrée, à confirmer';
 
   @override
-  String get restockReceived => 'À valider';
+  String get restockReceived => 'Bon envoyé, à vérifier';
 
   @override
   String get restockRequested => 'Demandé';
@@ -3783,7 +3781,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get receiveHintAdmin =>
-      'Ajoutez le bon de livraison et saisissez ce qui est réellement arrivé : le stock est mis à jour aussitôt.';
+      'Saisissez ce qui est réellement arrivé, avec le bon de livraison si vous l’avez : le stock est mis à jour aussitôt.';
 
   @override
   String sentQuantity(int count) {
@@ -4317,16 +4315,6 @@ class AppLocalizationsFr extends AppLocalizations {
   String get papersAdded => 'Documents ajoutés';
 
   @override
-  String get orderMarkDelivered => 'Marquer comme livrée';
-
-  @override
-  String get orderDeliveredHint =>
-      'La marchandise est arrivée. Ajoutez le bon de livraison si vous l’avez. Le lieu confirme encore la réception et l’admin l’approuve.';
-
-  @override
-  String get orderDeliveredDone => 'Marquée comme livrée';
-
-  @override
   String get proposalTitle => 'Proposition';
 
   @override
@@ -4489,4 +4477,21 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get passwordSet => 'Mot de passe enregistré';
+
+  @override
+  String get changeQuantities => 'Modifier les quantités';
+
+  @override
+  String get changeQuantitiesHint =>
+      'Modifiez ce que la commande demande, ajoutez un produit, ou mettez-en un à zéro pour le retirer.';
+
+  @override
+  String get changeQuantitiesReason =>
+      'Pourquoi les quantités changent-elles ? Toutes les personnes de la commande sont prévenues.';
+
+  @override
+  String get quantitiesChanged => 'Quantités modifiées';
+
+  @override
+  String get quantityChanges => 'Modifications des quantités';
 }

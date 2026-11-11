@@ -60,6 +60,7 @@ const Delivered = z.object({
   note: Note.optional(),
 });
 const Amend = z.object({ lines: Lines(qty), note: Note.optional() });
+const Quantities = z.object({ lines: Lines(positive), note: Note.min(2) });
 const Status = z.enum([
   "REQUESTED",
   "ASSIGNED",
@@ -144,7 +145,7 @@ export class RestockController {
       parse(Receiver, b).userId,
     );
   }
-  @Roles("ADMIN", "RESPONSABLE", "VENDEUR", "ACHETEUR")
+  @Roles("ADMIN", "RESPONSABLE", "ORDERS", "VENDEUR", "ACHETEUR")
   @Post(":id/receipt")
   receive(@Req() r: AuthRequest, @Param("id") i: string, @Body() b: unknown) {
     return this.restocks.receive(r.actor, parse(id, i), parse(Receive, b));
@@ -158,7 +159,21 @@ export class RestockController {
       parse(Approve, b ?? {}),
     );
   }
-  /** The admin corrects the quantities received of an approved delivery, within 6 hours. */
+  /** The admin changes what an order asks for before it is sent, with the reason. */
+  @Roles("ADMIN")
+  @Post(":id/quantities")
+  quantities(
+    @Req() r: AuthRequest,
+    @Param("id") i: string,
+    @Body() b: unknown,
+  ) {
+    return this.restocks.changeQuantities(
+      r.actor,
+      parse(id, i),
+      parse(Quantities, b),
+    );
+  }
+  /** The admin corrects the quantities received of a delivered order. */
   @Roles("ADMIN")
   @Post(":id/amend")
   amend(@Req() r: AuthRequest, @Param("id") i: string, @Body() b: unknown) {
@@ -214,7 +229,7 @@ export class RestockController {
     });
   }
 
-  @Roles("ADMIN", "ORDERS")
+  @Roles("ADMIN", "ORDERS", "RESPONSABLE", "VENDEUR", "ACHETEUR")
   @Post(":id/documents")
   documents(@Req() r: AuthRequest, @Param("id") i: string, @Body() b: unknown) {
     return this.restocks.addDocuments(

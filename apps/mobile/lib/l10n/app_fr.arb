@@ -116,7 +116,6 @@
   "approvalsTitle": "Validations",
   "approve": "Approuver",
   "approveAndInvite": "Approuver et envoyer l’invitation",
-  "approveAsCounted": "Approuver la livraison",
   "approveGroupTitle": "Approuver le groupe « {name} » ?",
   "@approveGroupTitle": {
     "placeholders": {
@@ -198,7 +197,7 @@
   "colShipped": "Envoyé",
   "completed": "Terminé",
   "confirm": "Confirmer",
-  "confirmDelivery": "Confirmer la livraison",
+  "confirmDelivery": "Envoyer le bon de livraison",
   "confirmPassword": "Confirmer le mot de passe",
   "correctSale": "Corriger cette vente",
   "correctSaleHint": "Modifiez les quantités. Mettez un produit à 0 pour le retirer, ou tout à 0 pour annuler la vente.",
@@ -276,7 +275,7 @@
   },
   "deliveriesToConfirmHint": "Photographiez le bon de livraison et envoyez-le.",
   "deliveryPaper": "Bon de livraison",
-  "deliverySent": "Envoyé à BioBalance pour approbation",
+  "deliverySent": "Bon envoyé : l’admin le vérifie et marque la commande livrée",
   "depotName": "Nom du dépôt",
   "description": "Description",
   "discard": "Abandonner",
@@ -672,7 +671,7 @@
     }
   },
   "reasonRequired": "Motif (obligatoire)",
-  "receiveHint": "Photographiez le bon de livraison signé, ou ajoutez-le en PDF. BioBalance le vérifie et saisit les quantités reçues.",
+  "receiveHint": "Photographiez le bon de livraison signé, ou ajoutez-le en PDF. L’admin le vérifie, saisit les quantités reçues et marque la commande livrée.",
   "receivedBy": "Reçu par",
   "receiverSaved": "Enregistré",
   "recent": "Récentes",
@@ -736,13 +735,13 @@
   "resendInvitation": "Renvoyer l’invitation",
   "resetCodeSent": "Si le compte existe, un code a été envoyé.",
   "restock": "Réassort",
-  "restockApproved": "Réassort approuvé. Le stock est mis à jour.",
+  "restockApproved": "Marqué comme livré. Le stock est mis à jour.",
   "restockAssigned": "Chez le grossiste",
   "restockCancelled": "Réassort annulé",
-  "restockCompleted": "Terminé",
-  "completeDelivery": "Terminer la livraison",
+  "restockCompleted": "Livré",
+  "completeDelivery": "Marquer comme livré",
   "restockDelivered": "Livrée, à confirmer",
-  "restockReceived": "À valider",
+  "restockReceived": "Bon envoyé, à vérifier",
   "restockRequested": "Demandé",
   "restockRouted": "La commande a été transmise",
   "restockSent": "Demande envoyée",
@@ -1919,7 +1918,7 @@
       }
     }
   },
-  "receiveHintAdmin": "Ajoutez le bon de livraison et saisissez ce qui est réellement arrivé : le stock est mis à jour aussitôt.",
+  "receiveHintAdmin": "Saisissez ce qui est réellement arrivé, avec le bon de livraison si vous l’avez : le stock est mis à jour aussitôt.",
   "sentQuantity": "Envoyé : {count}",
   "receiverNote": "Note du destinataire",
   "whatWasSent": "Ce qui a été envoyé",
@@ -2122,9 +2121,6 @@
   "orderAddPapers": "Ajouter des documents",
   "orderPapersHint": "Facture, bon de préparation ou de livraison : photos ou PDF.",
   "papersAdded": "Documents ajoutés",
-  "orderMarkDelivered": "Marquer comme livrée",
-  "orderDeliveredHint": "La marchandise est arrivée. Ajoutez le bon de livraison si vous l’avez. Le lieu confirme encore la réception et l’admin l’approuve.",
-  "orderDeliveredDone": "Marquée comme livrée",
   "proposalTitle": "Proposition",
   "proposalBy": "Proposé par",
   "proposalApprove": "Approuver la proposition",
@@ -2175,5 +2171,10 @@
   "@setPasswordTitle": {"placeholders": {"name": {"type": "String"}}},
   "setPasswordHint": "Vous vous êtes connecté(e) avec le mot de passe provisoire reçu. Choisissez votre propre mot de passe pour continuer.",
   "setPasswordSave": "Enregistrer et continuer",
-  "passwordSet": "Mot de passe enregistré"
+  "passwordSet": "Mot de passe enregistré",
+  "changeQuantities": "Modifier les quantités",
+  "changeQuantitiesHint": "Modifiez ce que la commande demande, ajoutez un produit, ou mettez-en un à zéro pour le retirer.",
+  "changeQuantitiesReason": "Pourquoi les quantités changent-elles ? Toutes les personnes de la commande sont prévenues.",
+  "quantitiesChanged": "Quantités modifiées",
+  "quantityChanges": "Modifications des quantités"
 }

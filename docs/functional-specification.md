@@ -50,14 +50,16 @@ One quantity per product per place (point of sale or grossiste). **No lots, no e
 
 ## Restock
 
-1. The responsable asks for products for a point of sale **or a grossiste** of the region.
-2. The admin handles it: **sends it directly** (BioBalance has unlimited stock), or **gives a store's order to any grossiste, of any region**. Before choosing, the admin sees each grossiste's stock for the order ("Has everything", or "Short of 1 product: Niacinamide 2/6"). The admin can adjust quantities first.
-3. For an order given to a grossiste, the responsable of the grossiste's region (or the admin) says what really leaves it: stock leaves at that moment, and never more than requested or held.
-4. The store's responsable, **or a team member the responsable chooses**, confirms the delivery with the signed paper (photos and/or a PDF) and an optional note. **No counting at the store.**
-5. The admin looks at the paper, **enters the quantities received** (each starts at what was sent) and approves, or asks for the paper again.
-6. **Only then does the destination gain stock**: the approved quantities are added. A grossiste that supplied the order lost them when they were shipped.
+One cycle, shown the same way to everyone: **Requested → With the grossiste → On its way → Paper sent, to verify → Delivered** (since 3.6).
 
-**The admin controls every order.** On an order that is on its way (to a store or a grossiste) she can **complete the delivery** herself, in one step: the quantities received start at what was sent, the papers already on the order count as the delivery paper (she adds none twice; at least one is needed), and the stock is added at once. An order marked delivered (by the order manager or the admin) shows "Delivered, to be confirmed" until the store confirms or the admin completes it. The store's responsable or chosen team member still photographs the signed paper themselves.
+1. **Who orders:** the responsable for a point of sale or a grossiste of the region, the order manager for any place, a buyer for their own para, the admin for anything.
+2. **The admin routes it:** sends it directly (BioBalance has unlimited stock), or gives a store's order to any grossiste, of any region. Before choosing, the admin sees each grossiste's stock for the order ("Has everything", or "Short of 1 product: Niacinamide 2/6"). The order manager can prepare this as a proposal the admin approves in one tap.
+3. For an order given to a grossiste, the responsable of the grossiste's region, the order manager or the admin says what really leaves it: stock leaves at that moment, and never more than requested or held.
+4. **Papers:** the admin, the order manager, the responsable of the place's region, a buyer of the para and the person chosen to receive add papers (photos or PDF, ten at most) until the order is closed. **A paper added to an order on its way by anyone but the admin is its delivery paper**: the order becomes "Paper sent, to verify" and the admin is told. No counting at the store.
+5. **The admin decides:** on any order on its way or with its paper sent, **Mark as delivered**: the quantities received start at what was sent and can be corrected, a paper is optional (the ones on the order are used), a note can be added. She can also ask for the paper again.
+6. **Only then does the destination gain stock.** A grossiste that supplied the order lost the goods when they were shipped.
+
+**The admin changes quantities at every step, with a reason:** what the order asks for before it leaves (add, change or take out a product; everyone on the order is told), what arrived when marking it delivered, and what arrived after delivery (no time limit; only the difference reaches the stock, never below what was already sold). Every change is listed on the order: when, by whom, why, and from what to what.
 
 The admin can also restock a grossiste herself: she enters what BioBalance delivered, adds photos or the paper, and the goods are added at once (the same when she receives a delivery to a grossiste).
 

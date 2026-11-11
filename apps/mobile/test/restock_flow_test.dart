@@ -123,7 +123,7 @@ void main() {
     final container = await launch(tester, s, language: 'en');
     unawaited(container.read(routerProvider).push('/restocks/o1'));
     await settle(tester);
-    await tester.tap(find.text('Confirm the delivery').first);
+    await tester.tap(find.text('Send the delivery paper').first);
     await settle(tester);
     expect(find.text('What was sent'), findsOneWidget);
     expect(find.text('Quantities received'), findsNothing);
@@ -139,7 +139,7 @@ void main() {
     unawaited(container.read(routerProvider).push('/restocks/o1'));
     await settle(tester);
     expect(find.text('One box was opened'), findsOneWidget);
-    await tester.tap(find.text('Approve the delivery'));
+    await tester.tap(find.text('Mark as delivered'));
     await settle(tester);
     expect(find.text('Sent: 10'), findsOneWidget);
     expect(find.text('Sent: 2'), findsOneWidget);

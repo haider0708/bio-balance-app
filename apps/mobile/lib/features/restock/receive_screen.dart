@@ -66,7 +66,7 @@ class _ReceiveScreenState extends ConsumerState<ReceiveScreen> {
             lines: _admin ? _quantities.lines() : null,
             note: _note.text.trim(),
           ),
-      success: t.deliverySent,
+      success: _admin ? t.restockApproved : t.deliverySent,
     );
     if (ok && mounted) context.pop(true);
   }
@@ -93,7 +93,7 @@ class _ReceiveScreenState extends ConsumerState<ReceiveScreen> {
           const Gap(16),
           PhotoSet(
             initialIds: admin ? _photoIds : const [],
-            label: t.photoOfPaper,
+            label: admin ? '${t.photoOfPaper} (${t.optional})' : t.photoOfPaper,
             onChanged: (ids, busy) => setState(() {
               _photoIds = ids;
               _photosBusy = busy;
@@ -141,9 +141,12 @@ class _ReceiveScreenState extends ConsumerState<ReceiveScreen> {
           AsyncButton(
             label: admin ? t.recordDeliverySave : t.sendToAdmin,
             icon: admin ? LucideIcons.check : LucideIcons.send,
-            onPressed: _photoIds.isEmpty || _photosBusy ? null : _send,
+            // The admin marks a delivery done with or without a paper; everyone else sends the paper.
+            onPressed: _photosBusy || (!admin && _photoIds.isEmpty)
+                ? null
+                : _send,
           ),
-          if (_photoIds.isEmpty)
+          if (_photoIds.isEmpty && !admin)
             Padding(
               padding: const EdgeInsets.only(top: 8),
               child: Text(

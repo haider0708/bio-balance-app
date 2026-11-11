@@ -374,12 +374,6 @@ abstract class AppLocalizations {
   /// **'Approve and send invitation'**
   String get approveAndInvite;
 
-  /// No description provided for @approveAsCounted.
-  ///
-  /// In en, this message translates to:
-  /// **'Approve the delivery'**
-  String get approveAsCounted;
-
   /// No description provided for @approveGroupTitle.
   ///
   /// In en, this message translates to:
@@ -701,7 +695,7 @@ abstract class AppLocalizations {
   /// No description provided for @confirmDelivery.
   ///
   /// In en, this message translates to:
-  /// **'Confirm the delivery'**
+  /// **'Send the delivery paper'**
   String get confirmDelivery;
 
   /// No description provided for @confirmPassword.
@@ -983,7 +977,7 @@ abstract class AppLocalizations {
   /// No description provided for @deliverySent.
   ///
   /// In en, this message translates to:
-  /// **'Sent to BioBalance for approval'**
+  /// **'Paper sent: the admin checks it and marks the order delivered'**
   String get deliverySent;
 
   /// No description provided for @depotName.
@@ -2567,7 +2561,7 @@ abstract class AppLocalizations {
   /// No description provided for @receiveHint.
   ///
   /// In en, this message translates to:
-  /// **'Photograph the signed delivery paper, or add it as a PDF. BioBalance checks it and enters the quantities received.'**
+  /// **'Photograph the signed delivery paper, or add it as a PDF. The admin checks it, enters the quantities received and marks the order delivered.'**
   String get receiveHint;
 
   /// No description provided for @receivedBy.
@@ -2807,7 +2801,7 @@ abstract class AppLocalizations {
   /// No description provided for @restockApproved.
   ///
   /// In en, this message translates to:
-  /// **'Restock approved. The stock is updated.'**
+  /// **'Marked as delivered. The stock is updated.'**
   String get restockApproved;
 
   /// No description provided for @restockAssigned.
@@ -2825,13 +2819,13 @@ abstract class AppLocalizations {
   /// No description provided for @restockCompleted.
   ///
   /// In en, this message translates to:
-  /// **'Completed'**
+  /// **'Delivered'**
   String get restockCompleted;
 
   /// No description provided for @completeDelivery.
   ///
   /// In en, this message translates to:
-  /// **'Complete the delivery'**
+  /// **'Mark as delivered'**
   String get completeDelivery;
 
   /// No description provided for @restockDelivered.
@@ -2843,7 +2837,7 @@ abstract class AppLocalizations {
   /// No description provided for @restockReceived.
   ///
   /// In en, this message translates to:
-  /// **'To approve'**
+  /// **'Paper sent, to verify'**
   String get restockReceived;
 
   /// No description provided for @restockRequested.
@@ -6467,7 +6461,7 @@ abstract class AppLocalizations {
   /// No description provided for @receiveHintAdmin.
   ///
   /// In en, this message translates to:
-  /// **'Add the delivery paper and enter what really arrived: the stock is updated at once.'**
+  /// **'Enter what really arrived, with the delivery paper if you have it: the stock is updated at once.'**
   String get receiveHintAdmin;
 
   /// No description provided for @sentQuantity.
@@ -7388,24 +7382,6 @@ abstract class AppLocalizations {
   /// **'Papers added'**
   String get papersAdded;
 
-  /// No description provided for @orderMarkDelivered.
-  ///
-  /// In en, this message translates to:
-  /// **'Mark as delivered'**
-  String get orderMarkDelivered;
-
-  /// No description provided for @orderDeliveredHint.
-  ///
-  /// In en, this message translates to:
-  /// **'The goods reached the place. Add the delivery paper if you have it. The place still confirms the receipt and the admin approves it.'**
-  String get orderDeliveredHint;
-
-  /// No description provided for @orderDeliveredDone.
-  ///
-  /// In en, this message translates to:
-  /// **'Marked as delivered'**
-  String get orderDeliveredDone;
-
   /// No description provided for @proposalTitle.
   ///
   /// In en, this message translates to:
@@ -7699,6 +7675,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Password saved'**
   String get passwordSet;
+
+  /// No description provided for @changeQuantities.
+  ///
+  /// In en, this message translates to:
+  /// **'Change quantities'**
+  String get changeQuantities;
+
+  /// No description provided for @changeQuantitiesHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Change what the order asks for, add a product, or set one to zero to take it out.'**
+  String get changeQuantitiesHint;
+
+  /// No description provided for @changeQuantitiesReason.
+  ///
+  /// In en, this message translates to:
+  /// **'Why are the quantities changed? Everyone on the order is told.'**
+  String get changeQuantitiesReason;
+
+  /// No description provided for @quantitiesChanged.
+  ///
+  /// In en, this message translates to:
+  /// **'Quantities changed'**
+  String get quantitiesChanged;
+
+  /// No description provided for @quantityChanges.
+  ///
+  /// In en, this message translates to:
+  /// **'Changes of quantities'**
+  String get quantityChanges;
 }
 
 class _AppLocalizationsDelegate

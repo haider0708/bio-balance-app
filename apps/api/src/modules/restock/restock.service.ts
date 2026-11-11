@@ -740,16 +740,97 @@ export class RestockService {
     });
   }
 
-  /** Papers (preparation, shipping, delivery notes): the order manager or the admin adds them until the order is closed. */
-  addDocuments(actor: Actor, id: string, input: { photoIds: string[] }) {
+  /**
+   * The admin changes what an order asks for before anything left (waiting, or given to a
+   * grossiste that has not shipped), and says why: products can be added, changed or taken out.
+   * Once on its way the quantities are entered when it is marked delivered; after that, `amend`.
+   */
+  changeQuantities(
+    actor: Actor,
+    id: string,
+    input: { lines: QtyLine[]; note: string },
+  ) {
     requireRule(
-      actor.role === "ADMIN" || actor.role === "ORDERS",
+      actor.role === "ADMIN",
       "FORBIDDEN",
-      "Only the admin or the order manager adds documents.",
+      "Only the admin changes the quantities of an order.",
       403,
     );
     return this.db.run(actor, async (tx) => {
       const order = await this.load(tx, id);
+      requireRule(
+        order.status === "REQUESTED" || order.status === "ASSIGNED",
+        "INVALID_STATE",
+        "The quantities of this order are set when it is delivered.",
+        409,
+      );
+      await this.checkLines(tx, input.lines);
+      const wanted = new Map(input.lines.map((l) => [l.productId, l.quantity]));
+      const before = Object.fromEntries(
+        order.lines.map((l) => [l.productId, l.requested]),
+      );
+      for (const line of order.lines) {
+        const quantity = wanted.get(line.productId);
+        if (quantity === undefined)
+          await tx.restockLine.delete({ where: { id: line.id } });
+        else if (quantity !== line.requested)
+          await tx.restockLine.update({
+            where: { id: line.id },
+            data: { requested: quantity },
+          });
+      }
+      const added = input.lines.filter((l) => !(l.productId in before));
+      if (added.length)
+        await tx.restockLine.createMany({
+          data: added.map((l) => ({
+            orderId: id,
+            productId: l.productId,
+            requested: l.quantity,
+          })),
+        });
+      const after = Object.fromEntries(wanted);
+      const note = input.note.trim();
+      await audit(
+        tx,
+        actor,
+        "restock.quantities_changed",
+        "RestockOrder",
+        id,
+        { note, before, after },
+        order.regionId,
+      );
+      await this.tellEveryone(
+        tx,
+        order,
+        "restock.quantities_changed",
+        { number: order.number, note },
+        actor.id,
+      );
+      return this.one(tx, await this.load(tx, id));
+    });
+  }
+
+  /**
+   * Papers (preparation, shipping, delivery notes), until the order is closed: from the admin, the
+   * order manager, the responsable of the place's region, a buyer of the para or the person chosen
+   * to receive it. A paper added to an order on its way by anyone but the admin is its delivery
+   * paper: the order then waits for the admin to check it.
+   */
+  addDocuments(actor: Actor, id: string, input: { photoIds: string[] }) {
+    return this.db.run(actor, async (tx) => {
+      const order = await this.load(tx, id);
+      requireRule(
+        actor.role === "ADMIN" ||
+          actor.role === "ORDERS" ||
+          (actor.role === "RESPONSABLE" && order.regionId === actor.regionId) ||
+          (isBuyer(actor) &&
+            order.destKind === "PDV" &&
+            order.destId === actor.pdvId) ||
+          order.receiverId === actor.id,
+        "FORBIDDEN",
+        "You cannot add documents to this order.",
+        403,
+      );
       requireRule(
         order.status !== "COMPLETED" && order.status !== "CANCELLED",
         "INVALID_STATE",
@@ -769,9 +850,20 @@ export class RestockService {
         "TOO_MANY_PHOTOS",
         "An order holds at most ten documents.",
       );
+      const submits = order.status === "SHIPPED" && actor.role !== "ADMIN";
       const updated = await tx.restockOrder.update({
         where: { id },
-        data: { documentIds: all },
+        data: {
+          documentIds: all,
+          ...(submits && {
+            status: "RECEIVED" as const,
+            receiptPhotoId: added[0],
+            receiptPhotoIds: added,
+            receivedAt: new Date(),
+            decisionNote: null,
+            ...(order.receiverId === actor.id ? {} : { receiverId: actor.id }),
+          }),
+        },
         include: { lines: true },
       });
       await audit(
@@ -780,17 +872,25 @@ export class RestockService {
         "restock.documents_added",
         "RestockOrder",
         id,
-        { count: added.length },
+        { count: added.length, submitted: submits },
         order.regionId,
       );
+      if (submits)
+        await notifyAdmins(tx, {
+          key: "restock.received",
+          params: { number: order.number, by: actor.name },
+          entityType: "RestockOrder",
+          entityId: id,
+        });
       return this.one(tx, updated);
     });
   }
 
   /**
-   * The goods were handed to the place: recorded by the order manager (or the admin) with the
-   * delivery paper. The place's team still confirms the receipt, and the admin approves it: only
-   * then does the stock arrive.
+   * The goods were handed to the place, said by the order manager with the delivery paper if there
+   * is one: the order then waits for the admin, who checks and marks it delivered (only then does
+   * the stock arrive). Kept for the apps that have this step; the admin's own apps mark the
+   * delivery done with `receive`, and from the admin this only stamps the order.
    */
   markDelivered(
     actor: Actor,
@@ -804,9 +904,10 @@ export class RestockService {
       403,
     );
     return this.db.run(actor, async (tx) => {
-      const order = await this.load(tx, id, "SHIPPED");
+      const order = await this.load(tx, id);
       requireRule(
-        !order.deliveredAt,
+        (order.status === "SHIPPED" || order.status === "RECEIVED") &&
+          !order.deliveredAt,
         "INVALID_STATE",
         "This order was already marked delivered.",
         409,
@@ -816,6 +917,7 @@ export class RestockService {
             regionId: order.regionId,
           })
         : [];
+      const submits = order.status === "SHIPPED" && actor.role !== "ADMIN";
       const updated = await tx.restockOrder.update({
         where: { id },
         data: {
@@ -825,6 +927,15 @@ export class RestockService {
             0,
             10,
           ),
+          ...(submits && {
+            status: "RECEIVED" as const,
+            receiptPhotoId: papers[0] ?? null,
+            receiptPhotoIds: papers,
+            receivedAt: new Date(),
+            receiptNote: input.note?.trim() || null,
+            decisionNote: null,
+            receiverId: actor.id,
+          }),
         },
         include: { lines: true },
       });
@@ -837,21 +948,12 @@ export class RestockService {
         { note: input.note ?? null },
         order.regionId,
       );
-      // The place's responsable confirms the receipt (with a team member if they choose); the admin knows.
-      await this.tellEveryone(
-        tx,
-        order,
-        "restock.delivered",
-        { number: order.number, by: actor.name },
-        actor.id,
-      );
       if (actor.role !== "ADMIN")
         await notifyAdmins(tx, {
           key: "restock.delivered",
           params: { number: order.number, by: actor.name },
           entityType: "RestockOrder",
           entityId: id,
-          push: false,
         });
       return this.one(tx, updated);
     });
@@ -1027,8 +1129,10 @@ export class RestockService {
   }
 
   /**
-   * The receiver confirms the delivery with its paper (photos or documents). The admin then
-   * enters the quantities received and approves. An admin receiving goods settles at once.
+   * The delivery paper (photos or documents) of an order on its way, from the place's team, its
+   * responsable or the order manager: the order then waits for the admin, who checks the paper,
+   * enters the quantities received and marks it delivered. The admin doing it herself settles at
+   * once, with or without a paper.
    */
   receive(
     actor: Actor,
@@ -1053,6 +1157,7 @@ export class RestockService {
         isReceiver ||
         buyerOfPara ||
         (actor.role === "RESPONSABLE" && order.regionId === actor.regionId) ||
+        actor.role === "ORDERS" ||
         actor.role === "ADMIN";
       requireRule(
         allowed,
@@ -1060,9 +1165,9 @@ export class RestockService {
         "You cannot receive this delivery.",
         403,
       );
-      // The papers already on the order (added by the order manager or the admin) are the delivery paper
-      // too: the admin who completes the delivery does not add them again. Without any photo given, they
-      // are used as they are; the store's people photograph the signed paper themselves.
+      // The admin marks a delivery done with or without a paper: the papers already on the order are
+      // its delivery paper (without any photo given they are used as they are), and none at all is
+      // fine too. Everyone else sends the paper themselves: it is what the admin checks.
       const given = input.photoIds ?? (input.photoId ? [input.photoId] : []);
       const adminCounts = actor.role === "ADMIN";
       const attached = adminCounts
@@ -1077,11 +1182,11 @@ export class RestockService {
         actor,
         fresh,
         "Add a photo of the delivery paper.",
-        { regionId: order.regionId, min: attached.length ? 0 : 1 },
+        { regionId: order.regionId, min: adminCounts ? 0 : 1 },
       );
       const photoIds = [...attached, ...added];
       requireRule(
-        photoIds.length >= 1 && photoIds.length <= MAX_PROOF_PHOTOS,
+        photoIds.length <= MAX_PROOF_PHOTOS,
         "TOO_MANY_PHOTOS",
         `Add between 1 and ${MAX_PROOF_PHOTOS} different photos or documents.`,
         422,
@@ -1121,7 +1226,7 @@ export class RestockService {
         where: { id },
         data: {
           status: "RECEIVED",
-          receiptPhotoId: photoIds[0],
+          receiptPhotoId: photoIds[0] ?? null,
           receiptPhotoIds: photoIds,
           receivedAt: new Date(),
           receiptNote: input.note?.trim() || null,
@@ -1236,7 +1341,7 @@ export class RestockService {
   }
 
   /**
-   * The admin corrects the quantities received of a delivery they approved less than 6 hours ago.
+   * The admin corrects the quantities received of a delivered order, whenever it is found wrong.
    * Only the difference reaches the destination's stock, which never goes below what already left.
    */
   amend(actor: Actor, id: string, input: { lines: QtyLine[]; note?: string }) {
@@ -1248,7 +1353,6 @@ export class RestockService {
     );
     return this.db.run(actor, async (tx) => {
       const order = await this.load(tx, id, "COMPLETED");
-      if (!withinDecisionWindow(order.decidedAt)) throw decisionLocked();
       const overrides = new Map(
         input.lines.map((l) => [l.productId, l.quantity]),
       );
@@ -1561,7 +1665,82 @@ export class RestockService {
         include: { lines: true },
       });
       if (!order) throw notFound("Restock");
-      return this.one(tx, order);
+      return {
+        ...(await this.one(tx, order)),
+        changes: await this.changes(id),
+      };
+    });
+  }
+
+  /**
+   * Every change of quantities made by the admin on an order, oldest first: who, when, why, and
+   * the products that changed. Read from the audit log, which only the admin sees otherwise.
+   */
+  private async changes(id: string) {
+    return this.db.run("SYSTEM", async (tx) => {
+      const entries = await tx.auditEntry.findMany({
+        where: {
+          entity: "RestockOrder",
+          entityId: id,
+          action: { in: ["restock.quantities_changed", "restock.amended"] },
+        },
+        orderBy: { createdAt: "asc" },
+        take: 50,
+      });
+      if (!entries.length) return [];
+      type Quantities = Record<string, number>;
+      const rows = entries.map((e) => {
+        const d = e.details as {
+          note?: string | null;
+          before?: Quantities;
+          after?: Quantities;
+        };
+        const before = d.before ?? {};
+        const after = d.after ?? {};
+        const ids = [
+          ...new Set([...Object.keys(before), ...Object.keys(after)]),
+        ];
+        return {
+          entry: e,
+          note: d.note ?? null,
+          lines: ids
+            .map((productId) => ({
+              productId,
+              before: before[productId] ?? 0,
+              after: after[productId] ?? 0,
+            }))
+            .filter((l) => l.before !== l.after),
+        };
+      });
+      const [users, products] = await Promise.all([
+        tx.user.findMany({
+          where: {
+            id: {
+              in: entries.map((e) => e.actorId).filter((x): x is string => !!x),
+            },
+          },
+          select: { id: true, name: true },
+        }),
+        tx.product.findMany({
+          where: {
+            id: { in: rows.flatMap((r) => r.lines.map((l) => l.productId)) },
+          },
+          select: { id: true, name: true },
+        }),
+      ]);
+      const user = new Map(users.map((u) => [u.id, u.name]));
+      const product = new Map(products.map((p) => [p.id, p.name]));
+      return rows.map((r) => ({
+        at: r.entry.createdAt,
+        by: r.entry.actorId ? (user.get(r.entry.actorId) ?? "") : "",
+        /** Before it was sent, or after it was delivered. */
+        delivered: r.entry.action === "restock.amended",
+        note: r.note,
+        lines: r.lines.map((l) => ({
+          ...l,
+          name: product.get(l.productId) ?? "",
+        })),
+      }));
     });
   }
 

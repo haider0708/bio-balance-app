@@ -735,6 +735,10 @@ class ServerText {
       'The quantities received of restock {number} were corrected by the admin.',
       'Les quantités reçues du réassort {number} ont été corrigées par l’admin.',
     ),
+    'restock.quantities_changed': (
+      'The admin changed the quantities of restock {number}: {note}',
+      'L’admin a modifié les quantités du réassort {number} : {note}',
+    ),
     'restock.reopened': (
       'Restock {number} was taken back by the admin and will be routed again.',
       'Le réassort {number} a été repris par l’admin et sera acheminé à nouveau.',
@@ -780,12 +784,12 @@ class ServerText {
       'Vous êtes chargé(e) de recevoir le réassort {number}.',
     ),
     'restock.received': (
-      '{by} sent the delivery paper for restock {number}: waiting for approval.',
-      '{by} a envoyé le bon de livraison du réassort {number} : en attente d’approbation.',
+      '{by} sent the delivery paper for restock {number}: check it and mark it delivered.',
+      '{by} a envoyé le bon de livraison du réassort {number} : vérifiez-le et marquez-le livré.',
     ),
     'restock.completed': (
-      'Restock {number} is complete and the stock is updated.',
-      'Le réassort {number} est terminé et le stock est mis à jour.',
+      'Restock {number} is delivered and the stock is updated.',
+      'Le réassort {number} est livré et le stock est mis à jour.',
     ),
     'restock.receipt_rejected': (
       'Send the delivery paper of restock {number} again.',

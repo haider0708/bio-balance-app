@@ -116,7 +116,6 @@
   "approvalsTitle": "Approvals",
   "approve": "Approve",
   "approveAndInvite": "Approve and send invitation",
-  "approveAsCounted": "Approve the delivery",
   "approveGroupTitle": "Approve the group “{name}”?",
   "@approveGroupTitle": {
     "placeholders": {
@@ -198,7 +197,7 @@
   "colShipped": "Sent",
   "completed": "Completed",
   "confirm": "Confirm",
-  "confirmDelivery": "Confirm the delivery",
+  "confirmDelivery": "Send the delivery paper",
   "confirmPassword": "Confirm password",
   "correctSale": "Correct this sale",
   "correctSaleHint": "Change the quantities. Set a product to 0 to remove it, or all to 0 to cancel the sale.",
@@ -276,7 +275,7 @@
   },
   "deliveriesToConfirmHint": "Photograph the delivery paper and send it.",
   "deliveryPaper": "Delivery paper",
-  "deliverySent": "Sent to BioBalance for approval",
+  "deliverySent": "Paper sent: the admin checks it and marks the order delivered",
   "depotName": "Depot name",
   "description": "Description",
   "discard": "Discard",
@@ -748,7 +747,7 @@
     }
   },
   "reasonRequired": "Reason (required)",
-  "receiveHint": "Photograph the signed delivery paper, or add it as a PDF. BioBalance checks it and enters the quantities received.",
+  "receiveHint": "Photograph the signed delivery paper, or add it as a PDF. The admin checks it, enters the quantities received and marks the order delivered.",
   "receivedBy": "Received by",
   "receiverSaved": "Saved",
   "recent": "Recent",
@@ -819,13 +818,13 @@
   "resendInvitation": "Send the invitation again",
   "resetCodeSent": "If the account exists, a code was sent.",
   "restock": "Restock",
-  "restockApproved": "Restock approved. The stock is updated.",
+  "restockApproved": "Marked as delivered. The stock is updated.",
   "restockAssigned": "With the grossiste",
   "restockCancelled": "Restock cancelled",
-  "restockCompleted": "Completed",
-  "completeDelivery": "Complete the delivery",
+  "restockCompleted": "Delivered",
+  "completeDelivery": "Mark as delivered",
   "restockDelivered": "Delivered, to be confirmed",
-  "restockReceived": "To approve",
+  "restockReceived": "Paper sent, to verify",
   "restockRequested": "Requested",
   "restockRouted": "The order was sent on",
   "restockSent": "Request sent",
@@ -2099,7 +2098,7 @@
       }
     }
   },
-  "receiveHintAdmin": "Add the delivery paper and enter what really arrived: the stock is updated at once.",
+  "receiveHintAdmin": "Enter what really arrived, with the delivery paper if you have it: the stock is updated at once.",
   "sentQuantity": "Sent: {count}",
   "receiverNote": "Receiver’s note",
   "whatWasSent": "What was sent",
@@ -2316,9 +2315,6 @@
   "orderAddPapers": "Add papers",
   "orderPapersHint": "Invoice, preparation or delivery note: photos or a PDF.",
   "papersAdded": "Papers added",
-  "orderMarkDelivered": "Mark as delivered",
-  "orderDeliveredHint": "The goods reached the place. Add the delivery paper if you have it. The place still confirms the receipt and the admin approves it.",
-  "orderDeliveredDone": "Marked as delivered",
   "proposalTitle": "Proposal",
   "proposalBy": "Proposed by",
   "proposalApprove": "Approve the proposal",
@@ -2369,5 +2365,10 @@
   "@setPasswordTitle": {"placeholders": {"name": {"type": "String"}}},
   "setPasswordHint": "You signed in with the temporary password you were sent. Choose your own password to continue.",
   "setPasswordSave": "Save and continue",
-  "passwordSet": "Password saved"
+  "passwordSet": "Password saved",
+  "changeQuantities": "Change quantities",
+  "changeQuantitiesHint": "Change what the order asks for, add a product, or set one to zero to take it out.",
+  "changeQuantitiesReason": "Why are the quantities changed? Everyone on the order is told.",
+  "quantitiesChanged": "Quantities changed",
+  "quantityChanges": "Changes of quantities"
 }
