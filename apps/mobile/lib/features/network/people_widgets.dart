@@ -7,8 +7,6 @@ import '../../core/auth/me.dart';
 import '../../core/auth/session.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/util/dates.dart';
-import '../analytics/analytics_widgets.dart' show AnalyticsButton;
-import '../analytics/lens.dart' show Facet;
 import '../../core/widgets/async_body.dart';
 import '../../core/widgets/components.dart';
 import '../../core/widgets/feedback.dart';
@@ -19,7 +17,6 @@ import '../approvals/approvals_repository.dart';
 import '../shared/status_chips.dart';
 import 'duties.dart';
 import 'network_models.dart';
-import 'person_sales.dart';
 import 'network_repository.dart';
 import 'region_moves.dart';
 import '../../core/layout/layout.dart';
@@ -219,7 +216,11 @@ class PersonTile extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final t = AppLocalizations.of(context);
     return AppCard(
-      onTap: () => showPersonSheet(context, ref, person, onChanged),
+      // The full page: who they are, what can be done about the account, and what they do.
+      onTap: () async {
+        await context.push('/people/${person.id}', extra: person);
+        onChanged();
+      },
       child: Row(
         children: [
           Avatar(
@@ -250,67 +251,6 @@ class PersonTile extends ConsumerWidget {
             const SizedBox(width: 6),
           ],
           ItemStatusChip(person.status),
-        ],
-      ),
-    );
-  }
-}
-
-/// A person's details with the actions allowed to the viewer.
-Future<void> showPersonSheet(
-  BuildContext context,
-  WidgetRef ref,
-  Person person,
-  VoidCallback onChanged,
-) {
-  return showModalBottomSheet<void>(
-    context: context,
-    isScrollControlled: true,
-    builder: (sheet) => SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
-        child: PersonPanel(
-          person: person,
-          onChanged: onChanged,
-          onDone: () => Navigator.pop(sheet),
-        ),
-      ),
-    ),
-  );
-}
-
-/// The same details as a full page (opened from the approvals inbox).
-class PersonDetailScreen extends ConsumerWidget {
-  const PersonDetailScreen({required this.person, super.key});
-
-  final Person person;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(person.name),
-        actions: [
-          if (person.role == Role.vendeur)
-            AnalyticsButton(facet: Facet.seller, id: person.id),
-        ],
-      ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          PersonPanel(
-            person: person,
-            onChanged: () => ref.invalidate(peopleProvider),
-            onDone: () => context.pop(),
-          ),
-          // What a team member sold, and the way to correct a sale (the admin and the responsable).
-          if (person.role == Role.vendeur &&
-              person.status == ItemStatus.active &&
-              (ref.watch(meProvider).role == Role.admin ||
-                  ref.watch(meProvider).role == Role.responsable)) ...[
-            const Gap(20),
-            PersonSales(person: person),
-          ],
         ],
       ),
     );

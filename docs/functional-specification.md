@@ -222,6 +222,11 @@ Paras of the **same group** (a group is a set of paras of one region) can exchan
 
 Quantities taken out of a para. **Who asks:** the responsable of the region, or (since 3.6) a **buyer of the para itself** (only to take out, only their own para; the responsable of the region is told). They can change or cancel it while it waits. **The admin decides:** approves (correcting the quantities if needed), sends it **to another para instead of back** (even in another region), or refuses with a reason; nothing leaves the stock before. The admin's own returns apply at once (take out, move, or only add). A plain seller sees nothing of returns; the order manager only reads them.
 
+## A person's page, and the team of a para (3.6)
+
+- **Tapping a person** (the People tab, the team of a para, the approvals) opens a **full page**, not a small sheet: the account (name, role, email, phone, status, the first-password state) with every action the viewer has, the para they work in (one tap opens it), then what they do. A **seller**: the numbers of a period, the latest sales, the full list and the analysis. A **buyer, a responsable, the order manager**: the latest restock orders they took part in (asked, prepared, delivered, received). A **responsable** (seen by the admin): their visits of the last 30 days and the next 14, each with when they arrived and what the recorded position said. The page also opens by its address alone (it reads the person itself).
+- **Add a member from the para's page:** the responsable asks (the admin approves, as before); the **admin adds someone to an active para directly** (the para is fixed, the account works at once and the first password is sent).
+
 ## Team accounts and their first password (2026-11)
 
 For team members (sellers, buyers, or both) there is no activation code any more.

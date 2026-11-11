@@ -2370,5 +2370,11 @@
   "changeQuantitiesHint": "Change what the order asks for, add a product, or set one to zero to take it out.",
   "changeQuantitiesReason": "Why are the quantities changed? Everyone on the order is told.",
   "quantitiesChanged": "Quantities changed",
-  "quantityChanges": "Changes of quantities"
+  "quantityChanges": "Changes of quantities",
+  "personOrders": "Orders",
+  "personNoOrders": "No order yet.",
+  "personMoreOrders": "and {count} more in Restocks",
+  "@personMoreOrders": {"placeholders": {"count": {"type": "int"}}},
+  "personVisits": "Visits",
+  "personNoVisits": "No visit planned or made in the last 30 days."
 }

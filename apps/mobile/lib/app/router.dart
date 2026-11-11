@@ -35,7 +35,7 @@ import '../features/network/regions_screen.dart';
 import '../features/orders/buyer_home.dart';
 import '../features/orders/order_papers_screen.dart';
 import '../features/orders/orders_screens.dart';
-import '../features/network/people_widgets.dart';
+import '../features/network/person_screen.dart';
 import '../features/notifications/notifications_screen.dart';
 import '../features/restock/restock_models.dart';
 import '../features/restock/restock_screens.dart';
@@ -652,12 +652,19 @@ List<RouteBase> _admin() => [
   ),
   GoRoute(
     path: '/people/new',
-    builder: (_, state) => CreateAccountScreen(regionId: _extra<String>(state)),
+    builder: (_, state) => CreateAccountScreen(
+      regionId: _extra<String>(state),
+      pdvId: state.uri.queryParameters['pdvId'],
+    ),
   ),
-  _withExtra<Person>(
-    '/people/:id',
-    '/network',
-    (_, person) => PersonDetailScreen(person: person),
+  // The person handed over by the list shows at once; without it (a link, a page restored) the
+  // page reads the person itself.
+  GoRoute(
+    path: '/people/:id',
+    builder: (_, state) => PersonDetailScreen(
+      personId: state.pathParameters['id']!,
+      initial: state.extra is Person ? state.extra! as Person : null,
+    ),
   ),
   GoRoute(
     path: '/training/manage',

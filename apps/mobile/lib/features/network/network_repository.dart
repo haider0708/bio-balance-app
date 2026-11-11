@@ -142,6 +142,10 @@ class NetworkRepository {
         ),
   ).map(Person.fromJson).toList();
 
+  Future<Person> person(String id) async => Person.fromJson(
+    await _ref.read(apiClientProvider).get('/v1/users/$id') as Json,
+  );
+
   Future<Person> addMember(
     String pdvId, {
     required String name,

@@ -189,10 +189,18 @@ class PdvDetailScreen extends ConsumerWidget {
               ],
               SectionHeader(
                 t.team,
-                trailing: me.role == Role.responsable
+                // The responsable asks (the admin approves); the admin adds someone to an active
+                // para directly: the account works at once.
+                trailing:
+                    me.role == Role.responsable ||
+                        (me.role == Role.admin && p.status == ItemStatus.active)
                     ? TextButton.icon(
                         onPressed: () async {
-                          await context.push('/pdvs/${p.id}/members/new');
+                          await context.push(
+                            me.role == Role.admin
+                                ? '/people/new?pdvId=${p.id}'
+                                : '/pdvs/${p.id}/members/new',
+                          );
                           _reload(ref);
                         },
                         icon: const Icon(LucideIcons.userPlus, size: 18),
@@ -622,10 +630,13 @@ class _AddMemberScreenState extends ConsumerState<AddMemberScreen> {
 
 /// The admin creates a responsable or a team member directly.
 class CreateAccountScreen extends ConsumerStatefulWidget {
-  const CreateAccountScreen({this.regionId, super.key});
+  const CreateAccountScreen({this.regionId, this.pdvId, super.key});
 
   /// Opened from a region's page: a responsable for that region.
   final String? regionId;
+
+  /// Opened from a para's page: a team member of that para, and nothing else to choose.
+  final String? pdvId;
 
   @override
   ConsumerState<CreateAccountScreen> createState() =>
@@ -634,12 +645,12 @@ class CreateAccountScreen extends ConsumerStatefulWidget {
 
 class _CreateAccountScreenState extends ConsumerState<CreateAccountScreen> {
   final _form = GlobalKey<FormState>();
-  Role _role = Role.responsable;
+  late Role _role = widget.pdvId == null ? Role.responsable : Role.vendeur;
   final _name = TextEditingController();
   final _email = TextEditingController();
   final _phone = TextEditingController();
   late String? _regionId = widget.regionId;
-  String? _pdvId;
+  late String? _pdvId = widget.pdvId;
   Duty _duty = Duty.seller;
 
   @override
@@ -704,6 +715,7 @@ class _CreateAccountScreenState extends ConsumerState<CreateAccountScreen> {
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
+    final forPara = widget.pdvId != null;
     final regions = ref.watch(regionsProvider).value ?? const [];
     final pdvs =
         ref
@@ -715,30 +727,40 @@ class _CreateAccountScreenState extends ConsumerState<CreateAccountScreen> {
     String? required(String? v) =>
         (v == null || v.trim().length < 2) ? t.fieldRequired : null;
     return Scaffold(
-      appBar: AppBar(title: Text(t.newAccount)),
+      appBar: AppBar(title: Text(forPara ? t.addMember : t.newAccount)),
       body: Form(
         key: _form,
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            SegmentedButton<Role>(
-              segments: [
-                ButtonSegment(
-                  value: Role.responsable,
-                  label: Text(t.roleResponsable),
-                ),
-                ButtonSegment(
-                  value: Role.vendeur,
-                  label: Text(t.roleVendeurShort),
-                ),
-                ButtonSegment(
-                  value: Role.orders,
-                  label: Text(t.roleOrdersShort),
-                ),
-              ],
-              selected: {_role},
-              onSelectionChanged: (s) => setState(() => _role = s.first),
-            ),
+            if (forPara)
+              Text(
+                pdvs
+                        .where((p) => p.id == widget.pdvId)
+                        .map((p) => p.name)
+                        .firstOrNull ??
+                    '',
+                style: context.text.titleMedium,
+              )
+            else
+              SegmentedButton<Role>(
+                segments: [
+                  ButtonSegment(
+                    value: Role.responsable,
+                    label: Text(t.roleResponsable),
+                  ),
+                  ButtonSegment(
+                    value: Role.vendeur,
+                    label: Text(t.roleVendeurShort),
+                  ),
+                  ButtonSegment(
+                    value: Role.orders,
+                    label: Text(t.roleOrdersShort),
+                  ),
+                ],
+                selected: {_role},
+                onSelectionChanged: (s) => setState(() => _role = s.first),
+              ),
             const Gap(8),
             Text(
               _role == Role.vendeur ? t.newAccountHintTeam : t.newAccountHint,
@@ -777,7 +799,7 @@ class _CreateAccountScreenState extends ConsumerState<CreateAccountScreen> {
                 onChanged: (v) => setState(() => _regionId = v),
                 validator: (v) => v == null ? t.fieldRequired : null,
               ),
-            if (_role == Role.vendeur)
+            if (_role == Role.vendeur && !forPara)
               DropdownButtonFormField<String>(
                 initialValue: _pdvId,
                 decoration: InputDecoration(labelText: t.pointOfSale),

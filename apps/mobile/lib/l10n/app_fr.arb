@@ -2176,5 +2176,10 @@
   "changeQuantitiesHint": "Modifiez ce que la commande demande, ajoutez un produit, ou mettez-en un à zéro pour le retirer.",
   "changeQuantitiesReason": "Pourquoi les quantités changent-elles ? Toutes les personnes de la commande sont prévenues.",
   "quantitiesChanged": "Quantités modifiées",
-  "quantityChanges": "Modifications des quantités"
+  "quantityChanges": "Modifications des quantités",
+  "personOrders": "Commandes",
+  "personNoOrders": "Aucune commande pour l’instant.",
+  "personMoreOrders": "et {count} de plus dans Réassorts",
+  "personVisits": "Visites",
+  "personNoVisits": "Aucune visite prévue ou faite sur les 30 derniers jours."
 }

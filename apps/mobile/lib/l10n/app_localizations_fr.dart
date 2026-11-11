@@ -4494,4 +4494,22 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get quantityChanges => 'Modifications des quantités';
+
+  @override
+  String get personOrders => 'Commandes';
+
+  @override
+  String get personNoOrders => 'Aucune commande pour l’instant.';
+
+  @override
+  String personMoreOrders(int count) {
+    return 'et $count de plus dans Réassorts';
+  }
+
+  @override
+  String get personVisits => 'Visites';
+
+  @override
+  String get personNoVisits =>
+      'Aucune visite prévue ou faite sur les 30 derniers jours.';
 }

@@ -4465,4 +4465,21 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get quantityChanges => 'Changes of quantities';
+
+  @override
+  String get personOrders => 'Orders';
+
+  @override
+  String get personNoOrders => 'No order yet.';
+
+  @override
+  String personMoreOrders(int count) {
+    return 'and $count more in Restocks';
+  }
+
+  @override
+  String get personVisits => 'Visits';
+
+  @override
+  String get personNoVisits => 'No visit planned or made in the last 30 days.';
 }

@@ -7705,6 +7705,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Changes of quantities'**
   String get quantityChanges;
+
+  /// No description provided for @personOrders.
+  ///
+  /// In en, this message translates to:
+  /// **'Orders'**
+  String get personOrders;
+
+  /// No description provided for @personNoOrders.
+  ///
+  /// In en, this message translates to:
+  /// **'No order yet.'**
+  String get personNoOrders;
+
+  /// No description provided for @personMoreOrders.
+  ///
+  /// In en, this message translates to:
+  /// **'and {count} more in Restocks'**
+  String personMoreOrders(int count);
+
+  /// No description provided for @personVisits.
+  ///
+  /// In en, this message translates to:
+  /// **'Visits'**
+  String get personVisits;
+
+  /// No description provided for @personNoVisits.
+  ///
+  /// In en, this message translates to:
+  /// **'No visit planned or made in the last 30 days.'**
+  String get personNoVisits;
 }
 
 class _AppLocalizationsDelegate
