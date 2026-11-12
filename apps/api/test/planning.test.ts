@@ -627,11 +627,18 @@ describe("reminders and the day's end", () => {
         }),
       )
     ).body;
+    // A visit of today that is already over. In the first hours of the Tunis day "three hours ago"
+    // is yesterday, which cannot be planned (this test failed on a run at 01:46 Tunis time): then
+    // the visit starts with the day, and in its very first half hour there is nothing to test.
+    const dayStart = new Date(`${today()}T00:00:00+01:00`).getTime();
+    const overStart = Math.max(Date.now() - 3 * 60 * MIN, dayStart + MIN);
+    if (overStart + 30 * MIN >= Date.now()) return;
     const over = (
       await w.n.post(
         "/v1/visits",
         plan({
-          start: new Date(Date.now() - 3 * 60 * MIN).toISOString(),
+          start: new Date(overStart).toISOString(),
+          durationMinutes: 30,
           allowOverlap: true,
         }),
       )
