@@ -48,8 +48,14 @@ class PositionMap extends ConsumerWidget {
                     maxZoom: 18,
                   )
                 : null,
+            // Two fingers move and zoom the map, a double tap zooms: one finger scrolls the page the
+            // map sits in (a swipe over the map used to drag the point out of view).
             interactionOptions: const InteractionOptions(
-              flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
+              flags:
+                  InteractiveFlag.pinchZoom |
+                  InteractiveFlag.pinchMove |
+                  InteractiveFlag.doubleTapZoom |
+                  InteractiveFlag.scrollWheelZoom,
             ),
           ),
           children: [

@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 
@@ -48,6 +49,7 @@ class DeviceLocation implements LocationService {
         permission == LocationPermission.unableToDetermine) {
       throw const LocationException(LocationFailure.denied);
     }
+    if (defaultTargetPlatform == TargetPlatform.android) return _once();
     Position? best;
     final done = Completer<void>();
     final subscription =
@@ -82,6 +84,36 @@ class DeviceLocation implements LocationService {
       accuracyMeters: reading.accuracy,
       mocked: reading.isMocked,
     );
+  }
+
+  /// Android: one reading asked for directly. The plugin's stream of positions needs its
+  /// foreground service, which this app removes from its manifest (it never tracks): with the
+  /// stream the phone was never even asked, and every reading came back empty (found on the
+  /// owner's Samsung, 2026-11-12). A precise reading first; indoors, where the satellites do not
+  /// answer in time, the position the phone works out from Wi-Fi and the network.
+  Future<Fix> _once() async {
+    for (final (accuracy, limit) in const [
+      (LocationAccuracy.best, _wait),
+      (LocationAccuracy.medium, Duration(seconds: 8)),
+    ]) {
+      try {
+        final p = await Geolocator.getCurrentPosition(
+          locationSettings: AndroidSettings(
+            accuracy: accuracy,
+            timeLimit: limit,
+          ),
+        );
+        return Fix(
+          latitude: p.latitude,
+          longitude: p.longitude,
+          accuracyMeters: p.accuracy,
+          mocked: p.isMocked,
+        );
+      } on Object {
+        // No reading in time at this precision: the next one, or none.
+      }
+    }
+    throw const LocationException(LocationFailure.unavailable);
   }
 
   @override

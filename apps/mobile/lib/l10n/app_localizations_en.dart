@@ -797,18 +797,18 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get locationContinueWithout => 'Check in without a position';
+  String get locationContinueWithout => 'Continue without a position';
 
   @override
   String get locationDeniedBody =>
-      'BioBalance reads your position only when you tap “I\'m here” or “I\'m leaving”, to confirm you are at the place. Allow it in your phone\'s settings, or check in without a position and say why.';
+      'BioBalance reads your position only when you tap “Record my position” or “I\'m leaving”, to confirm you are at the place. Allow it in your phone\'s settings.';
 
   @override
   String get locationDeniedTitle => 'Position not allowed';
 
   @override
   String get locationOffBody =>
-      'Turn location on in your phone, or check in without a position and say why.';
+      'Turn location on in your phone, then try again.';
 
   @override
   String get locationOffTitle => 'Location is off';
@@ -822,7 +822,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get locationUnavailableBody =>
-      'Go outdoors or near a window and try again, or check in without a position and say why.';
+      'Your phone gave no position. Go outdoors or near a window and try again.';
 
   @override
   String get locationUnavailableTitle => 'No position found';
@@ -2401,7 +2401,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get visitPlace => 'Place';
 
   @override
-  String get visitReasonHint => 'For example: the store moved, no signal…';
+  String get visitReasonHint =>
+      'For example: the store moved, we met next door…';
 
   @override
   String get visitReasonSend => 'Send';

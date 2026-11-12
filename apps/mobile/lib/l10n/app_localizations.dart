@@ -1409,13 +1409,13 @@ abstract class AppLocalizations {
   /// No description provided for @locationContinueWithout.
   ///
   /// In en, this message translates to:
-  /// **'Check in without a position'**
+  /// **'Continue without a position'**
   String get locationContinueWithout;
 
   /// No description provided for @locationDeniedBody.
   ///
   /// In en, this message translates to:
-  /// **'BioBalance reads your position only when you tap “I\'m here” or “I\'m leaving”, to confirm you are at the place. Allow it in your phone\'s settings, or check in without a position and say why.'**
+  /// **'BioBalance reads your position only when you tap “Record my position” or “I\'m leaving”, to confirm you are at the place. Allow it in your phone\'s settings.'**
   String get locationDeniedBody;
 
   /// No description provided for @locationDeniedTitle.
@@ -1427,7 +1427,7 @@ abstract class AppLocalizations {
   /// No description provided for @locationOffBody.
   ///
   /// In en, this message translates to:
-  /// **'Turn location on in your phone, or check in without a position and say why.'**
+  /// **'Turn location on in your phone, then try again.'**
   String get locationOffBody;
 
   /// No description provided for @locationOffTitle.
@@ -1451,7 +1451,7 @@ abstract class AppLocalizations {
   /// No description provided for @locationUnavailableBody.
   ///
   /// In en, this message translates to:
-  /// **'Go outdoors or near a window and try again, or check in without a position and say why.'**
+  /// **'Your phone gave no position. Go outdoors or near a window and try again.'**
   String get locationUnavailableBody;
 
   /// No description provided for @locationUnavailableTitle.
@@ -4217,7 +4217,7 @@ abstract class AppLocalizations {
   /// No description provided for @visitReasonHint.
   ///
   /// In en, this message translates to:
-  /// **'For example: the store moved, no signal…'**
+  /// **'For example: the store moved, we met next door…'**
   String get visitReasonHint;
 
   /// No description provided for @visitReasonSend.

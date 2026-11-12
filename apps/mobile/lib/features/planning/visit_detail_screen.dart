@@ -327,8 +327,11 @@ class _EventCard extends ConsumerWidget {
                 ),
               ],
             ),
-            // On its own line: what the position said can be a long sentence.
-            StatusChip(event.label(t), tone: event.tone, icon: event.icon),
+            // On its own line: what the position said can be a long sentence. "The place has no
+            // position" is what was true at the visit: once the place has one, the distance below
+            // says more.
+            if (!(event.presence == Presence.noPosition && place != null))
+              StatusChip(event.label(t), tone: event.tone, icon: event.icon),
             if (event.reason != null && event.reason!.isNotEmpty)
               Text(event.reason!, style: context.text.bodyMedium),
             if (event.flags.isNotEmpty)
