@@ -347,39 +347,64 @@ class QtyStepper extends StatelessWidget {
     );
   }
 
-  Future<int?> _askNumber(BuildContext context, int current, int? max) {
+  Future<int?> _askNumber(BuildContext context, int current, int? max) =>
+      showDialog<int>(
+        context: context,
+        builder: (context) => _NumberDialog(current: current, max: max),
+      );
+}
+
+/// The dialog that types a quantity. It owns its text controller, so the controller lives as long
+/// as the dialog is drawn, including while it closes.
+class _NumberDialog extends StatefulWidget {
+  const _NumberDialog({required this.current, required this.max});
+
+  final int current;
+  final int? max;
+
+  @override
+  State<_NumberDialog> createState() => _NumberDialogState();
+}
+
+class _NumberDialogState extends State<_NumberDialog> {
+  late final _controller = TextEditingController(text: '${widget.current}');
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
-    final controller = TextEditingController(text: '$current');
-    return showDialog<int>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(t.quantity),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          keyboardType: TextInputType.number,
-          inputFormatters: [
-            FilteringTextInputFormatter.digitsOnly,
-            LengthLimitingTextInputFormatter(6),
-          ],
-          decoration: InputDecoration(
-            helperText: max == null ? null : t.quantityMax(max),
-          ),
-          onSubmitted: (v) => Navigator.pop(context, int.tryParse(v)),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(t.cancel),
-          ),
-          TextButton(
-            onPressed: () =>
-                Navigator.pop(context, int.tryParse(controller.text)),
-            child: Text(t.confirm),
-          ),
+    return AlertDialog(
+      title: Text(t.quantity),
+      content: TextField(
+        controller: _controller,
+        autofocus: true,
+        keyboardType: TextInputType.number,
+        inputFormatters: [
+          FilteringTextInputFormatter.digitsOnly,
+          LengthLimitingTextInputFormatter(6),
         ],
+        decoration: InputDecoration(
+          helperText: widget.max == null ? null : t.quantityMax(widget.max!),
+        ),
+        onSubmitted: (v) => Navigator.pop(context, int.tryParse(v)),
       ),
-    ).whenComplete(controller.dispose);
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text(t.cancel),
+        ),
+        TextButton(
+          onPressed: () =>
+              Navigator.pop(context, int.tryParse(_controller.text)),
+          child: Text(t.confirm),
+        ),
+      ],
+    );
   }
 }
 

@@ -90,9 +90,9 @@
 	<key>NSCameraUsageDescription</key>
 	<string>BioBalance uses the camera to scan product barcodes and to photograph stock and delivery papers as proof.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>BioBalance reads your position once, when you tap “I’m here” or “I’m leaving” on a visit, to confirm you are at the place. It is never followed in the background.</string>
+	<string>BioBalance reads your position once, when you tap “Record my position” or “I’m leaving” on a visit, to confirm you are at the place. It is never followed in the background.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>BioBalance reads your position once, when you tap “I’m here” or “I’m leaving” on a visit, to confirm you are at the place. It is never followed in the background.</string>
+	<string>BioBalance reads your position once, when you tap “Record my position” or “I’m leaving” on a visit, to confirm you are at the place. It is never followed in the background.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Choose a photo of your stock or of a delivery paper to attach it as proof.</string>
 

@@ -15,7 +15,6 @@ Future<List<Map<String, Object>>?> amendQuantities(
   bool allowAdd = false,
   String? confirmLabel,
 }) {
-  final controller = QuantityController(items);
   return showModalBottomSheet<List<Map<String, Object>>>(
     context: context,
     isScrollControlled: true,
@@ -23,17 +22,17 @@ Future<List<Map<String, Object>>?> amendQuantities(
     builder: (context) => _AmendSheet(
       title: title,
       hint: hint,
-      controller: controller,
+      items: items,
       allowAdd: allowAdd,
       confirmLabel: confirmLabel,
     ),
-  ).whenComplete(controller.dispose);
+  );
 }
 
-class _AmendSheet extends StatelessWidget {
+class _AmendSheet extends StatefulWidget {
   const _AmendSheet({
     required this.title,
-    required this.controller,
+    required this.items,
     required this.allowAdd,
     this.hint,
     this.confirmLabel,
@@ -41,9 +40,23 @@ class _AmendSheet extends StatelessWidget {
 
   final String title;
   final String? hint;
-  final QuantityController controller;
+  final List<QuantityItem> items;
   final bool allowAdd;
   final String? confirmLabel;
+
+  @override
+  State<_AmendSheet> createState() => _AmendSheetState();
+}
+
+/// The sheet owns the quantities it edits, so they live as long as it is drawn, including while it closes.
+class _AmendSheetState extends State<_AmendSheet> {
+  late final controller = QuantityController(widget.items);
+
+  @override
+  void dispose() {
+    controller.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -59,11 +72,11 @@ class _AmendSheet extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: context.text.titleLarge),
-                if (hint != null) ...[
+                Text(widget.title, style: context.text.titleLarge),
+                if (widget.hint != null) ...[
                   const Gap(4),
                   Text(
-                    hint!,
+                    widget.hint!,
                     style: context.text.bodyMedium?.copyWith(
                       color: context.status.muted,
                     ),
@@ -77,8 +90,8 @@ class _AmendSheet extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
               child: QuantityEditor(
                 controller: controller,
-                allowAdd: allowAdd,
-                allowRemove: allowAdd,
+                allowAdd: widget.allowAdd,
+                allowRemove: widget.allowAdd,
               ),
             ),
           ),
@@ -92,7 +105,7 @@ class _AmendSheet extends StatelessWidget {
                   onPressed: controller.isEmpty
                       ? null
                       : () => Navigator.pop(context, controller.lines()),
-                  child: Text(confirmLabel ?? t.confirm),
+                  child: Text(widget.confirmLabel ?? t.confirm),
                 ),
               ),
             ),
