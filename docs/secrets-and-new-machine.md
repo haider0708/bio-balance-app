@@ -40,6 +40,20 @@ The copy was checked file by file (SHA-256) against the originals on 2026-11-05.
 4. iPhone: `bash scripts/mac-setup.sh`, then `docs/app-store-steps.md`. Android and web: Flutter 3.47.5 and the Android SDK (`docs/mobile-release.md`).
 5. Test: `ssh go2code true`, `node scripts/testflight.mjs status` (after `source ~/.biobalance/appstore/env.sh`), `cd apps/mobile && flutter analyze && flutter test`.
 
+## The 2026-11-18 move: what is on the server for the next machine
+
+Made on the old Mac before it was sold, in `/srv/biobalance-archive/` on the server (root only, mode 700):
+
+| File | What |
+|---|---|
+| `biobalance-mac-move.tar.gz.enc` | Everything that lived only on the Mac, encrypted with a passphrase the owner keeps in a password manager: `~/.biobalance` (signing and App Store keys, store screenshots, helpers, reviewer accounts), the repository's untracked private files (`.local-credentials-v2`, `mac-handoff-private.md`, the `.env` files, `Signing.xcconfig`), the SSH config (no private key), Claude's project memory, the owner's notes, and a `README-RESTORE.txt` saying where each part goes. Open it with `openssl enc -d -aes-256-cbc -pbkdf2 -iter 600000 -md sha256 -in biobalance-mac-move.tar.gz.enc | tar -xz -C ~/restore` |
+| `bio-balance-app.bundle` | The whole git history (a second copy of GitHub): `git clone bio-balance-app.bundle BIOBALANCE` |
+| `releases.tar` | The old signed builds (AAB/APK) kept in `~/.biobalance/releases` |
+
+**SSH for the next machine:** a new key pair `biobalance-newpc` (ed25519, **locked by its own passphrase**) was made and its public half added to `~ubuntu/.ssh/authorized_keys`. The private key was sent to the owner's WhatsApp (the number linked to the server) and put on the owner's Desktop (`BioBalance-pour-le-nouveau-PC`), never together with its passphrase. To lose access: delete the `biobalance-newpc` line. The old Mac's own key (`biobalance-mac`) is still authorized until the owner checks the new machine works, then delete that line too (step 4 below).
+
+**Prompt for Claude on the new machine:** open Claude Code in an empty folder and ask it to do this, in order: install git, Node 24, Flutter 3.47.5 (Android SDK, JDK), Docker, `gh`; clone the repository and read `CLAUDE.md`, `docs/project-status.md` and this file; save the key and the `go2code` host (`ssh go2code true`); restore the archive above (the owner types the passphrase), put each part where `README-RESTORE.txt` says and never commit any of it; `gh auth login`; `scripts/mac-setup.sh` on a Mac; verify with `ssh go2code true`, `node scripts/testflight.mjs status`, `flutter analyze && flutter test`, `npx vitest run`. **iPhone builds and App Store uploads need a Mac with Xcode**; Android, the server and the web console can be done from any machine.
+
 ## Before selling or giving away a machine
 
 Do these on the machine, in this order. Nothing here touches the server.
